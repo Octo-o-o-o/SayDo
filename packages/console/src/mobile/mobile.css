@@ -1,0 +1,956 @@
+/* 移动壳只消费 tokens.css,本文件不定义任何色值/字号(docs/11 §2.7)。
+   --m-* 保留为移动组件的消费名,全部别名到 tokens.css ① 矿彩原色层——
+   不是语义层:M1 移动壳无暗色设计,切 data-theme=dark 时手机必须仍是纸。
+   字阶 20/17/15/13/11 与按钮 16/12 是真机验收定稿,数值定义在 tokens.css 共享层。 */
+.m-root {
+  /* 移动字阶：页标题 20/700 · 卡片主问题 17/700 · 正文 15/400 · 次要 13/500 · 按钮主 16/700 · 按钮副 12 · chip 11/600 最小 */
+  --m-paper: var(--paper);
+  --m-card: var(--paper-card);
+  --m-ink: var(--ink);
+  --m-orange: var(--ochre);
+  --m-blue: var(--indigo);
+  --m-green: var(--pine);
+  --m-gray: var(--ink-gray);
+  --m-seal: var(--seal);
+  --m-line: var(--rule);
+  --m-muted: var(--ink-muted);
+  --m-shadow: var(--paper-shadow);
+  /* 交互态(11 §2.6/§9):与桌面同一组 token 名,但改指矿彩层——移动壳不随主题变 */
+  --focus-ring: var(--m-blue);
+  --hover-wash: var(--ink-wash);
+  --selected-wash: var(--indigo-wash);
+  min-height: 100dvh;
+  color: var(--m-ink);
+  background:
+    linear-gradient(var(--rule-line) 1px, transparent 1px),
+    var(--m-paper);
+  background-size: 100% 28px;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  font-size: var(--m-fs-body);
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+.m-root *,
+.m-root *::before,
+.m-root *::after {
+  box-sizing: border-box;
+}
+
+.m-root button,
+.m-root input {
+  color: inherit;
+  font: inherit;
+}
+
+.m-root button,
+.m-root a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.m-root a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.m-root .m-main {
+  width: min(100%, 680px);
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 38px 16px calc(104px + env(safe-area-inset-bottom));
+}
+
+.m-root .m-dstat {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  right: 0;
+  left: 0;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 8px;
+  color: var(--paper-fg);
+  background: var(--m-gray);
+  font: 600 var(--m-fs-chip)/1.2 var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.m-root .m-dstat-reconnect {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 2px 8px;
+  color: var(--paper-fg);
+  border: 1px solid color-mix(in srgb, var(--paper-fg) 45%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--ink) 14%, transparent);
+  font: 600 var(--m-fs-chip)/1.2 var(--font-mono);
+  cursor: pointer;
+}
+
+.m-root .m-dstat-online {
+  background: var(--m-green);
+}
+
+.m-root .m-dstat-connecting {
+  background: var(--m-blue);
+}
+
+.m-root .m-dstat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.9;
+}
+
+.m-root .m-topbar {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 2px 14px;
+  border-bottom: 1px solid var(--m-line);
+}
+
+.m-root .m-avatar,
+.m-root .m-back {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--ink) 34%, transparent);
+  border-radius: 50%;
+  color: var(--seal-fg);
+  background: var(--m-seal);
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--seal-fg) 18%, transparent);
+  font: 700 19px/1 Georgia, serif;
+}
+
+.m-root .m-back {
+  color: var(--m-ink);
+  background: var(--m-card);
+  box-shadow: none;
+}
+
+.m-root .m-titlebox {
+  min-width: 0;
+}
+
+.m-root .m-title {
+  overflow: hidden;
+  font: 700 var(--m-fs-title)/1.25 var(--font-ledger);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-root .m-crumb,
+.m-root .m-meta,
+.m-root .m-direction small,
+.m-root .m-trail small,
+.m-root .m-trail time,
+.m-root .m-confirm-kicker,
+.m-root .m-read-card > span,
+.m-root .m-receipt > span {
+  color: var(--m-muted);
+  font: 500 var(--m-fs-secondary)/1.45 var(--font-mono);
+  letter-spacing: 0.03em;
+}
+
+.m-root .m-ballbar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 18px 0 22px;
+  overflow: hidden;
+  border: 1px solid var(--m-line);
+  border-radius: var(--radius-lg);
+  background: var(--paper-soft);
+  box-shadow: var(--m-shadow);
+}
+
+.m-root .m-ball {
+  min-width: 0;
+  padding: 10px 3px 9px;
+  text-align: center;
+  border-right: 1px dashed var(--m-line);
+}
+
+.m-root .m-ball:last-child {
+  border-right: 0;
+}
+
+.m-root .m-ball strong,
+.m-root .m-ball span {
+  display: block;
+}
+
+.m-root .m-ball strong {
+  font: 700 20px/1 var(--font-mono);
+}
+
+.m-root .m-ball span {
+  margin-top: 5px;
+  overflow: hidden;
+  font: 600 var(--m-fs-chip)/1.3 sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-root .m-orange,
+.m-root .m-group-orange .m-group-title span,
+.m-root .m-state-needsYou b {
+  color: var(--m-orange);
+}
+
+.m-root .m-blue {
+  color: var(--m-blue);
+}
+
+.m-root .m-green,
+.m-root .m-state-running b {
+  color: var(--m-green);
+}
+
+.m-root .m-gray,
+.m-root .m-state-queued b,
+.m-root .m-state-settled b {
+  color: var(--m-gray);
+}
+
+.m-root .m-group,
+.m-root .m-section,
+.m-root .m-lane-section {
+  margin-top: 24px;
+}
+
+.m-root .m-group-title,
+.m-root .m-section > h2,
+.m-root .m-lane-section > h2 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 2px 9px;
+  font: 700 var(--m-fs-title)/1.25 var(--font-ledger);
+}
+
+.m-root .m-group-title small,
+.m-root .m-section h2 small,
+.m-root .m-lane-section h2 small {
+  color: var(--m-muted);
+  font: 500 var(--m-fs-secondary)/1.4 var(--font-mono);
+}
+
+.m-root .m-ledger-card,
+.m-root .m-focus-card,
+.m-root .m-lane-card,
+.m-root .m-read-card,
+.m-root .m-confirm-card,
+.m-root .m-receipt,
+.m-root .m-direction,
+.m-root .m-chat-empty {
+  width: 100%;
+  display: block;
+  margin: 0 0 10px;
+  padding: 15px;
+  text-align: left;
+  border: 1px solid var(--m-line);
+  border-radius: var(--radius-ledger);
+  background: var(--m-card);
+  box-shadow: var(--m-shadow);
+}
+
+.m-root button.m-ledger-card {
+  cursor: pointer;
+}
+
+.m-root .m-ledger-card::before {
+  width: 3px;
+  height: 34px;
+  float: left;
+  margin: 1px 11px 5px 0;
+  content: "";
+  background: currentColor;
+  border-radius: var(--radius-2xs);
+  opacity: 0.82;
+}
+
+.m-root .m-ledger-card > strong,
+.m-root .m-ledger-card > span,
+.m-root .m-focus-card strong,
+.m-root .m-focus-card small {
+  display: block;
+}
+
+.m-root .m-ledger-card > strong {
+  margin: 4px 0;
+  color: var(--m-ink);
+  font: 700 var(--m-fs-card)/1.65 var(--font-ledger);
+}
+
+.m-root .m-ledger-card > span:last-child {
+  color: var(--m-muted);
+  font: 500 var(--m-fs-secondary)/1.45 sans-serif;
+}
+
+.m-root .m-focus-list {
+  padding-top: 18px;
+}
+
+.m-root .m-focus-head {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.m-root .m-focus-head em {
+  color: var(--m-orange);
+  font: 600 var(--m-fs-chip)/1.3 var(--font-mono);
+}
+
+.m-root .m-monogram {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: var(--m-blue);
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font: 700 17px/1 var(--font-ledger);
+}
+
+.m-root .m-four-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-top: 13px;
+  padding-top: 11px;
+  border-top: 1px dashed var(--m-line);
+}
+
+.m-root .m-four-grid span,
+.m-root .m-four-grid b,
+.m-root .m-four-grid small {
+  display: block;
+  text-align: center;
+}
+
+.m-root .m-four-grid b {
+  font: 700 17px/1.2 var(--font-mono);
+}
+
+.m-root .m-four-grid small {
+  color: var(--m-muted);
+  font: 600 var(--m-fs-chip)/1.3 sans-serif;
+}
+
+.m-root .m-direction {
+  margin-top: 18px;
+  padding-left: 20px;
+  border-left: 4px solid var(--m-blue);
+}
+
+.m-root .m-direction span,
+.m-root .m-direction strong,
+.m-root .m-direction small {
+  display: block;
+}
+
+.m-root .m-direction strong {
+  margin: 9px 0;
+  font: 700 var(--m-fs-card)/1.65 var(--font-ledger);
+}
+
+.m-root .m-lane-card {
+  padding: 13px 15px;
+}
+
+.m-root .m-lane-card > strong {
+  display: block;
+  margin-bottom: 8px;
+  font: 700 var(--m-fs-card)/1.4 var(--font-ledger);
+}
+
+.m-root .m-chip {
+  display: inline-block;
+  margin: 0 5px 4px 0;
+  padding: 2px 7px;
+  color: var(--m-muted);
+  border: 1px solid var(--m-line);
+  border-radius: var(--radius-sm);
+  font: 600 var(--m-fs-chip)/1.5 var(--font-mono);
+}
+
+.m-root .m-chip-needsYou {
+  color: var(--m-orange);
+  border-color: var(--ochre-line);
+}
+
+.m-root .m-chip-running {
+  color: var(--m-green);
+  border-color: var(--pine-line);
+}
+
+.m-root .m-trail article {
+  position: relative;
+  margin-left: 8px;
+  padding: 0 0 18px 18px;
+  border-left: 1px dashed var(--m-line);
+}
+
+.m-root .m-trail article::before {
+  position: absolute;
+  top: 5px;
+  left: -4px;
+  width: 7px;
+  height: 7px;
+  content: "";
+  background: var(--m-blue);
+  border-radius: 50%;
+}
+
+.m-root .m-trail time,
+.m-root .m-trail strong,
+.m-root .m-trail small {
+  display: block;
+}
+
+.m-root .m-trail strong {
+  margin: 3px 0;
+  font-family: var(--font-ledger);
+}
+
+.m-root .m-lane-section {
+  padding-top: 3px;
+  border-top: 3px solid var(--m-gray);
+}
+
+.m-root .m-lane-needsYou {
+  border-color: var(--m-orange);
+}
+
+.m-root .m-lane-running {
+  border-color: var(--m-green);
+}
+
+.m-root .m-empty-row {
+  margin: 0;
+  padding: 10px 4px;
+  color: var(--m-muted);
+  font: 500 var(--m-fs-secondary)/1.45 sans-serif;
+}
+
+.m-root .m-confirm-card,
+.m-root .m-read-card,
+.m-root .m-receipt {
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: var(--radius-ledger-lg);
+}
+
+.m-root .m-confirm-card h1,
+.m-root .m-read-card h1,
+.m-root .m-receipt h1,
+.m-root .m-chat-empty h1 {
+  margin: 8px 0 18px;
+  font: 700 var(--m-fs-card)/1.65 var(--font-ledger);
+}
+
+.m-root .m-countdown {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 9px;
+  margin: 15px 0;
+  padding: 10px 12px;
+  color: var(--m-orange);
+  border: 1px dashed color-mix(in srgb, var(--ochre) 58%, transparent);
+  background: var(--ochre-wash);
+}
+
+.m-root .m-countdown strong {
+  font: 700 20px/1 var(--font-mono);
+}
+
+.m-root .m-countdown span {
+  color: var(--m-muted);
+  font: 500 var(--m-fs-secondary)/1.4 sans-serif;
+}
+
+.m-root .m-confirm-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.m-root .m-confirm-actions button {
+  min-height: 61px;
+  padding: 7px;
+  border: 1px solid var(--m-line);
+  border-radius: var(--radius-xs);
+  background: transparent;
+}
+
+.m-root .m-confirm-actions button:disabled {
+  cursor: not-allowed;
+  opacity: var(--disabled-opacity);
+}
+
+.m-root .m-confirm-actions strong,
+.m-root .m-confirm-actions span {
+  display: block;
+}
+
+.m-root .m-confirm-actions strong {
+  font-family: var(--font-ledger);
+  font-size: var(--m-fs-btn);
+  font-weight: 700;
+}
+
+.m-root .m-confirm-actions span {
+  margin-top: 2px;
+  color: var(--m-muted);
+  font: 500 var(--m-fs-btn-sub)/1.35 sans-serif;
+}
+
+/* 「做」= 盖章(承诺型终局动作,11 §2.7 品牌朱);浏览/选择类仍黛蓝。
+   走 --m-seal/--seal-fg(矿彩层)而非 --brand-seal(语义层),移动壳不随主题变。 */
+.m-root .m-confirm-actions .m-confirm-do {
+  color: var(--seal-fg);
+  border-color: var(--m-seal);
+  background: var(--m-seal);
+}
+
+.m-root .m-confirm-actions .m-confirm-do span {
+  color: var(--paper-fg-dim);
+}
+
+.m-root .m-confirm-actions .m-confirm-undo {
+  grid-column: 1 / -1;
+  min-height: 48px;
+  color: var(--m-seal);
+  border-style: dashed;
+}
+
+.m-root .m-say-change,
+.m-root .m-read-card a,
+.m-root .m-receipt a {
+  display: block;
+  margin: 15px 0 8px;
+  color: var(--m-blue);
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.m-root .m-confirm-principle,
+.m-root .m-read-card p,
+.m-root .m-receipt p {
+  color: var(--m-muted);
+  font: 500 var(--m-fs-secondary)/1.45 sans-serif;
+}
+
+.m-root .m-notice {
+  margin: 18px 0;
+  padding: 13px 14px;
+  color: var(--m-muted);
+  border: 1px dashed var(--m-line);
+  background: var(--paper-soft);
+  font: 400 var(--m-fs-body)/1.55 sans-serif;
+}
+
+.m-root .m-notice-error {
+  color: var(--m-seal);
+  border-color: var(--seal-line);
+}
+
+.m-root .m-notice a {
+  margin-left: 8px;
+  color: var(--m-blue);
+  text-decoration: underline;
+}
+
+.m-root .m-chat-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 18px;
+}
+
+.m-root .m-chat-empty span {
+  color: var(--m-seal);
+  font: 600 var(--m-fs-chip)/1 var(--font-mono);
+}
+
+.m-root .m-chat-empty button {
+  padding: 7px 11px;
+  color: var(--m-blue);
+  border: 1px solid color-mix(in srgb, var(--indigo) 45%, transparent);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  font: 700 var(--m-fs-btn)/1.3 sans-serif;
+}
+
+.m-root .m-bubble {
+  max-width: 88%;
+  padding: 11px 13px;
+  border: 1px solid var(--m-line);
+  border-radius: 2px 13px 13px;
+  background: var(--m-card);
+  box-shadow: var(--paper-shadow-soft);
+  font: 400 var(--m-fs-body)/1.55 sans-serif;
+}
+
+.m-root .m-bubble-user {
+  align-self: flex-end;
+  color: var(--paper-fg);
+  border-color: var(--m-blue);
+  border-radius: 13px 2px 13px 13px;
+  background: var(--m-blue);
+}
+
+.m-root .m-bubble-pending {
+  opacity: 0.62;
+}
+
+.m-root .m-bubble-user.m-bubble-pending {
+  color: var(--paper-fg-dim);
+  background: color-mix(in srgb, var(--indigo) 58%, transparent);
+  border-color: color-mix(in srgb, var(--indigo) 42%, transparent);
+}
+
+.m-root .m-thinking {
+  color: var(--m-muted);
+  font-style: italic;
+}
+
+.m-root .m-thinking-error {
+  color: var(--m-seal);
+  border-color: var(--seal-line);
+  background: var(--seal-wash);
+  font-style: normal;
+}
+
+.m-root .m-dock {
+  position: fixed;
+  z-index: 40;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 9px;
+  width: min(100%, 680px);
+  margin: 0 auto;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, var(--m-paper) 22%);
+}
+
+.m-root .m-menu-button,
+.m-root .m-mic-focus,
+.m-root .m-send {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+}
+
+.m-root .m-menu-button {
+  width: 48px;
+  height: 48px;
+  color: var(--m-ink);
+  border: 1px solid var(--m-line);
+  border-radius: 50%;
+  background: var(--m-card);
+  box-shadow: var(--m-shadow);
+}
+
+.m-root .m-composer {
+  min-width: 0;
+  height: 48px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  align-items: center;
+  border: 1px solid var(--m-blue);
+  border-radius: var(--radius-pill);
+  background: var(--m-blue);
+  box-shadow: var(--paper-shadow-ink);
+}
+
+.m-root .m-composer input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--paper-fg);
+  background: transparent;
+}
+
+.m-root .m-composer input::placeholder {
+  color: var(--paper-fg-dim);
+}
+
+.m-root .m-mic-focus,
+.m-root .m-send {
+  color: var(--paper-fg);
+}
+
+.m-root .m-send:disabled,
+.m-root .m-mic-focus:disabled {
+  opacity: var(--disabled-opacity);
+}
+
+/* 非 online 只是降级可用(输入与键盘话筒仍可编辑草稿,11 §5.6b),不是 disabled */
+.m-root[data-dstat="offline"] .m-composer,
+.m-root[data-dstat="connecting"] .m-composer {
+  opacity: var(--dimmed-opacity);
+}
+
+.m-root[data-native="true"] .m-main {
+  padding-bottom: calc(134px + env(safe-area-inset-bottom));
+}
+
+.m-root[data-native="true"] .m-dock {
+  bottom: calc(62px + env(safe-area-inset-bottom));
+  grid-template-columns: 42px minmax(0, 1fr);
+  padding: 6px 14px;
+  background: linear-gradient(transparent, var(--m-paper) 35%);
+}
+
+.m-root[data-native="true"] .m-menu-button {
+  width: 40px;
+  height: 40px;
+}
+
+.m-root[data-native="true"] .m-composer {
+  height: 40px;
+  grid-template-columns: minmax(0, 1fr) 36px;
+  border-color: var(--m-line);
+  border-radius: var(--radius-lg);
+  background: var(--m-card);
+  box-shadow: var(--m-shadow);
+}
+
+.m-root[data-native="true"] .m-mic-focus {
+  display: none;
+}
+
+.m-root[data-native="true"] .m-composer input {
+  padding-left: 13px;
+  color: var(--m-ink);
+}
+
+.m-root[data-native="true"] .m-composer input::placeholder {
+  color: var(--m-muted);
+}
+
+.m-root[data-native="true"] .m-send {
+  color: var(--m-blue);
+}
+
+.m-root .m-menu-mask {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  background: var(--paper-scrim);
+}
+
+.m-root .m-menu {
+  width: min(82vw, 330px);
+  min-height: 100%;
+  padding: calc(18px + env(safe-area-inset-top)) 17px 24px;
+  background: var(--m-paper);
+  box-shadow: var(--paper-shadow-drawer);
+}
+
+.m-root .m-menu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 3px 16px;
+  border-bottom: 1px solid var(--m-line);
+}
+
+.m-root .m-menu-head strong,
+.m-root .m-menu-head span {
+  display: block;
+}
+
+.m-root .m-menu-head strong {
+  color: var(--m-seal);
+  font: 700 var(--m-fs-title)/1.25 var(--font-ledger);
+}
+
+.m-root .m-menu-head span {
+  color: var(--m-muted);
+  font: 500 var(--m-fs-secondary)/1.4 sans-serif;
+}
+
+.m-root .m-menu-head button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--m-line);
+  border-radius: 50%;
+  background: var(--m-card);
+}
+
+.m-root .m-menu nav {
+  display: grid;
+  gap: 6px;
+  padding: 16px 0;
+}
+
+.m-root .m-menu nav a,
+.m-root .m-menu nav button {
+  display: block;
+  width: 100%;
+  padding: 11px 12px;
+  border: none;
+  border-bottom: 1px dashed var(--m-line);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: 700 var(--m-fs-title)/1.3 var(--font-ledger);
+}
+
+.m-root .m-menu nav span {
+  display: block;
+  color: var(--m-muted);
+  font: 500 var(--m-fs-secondary)/1.45 var(--font-mono);
+}
+
+.m-root .m-menu-readonly {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--m-line);
+  background: var(--paper-soft);
+}
+
+.m-root .m-menu-readonly span,
+.m-root .m-menu-readonly strong,
+.m-root .m-menu-readonly small {
+  display: block;
+}
+
+.m-root .m-menu-readonly span,
+.m-root .m-menu-readonly small {
+  color: var(--m-muted);
+  font: 500 var(--m-fs-secondary)/1.4 sans-serif;
+}
+
+.m-root .m-menu-readonly strong {
+  margin: 4px 0;
+  font: 700 var(--m-fs-body)/1.4 sans-serif;
+}
+
+.m-root .m-menu-reconnect {
+  margin-top: 8px;
+  padding: 8px 10px;
+  width: 100%;
+  color: var(--paper-fg);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: var(--m-blue);
+  font: 700 var(--m-fs-btn)/1.3 sans-serif;
+  cursor: pointer;
+}
+
+/* 记忆库:纸账本只读列表(标题/时间/来源) */
+.m-root .m-menu-memory {
+  margin-top: 4px;
+  padding: 12px;
+  border: 1px solid var(--m-line);
+  background:
+    linear-gradient(var(--rule-line) 1px, transparent 1px),
+    var(--paper-card);
+  background-size: 100% 22px;
+}
+
+.m-root .m-menu-memory > span,
+.m-root .m-menu-memory > small {
+  display: block;
+  color: var(--m-muted);
+  font: 500 var(--m-fs-secondary)/1.4 sans-serif;
+}
+
+.m-root .m-menu-memory > span {
+  margin-bottom: 8px;
+  color: var(--m-seal);
+  font: 700 var(--m-fs-body)/1.3 var(--font-ledger);
+}
+
+.m-root .m-memory-ledger {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0;
+  max-height: 42vh;
+  overflow: auto;
+}
+
+.m-root .m-memory-row {
+  padding: 10px 2px;
+  border-top: 1px dashed var(--m-line);
+}
+
+.m-root .m-memory-row:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+
+.m-root .m-memory-row strong,
+.m-root .m-memory-row span {
+  display: block;
+}
+
+.m-root .m-memory-row strong {
+  color: var(--m-ink);
+  font: 700 var(--m-fs-secondary)/1.45 var(--font-ledger);
+}
+
+.m-root .m-memory-row span {
+  margin-top: 3px;
+  color: var(--m-muted);
+  font: 500 11px/1.4 var(--font-mono);
+}
+
+.m-root .m-bubble-history {
+  opacity: 0.92;
+}
+
+.m-root .m-toast {
+  position: fixed;
+  z-index: 70;
+  top: 42px;
+  left: 50%;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 9px 14px;
+  color: var(--seal-fg);
+  background: var(--m-seal);
+  border-radius: var(--radius-ledger-sm);
+  box-shadow: var(--m-shadow);
+  transform: translateX(-50%);
+  font: 500 var(--m-fs-secondary)/1.4 sans-serif;
+}
+
+@media (max-width: 390px) {
+  .m-root .m-main {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  /* chip 11px 为最小红线，窄屏不再缩小 */
+  .m-root .m-ball span {
+    font-size: var(--m-fs-chip);
+  }
+}

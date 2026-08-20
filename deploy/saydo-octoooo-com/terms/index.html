@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>使用条款 · 说到</title>
+  <meta name="theme-color" content="#f0ede4" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#12161f" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <script>
+    (function () {
+      var t = "";
+      try { t = localStorage.getItem("saydo.theme") || ""; } catch (e) {}
+      if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
+      else if (t === "light") document.documentElement.setAttribute("data-theme", "light");
+    })();
+  </script>
+  <link rel="stylesheet" href="/tokens.css" />
+  <link rel="stylesheet" href="/site.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="brand-lockup" href="/">
+        <img class="brand-mark" src="/icon-192.png" alt="说到" />
+        <span>说到</span>
+      </a>
+      <nav class="nav" data-nav aria-label="主导航">
+        <a class="nav-link" href="/">首页</a>
+        <a class="nav-link" href="/privacy/">隐私政策</a>
+        <a class="nav-link" href="/support/">支持</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn theme-toggle" data-theme-toggle type="button" aria-label="切换亮暗主题">
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        </button>
+        <button class="icon-btn menu-toggle" data-menu-toggle type="button" aria-label="打开菜单" aria-expanded="false">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="legal">
+    <div class="container">
+      <h1>使用条款</h1>
+      <p class="lede">生效日期：2026 年 8 月 13 日　|　开发者：汪义骁（个人）</p>
+      <p>「说到」（英文名 SayDo）是开源桌面软件的移动伴侣。你在自己的电脑上运行桌面服务，用手机扫码在局域网内连接。开发者不提供云端代管，也不为你保管账号。</p>
+      <h2>许可</h2>
+      <p>本应用免费提供。你可以按开源仓库中的许可证使用桌面端源码。商店分发的移动应用按各商店标准许可授予你个人、非独占的使用权。</p>
+      <h2>你需要自行负责的部分</h2>
+      <ul>
+        <li>你的电脑、网络与配对设备的安全；</li>
+        <li>你在桌面端接入的第三方 AI / CLI 服务的费用、条款与输出；</li>
+        <li>你让助手执行的操作及其后果。</li>
+      </ul>
+      <h2>免责</h2>
+      <p>软件按现状提供。开发者不对特定用途的适用性作保证。因第三方模型、你的本地环境或误操作造成的损失，由使用方自行承担。</p>
+      <h2>联系</h2>
+      <p><a href="mailto:support@octoooo.com">support@octoooo.com</a></p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <span class="footer-brand">
+          <img src="/icon-192.png" alt="" />
+          说到 SayDo
+        </span>
+        <nav class="footer-links" aria-label="页脚导航">
+          <a href="/">首页</a>
+          <a href="/privacy/">隐私政策</a>
+          <a href="/support/">支持</a>
+          <a href="mailto:support@octoooo.com">support@octoooo.com</a>
+        </nav>
+        <div class="footer-meta">© 2026 说到（SayDo）· 开发者 汪义骁 · 本地优先 · 开源 · 隐私至上</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/theme.js" defer></script>
+</body>
+</html>

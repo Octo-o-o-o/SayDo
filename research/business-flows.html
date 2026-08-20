@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoiceLoop 业务流程图(供确认)</title>
+<style>
+  :root{
+    --owner:#f59e0b; --owner-bg:#fef3c7;
+    --voice:#3b82f6; --voice-bg:#dbeafe;
+    --daemon:#8b5cf6; --daemon-bg:#ede9fe;
+    --agent:#10b981; --agent-bg:#d1fae5;
+    --mem:#ca8a04; --mem-bg:#fef9c3;
+    --call:#ef4444; --call-bg:#fee2e2;
+    --dec:#64748b; --dec-bg:#f1f5f9;
+    --ink:#0f172a; --edge:#94a3b8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#f8fafc;color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6}
+  header{padding:28px 24px;background:#fff;border-bottom:1px solid #e2e8f0}
+  h1{margin:0 0 6px;font-size:22px}
+  header p{margin:2px 0;color:#475569;font-size:14px}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+  .legend span{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#334155}
+  .dot{width:13px;height:13px;border-radius:3px;display:inline-block;border:1.5px solid}
+  main{max-width:1120px;margin:0 auto;padding:8px 16px 60px}
+  section{background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin:20px 0;padding:18px 20px}
+  h2{font-size:17px;margin:2px 0 4px}
+  .cap{color:#475569;font-size:13.5px;margin:0 0 12px}
+  svg{width:100%;height:auto;display:block}
+  .note{background:#f1f5f9;border-radius:8px;padding:10px 14px;font-size:13px;color:#334155;margin-top:10px}
+  text{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+</style>
+</head>
+<body>
+<header>
+  <h1>VoiceLoop 业务流程图（供你确认）</h1>
+  <p>基准：主方案 v1.12 + <code>business-flows.md</code>。这些图是我对整个业务的理解可视化，请对照确认；确认后即可作为实施蓝本。</p>
+  <p>约定：级联为默认语音引擎、S2S 为增强；主闭环拆成「对话→就绪→决策包」与「派发→执行→回叫→验收」两段；多人会议模式为未来项。</p>
+  <p><b>v1.13 更新</b>：据三本地项目综合，下游执行层明确为<b>复用 Hopper 执行后端</b>（非自建）；VoiceLoop 自建收缩到「语音前脑」三块能力 + 一层缝合。见图 0 与 <code>local-projects-borrowing-assessment.md</code>（待你确认的战略）。</p>
+  <div class="legend">
+    <span><i class="dot" style="background:var(--owner-bg);border-color:var(--owner)"></i>人 / owner</span>
+    <span><i class="dot" style="background:var(--voice-bg);border-color:var(--voice)"></i>语音 / 控制台 / Brain</span>
+    <span><i class="dot" style="background:var(--daemon-bg);border-color:var(--daemon)"></i>daemon / 编排</span>
+    <span><i class="dot" style="background:var(--agent-bg);border-color:var(--agent)"></i>agent / 执行</span>
+    <span><i class="dot" style="background:var(--mem-bg);border-color:var(--mem)"></i>记忆 / 产物</span>
+    <span><i class="dot" style="background:var(--call-bg);border-color:var(--call)"></i>回叫 / 通知</span>
+    <span><i class="dot" style="background:var(--dec-bg);border-color:var(--dec)"></i>判定 / 分支</span>
+  </div>
+</header>
+<main>
+
+<!-- ============ 图0 前脑+后端分工 ============ -->
+<section style="border-color:#c7d2fe">
+  <h2>图 0 · 落地分工：VoiceLoop 语音前脑 + Hopper 执行后端（v1.13，待战略确认）</h2>
+  <p class="cap">三本地项目综合结论：VoiceLoop 只自建「语音前脑」三块独特能力 + 一层缝合，其余下游复用现成（首选 Hopper）。</p>
+  <svg viewBox="0 0 980 430" role="img" aria-label="前脑后端分工">
+    <defs><marker id="a0" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#64748b"/></marker>
+      <marker id="a0b" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#8b5cf6"/></marker></defs>
+    <!-- 自建 -->
+    <rect x="30" y="40" width="420" height="360" rx="12" fill="#eff6ff" stroke="var(--voice)" stroke-width="2"/>
+    <text x="240" y="66" text-anchor="middle" font-size="14" font-weight="700" fill="#1d4ed8">VoiceLoop 自建（语音前脑 · 独特能力）</text>
+    <g font-size="12.5" text-anchor="middle">
+      <rect x="55" y="84" width="370" height="46" rx="9" fill="var(--voice-bg)" stroke="var(--voice)" stroke-width="1.6"/><text x="240" y="105" font-weight="600">① 实时语音引擎（级联默认 / S2S 增强）</text><text x="240" y="121" font-size="11" fill="#475569">打断 / 亚秒响应 / AEC</text>
+      <rect x="55" y="142" width="370" height="46" rx="9" fill="var(--voice-bg)" stroke="var(--voice)" stroke-width="1.6"/><text x="240" y="163" font-weight="600">② Brain：采访 / 双维就绪 / 决策包</text><text x="240" y="179" font-size="11" fill="#475569">对话优先于指令</text>
+      <rect x="55" y="200" width="370" height="46" rx="9" fill="var(--mem-bg)" stroke="var(--mem)" stroke-width="1.6"/><text x="240" y="221" font-weight="600">③ 分层记忆 L0-L3 + 项目奠基</text><text x="240" y="237" font-size="11" fill="#475569">持久知识库 / Context Pack</text>
+      <rect x="55" y="262" width="370" height="52" rx="9" fill="var(--daemon-bg)" stroke="var(--daemon)" stroke-width="2"/><text x="240" y="284" font-weight="700">④ 缝合层（薄）</text><text x="240" y="301" font-size="11" fill="#475569">drop 任务卡 / 消费事件 / 语音回叫</text>
+      <rect x="55" y="326" width="370" height="52" rx="9" fill="#fff" stroke="var(--voice)" stroke-width="1.2" stroke-dasharray="4 3"/><text x="240" y="348" font-size="11.5">这三块半 = 三本地项目都没有的、VoiceLoop</text><text x="240" y="365" font-size="11.5">唯一必须自己写的部分（零冲突）</text>
+    </g>
+    <!-- 复用 -->
+    <rect x="530" y="40" width="420" height="360" rx="12" fill="#f0fdf4" stroke="var(--agent)" stroke-width="2"/>
+    <text x="740" y="66" text-anchor="middle" font-size="14" font-weight="700" fill="#047857">复用现成（不自建）</text>
+    <g font-size="12.5" text-anchor="middle">
+      <rect x="555" y="84" width="370" height="104" rx="9" fill="var(--agent-bg)" stroke="var(--agent)" stroke-width="1.8"/>
+      <text x="740" y="106" font-weight="700">Hopper 执行后端（首选 · 同栈 MIT · 测试全绿）</text>
+      <text x="740" y="126" font-size="11" fill="#475569">runners 适配器 / worktree 隔离</text>
+      <text x="740" y="143" font-size="11" fill="#475569">事件真相源 / 崩溃恢复 / 预算熔断</text>
+      <text x="740" y="160" font-size="11" fill="#475569">验收闸门 / DecisionRequest 审批</text>
+      <text x="740" y="177" font-size="11" fill="#475569">NotificationIntent（语音=一个 transport）</text>
+      <rect x="555" y="200" width="370" height="72" rx="9" fill="var(--agent-bg)" stroke="var(--agent)" stroke-width="1.4"/>
+      <text x="740" y="222" font-weight="600">OctoDesk 低耦合模块（移植）</text>
+      <text x="740" y="241" font-size="11" fill="#475569">contextPack.ts / ExternalAgentBridge 四 adapter</text>
+      <text x="740" y="258" font-size="11" fill="#475569">planRunner 判定表 / understand-clarify-planner</text>
+      <rect x="555" y="284" width="370" height="46" rx="9" fill="var(--agent-bg)" stroke="var(--agent)" stroke-width="1.4"/>
+      <text x="740" y="305" font-weight="600">OpenClaw-Kit（抄规格）</text><text x="740" y="321" font-size="11" fill="#475569">Genesis 大项目文档流程</text>
+      <rect x="555" y="342" width="370" height="40" rx="9" fill="#fff" stroke="var(--agent)" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <text x="740" y="366" font-size="11.5">三者都独立验证了 VoiceLoop 下游设计正确</text>
+    </g>
+    <!-- 缝合 <-> Hopper -->
+    <g stroke="#8b5cf6" stroke-width="1.8" fill="none">
+      <path d="M425,282 C480,282 500,130 553,130" marker-end="url(#a0b)"/>
+      <path d="M553,150 C500,300 480,300 425,296" marker-end="url(#a0b)"/>
+    </g>
+    <g font-size="11" fill="#6d28d9" text-anchor="middle">
+      <text x="490" y="195">drop 任务卡</text>
+      <text x="490" y="330">events / 通知</text>
+    </g>
+    <!-- 借鉴虚线 -->
+    <g stroke="#10b981" stroke-width="1.3" fill="none" stroke-dasharray="4 4">
+      <path d="M425,223 C500,223 500,236 553,236" marker-end="url(#a0)"/>
+    </g>
+    <text x="490" y="228" font-size="10.5" fill="#047857" text-anchor="middle">借蓝本/原型</text>
+  </svg>
+  <div class="note">要点：这修正了主方案 §13 一个盲点——之前"重型后端=OpenClaw(可选)"，但 OpenClaw-Kit 编排正被并入 Hopper，后端终局就是 Hopper。<b>此为待你确认的战略；</b>若确认，下面图 3 的"派发→worktree→执行"即"drop 进 Hopper→Hopper 跑"，回叫即"消费 Hopper 事件"。</div>
+</section>
+
+<!-- ============ 图1 数据流总览 ============ -->
+<section>
+  <h2>图 1 · 系统架构与数据流总览</h2>
+  <p class="cap">谁把什么给谁：人↔语音↔Brain↔daemon↔agent，daemon 读写记忆并回叫人。Brain 无状态、agent 原始事件先经摘要再进 Brain。</p>
+  <svg viewBox="0 0 980 540" role="img" aria-label="数据流总览">
+    <defs>
+      <marker id="a1" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#64748b"/></marker>
+      <marker id="a1r" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#ef4444"/></marker>
+    </defs>
+    <!-- nodes -->
+    <g font-size="13.5" text-anchor="middle">
+      <!-- 人 -->
+      <rect x="60" y="40" width="150" height="52" rx="9" fill="var(--owner-bg)" stroke="var(--owner)" stroke-width="1.8"/>
+      <text x="135" y="71" font-weight="600">人（owner）</text>
+      <!-- 控制台 -->
+      <rect x="60" y="150" width="150" height="52" rx="9" fill="var(--voice-bg)" stroke="var(--voice)" stroke-width="1.8"/>
+      <text x="135" y="181">Web 语音控制台</text>
+      <!-- 语音引擎 -->
+      <rect x="60" y="260" width="150" height="52" rx="9" fill="var(--voice-bg)" stroke="var(--voice)" stroke-width="1.8"/>
+      <text x="135" y="282">语音引擎</text><text x="135" y="299" font-size="11" fill="#475569">级联(默认)/S2S</text>
+      <!-- Brain -->
+      <rect x="330" y="260" width="160" height="52" rx="9" fill="var(--voice-bg)" stroke="var(--voice)" stroke-width="1.8"/>
+      <text x="410" y="282" font-weight="600">Brain 对话大脑</text><text x="410" y="299" font-size="11" fill="#475569">准备知识/回答</text>
+      <!-- daemon -->
+      <rect x="330" y="370" width="160" height="58" rx="9" fill="var(--daemon-bg)" stroke="var(--daemon)" stroke-width="2"/>
+      <text x="410" y="395" font-weight="600">voiced daemon</text><text x="410" y="413" font-size="11" fill="#475569">编排/执行工具/摘要</text>
+      <!-- 适配器 -->
+      <rect x="580" y="370" width="370" height="58" rx="9" fill="var(--agent-bg)" stroke="var(--agent)" stroke-width="2"/>
+      <text x="765" y="393" font-weight="700">Hopper 执行后端（复用）</text><text x="765" y="412" font-size="11" fill="#475569">适配器 / worktree / 事件真相源 / 恢复 / 预算 / 验收</text>
+      <!-- 记忆 -->
+      <rect x="330" y="470" width="400" height="46" rx="9" fill="var(--mem-bg)" stroke="var(--mem)" stroke-width="1.8"/>
+      <text x="530" y="498">分层记忆 L0–L3 + 产物库（持久知识库 / Context Pack）</text>
+      <!-- 通知 -->
+      <rect x="580" y="150" width="150" height="52" rx="9" fill="var(--call-bg)" stroke="var(--call)" stroke-width="1.8"/>
+      <text x="655" y="181">通知升级链</text>
+    </g>
+    <!-- edges -->
+    <g stroke="#64748b" stroke-width="1.6" fill="none">
+      <line x1="135" y1="92" x2="135" y2="148" marker-end="url(#a1)"/>
+      <line x1="135" y1="202" x2="135" y2="258" marker-end="url(#a1)"/>
+      <line x1="210" y1="286" x2="328" y2="286" marker-end="url(#a1)"/>
+      <line x1="410" y1="312" x2="410" y2="368" marker-end="url(#a1)"/>
+      <line x1="490" y1="399" x2="578" y2="399" marker-end="url(#a1)"/>
+      <line x1="410" y1="428" x2="410" y2="468" marker-end="url(#a1)"/>
+      <line x1="730" y1="470" x2="560" y2="450" marker-end="url(#a1)" stroke-dasharray="5 4"/>
+    </g>
+    <!-- agent -> daemon 事件流 (上方回) -->
+    <g stroke="#10b981" stroke-width="1.6" fill="none">
+      <path d="M800,382 C700,340 560,340 492,378" marker-end="url(#a1)"/>
+    </g>
+    <!-- daemon -> 通知 -> 人 (回叫,红) -->
+    <g stroke="#ef4444" stroke-width="1.6" fill="none">
+      <path d="M580,388 C540,300 655,260 655,204" marker-end="url(#a1r)"/>
+      <path d="M655,150 C655,120 300,110 210,66" marker-end="url(#a1r)"/>
+    </g>
+    <!-- labels -->
+    <g font-size="11" fill="#475569" text-anchor="middle">
+      <text x="150" y="126">音频</text>
+      <text x="270" y="278">音频⇄</text>
+      <text x="432" y="343">工具调用</text>
+      <text x="534" y="392">派发</text>
+      <text x="620" y="330" fill="#10b981">事件流</text>
+      <text x="470" y="450" fill="#ca8a04">产物</text>
+      <text x="560" y="300" fill="#ef4444">回叫</text>
+      <text x="420" y="120" fill="#ef4444">叫人</text>
+    </g>
+  </svg>
+  <div class="note">要点：① Brain 无状态、无直接执行权——副作用全在 daemon，工具返回值是它的全部世界观（语音层可随时重建）。② agent 原始事件流永不直接进 Brain，先经摘要器。③ 记忆是枢纽：daemon 读它拼 Context Pack、写它沉淀产物。</div>
+</section>
+
+<!-- ============ 图2 主闭环上半 ============ -->
+<section>
+  <h2>图 2 · 主交互闭环（上半）：对话 → 双维就绪自省 → 决策包 → 拍板</h2>
+  <p class="cap">不下指令，聊到 AI 自己判断「知识够 + 需求清」两维都够，才主动给决策包请你拍板。</p>
+  <svg viewBox="0 0 980 560" role="img" aria-label="对话到决策包">
+    <defs><marker id="a2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#64748b"/></marker></defs>
+    <g font-size="13" text-anchor="middle">
+      <rect x="390" y="24" width="200" height="46" rx="9" fill="var(--owner-bg)" stroke="var(--owner)" stroke-width="1.8"/>
+      <text x="490" y="52" font-weight="600">开麦 / 选一个项目</text>
+      <!-- 路径分叉 -->
+      <polygon points="490,100 590,132 490,164 390,132" fill="var(--dec-bg)" stroke="var(--dec)" stroke-width="1.6"/>
+      <text x="490" y="137" font-size="12">哪条路径？</text>
+      <!-- three paths -->
+      <rect x="40" y="200" width="250" height="60" rx="9" fill="var(--mem-bg)" stroke="var(--mem)" stroke-width="1.8"/>
+      <text x="165" y="225" font-weight="600">全新项目 → 项目奠基（重）</text><text x="165" y="245" font-size="11" fill="#475569">深研→建 L1 底座 · 显示「学习中」· 先备后答</text>
+      <rect x="365" y="200" width="250" height="60" rx="9" fill="var(--mem-bg)" stroke="var(--mem)" stroke-width="1.8"/>
+      <text x="490" y="225" font-weight="600">已有项目 → 会话预热（轻）</text><text x="490" y="245" font-size="11" fill="#475569">加载 L1 + git diff 增量刷新 + 检索 L2</text>
+      <rect x="690" y="200" width="250" height="60" rx="9" fill="var(--mem-bg)" stroke="var(--mem)" stroke-width="1.8"/>
+      <text x="815" y="225" font-weight="600">续接对话</text><text x="815" y="245" font-size="11" fill="#475569">加载会话 L3 历史 + L1 + 相关 L2</text>
+      <!-- 对话采访 -->
+      <rect x="340" y="300" width="300" height="56" rx="9" fill="var(--voice-bg)" stroke="var(--voice)" stroke-width="1.8"/>
+      <text x="490" y="323" font-weight="600">对话：AI 主导采访（一次一问/选项优先）</text><text x="490" y="342" font-size="11" fill="#475569">+ 持续准备知识（proactive）</text>
+      <!-- 就绪自省 -->
+      <polygon points="490,388 640,428 490,468 340,428" fill="var(--dec-bg)" stroke="var(--dec)" stroke-width="1.8"/>
+      <text x="490" y="424" font-size="12" font-weight="600">每轮末：就绪自省</text><text x="490" y="442" font-size="11">知识够? 需求够?</text>
+      <!-- 回环左 -->
+      <rect x="60" y="396" width="200" height="60" rx="9" fill="var(--voice-bg)" stroke="var(--voice)" stroke-width="1.4"/>
+      <text x="160" y="420" font-size="12">知识不够→补知识</text><text x="160" y="438" font-size="11" fill="#475569">learning，不必你提问</text>
+      <rect x="720" y="396" width="200" height="60" rx="9" fill="var(--voice-bg)" stroke="var(--voice)" stroke-width="1.4"/>
+      <text x="820" y="420" font-size="12">需求不够→定向采访</text><text x="820" y="438" font-size="11" fill="#475569">补缺口，不发散</text>
+      <!-- 决策包 -->
+      <rect x="320" y="496" width="340" height="52" rx="9" fill="var(--daemon-bg)" stroke="var(--daemon)" stroke-width="2"/>
+      <text x="490" y="518" font-weight="600">两维都够 → 决策包（propose_start）</text><text x="490" y="536" font-size="11" fill="#475569">成果预览 + 计划(标 AI/人分工) + Demo → 请你拍板</text>
+    </g>
+    <g stroke="#64748b" stroke-width="1.6" fill="none">
+      <line x1="490" y1="70" x2="490" y2="98" marker-end="url(#a2)"/>
+      <path d="M420,150 C300,175 200,180 175,198" marker-end="url(#a2)"/>
+      <line x1="490" y1="164" x2="490" y2="198" marker-end="url(#a2)"/>
+      <path d="M560,150 C700,175 800,180 830,198" marker-end="url(#a2)"/>
+      <line x1="165" y1="260" x2="420" y2="302" marker-end="url(#a2)"/>
+      <line x1="490" y1="260" x2="490" y2="298" marker-end="url(#a2)"/>
+      <line x1="815" y1="260" x2="560" y2="302" marker-end="url(#a2)"/>
+      <line x1="490" y1="356" x2="490" y2="386" marker-end="url(#a2)"/>
+      <!-- self loops -->
+      <path d="M340,428 C280,428 220,410 220,396" marker-end="url(#a2)"/>
+      <path d="M160,396 C150,360 300,340 340,332" marker-end="url(#a2)" stroke-dasharray="5 4"/>
+      <path d="M640,428 C700,428 760,410 780,396" marker-end="url(#a2)"/>
+      <path d="M820,396 C830,360 660,338 640,332" marker-end="url(#a2)" stroke-dasharray="5 4"/>
+      <line x1="490" y1="468" x2="490" y2="494" marker-end="url(#a2)"/>
+    </g>
+    <g font-size="11" fill="#475569" text-anchor="middle">
+      <text x="560" y="446">两维都够</text>
+    </g>
+  </svg>
+  <div class="note">要点：不过早收敛——聊天阶段允许发散（思路完善），只在两维真的都够时才收敛到决策包。开工由 AI 提议，人只做审阅式轻确认（看 Demo 判断，而非凭空表达需求）。</div>
+</section>
+
+<!-- ============ 图3 主闭环下半 ============ -->
+<section>
+  <h2>图 3 · 主交互闭环（下半）：派发 → 后台执行 → 回叫 → 验收交活</h2>
+  <p class="cap">拍板「开工」后语音会话可挂起、你走开；任务后台跑，完成/卡住主动叫你，验收后合并。</p>
+  <svg viewBox="0 0 980 520" role="img" aria-label="派发到验收">
+    <defs><marker id="a3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#64748b"/></marker>
+      <marker id="a3r" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#ef4444"/></marker></defs>
+    <g font-size="13" text-anchor="middle">
+      <rect x="40" y="40" width="150" height="50" rx="9" fill="var(--owner-bg)" stroke="var(--owner)" stroke-width="1.8"/>
+      <text x="115" y="70" font-weight="600">你：开工！</text>
+      <rect x="240" y="40" width="170" height="50" rx="9" fill="var(--daemon-bg)" stroke="var(--daemon)" stroke-width="1.8"/>
+      <text x="325" y="63">drop 任务卡 → Hopper</text><text x="325" y="80" font-size="11" fill="#475569">建 worktree(+setup)</text>
+      <rect x="460" y="40" width="200" height="50" rx="9" fill="var(--agent-bg)" stroke="var(--agent)" stroke-width="1.8"/>
+      <text x="560" y="63" font-weight="600">Hopper 后台执行 + 摘要</text><text x="560" y="80" font-size="11" fill="#475569">三熔断：墙钟/回合/成本</text>
+      <rect x="710" y="40" width="230" height="50" rx="9" fill="var(--voice-bg)" stroke="var(--voice)" stroke-width="1.4"/>
+      <text x="825" y="63">语音会话挂起（成本归零）</text><text x="825" y="80" font-size="11" fill="#475569">你走开，任务照跑</text>
+      <!-- 事件判定 -->
+      <polygon points="560,150 680,192 560,234 440,192" fill="var(--dec-bg)" stroke="var(--dec)" stroke-width="1.8"/>
+      <text x="560" y="190" font-size="12" font-weight="600">任务事件</text><text x="560" y="208" font-size="11">done/blocked/failed</text>
+      <!-- 回叫 -->
+      <rect x="440" y="272" width="240" height="50" rx="9" fill="var(--call-bg)" stroke="var(--call)" stroke-width="1.8"/>
+      <text x="560" y="295" font-weight="600">回叫策略引擎 → 升级链叫人</text><text x="560" y="312" font-size="11" fill="#475569">语音→桌面→ntfy→电话 · 免打扰/仲裁</text>
+      <!-- 人应答 -->
+      <rect x="440" y="352" width="240" height="50" rx="9" fill="var(--owner-bg)" stroke="var(--owner)" stroke-width="1.8"/>
+      <text x="560" y="375">你应答 → 重建会话(注入 Pack)</text><text x="560" y="392" font-size="11" fill="#475569">听摘要/看 diff/答疑/审批</text>
+      <!-- 验收判定 -->
+      <polygon points="560,428 660,462 560,496 460,462" fill="var(--dec-bg)" stroke="var(--dec)" stroke-width="1.8"/>
+      <text x="560" y="466" font-size="12">验收？</text>
+      <!-- 改需求 -->
+      <rect x="720" y="352" width="220" height="50" rx="9" fill="var(--agent-bg)" stroke="var(--agent)" stroke-width="1.4"/>
+      <text x="830" y="375" font-size="12">改需求 → steer / resume</text><text x="830" y="392" font-size="11" fill="#475569">回到后台执行</text>
+      <!-- 合并 -->
+      <rect x="120" y="438" width="260" height="52" rx="9" fill="var(--agent-bg)" stroke="var(--agent)" stroke-width="1.8"/>
+      <text x="250" y="461" font-weight="600">通过 → merging</text><text x="250" y="479" font-size="11" fill="#475569">rebase+重跑 verify → done / PR</text>
+      <!-- 沉淀 -->
+      <rect x="120" y="352" width="260" height="50" rx="9" fill="var(--mem-bg)" stroke="var(--mem)" stroke-width="1.8"/>
+      <text x="250" y="375">产物沉淀：决策/需求/摘要→L2</text><text x="250" y="392" font-size="11" fill="#475569">重要的提炼进 L1</text>
+    </g>
+    <g stroke="#64748b" stroke-width="1.6" fill="none">
+      <line x1="190" y1="65" x2="238" y2="65" marker-end="url(#a3)"/>
+      <line x1="410" y1="65" x2="458" y2="65" marker-end="url(#a3)"/>
+      <line x1="660" y1="65" x2="708" y2="65" marker-end="url(#a3)"/>
+      <line x1="560" y1="90" x2="560" y2="148" marker-end="url(#a3)"/>
+      <line x1="560" y1="234" x2="560" y2="270" marker-end="url(#a3r)" stroke="#ef4444"/>
+      <line x1="560" y1="322" x2="560" y2="350" marker-end="url(#a3)"/>
+      <line x1="560" y1="402" x2="560" y2="426" marker-end="url(#a3)"/>
+      <path d="M660,462 C710,462 830,430 830,404" marker-end="url(#a3)"/>
+      <path d="M830,352 C830,250 700,210 682,196" marker-end="url(#a3)" stroke-dasharray="5 4"/>
+      <path d="M460,462 C400,462 300,478 382,478" marker-end="url(#a3)"/>
+      <line x1="250" y1="438" x2="250" y2="404" marker-end="url(#a3)"/>
+    </g>
+    <g font-size="11" fill="#475569" text-anchor="middle">
+      <text x="600" y="255" fill="#ef4444">叫人</text>
+      <text x="720" y="450">改需求</text>
+      <text x="410" y="452">通过</text>
+    </g>
+  </svg>
+  <div class="note">要点：语音会话与开发任务生命周期解耦（会话挂起省钱、任务后台跑）。改需求 Tier1(Claude) 走 steer 流式注入、Tier2(Codex/Cursor) 走 kill_and_resume。非 coding 类型无 merging/verify，收尾改为「内容评审」。</div>
+</section>
+
+<!-- ============ 图4 状态机 ============ -->
+<section>
+  <h2>图 4 · 任务生命周期状态机</h2>
+  <p class="cap">任务卡从「对话沉淀的草稿」到「交活」的完整状态；learning 为准备知识时的透明等待态。</p>
+  <svg viewBox="0 0 980 420" role="img" aria-label="状态机">
+    <defs><marker id="a4" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto"><path d="M0,0 L7.5,3 L0,6 Z" fill="#64748b"/></marker></defs>
+    <g font-size="12.5" text-anchor="middle">
+      <rect x="30" y="180" width="90" height="42" rx="21" fill="var(--dec-bg)" stroke="var(--dec)" stroke-width="1.6"/><text x="75" y="206">draft</text>
+      <rect x="150" y="180" width="105" height="42" rx="21" fill="var(--voice-bg)" stroke="var(--voice)" stroke-width="1.6"/><text x="202" y="206">confirmed</text>
+      <rect x="285" y="180" width="90" height="42" rx="21" fill="var(--voice-bg)" stroke="var(--voice)" stroke-width="1.6"/><text x="330" y="206">queued</text>
+      <rect x="405" y="180" width="95" height="42" rx="21" fill="var(--agent-bg)" stroke="var(--agent)" stroke-width="2"/><text x="452" y="206" font-weight="600">running</text>
+      <rect x="405" y="90" width="95" height="40" rx="20" fill="var(--mem-bg)" stroke="var(--mem)" stroke-width="1.6"/><text x="452" y="115">learning</text>
+      <rect x="405" y="292" width="95" height="40" rx="20" fill="var(--call-bg)" stroke="var(--call)" stroke-width="1.6"/><text x="452" y="317">blocked</text>
+      <rect x="545" y="180" width="90" height="42" rx="21" fill="var(--voice-bg)" stroke="var(--voice)" stroke-width="1.6"/><text x="590" y="206">review</text>
+      <rect x="675" y="180" width="95" height="42" rx="21" fill="var(--daemon-bg)" stroke="var(--daemon)" stroke-width="1.6"/><text x="722" y="206">merging</text>
+      <rect x="815" y="150" width="90" height="40" rx="20" fill="var(--agent-bg)" stroke="var(--agent)" stroke-width="1.6"/><text x="860" y="175" font-weight="600">done</text>
+      <rect x="815" y="215" width="90" height="40" rx="20" fill="var(--dec-bg)" stroke="var(--dec)" stroke-width="1.6"/><text x="860" y="240" font-size="11">merge_failed</text>
+      <rect x="545" y="300" width="95" height="40" rx="20" fill="var(--call-bg)" stroke="var(--call)" stroke-width="1.6"/><text x="592" y="325">failed</text>
+      <rect x="675" y="300" width="95" height="40" rx="20" fill="var(--dec-bg)" stroke="var(--dec)" stroke-width="1.6"/><text x="722" y="325">cancelled</text>
+    </g>
+    <g stroke="#64748b" stroke-width="1.5" fill="none">
+      <line x1="120" y1="201" x2="148" y2="201" marker-end="url(#a4)"/>
+      <line x1="255" y1="201" x2="283" y2="201" marker-end="url(#a4)"/>
+      <line x1="375" y1="201" x2="403" y2="201" marker-end="url(#a4)"/>
+      <line x1="452" y1="180" x2="452" y2="132" marker-end="url(#a4)"/>
+      <line x1="470" y1="132" x2="470" y2="178" marker-end="url(#a4)"/>
+      <line x1="452" y1="222" x2="452" y2="290" marker-end="url(#a4)"/>
+      <line x1="434" y1="290" x2="434" y2="224" marker-end="url(#a4)"/>
+      <line x1="500" y1="201" x2="543" y2="201" marker-end="url(#a4)"/>
+      <line x1="635" y1="201" x2="673" y2="201" marker-end="url(#a4)"/>
+      <path d="M590,180 C590,150 500,140 500,150" marker-end="url(#a4)" stroke-dasharray="5 4"/>
+      <line x1="722" y1="180" x2="850" y2="170" marker-end="url(#a4)"/>
+      <line x1="722" y1="222" x2="825" y2="232" marker-end="url(#a4)"/>
+      <path d="M815,240 C700,250 560,235 500,215" marker-end="url(#a4)" stroke-dasharray="5 4"/>
+      <line x1="452" y1="222" x2="560" y2="298" marker-end="url(#a4)"/>
+      <line x1="590" y1="222" x2="700" y2="298" marker-end="url(#a4)" stroke-dasharray="5 4"/>
+    </g>
+    <g font-size="10.5" fill="#475569" text-anchor="middle">
+      <text x="510" y="112">补背景</text>
+      <text x="405" y="260">审批/提问/熔断</text>
+      <text x="520" y="250">失败</text>
+      <text x="560" y="150">改</text>
+      <text x="700" y="150">解冲突/PR</text>
+    </g>
+  </svg>
+  <div class="note">要点：非 coding 类型无 merging/verify（走内容评审收尾）。启动对账：daemon 重启后，状态 running 但进程不在的任务→标 interrupted→resume 恢复。</div>
+</section>
+
+<!-- ============ 图5 记忆装配 ============ -->
+<section>
+  <h2>图 5 · 三条对话路径 × 分层记忆 × Context Pack 装配</h2>
+  <p class="cap">与「ChatGPT 新窗口」的分水岭：持久知识库(L0/L1/L2) ≠ 每次拼接的 Context Pack。</p>
+  <svg viewBox="0 0 980 500" role="img" aria-label="记忆装配">
+    <defs><marker id="a5" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#64748b"/></marker></defs>
+    <!-- 持久库 -->
+    <rect x="40" y="30" width="360" height="250" rx="12" fill="#fffbeb" stroke="var(--mem)" stroke-width="1.6" stroke-dasharray="6 4"/>
+    <text x="220" y="54" text-anchor="middle" font-size="13" font-weight="600" fill="#a16207">持久知识库（以后所有对话都用得到）</text>
+    <g font-size="12.5" text-anchor="middle">
+      <rect x="65" y="70" width="310" height="52" rx="9" fill="var(--mem-bg)" stroke="var(--mem)" stroke-width="1.6"/>
+      <text x="220" y="92" font-weight="600">L0 用户档案 · ~/.voiceloop/profile.md</text><text x="220" y="110" font-size="11" fill="#475569">偏好 / 技术栈 / 术语热词（跨项目）</text>
+      <rect x="65" y="135" width="310" height="56" rx="9" fill="var(--mem-bg)" stroke="var(--mem)" stroke-width="1.6"/>
+      <text x="220" y="157" font-weight="600">L1 项目知识底座 · .voiceloop/knowledge/</text><text x="220" y="175" font-size="11" fill="#475569">目标/架构/术语/决策（长期稳定）</text>
+      <rect x="65" y="204" width="310" height="56" rx="9" fill="var(--mem-bg)" stroke="var(--mem)" stroke-width="1.6"/>
+      <text x="220" y="226" font-weight="600">L2 累积对话知识 · 产物库 artifacts</text><text x="220" y="244" font-size="11" fill="#475569">方案/调研/决策（多版本，随对话生长）</text>
+    </g>
+    <!-- L3 -->
+    <g font-size="12.5" text-anchor="middle">
+      <rect x="40" y="330" width="360" height="52" rx="9" fill="var(--voice-bg)" stroke="var(--voice)" stroke-width="1.6"/>
+      <text x="220" y="352" font-weight="600">L3 会话工作记忆</text><text x="220" y="370" font-size="11" fill="#475569">Window + 转写（单次会话）</text>
+    </g>
+    <!-- 路径 -->
+    <g font-size="12" text-anchor="middle">
+      <rect x="470" y="40" width="220" height="44" rx="9" fill="var(--dec-bg)" stroke="var(--dec)" stroke-width="1.4"/><text x="580" y="67">A 全新项目 → 触发奠基·建 L1</text>
+      <rect x="470" y="100" width="220" height="44" rx="9" fill="var(--dec-bg)" stroke="var(--dec)" stroke-width="1.4"/><text x="580" y="121" font-size="11">B 已有项目 → 加载 L1 + git diff</text><text x="580" y="137" font-size="11">刷新 + 检索 L2</text>
+      <rect x="470" y="160" width="220" height="44" rx="9" fill="var(--dec-bg)" stroke="var(--dec)" stroke-width="1.4"/><text x="580" y="187">C 续接 → 加载会话 L3 历史</text>
+    </g>
+    <!-- Context Pack -->
+    <rect x="740" y="150" width="200" height="90" rx="12" fill="var(--daemon-bg)" stroke="var(--daemon)" stroke-width="2"/>
+    <text x="840" y="182" text-anchor="middle" font-size="13" font-weight="600">Context Pack</text>
+    <text x="840" y="202" text-anchor="middle" font-size="11" fill="#475569">每次会话临时拼的小切片</text>
+    <text x="840" y="220" text-anchor="middle" font-size="11" fill="#475569">= 检索(L0+L1+L2) + L3</text>
+    <!-- Brain -->
+    <rect x="790" y="300" width="150" height="46" rx="9" fill="var(--voice-bg)" stroke="var(--voice)" stroke-width="1.8"/>
+    <text x="865" y="328" text-anchor="middle" font-size="13" font-weight="600">注入 Brain</text>
+    <g stroke="#64748b" stroke-width="1.5" fill="none">
+      <path d="M400,150 C650,150 690,180 738,185" marker-end="url(#a5)"/>
+      <path d="M400,232 C650,232 700,210 738,210" marker-end="url(#a5)"/>
+      <path d="M400,356 C650,356 800,260 840,242" marker-end="url(#a5)"/>
+      <path d="M690,62 C720,90 780,120 810,148" marker-end="url(#a5)"/>
+      <path d="M690,122 C730,130 760,140 770,150" marker-end="url(#a5)"/>
+      <path d="M690,182 C710,182 720,175 738,178" marker-end="url(#a5)"/>
+      <line x1="840" y1="240" x2="850" y2="298" marker-end="url(#a5)"/>
+    </g>
+    <!-- 生长/提炼回环 -->
+    <g stroke="#ca8a04" stroke-width="1.5" fill="none">
+      <path d="M865,346 C560,430 300,330 220,262" marker-end="url(#a5)" stroke-dasharray="5 4"/>
+      <path d="M220,204 C160,180 160,150 200,124" marker-end="url(#a5)" stroke-dasharray="5 4"/>
+    </g>
+    <g font-size="10.5" fill="#a16207">
+      <text x="470" y="420">Brain 生成/调研的新产物 → 写 L2</text>
+      <text x="70" y="300">L2 稳定重要的 → 会后提炼进 L1</text>
+    </g>
+  </svg>
+  <div class="note">要点：全新项目必须先奠基建 L1，否则等于零上下文开聊（= ChatGPT 新窗口）。知识库随对话生长（写 L2）并定期提炼（进 L1）；代码类知识用 git diff 增量刷新，对话/调研类靠时间衰减+用户纠正（记忆生命周期治理是 §15 已识别的待补项）。</div>
+</section>
+
+<!-- ============ 图6 回叫+审批 ============ -->
+<section>
+  <h2>图 6 · 回叫升级链 + 审批风险分级</h2>
+  <p class="cap">什么事件值得打扰、用哪个通道；语音是弱认证通道，只能批到中等风险。</p>
+  <svg viewBox="0 0 980 470" role="img" aria-label="回叫与审批">
+    <defs><marker id="a6" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#ef4444"/></marker>
+      <marker id="a6g" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#64748b"/></marker></defs>
+    <!-- 回叫链 左 -->
+    <text x="230" y="28" text-anchor="middle" font-size="14" font-weight="600" fill="#b91c1c">回叫升级链（每级留 ack 窗口）</text>
+    <g font-size="12.5" text-anchor="middle">
+      <rect x="140" y="44" width="180" height="42" rx="9" fill="var(--dec-bg)" stroke="var(--dec)" stroke-width="1.6"/><text x="230" y="70">任务事件 → 定优先级</text>
+      <rect x="140" y="110" width="180" height="46" rx="9" fill="var(--call-bg)" stroke="var(--call)" stroke-width="1.6"/><text x="230" y="131">① 语音回叫</text><text x="230" y="148" font-size="11" fill="#475569">在线→重建会话播报</text>
+      <rect x="140" y="176" width="180" height="42" rx="9" fill="var(--call-bg)" stroke="var(--call)" stroke-width="1.4"/><text x="230" y="202">② 桌面通知</text>
+      <rect x="140" y="238" width="180" height="42" rx="9" fill="var(--call-bg)" stroke="var(--call)" stroke-width="1.4"/><text x="230" y="264">③ ntfy 手机推送</text>
+      <rect x="140" y="300" width="180" height="42" rx="9" fill="var(--call-bg)" stroke="var(--call)" stroke-width="1.4"/><text x="230" y="326">④ 电话（P1，可选）</text>
+      <!-- 旁注 -->
+      <rect x="360" y="176" width="190" height="66" rx="9" fill="#fff" stroke="var(--dec)" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <text x="455" y="198" font-size="11">免打扰窗口：只推送不出声</text><text x="455" y="216" font-size="11">会议占用音频：跳过语音</text><text x="455" y="234" font-size="11">拦截≠叫人：先让 agent 换路</text>
+    </g>
+    <g stroke="#ef4444" stroke-width="1.6" fill="none">
+      <line x1="230" y1="86" x2="230" y2="108" marker-end="url(#a6)"/>
+      <line x1="230" y1="156" x2="230" y2="174" marker-end="url(#a6)"/>
+      <line x1="230" y1="218" x2="230" y2="236" marker-end="url(#a6)"/>
+      <line x1="230" y1="280" x2="230" y2="298" marker-end="url(#a6)"/>
+    </g>
+    <g font-size="10.5" fill="#b91c1c" text-anchor="middle">
+      <text x="270" y="168">30s无应答/离线</text>
+      <text x="255" y="230">无应答</text>
+      <text x="270" y="292">blocked仍无应答</text>
+    </g>
+    <!-- 审批分级 右/下 -->
+    <text x="700" y="28" text-anchor="middle" font-size="14" font-weight="600" fill="#475569">审批风险分级（语音只能批到 L2）</text>
+    <g font-size="12.5">
+      <rect x="600" y="44" width="330" height="42" rx="8" fill="var(--agent-bg)" stroke="var(--agent)" stroke-width="1.6"/>
+      <text x="616" y="70">L0 读（读代码/只读命令）：<tspan font-weight="600">自动放行</tspan></text>
+      <rect x="600" y="96" width="330" height="42" rx="8" fill="var(--agent-bg)" stroke="var(--agent)" stroke-width="1.6"/>
+      <text x="616" y="122">L1 写 worktree 内（改码/测试/本地 commit）：<tspan font-weight="600">自动</tspan></text>
+      <rect x="600" y="148" width="330" height="42" rx="8" fill="var(--mem-bg)" stroke="var(--mem)" stroke-width="1.6"/>
+      <text x="616" y="174">L2 出圈可逆（装依赖/推 feature）：<tspan font-weight="600">语音确认</tspan></text>
+      <rect x="600" y="200" width="330" height="52" rx="8" fill="var(--call-bg)" stroke="var(--call)" stroke-width="1.8"/>
+      <text x="616" y="222">L3 不可逆（force push/合 main/部署/删数据）：</text><text x="616" y="240" font-weight="600">必须屏幕确认 或 复述短语（语音不可批）</text>
+    </g>
+    <!-- 应答/审批落盘 -->
+    <g font-size="12.5" text-anchor="middle">
+      <rect x="140" y="378" width="410" height="60" rx="9" fill="var(--owner-bg)" stroke="var(--owner)" stroke-width="1.6"/>
+      <text x="345" y="402" font-weight="600">人应答 → 重建会话 · 审批四动作</text>
+      <text x="345" y="422" font-size="11.5" fill="#475569">accept / edit / respond / ignore（语音只给 accept·ignore；中断点落盘可恢复）</text>
+      <rect x="600" y="300" width="330" height="60" rx="9" fill="var(--daemon-bg)" stroke="var(--daemon)" stroke-width="1.6"/>
+      <text x="765" y="324" font-weight="600">成本熔断（每步预检）</text>
+      <text x="765" y="344" font-size="11.5" fill="#475569">墙钟/回合/成本任一超限 → 高优先级回叫</text>
+    </g>
+    <g stroke="#64748b" stroke-width="1.5" fill="none">
+      <path d="M230,342 C230,378 240,378 250,378" marker-end="url(#a6g)"/>
+    </g>
+  </svg>
+  <div class="note">要点：拦截 ≠ 叫人（危险动作先让 agent 换路，反复撞墙才升级人，降回叫频率）；审批中断点落盘可恢复（daemon 重启不丢，§15 缺口 G2）；电话层可 DTMF 闭环确认。</div>
+</section>
+
+<!-- ============ 图7 部署拓扑 ============ -->
+<section>
+  <h2>图 7 · 部署拓扑：移动沟通端 × 桌面/服务端执行（v1.13，落地形态）</h2>
+  <p class="cap">沟通天然移动、执行天然固定 → 前脑与后端物理跨设备分离。人在手机随时聊，桌面/服务端生产环境实施，结果推回手机。</p>
+  <svg viewBox="0 0 980 470" role="img" aria-label="部署拓扑">
+    <defs><marker id="a7" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#8b5cf6"/></marker>
+      <marker id="a7r" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#ef4444"/></marker></defs>
+    <!-- 移动端 沟通面 -->
+    <rect x="30" y="70" width="300" height="330" rx="14" fill="var(--voice-bg)" stroke="var(--voice)" stroke-width="2"/>
+    <text x="180" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#1d4ed8">移动端（沟通面·前脑 I/O）</text>
+    <g font-size="12.5" text-anchor="middle">
+      <rect x="55" y="118" width="250" height="42" rx="8" fill="#fff" stroke="var(--voice)" stroke-width="1.4"/><text x="180" y="144">语音 I/O（采访/播报/打断）</text>
+      <rect x="55" y="170" width="250" height="42" rx="8" fill="#fff" stroke="var(--voice)" stroke-width="1.4"/><text x="180" y="196">看 Demo / diff（屏幕）</text>
+      <rect x="55" y="222" width="250" height="42" rx="8" fill="#fff" stroke="var(--voice)" stroke-width="1.4"/><text x="180" y="248">拍板 go/no-go · 回叫应答</text>
+      <rect x="55" y="274" width="250" height="42" rx="8" fill="#fff" stroke="var(--voice)" stroke-width="1.4"/><text x="180" y="300">审批：L2 语音批 / L3 屏幕点</text>
+      <rect x="55" y="330" width="250" height="52" rx="8" fill="var(--mem-bg)" stroke="var(--mem)" stroke-width="1.2" stroke-dasharray="4 3"/><text x="180" y="352" font-size="11">只做 I/O + L3 会话缓存</text><text x="180" y="369" font-size="11">不持久化大知识库</text>
+    </g>
+    <!-- 执行端 -->
+    <rect x="650" y="70" width="300" height="330" rx="14" fill="var(--agent-bg)" stroke="var(--agent)" stroke-width="2"/>
+    <text x="800" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#047857">桌面 / 服务端（执行面·生产环境）</text>
+    <g font-size="12.5" text-anchor="middle">
+      <rect x="675" y="118" width="250" height="42" rx="8" fill="#fff" stroke="var(--agent)" stroke-width="1.4"/><text x="800" y="144">voiced daemon（缝合层）</text>
+      <rect x="675" y="170" width="250" height="42" rx="8" fill="#fff" stroke="var(--agent)" stroke-width="1.4"/><text x="800" y="196">Hopper 执行后端 + agent + worktree</text>
+      <rect x="675" y="222" width="250" height="42" rx="8" fill="#fff" stroke="var(--agent)" stroke-width="1.4"/><text x="800" y="248">项目奠基 · 分层记忆 L1/L2</text>
+      <rect x="675" y="274" width="250" height="42" rx="8" fill="#fff" stroke="var(--agent)" stroke-width="1.4"/><text x="800" y="300">事件真相源 / 崩溃恢复 / 预算</text>
+      <rect x="675" y="330" width="250" height="52" rx="8" fill="var(--agent-bg)" stroke="var(--agent)" stroke-width="1.2" stroke-dasharray="4 3"/><text x="800" y="352" font-size="11">重活都在这·手机断连不影响</text><text x="800" y="369" font-size="11">"隔夜交活"的前提</text>
+    </g>
+    <!-- 安全通道 中间 -->
+    <rect x="380" y="180" width="200" height="110" rx="12" fill="var(--dec-bg)" stroke="var(--dec)" stroke-width="1.8"/>
+    <text x="480" y="208" text-anchor="middle" font-size="13" font-weight="600">安全通道</text>
+    <text x="480" y="230" text-anchor="middle" font-size="11" fill="#475569">Tailscale / 中继</text>
+    <text x="480" y="248" text-anchor="middle" font-size="11" fill="#475569">HTTPS(麦克风)</text>
+    <text x="480" y="266" text-anchor="middle" font-size="11" fill="#475569">远程 PIN 认证</text>
+    <!-- 箭头 去 -->
+    <g stroke="#8b5cf6" stroke-width="2" fill="none">
+      <path d="M330,200 C350,200 360,215 378,215" marker-end="url(#a7)"/>
+      <path d="M580,215 C610,215 630,190 648,190" marker-end="url(#a7)"/>
+    </g>
+    <text x="455" y="160" text-anchor="middle" font-size="11" fill="#6d28d9">决策包 / 任务卡 drop →</text>
+    <!-- 箭头 回 -->
+    <g stroke="#ef4444" stroke-width="2" fill="none">
+      <path d="M648,255 C630,270 610,258 582,258" marker-end="url(#a7r)"/>
+      <path d="M378,258 C360,258 350,245 332,245" marker-end="url(#a7r)"/>
+    </g>
+    <text x="480" y="315" text-anchor="middle" font-size="11" fill="#b91c1c">← 事件 / 回叫（NotificationIntent transport）</text>
+    <!-- 拓扑分期 -->
+    <g font-size="11" text-anchor="middle" fill="#334155">
+      <text x="480" y="360">T1 同机(P0) · T2 手机+桌面(P1,主形态) · T3 手机+服务端(P2)</text>
+      <text x="480" y="392" font-size="10.5" fill="#64748b">T1 时两个框合并到一台 Mac;T2/T3 才跨设备</text>
+    </g>
+  </svg>
+  <div class="note">要点：移动端只做沟通面（语音 I/O / 看 Demo / 拍板 / 审批），重活全在执行端；两者靠安全通道 + 事件流连接，手机断连不影响后端执行——这正是"路上聊、家里的 Mac 做、醒来交活"成立的前提。与竞品成熟形态一致（Happy/Omnara/Cursor iOS/Nimbalyst 都是手机遥控本地 agent）。</div>
+</section>
+
+<section style="background:#eef2ff;border-color:#c7d2fe">
+  <h2>请你确认</h2>
+  <p class="cap" style="color:#3730a3">以上 8 张图（图 0 前脑/后端分工 · 图 1-6 业务流程 · 图 7 部署拓扑）是我对 VoiceLoop 完整业务与落地形态的理解。请重点看是否有「和你想的不一样 / 缺了 / 多了 / 顺序不对」的地方。</p>
+  <p class="cap" style="color:#3730a3"><b>两个待你拍板的点</b>：① <b>战略路线</b>——是否走「VoiceLoop 语音前脑 + Hopper 执行后端」（图 0，修正主方案 §13）；② <b>主部署形态</b>——是否以「手机沟通 + 桌面执行」（图 7 的 T2）为主形态。</p>
+  <div class="note" style="background:#fff">配套文字见 <code>business-flows.md</code>（§9 一致性自检 · §10 想对齐的点 · §11 落地分工 · §12 部署拓扑）与 <code>local-projects-borrowing-assessment.md</code>。4 个 Codex 会话的调研 review 正在后台跑，回来后我再汇总补充。</div>
+</section>
+
+</main>
+</body>
+</html>

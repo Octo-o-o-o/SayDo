@@ -1,0 +1,7 @@
+[
+  {
+    "templateRef": "package_script:test",
+    "exitCode": 0,
+    "stdoutTail": "\n> poc@1.0.0 test /private/var/folders/g9/td5m11510gb69wv2d0wb9c280000gn/T/saydo-poc-repo-vou0ev/.saydo/worktrees/tsk_01VE2E0000000000000000000A\n> node -e \"process.exit(0)\"\n\n"
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "name": "@saydo/contracts",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@noble/hashes": "^2.2.0",
+    "ulid": "^3.0.1",
+    "zod": "^4.0.14"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  }
+}

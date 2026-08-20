@@ -1,0 +1,1 @@
+{"status":"blocked_gates","blockers":["not approved (run hopper review approve first)","acceptance is needs_human; only supported can merge (needs_human on legacy tasks requires a human acceptance waiver bound to this run)","approval has no binding (run/evidence/tree); re-approve after post-run evidence is complete"],"message":"merge gates not passed"}

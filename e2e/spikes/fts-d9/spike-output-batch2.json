@@ -1,0 +1,123 @@
+{
+  "summary": {
+    "docsDir": ".saydo/knowledge/current",
+    "files": 4,
+    "paras": 42,
+    "queries": 12,
+    "hitAt5": 12,
+    "hitRate": 1,
+    "twoCharKnownLimit": [
+      {
+        "query": "幂等",
+        "matched": 0
+      },
+      {
+        "query": "记忆",
+        "matched": 0
+      },
+      {
+        "query": "审批",
+        "matched": 0
+      },
+      {
+        "query": "热词",
+        "matched": 0
+      }
+    ],
+    "misses": []
+  },
+  "results": [
+    {
+      "query": "语言主体",
+      "hit": true,
+      "top5": [
+        "core.md"
+      ]
+    },
+    {
+      "query": "知识底座",
+      "hit": true,
+      "top5": [
+        "core.md"
+      ]
+    },
+    {
+      "query": "文档指针",
+      "hit": true,
+      "top5": [
+        "core.md"
+      ]
+    },
+    {
+      "query": "关键文件",
+      "hit": true,
+      "top5": [
+        "inventory.md"
+      ]
+    },
+    {
+      "query": "跳过清单",
+      "hit": true,
+      "top5": [
+        "inventory.md"
+      ]
+    },
+    {
+      "query": "语言分布",
+      "hit": true,
+      "top5": [
+        "core.md",
+        "inventory.md"
+      ]
+    },
+    {
+      "query": "typecheck",
+      "hit": true,
+      "top5": [
+        "build-test-run.md",
+        "build-test-run.md",
+        "conventions.md"
+      ]
+    },
+    {
+      "query": "justfile",
+      "hit": true,
+      "top5": [
+        "build-test-run.md",
+        "inventory.md"
+      ]
+    },
+    {
+      "query": "单仓协作约定",
+      "hit": true,
+      "top5": [
+        "conventions.md",
+        "core.md"
+      ]
+    },
+    {
+      "query": "TypeScript",
+      "hit": true,
+      "top5": [
+        "inventory.md",
+        "core.md"
+      ]
+    },
+    {
+      "query": "机械抽取",
+      "hit": true,
+      "top5": [
+        "build-test-run.md",
+        "core.md"
+      ]
+    },
+    {
+      "query": "未运行验证",
+      "hit": true,
+      "top5": [
+        "build-test-run.md",
+        "core.md"
+      ]
+    }
+  ]
+}

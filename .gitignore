@@ -1,0 +1,48 @@
+# deps & build
+node_modules/
+dist/
+*.tsbuildinfo
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# runtime & local state
+.tmp/
+*.log
+.env
+.env.*
+!.env.example
+coverage/
+
+# editor/os
+.DS_Store
+
+# e2e artifacts (evidence markdown is tracked; raw run dirs are not)
+e2e/artifacts/
+test-results/
+playwright-report/
+e2e/console/.pw-home/
+e2e/console/.pw-first-run-home/
+e2e/console/.runtime.json
+
+# spike 合成音频(体量大、可重生;报告与脚本 tracked,音频不 tracked)
+e2e/spikes/asr-1.0/audio/
+
+# 外部 CLI 评审的原始事件流(*.log 已被上面覆盖,但 codex --json 落的是 .jsonl)。
+# prompts/ 与 research/codex-findings/ 的成对材料是 tracked 的,原始流冗余且体量大(36M+)。
+logs/
+
+# 工具会话临时物(计划快照等)
+.zcode/
+
+# saydo workspace 产物(奠基/知识库/会话)
+.saydo/
+saydo-tier1-executor-*
+.tmp-saydo-restore-*
+
+# local test fixture roots (must not enter build digest)
+**/.saydo-*
+**/.tmp-saydo-*
+.tmp-saydo-*

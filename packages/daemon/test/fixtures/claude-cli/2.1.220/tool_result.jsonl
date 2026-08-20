@@ -1,0 +1,2 @@
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","content":"SayDo spike: denied by gate (fail-closed)","is_error":true,"tool_use_id":"toolu_01TAPbu7sBy8o6MH2vLNLVsK"}]},"parent_tool_use_id":null,"session_id":"00000000-0000-4000-8000-000000000003"}
+{"type":"user","message":{"role":"user","content":[{"tool_use_id":"toolu_016tPLcW2byqXvsiJw9rmDpG","type":"tool_result","content":"a","is_error":false}]},"parent_tool_use_id":null,"session_id":"00000000-0000-4000-8000-000000000003"}

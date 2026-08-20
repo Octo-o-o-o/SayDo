@@ -1,0 +1,1 @@
+{"req_id":"req_cfc0c4e1262d5146","schema_version":"1","status":"rejected","event_ids":[],"reason":"automation can only approve gap-free tasks; found: acceptance is needs_human","completed_at":"2026-07-24T05:15:14.134Z"}

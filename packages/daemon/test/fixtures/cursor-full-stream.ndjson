@@ -1,0 +1,10 @@
+{"type":"system","subtype":"init","apiKeySource":"login","cwd":"/private/tmp/cursor-full-WXzB","session_id":"redacted-session","model":"Cursor Grok 4.6 High Fast","permissionMode":"default"}
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"不要使用任何工具、不要读写文件、不要执行命令。只输出纯文本。用一句纯文本回答 setup thinking self-test。"}]},"session_id":"redacted-session"}
+{"type":"connection","subtype":"reconnecting","session_id":"redacted-session","timestamp_ms":1786618975224,"attempt":1,"endpoint_url":"https://agentn.global.api5.cursor.sh"}
+{"type":"retry","subtype":"starting","session_id":"redacted-session","timestamp_ms":1786618977624,"attempt":1,"is_resume":false}
+{"type":"connection","subtype":"reconnected","session_id":"redacted-session","timestamp_ms":1786618978727}
+{"type":"thinking","subtype":"delta","text":"用户要求我用一句纯文本回答 setup ","session_id":"redacted-session","timestamp_ms":1786618981681}
+{"type":"thinking","subtype":"delta","text":"thinking self-test。","session_id":"redacted-session","timestamp_ms":1786618981695}
+{"type":"thinking","subtype":"completed","session_id":"redacted-session","timestamp_ms":1786618981695}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"这是一句纯文本，用于确认 setup thinking self-test 已通过。"}]},"session_id":"redacted-session"}
+{"type":"result","subtype":"success","duration_ms":7520,"duration_api_ms":7520,"is_error":false,"result":"这是一句纯文本，用于确认 setup thinking self-test 已通过。","session_id":"redacted-session","request_id":"redacted-request","usage":{"inputTokens":12234,"outputTokens":101,"cacheReadTokens":5888,"cacheWriteTokens":0}}

@@ -1,0 +1,30 @@
+{
+  "name": "@saydo/daemon",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "daemon": "tsx src/launchd/cli.ts",
+    "t2-pair": "tsx src/net/pairUrl.ts",
+    "backup": "tsx src/backup/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@saydo/contracts": "workspace:*",
+    "better-sqlite3": "^13.0.1",
+    "smol-toml": "^1.7.0",
+    "ulid": "^3.0.1",
+    "ws": "^8.21.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.17.0",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.20.3",
+    "vitest": "^3.2.4"
+  }
+}

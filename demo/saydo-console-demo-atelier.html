@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<!-- Atelier 历史视觉对照稿：页面功能自包含；字体使用 Google Fonts 外链，离线时回退系统字体。 -->
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SayDo 控制台 · 结构示意 Demo(Mock)· Atelier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* =====================================================================
+     SayDo Console Demo — Design language: Atelier「墨与纸」
+     Editorial workbench: warm paper canvas, ink typography, single
+     restrained accent (黛青 deep ink-green). Fraunces serif for display,
+     Inter for body, IBM Plex Mono for data. 1px hairlines instead of
+     shadows; small radii; generous whitespace.
+     ===================================================================== */
+  :root[data-theme="light"]{
+    --canvas:#F6F4EF;            /* warm paper */
+    --surface:#FFFEFA;           /* card face */
+    --surface-2:#F2EFE7;         /* quiet inner panel */
+    --sunken:#E9E5DA;
+    --ink:#1C1B17;               /* headings */
+    --ink-2:#55524A;             /* body */
+    --muted:#8C877B;
+    --line:rgba(28,27,23,.10);
+    --line-strong:rgba(28,27,23,.22);
+    --accent:#2F5D50;            /* 黛青 deep ink-green */
+    --accent-press:#234A3F;
+    --accent-tint:rgba(47,93,80,.07);
+    --accent-tint-2:rgba(47,93,80,.16);
+    --accent-fg:#F6F4EF;
+    --ok:#3F6E52; --ok-bg:rgba(63,110,82,.09); --ok-bd:rgba(63,110,82,.28);
+    --warn:#8A6A34; --warn-bg:rgba(138,106,52,.10); --warn-bd:rgba(138,106,52,.30);
+    --err:#9C4B40; --err-bg:rgba(156,75,64,.09); --err-bd:rgba(156,75,64,.30);
+    --info:#41604F; --info-bg:rgba(47,93,80,.06); --info-bd:rgba(47,93,80,.20);
+    --violet:#6E5C6E; --violet-bg:rgba(110,92,110,.09);
+    --shadow-card:0 1px 2px rgba(28,27,23,.035);
+    --shadow-pop:0 16px 48px rgba(28,27,23,.16);
+    --banner:#1C1B17;
+    color-scheme:light;
+  }
+  :root[data-theme="dark"]{
+    --canvas:#171613;
+    --surface:#201F1B;
+    --surface-2:#1A1915;
+    --sunken:#12110E;
+    --ink:#ECE9E0;
+    --ink-2:#B9B4A8;
+    --muted:#85806F;
+    --line:rgba(236,233,224,.10);
+    --line-strong:rgba(236,233,224,.24);
+    --accent:#7FBFA9;
+    --accent-press:#9CD3C0;
+    --accent-tint:rgba(127,191,169,.09);
+    --accent-tint-2:rgba(127,191,169,.22);
+    --accent-fg:#141A17;
+    --ok:#8FBCA0; --ok-bg:rgba(143,188,160,.10); --ok-bd:rgba(143,188,160,.28);
+    --warn:#C4A76A; --warn-bg:rgba(196,167,106,.10); --warn-bd:rgba(196,167,106,.30);
+    --err:#D08A7E; --err-bg:rgba(208,138,126,.10); --err-bd:rgba(208,138,126,.30);
+    --info:#9FC0B2; --info-bg:rgba(127,191,169,.08); --info-bd:rgba(127,191,169,.26);
+    --violet:#B3A0B3; --violet-bg:rgba(179,160,179,.12);
+    --shadow-card:0 1px 2px rgba(0,0,0,.22);
+    --shadow-pop:0 18px 52px rgba(0,0,0,.55);
+    --banner:#100F0D;
+    color-scheme:dark;
+  }
+  :root{
+    --font:"Inter","PingFang SC","Hiragino Sans GB","Microsoft YaHei UI","Microsoft YaHei","Noto Sans CJK SC",-apple-system,system-ui,sans-serif;
+    --serif:"Fraunces","Songti SC","Noto Serif SC",Georgia,"Times New Roman",serif;
+    --mono:"IBM Plex Mono","SF Mono",ui-monospace,Menlo,monospace;
+    --r-xs:4px; --r-sm:6px; --r-md:8px; --r-pill:999px;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--font);background:var(--canvas);color:var(--ink-2);
+    font-size:13.5px;line-height:1.65;-webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;font-variant-numeric:tabular-nums;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{color:var(--accent-press)}
+  .ic{width:16px;height:16px;display:inline-block;vertical-align:-3px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .ic.sm{width:13px;height:13px;vertical-align:-2px}
+  ::selection{background:var(--accent-tint-2);color:var(--ink)}
+  /* scrollbars */
+  *::-webkit-scrollbar{width:10px;height:10px}
+  *::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:var(--r-pill);border:3px solid transparent;background-clip:padding-box}
+  *::-webkit-scrollbar-thumb:hover{background:var(--muted);background-clip:padding-box}
+
+  /* ---- demo banner ---- */
+  .demo-banner{background:var(--banner);color:#B9B4A8;text-align:center;padding:7px 16px;font-size:11.5px;letter-spacing:.01em;position:sticky;top:0;z-index:40}
+  .demo-banner b{color:#9CD3C0;font-weight:600}
+  .demo-banner .k{color:#C4A76A}
+
+  .app{display:flex;min-height:calc(100vh - 32px)}
+
+  /* ---- sidebar ---- */
+  .side{width:244px;flex-shrink:0;padding:22px 16px;display:flex;flex-direction:column;gap:2px;
+        background:var(--canvas);border-right:1px solid var(--line);position:sticky;top:32px;height:calc(100vh - 32px);overflow:auto}
+  .brand{display:flex;align-items:baseline;gap:10px;padding:2px 8px 16px;border-bottom:1px solid var(--line);margin-bottom:14px}
+  .brand .glyph{font-family:var(--serif);font-style:italic;font-weight:600;font-size:22px;color:var(--accent);line-height:1;transform:translateY(2px)}
+  .logo{font-family:var(--serif);font-weight:600;font-size:23px;letter-spacing:-.01em;color:var(--ink)}
+  .logo span{color:var(--accent);font-style:italic}
+  .pswitch{margin:0 4px 14px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);box-shadow:var(--shadow-card)}
+  .pswitch label{font-size:10px;color:var(--muted);display:block;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+  .pswitch select{width:100%;border:none;background:transparent;font-size:13px;font-weight:600;color:var(--ink);margin-top:4px;cursor:pointer;font-family:var(--font)}
+  .nav{display:flex;flex-direction:column;gap:1px}
+  .nav a{display:flex;align-items:baseline;gap:9px;padding:7px 10px;border-radius:var(--r-sm);color:var(--ink-2);font-size:13px;font-weight:500;position:relative;transition:background .18s,color .18s}
+  .nav a:hover{background:var(--accent-tint)}
+  .nav a.on{background:var(--accent-tint);color:var(--accent);font-weight:600}
+  .nav a.on .nno{color:var(--accent)}
+  .nno{font-family:var(--serif);font-style:italic;font-size:11px;color:var(--muted);min-width:18px;font-variant-numeric:tabular-nums}
+  .nav .grp{font-size:10px;color:var(--muted);padding:16px 10px 6px;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+  .nav .grp.first{padding-top:2px}
+
+  /* ---- main ---- */
+  .main{flex:1;padding:22px 36px 80px;max-width:1180px;width:100%}
+  .topbar{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px;gap:14px;flex-wrap:wrap}
+  .crumb{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+  .crumb b{font-family:var(--serif);font-weight:500;font-size:20px;letter-spacing:0;text-transform:none;color:var(--ink);margin-left:6px}
+  .globals{font-size:12px;color:var(--muted);display:flex;gap:10px;align-items:center}
+  .globals b{color:var(--ink)}
+  .sess{border:1px solid var(--line);border-radius:var(--r-pill);padding:4px 12px;background:var(--surface)}
+  .bell{border:1px solid var(--line);border-radius:var(--r-pill);padding:4px 11px;background:var(--surface)}
+  .themebtn{border:1px solid var(--line);background:var(--surface);border-radius:50%;width:30px;height:30px;display:grid;place-items:center;cursor:pointer;font-size:13px;color:var(--ink-2);transition:border-color .2s,color .2s}
+  .themebtn:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* ---- stepper: numbered nodes on a hairline ---- */
+  .stepper{display:flex;gap:0;margin-bottom:26px;flex-wrap:wrap;align-items:center;counter-reset:step}
+  .step{display:inline-flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);font-weight:500;letter-spacing:.03em;transition:color .25s}
+  .step::before{counter-increment:step;content:counter(step,decimal-leading-zero);font-family:var(--serif);font-style:italic;font-size:11px;
+    width:23px;height:23px;border:1px solid var(--line-strong);border-radius:50%;display:grid;place-items:center;color:var(--ink-2);background:var(--surface);transition:all .25s}
+  .step.hot{color:var(--ink)}
+  .step.hot::before{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+  .step.dim{opacity:.55}
+  .step-arrow{width:26px;height:1px;background:var(--line-strong);font-size:0;margin:0 9px;flex-shrink:0}
+
+  /* ---- cards ---- */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:22px 24px;margin-bottom:18px;box-shadow:var(--shadow-card)}
+  .card h3{font-family:var(--serif);font-size:17.5px;font-weight:500;color:var(--ink);margin-bottom:14px;letter-spacing:-.005em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .card h4{font-size:10.5px;font-weight:600;color:var(--muted);margin:16px 0 8px;letter-spacing:.12em;text-transform:uppercase}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+
+  /* ---- chips (desaturated semantics) ---- */
+  .chip{display:inline-flex;align-items:center;font-size:10.5px;padding:2px 9px;border-radius:var(--r-pill);font-weight:600;letter-spacing:.02em;border:1px solid transparent;font-family:var(--font)}
+  .c-blue{background:var(--accent-tint);color:var(--accent);border-color:var(--accent-tint-2)}
+  .c-green{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-bd)}
+  .c-amber{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-bd)}
+  .c-red{background:var(--err-bg);color:var(--err);border-color:var(--err-bd)}
+  .c-violet{background:var(--violet-bg);color:var(--violet)}
+  .c-gray{background:var(--surface-2);color:var(--muted);border-color:var(--line)}
+
+  /* ---- buttons ---- */
+  .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);background:var(--surface);border-radius:var(--r-sm);padding:7px 15px;font-size:13px;font-weight:500;cursor:pointer;color:var(--ink);font-family:var(--font);transition:border-color .18s,color .18s,background .18s}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+  .btn.primary:hover{background:var(--accent-press);border-color:var(--accent-press);color:var(--accent-fg)}
+  .btn.big{padding:12px 24px;font-size:14px;border-radius:var(--r-md)}
+  .btn.danger{background:var(--err);border-color:var(--err);color:#FFFEFA}
+  .btn.danger:hover{color:#FFFEFA;filter:brightness(.94)}
+
+  /* ---- tables ---- */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase}
+  tr:last-child td{border-bottom:none}
+
+  .muted{color:var(--muted);font-size:12px}
+  .mono{font-family:var(--mono);font-size:11.5px}
+  code{background:var(--accent-tint);color:var(--accent);border:1px solid var(--accent-tint-2);border-radius:var(--r-xs);padding:1px 6px;font-family:var(--mono);font-size:11.5px}
+
+  .note{background:var(--info-bg);border:1px solid var(--info-bd);border-left:2px solid var(--accent);border-radius:var(--r-sm);padding:12px 16px;font-size:12.5px;color:var(--ink-2);margin-bottom:18px;line-height:1.7}
+  .note b{color:var(--ink)}
+
+  /* ---- dashboard ---- */
+  .startrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .todobar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+  .todobar a{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 18px;font-size:13px;color:var(--ink-2);box-shadow:var(--shadow-card);transition:border-color .18s}
+  .todobar a:hover{border-color:var(--accent)}
+  .todobar b{font-family:var(--serif);font-style:italic;font-size:18px;margin-right:6px;color:var(--accent);font-weight:500}
+  .h-label{margin:8px 0 10px;color:var(--muted);font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+  .bignum{font-family:var(--serif);font-style:italic;font-weight:500;font-size:30px;color:var(--ink);font-variant-numeric:tabular-nums}
+
+  /* ---- chat ---- */
+  .msgs{display:flex;flex-direction:column;gap:11px;max-height:480px;overflow:auto;padding:4px 6px 4px 2px}
+  .msg{max-width:82%;padding:10px 14px;border-radius:var(--r-md);font-size:13.5px;line-height:1.65}
+  .msg .who{font-size:10px;color:var(--muted);margin-bottom:3px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+  .m-user{align-self:flex-end;background:var(--accent-tint);color:var(--ink-2);border:1px solid var(--accent-tint-2)}
+  .m-user .who{color:var(--accent)}
+  .m-ai{align-self:flex-start;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-card)}
+  .m-sys{align-self:center;background:var(--surface-2);color:var(--muted);font-size:11.5px;padding:5px 15px;border-radius:var(--r-pill);border:1px solid var(--line)}
+  .opt{display:inline-block;border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:3px 11px;margin:6px 6px 0 0;font-size:12.5px;background:var(--surface);cursor:pointer;transition:all .18s;color:var(--ink)}
+  .opt:hover{border-color:var(--accent);color:var(--accent)}
+  .opt.rec{border-color:var(--accent);color:var(--accent);background:var(--accent-tint);font-weight:600}
+  .voicebar{display:flex;gap:10px;align-items:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px}
+  .mic{width:40px;height:40px;border-radius:50%;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-size:16px;position:relative;flex-shrink:0}
+  .mic::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--accent);opacity:.5;animation:pulse 2s var(--ease) infinite}
+  @keyframes pulse{0%{transform:scale(.9);opacity:.55}70%{transform:scale(1.3);opacity:0}100%{opacity:0}}
+  .meter{margin-bottom:10px}
+  .meter .lbl{display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px;color:var(--ink-2);font-weight:500}
+  .meter .lbl b{color:var(--ink);font-variant-numeric:tabular-nums;font-family:var(--mono);font-weight:500}
+  .meter .bar{height:4px;border-radius:var(--r-pill);background:var(--sunken);overflow:hidden}
+  .meter .fill{height:100%;border-radius:var(--r-pill);background:var(--accent);transform-origin:left}
+  .meter.warn .fill{background:var(--warn)}
+
+  /* ---- execution modes ---- */
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  .mode{border:1px solid var(--line-strong);border-radius:var(--r-md);padding:14px 16px;cursor:pointer;background:var(--surface);transition:border-color .2s,background .2s}
+  .mode:hover{border-color:var(--accent)}
+  .mode.sel{border-color:var(--accent);background:var(--accent-tint)}
+  .mode .mt{font-weight:600;font-size:13.5px;color:var(--ink);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .mode .md{font-size:12px;color:var(--ink-2);margin-top:6px;line-height:1.65}
+
+  /* ---- kanban ---- */
+  .board{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .col h4{font-size:10.5px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.12em;font-weight:600}
+  .tcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;margin-bottom:11px;cursor:pointer;display:block;color:var(--ink-2);box-shadow:var(--shadow-card);transition:border-color .18s}
+  .tcard:hover{border-color:var(--accent)}
+  .tcard .tid{font-size:10.5px;color:var(--muted);font-family:var(--mono)}
+  .tcard .tt{font-weight:600;font-size:13.5px;margin:3px 0 8px;color:var(--ink)}
+
+  /* ---- timeline ---- */
+  .tl{list-style:none}
+  .tl li{position:relative;padding:0 0 15px 22px;border-left:1px solid var(--line-strong);margin-left:5px}
+  .tl li:last-child{border-left-color:transparent}
+  .tl li::before{content:"";position:absolute;left:-4.5px;top:5px;width:8px;height:8px;border-radius:50%;background:var(--surface);border:1.5px solid var(--accent)}
+  .tl li.dim::before{border-color:var(--line-strong)}
+  .tl .t{font-size:10.5px;color:var(--muted);font-family:var(--mono);margin-right:4px}
+
+  /* ---- kv ---- */
+  .kv{display:grid;grid-template-columns:128px 1fr;row-gap:7px;column-gap:10px;font-size:13px}
+  .kv .k{color:var(--muted);font-weight:500}
+
+  .flowhint{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .flowhint a{border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:5px 12px;font-size:12.5px;background:var(--surface);font-weight:500;color:var(--ink);transition:border-color .18s,color .18s}
+  .flowhint a:hover{border-color:var(--accent);color:var(--accent)}
+  select.cfg{border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:7px 10px;font-size:13px;background:var(--surface);color:var(--ink-2);min-width:230px;font-family:var(--font);cursor:pointer}
+
+  /* ---- S3 emphasis (restrained: ink/accent frame + serif mark) ---- */
+  .s3card{border:1px solid var(--accent);position:relative}
+  .s3card::before{content:"S3";position:absolute;top:-10px;left:18px;background:var(--surface);padding:0 8px;
+    font-family:var(--serif);font-style:italic;font-weight:600;font-size:13px;letter-spacing:.18em;color:var(--accent)}
+  .decision{border:1px solid var(--accent)}
+
+  /* ---- modal ---- */
+  .mask{position:fixed;inset:0;background:color-mix(in srgb,var(--banner) 55%,transparent);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:60;animation:fade .2s ease}
+  .mask.show{display:flex}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .modal{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:28px 30px;width:460px;max-width:92vw;box-shadow:var(--shadow-pop);animation:popIn .4s var(--ease)}
+  @keyframes popIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .modal h3{margin-bottom:10px;font-family:var(--serif);font-size:19px;font-weight:500;color:var(--ink)}
+
+  .del{color:var(--err)} .add{color:var(--ok)}
+  .q3ph{background:var(--surface);border:1px dashed var(--line-strong);border-radius:var(--r-md);padding:30px;text-align:center;color:var(--muted);line-height:1.7}
+
+  section[data-route]{display:none}
+  section[data-route].on{display:block}
+
+  /* ---- entrance: gentle fade-rise only ---- */
+  @media (prefers-reduced-motion:no-preference){
+    section[data-route].on>*{animation:riseIn .4s var(--ease) backwards}
+    section[data-route].on>*:nth-child(1){animation-delay:.02s}
+    section[data-route].on>*:nth-child(2){animation-delay:.06s}
+    section[data-route].on>*:nth-child(3){animation-delay:.10s}
+    section[data-route].on>*:nth-child(4){animation-delay:.14s}
+    section[data-route].on>*:nth-child(5){animation-delay:.18s}
+    section[data-route].on>*:nth-child(6){animation-delay:.22s}
+    section[data-route].on>*:nth-child(n+7){animation-delay:.26s}
+    section[data-route].on .meter .fill{animation:meterGrow .8s var(--ease) .25s backwards}
+    .side,.topbar{animation:riseIn .4s var(--ease) backwards}
+  }
+  @keyframes riseIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes meterGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+  @media (max-width:960px){.grid2,.grid3,.board,.modes{grid-template-columns:1fr}.side{display:none}.main{padding:18px 18px 60px}}
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-mic-a" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></symbol>
+  <symbol id="i-bell-a" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-moon-a" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-sun-a" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
+  <symbol id="i-search-a" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-play-a" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+</svg>
+<div class="demo-banner"><b>DEMO</b> · 全 Mock 数据,仅示意结构与跳转,无真实后端 · 视觉语言 = <b>Atelier「墨与纸」</b>(暖纸 canvas + 墨 + 黛青,Fraunces 衬线 / Inter / IBM&nbsp;Plex&nbsp;Mono,1px 发丝线) · 对应 docs/08&nbsp;§6(v4&nbsp;2026-07-23:重刷 UI + 五槽位/订阅&nbsp;BYOA + 火山豆包&nbsp;seed-tts-2.0) · 右上角切浅/深色 · 超 P0 元素就地标注(<span class="k">P0.5 / P1 / P2</span>)</div>
+<div class="app">
+
+<!-- ======== 侧栏:切换器 + 项目区 + 全局区 ======== -->
+<aside class="side">
+  <div class="brand">
+    <div class="glyph">S</div>
+    <a class="logo" href="#/">Say<span>Do</span></a>
+  </div>
+  <div class="pswitch">
+    <label>当前项目 · 切换只影响下方"当前项目"区</label>
+    <select id="psel" onchange="switchProject(this.value)">
+      <option value="reporting">reporting-app(coding)</option>
+      <option value="q3mkt">Q3 出海营销(marketing)</option>
+      <option value="__add">＋ 从本地文件夹添加…</option>
+    </select>
+  </div>
+  <nav class="nav" id="nav">
+    <div class="grp first">当前项目</div>
+    <a data-nav="chat"      href="#/p/reporting/chat"><span class="nno">02</span>对话 · 采访 / 决策包</a>
+    <a data-nav="tasks"     href="#/p/reporting/tasks"><span class="nno">03</span>任务看板 → 验收</a>
+    <a data-nav="memory"    href="#/p/reporting/memory"><span class="nno">07</span>记忆库 M1–M3</a>
+    <a data-nav="artifacts" href="#/p/reporting/artifacts"><span class="nno">·</span>产物库</a>
+    <a data-nav="psettings" href="#/p/reporting/settings"><span class="nno">·</span>项目设置</a>
+    <div class="grp">全局</div>
+    <a data-nav="dash"      href="#/"><span class="nno">01</span>Dashboard · 主入口</a>
+    <a data-nav="approvals" href="#/approvals"><span class="nno">05</span>审批中心 · 跨项目</a>
+    <a data-nav="notify"    href="#/notify"><span class="nno">06</span>回叫与通知</a>
+    <a data-nav="cost"      href="#/cost"><span class="nno">·</span>成本账本</a>
+    <a data-nav="settings"  href="#/settings"><span class="nno">·</span>全局设置 · 模型/档案</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="crumb" id="crumb">Dashboard</div>
+    <div class="globals">
+      <span class="sess"><svg class="ic sm"><use href="#i-mic-a"/></svg> 语音会话:<b>reporting-app</b> · 已挂起 <a href="#/p/reporting/chat">跳回</a></span>
+      <span class="bell"><svg class="ic sm"><use href="#i-bell-a"/></svg> <b>2</b></span>
+      <span class="bell"><svg class="ic sm"><use href="#i-moon-a"/></svg> 免打扰 23:00–08:00</span>
+      <button class="themebtn" id="themebtn" onclick="toggleTheme()" title="切换浅色/深色" aria-label="切换浅色/深色"><svg class="ic sm" id="themeicon"><use href="#i-moon-a"/></svg></button>
+    </div>
+  </div>
+  <div class="stepper" id="stepper">
+    <span class="step" data-st="聊">聊 · 采访+自研</span><span class="step-arrow">→</span>
+    <span class="step" data-st="就绪">就绪自省</span><span class="step-arrow">→</span>
+    <span class="step" data-st="拍板">决策包 · 拍板</span><span class="step-arrow">→</span>
+    <span class="step" data-st="执行">后台执行</span><span class="step-arrow">→</span>
+    <span class="step" data-st="回叫">回叫</span><span class="step-arrow">→</span>
+    <span class="step" data-st="验收">验收</span><span class="step-arrow">→</span>
+    <span class="step" data-st="沉淀">沉淀</span>
+  </div>
+
+<!-- ======== ① Dashboard(主入口 + 总览,即首页 #/) ======== -->
+<section data-route="dash">
+  <div class="note"><b>验收指引</b>:Dashboard 即首页与第一入口。建议路径:① 这里点「开始新对话」或选项目 → ② 对话(决策包上选执行模式)→ ③ 任务 → ④ 验收 → ⑤ 审批 → ⑥ 通知 → ⑦ 记忆。侧栏分两区:上半"当前项目"随左上角切换器变,下半"全局"不受影响。</div>
+
+  <div class="card">
+    <h3>开始</h3>
+    <div class="startrow">
+      <span class="btn primary big" onclick="newTalk()"><svg class="ic"><use href="#i-mic-a"/></svg>开始新对话</span>
+      <span class="muted">开口即建草稿项目(名字/类型 AI 识别后回填,不填表单);聊着发现是老项目的事,AI 会<b>提议</b>挂回该项目、你确认才挂。</span>
+    </div>
+    <div class="startrow" style="margin-bottom:0">
+      <span class="btn big" onclick="document.getElementById('pickmask').classList.add('show')">选择已有项目继续</span>
+      <span class="muted">或直接点下方项目卡。添加项目 = 选<b>本地文件夹</b>(P0;云端仓库即将支持)。</span>
+    </div>
+  </div>
+
+  <h4 class="h-label">待你处理 · 跨项目聚合</h4>
+  <div class="todobar">
+    <a href="#/p/reporting/task/T-0042"><b>1</b> 待验收 · T-0042 CSV 导出(reporting-app)</a>
+    <a href="#/approvals"><b>1</b> 待审批 · S3 合并到 main(reporting-app)</a>
+    <a href="#/notify"><b>0</b> 未读回叫</a>
+  </div>
+
+  <h4 class="h-label">项目</h4>
+  <div class="grid2">
+    <div class="card">
+      <h3>reporting-app <span class="chip c-blue">coding</span> <span class="chip c-green">活跃</span></h3>
+      <div class="kv">
+        <span class="k">工作区</span><span class="mono">~/work/reporting-app(本地文件夹)</span>
+        <span class="k">知识底座 M1</span><span>已奠基 07-20 · <span class="chip c-amber">2 处待增量刷新</span></span>
+        <span class="k">进行中</span><span>1 执行中 · 1 等验收 · 1 决策包已批准</span>
+        <span class="k">最近会话</span><span>今天 21:02 「CSV 导出功能」(已派发)</span>
+      </div>
+      <div class="flowhint"><a href="#/p/reporting/chat">继续对话 →</a><a href="#/p/reporting/tasks">看任务 →</a></div>
+    </div>
+    <div class="card">
+      <h3>Q3 出海营销 <span class="chip c-violet">marketing</span> <span class="chip c-amber">采访中</span> <span class="chip c-gray">项目类型抽象 P2/P3</span></h3>
+      <div class="kv">
+        <span class="k">工作区</span><span class="mono">~/.saydo/projects/q3mkt/(系统管理,非代码项目不选文件夹)</span>
+        <span class="k">就绪状态</span><span>未就绪——缺"预算范围"(critical)与"渠道优先级"</span>
+        <span class="k">最近会话</span><span>昨天 16:40(AI 正在定向追问缺口)</span>
+      </div>
+      <div class="flowhint"><a href="#/p/q3mkt/chat" onclick="document.getElementById('psel').value='q3mkt'">继续对话 →</a></div>
+    </div>
+  </div>
+  <div class="card" style="border-style:dashed;background:var(--surface-2)">
+    <h4 style="margin-top:0">冷启动形态(0 个项目时的首屏,示意)</h4>
+    <p class="muted">Hero:一句话「说说你想做什么」+ 主按钮「开始新对话」+ 次按钮「从本地文件夹开始」(选文件夹 → 建 coding draft → 开聊即奠基);下方放三个场景示例(工程师改代码 / 负责人聊出文档 / 调研营销)做能力教育——不显示空表格。</p>
+  </div>
+</section>
+
+<!-- ======== ② 对话页(项目区) ======== -->
+<section data-route="chat">
+  <div id="chat-q3" style="display:none" class="q3ph">「Q3 出海营销」的对话页(marketing 项目共用同一套采访/就绪/决策包上游,产出与验收不同)。<br>演示数据以 reporting-app 为主——请用左上角切换器切回 reporting-app 查看完整流程。</div>
+  <div id="chat-main">
+  <div class="note" id="draftnote" style="display:none"><b>示意</b>:真实流程中「开始新对话」会立即创建 <b>草稿项目</b>(占位名"未命名项目 · 7/22"),AI 在对话中识别类型与名字后回填;此 Demo 跳到已有项目对话页演示同一界面。</div>
+  <div class="grid2" style="grid-template-columns:1.35fr 1fr">
+    <div class="card">
+      <h3>语音对话 · reporting-app <span class="chip c-green">confirmed</span> <span class="chip c-gray">第 6 轮</span> <span class="chip c-gray">会话历史 ▾</span></h3>
+      <div class="msgs">
+        <div class="msg m-sys">[ok] 会话预热完成:已加载 M1 知识底座 + 检索到 2 份相关产物(21:02)</div>
+        <div class="msg m-user"><div class="who">你 · 21:02</div>把报表页加个导出功能吧,财务那边一直在要。</div>
+        <div class="msg m-ai"><div class="who">SayDo · 21:02</div>我看了代码,报表页的 <code>ReportTable</code> 已经有分页和筛选,但没有导出入口。先确认:这个导出主要给谁用?<br>
+          <span class="opt rec">A. 财务对账(推荐)</span><span class="opt">B. 用户自助下载</span><span class="opt">C. 都要</span></div>
+        <div class="msg m-user"><div class="who">你 · 21:03</div>选 A,财务对账,格式用 CSV。</div>
+        <div class="msg m-sys"><svg class="ic sm"><use href="#i-search-a"/></svg> 学习中:核对财务系统 CSV 编码要求(检索 M2「财务系统对接调研 v1」)… 12 秒</div>
+        <div class="msg m-ai"><div class="who">SayDo · 21:04</div>查到了——财务的 Excel 打开无 BOM 的 UTF-8 会乱码,验收标准建议:<b>Excel 直接打开、中文不乱码(UTF-8 BOM)、带表头</b>。最后一问:日期列用发生时间还是入账时间?<br>
+          <span class="opt rec">发生时间(推荐)</span><span class="opt">入账时间</span></div>
+        <div class="msg m-user"><div class="who">你 · 21:05</div>发生时间。我把四项开工信息说全:目标是报表页新增财务对账 CSV 导出;验收要带表头、UTF-8 BOM、日期用发生时间,现有测试全绿并新增导出单测;范围是 <span class="mono">src/report/*</span> 和 <span class="mono">src/export/</span>;代码库现状按你刚查到的——<span class="mono">ReportTable</span> 已有分页和筛选,缺导出入口。</div>
+        <div class="msg m-sys">[review] 四项 user_stated 事实已形成 candidate,先复述确认;未确认前不计入 covered,不能出决策包。</div>
+        <div class="msg m-ai"><div class="who">SayDo · 21:05</div><b>跟你确认四项关键信息:</b><br>
+          <span class="mono">goal</span> 目标——报表页新增财务对账 CSV 导出;<br>
+          <span class="mono">acceptance</span> 可验证的验收标准——带表头、UTF-8 BOM、日期用发生时间,现有测试全绿并新增导出单测;<br>
+          <span class="mono">scope</span> 涉及范围——<span class="mono">src/report/*</span> 与 <span class="mono">src/export/</span>;<br>
+          <span class="mono">codebase_understood</span> 代码库关键部分已理解——<span class="mono">ReportTable</span> 已有分页和筛选,缺导出入口。都对吗?<br>
+          <span class="opt rec">确认</span><span class="opt">有出入</span></div>
+        <div class="msg m-user"><div class="who">你 · 21:06</div>确认,这四项都按刚才说的。</div>
+        <div class="msg m-sys">[ok] confirmReadiness 收据已落账 → ReadinessBinding confirmed → 独立评估通过 → 生成决策包 v3(下方)</div>
+      </div>
+      <div class="voicebar">
+        <div class="mic"><svg class="ic"><use href="#i-mic-a"/></svg></div>
+        <span class="btn">说完了(显式轮次)</span>
+        <span class="btn">重听上一问</span>
+        <span class="muted" style="margin-left:auto">空闲 45s 自动挂起 · 任务后台照跑</span>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h3>任务卡草稿 <span class="chip c-gray">AI 沉淀,非用户填写</span></h3>
+        <div class="kv">
+          <span class="k">目标</span><span>报表页新增「导出 CSV」:财务对账,含表头,UTF-8 BOM</span>
+          <span class="k">验收标准</span><span>① Excel 打开不乱码 ② 现有测试全绿 ③ 新增导出单测</span>
+          <span class="k">涉及范围</span><span class="mono">src/report/* · src/export/(新增)</span>
+          <span class="k">代码库理解</span><span><span class="mono">ReportTable</span> 已有分页和筛选,缺导出入口</span>
+          <span class="k">约束</span><span class="chip c-amber">还没聊到(默认:不引新依赖?待确认)</span>
+          <span class="k">日期口径</span><span>发生时间(第 6 轮复述确认)</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>就绪绑定 <span class="chip c-green">confirmed</span> <span class="chip c-gray">独立评估器,非 Brain 自评</span></h3>
+        <p class="muted" style="margin-bottom:10px">candidate 经复述确认后才成为 covered；critical 未知或未确认都不就绪。分数只是汇总显示。</p>
+        <table style="margin-bottom:12px;font-size:12.5px">
+          <tr><td><span class="mono">goal</span> · 目标</td><td class="muted">财务对账 CSV 导出 · 第 6 轮确认</td><td><span class="chip c-red">critical</span> <span class="chip c-green">confirmed</span></td></tr>
+          <tr><td><span class="mono">acceptance</span> · 可验证的验收标准</td><td class="muted">表头/BOM/发生时间/测试 · 第 6 轮确认</td><td><span class="chip c-red">critical</span> <span class="chip c-green">confirmed</span></td></tr>
+          <tr><td><span class="mono">scope</span> · 涉及范围</td><td class="muted"><span class="mono">src/report/*</span> + <span class="mono">src/export/</span> · 第 6 轮确认</td><td><span class="chip c-red">critical</span> <span class="chip c-green">confirmed</span></td></tr>
+          <tr><td><span class="mono">codebase_understood</span> · 代码库关键部分已理解</td><td class="muted"><span class="mono">ReportTable</span> 分页/筛选与导出缺口 · 第 6 轮确认</td><td><span class="chip c-red">critical</span> <span class="chip c-green">confirmed</span></td></tr>
+          <tr><td><span class="mono">constraints</span> · 约束</td><td class="muted">未聊到</td><td><span class="chip c-gray">非 critical</span> <span class="chip c-amber">未知</span></td></tr>
+        </table>
+        <div class="meter"><div class="lbl"><span>知识充分度</span><b>0.86</b></div><div class="bar"><div class="fill" style="width:86%"></div></div></div>
+        <div class="meter"><div class="lbl"><span>需求明确度</span><b>0.92</b></div><div class="bar"><div class="fill" style="width:92%"></div></div></div>
+        <div class="meter warn"><div class="lbl"><span>可执行性(P1)</span><b>0.78</b></div><div class="bar"><div class="fill" style="width:78%"></div></div></div>
+        <div class="meter"><div class="lbl"><span>可验证性(P1)</span><b>0.90</b></div><div class="bar"><div class="fill" style="width:90%"></div></div></div>
+        <p class="muted">critical 项全部 confirmed [ok] → 建议出决策包。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card decision">
+    <h3>决策包 v3 <span class="chip c-blue">待拍板</span> <span class="mono muted">digest 7f3a…c9</span></h3>
+    <div class="grid3">
+      <div>
+        <h4>成果预览</h4>
+        <p style="font-size:13px">报表页工具栏出现「导出 CSV」按钮;财务点一下,拿到 Excel 直接能开、中文不乱码、带表头的对账文件。</p>
+        <p style="margin-top:8px"><a href="#/demo-preview"><svg class="ic sm"><use href="#i-play-a"/></svg> 看可点的 Demo(与实现同源)</a></p>
+      </div>
+      <div>
+        <h4>实施计划(标注分工)</h4>
+        <table>
+          <tr><td>1. 新增 export 模块(含 BOM)</td><td><span class="chip c-blue">AI</span></td></tr>
+          <tr><td>2. ReportTable 加导出按钮</td><td><span class="chip c-blue">AI</span></td></tr>
+          <tr><td>3. 导出单测 + 全量 verify</td><td><span class="chip c-blue">AI</span></td></tr>
+          <tr><td>4. 真实财务样例抽验一次</td><td><span class="chip c-amber">需要你</span></td></tr>
+          <tr><td>5. 验收后合并(S3 屏幕确认)</td><td><span class="chip c-amber">需要你</span></td></tr>
+        </table>
+      </div>
+      <div>
+        <h4>成本与风险</h4>
+        <div class="kv">
+          <span class="k">预估成本</span><span>期望 ¥3.2 · p95 ¥6.8 · 封顶 ¥15</span>
+          <span class="k">熔断</span><span>活跃墙钟 45min · 回合 60 · ¥15</span>
+          <span class="k">风险</span><span>大数据量性能未验证(已列"未验证项")</span>
+        </div>
+      </div>
+    </div>
+
+    <h4 style="margin-top:16px">执行模式(拍板时选;<b>预选位 = 项目默认档,AI 推荐只作徽章不占预选</b>)</h4>
+    <div class="modes">
+      <div class="mode sel" onclick="pickMode(this,'b')">
+        <div class="mt">逐步确认 <span class="chip c-gray">默认档(不选即此)</span></div>
+        <div class="md">每个出圈动作(S2)先问你;多步任务在步骤边界停靠确认再继续;agent 的问题即时上浮。改代码、跑测试<b>不会</b>问你。</div>
+      </div>
+      <div class="mode" onclick="pickMode(this,'a')">
+        <div class="mt">直达验收 <span class="chip c-blue">AI 推荐(预计仅 1 次 S2)</span> <span class="chip c-gray">P0.5</span></div>
+        <div class="md">一口气跑到「等你验收」。以下 S2 效果<b>现在念给你、随包签署</b>后自动放行:<br>① 安装依赖 papaparse(仅此包,无 postinstall)② push 到 saydo/T-0042-* 分支。<br>S3、真卡住、失败、熔断、计划变更<b>仍然会叫你</b>——任何档位不变。</div>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:8px">话术纪律:AI 可以说推荐理由,但确认句保持中性二选一("一口气跑完,还是每步问你?");你不置可否时按逐步确认执行。</p>
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <a class="btn primary" href="#/p/reporting/tasks">现在开工(派发 → 任务 ③)</a>
+      <span class="btn">再聊聊</span>
+      <span class="muted">模式只调打扰姿态,不降任何安全门槛;预授权清单属于决策包(所闻即所签)。</span>
+    </div>
+  </div>
+  </div>
+</section>
+
+<!-- ======== ③ 任务看板(项目区) ======== -->
+<section data-route="tasks">
+  <div id="tasks-q3" style="display:none" class="q3ph">「Q3 出海营销」暂无执行任务(仍在采访阶段)。切回 reporting-app 查看看板演示。</div>
+  <div id="tasks-main">
+  <div class="note">派发后语音会话挂起(零成本),任务在执行后端的独立 worktree 后台跑;跑完等验收、或卡住需要你时主动回叫(⑥)。T-0042 用了「直达验收」档,T-0043 用了「逐步确认」档——对比两者的审批记录见 ⑤。</div>
+  <div class="board">
+    <div class="col"><h4>队列中(1)</h4>
+      <span class="tcard"><span class="tid">T-0044 · coding</span><span class="tt">报表打印样式</span><span class="chip c-gray">排队(同仓串行)</span></span>
+    </div>
+    <div class="col"><h4>执行中(1)</h4>
+      <span class="tcard"><span class="tid">T-0043 · coding · 逐步确认档</span><span class="tt">修复日期时区偏移</span>
+	      <span class="chip c-blue">执行中(第 1 次尝试)</span>
+      <div class="muted" style="margin-top:8px;line-height:1.7">活跃墙钟 18/45min(停靠期停表)· ¥1.2/¥5<br>19:58 步骤边界:"第 1 步跑完,继续吗?"——你已确认<br>20:15 停靠提问(时区基准),你已答</div></span>
+    </div>
+    <div class="col"><h4>等验收(1)</h4>
+      <a class="tcard" href="#/p/reporting/task/T-0042"><span class="tid">T-0042 · coding · 直达验收档</span><span class="tt">CSV 导出功能</span>
+	      <span class="chip c-green">等你验收</span>
+      <div class="muted" style="margin-top:8px;line-height:1.7">闸门已过 · settle 已确认<br>21:41 语音回叫 → 点开验收 ④</div></a>
+    </div>
+    <div class="col"><h4>已交付(1)</h4>
+	      <span class="tcard"><span class="tid">T-0041 · coding</span><span class="tt">筛选器记忆用户偏好</span><span class="chip c-green">已交付(已合并)</span></span>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3>状态口径(防"假完成")</h3>
+    <p class="muted" style="line-height:1.8"><code>run.completed</code>(runner 退出,不播"完成")→ 闸门+产物 settle 对账 → <code>ready_for_review</code>("等你验收")→ 验收+合并(S3)→ <code>task.done</code>。<br>验收时若提修改 → <code>ready_for_review → running</code> <b>返工</b>(这轮不作废,同任务新 attempt 复用 worktree,docs/09 §6.1 / 话术 #29b)。</p>
+  </div>
+  <div style="text-align:right"><a class="btn primary" href="#/p/reporting/task/T-0042">下一步:验收 T-0042 ④</a></div>
+  </div>
+</section>
+
+<!-- ======== ④ 任务详情 / 验收(项目区) ======== -->
+<section data-route="task">
+  <div class="card">
+	    <h3>T-0042 · CSV 导出功能 <span class="chip c-green">等你验收</span> <span class="chip c-gray">直达验收档</span> <span class="muted mono">worktree .saydo/wt/T-0042 · saydo/T-0042-csv-export</span></h3>
+    <ul class="tl" style="margin-top:10px">
+      <li><span class="t">21:06</span> 派发(决策包 v3,digest 7f3a…c9,预算 ¥15,预授权:装 papaparse / push saydo/T-0042-*)</li>
+      <li><span class="t">21:12</span> S2 装依赖 papaparse:<b>命中预授权清单自动放行</b>(preauthorized 收据 → ⑤)</li>
+      <li><span class="t">21:38</span> run.completed(runner 退出;不播报)</li>
+      <li><span class="t">21:40</span> 验收闸门:verify 白名单 <code>pnpm test</code> <code>pnpm build</code> 全绿(独立跑,非 agent 自报)</li>
+      <li><span class="t">21:41</span> settle 对账完成 → <b>ready_for_review</b> → 语音回叫(⑥)</li>
+      <li class="dim"><span class="t">待定</span> 你验收 → 合并(S3 屏幕确认)→ task.done</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>验收证据(按验收标准组织)</h3>
+    <table>
+      <tr><th>验收标准</th><th>证据</th><th>状态</th></tr>
+      <tr><td>① Excel 直接打开、中文不乱码</td><td>新增 <span class="mono">export.spec.ts</span>:BOM 断言通过;样例文件已生成(点开抽验)</td><td><span class="chip c-amber">测试过 · 待你抽验(计划第 4 步)</span></td></tr>
+      <tr><td>② 现有测试全绿</td><td>12/12 通过</td><td><span class="chip c-green">通过</span></td></tr>
+      <tr><td>③ 新增导出单测</td><td>3 个新测试:表头/BOM/日期口径</td><td><span class="chip c-green">通过</span></td></tr>
+      <tr><td>(未验证项)10 万行大文件性能</td><td>—</td><td><span class="chip c-amber">未验证,已如实标注</span></td></tr>
+    </table>
+    <h4>变更摘要(5 个文件,<span class="add">+214</span> / <span class="del">-12</span>)</h4>
+    <p class="mono muted">src/export/csv.ts(+128)· src/export/bom.ts(+22)· src/report/ReportTable.tsx(+41/-8)· src/report/toolbar.tsx(+15/-4)· export.spec.ts(+8)</p>
+    <h4>agent 自主决策(decisions[],可推翻)</h4>
+    <table>
+      <tr><td>日期格式用 ISO 8601</td><td class="muted">现有代码两种格式混用,选了多数派</td><td><span class="btn">保持</span> <span class="btn">改</span></td></tr>
+      <tr><td>导出走前端生成(不加后端接口)</td><td class="muted">数据已在前端分页缓存</td><td><span class="btn">保持</span> <span class="btn">改</span></td></tr>
+    </table>
+    <h4>本任务审批记录(内嵌)</h4>
+    <p class="muted">21:12 S2 装依赖(preauthorized,类级授权+实例子收据)· 待定 S3 合并(见 <a href="#/approvals">审批中心 ⑤</a>)</p>
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+      <span class="btn" onclick="document.getElementById('spk').style.display='block'">听口播摘要</span>
+      <span class="btn">验收提修改(返工 · 这轮不作废)</span>
+      <span class="btn">改需求(steer:Tier1 即时注入 / Tier2 终止本轮续跑)</span>
+      <span class="btn">切换执行模式(降档随时生效;升档需重念清单)</span>
+      <span class="btn danger" onclick="document.getElementById('s3mask').classList.add('show')">合并到 main(S3 · 屏幕强认证)</span>
+    </div>
+    <div id="spk" style="display:none;margin-top:12px" class="note">
+      <b>one_liner</b>:"改了 5 个文件,测试 12 比 12 全过,有 2 个决策等你确认,还有 1 项没验证。"<br>
+      <b>walkthrough</b>:"我在报表工具栏加了导出按钮,新写了 csv 和 bom 两个模块……大文件性能还没测,建议合并前你用财务真实样例点一次。"<br>
+      <b>提修改路径(#29b)</b>:直接说"第三个文件函数名改一下,再提交"——这轮不作废,同任务新 attempt 在原 worktree 上改,改完再叫你。
+    </div>
+  </div>
+  <div style="text-align:right"><a class="btn primary" href="#/approvals">下一步:审批中心 ⑤</a></div>
+</section>
+
+<!-- ======== ⑤ 审批中心(全局) ======== -->
+<section data-route="approvals">
+  <div class="note">全局页:跨项目聚合(审批有时效,必须一眼看全),每张卡<b>必带项目/任务上下文</b>。语音最多批 S2;S3 永远屏幕强认证;超时默认终局。筛选:<span class="chip c-gray">全部项目 ▾</span></div>
+  <div class="card">
+    <h3>拍板收据(dispatch_package)<span class="chip c-green">已签署</span></h3>
+    <div class="kv">
+      <span class="k">项目/任务</span><span><b>reporting-app</b> · 决策包 v3 → T-0042</span>
+      <span class="k">签了什么</span><span>目标+验收标准三条 + 执行模式:直达验收 + 预授权清单:①装 papaparse(仅此包)②push saydo/T-0042-*</span>
+      <span class="k">方式/绑定</span><span>语音拍板 · 21:06 · <span class="mono">package digest 7f3a…c9</span>(所闻即所签,可回放当时念读内容)</span>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h3>S2 · 已放行(preauthorized)<span class="chip c-green">已消费</span></h3>
+      <div class="kv">
+        <span class="k">项目/任务</span><span><b>reporting-app</b> · T-0042(直达验收档)</span>
+        <span class="k">动作</span><span>安装 <code>papaparse@5</code>(postinstall 扫描:无脚本)</span>
+        <span class="k">依据</span><span>决策包 v3 预授权清单(拍板时已念出签署)</span>
+        <span class="k">收据</span><span class="mono">类级授权 + 实例子收据 a41e…77 · 执行点已复验</span>
+      </div>
+      <h3 style="margin-top:16px">S2 · 语音确认 <span class="chip c-green">已批</span></h3>
+      <div class="kv">
+        <span class="k">项目/任务</span><span><b>reporting-app</b> · T-0043(逐步确认档)</span>
+        <span class="k">动作</span><span>push 到 saydo/T-0043-tz 分支</span>
+        <span class="k">批准方式</span><span>语音确认("可以推")· 20:31 · 收据 b2c9…10</span>
+      </div>
+    </div>
+    <div class="card s3card">
+      <h3>S3 · 待批 <span class="chip c-red">需屏幕强认证</span> <span class="chip c-gray">审批卡 P1(P0=拒绝+降级话术)</span></h3>
+      <div class="kv">
+        <span class="k">项目/任务</span><span><b>reporting-app</b> · T-0042</span>
+        <span class="k">动作</span><span><b>合并 → main</b>(不可逆,触发发布流水线)</span>
+        <span class="k">将发生</span><span>rebase main → 重跑 verify → 合并;失败转 merge_failed</span>
+        <span class="k">绑定</span><span class="mono">package 7f3a…c9 · 预算余 ¥12.4 · 有效期 30min</span>
+        <span class="k">超时</span><span>29:12 后默认拒绝(绝不悬挂)</span>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:10px">
+        <span class="btn primary" onclick="document.getElementById('s3mask').classList.add('show')">Touch ID / 点击确认(模拟)</span>
+        <span class="btn">拒绝</span>
+      </div>
+      <p class="muted" style="margin-top:10px">与执行模式无关:直达验收档也必须在这里过 S3。语音只能"导航到这张卡 + 朗读将发生什么"。</p>
+    </div>
+  </div>
+  <div style="text-align:right"><a class="btn primary" href="#/notify">下一步:回叫与通知 ⑥</a></div>
+</section>
+
+<!-- ======== ⑥ 回叫与通知(全局) ======== -->
+<section data-route="notify">
+  <div class="grid2">
+    <div class="card">
+      <h3>回叫时间线(升级链留痕)<span class="chip c-gray">筛选:全部项目 ▾</span></h3>
+      <ul class="tl">
+        <li><span class="t">21:41 · reporting-app</span> <b>T-0042 等你验收</b> · 控制台在线 → <b>语音回叫</b>:"执行和检查都跑完了,等你验收…" · 12 秒应答 [ok] <a href="#/p/reporting/task/T-0042">去验收</a></li>
+        <li><span class="t">20:15 · reporting-app</span> <b>T-0043 需要你</b>(<code>blocked</code>,逐步确认档:时区基准问题即时上浮)· 语音无应答 30s → 桌面通知 → ntfy 推送 · 20:22 手机应答 [ok]</li>
+        <li class="dim"><span class="t">19:03 · reporting-app</span> T-0043 进度记录 · <b>默认不打扰</b>,仅记录(移动端锁屏实况自查为 P1)</li>
+        <li class="dim"><span class="t">16:40 · Q3 出海营销</span> 采访停靠:等你补"预算范围"(critical 缺口)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>策略</h3>
+      <div class="kv">
+        <span class="k">优先级</span><span>blocked &gt; failed &gt; 待审批 &gt; ready_for_review &gt; progress(不叫)</span>
+        <span class="k">与模式关系</span><span>优先级与升级链<b>不随执行模式变</b>;模式只决定哪些事件成为"待审批"</span>
+        <span class="k">免打扰</span><span>23:00–08:00 只推送不出声;blocked/failed 窗口结束补叫</span>
+        <span class="k">输出仲裁</span><span>Zoom 占麦 → 跳过语音走通知</span>
+        <span class="k">ack 语义</span><span>ack 只停止升级,≠ 解决 ≠ 授权;超时重升级</span>
+        <span class="k">移动端(P1)</span><span>PushKit 唤醒 + CallKit 来电式语音汇报</span>
+      </div>
+    </div>
+  </div>
+  <div style="text-align:right"><a class="btn primary" href="#/p/reporting/memory">下一步:记忆库 ⑦</a></div>
+</section>
+
+<!-- ======== ⑦ 记忆库(项目区,M1–M3) ======== -->
+<section data-route="memory">
+  <div id="memory-q3" style="display:none" class="q3ph">「Q3 出海营销」的记忆库:M1 为营销领域底座(受众/渠道调研),结构同 reporting-app。切回查看完整演示。</div>
+  <div id="memory-main">
+  <div class="note">本页是<b>项目记忆(M1–M3)</b>;M0 用户档案是跨项目的,在<a href="#/settings">全局设置</a>里。真相源是 append-only 事件账本,文件与索引都是可重建投影;第三方内容永远不能定义你的偏好。</div>
+  <div class="grid2">
+    <div class="card">
+      <h3>M1 项目知识底座 <span class="chip c-gray">人可直接编辑</span></h3>
+      <table>
+        <tr><td class="mono">project.md</td><td>目标/约束/相关方</td><td><span class="chip c-green">新鲜</span></td></tr>
+        <tr><td class="mono">architecture.md</td><td>模块图/数据流</td><td><span class="chip c-amber">部分过期:src/report 有新提交</span></td></tr>
+        <tr><td class="mono">glossary.md</td><td>术语 41 条(含财务口径)</td><td><span class="chip c-green">新鲜</span></td></tr>
+        <tr><td class="mono">decisions.md</td><td>关键决策 9 条(带来源引文)</td><td><span class="chip c-green">新鲜</span></td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>M2 累积产物 / M3 会话</h3>
+      <p style="font-size:13px">M2 → <a href="#/p/reporting/artifacts">产物库</a>(方案多版本/调研资料,可语音召回注入对话)。</p>
+      <p style="font-size:13px;margin-top:8px">M3 会话:今天 21:02「CSV 导出」(已沉淀)· 07-20「奠基会话」;支持"上周聊定价那段"式召回。</p>
+      <p class="muted" style="margin-top:10px">写路径:candidate(带来源/信任级)→ 冲突/taint 检查 → trusted;"忘掉这个"→ 软删+宽限,硬删传播到索引/备份。</p>
+    </div>
+  </div>
+  <div style="text-align:right"><a class="btn" href="#/p/reporting/artifacts">看产物库 →</a> <a class="btn primary" href="#/">回 Dashboard(循环闭合)</a></div>
+  </div>
+</section>
+
+<!-- ======== 产物库(项目区) ======== -->
+<section data-route="artifacts">
+  <div id="artifacts-q3" style="display:none" class="q3ph">「Q3 出海营销」产物库:受众调研 v1、渠道对比 v2…(结构同 reporting-app,演示略)。</div>
+  <div id="artifacts-main">
+  <div class="card">
+    <h3>产物库(M2)· reporting-app</h3>
+    <table>
+      <tr><th>产物</th><th>版本(lineage)</th><th>来源</th><th>操作</th></tr>
+      <tr><td>决策包 · CSV 导出</td><td>v1 → v2 → <b>v3(已批准,合同)</b></td><td>对话生成</td><td><a href="#/p/reporting/chat">在对话中查看</a></td></tr>
+      <tr><td>Demo · 报表导出预览</td><td>v2 <span class="chip c-blue">与实现同源</span></td><td>决策包工厂</td><td><a href="#/demo-preview">打开</a></td></tr>
+      <tr><td>财务系统对接调研</td><td>v1</td><td>调研抓取(taint 已检)</td><td><span class="btn">召回注入对话</span></td></tr>
+      <tr><td>T-0042 变更摘要 + decisions</td><td>v1</td><td>agent 产出</td><td><a href="#/p/reporting/task/T-0042">查看</a></td></tr>
+    </table>
+    <p class="muted" style="margin-top:10px">全程写入、版本可对比、默认本地;导出(含子集导出)需显式动作。</p>
+  </div>
+  </div>
+</section>
+
+<!-- ======== 项目设置(项目区) ======== -->
+<section data-route="psettings">
+  <div id="psettings-q3" style="display:none" class="q3ph">「Q3 出海营销」项目设置:系统管理文件夹、marketing 类型、无 verify 白名单(非代码)。</div>
+  <div id="psettings-main">
+  <div class="grid2">
+    <div class="card">
+      <h3>工作区与类型</h3>
+      <div class="kv">
+        <span class="k">工作区</span><span class="mono">~/work/reporting-app <span class="chip c-gray">本地文件夹</span></span>
+        <span class="k">来源</span><span>本地文件夹(P0)· <span class="muted">云端仓库即将支持(落地时 clone 到本地)</span></span>
+        <span class="k">类型</span><span>coding(AI 识别,可改)</span>
+        <span class="k">setup 命令</span><span class="mono">pnpm install --prefer-offline(建 worktree 后自动执行)</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>执行与安全(项目级)</h3>
+      <div class="kv">
+        <span class="k">verify 白名单</span><span class="mono">pnpm test · pnpm build · pnpm lint(仅登记模板可跑)</span>
+        <span class="k">执行模式默认</span><span>逐步确认(出厂默认;决策包拍板时可单次改)</span>
+        <span class="k">预算覆盖</span><span>未设(用全局默认;P1 支持项目覆盖)</span>
+        <span class="k">模型覆盖</span><span>未设(P1;如"本 repo 只允许有 OS 沙箱的执行后端")</span>
+      </div>
+    </div>
+  </div>
+  </div>
+</section>
+
+<!-- ======== 成本账本(全局) ======== -->
+<section data-route="cost">
+  <div class="grid3">
+    <div class="card"><h3>本月(全部项目)</h3><p class="bignum">¥46.30 <span class="muted" style="font-size:13px;font-weight:400;font-family:var(--font);font-style:normal">/ 预算 ¥200(仅计 API 按量部分)</span></p><p class="muted" style="margin-top:4px">语音 18% · 执行 64% · 调研 12% · 其他 6%</p><p class="muted" style="margin-top:8px">订阅调用(BYOA):<b>订阅额度内 · Codex 已用 7 次 · Claude 已用 3 次</b>(包月内不计 ¥,如实显示次数,不显示 ¥0 或"未知")</p></div>
+    <div class="card"><h3>reporting-app</h3><p class="bignum">¥31.10</p><p class="muted" style="margin-top:4px">T-0042 ¥2.6/预估 ¥3.2 · T-0043 ¥1.2(进行中)· 会话 ¥5.4</p></div>
+    <div class="card"><h3>Q3 出海营销</h3><p class="bignum">¥15.20</p><p class="muted" style="margin-top:4px">调研 agent ¥11.3 · 会话 ¥3.9</p></div>
+  </div>
+  <div class="card"><h3>口径</h3><p class="muted" style="line-height:1.8">estimate(决策包报价)→ budget(派发熔断)→ actual(run 实耗);任务级预算进度嵌在任务看板/详情,这里是全局总账(按项目下钻)。订阅 CLI 调用单列(source=subscription):金额记 NULL、只计次数,月预算与任务封顶只约束 API 按量部分;订阅限流=停下询问,经确认才切按量计费(docs/07 D18 纪律 3)。成本 unknown 显示"未知",不当 ¥0。</p></div>
+</section>
+
+<!-- ======== 全局设置 ======== -->
+<section data-route="settings">
+  <div class="note">全局默认,项目可覆盖(P1)。<b>五个模型槽位</b>(对话/思考/廉价/评估/开发),每槽两种供给(docs/07 D18):<b>API 直连</b>(需 key,支持 OpenAI 兼容三方端点 / OpenRouter 对比调试)或 <b>订阅 CLI(BYOA)</b>——复用你已登录的 Codex / Claude / Cursor 订阅,零 key、包月内免按 token 计费。评估器与对话/思考模型必须<b>不同家族</b>(防相关错误链),同家族时此页警示并拦截;<b>对话档恒 API</b>(订阅 CLI 已实测判死:每轮 13–23 秒)。</div>
+  <div class="grid2">
+    <div class="card">
+      <h3>模型配置(用户可选)</h3>
+      <div class="kv" style="row-gap:12px">
+        <span class="k">对话模型<br><span class="muted">要快(实时轮次)· 恒 API</span></span>
+        <span><select class="cfg"><option>OpenRouter · gemini-2.5-flash(dev 缺省)</option><option>GPT-5.6 SOL(API 官方)</option><option>本地模型(MLX,隐私优先)</option></select></span>
+        <span class="k">思考模型<br><span class="muted">要好(决策包/任务卡/奠基)· 可容秒-分钟</span></span>
+        <span><select class="cfg"><option>Cursor 订阅 CLI · Fable 5 Thinking Max(dev 缺省)</option><option>Codex 订阅 CLI · gpt-5.6</option><option>GPT-5.6 SOL Max(API)</option></select></span>
+        <span class="k">廉价模型<br><span class="muted">要省(口播摘要/打标/热词)</span></span>
+        <span><select class="cfg"><option>OpenRouter · gemini-2.5-flash-lite(dev 缺省)</option><option>GPT-5 mini(API)</option></select></span>
+        <span class="k">就绪评估器<br><span class="muted">独立判"够不够开始"</span></span>
+        <span><select class="cfg"><option>Codex 订阅 CLI · gpt-5.6-luna max(dev 缺省 · GPT 族)</option><option>Claude 订阅 CLI · Sonnet 5</option></select><br><span class="chip c-green">[ok] 异族校验:GPT 族 ≠ 对话(gemini)/思考(Claude)</span></span>
+        <span class="k">开发模型<br><span class="muted">Tier 1 执行 agent</span></span>
+        <span><select class="cfg"><option>Cursor CLI 订阅(dev 缺省 · hooks 审批,零 key)</option><option>Claude Code(产品缺省 · canUseTool)</option><option>Codex(有 OS 沙箱)</option></select></span>
+        <span class="k">语音 TTS<br><span class="muted">docs/07 D5 定档</span></span>
+        <span>火山豆包 seed-tts-2.0-expressive(v3 双向流式,X-Api-Key)</span>
+        <span class="k">语音引擎</span><span>级联(默认)· S2S 增强(P2,只做呈现层)</span>
+      </div>
+      <p class="muted" style="margin-top:10px">省钱缺省(dev 机):dialog/cheap 走 OpenRouter,thinking/evaluator 走 Cursor/Codex 订阅——API key 最少 1 个(OPENROUTER);订阅限流时<b>停下来问你</b>"切按量计费还是等重置",绝不静默转计费。成本倾向预设:经济型 / 均衡(默认)/ 品质优先。</p>
+    </div>
+    <div class="card">
+      <h3>安全 / 预算 / 档案</h3>
+      <div class="kv">
+        <span class="k">审批分级</span><span>S0/S1 自动 · S2 语音或预授权 · S3 屏幕强认证(与执行模式无关)</span>
+        <span class="k">执行模式出厂默认</span><span>逐步确认(项目可改默认,拍板可单次改)</span>
+        <span class="k">预算默认</span><span>月 ¥200 · 单任务封顶按决策包</span>
+        <span class="k">免打扰</span><span>23:00–08:00</span>
+        <span class="k">远程通道</span><span>默认只读;下发指令需配对设备+PIN,封顶 S2</span>
+      </div>
+      <h4>M0 用户档案(跨项目)</h4>
+      <p class="muted" style="line-height:1.8">口播偏好:简短、中文、不念代码(user_stated)· 包管理器:pnpm(user_approved)· ASR 热词 27 个(自动积累,可编辑)——只由你的行为写入,第三方内容不可写。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======== 决策包 Demo 示例 ======== -->
+<section data-route="demo-preview">
+  <div class="note">「决策包三件套」里的 Demo:mock 数据、可抛弃、<b>与最终实现同源</b>;元素编号(D1/D2)与实施计划条目互引——对着它说"D1 挪到左边"即是需求修订。</div>
+  <div class="card" style="max-width:780px">
+    <h3>报表页(实施后的样子)· mock</h3>
+    <div style="border:1px solid var(--line);border-radius:var(--r-md);padding:16px;background:var(--surface-2)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <b style="color:var(--ink);font-size:15px;font-family:var(--serif);font-weight:500">月度对账报表</b>
+        <span><span class="btn">筛选</span> <span class="btn primary" onclick="document.getElementById('toast').style.display='inline-flex'">导出 CSV <span class="mono" style="opacity:.8">[D1·计划#2]</span></span></span>
+      </div>
+      <table>
+        <tr><th>单号</th><th>客户</th><th>金额</th><th>发生时间 <span class="mono muted">[D3·口径=发生时间]</span></th></tr>
+        <tr><td class="mono">INV-2026-0711</td><td>杭州云启贸易</td><td>¥12,400.00</td><td class="mono">2026-07-11T09:32:00+08:00</td></tr>
+        <tr><td class="mono">INV-2026-0712</td><td>Shenzhen Nova Ltd.</td><td>¥8,050.50</td><td class="mono">2026-07-12T14:05:00+08:00</td></tr>
+        <tr><td class="mono">INV-2026-0715</td><td>北京禾木科技</td><td>¥21,300.00</td><td class="mono">2026-07-15T11:47:00+08:00</td></tr>
+      </table>
+      <div id="toast" style="display:none;margin-top:12px" class="chip c-green">[ok] 已导出 report-202607.csv(UTF-8 BOM · 含表头)[D2·计划#1/#3 验收对应]</div>
+    </div>
+  </div>
+  <div style="text-align:right"><a class="btn" href="#/p/reporting/chat">回到对话(决策包卡)</a></div>
+</section>
+
+</main>
+</div>
+
+<!-- S3 强认证弹层 -->
+<div class="mask" id="s3mask">
+  <div class="modal">
+    <h3>S3 强认证 · 合并 T-0042 → main</h3>
+    <p class="muted" style="line-height:1.8"><b>reporting-app · T-0042</b> · 将发生:rebase main → 重跑 verify(白名单)→ 合并;不可逆并触发发布流水线。授权绑定 package <span class="mono">7f3a…c9</span>,单次有效。执行模式为「直达验收」也必须在此确认——S3 与档位无关。</p>
+    <div style="margin:16px 0;display:flex;gap:10px">
+      <span class="btn primary" onclick="s3ok()">[ok] Touch ID 通过(模拟)</span>
+      <span class="btn" onclick="document.getElementById('s3mask').classList.remove('show')">取消</span>
+    </div>
+    <p class="muted" id="s3done" style="display:none;color:var(--ok);line-height:1.8"><b>已授权:auth receipt 落账 → review approved → merge requested → merging → verify 全绿 → task.done。</b>(若 merge 冲突/verify 挂:进入 merge_failed,显示"已批准待合并·合并失败",收据不重复消费,重试需重新走本卡。)(demo 完整循环到此闭合 [ok])</p>
+    <p class="muted" style="margin-top:8px;font-size:11.5px">Gate 0 说明:六项工程门禁未全部关闭时,"现在开工"与本按钮均为禁用态(P0 实现约束,demo 按已关闭展示)。</p>
+  </div>
+</div>
+
+<!-- 选择项目弹层 -->
+<div class="mask" id="pickmask">
+  <div class="modal">
+    <h3>选择已有项目继续</h3>
+    <p style="margin:12px 0"><a class="btn" href="#/p/reporting/chat" onclick="closePick('reporting')">reporting-app(coding · 活跃)</a></p>
+    <p style="margin:12px 0"><a class="btn" href="#/p/q3mkt/chat" onclick="closePick('q3mkt')">Q3 出海营销(marketing · 采访中)</a></p>
+    <p style="margin:12px 0"><span class="btn">＋ 从本地文件夹添加(P0;云端仓库即将支持)</span></p>
+    <p class="muted"><span class="btn" onclick="document.getElementById('pickmask').classList.remove('show')">关闭</span></p>
+  </div>
+</div>
+
+<script>
+  // 极简路由:#/ = dashboard;#/p/:pid/:page(项目区);其余全局页
+  let curProject = "reporting";
+  const stepMap = {
+    dash:["聊"], chat:["聊","就绪","拍板"], tasks:["执行"], task:["回叫","验收"],
+    approvals:["验收"], notify:["回叫"], memory:["沉淀"], artifacts:["沉淀"],
+    cost:[], settings:[], psettings:[], "demo-preview":["拍板"]
+  };
+  const crumbMap = {
+    dash:"① Dashboard(主入口 · 全局)", chat:"② 对话(项目)", tasks:"③ 任务看板(项目)",
+    task:"④ 任务详情 T-0042 · 验收(项目)", approvals:"⑤ 审批中心(全局 · 跨项目)", notify:"⑥ 回叫与通知(全局)",
+    memory:"⑦ 记忆库 M1–M3(项目)", artifacts:"产物库 M2(项目)", cost:"成本账本(全局)",
+    settings:"全局设置", psettings:"项目设置(项目)", "demo-preview":"决策包 Demo 示例"
+  };
+  const projectNames = { reporting:"reporting-app", q3mkt:"Q3 出海营销" };
+  const projectPages = ["chat","tasks","task","memory","artifacts","psettings"];
+
+  function route(){
+    let h = location.hash.replace(/^#\/?/,"");
+    let page = "dash", pid = curProject;
+    if(h.startsWith("p/")){
+      const seg = h.split("/");           // p/:pid/:page[/:tid]
+      pid = seg[1] || curProject;
+      page = seg[2] || "chat";
+      if(page === "settings") page = "psettings";   // 对外 URL 用 /p/:id/settings(08 §6 规范),内部键区分全局设置
+      if(page === "task") page = "task";
+      curProject = (pid in projectNames) ? pid : curProject;
+      document.getElementById("psel").value = curProject;
+    } else if(h) { page = h; }
+    if(!(page in crumbMap)) page = "dash";
+
+    document.querySelectorAll("section[data-route]").forEach(s=>s.classList.toggle("on", s.dataset.route===page));
+    document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on", a.dataset.nav===(page==="task"?"tasks":page)||(page==="dash"&&a.dataset.nav==="dash")));
+    document.querySelectorAll(".step").forEach(st=>{
+      const hot = (stepMap[page]||[]).includes(st.dataset.st);
+      st.classList.toggle("hot", hot); st.classList.toggle("dim", !hot);
+    });
+    const pj = projectPages.includes(page) ? ` · ${projectNames[curProject]}` : "";
+    document.getElementById("crumb").innerHTML = "SayDo / <b>"+(crumbMap[page]||page)+"</b>"+pj;
+
+    // 项目区页面按当前项目切内容(演示:q3 显示占位)
+    ["chat","tasks","memory","artifacts","psettings"].forEach(p=>{
+      const main = document.getElementById(p+"-main"), q3 = document.getElementById(p+"-q3");
+      if(main && q3){ const isQ3 = curProject==="q3mkt"; main.style.display = isQ3?"none":"block"; q3.style.display = isQ3?"block":"none"; }
+    });
+    window.scrollTo(0,0);
+  }
+  function switchProject(v){
+    if(v==="__add"){ alert("P0:选择本地文件夹(云端仓库即将支持)。此为演示。"); document.getElementById("psel").value = curProject; return; }
+    curProject = v;
+    // 项目切换语义:当前在项目区 → 切到新项目同名页;task 详情无法映射 → 回退 tasks;全局页不动
+    let h = location.hash.replace(/^#\/?/,"");
+    if(h.startsWith("p/")){
+      let page = h.split("/")[2] || "chat";
+      if(page==="task") page = "tasks";
+      location.hash = "#/p/"+v+"/"+page;
+    } else { route(); }
+  }
+  function newTalk(){
+    document.getElementById("draftnote").style.display = "block";
+    location.hash = "#/p/reporting/chat";
+  }
+  function closePick(p){ curProject = p; document.getElementById("pickmask").classList.remove("show"); }
+  function pickMode(el, m){
+    document.querySelectorAll(".mode").forEach(x=>x.classList.remove("sel"));
+    el.classList.add("sel");
+  }
+  function s3ok(){ document.getElementById("s3done").style.display="block"; }
+  function toggleTheme(){
+    const r=document.documentElement;
+    const next = r.getAttribute("data-theme")==="dark" ? "light" : "dark";
+    r.setAttribute("data-theme", next);
+    const u=document.querySelector("#themeicon use"); if(u) u.setAttribute("href", next==="dark" ? "#i-sun-a" : "#i-moon-a");
+    try{ localStorage.setItem("saydo-atelier-theme", next); }catch(e){}
+  }
+  (function initTheme(){
+    let t="light";
+    try{ t = localStorage.getItem("saydo-atelier-theme") || "light"; }catch(e){}
+    document.documentElement.setAttribute("data-theme", t);
+    const u=document.querySelector("#themeicon use"); if(u) u.setAttribute("href", t==="dark" ? "#i-sun-a" : "#i-moon-a");
+  })();
+  window.addEventListener("hashchange", route);
+  route();
+</script>
+</body>
+</html>

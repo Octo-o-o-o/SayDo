@@ -1,0 +1,65 @@
+# SayDo 本机开发配置(owner dev 机)—— 整文件复制为 ~/.saydo/config.toml(勿与 saydo.config.example.toml 拼接,会重复声明 [models] 表)
+# 设计依据:docs/07 D18"本机开发 profile"。对话档走 API(秒级工具环);沉思 / 廉价 / 评估走已接线 CLI(订阅零 key)。
+#
+# 【重要】 dev 双开关:本文件 profile="dev" + 环境变量 SAYDO_DEV=1,缺一按 default 生效并给提示。
+
+[models]
+profile   = "dev"
+dialog    = { provider = "api", via = "openrouter", model = "openai/gpt-5.6-luna" }
+thinking  = { provider = "cursor_cli", model = "claude-fable-5-thinking-max" }
+cheap     = { provider = "grok_cli" }                                              # model 可省,走 CLI 默认
+evaluator = { provider = "codex_cli", model = "gpt-5.6-luna", reasoning = "max" }
+# 评估档走 CLI 时两条 ack 必须显式 true(卡片/保存逻辑不得代写);缺一则深评线保持 unarmed。
+# same_family:本例 evaluator=GPT 与 dialog 同族,须知情确认。isolation:CLI 评估档沙箱限写不限读,独立性不可证。
+evaluator_same_family_ack = true
+evaluator_isolation_ack   = true
+
+[models.dev]
+# Tier 1 执行 agent:dev 机缺省 = Cursor CLI 订阅态(2026-07-23 实测通过,research/spikes/cursor-cli-tier1/)——
+#   零 API key、走你的 Cursor 订阅额度;审批门经 worktree .cursor/hooks.json 的 beforeShellExecution 钩子(deny 可靠拦截)。
+#   运行时当前只认 cursor;claude_code / codex 配了会被拒起执行器,对话不受影响;Claude Code 执行器接入中。
+agent     = "cursor"
+transport = "cli"                       # cli=订阅态零 key(缺省) | sdk=CURSOR_API_KEY(后续要更低延迟/更强流式时切)
+model     = "claude-fable-5-thinking-max"
+
+# 两键齐备才启用执行器;不接受 `~`(必须是锁定副本绝对路径 versions/<ver>/cursor-agent)。
+# 占位真值会走 bin_missing(每次启动打 error);缺两键才是 not_configured。上手保持注释,换成真实路径再打开。
+# [tier1]
+# cursor_agent_bin            = "/absolute/path/to/versions/<ver>/cursor-agent"
+# cursor_agent_pinned_version = "<cursor-agent --version 输出>"
+
+# ---- 三方 API 端点 ----
+[providers.api.openrouter]              # 一个 key 打通多家(OpenAI billing 有问题时的替代)
+base_url = "https://openrouter.ai/api/v1"
+api_key  = "env:OPENROUTER_API_KEY"     # openrouter.ai/keys 生成;不写 family(模型名带 vendor 前缀,前缀表逐模型解析)
+# [providers.api.deepseek]              # 单家直连示例:模型名无 vendor 前缀 ⇒ family 必填
+# base_url = "https://api.deepseek.com/v1"
+# api_key  = "env:DEEPSEEK_API_KEY"
+# family   = "deepseek"
+
+# ---- 语音(07 D5 定档:火山豆包 seed-tts-2.0 v3 双向流式;鉴权 header X-Api-Key,非旧 appid)----
+[voice]
+engine = "cascade"
+asr    = "volc"                         # 工程 ADR-101 已定档
+tts    = "volc"                         # P0 pipeline 直接读 .env；endpoint/model/voice/sample_rate 为实现定档值
+
+[privacy]
+store_audio          = false
+store_transcript     = true
+audio_retention_days = 0
+
+[budget]
+monthly  = 200
+currency = "CNY"
+[dnd]
+window = "23:00-08:00"
+
+[hopper]
+bin              = "~/.saydo/hopper-dist/bin/hopper.mjs"
+vault            = "~/.saydo/hopper-vault"
+expected_version = "bdd1e548f9359789497a797eda24398beba68ac5"   # baseline.2 切锁(2026-07-25,同 09 §11 [hopper])
+expected_tag     = "v0.1.0-saydo-baseline.2"
+
+[gate0]
+enabled = true
+bypass  = false

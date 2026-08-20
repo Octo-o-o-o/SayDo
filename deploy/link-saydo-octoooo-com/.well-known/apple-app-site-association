@@ -1,0 +1,16 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["5CS6HUB4P2.com.octoooo.saydo"],
+        "components": [
+          { "/": "/pair*", "comment": "desktop pairing" },
+          { "/": "/push/*", "comment": "callback / review deep link" }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["5CS6HUB4P2.com.octoooo.saydo"]
+  }
+}

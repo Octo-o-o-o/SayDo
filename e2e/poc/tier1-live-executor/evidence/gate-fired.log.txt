@@ -1,0 +1,1 @@
+{"ts":"1784993554","cmd":"ls -la","cwd":"/private/var/folders/g9/td5m11510gb69wv2d0wb9c280000gn/T/saydo-poc-repo-vou0ev/.saydo/worktrees/tsk_01VE2E0000000000000000000A"}

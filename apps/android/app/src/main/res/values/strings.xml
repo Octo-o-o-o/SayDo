@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">说到</string>
+    <string name="guide_title">连接 SayDo</string>
+    <string name="toolbar_profile">%1$s  切换</string>
+    <string name="desktop_row">%1$s\n%2$s</string>
+    <string name="desktop_row_current">[当前] %1$s\n%2$s</string>
+    <string name="web_load_failure">连不上桌面——确认同一 Wi-Fi，或重扫配对</string>
+</resources>

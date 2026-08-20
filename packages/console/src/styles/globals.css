@@ -1,0 +1,189 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Tailwind v4 经 @theme 消费同一组变量(docs/11 §12;名字随 tokens.css 走纸语言) */
+@theme inline {
+  --color-bg-app: var(--bg-app);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-soft: var(--surface-soft);
+  --color-surface-control: var(--surface-control);
+  --color-surface-ink-wash: var(--surface-ink-wash);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-fg-on-fill: var(--fg-on-fill);
+  --color-active-ink: var(--active-ink);
+  --color-active-ink-fg: var(--active-ink-fg);
+  --color-active-ink-wash: var(--active-ink-wash);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --color-info: var(--color-info);
+  --color-brand-seal: var(--brand-seal);
+  --color-brand-seal-fg: var(--brand-seal-fg);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+  --radius-2xs: var(--radius-2xs);
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+}
+
+/* 画布双光斑 + 细噪点(11 §3;唯一允许的"氛围",照抄 OctoBlog 配方结构) */
+.canvas-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(52% 42% at 12% 8%, var(--bg-glow-a), transparent 68%),
+    radial-gradient(46% 40% at 88% 92%, var(--bg-glow-b), transparent 70%);
+}
+
+/* 全站焦点环(11 §9;两端同一组交互态 token,移动壳在 .m-root 内改指矿彩层) */
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* 呼吸点(11 §2.6 running/merging/正在停;reduced-motion 降静态由下方全局规则承接) */
+@keyframes saydo-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.saydo-breathing {
+  animation: saydo-breathe 1.6s var(--ease-out) infinite;
+}
+
+/* 批 4:这次聊出来的东西——新卡滑入(对齐 design-ref-v5 feed-item) */
+@keyframes saydo-feed-in {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 向导供给网格:≥1100 三列 / 720-1099 两列 / <720 单列(移动壳走单列) */
+.setup-supply-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* 向导检测中骨架/进度圆点:纸面浅块呼吸,非 emoji(docs/11 §5.8a) */
+@keyframes setup-skeleton-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+.setup-skeleton-card,
+.setup-detecting-dot {
+  animation: setup-skeleton-breathe 1.6s var(--ease-out) infinite;
+}
+.setup-detecting-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  flex: 0 0 auto;
+}
+@media (min-width: 720px) {
+  .setup-supply-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1100px) {
+  .setup-supply-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.setup-fusion {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+.setup-fusion-left {
+  width: 300px;
+  flex: 0 0 300px;
+}
+.setup-fusion-right {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.setup-supply-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.setup-purpose-zone {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.setup-house-popover {
+  position: relative;
+  z-index: var(--z-setup-overlay);
+  margin-top: 10px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.setup-ack-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: var(--text-sm);
+}
+.setup-ack-row input[type="checkbox"] {
+  margin: 0;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+/* reduced-motion:全部动画降为即时切换(11 §2.4) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

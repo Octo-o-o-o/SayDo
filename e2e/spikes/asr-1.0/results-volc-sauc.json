@@ -1,0 +1,696 @@
+{
+ "summary": {
+  "provider": "volc sauc bigmodel(流式,mp3 整段)",
+  "n": 60,
+  "exact": 6,
+  "exactRate": 0.1,
+  "termHit": 56,
+  "termTotal": 101,
+  "termRecall": 0.554,
+  "avgMs": 2080,
+  "errors": [
+   "b02"
+  ]
+ },
+ "results": [
+  {
+   "id": "a01",
+   "ref": "帮我把 packages 底下 contracts 包的 digest 测试跑一遍",
+   "hyp": "帮我把 packages 底下 contracts 包的 digest 测试跑一遍。",
+   "ms": 2071,
+   "exact": true,
+   "termsHit": 2,
+   "termsTotal": 2,
+   "missedTerms": []
+  },
+  {
+   "id": "a02",
+   "ref": "这个任务卡的 ready for review 状态还没到,先别叫我",
+   "hyp": "这个任务卡的 ready for reveal 状态还没到，先别叫我。",
+   "ms": 2094,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 1,
+   "missedTerms": [
+    "ready for review"
+   ]
+  },
+  {
+   "id": "a03",
+   "ref": "把 worktree 里的改动提交到 feature 分支",
+   "hyp": "把 work tree 里的改动提交到 feature 分支。",
+   "ms": 1463,
+   "exact": true,
+   "termsHit": 2,
+   "termsTotal": 2,
+   "missedTerms": []
+  },
+  {
+   "id": "a04",
+   "ref": "用 pnpm install 装一下依赖,别用 npm",
+   "hyp": "用 p n p m install 装一下依赖，别用 NPM。",
+   "ms": 1858,
+   "exact": false,
+   "termsHit": 2,
+   "termsTotal": 2,
+   "missedTerms": []
+  },
+  {
+   "id": "a05",
+   "ref": "daemon 的 health 接口返回二百就算正常",
+   "hyp": "Damon 的 health 接口返回200就算正常。",
+   "ms": 1624,
+   "exact": false,
+   "termsHit": 1,
+   "termsTotal": 2,
+   "missedTerms": [
+    "daemon"
+   ]
+  },
+  {
+   "id": "a06",
+   "ref": "把 DDL 里的 CHECK 约束补上 auth strength 的词表",
+   "hyp": "把 DDL 里的 check 约束补上 a strength 的词表。",
+   "ms": 2099,
+   "exact": false,
+   "termsHit": 2,
+   "termsTotal": 3,
+   "missedTerms": [
+    "auth strength"
+   ]
+  },
+  {
+   "id": "a07",
+   "ref": "EffectGrant 的 spokenForm 必须由模板渲染,不能自由造句",
+   "hyp": "effect grant the spoken form 必须由模板渲染，不能自由造句。",
+   "ms": 2486,
+   "exact": false,
+   "termsHit": 2,
+   "termsTotal": 2,
+   "missedTerms": []
+  },
+  {
+   "id": "a08",
+   "ref": "跑一下 vitest,看看 storage 那几个测试红不红",
+   "hyp": "跑一下 we test，看看 storage 那几个测试红不红。",
+   "ms": 2904,
+   "exact": false,
+   "termsHit": 1,
+   "termsTotal": 2,
+   "missedTerms": [
+    "vitest"
+   ]
+  },
+  {
+   "id": "a09",
+   "ref": "Hopper 的 events 点 jsonl 要按 byte cursor 断点续读",
+   "hyp": "hopper 的 events 点 Jason l 要按 bite cursor 断点续读。",
+   "ms": 3176,
+   "exact": false,
+   "termsHit": 1,
+   "termsTotal": 3,
+   "missedTerms": [
+    "jsonl",
+    "byte cursor"
+   ]
+  },
+  {
+   "id": "a10",
+   "ref": "把 tier1 runs 表的 attempt 加一,别动旧行",
+   "hyp": "but here e runs 表的 attempt 加一别动就好。",
+   "ms": 2634,
+   "exact": false,
+   "termsHit": 1,
+   "termsTotal": 2,
+   "missedTerms": [
+    "tier1"
+   ]
+  },
+  {
+   "id": "a11",
+   "ref": "zod 的 schema 校验挂了,看看是不是 strictObject 的问题",
+   "hyp": "ImGui 校验挂了，看看是不是 strict object 的问题。",
+   "ms": 2194,
+   "exact": false,
+   "termsHit": 1,
+   "termsTotal": 3,
+   "missedTerms": [
+    "zod",
+    "schema"
+   ]
+  },
+  {
+   "id": "a12",
+   "ref": "outbox 的 dedupe key 是四段拼接,别漏 revision",
+   "hyp": "outbox 的 didop key 是4段拼接，别漏 revision。",
+   "ms": 2174,
+   "exact": false,
+   "termsHit": 2,
+   "termsTotal": 3,
+   "missedTerms": [
+    "dedupe key"
+   ]
+  },
+  {
+   "id": "a13",
+   "ref": "settle barrier 没过就不许回叫,proof 缺一不叫",
+   "hyp": "settle barrier 没过就不许回家。proof 缺一补交。",
+   "ms": 2425,
+   "exact": false,
+   "termsHit": 2,
+   "termsTotal": 2,
+   "missedTerms": []
+  },
+  {
+   "id": "a14",
+   "ref": "把 RunSettled 事件的 evidence digest 存成不透明字符串",
+   "hyp": "by run settle 的事件的 evidence digest 存呈不透明字符串。",
+   "ms": 2155,
+   "exact": false,
+   "termsHit": 1,
+   "termsTotal": 2,
+   "missedTerms": [
+    "RunSettled"
+   ]
+  },
+  {
+   "id": "a15",
+   "ref": "cursor agent 的 hooks 要写进点 cursor 目录",
+   "hyp": "周岁 agent hooks 要写尽点 cursor 目录。",
+   "ms": 2435,
+   "exact": false,
+   "termsHit": 1,
+   "termsTotal": 2,
+   "missedTerms": [
+    "cursor agent"
+   ]
+  },
+  {
+   "id": "a16",
+   "ref": "canUseTool 回调阻塞的时候,超时就按 deny 处理",
+   "hyp": "can use two？回调阻塞的时候超时就按得耐处理。",
+   "ms": 2826,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 2,
+   "missedTerms": [
+    "canUseTool",
+    "deny"
+   ]
+  },
+  {
+   "id": "a17",
+   "ref": "renderSpoken 模板里 downstream triggers 必须念出来",
+   "hyp": "render spoken 模板里不为 stream，triggers 必须念出来。",
+   "ms": 1805,
+   "exact": false,
+   "termsHit": 1,
+   "termsTotal": 2,
+   "missedTerms": [
+    "downstream triggers"
+   ]
+  },
+  {
+   "id": "a18",
+   "ref": "把 memory events 表重放一遍,验证 forget hard 的幂等",
+   "hyp": "把 memory events 表重放一遍，验证 forget hard 的 me 等。",
+   "ms": 1993,
+   "exact": false,
+   "termsHit": 2,
+   "termsTotal": 2,
+   "missedTerms": []
+  },
+  {
+   "id": "a19",
+   "ref": "SQLite 开 WAL 模式,synchronous 设成 FULL",
+   "hyp": "SQL a 开 w a l 模式 eskine 射程 full。",
+   "ms": 2815,
+   "exact": false,
+   "termsHit": 2,
+   "termsTotal": 4,
+   "missedTerms": [
+    "SQLite",
+    "synchronous"
+   ]
+  },
+  {
+   "id": "a20",
+   "ref": "Gate 0 没关的话 dispatch 一律拒绝,没有 bypass",
+   "hyp": "gate 林梅关的话，dispatch 一律拒绝，没有 by pass。",
+   "ms": 3144,
+   "exact": false,
+   "termsHit": 2,
+   "termsTotal": 3,
+   "missedTerms": [
+    "Gate 0"
+   ]
+  },
+  {
+   "id": "b01",
+   "ref": "先 git status 看一下,再决定要不要 stash",
+   "hyp": "先 git status 看一下再决定要不要 stash。",
+   "ms": 1709,
+   "exact": true,
+   "termsHit": 2,
+   "termsTotal": 2,
+   "missedTerms": []
+  },
+  {
+   "id": "b02",
+   "ref": "把这个函数重构成 async await 的写法",
+   "hyp": "",
+   "ms": 3582,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 1,
+   "missedTerms": [
+    "async await"
+   ],
+   "error": "RuntimeError(\"server error 55000000: {'error': '[Server-side generic error] OperatorWrapper Process failed: big asr recv err. rpc timeout: CallWithTimeout: timeout in business code, timeout_config=3s,"
+  },
+  {
+   "id": "b03",
+   "ref": "CI 红了,看看是 lint 还是 typecheck 挂了",
+   "hyp": "CI 红了，看看是 lint 还是 tap check 挂了。",
+   "ms": 1868,
+   "exact": false,
+   "termsHit": 2,
+   "termsTotal": 3,
+   "missedTerms": [
+    "typecheck"
+   ]
+  },
+  {
+   "id": "b04",
+   "ref": "这个 API 返回 404,是不是路由没注册",
+   "hyp": "这个 API 返回404，是不是路由没注册？",
+   "ms": 2397,
+   "exact": false,
+   "termsHit": 2,
+   "termsTotal": 2,
+   "missedTerms": []
+  },
+  {
+   "id": "b05",
+   "ref": "用 docker compose 把 postgres 起起来",
+   "hyp": "用 Docker compose 把 postgrace 启起来。",
+   "ms": 1641,
+   "exact": false,
+   "termsHit": 1,
+   "termsTotal": 2,
+   "missedTerms": [
+    "postgres"
+   ]
+  },
+  {
+   "id": "b06",
+   "ref": "把 package 点 json 里的 scripts 加一个 build 命令",
+   "hyp": "把 package 点 Jason 里的 scripts 加一个 build 命令。",
+   "ms": 1829,
+   "exact": false,
+   "termsHit": 3,
+   "termsTotal": 4,
+   "missedTerms": [
+    "json"
+   ]
+  },
+  {
+   "id": "b07",
+   "ref": "这段代码有 race condition,加个锁或者用队列",
+   "hyp": "这段代码有 risk condition，加个锁或者用队列。",
+   "ms": 1810,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 1,
+   "missedTerms": [
+    "race condition"
+   ]
+  },
+  {
+   "id": "b08",
+   "ref": "把 main 分支 rebase 到最新,解决冲突再 push",
+   "hyp": "把 main 分支 rebase 到最新解决冲突再 push。",
+   "ms": 2531,
+   "exact": true,
+   "termsHit": 3,
+   "termsTotal": 3,
+   "missedTerms": []
+  },
+  {
+   "id": "b09",
+   "ref": "环境变量放 dotenv 里,别硬编码进代码",
+   "hyp": "环境变量放 Dota 胃里，别硬编码进代码。",
+   "ms": 1996,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 1,
+   "missedTerms": [
+    "dotenv"
+   ]
+  },
+  {
+   "id": "b10",
+   "ref": "这个接口要加 rate limit,一分钟最多六十次",
+   "hyp": "这个接口要加 rate limit，1分钟最多60次。",
+   "ms": 2278,
+   "exact": false,
+   "termsHit": 1,
+   "termsTotal": 1,
+   "missedTerms": []
+  },
+  {
+   "id": "b11",
+   "ref": "WebSocket 断线要自动重连,带指数退避",
+   "hyp": "word best 判断线要自动重连，待指数退避。",
+   "ms": 1751,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 1,
+   "missedTerms": [
+    "WebSocket"
+   ]
+  },
+  {
+   "id": "b12",
+   "ref": "把 TypeScript 的 strict 模式打开,补上类型标注",
+   "hyp": "把 typescript 的 strict 模式打开，补上类型标注。",
+   "ms": 1710,
+   "exact": false,
+   "termsHit": 2,
+   "termsTotal": 2,
+   "missedTerms": []
+  },
+  {
+   "id": "b13",
+   "ref": "日志用 JSONL 格式,一行一条方便 grep",
+   "hyp": "日志用 Jason l 格式一行一条，方便转化。",
+   "ms": 2532,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 2,
+   "missedTerms": [
+    "JSONL",
+    "grep"
+   ]
+  },
+  {
+   "id": "b14",
+   "ref": "内存泄漏了,用 heap snapshot 对比一下",
+   "hyp": "内存泄露了，用 heapdump 对比一下。",
+   "ms": 1786,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 1,
+   "missedTerms": [
+    "heap snapshot"
+   ]
+  },
+  {
+   "id": "b15",
+   "ref": "这个 SQL 要加索引,不然全表扫描太慢",
+   "hyp": "这个 c 扩要加索引，不然全表扫描太慢。",
+   "ms": 3046,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 1,
+   "missedTerms": [
+    "SQL"
+   ]
+  },
+  {
+   "id": "c01",
+   "ref": "预算封顶二十块钱,超了就熔断",
+   "hyp": "预算封顶20块钱，超了就熔断。",
+   "ms": 1938,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 0,
+   "missedTerms": []
+  },
+  {
+   "id": "c02",
+   "ref": "墙钟上限设四十五分钟,停靠期停表",
+   "hyp": "羌中上线，射45分钟，停靠，7停表。",
+   "ms": 2987,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 0,
+   "missedTerms": []
+  },
+  {
+   "id": "c03",
+   "ref": "超时时间改成一百二十秒,重试一次",
+   "hyp": "超时时间改成120秒重试一次。",
+   "ms": 2012,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 0,
+   "missedTerms": []
+  },
+  {
+   "id": "c04",
+   "ref": "端口用四七一零零,别跟 vite 的冲突",
+   "hyp": "端口用47100，别跟 Wit 的冲突。",
+   "ms": 2046,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 1,
+   "missedTerms": [
+    "vite"
+   ]
+  },
+  {
+   "id": "c05",
+   "ref": "保留期三十天,到期整份删除",
+   "hyp": "保留期30天，到期整份删除。",
+   "ms": 1524,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 0,
+   "missedTerms": []
+  },
+  {
+   "id": "c06",
+   "ref": "采样率二十四 k,比特率一百六十",
+   "hyp": "采样率24K，比特率160。",
+   "ms": 1617,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 0,
+   "missedTerms": []
+  },
+  {
+   "id": "c07",
+   "ref": "这个月已经花了一百八十六块五,快到预算了",
+   "hyp": "这个月已经花了186块5，快到预算了。",
+   "ms": 1684,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 0,
+   "missedTerms": []
+  },
+  {
+   "id": "c08",
+   "ref": "测试跑了十二个,全过,零失败",
+   "hyp": "测试跑了12个，全过0失败！",
+   "ms": 2120,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 0,
+   "missedTerms": []
+  },
+  {
+   "id": "c09",
+   "ref": "第三步跑完了,继续第四步吗",
+   "hyp": "第三步跑完了，继续第四步吗？",
+   "ms": 1640,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 0,
+   "missedTerms": []
+  },
+  {
+   "id": "c10",
+   "ref": "停靠七十二小时没人管就自动取消",
+   "hyp": "停靠72小时没人管就自动取消。",
+   "ms": 1863,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 0,
+   "missedTerms": []
+  },
+  {
+   "id": "d01",
+   "ref": "加上 dash dash force 和 dash dash trust 两个参数",
+   "hyp": "加上 Dash Dash force 和 Dash Dash trust 两个参数。",
+   "ms": 1983,
+   "exact": true,
+   "termsHit": 0,
+   "termsTotal": 0,
+   "missedTerms": []
+  },
+  {
+   "id": "d02",
+   "ref": "跑 hopper lint 带 json 输出,查 classification 字段",
+   "hyp": "跑 Hopper link 带 Jason 输出查 classification 字段。",
+   "ms": 2181,
+   "exact": false,
+   "termsHit": 1,
+   "termsTotal": 3,
+   "missedTerms": [
+    "hopper lint",
+    "json"
+   ]
+  },
+  {
+   "id": "d03",
+   "ref": "配置在波浪线点 saydo 目录下的 config 点 toml",
+   "hyp": "配置在波浪线点塞斗目录下的 config 点 Tom 了。",
+   "ms": 2161,
+   "exact": false,
+   "termsHit": 1,
+   "termsTotal": 3,
+   "missedTerms": [
+    "saydo",
+    "toml"
+   ]
+  },
+  {
+   "id": "d04",
+   "ref": "git push origin main 被钩子拦了,看下 gate 日志",
+   "hyp": "Kit push origin main 被钩子拦了，看下 git 日志。",
+   "ms": 1572,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 2,
+   "missedTerms": [
+    "git push origin main",
+    "gate"
+   ]
+  },
+  {
+   "id": "d05",
+   "ref": "npm install 加 no audit 和 no fund,快一点",
+   "hyp": "ntm install 加 no audit 和 no found 快一点。",
+   "ms": 2217,
+   "exact": false,
+   "termsHit": 1,
+   "termsTotal": 3,
+   "missedTerms": [
+    "npm install",
+    "no fund"
+   ]
+  },
+  {
+   "id": "d06",
+   "ref": "把 dist 目录清了重新 build,产物校验六项",
+   "hyp": "把 diss 的目录清了，重新 build，产物校验6项。",
+   "ms": 2284,
+   "exact": false,
+   "termsHit": 1,
+   "termsTotal": 2,
+   "missedTerms": [
+    "dist"
+   ]
+  },
+  {
+   "id": "d07",
+   "ref": "用 rg 搜 TODO,排除 node modules 目录",
+   "hyp": "用 RG 搜 TODO 排除 NODE modules 目录。",
+   "ms": 2078,
+   "exact": true,
+   "termsHit": 3,
+   "termsTotal": 3,
+   "missedTerms": []
+  },
+  {
+   "id": "d08",
+   "ref": "chmod 加 x 给 run 点 sh,然后直接执行",
+   "hyp": "青 LB 加 x 给 wrong 点 SE 使，然后直接执行。",
+   "ms": 1496,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 3,
+   "missedTerms": [
+    "chmod",
+    "run",
+    "sh"
+   ]
+  },
+  {
+   "id": "d09",
+   "ref": "curl 一下 localhost 四七一零零的 health",
+   "hyp": "careg 一下 local host 47100的 health。",
+   "ms": 1958,
+   "exact": false,
+   "termsHit": 2,
+   "termsTotal": 3,
+   "missedTerms": [
+    "curl"
+   ]
+  },
+  {
+   "id": "d10",
+   "ref": "tail 最后三行 events 点 jsonl,用 jq 解析 type",
+   "hyp": "他有最后3行 events，点 Jason l 用 JQ 解析 type。",
+   "ms": 1786,
+   "exact": false,
+   "termsHit": 3,
+   "termsTotal": 5,
+   "missedTerms": [
+    "tail",
+    "jsonl"
+   ]
+  },
+  {
+   "id": "e01",
+   "ref": "这个方案我觉得可以,就按你说的做吧",
+   "hyp": "这个方案我觉得可以，就按你说的做吧。",
+   "ms": 1395,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 0,
+   "missedTerms": []
+  },
+  {
+   "id": "e02",
+   "ref": "等一下,刚才那个决定先不算,我再想想",
+   "hyp": "等一下，刚才那个决定先不算，我再想想。",
+   "ms": 1579,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 0,
+   "missedTerms": []
+  },
+  {
+   "id": "e03",
+   "ref": "做完记得叫我,我先去开个会",
+   "hyp": "做完记得叫我，我先去开个会。",
+   "ms": 1060,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 0,
+   "missedTerms": []
+  },
+  {
+   "id": "e04",
+   "ref": "预览的效果不太对,标题应该更大一点",
+   "hyp": "预览的效果不太对，标题应该更大一点。",
+   "ms": 1355,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 0,
+   "missedTerms": []
+  },
+  {
+   "id": "e05",
+   "ref": "行,一口气跑完,别每步都问我",
+   "hyp": "行，一口气跑完，别每步都问我。",
+   "ms": 1474,
+   "exact": false,
+   "termsHit": 0,
+   "termsTotal": 0,
+   "missedTerms": []
+  }
+ ]
+}

@@ -1,0 +1,94 @@
+{
+  "schema_version": "1",
+  "created_at": "2026-07-24T05:16:44.226Z",
+  "repo": "/private/var/folders/g9/td5m11510gb69wv2d0wb9c280000gn/T/tmp.PAAAdl0ryp",
+  "branch": "main",
+  "diff_base": "staged (git diff --cached)",
+  "execution_base": "current workspace /private/var/folders/g9/td5m11510gb69wv2d0wb9c280000gn/T/tmp.PAAAdl0ryp@ba60a42f (dirty)",
+  "workspace_dirty": true,
+  "changed_files": [
+    "docs/GREETING.md"
+  ],
+  "diff_lines": 1,
+  "verification": {
+    "status": "passed",
+    "commands": [
+      "npm test"
+    ],
+    "skipped": [],
+    "results": [
+      {
+        "command": "npm test",
+        "trust": "trusted",
+        "exitCode": 0,
+        "timedOut": false,
+        "output": "\n> c@1.0.0 test\n> exit 0\n"
+      }
+    ]
+  },
+  "guardrails": {
+    "blocked": false,
+    "block_kind": null,
+    "findings": [],
+    "skipped_run_only_checks": [
+      "branch_check (\"changes on main\" is a violation in run mode; running check on main is normal)",
+      "push_detection (no runner execution, no remote refs snapshot to compare)",
+      "runner_push_isolation (no runner subprocess; verification commands still use the push isolation wrapper)",
+      "base_tests_rerun (anti-evergreen base restore & rerun is exclusive to orchestrated run mode — restoring base in the user's real repo is destructive; tamper is only detected and reported)"
+    ]
+  },
+  "tamper": {
+    "test_ci": [],
+    "build_manifest": [],
+    "agent_doc": [],
+    "note": null
+  },
+  "acceptance": {
+    "schema_version": "1",
+    "status": "supported",
+    "criteria": [
+      {
+        "text": "新文件 docs/GREETING.md 存在",
+        "status": "supported",
+        "evidence": [
+          {
+            "kind": "diff",
+            "ref": "docs/GREETING.md",
+            "summary": "newly added file relates to acceptance criterion keywords"
+          }
+        ],
+        "gap": null
+      },
+      {
+        "text": "文件首行包含 hello saydo",
+        "status": "supported",
+        "evidence": [
+          {
+            "kind": "diff",
+            "ref": "docs/GREETING.md",
+            "summary": "added lines match acceptance criterion keywords"
+          }
+        ],
+        "gap": null
+      }
+    ],
+    "risk_notes": [],
+    "recommended_next_step": "approve"
+  },
+  "docs": {
+    "schema_version": "1",
+    "status": "aligned",
+    "obligations": [],
+    "notes": []
+  },
+  "risk": {
+    "risk": "low",
+    "hits": []
+  },
+  "conclusion": "passed",
+  "exit_code": 0,
+  "reasons": [
+    "all gates passed"
+  ],
+  "determinism": "All conclusions in this report come from deterministic gates (no LLM judgment)"
+}

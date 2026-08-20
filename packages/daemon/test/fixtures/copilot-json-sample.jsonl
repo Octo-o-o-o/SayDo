@@ -1,0 +1,2 @@
+{"type":"assistant","message":{"content":[{"type":"text","text":"pong"}]},"model":"gpt-5.2"}
+{"type":"result","result":"pong","model":"gpt-5.2"}

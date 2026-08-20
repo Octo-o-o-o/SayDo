@@ -1,0 +1,12 @@
+SayDo (说到)
+Copyright 2026 Yixiao Wang (汪义骁)
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Trademarks and brand assets: the names "SayDo" and "说到", the seal logo, and
+the brand assets under assets/ identify the original project and are NOT
+licensed under the Apache License (see Section 6 of the License). Forks and
+derivative works must not present themselves as the original SayDo / 说到.
+
+Third-party components are used under their own licenses as declared in the
+respective package manifests (package.json / pyproject.toml).

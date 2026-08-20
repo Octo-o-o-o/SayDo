@@ -1,0 +1,1 @@
+{"scan":{"registered":[],"skipped_duplicates":0,"total_inbox_files":1},"triaged":[{"task_id":"saydo-poc-narrow-loop-0001","classification":"ready","risk":"low","confidence":0.82,"decided_by":"deterministic","reason":"requirements clear with acceptance criteria; ready to queue","child_draft":null,"child_drafts":[]}]}

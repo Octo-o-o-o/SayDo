@@ -1,0 +1,439 @@
+{
+  "meta": {
+    "start": "2026-08-16T17:50:06+08:00",
+    "head": "bc2ac87",
+    "pid": 49749,
+    "lan": "192.168.31.132"
+  },
+  "counts": {
+    "PASS": 26,
+    "FAIL": 0,
+    "TIMEOUT": 0,
+    "SKIP": 0,
+    "BLOCKED": 0,
+    "START": 26
+  },
+  "steps": [
+    {
+      "time": "2026-08-16T17:50:06+08:00",
+      "status": "START",
+      "id": "C1",
+      "title": "G1 无 token 打开 API 被拒",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:06+08:00",
+      "status": "PASS",
+      "id": "C1",
+      "title": "G1 无 token 打开 API 被拒",
+      "summary": "403 token_missing",
+      "evidence": "api"
+    },
+    {
+      "time": "2026-08-16T17:50:06+08:00",
+      "status": "START",
+      "id": "C2",
+      "title": "GET /health 身份",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:06+08:00",
+      "status": "PASS",
+      "id": "C2",
+      "title": "GET /health 身份",
+      "summary": "pid=49749 sha=bc2ac871ee97",
+      "evidence": "api"
+    },
+    {
+      "time": "2026-08-16T17:50:06+08:00",
+      "status": "START",
+      "id": "C3",
+      "title": "setup probe 已武装且槽为 Cursor CLI",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:09+08:00",
+      "status": "PASS",
+      "id": "C3",
+      "title": "setup probe 已武装且槽为 Cursor CLI",
+      "summary": "dialog=active cheap=active dev=active",
+      "evidence": "api"
+    },
+    {
+      "time": "2026-08-16T17:50:09+08:00",
+      "status": "START",
+      "id": "C4",
+      "title": "overview / attention / focuses",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:09+08:00",
+      "status": "PASS",
+      "id": "C4",
+      "title": "overview / attention / focuses",
+      "summary": "projects=5 attention=200 focuses=0 pid=yes",
+      "evidence": "api"
+    },
+    {
+      "time": "2026-08-16T17:50:09+08:00",
+      "status": "START",
+      "id": "C5",
+      "title": "127.0.0.1 HTML 是否 308 到 localhost",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:09+08:00",
+      "status": "PASS",
+      "id": "C5",
+      "title": "127.0.0.1 HTML 是否 308 到 localhost",
+      "summary": "status=308 location=http://localhost:47100/",
+      "evidence": "api"
+    },
+    {
+      "time": "2026-08-16T17:50:09+08:00",
+      "status": "START",
+      "id": "D1",
+      "title": "无 token 打开控制台 fail-closed",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:09+08:00",
+      "status": "PASS",
+      "id": "D1",
+      "title": "无 token 打开控制台 fail-closed",
+      "summary": "bootstrap=probe-error",
+      "evidence": "screenshots/01-D1_20260816-175009_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:09+08:00",
+      "status": "START",
+      "id": "D2",
+      "title": "带 token 进入应用 · 今天",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:11+08:00",
+      "status": "PASS",
+      "id": "D2",
+      "title": "带 token 进入应用 · 今天",
+      "summary": "说到 SayDo 开口聊 今天 全景看板 正在持续的事 暂无 记录 记忆库 产物 成本 设置 旧版 与手机配对 单用户 · 本机 daemon localhost:47100 语音就绪 今天 还没有要持续关注的事。开口聊,聊成熟了我会问你要不要立起来。 开口聊",
+      "evidence": "screenshots/02-D2_20260816-175011_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:11+08:00",
+      "status": "START",
+      "id": "D3",
+      "title": "全景看板",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:11+08:00",
+      "status": "PASS",
+      "id": "D3",
+      "title": "全景看板",
+      "summary": "说到 SayDo 开口聊 今天 全景看板 正在持续的事 暂无 记录 记忆库 产物 成本 设置 旧版 与手机配对 单用户 · 本机 daemon localhost:47100 语音就绪 全景看板 按 Focus 分组,多条支线拆子泳道 · 你只需要看「需要你」那一列 · 格子多了会折叠 队列 / 收到 进行中 需要你 ",
+      "evidence": "screenshots/03-D3_20260816-175011_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:11+08:00",
+      "status": "START",
+      "id": "D4",
+      "title": "开口聊空态",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:11+08:00",
+      "status": "PASS",
+      "id": "D4",
+      "title": "开口聊空态",
+      "summary": "indicator=语音就绪",
+      "evidence": "screenshots/04-D4_20260816-175011_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:11+08:00",
+      "status": "START",
+      "id": "D5",
+      "title": "全局设置模型槽",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:11+08:00",
+      "status": "PASS",
+      "id": "D5",
+      "title": "全局设置模型槽",
+      "summary": "槽位 状态 模型 供给 对话 跟你聊天的 实际生效 cursor-grok-4.6-high-fast sub · cursor 重新配置 沉思 复杂事后台深想 实际生效 cursor-grok-4.6-high-fast sub · cursor 在向导里逐槽切换提供商 廉价 大量小活省钱用 实际生效 composer-2.5-fast sub · cursor 评估 独立检查 AI 自己干的活 实际生效 cursor-grok-4.",
+      "evidence": "screenshots/05-D5_20260816-175011_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:11+08:00",
+      "status": "START",
+      "id": "D6",
+      "title": "成本页",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:11+08:00",
+      "status": "PASS",
+      "id": "D6",
+      "title": "成本页",
+      "summary": "说到 SayDo 开口聊 今天 全景看板 正在持续的事 暂无 记录 记忆库 产物 成本 设置 旧版 与手机配对 单用户 · 本机 daemon localhost:47100 语音就绪 成本 项目 已知花费 未知项 (无项目) 还没有确切数字 56 笔 明细(最近 300) llm.evaluator 订阅额度内 08",
+      "evidence": "screenshots/06-D6_20260816-175011_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:11+08:00",
+      "status": "START",
+      "id": "D7",
+      "title": "记忆库",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:11+08:00",
+      "status": "PASS",
+      "id": "D7",
+      "title": "记忆库",
+      "summary": "说到 SayDo 开口聊 今天 全景看板 正在持续的事 暂无 记录 记忆库 产物 成本 设置 旧版 与手机配对 单用户 · 本机 daemon localhost:47100 语音就绪 记忆库(M1-M3) 还没有项目记忆;对话与执行会沉淀到这里",
+      "evidence": "screenshots/07-D7_20260816-175011_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:11+08:00",
+      "status": "START",
+      "id": "D8",
+      "title": "产物",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:11+08:00",
+      "status": "PASS",
+      "id": "D8",
+      "title": "产物",
+      "summary": "说到 SayDo 开口聊 今天 全景看板 正在持续的事 暂无 记录 记忆库 产物 成本 设置 旧版 与手机配对 单用户 · 本机 daemon localhost:47100 语音就绪 产物库 导出选中(0) 还没有产物;决策包/方案/报告会归档到这里",
+      "evidence": "screenshots/08-D8_20260816-175011_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:11+08:00",
+      "status": "START",
+      "id": "D9",
+      "title": "项目设置",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "PASS",
+      "id": "D9",
+      "title": "项目设置",
+      "summary": "说到 SayDo 开口聊 今天 全景看板 正在持续的事 暂无 记录 记忆库 产物 成本 设置 旧版 与手机配对 单用户 · 本机 daemon localhost:47100 语音就绪 项目设置 名称 未命名草稿 类型 pending 状态 draft 工作区 /Users/wangyixiao/.saydo/proj",
+      "evidence": "screenshots/09-D9_20260816-175011_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "START",
+      "id": "D10",
+      "title": "旧版 Dashboard / 审批 / 通知 / Focus 列表",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "PASS",
+      "id": "D10",
+      "title": "旧版 Dashboard / 审批 / 通知 / Focus 列表",
+      "summary": "dashboard+approvals+notify+focuses rendered",
+      "evidence": "screenshots/10-D10_20260816-175012_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "START",
+      "id": "D11",
+      "title": "Focus 正式页 / 任务 / 旧看板",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "PASS",
+      "id": "D11",
+      "title": "Focus 正式页 / 任务 / 旧看板",
+      "summary": "no-focus,tasks,legacy-board",
+      "evidence": "screenshots/11-D11_20260816-175012_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "START",
+      "id": "D12",
+      "title": "不存在页",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "PASS",
+      "id": "D12",
+      "title": "不存在页",
+      "summary": "empty-state 页面不存在",
+      "evidence": "screenshots/12-D12_20260816-175012_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "START",
+      "id": "D13",
+      "title": "dev 走查页",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "PASS",
+      "id": "D13",
+      "title": "dev 走查页",
+      "summary": "dev-components + dev-pages",
+      "evidence": "screenshots/13-D13_20260816-175012_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "START",
+      "id": "D14",
+      "title": "localhost 宽屏 #/m 重定向桌面今天",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "PASS",
+      "id": "D14",
+      "title": "localhost 宽屏 #/m 重定向桌面今天",
+      "summary": "redirected to desktop today",
+      "evidence": "screenshots/14-D14_20260816-175012_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "START",
+      "id": "D15",
+      "title": "本机窄屏移动树(非 remote-mobile)",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "PASS",
+      "id": "D15",
+      "title": "本机窄屏移动树(非 remote-mobile)",
+      "summary": "mobile tree on localhost narrow",
+      "evidence": "screenshots/15-D15_20260816-175012_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "START",
+      "id": "D16",
+      "title": "配对 overlay 可开关(不截二维码)",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "PASS",
+      "id": "D16",
+      "title": "配对 overlay 可开关(不截二维码)",
+      "summary": "opened and closed; QR not captured",
+      "evidence": "no-qr-by-policy"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "START",
+      "id": "F1",
+      "title": "桌面文本对话 grok 4.6 oneshot",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "PASS",
+      "id": "F1",
+      "title": "桌面文本对话 grok 4.6 oneshot",
+      "summary": "latencyMs=13 reply=验收探针0816。请只回复四个字：模型在场。不要调用任何工具,不要立项目,不要改代码。 新事情,还是接着哪个项目继续?",
+      "evidence": "screenshots/16-F1_20260816-175012_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "START",
+      "id": "L1",
+      "title": "LAN Today remote-mobile",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "PASS",
+      "id": "L1",
+      "title": "LAN Today remote-mobile",
+      "summary": "remote-mobile today",
+      "evidence": "screenshots/17-L1_20260816-175012_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "START",
+      "id": "L2",
+      "title": "LAN Things",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "PASS",
+      "id": "L2",
+      "title": "LAN Things",
+      "summary": "things page",
+      "evidence": "screenshots/18-L2_20260816-175012_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "START",
+      "id": "L3",
+      "title": "LAN 横屏仍移动树",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "PASS",
+      "id": "L3",
+      "title": "LAN 横屏仍移动树",
+      "summary": "landscape stayed mobile",
+      "evidence": "screenshots/19-L3_20260816-175012_PASS.png"
+    },
+    {
+      "time": "2026-08-16T17:50:12+08:00",
+      "status": "START",
+      "id": "C6",
+      "title": "POST /api/setup/test scope=plan",
+      "summary": "pending",
+      "evidence": "-"
+    },
+    {
+      "time": "2026-08-16T17:51:27+08:00",
+      "status": "PASS",
+      "id": "C6",
+      "title": "POST /api/setup/test scope=plan",
+      "summary": "{\"dialog\":{\"status\":\"ok\",\"latencyMs\":14755,\"requestedModel\":\"cursor-grok-4.6-high-fast\",\"observedModel\":\"Cursor Grok 4.6 High Fast\"},\"thinking\":{\"status\":\"ok\",\"latencyMs\":18572,\"requestedModel\":\"cursor-grok-4.6-high-fast\",\"observedModel\":\"Cursor Grok 4.6 High Fast\"},\"cheap\":{\"status\":\"ok\",\"latencyMs\":15939,\"requestedModel\":\"composer-2.5-fast\",\"observedModel\":\"Composer 2.5 Fast\"},\"evaluator\":{\"status\":\"ok\",\"latencyMs\":22656,\"requestedModel\":\"cursor-grok-4.6-high-fast\",\"observedModel\":\"Cursor Grok 4.6 Fast\"},\"dev\":{\"status\":\"ok\",\"latencyMs\":567,\"requestedModel\":null,\"observedModel\":null}}",
+      "evidence": "api"
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+  ]
+}

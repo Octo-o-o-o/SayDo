@@ -1,0 +1,130 @@
+# SayDo 配置模板 —— 复制为 ~/.saydo/config.toml 后填写
+# 说明:本文件放"非密"配置(模型选择、路径、预算等);API key 等密钥放同目录 .env(见 saydo.env.example),
+#       本文件用 env:VAR 引用密钥,绝不把密钥明文写进这里(会进 git / 日志)。
+# 对应设计:docs/09-data-contracts.md §11。
+
+# ============ 五个模型槽位(核心)============
+# ① 五个槽位:对话 / 沉思 / 廉价 / 评估 + 开发档(执行器,见 [models.dev])。
+# ② 每个推理槽可走 api(OpenAI 兼容命名端点)或已接线 CLI
+#    (codex_cli / claude_cli / cursor_cli / grok_cli / gemini_cli / qwen_cli / copilot_cli;
+#    零 key 走本机订阅登录态;对话档走 CLI = 慢速文本模式 dialog_cli_oneshot,每轮约 13–23 秒)。
+# ③ 缺省示例 = 四槽 OpenRouter API(一个 OPENROUTER_API_KEY);下面另给出注释掉的 CLI 绑定示例每家一行。
+#    评估档走 CLI 时必须同时写 evaluator_same_family_ack / evaluator_isolation_ack 两键为 true(本缺省评估档走 API 异族,无需 ack)。
+[models]
+# 供给档案:default(产品缺省)| dev(本机开发;须同时设 SAYDO_DEV=1)
+profile   = "default"
+# 1) 对话模型:缺省 API(完整工具环)。改走 CLI 即慢速文本模式,无法进入语音实时环。
+dialog    = { provider = "api", via = "openrouter", model = "openai/gpt-5.6-luna" }
+
+# 2) 思考模型:决策包/任务卡起草、奠基提炼。
+thinking  = { provider = "api", via = "openrouter", model = "openai/gpt-5.6-terra-pro" }
+
+# 3) 廉价模型:高频结构化起草与轻量调用。
+cheap     = { provider = "api", via = "openrouter", model = "google/gemini-3.1-flash-lite" }
+
+# 4) 就绪评估器:独立判"够不够开始";与实际 dialog/thinking 异族。本示例 API 异族,无需两键 ack。
+evaluator = { provider = "api", via = "openrouter", model = "anthropic/claude-sonnet-5" }
+
+# CLI 绑定示例(注释掉,按需替换某槽;不要同时取消多行同槽;形状照 docs/09 ModelBinding):
+# dialog    = { provider = "codex_cli", model = "gpt-5.6-luna", reasoning = "medium" }  # reasoning 可选
+# thinking  = { provider = "claude_cli", model = "claude-sonnet-5" }
+# cheap     = { provider = "cursor_cli", model = "composer-2.5-fast" }                  # cursor_cli 的 model 必填
+# evaluator = { provider = "grok_cli" }                                                 # grok 的 model 可省;评估档走 CLI 须同时打开下面两键 ack
+# cheap     = { provider = "gemini_cli", model = "gemini-2.5-pro" }                      # 无 model ⇒ family unknown,自检阻断
+# thinking  = { provider = "qwen_cli", model = "qwen3-coder-plus" }
+# dialog    = { provider = "copilot_cli", model = "gpt-5.6-luna" }
+# evaluator_same_family_ack = true
+# evaluator_isolation_ack   = true
+
+[models.dev]
+# 5) 开发模型:派发执行用哪个本地 agent 及其模型。
+#    运行时当前只认 cursor;claude_code / codex 配了会被拒起执行器,对话不受影响;Claude Code 执行器接入中。
+agent     = "cursor"                # claude_code | codex | cursor(运行时只认 cursor)
+transport = "cli"                   # cli=订阅态零 key | sdk=CURSOR_API_KEY
+model     = "<cursor-agent 可列出的模型名>"
+
+# 两键齐备才启用执行器;不接受 `~`(必须是锁定副本绝对路径 versions/<ver>/cursor-agent)。
+# 占位真值会走 bin_missing(每次启动打 error);缺两键才是 not_configured。上手保持注释,换成真实路径再打开。
+# [tier1]
+# cursor_agent_bin            = "/absolute/path/to/versions/<ver>/cursor-agent"
+# cursor_agent_pinned_version = "<cursor-agent --version 输出>"
+
+# 成本倾向预设(可选,P1):economy | balanced | quality —— 一键切上面三档组合
+# preset = "balanced"
+
+# ============ API key(真值写在 .env)============
+# 缺省四槽走 API,只需 OPENROUTER_API_KEY + 语音 key。已登录 CLI 可把推理槽改走订阅、零 key。
+# api_key 在 [providers.api.*] 用 env:VAR 引用；P0 语音 pipeline 直接读取 saydo.env.example
+# 中的 DOUBAO_TTS_API_KEY / VOLC_APP_ID / VOLC_ACCESS_TOKEN，不读取 config.toml 密钥表。
+
+# ============ 语音 ============
+[voice]
+engine = "cascade"             # cascade(默认,级联)| s2s(P2 增强)
+asr    = "volc"                # 工程 ADR-101 已定档
+tts    = "volc"                # 豆包 seed-tts-2.0 v3；P0 endpoint/model/voice/sample_rate 为实现定档值
+
+# ============ 隐私(Gate 0-6:录音/转写分别同意)============
+[privacy]
+store_audio          = false
+store_transcript     = true
+audio_retention_days = 0
+
+# ============ 预算与免打扰 ============
+[budget]
+monthly          = 200          # 月度预算;当前无执行点(订阅调用靠墙钟 + 回合数熔断)
+currency         = "CNY"
+task_max_default = 20           # 单任务成本封顶缺省(元;DecisionPackage.cost.max 的缺省来源)
+[dnd]
+window = "23:00-08:00"
+
+# ============ Hopper ============
+# 生产绑定当前休眠;上手可整段删除。下列仅为占位,不是启动前提。
+# 独立副本安装(Hopper 裁决 §2.6.1;Node≥22;勿 npm link 开发 checkout):
+#   git clone <Hopper 仓库> ~/.saydo/hopper-dist && cd ~/.saydo/hopper-dist
+#   git checkout bdd1e548f9359789497a797eda24398beba68ac5   # 或 tag v0.1.0-saydo-baseline.2(2026-07-25 切锁;一致性评审 B1 同步)
+#   npm ci && npm run build
+[hopper]
+bin              = "~/.saydo/hopper-dist/bin/hopper.mjs"
+vault            = "~/.saydo/hopper-vault"    # 专用 vault,绝不与你日常 Hopper vault 共用(裁决红线:daemon/调度锁是 per-vault 单写者)
+expected_version = "bdd1e548f9359789497a797eda24398beba68ac5"   # baseline.2 切锁(2026-07-25;全 40 位 commit SHA,与 09 §11 [hopper] 同源)
+expected_tag     = "v0.1.0-saydo-baseline.2"  # annotated tag(^{commit}=上面 SHA;tag 对象自身 SHA 不可用作断言)
+
+# ============ Gate 0(安全门禁;代码无 bypass 分支)============
+[gate0]
+enabled = true
+bypass  = false                # 恒 false;为 true 时 dispatch 一律拒绝(防误配)
+
+# ============ 三方 API 端点(OpenAI 兼容 base_url;对比调试用,每家一档)============
+# 槽位里用 { provider = "api", via = "<档名>", model = "..." } 引用。全部 api_key 恒 env 引用、禁明文。
+#
+# family 规则(异族校验 fail-closed):
+#   · 命名端点显式 family 优先于模型名猜测。OpenRouter 等多供应商网关不要写端点级 family,
+#     让 vendor 前缀按槽位解析(openai/→gpt、anthropic/→claude、google/→gemini、deepseek/→deepseek 等)。
+#   · 单家专用端点应显式写 family,描述这个端点实际消费的模型家族。
+#
+# —— OpenRouter(推荐:一个 key 打通多家,OpenAI billing 有问题时的首选替代)——
+[providers.api.openrouter]
+base_url = "https://openrouter.ai/api/v1"
+api_key  = "env:OPENROUTER_API_KEY"    # openrouter.ai/keys 生成;充值后一 key 通所有模型
+                                        # 不写 family:模型名用 vendor 前缀,前缀表逐模型解析
+# —— 单家直连示例(模型名无前缀,故 family 必填)——
+# [providers.api.deepseek]
+# base_url = "https://api.deepseek.com/v1"
+# api_key  = "env:DEEPSEEK_API_KEY"
+# family   = "deepseek"
+# [providers.api.moonshot]
+# base_url = "https://api.moonshot.cn/v1"
+# api_key  = "env:MOONSHOT_API_KEY"
+# family   = "kimi"
+# [providers.api.dashscope]              # 阿里百炼(通义千问),OpenAI 兼容模式
+# base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+# api_key  = "env:DASHSCOPE_API_KEY"
+# family   = "qwen"
+#
+# 用法示例(把某槽位改走 OpenRouter):
+#   dialog = { provider = "api", via = "openrouter", model = "google/gemini-2.5-flash" }
+#   cheap  = { provider = "api", via = "openrouter", model = "openai/gpt-4o-mini" }
+
+# ============ 本机开发(owner dev 机)============
+# 【重要】 不要在本文件里取消注释拼 dev 配置(会重复声明 [models] 表,TOML 解析直接报错)——
+#   用独立完整模板:复制 saydo.config.dev.example.toml 为 ~/.saydo/config.toml,并设环境变量 SAYDO_DEV=1(dev 双开关,docs/07 D18)。

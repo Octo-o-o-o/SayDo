@@ -1,0 +1,230 @@
+{
+  "summary": {
+    "docsDir": "docs",
+    "files": 17,
+    "paras": 519,
+    "queries": 20,
+    "hitAt5": 19,
+    "hitRate": 0.95,
+    "twoCharKnownLimit": [
+      {
+        "query": "幂等",
+        "matched": 0
+      },
+      {
+        "query": "记忆",
+        "matched": 0
+      },
+      {
+        "query": "审批",
+        "matched": 0
+      },
+      {
+        "query": "热词",
+        "matched": 0
+      }
+    ],
+    "misses": [
+      {
+        "query": "产物库",
+        "hit": false,
+        "top5": [
+          "05-roadmap.md",
+          "04-key-mechanisms.md",
+          "04-key-mechanisms.md",
+          "02-product-definition.md",
+          "05-roadmap.md"
+        ]
+      }
+    ]
+  },
+  "results": [
+    {
+      "query": "记忆四层",
+      "hit": true,
+      "top5": [
+        "06-references.md"
+      ]
+    },
+    {
+      "query": "审批收据",
+      "hit": true,
+      "top5": [
+        "09-data-contracts.md",
+        "05-roadmap.md",
+        "08-module-design.md",
+        "modules/a-dialogue.md",
+        "08-module-design.md"
+      ]
+    },
+    {
+      "query": "状态转换",
+      "hit": true,
+      "top5": [
+        "09-data-contracts.md",
+        "09-data-contracts.md",
+        "09-data-contracts.md",
+        "04-key-mechanisms.md",
+        "09-data-contracts.md"
+      ]
+    },
+    {
+      "query": "验收标准",
+      "hit": true,
+      "top5": [
+        "hopper-side-feedback-for-saydo.cursor.md",
+        "02-product-definition.md",
+        "02-product-definition.md",
+        "01-vision-and-problem.md",
+        "01-vision-and-problem.md"
+      ]
+    },
+    {
+      "query": "唤醒词",
+      "hit": true,
+      "top5": [
+        "05-roadmap.md",
+        "04-key-mechanisms.md"
+      ]
+    },
+    {
+      "query": "沉思档",
+      "hit": true,
+      "top5": [
+        "07-tech-stack-decisions.md",
+        "modules/b-memory.md",
+        "07-tech-stack-decisions.md",
+        "07-tech-stack-decisions.md",
+        "10-voice-ux-spec.md"
+      ]
+    },
+    {
+      "query": "直达验收",
+      "hit": true,
+      "top5": [
+        "05-roadmap.md",
+        "09-data-contracts.md",
+        "04-key-mechanisms.md",
+        "10-voice-ux-spec.md",
+        "04-key-mechanisms.md"
+      ]
+    },
+    {
+      "query": "决策包",
+      "hit": true,
+      "top5": [
+        "modules/a-dialogue.md",
+        "07-tech-stack-decisions.md",
+        "09-data-contracts.md",
+        "04-key-mechanisms.md",
+        "11-ui-spec.md"
+      ]
+    },
+    {
+      "query": "语音前脑",
+      "hit": true,
+      "top5": [
+        "03-architecture.md"
+      ]
+    },
+    {
+      "query": "否定不复活",
+      "hit": true,
+      "top5": [
+        "modules/b-memory.md",
+        "09-data-contracts.md"
+      ]
+    },
+    {
+      "query": "同输入同",
+      "hit": true,
+      "top5": [
+        "modules/b-memory.md"
+      ]
+    },
+    {
+      "query": "逐步确认",
+      "hit": true,
+      "top5": [
+        "04-key-mechanisms.md",
+        "03-architecture.md",
+        "02-product-definition.md",
+        "04-key-mechanisms.md",
+        "10-voice-ux-spec.md"
+      ]
+    },
+    {
+      "query": "上下文编译",
+      "hit": true,
+      "top5": [
+        "modules/b-memory.md",
+        "08-module-design.md"
+      ]
+    },
+    {
+      "query": "删除传播",
+      "hit": true,
+      "top5": [
+        "05-roadmap.md",
+        "modules/b-memory.md",
+        "08-module-design.md"
+      ]
+    },
+    {
+      "query": "降级链",
+      "hit": true,
+      "top5": [
+        "modules/b-memory.md",
+        "03-architecture.md"
+      ]
+    },
+    {
+      "query": "同意传播",
+      "hit": true,
+      "top5": [
+        "05-roadmap.md"
+      ]
+    },
+    {
+      "query": "热词偏置",
+      "hit": true,
+      "top5": [
+        "07-tech-stack-decisions.md",
+        "07-tech-stack-decisions.md",
+        "modules/a-dialogue.md",
+        "07-tech-stack-decisions.md",
+        "09-data-contracts.md"
+      ]
+    },
+    {
+      "query": "产物库",
+      "hit": false,
+      "top5": [
+        "05-roadmap.md",
+        "04-key-mechanisms.md",
+        "04-key-mechanisms.md",
+        "02-product-definition.md",
+        "05-roadmap.md"
+      ]
+    },
+    {
+      "query": "审计事件",
+      "hit": true,
+      "top5": [
+        "modules/e-crosscutting.md",
+        "modules/d-presentation.md",
+        "07-tech-stack-decisions.md",
+        "09-data-contracts.md",
+        "09-data-contracts.md"
+      ]
+    },
+    {
+      "query": "逐条验收",
+      "hit": true,
+      "top5": [
+        "01-vision-and-problem.md",
+        "09-data-contracts.md"
+      ]
+    }
+  ]
+}

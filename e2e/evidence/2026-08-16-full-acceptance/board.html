@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>SayDo 2026-08-16 全量验收板</title>
+<body>
+<h1>2026-08-16 全量测试验收</h1>
+<p>env=live localhost:47100 · HEAD bc2ac87 · live 走查 PASS 27(含窄屏补拍) · FAIL 0 · Playwright 夹具 9/25/34</p>
+<p>发布阻断:无新的 live 产品阻断。Playwright 夹具 25 红仍是已知债,不挡本轮 live 验收。不能当 v0.1.0 发布锁。</p>
+<ul>
+  <li><a href="report.md">report.md</a></li>
+  <li><a href="bugs-for-engineers.md">bugs-for-engineers.md</a></li>
+  <li><a href="manual-retest-needed.md">manual-retest-needed.md</a></li>
+  <li><a href="plan.md">plan.md</a></li>
+</ul>
+<p><strong>人工确认事项</strong></p>
+<ol>
+  <li>真麦 ASR/TTS 与口播状态词</li>
+  <li>Touch ID / S3 过卡(用 localhost,不用 127.0.0.1)</li>
+  <li>真机扫配对码(不要把 URL 贴到聊天)</li>
+  <li>writing 首篇逐节</li>
+  <li>对真实仓库派活前确认执行器与 composer 2.5 开发槽</li>
+  <li>换机:Git 不含 ~/.saydo,须在那台机器重新武装 Cursor CLI 模型与 token</li>
+</ol>
+<p>LAN Today(代表截图):</p>
+<p><img src="screenshots/17-L1_20260816-175012_PASS.png" alt="LAN Today remote-mobile" width="390"></p>
+<p>无 token 的 fail-closed:</p>
+<p><img src="screenshots/01-D1_20260816-175009_PASS.png" alt="probe-error without token" width="640"></p>
+<p>清理:未 deploy,未写 pending 配置,未截配对二维码。文本烟测留下未命名草稿。</p>
+</body>
+</html>

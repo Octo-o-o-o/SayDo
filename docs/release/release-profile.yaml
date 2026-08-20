@@ -1,0 +1,71 @@
+# SayDo release profile — long-lived coordinates. Secrets never live here.
+# Process / IDs / 拍板: docs/release/2026-08-13-store-submission-status.md
+# Open owner items remaining: DEC-8 (EU DSA), OWN-2 (trademark / 个体户).
+
+product:
+  name: "SayDo"                 # English marketing name; App Store exact name occupied (name-occupancy.md)
+  in_package_name:
+    zh-CN: "说到"               # owner 2026-08-13 确认;三端 app_name/备案名/软著名/AGC 中文名统一用它;App Store cn/us 精确名 0 占用(name-occupancy.md §6)
+    en-US: "SayDo"
+  bundle_id: "com.octoooo.saydo" # identical in iOS project.yml / Android applicationId / HarmonyOS bundleName
+  version_sot: "docs/release/version-matrix.md"  # not created yet; current binaries still spike versions
+  platforms: [ios, android, harmonyos]           # all three native shells exist and compile
+  stores: [appstore, googleplay, appgallery]  # owner 2026-08-13: 三店含中国大陆;国内安卓未选
+  regions:
+    china_mainland: true
+    overseas: true
+
+urls:
+  privacy_policy: "https://saydo.octoooo.com/privacy"  # Pages custom domain 200 as of 2026-08-13
+  terms: "https://saydo.octoooo.com/terms"
+  support: "https://saydo.octoooo.com/support"
+  marketing: "https://saydo.octoooo.com"
+  deeplink_domain: "link.saydo.octoooo.com"
+  api_backend: "saydo.octoooo.com"  # T1/T2 still talks to the user's Mac; this domain is the ICP/privacy face (deep-link is urls.deeplink_domain).
+
+apple:
+  team_id: "5CS6HUB4P2"         # from apps/ios/project.yml DEVELOPMENT_TEAM; same team as 千手
+  app_store_id: "6801042343"    # ASC app record 「说到」, created 2026-08-13 via web UI
+  bundle_ids_resource_id: "PFS4HWS6C9"  # Apple Developer bundle ID, registered 2026-08-13
+  asc_app_internal_id: ""
+  api_key_env: "APPLE_API_KEY_ID / APPLE_API_ISSUER / APPLE_API_KEY"  # currently sourced from ~/.config/octodesk/.env.build
+  signing: "Automatic in spike (DEVELOPMENT_TEAM); production match/profile not created"
+  encryption_exempt: null       # verify with nm/strings on the first store IPA before claiming
+  consumed_build_numbers: []
+  eu_trader_decision: ""        # declare-as-trader | exclude-eu | n/a
+
+google:
+  play_developer_account: "Huying / 5565423440378520991"  # owner 2026-08-13: reuse 千手 Play 个人账号
+  package_name: "com.octoooo.saydo"  # reserved 2026-08-13; title 说到
+  play_app_id: "4975182458667142159"
+  play_app_signing: true
+  upload_keystore_location: "~/.config/saydo/keystores/saydo-android-release.p12"  # password in keychain: SayDo Android Release Keystore Password
+  closed_testing_gate: false    # same personal Play account already has a published app (千手); treat as exempt, reconfirm in Console
+  eu_trader_decision: ""
+
+huawei:
+  agc_app_id: "6917613548237019987"  # HarmonyOS NEXT, phone-only, created 2026-08-13
+  agc_listing_id: "9249519184596237673"
+  developer_verified: "personal"  # owner 2026-08-13: reuse 千手 AGC personal 实名
+  release_cert_location: "~/.config/saydo/keystores/saydo-harmony-release.p12"  # AGC issued SayDo Release .cer 2026-08-13 (to 2029-08-13). password keychain: SayDo HarmonyOS Release Keystore Password
+  signing_alg: "ECC P-256 / SHA256withECDSA"
+
+china_compliance:
+  icp_website_filing: "京ICP备2025153079号"   # existing 主体 on octoooo.com (OctoDesk). Path taken 2026-08-13: 新增 App 服务, not a new 主体.
+  icp_app_filing: "tencent-order:(private)"  # submitted 2026-08-13, 腾讯云审核中; MIIT App number not issued. 千手 is 京ICP备2025153079号-3A; SayDo will be a new -nA under the same 主体
+  lighthouse_ip: "123.207.158.219"  # 腾讯云轻量; same IP as octoooo.com / z-report.cn website filings
+  filing_provider: "Tencent Cloud"  # OctoDesk App 备案 went through 腾讯云
+  software_copyright: "none"    # CPCC account (private) already exists from 千手 R11; new software name needed
+  ai_features: true             # conversation + agent execution generate text/code
+  ai_upstream_filings: "China SKU: dialog defaults to filed 豆包/火山; BYOA excluded from China store binary. Numbers only after the China package actually calls that model."
+
+review:
+  demo_account_location: "home Mac mini (owner); online only during store review window; not a product cloud"
+  credentials_channel: "pairing QR / pairing link in Review Notes; never 千手 demo account"
+  demo_tenant_notes: "DEC-9 2026-08-13. Review fixture = home Mac mini. Isolated demo data. Shut down and rotate pairing token after the review decision. In-app demo mode still recommended. Do not write IP/address into the repo. Checklist: docs/release/2026-08-13-app-materials.md §4."
+  login_method: "pairing-token" # reviewers cannot type an SMS/OAuth login; pairing is the credential
+
+artifacts:
+  screenshots_dir: "artifacts/release/screenshots/"   # not produced; spike UI is not the listing surface
+  store_assets_dir: "artifacts/release/store-assets/"
+  filing_cheatsheet: "docs/release/filing-cheatsheet.md"

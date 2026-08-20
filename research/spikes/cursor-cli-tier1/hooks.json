@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      { "command": "/tmp/saydo-cli-hook/.cursor/hooks/gate.sh", "failClosed": true, "timeout": 120 }
+    ]
+  }
+}

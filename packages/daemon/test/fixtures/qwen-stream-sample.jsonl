@@ -1,0 +1,3 @@
+{"type":"system","subtype":"init","uuid":"redacted","session_id":"redacted","cwd":"/tmp/saydo-byoa-cwd","tools":["read_file","edit","run_shell_command"],"mcp_servers":[],"model":"qwen3.5-plus","permission_mode":"plan","qwen_code_version":"0.18.0"}
+{"type":"assistant","uuid":"redacted","session_id":"redacted","parent_tool_use_id":null,"message":{"id":"redacted","type":"message","role":"assistant","model":"qwen3.5-plus","content":[{"type":"text","text":"pong"}]}}
+{"type":"result","subtype":"success","uuid":"redacted","session_id":"redacted","is_error":false,"num_turns":1,"result":"pong","usage":{"input_tokens":0,"output_tokens":0}}

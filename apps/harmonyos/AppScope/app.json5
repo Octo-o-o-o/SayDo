@@ -1,0 +1,14 @@
+{
+  "app": {
+    "bundleName": "com.octoooo.saydo",
+    "vendor": "octoooo",
+    "versionCode": 1,
+    "versionName": "0.1.0",
+    "icon": "$media:layered_app_icon",
+    "label": "$string:app_name",
+    "description": "$string:app_description",
+    "minAPIVersion": 12,
+    "targetAPIVersion": 22,
+    "apiReleaseType": "Release1"
+  }
+}

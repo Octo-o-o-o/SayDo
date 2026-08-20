@@ -1,0 +1,12 @@
+{
+  "name": "cursor-sdk-tier1-spike",
+  "private": true,
+  "type": "module",
+  "description": "Spike 8 (07 D8/§10): 验证 @cursor/sdk 能否承载 SayDo Tier 1 执行器(hooks 阻塞审批 / resume / 计费口径)",
+  "scripts": {
+    "spike": "node spike.mjs"
+  },
+  "dependencies": {
+    "@cursor/sdk": "^1.0.24"
+  }
+}

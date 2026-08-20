@@ -1,0 +1,11 @@
+[
+  {
+    "templateRef": "package_script:test",
+    "argv": [
+      "pnpm",
+      "run",
+      "test"
+    ],
+    "scriptDigest": "sha256:13035bbe4024bf64b201995e210ee61fca38485d98d918ba412cd682dd8a98a7"
+  }
+]

@@ -1,0 +1,1 @@
+{"type":"result","subtype":"error_max_turns","is_error":true,"num_turns":2,"stop_reason":"tool_use","terminal_reason":"max_turns","result":null,"session_id":"00000000-0000-4000-8000-000000000005","usage":{"input_tokens":1,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}

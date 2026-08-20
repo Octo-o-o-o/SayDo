@@ -1,0 +1,2794 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SayDo 重设计提案 Demo v2 · 三面一栏 + 右栏实体</title>
+<!--
+  SayDo Console 重设计提案 v2（2026-08-07）
+  性质：设计提案 demo，全 mock，独立于 canonical demo/saydo-console-demo.html。
+  mock 数据形状对齐 docs/09-data-contracts.md、packages/contracts、Focus Contract v0.3.6：
+  Focus / Obligation(7态) / Task(16呈现态) / ApprovalReceipt / AttentionItem / Money /
+  EffectGrant / focus_artifacts(expected→deliverable) / focus_project_refs / FocusLane。
+  v2 变更：Focus 页加右栏实体列表（安排/产物/项目/记忆）；新增全景看板（泳道=Focus）；
+  空间管理；待命与唤醒（sparse agent）演示；邮件推送概念（P1 提案）；全部控件可点。
+  硬约束：零 emoji、状态词三级、11 §2.6 四联映射、S3 仅屏幕强认证、禁伪精确、中性二选一。
+-->
+<style>
+/* ============ Tokens（照抄 packages/console/src/styles/tokens.css 值） ============ */
+:root{
+  --font-body:'PingFang SC','HarmonyOS Sans SC','MiSans','Hiragino Sans GB','Microsoft YaHei',-apple-system,sans-serif;
+  --font-mono:ui-monospace,'SF Mono','JetBrains Mono','Menlo','Cascadia Code','Source Han Mono SC',monospace;
+  --text-xs:12px;--text-sm:13px;--text-base:15px;--text-md:16px;--text-lg:19px;--text-xl:24px;--text-2xl:32px;
+  --leading-tight:1.3;--leading-body:1.8;--leading-data:1.5;
+  --radius-2xs:4px;--radius-xs:8px;--radius-sm:10px;--radius-md:14px;--radius-lg:18px;--radius-xl:24px;--radius-pill:999px;
+  --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;--space-6:32px;--space-7:48px;
+  --h-titlebar:52px;--w-sidebar:216px;--shell-gutter:20px;
+  --duration-fast:140ms;--duration-base:220ms;--ease-out:cubic-bezier(0.22,0.61,0.36,1);
+}
+:root,:root[data-theme='light']{
+  color-scheme:light;
+  --bg-app:#edf0f6;--bg-glow-a:rgba(122,156,224,0.16);--bg-glow-b:rgba(214,196,170,0.14);
+  --surface-glass:rgba(255,255,255,0.62);--surface-glass-strong:rgba(255,255,255,0.78);
+  --surface-glass-soft:rgba(255,255,255,0.42);--surface-ink-wash:rgba(28,36,51,0.04);
+  --control-glass:rgba(255,255,255,0.55);--glass-border:rgba(28,36,51,0.09);
+  --glass-border-bright:rgba(255,255,255,0.7);--glass-blur:18px;
+  --text-primary:#1c2433;--text-secondary:#46536a;--text-muted:#8792a6;--text-faint:#aeb7c8;
+  --active-ink:#2b5fd9;--active-ink-fg:#ffffff;--active-ink-wash:rgba(43,95,217,0.09);--active-ink-border:rgba(43,95,217,0.32);
+  --color-success:#3f8f5f;--color-warning:#b7822a;--color-error:#c25757;--color-info:#4a7dbd;
+  --shadow-card:0 1px 2px rgba(28,36,51,0.04),0 8px 24px rgba(28,36,51,0.06);
+  --shadow-card-hover:0 2px 4px rgba(28,36,51,0.05),0 14px 40px rgba(28,36,51,0.1);
+  --shadow-titlebar:0 1px 0 rgba(28,36,51,0.05);
+  --code-bg:rgba(28,36,51,0.045);--code-block-bg:rgba(255,255,255,0.6);
+}
+:root[data-theme='dark']{
+  color-scheme:dark;
+  --bg-app:#12161f;--bg-glow-a:rgba(84,118,190,0.13);--bg-glow-b:rgba(150,122,84,0.07);
+  --surface-glass:rgba(26,32,45,0.62);--surface-glass-strong:rgba(30,37,52,0.82);
+  --surface-glass-soft:rgba(26,32,45,0.4);--surface-ink-wash:rgba(232,236,244,0.045);
+  --control-glass:rgba(38,46,64,0.55);--glass-border:rgba(232,236,244,0.09);--glass-border-bright:rgba(232,236,244,0.13);
+  --text-primary:#e8ecf4;--text-secondary:#a8b2c4;--text-muted:#6e7a90;--text-faint:#515c70;
+  --active-ink:#7aa5f7;--active-ink-fg:#0f1420;--active-ink-wash:rgba(122,165,247,0.12);--active-ink-border:rgba(122,165,247,0.38);
+  --color-success:#5cab7d;--color-warning:#cfa050;--color-error:#d47f7f;--color-info:#6f9bd1;
+  --shadow-card:0 1px 2px rgba(0,0,0,0.2),0 10px 30px rgba(0,0,0,0.3);
+  --shadow-card-hover:0 2px 4px rgba(0,0,0,0.25),0 16px 48px rgba(0,0,0,0.42);
+  --shadow-titlebar:0 1px 0 rgba(0,0,0,0.25);
+  --code-bg:rgba(232,236,244,0.07);--code-block-bg:rgba(16,20,30,0.66);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font-body);font-size:var(--text-base);line-height:var(--leading-body);color:var(--text-primary);background:var(--bg-app);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;font-size:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+a{color:var(--active-ink);text-decoration:none;cursor:pointer}
+.mono{font-family:var(--font-mono);font-size:0.92em}
+.canvas-atmosphere{position:fixed;inset:0;pointer-events:none;z-index:0}
+.canvas-atmosphere::before,.canvas-atmosphere::after{content:'';position:absolute;border-radius:50%;filter:blur(90px)}
+.canvas-atmosphere::before{width:520px;height:520px;background:var(--bg-glow-a);top:-160px;right:-120px}
+.canvas-atmosphere::after{width:420px;height:420px;background:var(--bg-glow-b);bottom:-140px;left:-100px}
+#app{position:relative;z-index:1;display:grid;grid-template-columns:var(--w-sidebar) 1fr;height:100vh}
+aside{background:var(--surface-glass-strong);backdrop-filter:blur(var(--glass-blur));border-right:1px solid var(--glass-border);display:flex;flex-direction:column;min-height:0}
+.maincol{display:flex;flex-direction:column;min-width:0;min-height:0}
+header{position:relative;z-index:30;height:var(--h-titlebar);flex:none;display:flex;align-items:center;gap:var(--space-3);padding:0 var(--shell-gutter);box-shadow:var(--shadow-titlebar);background:var(--surface-glass-soft);backdrop-filter:blur(var(--glass-blur))}
+main{flex:1;overflow-y:auto;padding:var(--space-5) var(--shell-gutter) var(--space-7)}
+.page{max-width:1180px;margin:0 auto}
+.page-narrow{max-width:860px}
+.brand{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-4) var(--space-4) var(--space-3);font-size:var(--text-lg);font-weight:600;letter-spacing:0.2px}
+.brand-mark{width:22px;height:22px;border-radius:7px;background:var(--active-ink);display:grid;place-items:center;color:var(--active-ink-fg)}
+.side-action{margin:0 var(--space-3) var(--space-3)}
+.nav{flex:1;overflow-y:auto;padding:0 var(--space-3) var(--space-4);display:flex;flex-direction:column;gap:2px}
+.nav-sec{font-size:var(--text-xs);color:var(--text-muted);padding:var(--space-4) var(--space-2) var(--space-2);letter-spacing:0.4px;display:flex;align-items:center;justify-content:space-between}
+.nav-sec button{color:var(--text-muted);display:grid;place-items:center;width:18px;height:18px;border-radius:4px}
+.nav-sec button[data-space-col]{width:auto;height:auto;display:flex;gap:4px;align-items:center;font-size:inherit;letter-spacing:inherit;padding:2px 4px;margin-left:-4px;white-space:nowrap}
+.nav-sec button:hover{background:var(--surface-ink-wash);color:var(--text-primary)}
+.nav-item{display:flex;align-items:center;gap:var(--space-2);width:100%;text-align:left;padding:7px var(--space-2);border-radius:var(--radius-xs);color:var(--text-secondary);font-size:var(--text-sm);transition:background var(--duration-fast) var(--ease-out)}
+.nav-item:hover{background:var(--surface-ink-wash)}
+.nav-item.active{background:var(--active-ink-wash);color:var(--active-ink);font-weight:500}
+.nav-item .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-item svg{flex:none}
+.count-pill{font-family:var(--font-mono);font-size:11px;line-height:1;padding:3px 7px;border-radius:var(--radius-pill);background:var(--active-ink);color:var(--active-ink-fg)}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.side-foot{padding:var(--space-3) var(--space-4);border-top:1px solid var(--glass-border);font-size:var(--text-xs);color:var(--text-faint)}
+.card{background:var(--surface-glass);backdrop-filter:blur(var(--glass-blur));border:1px solid var(--glass-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-card)}
+.card-pad{padding:var(--space-4) var(--space-5)}
+.btn{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-sm);line-height:1.4;padding:7px 14px;border-radius:var(--radius-sm);border:1px solid var(--glass-border);background:var(--control-glass);color:var(--text-secondary);transition:all var(--duration-fast) var(--ease-out)}
+.btn:hover{border-color:var(--text-faint);color:var(--text-primary)}
+.btn-primary{background:var(--active-ink);border-color:var(--active-ink);color:var(--active-ink-fg);font-weight:500}
+.btn-primary:hover{background:var(--active-ink);color:var(--active-ink-fg);filter:brightness(1.06)}
+.btn-ink-outline{background:var(--active-ink-wash);border-color:var(--active-ink-border);color:var(--active-ink)}
+.btn-danger-outline{border-color:var(--color-error);color:var(--color-error)}
+.btn-s3{border:1.5px solid var(--color-error);color:var(--color-error);background:transparent;padding:10px 18px;font-weight:500;border-radius:var(--radius-sm)}
+.btn-s3:hover{background:var(--color-error);color:#fff}
+.btn:disabled{opacity:0.45;cursor:not-allowed}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);line-height:1;padding:4px 10px;border-radius:var(--radius-pill);border:1px solid;white-space:nowrap}
+.tag{font-size:var(--text-xs);font-family:var(--font-mono);padding:1px 6px;border-radius:var(--radius-2xs);border:1px solid var(--glass-border);color:var(--text-muted)}
+.stage-tag{font-size:10px;font-family:var(--font-mono);padding:1px 5px;border-radius:var(--radius-2xs);background:var(--surface-ink-wash);color:var(--text-faint);border:1px dashed var(--glass-border-bright);vertical-align:1px}
+.muted{color:var(--text-muted)} .faint{color:var(--text-faint)} .small{font-size:var(--text-sm)} .xs{font-size:var(--text-xs)}
+.h-page{font-size:var(--text-xl);font-weight:600;line-height:var(--leading-tight)}
+.h-sec{font-size:var(--text-md);font-weight:600;line-height:var(--leading-tight)}
+.divider{height:1px;background:var(--glass-border);margin:var(--space-4) 0}
+.breathing{animation:breathe 2.2s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:0.35}}
+@media (prefers-reduced-motion:reduce){.breathing{animation:none}}
+.st-muted{color:var(--text-muted);border-color:var(--text-muted)}
+.st-info{color:var(--color-info);border-color:var(--color-info)}
+.st-warning{color:var(--color-warning);border-color:var(--color-warning)}
+.st-error{color:var(--color-error);border-color:var(--color-error)}
+.st-success{color:var(--color-success);border-color:var(--color-success)}
+.st-ink-filled{background:var(--active-ink);border-color:var(--active-ink);color:var(--active-ink-fg)}
+.st-ink-wash{background:var(--active-ink-wash);border-color:var(--active-ink-border);color:var(--active-ink)}
+/* 今天页 */
+.today-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:var(--space-5);align-items:start}
+@media (max-width:980px){.today-grid{grid-template-columns:1fr}}
+.attn-item{display:flex;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);border:1px solid var(--glass-border);background:var(--surface-glass-soft);margin-bottom:var(--space-3);transition:box-shadow var(--duration-fast) var(--ease-out);cursor:pointer;text-align:left;width:100%;position:relative}
+.attn-item:hover{box-shadow:var(--shadow-card-hover)}
+.attn-item.calm{cursor:default}
+.attn-item.calm:hover{box-shadow:none}
+.attn-bar{width:3px;border-radius:2px;flex:none;align-self:stretch}
+.bar-orange{background:var(--color-warning)} .bar-blue{background:var(--active-ink)}
+.bar-green{background:var(--color-success)} .bar-gray{background:var(--text-faint)}
+.attn-body{flex:1;min-width:0}
+.attn-title{font-weight:500;line-height:1.5}
+.attn-meta{display:flex;gap:var(--space-2);align-items:center;margin-top:6px;flex-wrap:wrap}
+.attn-dismiss{position:absolute;top:8px;right:8px;color:var(--text-faint);width:22px;height:22px;display:grid;place-items:center;border-radius:6px}
+.attn-dismiss:hover{background:var(--surface-ink-wash);color:var(--text-secondary)}
+.focus-quick{display:flex;flex-direction:column;gap:var(--space-2)}
+.focus-quick-item{display:flex;align-items:center;gap:var(--space-3);padding:10px var(--space-3);border-radius:var(--radius-sm);border:1px solid transparent;width:100%;text-align:left}
+.focus-quick-item:hover{background:var(--surface-ink-wash);border-color:var(--glass-border)}
+/* Focus 页：对话 + 右栏 */
+.focus-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:var(--space-5);align-items:start}
+@media (max-width:1100px){.focus-layout{grid-template-columns:1fr}}
+.statecard{position:sticky;top:calc(0px - var(--space-5));z-index:5;padding:var(--space-3) var(--space-4);display:flex;gap:var(--space-4);align-items:center;background:var(--bg-app)}
+.timeline{display:flex;flex-direction:column;gap:var(--space-4);margin-top:var(--space-4)}
+.tl-note{display:flex;align-items:center;gap:var(--space-3);color:var(--text-faint);font-size:var(--text-xs)}
+.tl-note::before,.tl-note::after{content:'';flex:1;height:1px;background:var(--glass-border)}
+.turn{max-width:82%;padding:10px var(--space-4);border-radius:var(--radius-md);line-height:var(--leading-body);font-size:var(--text-base)}
+.turn-user{align-self:flex-end;background:var(--active-ink-wash);border:1px solid var(--active-ink-border);border-bottom-right-radius:var(--radius-2xs)}
+.turn-ai{align-self:flex-start;background:var(--surface-glass);border:1px solid var(--glass-border);border-bottom-left-radius:var(--radius-2xs);backdrop-filter:blur(var(--glass-blur))}
+.turn-meta{font-size:var(--text-xs);color:var(--text-faint);margin-top:6px;display:flex;gap:var(--space-2);align-items:center}
+.unheard{opacity:0.55;text-decoration:line-through;text-decoration-color:var(--text-faint)}
+.thinking{align-self:flex-start;display:flex;gap:8px;align-items:center;color:var(--text-muted);font-size:var(--text-sm)}
+.thinking .dots span{display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--text-muted);margin-right:3px;animation:breathe 1.2s infinite}
+.thinking .dots span:nth-child(2){animation-delay:0.2s}.thinking .dots span:nth-child(3){animation-delay:0.4s}
+.entity-card{align-self:stretch;border-left:3px solid var(--active-ink);padding:var(--space-3) var(--space-4)}
+.entity-card[data-art]{cursor:pointer}
+.entity-card:hover{box-shadow:var(--shadow-card-hover)}
+.card-item{background:var(--surface-glass);border:1px solid var(--glass-border);border-radius:var(--radius-lg);backdrop-filter:blur(var(--glass-blur));box-shadow:var(--shadow-card);padding:var(--space-4) var(--space-5)}
+.confirm-card{border:1px solid var(--active-ink-border);background:var(--active-ink-wash)}
+.confirm-keys{display:flex;flex-direction:column;gap:6px;margin:var(--space-3) 0}
+.confirm-key{display:flex;gap:var(--space-2);font-size:var(--text-sm)}
+.countdown{font-family:var(--font-mono);color:var(--color-warning);font-size:var(--text-sm)}
+.progress-card{border:1px solid var(--glass-border)}
+.progress-row{display:flex;gap:var(--space-2);align-items:center;font-size:var(--text-sm);margin-top:6px}
+.progress-track{flex:1;height:6px;border-radius:3px;background:var(--surface-ink-wash);overflow:hidden}
+.progress-track i{display:block;height:100%;border-radius:3px;background:var(--active-ink)}
+.standby-card{border:1px dashed var(--text-faint);background:transparent}
+.pkg-section{margin-top:var(--space-4)}
+.pkg-section .h-sec{display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2)}
+.pkg-list{list-style:none;display:flex;flex-direction:column;gap:5px;font-size:var(--text-sm)}
+.pkg-list li{display:flex;gap:var(--space-2);align-items:flex-start}
+.pkg-list li svg{flex:none;margin-top:6px}
+.plan-step{display:flex;gap:var(--space-3);padding:8px 0;border-bottom:1px dashed var(--glass-border);font-size:var(--text-sm)}
+.plan-step:last-child{border-bottom:none}
+.plan-seq{font-family:var(--font-mono);color:var(--text-muted);flex:none;width:20px}
+.owner-badge{font-size:10px;font-family:var(--font-mono);padding:1px 6px;border-radius:var(--radius-2xs);flex:none;height:fit-content}
+.owner-ai{background:var(--active-ink-wash);color:var(--active-ink)}
+.owner-human{background:var(--surface-ink-wash);color:var(--color-warning);border:1px solid var(--color-warning)}
+.owner-external{background:var(--surface-ink-wash);color:var(--text-muted);border:1px solid var(--text-faint)}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);margin-top:var(--space-3)}
+@media (max-width:760px){.mode-grid{grid-template-columns:1fr}}
+.mode-card{padding:var(--space-4);border-radius:var(--radius-md);border:1.5px solid var(--glass-border);background:var(--surface-glass-soft);cursor:pointer;text-align:left;position:relative;transition:border var(--duration-fast)}
+.mode-card:hover{border-color:var(--text-faint)}
+.mode-card.selected{border-color:var(--active-ink);background:var(--active-ink-wash)}
+.reco-badge{position:absolute;top:-9px;right:12px;font-size:10px;padding:2px 8px;border-radius:var(--radius-pill);background:var(--surface-glass-strong);border:1px solid var(--active-ink-border);color:var(--active-ink)}
+.composer{position:sticky;bottom:0;margin-top:var(--space-5);padding:var(--space-3);background:var(--surface-glass-strong);border:1px solid var(--glass-border);border-radius:var(--radius-lg);backdrop-filter:blur(var(--glass-blur));box-shadow:var(--shadow-card)}
+.composer-row{display:flex;gap:var(--space-3);align-items:center}
+.composer input{flex:1;background:transparent;border:none;outline:none;font-size:var(--text-base);padding:8px 4px}
+.mic-btn{width:44px;height:44px;border-radius:50%;background:var(--active-ink);color:var(--active-ink-fg);display:grid;place-items:center;flex:none;transition:transform var(--duration-fast)}
+.mic-btn:hover{transform:scale(1.05)}
+.mic-btn.recording{background:var(--color-error)}
+.level-bars{display:flex;gap:3px;align-items:center;height:24px}
+.level-bars span{width:3px;background:var(--color-error);border-radius:2px;animation:lv 0.9s ease-in-out infinite}
+@keyframes lv{0%,100%{height:6px}50%{height:20px}}
+.composer-hint{font-size:var(--text-xs);color:var(--text-faint);padding:6px 4px 0;display:flex;gap:var(--space-4)}
+/* 右栏实体列表 */
+.rail{display:flex;flex-direction:column;gap:var(--space-4);position:sticky;top:0}
+.rail-sec{padding:var(--space-3) var(--space-4)}
+.rail-sec .h-rail{font-size:var(--text-sm);font-weight:600;display:flex;align-items:center;gap:6px;margin-bottom:var(--space-2)}
+.rail-sec .h-rail .n{font-family:var(--font-mono);font-weight:400;color:var(--text-faint);font-size:11px}
+.rail-item{display:flex;gap:var(--space-2);align-items:flex-start;width:100%;text-align:left;padding:7px 8px;border-radius:var(--radius-xs);font-size:var(--text-sm);line-height:1.5}
+.rail-item:hover{background:var(--surface-ink-wash)}
+.rail-item .t{flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rail-item .sub{display:block;font-size:var(--text-xs);color:var(--text-faint);margin-top:1px}
+.rail-group{font-size:var(--text-xs);color:var(--text-muted);padding:6px 8px 2px;display:flex;align-items:center;gap:6px}
+.art-status{font-size:10px;font-family:var(--font-mono);padding:1px 6px;border-radius:var(--radius-2xs);flex:none;white-space:nowrap}
+.art-deliverable{color:var(--color-success);border:1px solid var(--color-success)}
+.art-expected{color:var(--color-warning);border:1px dashed var(--color-warning)}
+.art-superseded{color:var(--text-faint);border:1px solid var(--text-faint)}
+.art-reference{color:var(--text-muted);border:1px solid var(--glass-border)}
+.proj-badge{display:inline-flex;align-items:center;gap:5px;font-size:var(--text-xs);font-family:var(--font-mono);padding:2px 8px;border-radius:var(--radius-2xs);border:1px solid var(--glass-border);color:var(--text-secondary);background:var(--surface-ink-wash)}
+/* 全景看板（泳道=Focus，分组+子泳道） */
+.board{overflow-x:auto}
+.board > *{min-width:980px}
+.board-cols-header{display:grid;grid-template-columns:140px repeat(4,minmax(190px,1fr));gap:8px;margin-bottom:var(--space-2)}
+.board-head{font-size:var(--text-xs);color:var(--text-muted);padding:6px 8px}
+.lane-group{border:1px solid var(--glass-border);border-radius:var(--radius-lg);background:var(--surface-glass-soft);margin-bottom:var(--space-4)}
+.lane-group-head{display:flex;align-items:center;gap:var(--space-3);padding:10px 14px;cursor:pointer;user-select:none}
+.lane-group-head:hover{background:var(--surface-ink-wash);border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+.lane-subrow{display:grid;grid-template-columns:140px repeat(4,minmax(190px,1fr));gap:8px;padding:0 8px 8px}
+.lane-subtitle{font-size:var(--text-xs);color:var(--text-muted);padding:8px 6px;display:flex;gap:4px;align-items:center}
+.lane-cell{min-height:52px;padding:4px;border-radius:var(--radius-md);background:var(--surface-ink-wash);display:flex;flex-direction:column;gap:6px}
+.board-card{padding:8px 10px;border-radius:var(--radius-sm);border:1px solid var(--glass-border);background:var(--surface-glass-strong);font-size:var(--text-xs);cursor:pointer;text-align:left;width:100%}
+.board-card:hover{box-shadow:var(--shadow-card-hover)}
+.board-card .t{font-size:var(--text-sm);font-weight:500;line-height:1.4;margin-bottom:4px}
+.board-card .meta{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.board-more{font-size:var(--text-xs);color:var(--active-ink);padding:5px 8px;text-align:left;border-radius:var(--radius-xs)}
+.board-more:hover{background:var(--surface-glass-strong)}
+.dl{display:inline-flex;align-items:center;gap:0}
+.dl-dot{width:8px;height:8px;border-radius:50%;background:var(--active-ink);flex:none}
+.dl-dot.cur{background:var(--color-warning)}
+.dl-line{width:16px;height:1.5px;background:var(--glass-border-bright);flex:none}
+/* 验收面 */
+.review-grid{display:grid;grid-template-columns:300px 1fr;gap:var(--space-5);align-items:start;margin-top:var(--space-4)}
+@media (max-width:980px){.review-grid{grid-template-columns:1fr}}
+.ac-item{display:flex;gap:var(--space-2);padding:10px var(--space-3);border-radius:var(--radius-sm);border:1px solid var(--glass-border);margin-bottom:var(--space-2);cursor:pointer;width:100%;text-align:left;font-size:var(--text-sm)}
+.ac-item.active{border-color:var(--active-ink);background:var(--active-ink-wash)}
+.ac-pass{color:var(--color-success)} .ac-fail{color:var(--color-error)} .ac-unknown{color:var(--text-faint)}
+.ac-hollow{color:var(--color-success);opacity:.7;border:1.5px dashed var(--color-success);border-radius:50%;width:18px;height:18px;display:inline-grid;place-items:center;flex:none}
+.diff{font-family:var(--font-mono);font-size:var(--text-xs);line-height:1.7;background:var(--code-block-bg);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:var(--space-3);overflow-x:auto;white-space:pre}
+.article-view{background:var(--code-block-bg);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:var(--space-4);font-size:var(--text-sm);line-height:1.9;max-height:320px;overflow-y:auto}
+.diff .add{color:var(--color-success)} .diff .del{color:var(--color-error)} .diff .hunk{color:var(--color-info)}
+.decision-row{display:flex;gap:var(--space-3);align-items:flex-start;padding:10px 0;border-bottom:1px dashed var(--glass-border);font-size:var(--text-sm)}
+.decision-row:last-child{border-bottom:none}
+.appr-context{font-size:var(--text-xs);color:var(--text-muted);display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center}
+.trust-badge{font-size:11px;padding:3px 10px;border-radius:var(--radius-pill);border:1px solid;flex:none;white-space:nowrap;line-height:1.4;margin-top:2px}
+.mem-candidate{background:var(--surface-ink-wash);border:1px dashed var(--glass-border-bright);border-radius:var(--radius-sm);padding:var(--space-3) var(--space-3);margin:0 calc(0px - var(--space-2))}
+.mem-actions{display:flex;gap:6px;flex:none;align-items:center}
+.trust-user_stated{color:var(--active-ink);border-color:var(--active-ink)}
+.trust-user_approved{color:var(--color-success);border-color:var(--color-success)}
+.trust-auto_low_impact{color:var(--text-muted);border-color:var(--text-muted)}
+.trust-candidate{color:var(--text-faint);border-color:var(--text-faint);border-style:dashed}
+.mem-row{display:flex;gap:var(--space-3);padding:var(--space-3) 0;border-bottom:1px dashed var(--glass-border);font-size:var(--text-sm);align-items:flex-start}
+.mem-row:last-child{border-bottom:none}
+table.data{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
+table.data th{text-align:left;color:var(--text-muted);font-weight:500;font-size:var(--text-xs);padding:6px var(--space-2);border-bottom:1px solid var(--glass-border)}
+table.data td{padding:10px var(--space-2);border-bottom:1px dashed var(--glass-border);vertical-align:top}
+table.data tr:last-child td{border-bottom:none}
+table.data tr[data-art]{cursor:pointer}
+table.data tr[data-art]:hover td{background:var(--surface-ink-wash)}
+.budget-bar{height:6px;border-radius:3px;background:var(--surface-ink-wash);overflow:hidden;margin-top:6px}
+.budget-bar i{display:block;height:100%;border-radius:3px;background:var(--active-ink)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99;background:var(--surface-glass-strong);backdrop-filter:blur(var(--glass-blur));border:1px solid var(--glass-border);border-radius:var(--radius-md);padding:10px 18px;box-shadow:var(--shadow-card-hover);font-size:var(--text-sm);display:flex;gap:var(--space-2);align-items:center;animation:toastin var(--duration-base) var(--ease-out);max-width:70vw}
+@keyframes toastin{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+/* Focus 页双栏独立滚动：对话流动，右栏稳定 */
+#main.main-locked{overflow:hidden;display:flex;flex-direction:column}
+#main.main-locked .page{height:100%;display:flex;flex-direction:column}
+#main.main-locked .focus-layout{flex:1;min-height:0}
+.convo-col{overflow-y:auto;min-height:0;max-height:100%;padding-right:6px}
+.convo-col .statecard{top:0}
+#main.main-locked .rail{overflow-y:auto;min-height:0;max-height:100%;position:static;padding-bottom:var(--space-5)}
+.tl-flash{animation:tlflash 1.8s var(--ease-out)}
+@keyframes tlflash{0%{box-shadow:0 0 0 3px var(--active-ink)}100%{box-shadow:0 0 0 0 rgba(0,0,0,0)}}
+#proposal-banner{position:relative;z-index:10;background:var(--text-primary);color:var(--bg-app);font-size:var(--text-xs);padding:6px var(--shell-gutter);display:flex;gap:var(--space-4);align-items:center;flex-wrap:wrap}
+#proposal-banner a{color:inherit;opacity:0.75;text-decoration:underline}
+#proposal-banner .sep{opacity:0.3}
+#design-notes{background:var(--surface-glass-strong);border-bottom:1px solid var(--glass-border);position:relative;z-index:10;padding:var(--space-4) var(--shell-gutter);display:none;font-size:var(--text-sm);max-height:60vh;overflow-y:auto}
+#design-notes.open{display:block}
+#design-notes .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--space-5);max-width:1500px}
+#design-notes h4{font-size:var(--text-sm);margin-bottom:6px;color:var(--active-ink)}
+#design-notes ul{padding-left:18px;color:var(--text-secondary)}
+#design-notes li{margin-bottom:3px}
+#design-notes code{font-family:var(--font-mono);font-size:0.9em;background:var(--code-bg);padding:0 4px;border-radius:4px}
+.topbar-spacer{flex:1}
+.voice-pill{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm);padding:5px 12px;border-radius:var(--radius-pill);border:1px solid var(--active-ink-border);background:var(--active-ink-wash);color:var(--active-ink);cursor:pointer}
+.icon-btn{width:34px;height:34px;display:grid;place-items:center;border-radius:var(--radius-xs);color:var(--text-secondary);position:relative}
+.icon-btn:hover{background:var(--surface-ink-wash);color:var(--text-primary)}
+.bell-dot{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--color-warning)}
+.dropdown{position:absolute;top:calc(var(--h-titlebar) - 4px);right:var(--shell-gutter);width:400px;max-height:480px;overflow-y:auto;z-index:50;padding:var(--space-3)}
+.dropdown-item{padding:var(--space-3);border-radius:var(--radius-sm);font-size:var(--text-sm)}
+.dropdown-item:hover{background:var(--surface-ink-wash)}
+.empty{padding:var(--space-6);text-align:center;color:var(--text-muted);font-size:var(--text-sm)}
+/* 弹窗 */
+.modal-overlay{position:fixed;inset:0;z-index:80;background:rgba(18,22,31,0.32);display:grid;place-items:center;animation:toastin2 var(--duration-fast) var(--ease-out)}
+@keyframes toastin2{from{opacity:0}to{opacity:1}}
+.modal{width:min(680px,92vw);max-height:84vh;overflow-y:auto;padding:var(--space-5)}
+.modal .h-sec{margin-bottom:var(--space-3)}
+.modal-row{display:flex;gap:var(--space-2);margin-top:var(--space-4);flex-wrap:wrap;align-items:center}
+.field{margin-bottom:var(--space-3)}
+.field label{display:block;font-size:var(--text-xs);color:var(--text-muted);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:8px 10px;border:1px solid var(--glass-border);border-radius:var(--radius-sm);background:var(--control-glass);outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--active-ink-border)}
+.kv{display:flex;gap:var(--space-2);font-size:var(--text-sm);padding:5px 0;border-bottom:1px dashed var(--glass-border)}
+.kv:last-child{border-bottom:none}
+.kv .k{width:88px;flex:none;color:var(--text-muted);font-size:var(--text-xs);padding-top:2px}
+.opt-btn{display:block;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--glass-border);border-radius:var(--radius-sm);margin-bottom:6px;font-size:var(--text-sm)}
+.opt-btn:hover{border-color:var(--active-ink);background:var(--active-ink-wash)}
+.email-frame{border:1px solid var(--glass-border);border-radius:var(--radius-sm);overflow:hidden;font-size:var(--text-sm)}
+.email-head{background:var(--surface-ink-wash);padding:10px 14px;border-bottom:1px solid var(--glass-border)}
+.email-body{padding:14px}
+</style>
+</head>
+<body>
+<div class="canvas-atmosphere"></div>
+<div id="proposal-banner">
+  <strong>重设计提案 DEMO v2</strong>
+  <span>全 mock · 数据形状对齐 docs/09 契约 · 与 canonical demo 无关</span>
+  <span class="sep">|</span>
+  <span>三面一栏：今天 / Focus 对话+右栏 / 验收 · 全景看板 · 空间</span>
+  <span class="sep">|</span>
+  <span>v2.1：吸收既白评审 + codex 三审 + 四流两线概念定稿</span>
+  <span class="sep">|</span>
+  <a href="#" id="toggle-notes">设计说明与数据结构建议（v2.1 已更新）</a>
+</div>
+<div id="design-notes"></div>
+<div id="app">
+  <aside id="sidebar"></aside>
+  <div class="maincol">
+    <header id="topbar"></header>
+    <main id="main"></main>
+  </div>
+</div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script>
+/* ==================== Lucide 风格内联 SVG 图标（零 emoji） ==================== */
+const ICONS = {
+  flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  loader:'<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
+  pause:'<circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/>',
+  help:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  alert:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+  check:'<polyline points="20 6 9 17 4 12"/>',
+  x:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  shield:'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  shieldAlert:'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+  merge:'<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/>',
+  mic:'<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>',
+  send:'<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
+  bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  bellOff:'<path d="M8.7 3A6 6 0 0 1 18 8c0 3 .7 5 1.5 6.5"/><path d="M6.2 6.2C6.1 6.8 6 7.4 6 8c0 7-3 9-3 9h14"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><line x1="2" y1="2" x2="22" y2="22"/>',
+  moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
+  chevronDown:'<polyline points="6 9 12 15 18 9"/>',
+  chevronRight:'<polyline points="9 18 15 12 9 6"/>',
+  message:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  inbox:'<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  layers:'<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+  book:'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+  pkg:'<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.3 7 12 12 20.7 7"/><line x1="12" y1="22" x2="12" y2="12"/>',
+  wallet:'<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>',
+  sliders:'<line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/>',
+  arrowRight:'<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>',
+  user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  history:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><polyline points="12 7 12 12 15 15"/>',
+  keyboard:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M18 12h.01M9 16h6"/>',
+  pencil:'<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
+  fingerprint:'<path d="M12 11a4 4 0 0 0-4 4c0 2.5-.6 5-2 7"/><path d="M12 11a4 4 0 0 1 4 4c0 2.2-.4 4.3-1.2 6"/><path d="M7.5 5.6A8 8 0 0 0 4 13c0 1.5-.2 3-.6 4.4"/><path d="M16.4 4.4A8 8 0 0 1 20 12c0 2-.3 4.2-.9 6"/><path d="M12 14.5c0 2-.5 4.5-1.4 6.5"/>',
+  sparkles:'<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>',
+  external:'<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
+  calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+  zap:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+  plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+  folder:'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
+  hourglass:'<path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>',
+  rows:'<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'
+};
+function icon(name, size=14, cls=''){
+  return `<svg class="${cls}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||''}</svg>`;
+}
+const CHIP_TABLE = {
+  queued:{label:'排队中',tone:'muted',icon:'clock'},
+  confirmed:{label:'收到，准备开工',tone:'muted',icon:'clock'},
+  running:{label:'执行中',tone:'info',icon:'loader',breathing:true},
+  paused_step_boundary:{label:'等你确认这一步',tone:'warning',icon:'pause'},
+  blocked:{label:'需要你',tone:'warning',icon:'help'},
+  waiting_confirmation:{label:'等你拍板',tone:'warning',icon:'alert'},
+  ready_for_review:{label:'等你验收',tone:'ink',icon:'flag',filled:true},
+  review_approved_waiting_merge:{label:'已批准·待合并',tone:'ink-wash',icon:'merge'},
+  merging:{label:'合并中',tone:'info',icon:'merge',breathing:true},
+  merge_failed:{label:'合并冲突/失败',tone:'error',icon:'merge'},
+  task_done:{label:'已交付',tone:'success',icon:'check'},
+  failed:{label:'失败了',tone:'error',icon:'x'},
+  cancel_requested:{label:'正在停',tone:'muted',icon:'x',breathing:true},
+  cancel_settled:{label:'停了，这轮作废',tone:'muted',icon:'x'},
+  superseded:{label:'已被新版本替代',tone:'muted',icon:'history'},
+  parked:{label:'停靠等你',tone:'warning',icon:'pause'}
+};
+const TONE_CLASS = {muted:'st-muted',info:'st-info',warning:'st-warning',error:'st-error',success:'st-success',ink:'st-ink-filled','ink-wash':'st-ink-wash'};
+function statusChip(status, deadline){
+  const s = CHIP_TABLE[status] || {label:status, tone:'muted', icon:'help'};
+  const dl = (status==='parked' && deadline) ? ` <span class="mono" style="opacity:.8">${deadline.slice(5,10)}止</span>` : '';
+  return `<span class="chip ${TONE_CLASS[s.tone]}">${icon(s.icon,12,s.breathing?'breathing':'')}${s.label}${dl}</span>`;
+}
+function riskBadge(risk){
+  if(risk==='S2') return `<span class="tag" style="color:var(--color-warning);border-color:var(--color-warning)">${icon('shield',11)} S2</span>`;
+  if(risk==='S3') return `<span class="tag" style="color:#fff;background:var(--color-error);border-color:var(--color-error)">${icon('shieldAlert',11)} S3</span>`;
+  return `<span class="tag" style="border-color:transparent">${risk}</span>`;
+}
+
+/* ==================== Mock 数据（形状对齐 docs/09 + Focus Contract v0.3.6） ==================== */
+const NOW = Date.now();
+const m = (min)=>new Date(NOW - min*60000).toISOString();
+const fmtTime = (iso)=>{ const d=new Date(iso); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+
+const DB = {
+  spaces:[
+    {id:'spa_work', title:'工作'},
+    {id:'spa_life', title:'生活'}
+  ],
+  /* 狭义 Project：repo / 文件夹 / 外部工作区，Focus 可引用 0..N 个（跨项目） */
+  projects:[
+    {id:'prj_saydo', title:'SayDo-focus-build', kind:'local_folder', path:'~/WorkSpace/SayDo-focus-build'},
+    {id:'prj_octo', title:'OctoAgent', kind:'local_folder', path:'~/WorkSpace/OctoAgent'},
+    {id:'prj_blog', title:'OctoBlog', kind:'local_folder', path:'~/WorkSpace/OctoBlog'},
+    {id:'prj_report', title:'report-auto', kind:'local_folder', path:'~/WorkSpace/report-auto'},
+    {id:'prj_feishu', title:'飞书运营群', kind:'external', path:'—'},
+    {id:'prj_talk', title:'launch-talk-2026', kind:'local_folder', path:'~/WorkSpace/launch-talk-2026'}
+  ],
+  focuses:[
+    {id:'foc_saydo', title:'给 SayDo 重做前端', lifecycle:'active', currentRevision:14, spaceId:'spa_work',
+     direction:'把 14 页控制台收成「三面一栏」，先出提案 demo 给义骁确认',
+     projectRefs:['prj_saydo','prj_octo','prj_blog'], lanes:[{id:'lan_main',title:'主线'},{id:'lan_tokens',title:'token 迁移'}],
+     updatedAt:m(12)},
+    {id:'foc_report', title:'月度运营报表自动化', lifecycle:'active', currentRevision:8, spaceId:'spa_work',
+     direction:'每月 1 号自动生成上月运营报表并发到飞书群',
+     projectRefs:['prj_report','prj_feishu'], lanes:[{id:'lan_main',title:'主线'},{id:'lan_feishu',title:'飞书接入'}], updatedAt:m(47)},
+    {id:'foc_talk', title:'九月产品发布会讲稿', lifecycle:'active', currentRevision:5, spaceId:'spa_work',
+     direction:'20 分钟主题演讲，受众是潜在客户不是开发者',
+     projectRefs:['prj_talk'], lanes:[{id:'lan_main',title:'主线'}], updatedAt:m(180)},
+    {id:'foc_trip', title:'国庆家庭旅行计划', lifecycle:'dormant', currentRevision:3, spaceId:'spa_life',
+     direction:'四大一小，大理 5 天，预算两万内',
+     projectRefs:[], lanes:[{id:'lan_main',title:'主线'}], updatedAt:m(2900)},
+    {id:'foc_health', title:'爸爸体检报告解读', lifecycle:'captured', currentRevision:1, spaceId:'spa_life',
+     direction:'报告到了先解读，圈出需要复查的项',
+     projectRefs:[], lanes:[{id:'lan_main',title:'主线'}], updatedAt:m(4300)},
+    {id:'foc_legacy', title:'旧仓库迁移', lifecycle:'closed', currentRevision:22, spaceId:'spa_work',
+     direction:'voice-coding 双目录并入 SayDo 单仓',
+     projectRefs:['prj_saydo'], lanes:[{id:'lan_main',title:'主线'}], updatedAt:m(8000)},
+    {id:'foc_jp', title:'每天半小时日语', lifecycle:'abandoned', currentRevision:2, spaceId:'spa_life',
+     direction:'本来想通勤时练听力，坚持两周后你主动中止',
+     projectRefs:[], lanes:[{id:'lan_main',title:'主线'}], updatedAt:m(6000)}
+  ],
+  /* FocusObligation：7 态（open/in_progress/waiting/deferred/blocked + resolved/superseded），owner human/agent/external */
+  obligations:[
+    {id:'fob_demo_review', focusId:'foc_saydo', kind:'decision', title:'demo 看完，拍板是否应用到 console', owner:'human', status:'open', needs:'decision', blocking:true, laneId:'lan_main'},
+    {id:'fob_competitor', focusId:'foc_saydo', kind:'action', title:'整理三家竞品的控制台信息架构对比', owner:'agent', status:'in_progress', laneId:'lan_main'},
+    {id:'fob_tokens', focusId:'foc_saydo', kind:'action', title:'token 层迁移到 console 组件', owner:'agent', status:'open', actionRef:'tsk_saydo_tokens', laneId:'lan_tokens'},
+    {id:'fob_layout', focusId:'foc_saydo', kind:'decision', title:'今天页双列布局行不行', owner:'human', status:'resolved', resolution:'done', laneId:'lan_main'},
+    {id:'fob_csv', focusId:'foc_report', kind:'action', title:'把 Q2 数据 CSV 放进项目文件夹（报表跑批要用）', owner:'human', status:'open', needs:'action', blocking:true, laneId:'lan_main'},
+    {id:'fob_schedule', focusId:'foc_report', kind:'action', title:'配置每月 1 号定时调度', owner:'agent', status:'open', actionRef:'tsk_report_schedule', laneId:'lan_main'},
+    {id:'fob_feishu', focusId:'foc_report', kind:'followup', title:'等飞书群管理员开 webhook', owner:'external', status:'waiting', waitingOn:'飞书群管理员', dueOrTrigger:'webhook 开通，或 8/12 我提醒你换群', laneId:'lan_feishu'},
+    {id:'fob_old_template', focusId:'foc_report', kind:'check', title:'旧模板手工核对一遍', owner:'human', status:'superseded', resolution:'superseded', laneId:'lan_main'},
+    {id:'fob_date', focusId:'foc_talk', kind:'decision', title:'发布会日期定在哪天？这决定讲稿倒排节奏', owner:'human', status:'open', needs:'decision', blocking:true, laneId:'lan_main'},
+    {id:'fob_venue', focusId:'foc_talk', kind:'action', title:'订发布会场地', owner:'external', status:'deferred', deferReason:'日期定了再订', laneId:'lan_main'},
+    {id:'fob_hotel', focusId:'foc_trip', kind:'followup', title:'等酒店确认海景大床房是否可订', owner:'external', status:'waiting', waitingOn:'酒店前台', dueOrTrigger:'酒店回复，或 8/10 没消息我提醒你', laneId:'lan_main'},
+    {id:'fob_itinerary', focusId:'foc_trip', kind:'action', title:'排 5 天行程草案', owner:'agent', status:'waiting', waitingOnObligationId:'fob_hotel', waitingOn:'fob_hotel', dueOrTrigger:'酒店定了我就开始排', laneId:'lan_main'},
+    {id:'fob_budget', focusId:'foc_trip', kind:'answer', title:'预算上限两万行不行', owner:'human', status:'open', needs:'input', laneId:'lan_main'},
+    {id:'fob_health_pdf', focusId:'foc_health', kind:'action', title:'把体检报告 PDF 发给我', owner:'human', status:'open', needs:'action', blocking:true, laneId:'lan_main'}
+  ],
+  /* Task：覆盖全部 16 呈现态 */
+  tasks:[
+    {id:'tsk_report_batch', focusId:'foc_report', title:'月度跑批脚本', route:'tier1', adapter:'claude_code', status:'ready_for_review', viewStatus:'ready_for_review', attempt:2, riskLevel:'S1', elapsedMin:23, budget:{walltimeActiveMin:45,maxTurns:60,maxCost:30}, spent:{known:true,value:11.4}, lastEvent:'verify 三条全过，树已冻结', asOf:m(9), projectRef:'prj_report'},
+    {id:'tsk_saydo_style', focusId:'foc_saydo', title:'重设计 demo 样式实现', route:'tier1', adapter:'claude_code', status:'running', viewStatus:'running', attempt:1, riskLevel:'S1', elapsedMin:18, budget:{walltimeActiveMin:45,maxTurns:60,maxCost:25}, spent:{known:false}, lastEvent:'在写 today 页的 attention 列表样式', asOf:m(1), projectRef:'prj_saydo'},
+    {id:'tsk_saydo_merge', focusId:'foc_saydo', title:'样式实现首版合并', route:'tier1', adapter:'claude_code', status:'review_approved_waiting_merge', viewStatus:'review_approved_waiting_merge', attempt:1, riskLevel:'S3', elapsedMin:26, budget:{walltimeActiveMin:45,maxTurns:60,maxCost:25}, spent:{known:true,value:8.8}, lastEvent:'你已验收，等你 Touch ID 批准合并', asOf:m(33), projectRef:'prj_saydo'},
+    {id:'tsk_talk_outline', focusId:'foc_talk', title:'发布会讲稿大纲 v2', route:'tier1', adapter:'claude_code', status:'blocked', viewStatus:'blocked', attempt:1, riskLevel:'S0', elapsedMin:12, budget:{walltimeActiveMin:30,maxTurns:40,maxCost:15}, spent:{known:true,value:4.2}, lastEvent:'受众定位两种理解都能走，需要你拍板', asOf:m(36), projectRef:'prj_talk'},
+    {id:'tsk_talk_draft', focusId:'foc_talk', title:'讲稿正文初稿（writing）', route:'tier1', adapter:'claude_code', status:'ready_for_review', viewStatus:'ready_for_review', attempt:1, riskLevel:'S0', kind:'writing', elapsedMin:31, budget:{walltimeActiveMin:60,maxTurns:50,maxCost:20}, spent:{known:true,value:9.8}, lastEvent:'五个章节全部成稿，人工验收项待你逐条看', asOf:m(58), projectRef:'prj_talk'},
+    {id:'tsk_saydo_tokens', focusId:'foc_saydo', title:'token 层迁移到 console', route:'tier1', adapter:'claude_code', status:'queued', viewStatus:'queued', attempt:1, riskLevel:'S1', elapsedMin:0, budget:{walltimeActiveMin:30,maxTurns:40,maxCost:15}, spent:{known:false}, lastEvent:'排在前一个任务后面', asOf:m(20), projectRef:'prj_saydo', laneId:'lan_tokens'},
+    {id:'tsk_report_sync', focusId:'foc_report', title:'数据仓库月度同步', route:'hopper', status:'ready', viewStatus:'queued', attempt:1, riskLevel:'S1', elapsedMin:0, budget:{walltimeActiveMin:40,maxTurns:0,maxCost:20}, spent:{known:false}, lastEvent:'Hopper 已接单（ready），排在队列里', asOf:m(60), projectRef:'prj_report', laneId:'lan_main'},
+    {id:'tsk_saydo_contract', focusId:'foc_saydo', title:'契约测试全量跑（交 Hopper）', route:'hopper', status:'received', viewStatus:'confirmed', attempt:1, riskLevel:'S2', elapsedMin:0, budget:{walltimeActiveMin:30,maxTurns:0,maxCost:12}, spent:{known:false}, lastEvent:'Hopper 已接单·分诊中', asOf:m(26), projectRef:'prj_saydo', laneId:'lan_main'},
+    {id:'tsk_report_guard', focusId:'foc_report', title:'飞书推送文案合规检查', route:'hopper', status:'blocked', viewStatus:'blocked', attempt:1, riskLevel:'S2', elapsedMin:5, budget:{walltimeActiveMin:20,maxTurns:0,maxCost:8}, spent:{known:false}, lastEvent:'守门硬命中：推送文案含内部群名，等你裁决', asOf:m(15), projectRef:'prj_feishu', laneId:'lan_feishu', hpDecision:'推送文案里的「营收内参群」改成「运营周报群」可以发吗？'},
+    {id:'tsk_report_schedule', focusId:'foc_report', title:'定时调度配置', route:'tier1', adapter:'claude_code', status:'confirmed', viewStatus:'confirmed', attempt:1, riskLevel:'S2', elapsedMin:0, budget:{walltimeActiveMin:20,maxTurns:30,maxCost:10}, spent:{known:false}, lastEvent:'收到，准备开工', asOf:m(44), projectRef:'prj_report'},
+    {id:'tsk_saydo_input', focusId:'foc_saydo', title:'输入区四态实现', route:'tier1', adapter:'claude_code', status:'paused_step_boundary', viewStatus:'paused_step_boundary', attempt:1, riskLevel:'S1', elapsedMin:15, budget:{walltimeActiveMin:40,maxTurns:50,maxCost:20}, spent:{known:true,value:5.5}, lastEvent:'第 3 步（录音态）跑完，等你确认这一步', asOf:m(16), projectRef:'prj_saydo'},
+    {id:'tsk_report_charts', focusId:'foc_report', title:'图表生成脚本', route:'tier1', adapter:'claude_code', status:'failed', viewStatus:'failed', attempt:2, riskLevel:'S1', elapsedMin:9, budget:{walltimeActiveMin:30,maxTurns:40,maxCost:12}, spent:{known:true,value:3.4}, lastEvent:'matplotlib 中文字体缺失，退码 1', asOf:m(130), projectRef:'prj_report'},
+    {id:'tsk_talk_visual', focusId:'foc_talk', title:'讲稿配图脚本', route:'tier1', adapter:'claude_code', status:'merge_failed', viewStatus:'merge_failed', attempt:1, riskLevel:'S1', elapsedMin:14, budget:{walltimeActiveMin:30,maxTurns:30,maxCost:10}, spent:{known:true,value:4.0}, lastEvent:'和你手改的同一段冲突了', asOf:m(240), projectRef:'prj_talk'},
+    {id:'tsk_report_parked', focusId:'foc_report', title:'数据口径确认', route:'tier1', adapter:'claude_code', status:'blocked', viewStatus:'parked', parkedDeadline:'2026-08-12T23:59:00+08:00', attempt:1, riskLevel:'S0', elapsedMin:6, budget:{walltimeActiveMin:20,maxTurns:20,maxCost:8}, spent:{known:true,value:1.2}, lastEvent:'停靠等你：自然月还是账期月', asOf:m(500), projectRef:'prj_report'},
+    {id:'tsk_saydo_expand', focusId:'foc_saydo', title:'长文扩写（计费切换）', route:'tier1', adapter:'claude_code', status:'running', viewStatus:'waiting_confirmation', attempt:1, riskLevel:'S2', elapsedMin:7, budget:{walltimeActiveMin:30,maxTurns:30,maxCost:10}, spent:{known:false}, lastEvent:'订阅额度用完了，切到 API 计费要你拍板', asOf:m(8), projectRef:'prj_saydo'},
+    {id:'tsk_report_merge', focusId:'foc_report', title:'模板目录整理合并', route:'tier1', adapter:'claude_code', status:'merging', viewStatus:'merging', attempt:1, riskLevel:'S3', elapsedMin:2, budget:{walltimeActiveMin:10,maxTurns:10,maxCost:5}, spent:{known:true,value:1.1}, lastEvent:'合并进行中', asOf:m(2), projectRef:'prj_report'},
+    {id:'tsk_report_housekeep', focusId:'foc_report', title:'报表模板目录整理', route:'tier1', adapter:'claude_code', status:'task_done', viewStatus:'task_done', attempt:1, riskLevel:'S1', elapsedMin:9, budget:{walltimeActiveMin:20,maxTurns:30,maxCost:10}, spent:{known:true,value:3.1}, lastEvent:'已交付并合并', asOf:m(1500), projectRef:'prj_report'},
+    {id:'tsk_saydo_old', focusId:'foc_saydo', title:'旧 demo v1 适配', route:'tier1', adapter:'claude_code', status:'superseded', viewStatus:'superseded', attempt:1, riskLevel:'S1', elapsedMin:11, budget:{walltimeActiveMin:20,maxTurns:20,maxCost:8}, spent:{known:true,value:2.2}, lastEvent:'被 v2 替代', asOf:m(1600), projectRef:'prj_saydo'},
+    {id:'tsk_talk_cancel', focusId:'foc_talk', title:'讲稿 v0 大纲', route:'tier1', adapter:'claude_code', status:'cancel_settled', viewStatus:'cancel_settled', attempt:1, riskLevel:'S0', elapsedMin:5, budget:{walltimeActiveMin:20,maxTurns:20,maxCost:6}, spent:{known:true,value:0.8}, lastEvent:'你叫停的，这轮作废', asOf:m(2900), projectRef:'prj_talk'}
+  ],
+  /* focus_artifacts：role expected→deliverable（realize CAS），input/reference */
+  artifacts:[
+    {id:'art_demo_v2', focusId:'foc_saydo', version:2, kind:'file', role:'deliverable', title:'重设计提案 demo.html', projectRef:'prj_saydo', digest:'sha256:8f2c…a1', taskRef:'tsk_saydo_style', createdAt:m(12), supersedes:'art_demo_v1'},
+    {id:'art_demo_v1', focusId:'foc_saydo', version:1, kind:'file', role:'deliverable', title:'重设计提案 demo.html', projectRef:'prj_saydo', digest:'sha256:3b7e…9d', taskRef:'tsk_saydo_style', createdAt:m(95), superseded:true},
+    {id:'art_compare', focusId:'foc_saydo', version:1, kind:'file', role:'expected', title:'竞品控制台 IA 对比.md', projectRef:'prj_octo', taskRef:null, obRef:'fob_competitor', createdAt:m(30)},
+    {id:'art_tokens', focusId:'foc_saydo', version:1, kind:'file', role:'reference', title:'tokens.css（视觉基线）', projectRef:'prj_blog', digest:'sha256:11aa…c3', createdAt:m(2000)},
+    {id:'art_monthly', focusId:'foc_report', version:3, kind:'file', role:'deliverable', title:'monthly.py 跑批脚本', projectRef:'prj_report', digest:'sha256:c41a…77', taskRef:'tsk_report_batch', createdAt:m(9)},
+    {id:'art_csv', focusId:'foc_report', version:1, kind:'file', role:'expected', title:'Q2 数据 CSV（输入，缺料）', projectRef:'prj_report', obRef:'fob_csv', createdAt:m(400)},
+    {id:'art_template', focusId:'foc_report', version:2, kind:'file', role:'reference', title:'报表模板.xlsx', projectRef:'prj_report', digest:'sha256:77bb…02', createdAt:m(3000)},
+    {id:'art_talk_draft', focusId:'foc_talk', version:1, kind:'file', role:'deliverable', title:'讲稿正文初稿.md', projectRef:'prj_talk', digest:'sha256:90be…12', taskRef:'tsk_talk_draft', createdAt:m(58)},
+    {id:'art_outline_v2', focusId:'foc_talk', version:1, kind:'file', role:'expected', title:'讲稿大纲 v2', projectRef:'prj_talk', taskRef:'tsk_talk_outline', createdAt:m(200)},
+    {id:'art_trip', focusId:'foc_trip', version:1, kind:'text', role:'expected', title:'5 天行程草案', obRef:'fob_itinerary', createdAt:m(2900)}
+  ],
+  attention:[
+    {id:'task:tsk_report_batch', color:'orange', sourceKind:'task', refId:'tsk_report_batch', title:'「月度跑批脚本」执行和检查都跑完了，等你验收', focusId:'foc_report', focusTitle:'月度运营报表自动化', action:'open_review', updatedAt:m(9)},
+    {id:'conf:apr_mem_3', color:'orange', sourceKind:'confirmation', refId:'apr_mem_3', title:'跟你确认三点，要记进项目记忆吗', focusId:'foc_saydo', focusTitle:'给 SayDo 重做前端', action:'open_confirm', updatedAt:m(2)},
+    {id:'appr:apr_push_2', color:'orange', sourceKind:'approval', refId:'apr_push_2', title:'预授权请求：推到 demo/* 分支，会触发预览部署（S2，可改后批准）', focusId:'foc_saydo', focusTitle:'给 SayDo 重做前端', action:'open_approval', updatedAt:m(44)},
+    {id:'task:tsk_report_guard', color:'orange', sourceKind:'task', refId:'tsk_report_guard', title:'飞书推送文案守门硬命中：「营收内参群」改名可以发吗？', focusId:'foc_report', focusTitle:'月度运营报表自动化', action:'open_task_modal', updatedAt:m(15)},
+    {id:'task:tsk_saydo_input', color:'orange', sourceKind:'task', refId:'tsk_saydo_input', title:'「输入区四态实现」第 3 步跑完，等你确认这一步', focusId:'foc_saydo', focusTitle:'给 SayDo 重做前端', action:'open_task_modal', updatedAt:m(16)},
+    {id:'task:tsk_talk_outline', color:'orange', sourceKind:'task', refId:'tsk_talk_outline', title:'讲稿大纲卡在一步：受众是技术还是商业？', focusId:'foc_talk', focusTitle:'九月产品发布会讲稿', action:'open_task_modal', updatedAt:m(36)},
+    {id:'ob:fob_date', color:'orange', sourceKind:'obligation', refId:'fob_date', needs:'decision', title:'发布会日期定在哪天？这决定讲稿的倒排节奏', focusId:'foc_talk', focusTitle:'九月产品发布会讲稿', action:'open_obligation', updatedAt:m(160)},
+    {id:'task:tsk_saydo_expand', color:'orange', sourceKind:'task', refId:'tsk_saydo_expand', needs:'decision', title:'「长文扩写」订阅额度用完了，切 API 计费要你拍板', focusId:'foc_saydo', focusTitle:'给 SayDo 重做前端', action:'open_task_modal', updatedAt:m(8)},
+    {id:'ob:fob_csv', color:'blue', sourceKind:'obligation', refId:'fob_csv', needs:'action', title:'把 Q2 数据 CSV 放进项目文件夹（报表跑批要用）', focusId:'foc_report', focusTitle:'月度运营报表自动化', action:'open_obligation', updatedAt:m(300)},
+    {id:'ob:fob_health_pdf', color:'blue', sourceKind:'obligation', refId:'fob_health_pdf', needs:'action', title:'把体检报告 PDF 发给我，我好开始解读', focusId:'foc_health', focusTitle:'爸爸体检报告解读', action:'open_obligation', updatedAt:m(4300)},
+    {id:'task:tsk_saydo_style', color:'green', sourceKind:'task', refId:'tsk_saydo_style', title:'「重设计 demo 样式实现」执行中，已跑 18 分钟', focusId:'foc_saydo', focusTitle:'给 SayDo 重做前端', action:'open_focus', updatedAt:m(3)},
+    {id:'ob:fob_competitor', color:'green', sourceKind:'obligation', refId:'fob_competitor', title:'我在整理三家竞品的控制台信息架构对比', focusId:'foc_saydo', focusTitle:'给 SayDo 重做前端', action:'open_focus', updatedAt:m(20)},
+    {id:'task:tsk_report_merge', color:'green', sourceKind:'task', refId:'tsk_report_merge', title:'「模板目录整理」合并中', focusId:'foc_report', focusTitle:'月度运营报表自动化', action:'open_focus', updatedAt:m(2)},
+    {id:'ob:fob_hotel', color:'gray', sourceKind:'obligation', refId:'fob_hotel', title:'等酒店确认海景大床房是否可订', focusId:'foc_trip', focusTitle:'国庆家庭旅行计划', action:'open_focus', updatedAt:m(2800)},
+    {id:'ob:fob_feishu', color:'gray', sourceKind:'obligation', refId:'fob_feishu', title:'等飞书群管理员开 webhook', focusId:'foc_report', focusTitle:'月度运营报表自动化', action:'open_focus', updatedAt:m(700)}
+  ],
+  pkg:{
+    id:'pkg_01J9ZX8Q3M4N5P6R7S8T9V0W1A', revision:2, status:'proposed', focusId:'foc_saydo',
+    outcomePreview:'一个三面一栏的重设计提案 demo：今天收件箱、Focus 对话页（带右栏实体列表）、验收面，单文件 HTML 可直接打开评审',
+    inScope:['今天页四色收件箱（对齐 /api/attention 契约）','Focus 对话页统一时间线 + 右栏实体列表','验收面按验收标准组织证据'],
+    outOfScope:['不改 daemon 与 contracts 任何代码','不做移动端适配（P0 桌面优先）','不接真实语音管线'],
+    assumptions:[
+      {text:'AttentionItem 四色分流规则与合同 §5.2 一致', confidence:'high', critical:true, state:'verified'},
+      {text:'时间线读模型先由前端拼接，server 端 /timeline 后补', confidence:'med', critical:false, state:'assumed'}
+    ],
+    acceptance:['三主面均可从侧栏一次点击到达','状态词零违规（grep 无「完成/做完」执行态用法）','零 emoji 门禁脚本通过','亮暗双主题截图无破版'],
+    plan:[
+      {seq:1, step:'搭单文件骨架与 token 层（照抄 11 §2）', owner:'ai'},
+      {seq:2, step:'今天页 + Focus 对话页 + 验收面三视图', owner:'ai'},
+      {seq:3, step:'mock 数据按 09 契约形状填充', owner:'ai'},
+      {seq:4, step:'你过一遍三主面，拍板是否应用到 console', owner:'human'},
+      {seq:5, step:'截图验证 + emoji 门禁 + 落提案说明', owner:'ai'}
+    ],
+    cost:{expected:{known:true,value:6.5,currency:'CNY'}, max:{known:true,value:15,currency:'CNY'}},
+    risks:['单文件 demo 与 React 工程结构不同，应用到 console 时需重拆组件','时间线读模型若后补 server 端，前端拼接逻辑会重写一次'],
+    preauthorizedEffects:[
+      {effect:'install_dependency', spokenForm:'装 lucide-static、clsx 这2个依赖', ttlHours:72},
+      {effect:'push_branch', spokenForm:'推到 demo/* 分支，会触发预览部署', ttlHours:72}
+    ],
+    expiresInH:21
+  },
+  approvals:[
+    {id:'apr_mem_3', kind:'confirmation', riskLevel:'S0', focusId:'foc_saydo', title:'跟你确认三点，要记进项目记忆吗', decidedVia:'voice', outcome:'pending',
+     keys:['重设计提案只做 demo，不动 console 现有代码','三面一栏是主线，工程航迹降级为记录','右栏实体列表只做状态呈现，操作留在对话和今天页'],
+     presentedAt:m(2), ttlMin:10},
+    {id:'apr_push_2', kind:'runtime_effect', riskLevel:'S2', focusId:'foc_saydo', outcome:'pending', title:'预授权生效请求：推到 demo/* 分支，会触发预览部署', taskTitle:'重设计 demo 样式实现', decidedVia:'screen', effect:'push_branch', target:'demo/redesign-2026-08-07', downstream:['ci_preview'], expiry:'72 小时'},
+    {id:'apr_billing', kind:'runtime_effect', riskLevel:'S2', focusId:'foc_saydo', outcome:'pending', title:'计费切换：「长文扩写」从订阅额度切到 API 计费', taskTitle:'长文扩写（计费切换）', decidedVia:'screen', effect:'billing_switch', target:'订阅 → API（月预算内）', downstream:[], expiry:'本次任务'},
+    {id:'apr_old_1', kind:'dispatch_package', riskLevel:'S1', focusId:'foc_report', outcome:'consumed', title:'决策包「月度跑批脚本」r1 已批准', decidedVia:'voice', decidedAt:m(1400)},
+    {id:'apr_merge_1', kind:'runtime_effect', riskLevel:'S3', focusId:'foc_saydo', outcome:'pending', title:'合并「样式实现首版」到 main（S3，不可逆）', taskId:'tsk_saydo_merge', decidedVia:'screen'}
+  ],
+  memory:[
+    {id:'mem_01', tier:'M1', trust:'user_stated', focusId:'foc_saydo', text:'义骁：demo 先给我看，确认了再动 console', source:'user_utterance'},
+    {id:'mem_02', tier:'M1', trust:'user_approved', focusId:'foc_saydo', text:'三面一栏是重设计主线，工程航迹降级为记录', source:'user_utterance'},
+    {id:'mem_03', tier:'M1', trust:'auto_low_impact', focusId:'foc_report', text:'报表项目 workspace 在 ~/WorkSpace/report-auto（git repo）', source:'repo_file'},
+    {id:'mem_04', tier:'M2', trust:'user_approved', focusId:'foc_talk', text:'发布会受众以潜在客户为主，少讲架构多讲效果', source:'user_edit'},
+    {id:'mem_05', tier:'M3', trust:'candidate', focusId:'foc_saydo', text:'（候选）义骁好像偏好今天页左宽右窄的双列布局', source:'agent_output'},
+    {id:'mem_06', tier:'M3', trust:'candidate', focusId:'foc_report', text:'（候选）跑批时间可能想改到每月 1 号早 8 点', source:'agent_output'}
+  ],
+  costs:{
+    byProject:[
+      {focusId:'foc_saydo', title:'给 SayDo 重做前端', known:{CNY:14.5}, unknownCount:1, subscriptionCalls:6},
+      {focusId:'foc_report', title:'月度运营报表自动化', known:{CNY:23.6, USD:1.2}, unknownCount:0, subscriptionCalls:14},
+      {focusId:'foc_talk', title:'九月产品发布会讲稿', known:{CNY:14.0}, unknownCount:2, subscriptionCalls:3}
+    ],
+    monthBudget:{CNY:200, used:52.1}
+  },
+  notifications:[
+    {id:'ntf_01', trigger:'ready_for_review', title:'「月度跑批脚本」执行和检查都跑完了，等你验收', at:m(9), read:false, go:'#/review/tsk_report_batch'},
+    {id:'ntf_02', trigger:'blocked', title:'「发布会讲稿大纲 v2」卡在一步，需要你回答', at:m(36), read:false, go:'#/focus/foc_talk'},
+    {id:'ntf_03', trigger:'approval_request', title:'一条 S2 计费切换请求等你拍板', at:m(8), read:false, go:'#/focus/foc_saydo'},
+    {id:'ntf_04', trigger:'step_boundary', title:'「输入区四态实现」第 3 步跑完，等你确认这一步', at:m(16), read:true, go:'#/focus/foc_saydo'},
+    {id:'ntf_05', trigger:'failed', title:'「图表生成脚本」失败了：matplotlib 中文字体缺失', at:m(130), read:true, go:'#/focus/foc_report'}
+  ]
+};
+
+/* 期待（四层聚合的一等管理面：方向/验收标准/预期产物/预算与时间）
+   每条标准的状态：pass_verify 机器验过 / pass_claim 自报 / untested 未验 / at_risk 有偏差 / adjusted 已调整 */
+const EXPECTATIONS = {
+  foc_saydo:{
+    revision:3,
+    direction:'把 14 页控制台收成「三面一栏」，先出提案 demo 给义骁确认',
+    acceptance:[
+      {text:'三主面均可从侧栏一次点击到达', state:'pass_verify'},
+      {text:'状态词零违规（grep 无「完成/做完」执行态用法）', state:'pass_verify'},
+      {text:'零 emoji 门禁脚本通过', state:'pass_verify'},
+      {text:'亮暗双主题截图无破版', state:'pass_verify'},
+      {text:'义骁过一遍三主面并拍板是否应用', state:'untested'}
+    ],
+    artifacts:{expected:2, delivered:1},
+    budget:{spent:14.5, max:25, currency:'CNY'},
+    atRisk:false
+  },
+  foc_report:{
+    revision:2,
+    direction:'每月 1 号自动生成上月运营报表并发到飞书群',
+    acceptance:[
+      {text:'脚本读 Q2 CSV 生成月度汇总，输出与手工核对一致', state:'pass_verify'},
+      {text:'飞书推送文案不含内部路径与密钥', state:'pass_verify'},
+      {text:'图表周报（趋势图三张）', state:'at_risk', note:'脚本两次失败：matplotlib 中文字体缺失'},
+      {text:'每月 1 号早 8 点前发出', state:'untested'}
+    ],
+    artifacts:{expected:3, delivered:1},
+    budget:{spent:23.6, max:60, currency:'CNY'},
+    atRisk:true
+  },
+  foc_talk:{
+    revision:1,
+    direction:'20 分钟主题演讲，受众是潜在客户不是开发者',
+    acceptance:[
+      {text:'开场三分钟内讲清「一句话产品」', state:'untested'},
+      {text:'两个客户故事，不出现内部代号', state:'untested'},
+      {text:'演示脚本每步有兜底', state:'untested'},
+      {text:'全文 20 分钟语速（约 4800 字）', state:'pass_verify'}
+    ],
+    artifacts:{expected:2, delivered:1},
+    budget:{spent:14.0, max:30, currency:'CNY'},
+    atRisk:false
+  }
+};
+const EXP_STATE = {
+  pass_verify:{label:'机器验过', cls:'ac-pass', ic:'check'},
+  pass_claim:{label:'自报', cls:'ac-unknown', ic:'check'},
+  untested:{label:'未验', cls:'ac-unknown', ic:'clock'},
+  at_risk:{label:'有偏差', cls:'ac-fail', ic:'alert'},
+  adjusted:{label:'已调整', cls:'ac-unknown', ic:'history'}
+};
+
+/* Focus 页统一时间线（提案中的 /timeline 读模型的前端模拟拼接） */
+const TIMELINES = {
+  foc_saydo:[
+    {kind:'note', text:'昨天下午 · 第 12 次会话开始'},
+    {kind:'turn', speaker:'user', ts:m(95), heard:true, text:'我觉得现在的控制台页太多了，你自己用下来什么感觉？'},
+    {kind:'turn', speaker:'ai', ts:m(94), heard:true, text:'说实话，我也觉得散。光「需要你」这件事就有四个入口。你每天要自己记住该看哪里——这不该是你的活儿。'},
+    {kind:'turn', speaker:'user', ts:m(93), heard:true, text:'对，我就想打开一眼看到今天要我干嘛。还有，聊的时候我看不到现在到底是什么安排、东西做出来没有。'},
+    {kind:'turn', speaker:'ai', ts:m(92), heard:true, text:'那这样：对话还是主线，但右边给你一栏「实体列表」——安排（谁做什么、到哪了）、产物（做出了什么、什么状态）、涉及的项目、我记住的事。你聊的时候随时能扫一眼。'},
+    {kind:'turn', speaker:'ai', ts:m(92), heard:false, text:'另外我还准备了一版详细的对比表格，把现在每一页的去向都列出来——'},
+    {kind:'note', text:'上一句被打断，未送达，不作「已告知」依据'},
+    {kind:'confirm', receiptId:'apr_mem_3'},
+    {kind:'entity', ts:m(80), title:'三面一栏（重设计主线）', sub:'设计判断 · 已记入 M1', color:'ink'},
+    {kind:'turn', speaker:'user', ts:m(75), heard:true, text:'行，那你先做个 demo 我看看，别动现在的代码。'},
+    {kind:'pkg', ts:m(70)},
+    {kind:'progress', ts:m(25)},
+    {kind:'task', taskId:'tsk_saydo_style', ts:m(18)},
+    {kind:'task', taskId:'tsk_saydo_input', ts:m(16)},
+    {kind:'entity', ts:m(10), title:'重设计提案 demo.html v2', sub:'产物 · 已沉淀 M2', color:'success', artifactRef:'art_demo_v2'}
+  ],
+  foc_report:[
+    {kind:'note', text:'今天上午 · 第 5 次会话'},
+    {kind:'turn', speaker:'user', ts:m(300), heard:true, text:'这个月先手动跑一次给我看看效果，定时的事以后再说。'},
+    {kind:'turn', speaker:'ai', ts:m(299), heard:true, text:'好。差一样东西：Q2 的原始数据 CSV 还没在项目文件夹里，跑批脚本读不到。你方便的时候放进去，我就能跑。'},
+    {kind:'task', taskId:'tsk_report_batch', ts:m(9)},
+    {kind:'drift', ts:m(120)},
+    {kind:'task', taskId:'tsk_report_charts', ts:m(130)},
+    {kind:'task', taskId:'tsk_report_housekeep', ts:m(1500)}
+  ],
+  foc_talk:[
+    {kind:'note', text:'三天前 · 第 3 次会话'},
+    {kind:'turn', speaker:'ai', ts:m(2900), heard:true, text:'讲稿我起了一版大纲，但卡在受众上：按技术听众写和按商业听众写，结构和例子完全不一样。'},
+    {kind:'task', taskId:'tsk_talk_outline', ts:m(36)},
+    {kind:'task', taskId:'tsk_talk_draft', ts:m(58)},
+    {kind:'task', taskId:'tsk_talk_visual', ts:m(240)}
+  ],
+  foc_trip:[
+    {kind:'note', text:'两天前 · 第 2 次会话'},
+    {kind:'turn', speaker:'user', ts:m(2900), heard:true, text:'国庆想带爸妈和孩子去大理，五天，你帮我张罗一下。'},
+    {kind:'turn', speaker:'ai', ts:m(2899), heard:true, text:'好。我先问了酒店海景房还有没有，现在在等回复。酒店一定，我就把五天的行程草案排出来给你看。预算上限两万行不行？'},
+    {kind:'standby', ts:m(2880)}
+  ],
+  foc_health:[
+    {kind:'note', text:'这件事刚记下，还没有聊过'},
+    {kind:'turn', speaker:'ai', ts:m(4300), heard:true, text:'体检报告解读这件事我记下了。你什么时候把报告 PDF 发我，我什么时候开工：先通读圈出异常项，再标出哪些需要复查、哪些只是观察。'},
+    {kind:'interview'}
+  ],
+  foc_legacy:[
+    {kind:'note', text:'已收官 · 正常走完的 · 事件流与产物在「记录」页'}
+  ],
+  foc_jp:[
+    {kind:'note', text:'已放弃 · 你主动中止的，不是失败，也不是做完'}
+  ]
+};
+
+/* 验收面证据 */
+const EXPLAIN = {
+  tsk_report_batch:{
+    one_liner:'跑批脚本按验收标准跑通了，三条机器验全过，就差你抽一行数字。',
+    walkthrough:'它先读 data/ 里的 Q2 CSV，按自然月汇总出 14 行，和手工核对表逐行对过；推送文案过了脱敏扫描；失败路径会写清楚原因再退。',
+    decisions:'两个判断你都能推翻：汇总口径用自然月（你说运营按自然月复盘）；推送先发测试群（第一次先看效果）。'
+  },
+  tsk_talk_draft:{
+    one_liner:'五章都成稿了，字数达标，前三章要你逐条看。',
+    walkthrough:'第一章三分钟讲清一句话产品；第二章两个客户故事，没出现内部代号；第三章演示脚本每步有兜底；四五章收尾和 Q&A。',
+    decisions:'砍了架构图那一页，换成 before/after 对比——因为受众是潜在客户，这条你可以推翻。'
+  },
+  tsk_saydo_merge:{
+    one_liner:'样式首版你验过了，就差 Touch ID 合并这一步。',
+    walkthrough:'today 页四色渲染与 attention 契约逐条一致；状态词零违规；亮暗双主题截图无破版。',
+    decisions:'右栏只做状态呈现、操作留在对话和今天页——防它长成第二看板，这条你可以推翻。'
+  }
+};
+/* 产物正文（验收面与产物弹窗的内容视图，S4 结构性缺口补齐） */
+const ART_CONTENT = {
+  art_talk_draft:{
+    title:'讲稿正文初稿.md',
+    sections:[
+      {name:'第一章 开场', body:'各位好。今天我只讲一件事：怎么让 AI 真正把活干完，而不是把活写给你看。三年前我们让 AI 写代码，今天我们要验收 AI 的工作。这两件事的区别，就是这家公司的全部。\n\n（此处 620 字）'},
+      {name:'第二章 故事', body:'第一个客户是一家 30 人的电商公司。他们的运营总监以前每月花两天做报表，现在每月 1 号早上，报表已经在群里等她了——她要做的只剩一件事：抽一行数字核对。\n\n第二个客户……（此处 890 字）'},
+      {name:'第三章 演示', body:'现场演示：我现在对它说「把上个月的数据跑一遍给我」。你们注意看三件事：它怎么确认理解、怎么报告进展、怎么把东西交回来等我验收。如果现场网络断了，兜底视频在这里。\n\n（此处 540 字）'}
+    ]
+  },
+  art_demo_v2:{
+    title:'重设计提案 demo.html',
+    sections:[{name:'结构', body:'<!DOCTYPE html>\n<html lang="zh-CN" data-theme="light">\n<!-- 三面一栏：今天 / Focus 对话+右栏 / 验收 -->\n<head>…（2366 行单文件，此处为结构节选）'}]
+  },
+  art_monthly:{
+    title:'monthly.py 跑批脚本',
+    sections:[{name:'核心段', body:'def main(src):\n    df = load_csv(src)          # Q2 原始数据\n    out = summarize_month(df)   # 自然月汇总 14 行\n    push_feishu(render(out))    # 脱敏后推送'}]
+  }
+};
+const REVIEWS = {
+  tsk_report_batch:{
+    packageRef:{id:'pkg_01J9report0000000000000001', revision:1},
+    acs:[
+      {criterion:'脚本读 Q2 CSV 生成月度汇总，输出与手工核对一致', status:'pass', source:'verify',
+       evidence:{kind:'log', body:'[ok] verify/template: 输出 14 行，与 fixtures/expected.csv 逐行一致\n[ok] verify/run: 退码 0，墙钟 23 分钟\n[ok] 树冻结 treeSha 9c4f…e2'}},
+      {criterion:'飞书推送文案不含内部路径与密钥', status:'pass', source:'verify',
+       evidence:{kind:'log', body:'[ok] 脱敏扫描 0 命中（token / secret / 绝对路径）'}},
+      {criterion:'失败时写清楚原因，不静默退出', status:'pass', source:'agent_claim',
+       evidence:{kind:'diff', body:'@@ report/monthly.py @@\n<span class="add">+ try:</span>\n<span class="add">+     df = load_csv(src)</span>\n<span class="add">+ except FileNotFoundError:</span>\n<span class="add">+     fail("缺 Q2 数据 CSV，请放进 data/ 后重试")</span>'}},
+      {criterion:'你抽查一行数字对不对', status:'unknown', source:'manual',
+       evidence:{kind:'note', body:'这条只能你来。建议抽查 6 月「活跃设备」一行：脚本算的是 12,847。'}}
+    ],
+    decisions:[
+      {what:'汇总口径用「自然月」而不是「账期月」', why:'你说报表是给运营看的，运营按自然月复盘', overridable:true},
+      {what:'推送先发到测试群而不是大群', why:'第一次手动跑，先看效果再切', overridable:true}
+    ],
+    runs:[{attempt:1, result:'settled_failed：CSV 缺列，已补映射'},{attempt:2, result:'settled_review：verify 全过，树已冻结'}],
+    s3:false
+  },
+  tsk_talk_draft:{
+    packageRef:{id:'pkg_01J9talk00000000000000003', revision:1},
+    writing:true,
+    acs:[
+      {criterion:'第一章：开场三分钟内讲清「一句话产品」', status:'unknown', source:'manual', section:'第一章 开场'},
+      {criterion:'第二章：两个客户故事，不出现内部代号', status:'unknown', source:'manual', section:'第二章 故事'},
+      {criterion:'第三章：现场演示脚本每步有兜底', status:'unknown', source:'manual', section:'第三章 演示'},
+      {criterion:'全文 20 分钟语速（约 4800 字）', status:'pass', source:'verify',
+       evidence:{kind:'log', body:'[ok] 全文字数 4,762（容差 ±10%）'}}
+    ],
+    decisions:[
+      {what:'砍掉架构图一页，换成 before/after 对比', why:'受众是潜在客户', overridable:true}
+    ],
+    runs:[{attempt:1, result:'settled_review：五章全成稿'}],
+    s3:false
+  },
+  tsk_saydo_merge:{
+    packageRef:{id:'pkg_01J9saydo00000000000000002', revision:1},
+    acs:[
+      {criterion:'today 页四色收件箱渲染与 /api/attention 一致', status:'pass', source:'verify',
+       evidence:{kind:'log', body:'[ok] 13 条 attention fixture 全色渲染通过\n[ok] 空态「没有需要你的事」不庆祝'}},
+      {criterion:'状态词零违规', status:'pass', source:'verify',
+       evidence:{kind:'log', body:'[ok] grep 「完成/做完」执行态用法 0 命中'}}
+    ],
+    decisions:[
+      {what:'右栏只做状态呈现，操作留在对话和今天页', why:'防止右栏长成第二看板、两个操作面打架', overridable:true}
+    ],
+    runs:[{attempt:1, result:'settled_review：你已验收（attempt 1）'}],
+    s3:true
+  }
+};
+</script>
+
+<script>
+/* ==================== 渲染层 ==================== */
+const $ = (sel)=>document.querySelector(sel);
+const state = {
+  theme:'light', dnd:false, bellOpen:false,
+  composer:{mode:'idle', recSec:0, timer:null},
+  confirmLeft:{}, confirmResolved:{},
+  pkgMode:null, pkgApproved:false,
+  reviewSel:{}, acVerdicts:{}, blockedAnswer:{},
+  attnAck:{}, tripWoken:false, datePicked:null, csvPlaced:false, billingCut:false,
+  stepConfirmed:{}, retried:{}, liveTurns:{}, boardCollapsed:{}, boardExpand:{},
+  spaceCollapsed:{}, orangeExpanded:false, quickExpanded:false, playing:null
+};
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+function focusById(id){return DB.focuses.find(f=>f.id===id);}
+function taskById(id){return DB.tasks.find(t=>t.id===id);}
+function obById(id){return DB.obligations.find(o=>o.id===id);}
+function artById(id){return DB.artifacts.find(a=>a.id===id);}
+function projById(id){return DB.projects.find(p=>p.id===id);}
+function openObs(fid){return DB.obligations.filter(o=>o.focusId===fid && ['open','in_progress','waiting','deferred','blocked'].includes(o.status));}
+function openByOwner(fid){
+  const r={human:0,agent:0,external:0};
+  openObs(fid).forEach(o=>r[o.owner]++);
+  return r;
+}
+/* 徽章（数字角标）单源 = attention 未 ack 的橙+蓝；openByOwner 只用于文字描述，永不作徽章（方案 v4 R5） */
+function needBadgeCount(fid){
+  return DB.attention.filter(a=>a.focusId===fid && (a.color==='orange'||a.color==='blue') && !state.attnAck[a.id]).length;
+}
+const OB_STATUS_LABEL = {open:'待处理',in_progress:'进行中',waiting:'等待中',deferred:'已推迟',blocked:'卡住',resolved:'已了结',superseded:'已被替代'};
+const NEEDS_LABEL = {decision:'等你拍板',input:'等你补充',action:'等你的动作',unknown:'待归类'};
+
+/* ---------- 设计说明（banner 折叠面板） ---------- */
+function renderDesignNotes(){
+  $('#design-notes').innerHTML = `<div class="cols">
+    <div>
+      <h4>三条设计理念（v2 增补右栏）</h4>
+      <ul>
+        <li><strong>一个收件箱</strong>：「需要你」从现版 4 个入口收束为「今天」一页。四色即分流：橙=等你拍板/回答，蓝=等你的动作，绿=AI 在干活，灰=等外部。对应契约 <code>/api/attention</code>。</li>
+        <li><strong>对话是主线，右栏是状态</strong>：对话负责推进；右栏实体列表回答「现在什么安排、到哪了、产出了什么」——安排（obligations+tasks 按球权分组）、产物（expected→deliverable）、涉及项目（跨项目引用）、记住的事。<strong>右栏只做状态呈现，操作留在对话和今天页</strong>，防止它长成第二看板。</li>
+        <li><strong>验收按标准组织</strong>：证据视图以验收标准为骨架，结论先行，操作在原地完成。</li>
+      </ul>
+      <h4 style="margin-top:12px">用户与 AI 的分工（与义骁对齐的口径）</h4>
+      <ul>
+        <li>人：保持聚焦——关注想做的事、背景、真正想要的回报；只在被需要时拍板/补充/验收。</li>
+        <li>AI：盯每一个 todo；持续对齐最终产物与当前进度；跨会话维护持久化上下文（Focus revision + 记忆 + 产物）。</li>
+        <li>sparse agent：没有活时待命 standby，叫醒条件写在账上，到点或被唤醒就自己接着干。</li>
+      </ul>
+      <h4 style="margin-top:12px">期待管理（v2.1 核心增量，义骁 8/8 点名）</h4>
+      <ul>
+        <li><strong>期待四层</strong>：方向 / 验收标准 / 预期产物 / 预算与时间。数据结构早有，散在各处且全部 AI 起草、用户被动确认；右栏「期待」组首次聚合成<strong>一等管理面</strong>（revision + 偏差徽章 + 逐条可改）。</li>
+        <li><strong>被动 → 主动</strong>：四层都可用户直改，<strong>AI 复述影响后才生效</strong>（确认环的用户发起侧；此前只有 AI 发起）。右栏「我期待一个 X」一句话挂账 expected 产物。</li>
+        <li><strong>偏航三选一</strong>（监督线的活）：现实不符期待时主动提醒，用户分流——<strong>纠实施</strong>（现实偏了，实施线往期待靠：返工/换方案重跑）/ <strong>调期待</strong>（期待偏了，期待往合理靠：改标准/预算/产物，复述生效）/ <strong>保持观察</strong>（挂账设回看触发）。</li>
+        <li><strong>时机语义</strong>：执行前自由改；执行中改=变更单重新对齐；执行后改只作用下一轮（禁移动球门，保验收严肃性）。每次调整=revision 事件，历史不可篡改。</li>
+        <li>理论背书：Focus + 期待管理 = 需求侧；持久化上下文 + 双线 = 方案侧（四流两线概念定稿 §5）。</li>
+      </ul>
+    </div>
+    <div>
+      <h4>v2 新增展示点（全部可点）</h4>
+      <ul>
+        <li>Focus 页右栏：安排 / 产物 / 涉及项目 / 记住的事 四组实体列表。</li>
+        <li>全景看板：泳道 = 每件持续的事，<strong>多条支线拆子泳道</strong>（FocusLane）；卡片 = todo；16 种任务呈现态 + HP（Hopper 投影）全覆盖。</li>
+        <li>空间：侧栏按空间分组；设置页可创建/重命名/删除；新 Focus 弹窗选空间。</li>
+        <li>跨项目：foc_saydo 引用 3 个项目，产物/任务带项目徽章；foc_trip 无项目（Focus 不等于项目）。</li>
+        <li>待命与唤醒：旅行 Focus 的「模拟酒店回复」演示 dependency_woken。</li>
+        <li>邮件推送概念（顶栏通知 → 邮件预览，标 <span class="stage-tag">P1</span>）。</li>
+        <li>时间线「进度对齐」卡：AI 主动对齐当前进展与下一步。</li>
+        <li>完备性补齐：审批弹窗（批准 / <strong>改后批准</strong> / 拒绝 / 稍后）、S3 流程说明卡、采访选择题卡（一次一问）、新 Focus「学习中」奠基状态、验收面「讲给我听」三层、项目覆盖编辑、紧凑密度切换、closed Focus 停机 + fork（已放弃与已收官分开）、tailnet 手机薄版预览、HP 详情弹窗 + DecisionRequest 裁决回传。</li>
+        <li>结构与稳定感：<strong>右栏独立滚动</strong>（对话流动、实体栏稳定）、<strong>点右栏条目左侧对话定位闪烁</strong>、看板按 Focus 分组 + 格子过多折叠 + 组折叠（休眠默认收起）。</li>
+        <li>v2.1（吸收既白评审 + codex 三审 + 四流两线概念定稿）：确认卡超时=过期即丢不采纳、徽章 attention 单源、无项目 Focus 语音锚定引导、橙区排序+折叠、自报证据空心勾降权、<strong>产物正文视图</strong>（验收能读到讲稿正文）、TTS 播报态+打断演示、记录页加厚（支线航迹/依赖链/会话段展开/AI 调研输入）、<strong>期待直改</strong>（改期待复述生效 + 右栏「我期待一个 X」）。</li>
+        <li>期待管理（v2.1 核心）：右栏「期待」组四层聚合（方向/标准/产物/预算，逐条可改）、<strong>偏航提醒卡</strong>（纠实施/调期待/保持观察三分流，foc_report 演示）、「期待 vs 现实」对账卡、期待调整时间线留痕。</li>
+      </ul>
+      <h4 style="margin-top:12px">保留的硬约束（不可破坏）</h4>
+      <ul>
+        <li>状态词三级：收到 / 等你验收 / 已交付；执行态永不说「完成」。</li>
+        <li>11 §2.6 状态→颜色→图标→文案四联映射全站唯一。</li>
+        <li>S3 仅屏幕强认证（Touch ID），独立按钮，语音永不渲染。</li>
+        <li>零 emoji；成本 unknown 显示「还没有确切数字」，禁 0。</li>
+        <li>拍板中性二选一，AI 推荐只占徽章不占预选位。</li>
+      </ul>
+    </div>
+    <div>
+      <h4>数据结构建议（v2.1 更新，12 条）</h4>
+      <ul>
+        <li>1. <code>GET /api/focuses/:id/timeline</code>：<strong>按 v4 定形——focus_events 单源骨架（per-focus seq）+ 会话段</strong>；历史不逐轮 interleave（跨源 seq 不可行），当前会话仍 live 逐轮。<strong>状态：待批次③a 施工。</strong></li>
+        <li>2. <code>attention_acks</code> 表 + <code>POST /api/attention/:id/ack</code>：<strong>ack 仅绿/灰 calm 项</strong>；条目升级变色时<strong>无视 ack 必重现</strong>。<strong>状态：已实装（分支 feature/console-redesign-b1，T1 + 275 行契约测试）。</strong></li>
+        <li>3. <code>TaskRowView.viewStatus</code> 派生态写进合同为唯一渲染源。<strong>状态：已登记 docs/11 §5.1 组件表（禁读原始 status）。</strong></li>
+        <li>4. <code>/api/focuses</code> 补 <code>openByOwner</code>：<strong>只用于文字描述</strong>，永不作数字徽章；徽章全站单源 = attention 未 ack 橙+蓝。<strong>状态：已实装（T1 投影）。</strong></li>
+        <li>5. readiness 对外只暴露 covered 清单文本（人话），不暴露评估分数。</li>
+        <li>6. <code>focus_artifacts</code> 补 <code>producingTaskId?</code> 与 <code>realizedAt?</code>，产物状态与产出任务闭环可追溯。</li>
+        <li>7. 邮件推送通道（P1）：与「今天」同一 attention 账本；回复只接封闭动作（S0–S2）；S3 永不进邮件；mailbox 是 transport，obligation 账本是真相。</li>
+        <li>8. 待命集读模型：waiting + waitingOnObligationId + dependency 事件 + dueOrTrigger 显式化为 gray zone 同源。</li>
+        <li>9. 跨项目产物需 <code>ProjectRelation / ArtifactReference</code> 防血缘混乱。</li>
+        <li>10. <strong>橙区排序</strong>：ready_for_review > 审批/确认卡 > blocked > blocking 挂账义务 > 其余；呈现层二次排序，daemon 不改。<strong>状态：已回写 docs/11 §3 修订案（80fcdc2），随批次②今天页落地。</strong></li>
+        <li>11. <strong>AI 调研输入视图</strong>（P1 读模型）：材料快照/检索/奠基来源的一等呈现，与记忆四维核验同源——回答「你凭什么这么判断」。</li>
+        <li>12. <strong>期待直改 API = 确认环用户发起侧</strong>：期待四层（方向/验收标准/预期产物/预算）用户直写 + AI 复述影响方生效；时机语义（执行前自由改/执行中变更单/执行后下轮生效）；revision 事件落账。</li>
+        <li>13. <strong>期待读模型与偏航检测</strong>：<code>GET /api/focuses/:id/expectation</code> 四层聚合（direction / acceptance 逐条状态 / artifacts expected→delivered / budget + revision）；新事件类型 <code>expectation_adjusted</code>（before/after/reason/复述 digest 落账）；偏航检测 = 监督线读模型，从执行事实推导「哪些期待有风险」，<strong>不发明置信度数字</strong>（守禁伪精确）。</li>
+      </ul>
+      <h4 style="margin-top:12px">分期标注</h4>
+      <ul><li><span class="stage-tag">P0.5</span> / <span class="stage-tag">P1</span> / <span class="stage-tag">提案</span> 徽章 = 合同已有但 P0 不做、或本提案新增的元素；未标注均在 P0 合同内。</li></ul>
+    </div>
+    <div>
+      <h4>已拍板的口径（2026-08-08 义骁定）</h4>
+      <ul>
+        <li>1. <strong>IA 回写顺序：认可。</strong>采用新 IA 后先回写 docs/11 与 docs/08 §6，canonical 先行再改代码。</li>
+        <li>2. <strong>Telegram / OpenClaw 渠道：先不需要。</strong>Demo 已撤下登记，不做分期承诺。</li>
+        <li>3. <strong>value-report：先不需要。</strong>成本页自报卡已撤下；归属问题留到真要做时再议。</li>
+        <li>4. <strong>tailnet 手机薄版：需要对应。</strong>设置页已加「看看薄版长什么样」预览（只读、≤S2 push 审批、S3 与 edit 永不出现）。</li>
+        <li>5. <strong>Hopper route：需要补充。</strong>已加 HP 详情弹窗（09 §7 投影映射）+ DecisionRequest 裁决回传演示。</li>
+        <li>6. <strong>abandoned：需要区分。</strong>已放弃（主动中止，灰）≠ 已收官（正常走完，绿）；记录页「归档」「放弃」分开，文案不混。</li>
+      </ul>
+      <h4 style="margin-top:12px">判为过时、不进 demo 的</h4>
+      <ul>
+        <li>s2s 引擎、记忆 consolidate、network_fetch、电话升级：合同标 reserved / P1，不做进主路径。</li>
+        <li>就绪四维分数 meter、绑定表：违禁伪精确，永不复活（readiness 只以「跟你确认几点」复述卡呈现）。</li>
+        <li>Dashboard / 审批中心 / 任务看板 / 通知四旧页：被「今天」页替代；审批动作收进审批弹窗（含 S2 改后批准）。</li>
+      </ul>
+    </div>
+  </div>`;
+}
+
+/* ---------- 侧栏 ---------- */
+function renderSidebar(route){
+  const needCount = DB.attention.filter(a=>a.color==='orange' && !state.attnAck[a.id]).length;
+  const spacesHtml = DB.spaces.map(sp=>{
+    const fs = DB.focuses.filter(f=>f.spaceId===sp.id && f.lifecycle!=='archived');
+    if(!fs.length) return '';
+    const col = state.spaceCollapsed[sp.id];
+    const head = `<div class="nav-sec"><button data-space-col="${sp.id}" title="折叠/展开">${icon(col?'chevronRight':'chevronDown',11)} ${esc(sp.title)}</button></div>`;
+    if(col) return head;
+    return head + fs.map(f=>{
+      const need = needBadgeCount(f.id);
+      const hot = need>0 && (f.lifecycle==='active'||f.lifecycle==='captured');
+      const dotColor = f.lifecycle==='active' ? (hot?'var(--color-warning)':'var(--color-success)')
+        : f.lifecycle==='captured' ? 'var(--color-info)'
+        : 'var(--text-faint)';
+      return `<button class="nav-item ${route==='#/focus/'+f.id?'active':''}" data-go="#/focus/${f.id}">
+        <span class="dot" style="background:${dotColor}"></span>
+        <span class="grow">${esc(f.title)}</span>
+        ${hot?`<span class="count-pill" style="background:var(--color-warning)">${need}</span>`:''}
+      </button>`;
+    }).join('');
+  }).join('');
+  $('#sidebar').innerHTML = `
+    <div class="brand"><span class="brand-mark">${icon('zap',13)}</span>SayDo</div>
+    <div class="side-action"><button class="btn btn-primary" style="width:100%;justify-content:center" data-go="#/chat-new">${icon('mic',14)} 开口聊</button></div>
+    <nav class="nav">
+      <button class="nav-item ${route==='#/today'?'active':''}" data-go="#/today">
+        ${icon('inbox',15)}<span class="grow">今天</span>
+        ${needCount?`<span class="count-pill">${needCount}</span>`:''}
+      </button>
+      <button class="nav-item ${route==='#/board'?'active':''}" data-go="#/board">
+        ${icon('grid',15)}<span class="grow">全景看板</span>
+      </button>
+      <div class="nav-sec"><span>正在持续的事</span><button id="btn-new-focus" title="新 Focus">${icon('plus',13)}</button></div>
+      ${spacesHtml}
+      <div class="nav-sec"><span>记录</span></div>
+      <button class="nav-item ${route==='#/memory'?'active':''}" data-go="#/memory">${icon('book',15)}<span class="grow">记忆库</span></button>
+      <button class="nav-item ${route==='#/artifacts'?'active':''}" data-go="#/artifacts">${icon('pkg',15)}<span class="grow">产物库</span></button>
+      <button class="nav-item ${route==='#/cost'?'active':''}" data-go="#/cost">${icon('wallet',15)}<span class="grow">成本</span></button>
+      <button class="nav-item ${route==='#/settings'?'active':''}" data-go="#/settings">${icon('sliders',15)}<span class="grow">设置</span></button>
+    </nav>
+    <div class="side-foot">单用户 · 本机 daemon <span class="mono">127.0.0.1:47100</span></div>`;
+  $('#sidebar').querySelectorAll('[data-space-col]').forEach(el=> el.onclick = ()=>{
+    const sp = el.dataset.spaceCol;
+    state.spaceCollapsed[sp] = !state.spaceCollapsed[sp];
+    rerenderMain();
+  });
+  $('#sidebar').querySelectorAll('[data-go]').forEach(el=> el.onclick = ()=>{
+    const target = el.dataset.go;
+    if(target === currentRoute && target === '#/chat-new'){
+      state.liveTurns['chat-new'] = []; rerenderMain(); toast('新对话已清空重开','message');
+      return;
+    }
+    if(target === currentRoute){ rerenderMain(); return; }
+    location.hash = target;
+  });
+  $('#btn-new-focus').onclick = ()=>openNewFocusModal();
+}
+
+/* ---------- 顶栏 ---------- */
+function renderTopbar(){
+  const unread = DB.notifications.filter(n=>!n.read).length;
+  $('#topbar').innerHTML = `
+    <button class="voice-pill" data-go="#/focus/foc_saydo" title="语音会话进行中，点击跳回">
+      <span class="dot breathing" style="background:var(--active-ink)"></span>
+      会话中 · 给 SayDo 重做前端
+    </button>
+    <span class="topbar-spacer"></span>
+    <button class="icon-btn" id="btn-bell" title="通知与免打扰">${icon('bell',16)}${unread?'<span class="bell-dot"></span>':''}</button>
+    <button class="icon-btn" id="btn-density" title="紧凑密度">${icon('rows',16)}</button>
+    <button class="icon-btn" id="btn-theme" title="切换主题">${icon(state.theme==='light'?'moon':'sun',16)}</button>
+    ${state.bellOpen?`<div class="card dropdown" id="bell-dd">
+      <div class="xs muted" style="padding:4px 8px 8px">回叫与通知（状态词纪律：只说收到/等你验收/已交付）</div>
+      ${DB.notifications.map(n=>`
+        <div class="dropdown-item" data-nogo="${n.go}" style="display:flex;gap:10px;cursor:pointer;${n.read?'opacity:.55':''}">
+          <span class="dot" style="background:${n.read?'var(--text-faint)':'var(--color-warning)'};margin-top:8px"></span>
+          <div style="flex:1"><div>${esc(n.title)}</div><div class="xs faint mono">${fmtTime(n.at)}</div></div>
+        </div>`).join('')}
+      <div class="divider"></div>
+      <div class="dropdown-item" style="display:flex;gap:10px;align-items:center">
+        ${icon(state.dnd?'bellOff':'bell',14)}
+        <div style="flex:1"><div>免打扰</div><div class="xs faint">22:00 – 08:00 不语音回叫，只落通知</div></div>
+        <button class="btn ${state.dnd?'btn-primary':''}" id="btn-dnd">${state.dnd?'开着，关上':'打开'}</button>
+      </div>
+      <div class="dropdown-item" style="display:flex;gap:10px;align-items:center">
+        ${icon('mail',14)}
+        <div style="flex:1"><div>邮件推送 <span class="stage-tag">P1</span> <span class="stage-tag">提案</span></div><div class="xs faint">需要手动处理的事发到你邮箱，回复即可处理低风险事项</div></div>
+        <button class="btn" id="btn-email-preview">预览</button>
+      </div>
+      <div class="xs faint" style="padding:8px">升级链：语音回叫 → 桌面通知 → 邮件 <span class="stage-tag">P1</span> → 电话 <span class="stage-tag">P1</span> · 与「今天」页同一账本</div>
+    </div>`:''}`;
+  $('#btn-theme').onclick = ()=>{ state.theme = state.theme==='light'?'dark':'light';
+    document.documentElement.dataset.theme = state.theme; renderTopbar(); };
+  $('#btn-density').onclick = ()=>{
+    const on = document.documentElement.dataset.density==='compact';
+    if(on) delete document.documentElement.dataset.density; else document.documentElement.dataset.density='compact';
+    toast(on?'舒适密度':'紧凑密度（行高压缩，字号不变）','rows');
+  };
+  $('#btn-bell').onclick = (e)=>{ e.stopPropagation(); state.bellOpen = !state.bellOpen; renderTopbar(); };
+  const dnd = $('#btn-dnd'); if(dnd) dnd.onclick = (e)=>{ e.stopPropagation(); state.dnd = !state.dnd; renderTopbar(); };
+  const ep = $('#btn-email-preview'); if(ep) ep.onclick = (e)=>{ e.stopPropagation(); openEmailPreview(); };
+  $('#topbar').querySelectorAll('[data-go]').forEach(el=> el.onclick = ()=>{ state.bellOpen=false; renderTopbar(); location.hash = el.dataset.go; });
+  document.querySelectorAll('[data-nogo]').forEach(el=> el.onclick = ()=>{
+    const n = DB.notifications.find(x=>x.go===el.dataset.nogo); if(n) n.read = true;
+    state.bellOpen = false; renderTopbar(); location.hash = el.dataset.nogo;
+  });
+}
+
+/* ---------- 今天页 ---------- */
+function attnItem(a){
+  const barCls = {orange:'bar-orange',blue:'bar-blue',green:'bar-green',gray:'bar-gray'}[a.color];
+  const calm = a.color==='green'||a.color==='gray';
+  const needsBadge = a.needs ? `<span class="tag">${NEEDS_LABEL[a.needs]}</span>` : '';
+  return `<button class="attn-item ${calm?'calm':''}" data-attn="${a.id}">
+    <span class="attn-bar ${barCls}"></span>
+    <div class="attn-body">
+      <div class="attn-title">${esc(a.title)}</div>
+      <div class="attn-meta">
+        <span class="xs faint">${icon('layers',11)} ${esc(a.focusTitle)}</span>
+        ${needsBadge}
+        <span class="xs faint mono">${fmtTime(a.updatedAt)}</span>
+      </div>
+    </div>
+    ${calm?`<span class="attn-dismiss" data-ack="${a.id}" title="知道了">${icon('check',12)}</span>`:icon('chevronRight',14)}
+  </button>`;
+}
+/* 橙区排序 = canonical docs/11 §3 修订案（2026-08-08）：
+   ready_for_review > 审批/确认卡 > blocked > blocking 挂账义务 > 其余（呈现层二次排序，daemon 不改） */
+function orangeRank(a){
+  const t = a.refId ? taskById(a.refId) : null;
+  if(t && t.viewStatus==='ready_for_review') return 0;
+  if(a.sourceKind==='confirmation'||a.sourceKind==='approval') return 1;
+  if(t && ['blocked','paused_step_boundary','waiting_confirmation','merge_failed','failed'].includes(t.viewStatus)) return 2;
+  if(a.sourceKind==='obligation' && obById(a.refId) && obById(a.refId).blocking) return 3;
+  return 4;
+}
+const ORANGE_CAP = 5;
+function renderToday(){
+  const vis = DB.attention.filter(a=>!state.attnAck[a.id]);
+  const orangeAll = vis.filter(a=>a.color==='orange')
+    .sort((x,y)=> orangeRank(x)-orangeRank(y) || new Date(y.updatedAt)-new Date(x.updatedAt));
+  const orange = state.orangeExpanded ? orangeAll : orangeAll.slice(0, ORANGE_CAP);
+  const orangeMore = orangeAll.length - orange.length;
+  const blue = vis.filter(a=>a.color==='blue');
+  const green = vis.filter(a=>a.color==='green');
+  const gray = vis.filter(a=>a.color==='gray');
+  return `<div class="page">
+    <div style="display:flex;align-items:baseline;gap:var(--space-3);margin-bottom:var(--space-4)">
+      <span class="h-page">今天</span>
+      <span class="muted small">${orangeAll.length} 件需要你${blue.length?` · ${blue.length} 件等你的动作`:''} · ${green.length} 件我在做</span>
+    </div>
+    <div class="today-grid">
+      <section>
+        <div class="h-sec" style="margin-bottom:var(--space-3);color:var(--color-warning)">${icon('flag',14)} 需要你</div>
+        ${orange.map(attnItem).join('') || '<div class="empty">没有需要你的事</div>'}
+        ${orangeMore>0?`<button class="board-more" data-orange-more="1">还有 ${orangeMore} 条（按 验收 > 审批确认 > 卡住 > 挂账义务 排）</button>`:''}
+        ${state.orangeExpanded&&orangeAll.length>ORANGE_CAP?`<button class="board-more" data-orange-less="1">收起</button>`:''}
+        ${blue.length?`<div class="h-sec" style="margin:var(--space-4) 0 var(--space-3);color:var(--active-ink)">${icon('user',14)} 等你的动作</div>${blue.map(attnItem).join('')}`:''}
+      </section>
+      <section>
+        <div class="h-sec" style="margin-bottom:var(--space-3);color:var(--color-success)">${icon('loader',14)} 我在做，你不用管</div>
+        ${green.map(attnItem).join('') || '<div class="empty">手上暂时没有活</div>'}
+        <div class="h-sec" style="margin:var(--space-4) 0 var(--space-3);color:var(--text-muted)">${icon('hourglass',14)} 等外部（我在待命，到了会叫你）</div>
+        ${gray.map(attnItem).join('') || '<div class="empty">没有等外部的事</div>'}
+        <div class="card card-pad" style="margin-top:var(--space-4)">
+          <div class="h-sec" style="margin-bottom:var(--space-3)">继续聊</div>
+          <div class="focus-quick">
+            ${(()=>{
+              const fs = DB.focuses.filter(f=>['active','captured','dormant'].includes(f.lifecycle))
+                .sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt));
+              const shown = state.quickExpanded ? fs : fs.slice(0,5);
+              return shown.map(f=>{
+                const ob = openByOwner(f.id);
+                const joined = [ob.human?`你 ${ob.human} 件`:'', ob.agent?`我 ${ob.agent} 件`:'', ob.external?`等外部 ${ob.external} 件`:''].filter(Boolean).join(' · ') || '没有未结的事';
+                return `<button class="focus-quick-item" data-go="#/focus/${f.id}">
+                  <span class="dot" style="background:${ob.human?'var(--color-warning)':f.lifecycle==='dormant'?'var(--text-faint)':'var(--color-success)'}"></span>
+                  <span style="flex:1;min-width:0"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.title)}</span>
+                  <span class="xs faint">${joined}</span></span>
+                  ${icon('chevronRight',13)}
+                </button>`;
+              }).join('') + (fs.length>5 ? `<button class="board-more" data-quick-more="1">${state.quickExpanded?'收起':'还有 '+(fs.length-5)+' 件（最近优先）'}</button>` : '');
+            })()}
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>`;
+}
+
+/* ---------- 全景看板（泳道 = Focus） ---------- */
+function boardColumnOf(t){
+  if(['queued','confirmed'].includes(t.viewStatus)) return 0;
+  if(['running','merging','superseded'].includes(t.viewStatus) && t.viewStatus!=='superseded') return 1;
+  if(['paused_step_boundary','blocked','waiting_confirmation','ready_for_review','review_approved_waiting_merge','merge_failed','failed','parked'].includes(t.viewStatus)) return 2;
+  return 3;
+}
+function boardCard(t){
+  const proj = projById(t.projectRef);
+  return `<button class="board-card" data-board-task="${t.id}">
+    <div class="t">${esc(t.title)}</div>
+    <div class="meta">${statusChip(t.viewStatus, t.parkedDeadline)} ${riskBadge(t.riskLevel)}</div>
+    <div class="meta" style="margin-top:4px">${proj?`<span class="proj-badge">${icon('folder',10)} ${esc(proj.title)}</span>`:''}<span class="tag mono">${t.route==='hopper'?'HP':'T1'}</span></div>
+  </button>`;
+}
+function obCard(o){
+  return `<button class="board-card" data-board-ob="${o.id}">
+    <div class="t">${esc(o.title)}</div>
+    <div class="meta"><span class="chip st-warning">${icon('user',11)} ${NEEDS_LABEL[o.needs]||'等你'}</span></div>
+  </button>`;
+}
+function renderBoard(){
+  const cols = ['队列 / 收到','进行中','需要你','已收尾'];
+  const focuses = DB.focuses.filter(f=>['active','captured','dormant'].includes(f.lifecycle));
+  const CELL_CAP = 4;
+  const cellHtml = (htmls, key)=>{
+    const expanded = state.boardExpand[key];
+    const shown = expanded ? htmls : htmls.slice(0, CELL_CAP);
+    const more = htmls.length - shown.length;
+    return shown.join('') + (more>0 ? `<button class="board-more" data-bexpand="${key}">+ ${more} 张，展开</button>` : '');
+  };
+  return `<div class="page" style="max-width:1360px">
+    <div style="display:flex;align-items:baseline;gap:var(--space-3);margin-bottom:var(--space-4)">
+      <span class="h-page">全景看板</span>
+      <span class="muted small">按 Focus 分组，多条支线拆子泳道 · 你只需要看「需要你」那一列 · 格子多了会折叠</span>
+    </div>
+    <div class="board">
+      <div class="board-cols-header">
+        <div></div>${cols.map((c,i)=>`<div class="board-head" style="${i===2?'color:var(--color-warning);font-weight:600':''}">${c}</div>`).join('')}
+      </div>
+      ${focuses.map(f=>{
+        const fl = (f.lanes && f.lanes.length ? f.lanes : [{id:'lan_main', title:'主线'}]).filter(l=>!l.retiredAt);
+        const collapsed = state.boardCollapsed[f.id] ?? (f.lifecycle==='dormant');
+        const myTasks = DB.tasks.filter(t=>t.focusId===f.id);
+        const myObs = openObs(f.id);
+        const needCount = needBadgeCount(f.id);
+        return `<div class="lane-group">
+          <div class="lane-group-head" data-bcollapse="${f.id}">
+            <strong>${esc(f.title)}</strong>
+            <span class="tag">${{active:'进行中',captured:'刚记下',dormant:'休眠中'}[f.lifecycle]}</span>
+            ${fl.length>1?`<span class="xs" style="color:var(--active-ink)">${icon('layers',11)} ${fl.length} 条支线</span>`:''}
+            <span class="topbar-spacer"></span>
+            ${needCount?`<span class="count-pill" style="background:var(--color-warning)">${needCount}</span>`:'<span class="xs faint">没有需要你的</span>'}
+            ${icon(collapsed?'chevronRight':'chevronDown',14)}
+          </div>
+          ${collapsed?'':fl.map(lane=>{
+            const ts = myTasks.filter(t=>(t.laneId||'lan_main')===lane.id);
+            const obs = myObs.filter(o=>o.owner==='human' && (o.laneId||'lan_main')===lane.id);
+            return `<div class="lane-subrow">
+              <div class="lane-subtitle">${fl.length>1?icon('layers',10):''} ${esc(lane.title)}</div>
+              ${[0,1,2,3].map(ci=>{
+                const cards = [...ts.filter(t=>boardColumnOf(t)===ci).map(boardCard), ...(ci===2?obs.map(obCard):[])];
+                return `<div class="lane-cell">${cellHtml(cards, f.id+':'+lane.id+':'+ci)}</div>`;
+              }).join('')}
+            </div>`;
+          }).join('')}
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="xs faint" style="margin-top:var(--space-3)">「已收尾」含已交付 / 停了 / 已被替代 · HP = Hopper 执行域投影 · 休眠的事默认收起，点组头展开</div>
+  </div>`;
+}
+</script>
+
+<script>
+/* ---------- Focus 对话页 ---------- */
+function turnHtml(t){
+  const side = t.speaker==='user'?'turn-user':'turn-ai';
+  const who = t.speaker==='user'?'你':'SayDo';
+  return `<div class="turn ${side} ${t.heard===false?'unheard':''}">
+    ${esc(t.text)}
+    <div class="turn-meta"><span>${who} · ${fmtTime(t.ts)}</span>${t.heard===false?'<span>被打断 · 未送达</span>':''}</div>
+  </div>`;
+}
+function confirmCardHtml(receiptId){
+  const r = DB.approvals.find(a=>a.id===receiptId);
+  const resolved = state.confirmResolved[receiptId];
+  const left = state.confirmLeft[receiptId];
+  return `<div class="card-item confirm-card" id="tl-conf-${receiptId}" data-confirm="${receiptId}">
+    <div style="display:flex;gap:var(--space-2);align-items:center">
+      ${icon('message',15)}<strong>跟你确认几点</strong>
+      <span class="tag">${riskBadge('S0')} 信息确认 · 不是授权</span>
+      <span class="topbar-spacer"></span>
+      ${resolved?'':`<span class="countdown" data-countdown="${receiptId}">${left??'--:--'}</span>`}
+    </div>
+    <div class="confirm-keys">${r.keys.map(k=>`<div class="confirm-key">${icon('check',12,'ac-pass')}<span>${esc(k)}</span></div>`).join('')}</div>
+    ${resolved
+      ? `<div class="xs ${resolved==='accepted'?'ac-pass':'ac-fail'}">${resolved==='accepted'?'已记住（你确认过，进 trusted）':resolved==='rejected'?'好的，不记。':'超时没回，这条不记（过期即丢，不假装已采纳）· 想让我下次再确认就说一声'}</div>`
+      : `<div style="display:flex;gap:var(--space-2);align-items:center">
+          <button class="btn btn-primary" data-confirm-act="accept" data-rid="${receiptId}">记</button>
+          <button class="btn" data-confirm-act="reject" data-rid="${receiptId}">不用记</button>
+          <span class="xs faint">倒计时结束这条不记（过期即丢）· 你也可以直接开口回答</span>
+        </div>`}
+  </div>`;
+}
+function entityHtml(e){
+  return `<div class="entity-card card" ${e.artifactRef?`id="tl-art-${e.artifactRef}" data-art="${e.artifactRef}"`:''} style="border-left-color:${e.color==='success'?'var(--color-success)':'var(--active-ink)'}">
+    <div style="display:flex;gap:var(--space-2);align-items:center">
+      ${icon('sparkles',14)}<strong class="small">${esc(e.title)}</strong>
+      <span class="xs faint">${esc(e.sub)} · ${fmtTime(e.ts)}</span>
+    </div>
+  </div>`;
+}
+function progressHtml(){
+  const exp = EXPECTATIONS.foc_saydo;
+  const artPct = Math.round(exp.artifacts.delivered/exp.artifacts.expected*100);
+  const budPct = Math.round(exp.budget.spent/exp.budget.max*100);
+  const passCount = exp.acceptance.filter(a=>a.state==='pass_verify').length;
+  return `<div class="card-item progress-card">
+    <div style="display:flex;gap:var(--space-2);align-items:center">${icon('flag',14)}<strong>期待 vs 现实</strong><span class="xs faint">我主动对账，你不用找 · 期待 r${exp.revision}</span></div>
+    <div class="progress-row"><span style="flex:none">验收标准</span><div class="progress-track"><i style="width:${Math.round(passCount/exp.acceptance.length*100)}%"></i></div><span class="mono xs faint">${passCount}/${exp.acceptance.length} 过</span></div>
+    <div class="progress-row"><span style="flex:none">预期产物</span><div class="progress-track"><i style="width:${artPct}%"></i></div><span class="mono xs faint">${exp.artifacts.delivered}/${exp.artifacts.expected} 已产出</span></div>
+    <div class="progress-row"><span style="flex:none">预算　　</span><div class="progress-track"><i style="width:${budPct}%;background:${budPct>=80?'var(--color-warning)':'var(--active-ink)'}"></i></div><span class="mono xs faint">¥${exp.budget.spent} / ¥${exp.budget.max}</span></div>
+    <div class="small" style="margin-top:8px">下一步在<strong>你</strong>手里：demo 看一遍，拍板是否应用到 console（右栏「安排」第一条）。期待有不对的地方，右栏「期待」组直接改，我复述影响后生效。</div>
+  </div>`;
+}
+function standbyHtml(){
+  const woken = state.tripWoken;
+  return `<div class="card-item standby-card">
+    <div style="display:flex;gap:var(--space-2);align-items:center">${icon('hourglass',14)}<strong>我在待命</strong><span class="xs faint">sparse agent：没有活就 standby，叫醒条件写在账上</span></div>
+    <div class="small" style="margin-top:6px">
+      ${woken
+        ? `<div class="ac-pass" style="display:flex;gap:6px;align-items:center">${icon('check',12)} 酒店回复了：海景房可订。行程草案我开始排（dependency_woken），排好叫你。</div>`
+        : `<div>在等：酒店确认海景大床房。<span class="muted">叫醒条件：酒店回复，或 8/10 还没消息我提醒你换一家。</span></div>
+           <div style="margin-top:4px">酒店一定，「排 5 天行程草案」自动醒（等它的前置）。</div>
+           <div style="margin-top:var(--space-3)"><button class="btn btn-ink-outline" id="btn-wake-demo">${icon('zap',13)} 模拟：酒店回复了</button></div>`}
+    </div>
+  </div>`;
+}
+function driftHtml(){
+  const resolved = state.driftResolved;
+  if(resolved){
+    const copy = {
+      fix:['纠实施','已换字体方案重跑（attempt 3），期待不变。跑完叫你验收。'],
+      adjust:['调期待','期待已改：这期不要图表（r2 → r3）。我按新期待做，不按旧的。'],
+      watch:['保持观察','好，这条期待先挂着，8/12 还没解开我来提醒你。']
+    }[resolved];
+    return `<div class="card-item" style="border-color:var(--color-success)">
+      <div style="display:flex;gap:var(--space-2);align-items:center">${icon('check',14,'ac-pass')}<strong>偏差已处理 · ${copy[0]}</strong></div>
+      <div class="small" style="margin-top:6px">${copy[1]}</div>
+    </div>`;
+  }
+  return `<div class="card-item" style="border-color:var(--color-warning)">
+    <div style="display:flex;gap:var(--space-2);align-items:center">${icon('alert',15)}<strong>期待偏差提醒</strong><span class="tag">监督线主动对齐</span></div>
+    <div class="small" style="margin-top:6px">「图表周报（趋势图三张）」这条期待现在有偏差：脚本两次失败（matplotlib 中文字体缺失），按当前方案这期出不来。</div>
+    <div class="xs faint" style="margin-top:6px">三条路都对，取决于是<strong>现实偏了</strong>还是<strong>期待偏了</strong>——纠实施是让实施线往期待靠，调期待是让期待往合理靠：</div>
+    <div class="modal-row">
+      <button class="btn btn-ink-outline" data-drift="fix">纠实施：换字体方案重跑</button>
+      <button class="btn btn-primary" data-drift="adjust">调期待：这期先不要图表</button>
+      <button class="btn" data-drift="watch">保持观察到 8/12</button>
+    </div>
+  </div>`;
+}
+function interviewHtml(){
+  const opts = ['心血管和血压相关','代谢（血糖 / 血脂）','肿瘤标志物','都给我讲讲'];
+  const picked = state.interviewPicked;
+  return `<div class="card-item">
+    <div style="display:flex;gap:var(--space-2);align-items:center">${icon('message',15)}<strong>开工前先问清一件事</strong><span class="xs faint">采访式 · 一次一问 · 选择题优先</span></div>
+    <div class="small" style="margin-top:6px">报告里你最想先弄懂哪一块？</div>
+    ${picked
+      ? `<div class="xs ac-pass" style="margin-top:var(--space-3)">${icon('check',12)} 你选了「${esc(picked)}」，等报告到了我按这个顺序讲</div>`
+      : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-3)">
+          ${opts.map((o,i)=>`<button class="mode-card" data-interview="${o}" style="padding:10px 12px">
+            ${i===3?'<span class="reco-badge">我建议</span>':''}
+            <div class="small">${o}</div></button>`).join('')}
+        </div>
+        <div class="xs faint" style="margin-top:6px">选项最多念 3 个 · 你也可以直接开口说，不点</div>`}
+  </div>`;
+}
+function pkgHtml(){
+  const p = DB.pkg;
+  const approved = state.pkgApproved;
+  return `<div class="card-item" id="pkg-card">
+    <div style="display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap">
+      ${icon('pkg',15)}<strong>决策包 · 给你拍板</strong>
+      <span class="tag mono">r${p.revision}</span>
+      ${approved?`<span class="chip st-success">${icon('check',12)}已批准</span>`:`<span class="chip st-warning">${icon('alert',12)}待拍板 · ${p.expiresInH} 小时内有效</span>`}
+    </div>
+    <div class="pkg-section"><div class="h-sec">做出来什么样</div>
+      <div class="small">${esc(p.outcomePreview)}</div></div>
+    <div class="pkg-section"><div class="h-sec">做 / 不做</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+        <ul class="pkg-list">${p.inScope.map(s=>`<li>${icon('check',12,'ac-pass')}<span>${esc(s)}</span></li>`).join('')}</ul>
+        <ul class="pkg-list">${p.outOfScope.map(s=>`<li>${icon('x',12,'ac-fail')}<span>${esc(s)}</span></li>`).join('')}</ul>
+      </div></div>
+    <div class="pkg-section"><div class="h-sec">计划（每步标了谁做）</div>
+      ${p.plan.map(s=>`<div class="plan-step"><span class="plan-seq">${s.seq}</span>
+        <span class="owner-badge ${s.owner==='ai'?'owner-ai':'owner-human'}">${s.owner==='ai'?'我来做':'需要你'}</span>
+        <span>${esc(s.step)}</span></div>`).join('')}</div>
+    <div class="pkg-section"><div class="h-sec">验收标准</div>
+      <ul class="pkg-list">${p.acceptance.map(s=>`<li>${icon('flag',12)}<span>${esc(s)}</span></li>`).join('')}</ul></div>
+    <div class="pkg-section"><div class="h-sec">成本与风险</div>
+      <div class="small">预计 <span class="mono">¥${p.cost.expected.value}</span>，熔断上限 <span class="mono">¥${p.cost.max.value}</span>（到顶必停）</div>
+      <ul class="pkg-list" style="margin-top:6px">${p.risks.map(s=>`<li>${icon('alert',12,'ac-unknown')}<span>${esc(s)}</span></li>`).join('')}</ul></div>
+    <div class="pkg-section"><div class="h-sec">预授权请求（所闻即所签）<span class="stage-tag">S2</span></div>
+      <ul class="pkg-list">${p.preauthorizedEffects.map(e=>`<li>${icon('shield',12,'ac-unknown')}<span>「${esc(e.spokenForm)}」 · ${e.ttlHours} 小时内有效</span></li>`).join('')}</ul>
+      <div class="xs faint" style="margin-top:4px">预授权随包签署；超过 3 项会强制屏幕同显。你可以只批准包、不签预授权。</div></div>
+    ${approved?'':`
+    <div class="pkg-section"><div class="h-sec">怎么跑？</div>
+      <div class="mode-grid">
+        <button class="mode-card ${state.pkgMode==='step'?'selected':''}" data-mode="step">
+          <span class="reco-badge">我建议</span>
+          <div style="font-weight:500">每步问你</div>
+          <div class="xs muted" style="margin-top:4px">每到一个计划步边界就停下来，你确认了再走。第一次合作建议这样。</div>
+        </button>
+        <button class="mode-card ${state.pkgMode==='direct'?'selected':''}" data-mode="direct">
+          <div style="font-weight:500">一口气跑完 <span class="stage-tag">P0.5</span></div>
+          <div class="xs muted" style="margin-top:4px">中间不打扰你，跑完直接等你验收。熔断条件不变。</div>
+        </button>
+      </div>
+      <div style="display:flex;gap:var(--space-2);margin-top:var(--space-4);align-items:center;flex-wrap:wrap">
+        <button class="btn btn-primary" id="pkg-approve" ${state.pkgMode?'':'disabled'}>拍板，开始</button>
+        <button class="btn" id="pkg-expect">改期待</button>
+        <button class="btn" id="pkg-revise">还要改改</button>
+        <span class="xs faint">不置可否就按「每步问你」处理 · 二选一没有默认选中</span>
+      </div></div>`}
+  </div>`;
+}
+function taskCardHtml(t, inModal){
+  const chips = `${statusChip(t.viewStatus, t.parkedDeadline)} ${riskBadge(t.riskLevel)}`;
+  const proj = projById(t.projectRef);
+  const isHopper = t.route==='hopper';
+  const budget = isHopper
+    ? `Hopper 执行域 · 熔断 ¥${t.budget.maxCost} · 已花 ${t.spent.known?'¥'+t.spent.value:'还没有确切数字'}`
+    : `已跑 ${t.elapsedMin} 分钟 / 上限 ${t.budget.walltimeActiveMin} 分钟 · 已花 ${t.spent.known?'¥'+t.spent.value:'还没有确切数字'} / 熔断 ¥${t.budget.maxCost}`;
+  let actions = '';
+  const vs = t.viewStatus;
+  if(isHopper) actions = `<span class="xs muted">执行状态归 Hopper 账本，这里只投影 · 细节在「记录」与 Hopper Console（工程排障面） <span class="stage-tag">P0.5</span></span>`;
+  else if(vs==='ready_for_review') actions = `<button class="btn btn-primary" data-go="#/review/${t.id}">${icon('flag',13)} 去验收</button>`;
+  else if(vs==='blocked'){
+    const ans = state.blockedAnswer[t.id];
+    actions = ans
+      ? `<span class="xs ac-pass">${icon('check',12)} 已把你的回答送过去，继续跑</span>`
+      : `<span style="display:flex;gap:var(--space-2);flex:1"><input id="ans-${t.id}" placeholder='直接回答，比如「按商业受众写」' style="flex:1;padding:7px 10px;border:1px solid var(--glass-border);border-radius:var(--radius-sm);background:var(--control-glass)">
+        <button class="btn btn-ink-outline" data-answer="${t.id}">回答</button></span>`;
+  }
+  else if(vs==='paused_step_boundary'){
+    actions = state.stepConfirmed[t.id]
+      ? `<span class="xs ac-pass">${icon('check',12)} 已确认，继续走第 4 步</span>`
+      : `<button class="btn btn-primary" data-stepok="${t.id}">${icon('check',13)} 这一步行，继续</button>
+         <button class="btn" data-stepno="${t.id}">这步不对，说两句</button>`;
+  }
+  else if(vs==='waiting_confirmation'){
+    actions = state.billingCut
+      ? `<span class="xs ac-pass">${icon('check',12)} 已切到 API 计费（月预算内），继续跑</span>`
+      : `<button class="btn btn-primary" data-billing="1">${icon('check',13)} 拍板：切到 API 计费</button>
+         <button class="btn" data-billing="0">不切，停在这</button>`;
+  }
+  else if(vs==='review_approved_waiting_merge'){
+    actions = `<button class="btn-s3" data-s3="${t.id}">${icon('fingerprint',15)} 用 Touch ID 批准合并</button>
+      <span class="xs faint">S3 不可逆 · 仅这台电脑</span>`;
+  }
+  else if(vs==='failed'){
+    actions = state.retried[t.id]
+      ? `<span class="xs ac-pass">${icon('check',12)} 已重派，重过全部门禁</span>`
+      : `<button class="btn btn-ink-outline" data-retry="${t.id}">${icon('history',13)} 重派（重过门禁）</button>
+         <button class="btn" data-gofocus="${t.focusId}">聊聊怎么修</button>`;
+  }
+  else if(vs==='merge_failed'){
+    actions = `<button class="btn btn-ink-outline" data-mconflict="${t.id}">看冲突</button>
+      <button class="btn" data-retry="${t.id}">我手改了，重新合并</button>`;
+  }
+  else if(vs==='running') actions = `<span class="xs muted">跑到步边界或出事我会叫你</span>`;
+  else if(vs==='merging') actions = `<span class="xs muted">合并进行中，不用你</span>`;
+  else if(vs==='task_done') actions = `<span class="xs muted">已交付并合并 · <a data-goreview="${t.id}">回看证据</a></span>`;
+  else if(vs==='superseded') actions = `<span class="xs muted">被 v2 替代，账还留着</span>`;
+  else if(vs==='cancel_settled') actions = `<span class="xs muted">你叫停的，这轮作废 · 可以同卡重开</span>`;
+  else if(vs==='queued'||vs==='confirmed') actions = `<span class="xs muted">排在队列里，到点我开工</span>`;
+  else if(vs==='parked') actions = `<span class="xs muted">停靠等你，${t.parkedDeadline.slice(5,10)} 前不回我就按老口径继续</span>
+    <button class="btn btn-ink-outline" data-gofocus="${t.focusId}">去回答</button>`;
+  return `<div class="card-item" id="tl-task-${t.id}" data-task="${t.id}">
+    <div style="display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap">
+      ${icon('zap',14)}<strong>${esc(t.title)}</strong>${chips}
+      <span class="tag mono">${isHopper?'HP':'T1'}</span>
+      ${proj?`<span class="proj-badge">${icon('folder',10)} ${esc(proj.title)}</span>`:''}
+      <span class="xs faint mono">第 ${t.attempt} 次尝试</span>
+    </div>
+    <div class="small muted" style="margin-top:6px">${esc(t.lastEvent)}</div>
+    <div class="xs faint mono" style="margin-top:4px">${budget}</div>
+    <div style="display:flex;gap:var(--space-2);margin-top:var(--space-3);align-items:center;flex-wrap:wrap">${actions}</div>
+    ${inModal?`<div style="margin-top:var(--space-3)"><button class="btn" data-gofocus="${t.focusId}">${icon('layers',13)} 打开所属 Focus</button></div>`:''}
+  </div>`;
+}
+
+/* ---------- 右栏实体列表 ---------- */
+function railItemObligation(o){
+  const isHuman = o.owner==='human';
+  const statusTag = o.status==='waiting' ? `<span class="sub">等 ${esc(o.waitingOn||'外部')} · ${esc(o.dueOrTrigger||'')}</span>`
+    : o.status==='deferred' ? `<span class="sub">已推迟：${esc(o.deferReason||'')}</span>`
+    : o.status==='resolved' ? `<span class="sub">已了结</span>` : '';
+  return `<button class="rail-item" data-ob="${o.id}">
+    ${icon(isHuman?'user':o.owner==='agent'?'zap':'external',12)}
+    <span class="t">${esc(o.title)}
+      <span class="sub">${isHuman&&o.needs?NEEDS_LABEL[o.needs]+' · ':''}${OB_STATUS_LABEL[o.status]}</span>
+      ${statusTag}
+    </span>
+  </button>`;
+}
+function railItemTask(t){
+  const extra = t.attempt>1 ? `第 ${t.attempt} 次尝试` : (t.route==='hopper'?'Hopper 执行域':'');
+  return `<button class="rail-item" data-rail-task="${t.id}">
+    ${icon('zap',12)}
+    <span class="t">${esc(t.title)}${extra?`<span class="sub">${extra}</span>`:''}</span>
+    ${statusChip(t.viewStatus, t.parkedDeadline)}
+  </button>`;
+}
+function artStatusBadge(a){
+  if(a.superseded) return `<span class="art-status art-superseded">已被替代</span>`;
+  if(a.role==='deliverable') return `<span class="art-status art-deliverable">已产出</span>`;
+  if(a.role==='expected'){
+    const isInputMissing = a.obRef && obById(a.obRef) && obById(a.obRef).owner==='human';
+    return `<span class="art-status art-expected">${isInputMissing?'缺料，等你':'待产出'}</span>`;
+  }
+  return `<span class="art-status art-reference">参考</span>`;
+}
+function railExpectHtml(f){
+  const exp = EXPECTATIONS[f.id]; if(!exp) return '';
+  const riskCount = exp.acceptance.filter(a=>a.state==='at_risk').length;
+  const artPct = Math.round(exp.artifacts.delivered/exp.artifacts.expected*100);
+  const budgetPct = Math.round(exp.budget.spent/exp.budget.max*100);
+  return `<div class="card rail-sec" style="${riskCount?'border-color:var(--color-warning)':''}">
+    <div class="h-rail">${icon('flag',13)} 期待 <span class="n">r${exp.revision}</span>
+      ${riskCount?`<span class="chip st-warning">${icon('alert',11)} ${riskCount} 处偏差</span>`:`<span class="chip st-muted">对齐中</span>`}
+    </div>
+    <button class="rail-item" data-exp-edit="direction" data-fid="${f.id}">
+      ${icon('arrowRight',12)}<span class="t">方向：${esc(exp.direction)}<span class="sub">点我可改 · 执行前自由改</span></span>
+    </button>
+    ${exp.acceptance.map((a,i)=>{
+      const st = EXP_STATE[a.state];
+      return `<button class="rail-item" data-exp-edit="acceptance" data-fid="${f.id}" data-idx="${i}">
+        <span class="${st.cls}" style="flex:none;margin-top:2px">${icon(st.ic,12)}</span>
+        <span class="t">${esc(a.text)}${a.note?`<span class="sub" style="color:var(--color-error)">${esc(a.note)}</span>`:''}</span>
+      </button>`;
+    }).join('')}
+    <button class="rail-item" data-exp-edit="artifacts" data-fid="${f.id}">
+      ${icon('pkg',12)}<span class="t">预期产物 ${exp.artifacts.delivered}/${exp.artifacts.expected} 已产出
+        <span class="progress-track" style="margin-top:4px"><i style="width:${artPct}%"></i></span></span>
+    </button>
+    <button class="rail-item" data-exp-edit="budget" data-fid="${f.id}">
+      ${icon('wallet',12)}<span class="t">预算 ¥${exp.budget.spent} / 熔断 ¥${exp.budget.max}
+        <span class="progress-track" style="margin-top:4px"><i style="width:${budgetPct}%;background:${budgetPct>=80?'var(--color-warning)':'var(--active-ink)'}"></i></span></span>
+    </button>
+  </div>`;
+}
+function railHtml(f){
+  const obsAll = DB.obligations.filter(o=>o.focusId===f.id);
+  const human = obsAll.filter(o=>o.owner==='human' && ['open','blocked'].includes(o.status));
+  const agent = obsAll.filter(o=>o.owner==='agent' && ['open','in_progress'].includes(o.status));
+  const external = obsAll.filter(o=>o.owner==='external' && ['waiting','deferred'].includes(o.status));
+  const agentWaiting = obsAll.filter(o=>o.owner==='agent' && o.status==='waiting');
+  const doneObs = obsAll.filter(o=>['resolved','superseded'].includes(o.status));
+  const myTasks = DB.tasks.filter(t=>t.focusId===f.id && ['running','queued','confirmed','paused_step_boundary','waiting_confirmation','merging'].includes(t.viewStatus));
+  const arts = DB.artifacts.filter(a=>a.focusId===f.id);
+  const mems = DB.memory.filter(x=>x.focusId===f.id && x.trust!=='candidate').slice(0,3);
+  const projects = (f.projectRefs||[]).map(projById).filter(Boolean);
+  const sec = (title, ic, n, body)=>`<div class="card rail-sec"><div class="h-rail">${icon(ic,13)} ${title} <span class="n">${n}</span></div>${body}</div>`;
+  return `<div class="rail">
+    <div class="xs faint" style="padding:0 6px">点条目，左侧对话会跳到生成它的那一条</div>
+    ${railExpectHtml(f)}
+    ${sec('安排', 'layers', human.length+agent.length+external.length+agentWaiting.length,
+      (human.length?`<div class="rail-group" style="color:var(--color-warning)">${icon('flag',11)} 需要你</div>`+human.map(railItemObligation).join(''):'')+
+      (myTasks.length||agent.length?`<div class="rail-group" style="color:var(--color-success)">${icon('loader',11)} 我在做</div>`+myTasks.map(railItemTask).join('')+agent.map(railItemObligation).join(''):'')+
+      (external.length||agentWaiting.length?`<div class="rail-group">${icon('hourglass',11)} 等外部 / 待命</div>`+external.map(railItemObligation).join('')+agentWaiting.map(railItemObligation).join(''):'')+
+      (doneObs.length?`<div class="rail-group faint">已了结 ${doneObs.length} 件</div>`:'')+
+      (!human.length&&!agent.length&&!external.length&&!agentWaiting.length&&!myTasks.length?'<div class="empty" style="padding:12px">没有未结的安排</div>':''))}
+    ${sec('产物', 'pkg', arts.length,
+      arts.map(a=>{
+        const proj = projById(a.projectRef);
+        return `<button class="rail-item" data-art="${a.id}">
+          ${icon('file',12)}
+          <span class="t">${esc(a.title)}
+            <span class="sub">${a.role==='expected'?'expected':`v${a.version}`}${a.taskRef?' · 由任务产出':''}${proj?` · ${esc(proj.title)}`:''}</span>
+          </span>
+          ${artStatusBadge(a)}
+        </button>`;
+      }).join('') + `<div style="padding:4px 8px"><button class="btn" data-expect-art="${f.id}">${icon('plus',12)} 我期待一个 X</button></div>` || '<div class="empty" style="padding:12px">还没有产物</div>')}
+    ${projects.length?sec('涉及项目', 'folder', projects.length,
+      projects.map(p=>`<button class="rail-item" data-proj="${p.id}">${icon('folder',12)}<span class="t">${esc(p.title)}<span class="sub mono">${esc(p.path)}</span></span></button>`).join('')+
+      '<div class="xs faint" style="padding:4px 8px">Focus 可跨项目；也可以不属于任何项目</div>'):''}
+    ${mems.length?sec('记住的事', 'book', mems.length,
+      mems.map(x=>`<div class="rail-item" style="cursor:default"><span class="trust-badge trust-${x.trust}" style="margin-top:2px">${{user_stated:'你说过',user_approved:'你确认过',auto_low_impact:'自动'}[x.trust]}</span><span class="t">${esc(x.text)}</span></div>`).join('')+
+      `<div style="padding:4px 8px"><a data-go="#/memory" class="xs">全部记忆 →</a></div>`):''}
+  </div>`;
+}
+function composerFor(f){
+  if(f.learning){
+    return `<div class="composer" style="display:flex;gap:var(--space-3);align-items:center">
+      <span class="dot breathing" style="background:var(--active-ink)"></span>
+      <span class="muted small">学习中，学完就能说了…（阻塞式奠基：不懂装懂比让你等更糟）</span>
+    </div>`;
+  }
+  if(['closed','abandoned','archived'].includes(f.lifecycle)){
+    const copy = {
+      closed:['已收官','正常走完的。要继续，只能以它为底 fork 一件新的。'],
+      abandoned:['已放弃','你主动中止的——放弃也是干净的收场，不是失败。想重来，fork 一件新的。'],
+      archived:['已归档','封存不删，随时可以在「记录」里重开。']
+    }[f.lifecycle];
+    return `<div class="composer" style="display:flex;gap:var(--space-3);align-items:center">
+      <span class="muted small">${copy[0]} · ${copy[1]}停机状态：不进「今天」、拒绝新写入。</span>
+      <span class="topbar-spacer"></span>
+      <button class="btn btn-primary" data-fork="${f.id}">${icon('plus',13)} fork 一件新的</button>
+    </div>`;
+  }
+  return composerHtml();
+}
+function renderFocus(focusId){
+  const f = focusById(focusId) || DB.focuses[0];
+  const tl = TIMELINES[f.id] || [];
+  const ob = openByOwner(f.id);
+  const lifecycleLabel = {active:'进行中',captured:'刚记下',dormant:'休眠中',closed:'已收官',abandoned:'已放弃',archived:'已归档'}[f.lifecycle];
+  const convo = `<div class="convo-col">
+    <div class="statecard card">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap">
+          <strong>${esc(f.title)}</strong>
+          <span class="tag" style="${f.lifecycle==='closed'?'color:var(--color-success);border-color:var(--color-success)':''}">${lifecycleLabel}</span>
+          <span class="tag mono">r${f.currentRevision}</span>
+        </div>
+        <div class="small muted" style="margin-top:2px">${esc(f.direction)}</div>
+      </div>
+      <div class="xs" style="flex:none;text-align:right">
+        ${ob.human?`<div style="color:var(--color-warning)">你 ${ob.human} 件</div>`:''}
+        ${ob.agent?`<div style="color:var(--color-success)">我 ${ob.agent} 件</div>`:''}
+        ${ob.external?`<div class="muted">等外部 ${ob.external} 件</div>`:''}
+        ${!ob.human&&!ob.agent&&!ob.external?'<div class="muted">没有未结的事</div>':''}
+      </div>
+      <button class="btn" data-goto-records="${f.id}" title="工程航迹、事件流与版本记录">${icon('history',13)} 记录</button>
+    </div>
+    <div class="timeline">
+      ${f.learning?`<div class="card-item" style="border-color:var(--active-ink-border)">
+        <div style="display:flex;gap:var(--space-2);align-items:center"><span class="dot breathing" style="background:var(--active-ink)"></span><strong>学习中</strong><span class="tag">learning · 一等会话状态</span></div>
+        <div class="small" style="margin-top:6px">我在读这件事相关的材料和你之前说过的话，大概还要一两分钟。学完我会告诉你学了什么、还缺什么，然后再开聊。（演示里缩短了）</div>
+      </div>`:''}
+      ${tl.map(item=>{
+        if(item.kind==='note') return `<div class="tl-note">${esc(item.text)}</div>`;
+        if(item.kind==='turn') return turnHtml(item);
+        if(item.kind==='confirm') return confirmCardHtml(item.receiptId);
+        if(item.kind==='entity') return entityHtml(item);
+        if(item.kind==='pkg') return pkgHtml();
+        if(item.kind==='progress') return progressHtml();
+        if(item.kind==='standby') return standbyHtml();
+        if(item.kind==='drift') return driftHtml();
+        if(item.kind==='interview') return interviewHtml();
+        if(item.kind==='task') return taskCardHtml(taskById(item.taskId));
+        return '';
+      }).join('')}
+      <div id="live-turns">${(state.liveTurns[f.id]||[]).map(turnHtml).join('')}</div>
+      ${state.playing && state.playing.key===f.id ? `<div class="card-item" style="display:flex;gap:var(--space-2);align-items:center;border-color:var(--active-ink-border)">
+        ${icon('loader',14,'breathing')}<span class="small">播报中（TTS）· 前半句已送达</span>
+        <span class="topbar-spacer"></span>
+        <button class="btn" data-barge="1">打断（barge-in）</button>
+      </div>`:''}
+    </div>
+    ${composerFor(f)}
+  </div>`;
+  return `<div class="page"><div class="focus-layout">${convo}${railHtml(f)}</div></div>`;
+}
+function renderChatNew(){
+  return `<div class="page page-narrow">
+    <div class="statecard card">
+      <div style="flex:1"><strong>新对话</strong>
+        <div class="small muted">想到哪说到哪。聊成熟了，我会问你要不要把这件事立起来持续关注——主路径是开口聊（开口即建草稿）；侧栏 + 号是快速立卡的旁路，不是必经。</div>
+      </div>
+    </div>
+    <div class="timeline"><div class="tl-note">还没有锚定到任何事</div><div id="live-turns">${(state.liveTurns['chat-new']||[]).map(turnHtml).join('')}</div></div>
+    ${composerHtml()}
+  </div>`;
+}
+function composerHtml(){
+  const c = state.composer;
+  if(c.mode==='recording'){
+    return `<div class="composer"><div class="composer-row">
+      <button class="mic-btn recording" data-comp="cancel" title="取消">${icon('x',18)}</button>
+      <div class="level-bars">${[0,1,2,3,4].map(i=>`<span style="animation-delay:${i*0.12}s"></span>`).join('')}</div>
+      <span class="mono small" style="color:var(--color-error)">${String(Math.floor(c.recSec/60)).padStart(2,'0')}:${String(c.recSec%60).padStart(2,'0')}</span>
+      <span class="topbar-spacer"></span>
+      <button class="btn" data-comp="totext">${icon('keyboard',13)} 转文字改一改</button>
+      <button class="btn btn-primary" data-comp="send">${icon('send',13)} 发送</button>
+    </div><div class="composer-hint"><span>松开空格也会结束这一小段</span><span>Esc 取消，彻底丢弃</span></div></div>`;
+  }
+  if(c.mode==='transcribing'){
+    return `<div class="composer"><div class="composer-row">
+      <span class="thinking" style="padding:8px 4px"><span class="dots"><span></span><span></span><span></span></span>转写中…</span>
+    </div><div class="composer-hint"><span>转写完成后只进输入框，这里的内容我还看不到</span></div></div>`;
+  }
+  if(c.mode==='confirm'){
+    return `<div class="composer"><div class="composer-row">
+      ${icon('keyboard',15)}
+      <input id="composer-edit" value="右栏可以，产物那组我希望「缺料」的排到最上面" autofocus>
+      <button class="btn" data-comp="cancel">取消</button>
+      <button class="btn btn-primary" data-comp="sendtext">${icon('send',13)} 发送</button>
+    </div><div class="composer-hint"><span>这里的内容我还看不到，发送才算数</span></div></div>`;
+  }
+  return `<div class="composer"><div class="composer-row">
+    <button class="mic-btn" data-comp="rec" title="按住空格也可以说话">${icon('mic',18)}</button>
+    <input id="composer-input" placeholder="打字也行，想到哪说到哪…">
+    <button class="btn btn-primary" data-comp="sendtext">${icon('send',13)}</button>
+  </div><div class="composer-hint"><span>点击说话 / 按住空格</span><span>切到免手模式 <span class="stage-tag">P0.5</span></span></div></div>`;
+}
+</script>
+
+<script>
+/* ---------- 验收面 ---------- */
+function acIcon(s){ return s==='pass'?icon('check',13,'ac-pass'):s==='fail'?icon('x',13,'ac-fail'):icon('clock',13,'ac-unknown'); }
+function renderReview(taskId){
+  const t = taskById(taskId); const rv = REVIEWS[taskId];
+  if(!t || !rv) return `<div class="page"><div class="empty">这个任务的验收证据视图在演示数据里没有展开（完整证据见「月度跑批脚本」「讲稿正文初稿」「样式实现首版」三个任务）</div></div>`;
+  const f = focusById(t.focusId);
+  const sel = state.reviewSel[taskId] ?? 0;
+  const verdicts = state.acVerdicts[taskId] || {};
+  const effStatus = (ac,i)=> rv.writing && ac.source==='manual' ? (verdicts[i]||'unknown') : ac.status;
+  const allManualJudged = !rv.writing || rv.acs.every((ac,i)=> ac.source!=='manual' || verdicts[i]);
+  const ac = rv.acs[sel];
+  const articleSec = (rv.writing && ac.source==='manual') ? (ART_CONTENT.art_talk_draft.sections[sel] || null) : null;
+  const acBody = articleSec
+    ? `<div class="article-view"><div class="h-sec" style="font-size:var(--text-sm);margin-bottom:6px">${esc(articleSec.name)}</div>${esc(articleSec.body).replace(/\n/g,'<br>')}</div>`
+    : ac.evidence
+    ? (ac.evidence.kind==='diff' ? `<div class="diff">${ac.evidence.body}</div>`
+      : ac.evidence.kind==='log' ? `<div class="diff">${esc(ac.evidence.body)}</div>`
+      : `<div class="card-pad card small">${esc(ac.evidence.body)}</div>`)
+    : `<div class="card card-pad small muted">${rv.writing&&ac.source==='manual'?'这条只能人工判断。读完后在下面给结论。':'没有绑上证据，诚实标注为 unknown，不显示伪精确。'}</div>`;
+  return `<div class="page">
+    <button class="btn" data-go="#/focus/${t.focusId}" style="margin-bottom:var(--space-3)">${icon('chevronRight',13)} 回到「${esc(f.title)}」</button>
+    <div class="card card-pad">
+      <div style="display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap">
+        <span class="h-page" style="font-size:var(--text-lg)">${esc(t.title)}</span>
+        ${statusChip(t.viewStatus)} ${riskBadge(t.riskLevel)} <span class="tag mono">T1</span>
+      </div>
+      <div class="small" style="margin-top:6px">执行和检查都跑完了，<strong>等你验收</strong>。下面按验收标准逐条看。</div>
+      <div class="appr-context" style="margin-top:8px">
+        <span>所属：${esc(f.title)}</span><span class="mono">决策包 ${rv.packageRef.id.slice(0,12)}… r${rv.packageRef.revision}</span>
+        <span class="mono">已跑 ${t.elapsedMin} 分钟 · 已花 ${t.spent.known?'¥'+t.spent.value:'还没有确切数字'} / 熔断 ¥${t.budget.maxCost}</span>
+        <span class="mono">第 ${t.attempt} 次尝试</span>
+      </div>
+      <div style="display:flex;gap:var(--space-2);margin-top:var(--space-3);align-items:center">
+        <span class="xs faint">讲给我听：</span>
+        ${[['one_liner','一句话'],['walkthrough','带我过一遍'],['decisions','关键判断']].map(([lv,lb])=>`<button class="btn ${state.explainLevel&&state.explainLevel[t.id]===lv?'btn-ink-outline':''}" data-explain="${lv}">${lb}</button>`).join('')}
+      </div>
+      ${state.explainLevel&&state.explainLevel[t.id]?`<div style="background:var(--active-ink-wash);border:1px solid var(--active-ink-border);border-radius:var(--radius-sm);padding:10px 14px;margin-top:var(--space-3);font-size:var(--text-sm)">${esc((EXPLAIN[t.id]||{})[state.explainLevel[t.id]]||'')}</div>`:''}
+    </div>
+    <div class="review-grid">
+      <section>
+        <div class="h-sec" style="margin-bottom:var(--space-3)">验收标准 ${rv.writing?'<span class="xs faint">（人工项须逐条给结论）</span>':''}</div>
+        ${rv.acs.map((a,i)=>{
+          const st = effStatus(a,i);
+          const ic = (st==='pass' && a.source==='agent_claim') ? `<span class="ac-hollow">${icon('check',10)}</span>` : acIcon(st);
+          return `<button class="ac-item ${i===sel?'active':''}" data-ac="${i}">
+            ${ic}
+            <span style="flex:1">${esc(a.criterion)}</span>
+            <span class="tag">${{verify:'机器验',agent_claim:'自报',manual:'人工'}[a.source]}</span>
+          </button>`;
+        }).join('')}
+        <div class="card card-pad" style="margin-top:var(--space-3)">
+          <div class="h-sec" style="margin-bottom:var(--space-2)">尝试记录</div>
+          ${rv.runs.map(r=>`<div class="xs muted" style="margin-bottom:4px"><span class="mono">#${r.attempt}</span> ${esc(r.result)}</div>`).join('')}
+        </div>
+      </section>
+      <section>
+        <div class="card card-pad">
+          <div class="h-sec" style="margin-bottom:var(--space-2)">证据 · ${esc(ac.section||'第 '+(sel+1)+' 条')}</div>
+          ${ac.source==='agent_claim'?`<div class="xs" style="color:var(--color-warning);margin-bottom:var(--space-2)">自报证据：强度低于机器验，空心勾以示降权，你可以推翻。</div>`:''}
+          ${acBody}
+          ${rv.writing && ac.source==='manual' ? `
+            <div style="display:flex;gap:var(--space-2);margin-top:var(--space-3)">
+              <button class="btn ${verdicts[sel]==='pass'?'btn-primary':''}" data-verdict="pass" data-task="${taskId}">${icon('check',12)} 这条行</button>
+              <button class="btn ${verdicts[sel]==='fail'?'btn-danger-outline':''}" data-verdict="fail" data-task="${taskId}">${icon('x',12)} 这条不行</button>
+            </div>`:''}
+        </div>
+        <div class="card card-pad" style="margin-top:var(--space-4)">
+          <div class="h-sec" style="margin-bottom:var(--space-2)">这次执行里的判断（你都可以推翻）</div>
+          ${rv.decisions.map(d=>`<div class="decision-row">
+            <div style="flex:1"><div>${esc(d.what)}</div><div class="xs muted">原因：${esc(d.why)}</div></div>
+            <button class="btn" data-overrule>推翻</button>
+          </div>`).join('')}
+        </div>
+        <div class="card card-pad" style="margin-top:var(--space-4)">
+          <div class="h-sec" style="margin-bottom:var(--space-3)">你的裁决</div>
+          <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center">
+            ${rv.s3
+              ? `<button class="btn-s3" data-s3="${taskId}">${icon('fingerprint',15)} 用 Touch ID 批准并合并</button>
+                 <span class="xs faint">S3 不可逆 · 只能在这台电脑上完成，语音与远程永不出现此按钮</span>`
+              : `<button class="btn btn-primary" id="btn-approve" ${allManualJudged?'':'disabled'}>${icon('check',13)} 通过${allManualJudged?'':'（先逐条裁决人工项）'}</button>`}
+            <button class="btn" id="btn-rework">返工，附带意见</button>
+            <button class="btn btn-danger-outline" id="btn-reject">这轮不行</button>
+          </div>
+          <div class="xs faint" style="margin-top:var(--space-3)">合并永远你拍板 · 「通过」只说验收，不说交付；合并后才叫「已交付」</div>
+        </div>
+      </section>
+    </div>
+  </div>`;
+}
+
+/* ---------- 辅助面 ---------- */
+function renderMemory(){
+  const trustLabel = {user_stated:'你说过',user_approved:'你确认过',auto_low_impact:'自动·低风险',candidate:'待你复核',third_party:'第三方'};
+  const groups = [['M1','项目知识底座'],['M2','累积产物结论'],['M3','会话工作记忆']];
+  return `<div class="page page-narrow">
+    <div class="h-page" style="margin-bottom:6px">记忆库</div>
+    <div class="muted small" style="margin-bottom:var(--space-4)">M0（你的档案）永不出现在这里；所有记忆都能追到来源。候选条目不会生效，等你复核。</div>
+    ${groups.map(([tier,label])=>`
+      <div class="card card-pad" style="margin-bottom:var(--space-4)">
+        <div class="h-sec" style="margin-bottom:var(--space-2)"><span class="mono">${tier}</span> · ${label}</div>
+        ${DB.memory.filter(x=>x.tier===tier).map(x=>`
+          <div class="mem-row ${x.trust==='candidate'?'mem-candidate':''}" data-memopen="${x.id}" style="cursor:pointer">
+            <span class="trust-badge trust-${x.trust}">${trustLabel[x.trust]}</span>
+            <div style="flex:1"><div>${esc(x.text)}</div>
+              <div class="xs faint">来源 ${x.source} · ${esc((focusById(x.focusId)||{}).title||'全局')} · 点我看来源与核验</div></div>
+            ${x.trust==='candidate'?`<span class="mem-actions"><button class="btn btn-primary" data-mem="ok" data-id="${x.id}">记下</button><button class="btn" data-mem="no" data-id="${x.id}">不记</button></span>`:''}
+          </div>`).join('') || '<div class="empty">暂无</div>'}
+      </div>`).join('')}
+  </div>`;
+}
+function renderArtifacts(){
+  return `<div class="page page-narrow">
+    <div class="h-page" style="margin-bottom:6px">产物库</div>
+    <div class="muted small" style="margin-bottom:var(--space-4)">所有 Focus 的产物时间线；点行进详情（diff / 导出 / 标记已产出）。</div>
+    <div class="card card-pad">
+      <table class="data">
+        <tr><th>产物</th><th>状态</th><th>所属 Focus / 项目</th><th>digest</th><th>时间</th></tr>
+        ${DB.artifacts.map(a=>{
+          const f = focusById(a.focusId); const p = projById(a.projectRef);
+          return `<tr data-art="${a.id}">
+            <td>${icon('file',12)} ${esc(a.title)}</td>
+            <td>${artStatusBadge(a)}</td>
+            <td class="small">${esc(f?f.title:'')}${p?` <span class="proj-badge">${esc(p.title)}</span>`:''}</td>
+            <td class="mono faint">${esc(a.digest||'—')}</td>
+            <td class="mono faint">${fmtTime(a.createdAt)}</td></tr>`;
+        }).join('')}
+      </table>
+    </div>
+  </div>`;
+}
+function renderCost(){
+  const b = DB.costs.monthBudget; const pct = Math.round(b.used/b.CNY*100);
+  const barColor = pct>=100?'var(--color-error)':pct>=80?'var(--color-warning)':'var(--active-ink)';
+  return `<div class="page page-narrow">
+    <div class="h-page" style="margin-bottom:var(--space-4)">成本</div>
+    <div class="card card-pad" style="margin-bottom:var(--space-4)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span class="h-sec">本月 API 预算</span>
+        <span class="mono">¥${b.used} / ¥${b.CNY} · ${pct}%</span>
+      </div>
+      <div class="budget-bar"><i style="width:${pct}%;background:${barColor}"></i></div>
+      <div class="xs faint" style="margin-top:6px">只统计真实 API 花销；订阅额度不计入。80% 提醒，100% 熔断。</div>
+    </div>
+    ${DB.costs.byProject.map(p=>`
+      <div class="card card-pad" style="margin-bottom:var(--space-3)">
+        <div class="h-sec" style="margin-bottom:6px">${esc(p.title)}</div>
+        <div class="small">
+          ${Object.entries(p.known).map(([c,v])=>`<span class="mono">${c==='CNY'?'¥':'$'}${v}</span>`).join(' · ')}
+          ${p.unknownCount?` · 还有 ${p.unknownCount} 笔<span style="color:var(--color-warning)">还没有确切数字</span>`:''}
+        </div>
+        <div class="xs faint">订阅额度内（已用 ${p.subscriptionCalls} 次），不折算金额</div>
+      </div>`).join('')}
+  </div>`;
+}
+function renderSettings(){
+  return `<div class="page page-narrow">
+    <div class="h-page" style="margin-bottom:var(--space-4)">设置</div>
+    <div class="card card-pad" style="margin-bottom:var(--space-4)">
+      <div class="h-sec" style="margin-bottom:var(--space-2)">空间管理</div>
+      <div class="xs faint" style="margin-bottom:var(--space-3)">空间 = 若干 Focus 共享的关系与边界；删除空间不删除里面的 Focus。</div>
+      ${DB.spaces.map(sp=>{
+        const n = DB.focuses.filter(f=>f.spaceId===sp.id).length;
+        return `<div class="mem-row">
+          ${icon('layers',13)}
+          <div style="flex:1"><div>${esc(sp.title)}</div><div class="xs faint">${n} 件持续的事</div></div>
+          <button class="btn" data-space-rename="${sp.id}">重命名</button>
+          <button class="btn btn-danger-outline" data-space-del="${sp.id}">删除</button>
+        </div>`;
+      }).join('')}
+      <div class="modal-row"><button class="btn btn-ink-outline" data-space-new="1">${icon('plus',12)} 新空间</button></div>
+    </div>
+    <div class="card card-pad" style="margin-bottom:var(--space-4)">
+      <div class="h-sec" style="margin-bottom:var(--space-2)">Gate 0 工程门禁</div>
+      <div class="small" style="display:flex;gap:8px;align-items:center">${icon('check',13,'ac-pass')} 已关闭（身份/授权、幂等、独立验收、密钥隔离、审计链、删除传播 六类全开）</div>
+      <div class="xs faint" style="margin-top:4px">Gate 0 未关时一律拒绝派发，没有 bypass 分支。</div>
+    </div>
+    <div class="card card-pad" style="margin-bottom:var(--space-4)">
+      <div class="h-sec" style="margin-bottom:var(--space-2)">模型槽位</div>
+      <table class="data">
+        <tr><th>槽位</th><th>模型</th><th>用途</th></tr>
+        <tr><td class="mono">brain</td><td class="mono">deepseek-v4-pro（reasoning 限额 1200）</td><td>对话与判断；reasoning 会吃掉 content 预算，max_tokens 下限 3000</td></tr>
+        <tr><td class="mono">verify</td><td class="mono">gpt-5.6-sol</td><td>独立验收（异族评估器，同家族会警示并拦截）</td></tr>
+        <tr><td class="mono">asr / tts</td><td class="mono">volc-sauc / volc-tts</td><td>语音链路</td></tr>
+      </table>
+      <div class="xs faint" style="margin-top:var(--space-2)">设置页读 /api/config 实时值，禁止硬编码（评审 U7）；密钥永不出接口。</div>
+    </div>
+    <div class="card card-pad" style="margin-bottom:var(--space-4)">
+      <div class="h-sec" style="margin-bottom:var(--space-2)">免打扰与推送</div>
+      <div class="small">22:00 – 08:00 不语音回叫，只落通知 · 邮件推送 <span class="stage-tag">P1</span> <span class="stage-tag">提案</span> · 电话升级 <span class="stage-tag">P1</span></div>
+    </div>
+    <div class="card card-pad" style="margin-bottom:var(--space-4)">
+      <div class="h-sec" style="margin-bottom:var(--space-2)">上下文编译预算</div>
+      <div class="small mono">M0 200 / M1 1200 / M2 800 / M3 800 tokens</div>
+      <div class="xs faint" style="margin-top:4px">每轮确定性编译，不把全部历史塞进窗口；快照带 digest，选中与排除都可对账。</div>
+    </div>
+    <div class="card card-pad" style="margin-bottom:var(--space-4)">
+      <div class="h-sec" style="margin-bottom:var(--space-2)">远程访问（tailnet 手机薄版）</div>
+      <div class="small">只能看、不能重授权：审批落 push / paired_device_pin（≤S2）；edit 与 S3 一律回本机屏幕。</div>
+      <div class="modal-row"><button class="btn btn-ink-outline" id="btn-tailnet">看看薄版长什么样</button></div>
+    </div>
+    <div class="card card-pad">
+      <div class="h-sec" style="margin-bottom:var(--space-2)">数据与删除</div>
+      <div class="small">forget_soft 可追溯；forget_hard 全库覆写（fts / projection / summary / backup / snapshot 五处同步），删除传播是 Gate 0 六类之一。</div>
+      <div class="modal-row"><button class="btn btn-danger-outline" id="btn-forget">删除我的某项数据</button></div>
+    </div>
+  </div>`;
+}
+function renderRecords(focusId){
+  const f = focusById(focusId);
+  const canArchive = ['active','captured','dormant'].includes(f.lifecycle);
+  const canReopen = f.lifecycle==='archived';
+  const SEGMENTS = {
+    foc_saydo:[{n:12, range:'昨天 15:02 – 17:40', turns:41, closed:true},{n:11, range:'周二 10:12 – 11:05', turns:23, closed:true},{n:10, range:'周一 21:40 – 22:03', turns:9, closed:false}],
+    foc_report:[{n:5, range:'今天 09:31 – 10:12', turns:17, closed:true}],
+    foc_talk:[{n:3, range:'三天前 14:00 – 15:22', turns:31, closed:true}],
+    foc_trip:[{n:2, range:'两天前 20:10 – 20:45', turns:12, closed:true}]
+  };
+  const segs = SEGMENTS[f.id] || [];
+  const deps = openObs(f.id).filter(o=>o.waitingOnObligationId);
+  const laneDotline = (lane, i)=>{
+    const dots = [4,3,2].slice(0, 2+i).map(()=>'<i class="dl-dot"></i>').join('<i class="dl-line"></i>');
+    return `<span class="dl">${dots}<i class="dl-line"></i><i class="dl-dot cur"></i></span>`;
+  };
+  return `<div class="page page-narrow">
+    <button class="btn" data-go="#/focus/${f.id}" style="margin-bottom:var(--space-3)">${icon('chevronRight',13)} 回到对话</button>
+    <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:6px;flex-wrap:wrap">
+      <span class="h-page">记录 · ${esc(f.title)}</span>
+      ${canArchive?`<button class="btn" data-farchive="${f.id}">归档（封存可重开）</button>`:''}
+      ${canArchive?`<button class="btn" data-fabandon="${f.id}">放弃（主动中止）</button>`:''}
+      ${canReopen?`<button class="btn btn-ink-outline" data-freopen="${f.id}">重开</button>`:''}
+      ${f.lifecycle==='closed'?`<button class="btn btn-primary" data-fork="${f.id}">${icon('plus',13)} fork 一件新的</button>`:''}
+    </div>
+    <div class="muted small" style="margin-bottom:var(--space-4)">工程航迹、事件流与版本在这里。这是「记录」，不是你要天天看的地方。归档要填理由；closed 只能 fork 新 Focus。</div>
+    <div class="card card-pad" style="margin-bottom:var(--space-4)">
+      <div class="h-sec" style="margin-bottom:var(--space-2)">支线航迹（lanes × 事件序）<span class="stage-tag">P0.5</span></div>
+      ${(f.lanes||[{id:'lan_main',title:'主线'}]).map((l,i)=>`
+        <div style="display:flex;gap:var(--space-3);align-items:center;padding:7px 0;border-bottom:1px dashed var(--glass-border)">
+          <span class="xs muted" style="width:96px;flex:none">${esc(l.title)}</span>
+          ${laneDotline(l, i)}
+          <span class="topbar-spacer"></span>
+          <button class="btn" data-laneop="retire" data-lane="${l.id}">收起线</button>
+          <button class="btn" data-laneop="redo" data-lane="${l.id}">从此步重走</button>
+          <button class="btn" data-laneop="cont" data-lane="${l.id}">在此线续推</button>
+        </div>`).join('')}
+      <div class="xs faint" style="margin-top:var(--space-2)">圆点=事件，橙点=当前水位；线菜单横纵双向可用（含「整线重来」）。</div>
+    </div>
+    <div class="card card-pad" style="margin-bottom:var(--space-4)">
+      <div class="h-sec" style="margin-bottom:var(--space-2)">依赖链（一件事醒了，另一件才醒）</div>
+      ${deps.length ? deps.map(o=>{
+        const pre = obById(o.waitingOnObligationId);
+        return `<div class="mem-row"><span class="small" style="flex:1">「${esc(o.title)}」等「${esc(pre?pre.title:'?')}」</span>
+          <button class="btn" data-dep-undo="${o.id}">解除依赖</button></div>`;
+      }).join('') : `<div class="xs faint">暂无依赖。dependency_set / woken / blocked 事件落账，无环校验。</div>`}
+    </div>
+    <div class="card card-pad" style="margin-bottom:var(--space-4)">
+      <div class="h-sec" style="margin-bottom:var(--space-2)">会话段（历史=段+展开，当前会话=逐轮）</div>
+      ${segs.length ? segs.map(s=>`
+        <div class="mem-row">
+          <div style="flex:1"><div>第 ${s.n} 次会话 · ${esc(s.range)}</div>
+            <div class="xs faint">${s.turns} 轮 · ${s.closed?'已收场':'中断（无 closed 事件，截至最后事件时间）'}</div></div>
+          <button class="btn" data-seg="${f.id}:${s.n}">${state.segOpen===f.id+':'+s.n?'收起':'展开转写'}</button>
+        </div>`).join('') : '<div class="xs faint">还没有会话段。</div>'}
+      ${state.segOpen && state.segOpen.startsWith(f.id+':') ? `<div class="article-view" style="margin-top:var(--space-3)">（懒加载转写节选）<br>你：demo 先给我看，确认了再动 console。<br>SayDo：好，那核心动作其实只有三个……<br><span class="xs faint">转写按 activation 校验归属读取，不暴露路径；store_transcript=false 的段显示「未存转写，仅事件留痕」</span></div>`:''}
+    </div>
+    <div class="card card-pad" style="margin-bottom:var(--space-4)">
+      <div class="h-sec" style="margin-bottom:var(--space-2)">事件流（FocusEvent，append-only）</div>
+      <div class="diff">#42  artifact_realized   重设计提案 demo.html v2 已沉淀
+#38  revision_settled    r13 → r14（你拍板了三面一栏）
+#31  obligation_opened   「样式实现」派生为任务 tsk_saydo_style
+#27  packet_confirmed    本场开场编译已确认（baseline r13）
+#19  activation_started  第 12 次会话锚定到本 Focus</div>
+      <div class="modal-row">
+        <button class="btn" data-redo="1">${icon('history',13)} 从某步重走（preview）</button>
+        <span class="xs faint">redo-from 走两步 preview → confirm（exact set 语义）</span>
+      </div>
+    </div>
+    <div class="card card-pad">
+      <div class="h-sec" style="margin-bottom:var(--space-2)">我依据什么（AI 调研输入流）<span class="stage-tag">P1</span></div>
+      <div class="xs faint" style="margin-bottom:var(--space-3)">你问「你凭什么这么判断」时的答案：材料快照与记忆来源，与记忆四维核验同源。</div>
+      <table class="data">
+        <tr><th>快照</th><th>digest</th><th>用在哪</th></tr>
+        <tr><td class="mono">git:9c4f…:styles/tokens.css</td><td class="mono faint">sha256:11aa…c3</td><td>视觉基线（决策包 r2）</td></tr>
+        <tr><td class="mono">transcript:ses_…#turn 12</td><td class="mono faint">sha256:77c1…0e</td><td>「demo 先给我看」（M1 你说过）</td></tr>
+        <tr><td class="mono">git:ab12…:docs/09-data-contracts.md</td><td class="mono faint">sha256:c99d…44</td><td>mock 形状对齐</td></tr>
+      </table>
+    </div>
+  </div>`;
+}
+
+/* ==================== 弹窗 ==================== */
+function openModal(html){
+  $('#modal-root').innerHTML = `<div class="modal-overlay" id="modal-ov"><div class="modal card" role="dialog">${html}</div></div>`;
+  $('#modal-ov').addEventListener('click',(e)=>{ if(e.target.id==='modal-ov') closeModal(); });
+  wireModal();
+}
+function closeModal(){ $('#modal-root').innerHTML=''; }
+function openNewFocusModal(){
+  openModal(`
+    <div class="h-sec">新 Focus · 立一件持续的事</div>
+    <div class="field"><label>叫什么</label><input id="nf-title" placeholder="比如：双十一活动页面" autofocus></div>
+    <div class="field"><label>方向（可选，一句话说清要什么）</label><input id="nf-dir" placeholder="比如：11 月 1 日前上线，先出三版设计稿"></div>
+    <div class="field"><label>归到哪个空间</label><select id="nf-space">${DB.spaces.map(s=>`<option value="${s.id}">${esc(s.title)}</option>`).join('')}</select></div>
+    <div class="xs faint">这个表单只是快速立卡的旁路；主路径是开口聊：聊成熟我会问你要不要立成 Focus。Focus 可以不属于任何项目。</div>
+    <div class="modal-row">
+      <button class="btn btn-primary" id="nf-create-chat">创建并开聊</button>
+      <button class="btn" id="nf-create">仅创建</button>
+      <button class="btn" data-close="1">取消</button>
+    </div>`);
+}
+function openArtifactModal(a){
+  const f = focusById(a.focusId); const p = projById(a.projectRef);
+  const t = a.taskRef ? taskById(a.taskRef) : null;
+  const ob = a.obRef ? obById(a.obRef) : null;
+  const diffDemo = a.id==='art_demo_v2';
+  openModal(`
+    <div class="h-sec">${esc(a.title)}</div>
+    <div class="kv"><span class="k">状态</span><span>${artStatusBadge(a)} ${a.superseded?'（被 v2 替代）':''}</span></div>
+    <div class="kv"><span class="k">所属</span><span>${esc(f?f.title:'')} ${p?`<span class="proj-badge">${icon('folder',10)} ${esc(p.title)}</span>`:'<span class="faint">不属于任何项目</span>'}</span></div>
+    ${a.digest?`<div class="kv"><span class="k">digest</span><span class="mono">${esc(a.digest)}</span></div>`:''}
+    ${t?`<div class="kv"><span class="k">产出任务</span><span>${esc(t.title)} · ${CHIP_TABLE[t.viewStatus].label}</span></div>`:''}
+    ${ob?`<div class="kv"><span class="k">关联安排</span><span>${esc(ob.title)}（${OB_STATUS_LABEL[ob.status]}）</span></div>`:''}
+    ${diffDemo?`<div class="kv" style="display:block"><span class="k">v1 → v2 diff（节选）</span>
+      <div class="diff" style="margin-top:6px"><span class="hunk">@@ today 页 @@</span>
+<span class="add">+ 右栏实体列表：安排 / 产物 / 项目 / 记忆</span>
+<span class="add">+ 全景看板（泳道 = Focus）</span>
+<span class="del">- 对话页右栏静态占位卡「任务卡草稿」</span></div></div>`:''}
+    ${ART_CONTENT[a.id]?`<div class="kv" style="display:block"><span class="k">正文预览</span>
+      <div class="article-view" style="margin-top:6px">${ART_CONTENT[a.id].sections.map(s=>`<div class="h-sec" style="font-size:var(--text-sm);margin:6px 0 4px">${esc(s.name)}</div><div>${esc(s.body).replace(/\n/g,'<br>')}</div>`).join('')}</div></div>`:''}
+    <div class="modal-row">
+      ${a.role==='expected'?`<button class="btn btn-primary" data-realize="${a.id}">${icon('check',13)} 标记已产出（realize）</button>`:''}
+      ${a.digest?`<button class="btn" data-export="${a.id}">${icon('download',13)} 导出 JSON</button>`:''}
+      ${t?`<button class="btn" data-gotask="${t.id}">看关联任务</button>`:''}
+      <button class="btn" data-close="1">关上</button>
+    </div>`);
+}
+function openObligationModal(o){
+  const f = focusById(o.focusId);
+  const pre = o.waitingOnObligationId ? obById(o.waitingOnObligationId) : null;
+  let body = `
+    <div class="h-sec">${esc(o.title)}</div>
+    <div class="kv"><span class="k">所属</span><span>${esc(f?f.title:'')}</span></div>
+    <div class="kv"><span class="k">球在谁那</span><span>${{human:'你',agent:'我（AI）',external:'外部'}[o.owner]}${o.needs?' · '+NEEDS_LABEL[o.needs]:''}</span></div>
+    <div class="kv"><span class="k">状态</span><span>${OB_STATUS_LABEL[o.status]}${o.blocking?' · 挡着后续':''}</span></div>
+    ${o.waitingOn?`<div class="kv"><span class="k">在等</span><span>${esc(o.waitingOn)} · ${esc(o.dueOrTrigger||'')}</span></div>`:''}
+    ${pre?`<div class="kv"><span class="k">前置</span><span>等「${esc(pre.title)}」结了我就醒（dependency）</span></div>`:''}
+    ${o.deferReason?`<div class="kv"><span class="k">推迟原因</span><span>${esc(o.deferReason)}</span></div>`:''}`;
+  let actions = '';
+  if(o.id==='fob_date' && !state.datePicked){
+    actions = `<div class="field" style="margin-top:var(--space-3)"><label>选一个，或自己写</label>
+      ${['9 月 12 日（周五）','9 月 19 日（周五）','9 月 26 日（周五）'].map(d=>`<button class="opt-btn" data-date="${d}">${d}</button>`).join('')}
+      <div style="display:flex;gap:8px"><input id="date-custom" placeholder="自己写一天"><button class="btn" data-date-custom="1">就这天</button></div></div>`;
+  } else if(o.id==='fob_csv' && o.status==='open'){
+    actions = `<div class="modal-row"><button class="btn btn-primary" data-csv="1">${icon('check',13)} 我放进去了</button><button class="btn" data-later="${o.id}">稍后提醒我</button></div>`;
+  } else if(o.id==='fob_health_pdf' && o.status==='open'){
+    actions = `<div class="modal-row"><button class="btn btn-primary" data-pdf="1">${icon('check',13)} 发你了（模拟）</button><button class="btn" data-later="${o.id}">稍后提醒我</button></div>`;
+  } else if(o.id==='fob_budget' && o.status==='open'){
+    actions = `<div class="modal-row"><input id="budget-ans" placeholder="比如：两万可以，超了我再定" style="flex:1;padding:7px 10px;border:1px solid var(--glass-border);border-radius:var(--radius-sm);background:var(--control-glass)"><button class="btn btn-primary" data-budget="1">回答</button></div>`;
+  } else if(o.id==='fob_demo_review'){
+    actions = `<div class="modal-row"><button class="btn btn-primary" data-apply="1">${icon('flag',13)} 方向认可，走评审流程</button><button class="btn" data-revise="1">还要改，我说两句</button></div>`;
+  } else if(o.owner==='external' && o.status==='waiting'){
+    actions = `<div class="modal-row">
+      <button class="btn" data-nudge="${o.id}">${icon('mail',13)} 催一下 <span class="stage-tag">P1</span></button>
+      ${o.id==='fob_hotel'?`<button class="btn btn-ink-outline" data-wake="1">${icon('zap',13)} 模拟：对方回复了</button>`:''}
+    </div>`;
+  } else if(o.owner==='human' && ['open','blocked'].includes(o.status)){
+    actions = `<div class="modal-row">
+      <button class="btn btn-primary" data-obdone="${o.id}">${icon('check',13)} 标完成</button>
+      <button class="btn" data-obtoai="${o.id}">转给我做</button>
+      <button class="btn" data-later="${o.id}">稍后</button>
+    </div>`;
+  }
+  openModal(body + actions + `${actions?'':'<div class="modal-row"><button class="btn" data-close="1">关上</button></div>'}`);
+}
+function openHpTaskModal(t){
+  const f = focusById(t.focusId);
+  const HP_MAP = {received:'已接单·分诊中', ready:'排队中（唯一可说排队的档）', running:'执行中', review:'等你验收（settle 已过）', merging:'合并中', done:'已交付', failed:'失败了', blocked:'卡住（分诊出口，不说排队）'};
+  const answered = state.blockedAnswer[t.id];
+  openModal(`
+    <div class="h-sec">${esc(t.title)} <span class="tag mono">HP</span></div>
+    <div class="appr-context" style="margin-bottom:var(--space-3)"><span>所属：${esc(f?f.title:'')}</span>${statusChip(t.viewStatus)} ${riskBadge(t.riskLevel)}</div>
+    <div class="kv"><span class="k">Hopper 态</span><span><span class="mono">${esc(t.status)}</span> → 投影「${HP_MAP[t.status]||'…'}」（09 §7 映射）</span></div>
+    <div class="kv"><span class="k">账本</span><span>执行事实、证据、成本归 Hopper authoritative ledger，这里只投影</span></div>
+    <div class="kv"><span class="k">熔断</span><span class="mono">¥${t.budget.maxCost}</span> · 已花 ${t.spent.known?'¥'+t.spent.value:'还没有确切数字'}</div>
+    ${t.hpDecision && t.viewStatus==='blocked' && !answered ? `
+      <div class="h-sec" style="margin:var(--space-4) 0 var(--space-2)">DecisionRequest · 执行中遇到必须由你裁决的门</div>
+      <div class="small">${esc(t.hpDecision)}</div>
+      <div class="modal-row">
+        <button class="btn btn-primary" data-hp-yes="${t.id}">可以发</button>
+        <button class="btn" data-hp-no="${t.id}">不行，换写法</button>
+      </div>`
+    : t.hpDecision && answered ? `
+      <div class="xs ac-pass" style="margin-top:var(--space-4)">${icon('check',12)} 你的裁决已回传 Hopper（DecisionRequest resolved），任务继续</div>`
+    : ''}
+    <div class="xs faint" style="margin-top:var(--space-3)">执行细节与独立验收在 Hopper Console（工程排障面）；settlement 回来后这里呈现「等你验收」。SayDo 不另存一份执行真相。</div>
+    <div class="modal-row"><button class="btn" data-gofocus="${t.focusId}">${icon('layers',13)} 打开所属 Focus</button><button class="btn" data-close="1">关上</button></div>`);
+}
+function openTaskModal(t){
+  if(t.route==='hopper'){ openHpTaskModal(t); return; }
+  openModal(taskCardHtml(t, true));
+}
+function openEmailPreview(){
+  const items = DB.attention.filter(a=>(a.color==='orange'||a.color==='blue') && !state.attnAck[a.id]);
+  openModal(`
+    <div class="h-sec">${icon('mail',15)} 邮件推送预览 <span class="stage-tag">P1</span> <span class="stage-tag">提案</span></div>
+    <div class="email-frame">
+      <div class="email-head">
+        <div class="xs muted">发件人 <span class="mono">saydo@local</span> · 收件人 yixiao@… · 每天最多一封，有事才发</div>
+        <div style="font-weight:500;margin-top:4px">【SayDo】${items.length} 件事需要你：验收、回答、补料</div>
+      </div>
+      <div class="email-body">
+        ${items.map((a,i)=>`<div style="margin-bottom:10px">${i+1}. ${esc(a.title)}<br><span class="xs faint">回复「${i+1}」看详情，回复「${i+1} 行/不行/已放好」直接处理（仅低风险 S0–S2）</span></div>`).join('')}
+        <div class="divider"></div>
+        <div class="xs faint">与「今天」页同一账本：在 App 里处理过的事，邮件里自动作废，不会两头催。S3（合并/发布/删除）永不进邮件，只能回本机屏幕。</div>
+      </div>
+    </div>
+    <div class="modal-row"><button class="btn" data-close="1">关上</button></div>`);
+}
+function openProjectModal(p){
+  openModal(`
+    <div class="h-sec">${icon('folder',15)} ${esc(p.title)}</div>
+    <div class="kv"><span class="k">类型</span><span class="mono">${p.kind}</span></div>
+    <div class="kv"><span class="k">位置</span><span class="mono">${esc(p.path)}</span></div>
+    <div class="kv"><span class="k">被引用</span><span>${DB.focuses.filter(f=>(f.projectRefs||[]).includes(p.id)).map(f=>esc(f.title)).join('、')||'暂无'}</span></div>
+    <div class="kv"><span class="k">项目覆盖</span><span>月预算 <input id="proj-budget" value="50" style="width:64px;padding:3px 6px;border:1px solid var(--glass-border);border-radius:6px;background:var(--control-glass)"> ¥</span></div>
+    <div class="xs faint" style="margin-top:var(--space-2)">受控覆盖四键：dialog / thinking / dev / budget · 仅本机受信终端可改（overrides，其余键 422 拒收）</div>
+    <div class="xs faint" style="margin-top:var(--space-2)">狭义 Project 是承载边界（repo/文件夹/外部工作区）；Focus 引用它，不拥有它。</div>
+    <div class="modal-row">
+      <button class="btn btn-ink-outline" id="proj-save">保存覆盖</button>
+      <button class="btn" data-close="1">关上</button>
+    </div>`);
+  $('#proj-save').onclick = ()=>toast('已保存项目覆盖（overrides 落库，审计事件跟上）');
+}
+function openConflictModal(t){
+  openModal(`
+    <div class="h-sec">合并冲突 · ${esc(t.title)}</div>
+    <div class="diff"><span class="hunk">@@ slides/build.py @@</span>
+<span class="del">- theme = "atelier"  # 你手改的</span>
+<span class="add">+ theme = "soft-glass"  # 任务带回来的</span></div>
+    <div class="xs faint" style="margin-top:var(--space-3)">merge_failed 不会自己硬并。你选：保留你的、用任务的、或我重跑一遍。</div>
+    <div class="modal-row">
+      <button class="btn btn-primary" data-confmine="1">保留我的</button>
+      <button class="btn" data-conftheirs="1">用任务的</button>
+      <button class="btn" data-close="1">先放着</button>
+    </div>`);
+}
+
+function openExpectModal(){
+  const p = DB.pkg;
+  openModal(`
+    <div class="h-sec">改期待 · 你说，我复述影响后才生效</div>
+    <div class="xs faint">期待四层（方向 / 验收标准 / 预期产物 / 预算与时间）你都能直接改：执行前自由改；执行中改=变更单重新对齐；执行后改只作用于下一轮（禁移动球门）。每次修改=revision 事件，历史不可篡改。</div>
+    <div class="field" style="margin-top:var(--space-3)"><label>验收标准（逐条可改）</label>
+      ${p.acceptance.map((a,i)=>`<div style="margin-bottom:6px"><input value="${esc(a)}" data-exp-ac="${i}" style="width:100%;padding:7px 10px;border:1px solid var(--glass-border);border-radius:var(--radius-sm);background:var(--control-glass)"></div>`).join('')}
+    </div>
+    <div class="field"><label>预算上限（¥，熔断必停）</label><input id="exp-budget" type="number" value="${p.cost.max.value}" style="width:110px;padding:7px 10px;border:1px solid var(--glass-border);border-radius:var(--radius-sm);background:var(--control-glass)"></div>
+    <div class="modal-row">
+      <button class="btn btn-primary" id="exp-next">我改完了，复述影响</button>
+      <button class="btn" data-close="1">算了</button>
+    </div>`);
+}
+function openDriftAdjustModal(){
+  openModal(`
+    <div class="h-sec">调期待 · 我复述一遍影响，确认才生效</div>
+    <ul class="pkg-list" style="margin-top:var(--space-3)">
+      <li>${icon('arrowRight',12)}<span>验收标准 4 条 → 3 条：「图表周报（趋势图三张）」这期拿掉</span></li>
+      <li>${icon('arrowRight',12)}<span>预期产物「图表周报」从 expected 移除（这期不做）</span></li>
+      <li>${icon('arrowRight',12)}<span>预算退回 ¥3.4 空间（图表脚本两次尝试的开销留在账上，不抹）</span></li>
+      <li>${icon('arrowRight',12)}<span>期待 r2 → r3，revision 事件落账；下期要不要图表，到时再立</span></li>
+    </ul>
+    <div class="xs faint" style="margin-top:var(--space-3)">执行后改只作用于下一轮，禁移动球门——这期在跑的验收仍按 r2 走完，r3 从下一轮生效。</div>
+    <div class="modal-row"><button class="btn btn-primary" id="drift-commit">确认，按新期待来</button><button class="btn" data-close="1">再想想</button></div>`);
+  $('#drift-commit').onclick = ()=>{
+    const exp = EXPECTATIONS.foc_report;
+    exp.acceptance.splice(2,1);
+    exp.artifacts.expected -= 1;
+    exp.revision += 1;
+    state.driftResolved='adjust';
+    closeModal(); rerenderMain(); toast('期待已调整：r'+exp.revision+' 落账，我按新的做','flag');
+    (state.liveTurns['foc_report'] = state.liveTurns['foc_report']||[]).push({speaker:'ai', ts:new Date().toISOString(), heard:true, text:'期待调整已生效：这期不要图表（r3）。我按新期待做，历史各看各的；下期要不要再立，到时你说了算。'});
+    if(convoKey()==='foc_report'){ rerenderMain(); scrollConvo(); }
+  };
+}
+function openExpectEditModal(f, kind, idx){
+  const exp = EXPECTATIONS[f.id];
+  const conf = {
+    direction:{title:'改方向', label:'这件事到底要什么', value:exp.direction, apply(v){ if(v && v!==exp.direction){ exp.direction=v; return `方向改为：「${v}」`; } return null; }},
+    acceptance:{title:'改验收标准', label:'这条标准改成什么算对', value:idx!=null?exp.acceptance[idx].text:'', apply(v){ if(idx!=null && v && v!==exp.acceptance[idx].text){ const old=exp.acceptance[idx].text; exp.acceptance[idx].text=v; exp.acceptance[idx].state='untested'; exp.acceptance[idx].note=undefined; return `验收第 ${idx+1} 条：「${old}」→「${v}」（状态回未验，下一轮重验）`; } return null; }},
+    artifacts:{title:'改预期产物', label:'要几个 / 换成什么（一句话）', value:'', apply(v){ return v?`预期产物口径调整：${v}`:null; }},
+    budget:{title:'改预算上限', label:'熔断上限（¥，到顶必停）', value:String(exp.budget.max), apply(v){ const n=Number(v); if(n>0 && n!==exp.budget.max){ const old=exp.budget.max; exp.budget.max=n; return `预算 ¥${old} → ¥${n}`; } return null; }}
+  }[kind];
+  openInputModal({title:conf.title+' · 改完我复述影响', label:conf.label, value:conf.value, okText:'改完了，复述影响', onOk(v){
+    const change = conf.apply(v);
+    if(!change){ toast('没有变化，或写法无效','x'); return; }
+    openModal(`
+      <div class="h-sec">我复述一遍影响，确认才生效</div>
+      <ul class="pkg-list" style="margin-top:var(--space-3)"><li>${icon('arrowRight',12)}<span>${esc(change)}</span></li></ul>
+      <div class="xs faint" style="margin-top:var(--space-3)">确认后：期待 r${exp.revision} → r${exp.revision+1}，revision 事件落账，历史不可篡改；我按新的做，不按旧的。</div>
+      <div class="modal-row"><button class="btn btn-primary" id="expc-commit">确认，按新期待来</button><button class="btn" data-close="1">再想想</button></div>`);
+    $('#expc-commit').onclick = ()=>{
+      exp.revision += 1;
+      closeModal(); rerenderMain(); toast('期待 r'+exp.revision+' 落账：'+change,'flag');
+      (state.liveTurns[f.id] = state.liveTurns[f.id]||[]).push({speaker:'ai', ts:new Date().toISOString(), heard:true, text:'期待调整已生效：'+change+'。我按 r'+exp.revision+' 做，历史各看各的。'});
+      if(convoKey()===f.id){ rerenderMain(); scrollConvo(); }
+    };
+  }});
+}
+function openApprovalModal(r){
+  const f = focusById(r.focusId);
+  const decided = (state.approvalDone||{})[r.id];
+  openModal(`
+    <div class="h-sec">${icon('shield',15)} 审批 · 等你拍板</div>
+    <div class="appr-context" style="margin-bottom:var(--space-3)">
+      <span>所属：${esc(f?f.title:'')}</span>${r.taskTitle?`<span>任务：${esc(r.taskTitle)}</span>`:''}${riskBadge(r.riskLevel)}<span class="tag mono">${r.decidedVia}</span>
+    </div>
+    <div class="kv"><span class="k">效果</span><span class="mono">${esc(r.effect||'')}</span></div>
+    <div class="kv"><span class="k">目标</span><span class="mono">${esc(r.target||'')}</span></div>
+    <div class="kv"><span class="k">下游</span><span>${(r.downstream&&r.downstream.length)?r.downstream.map(d=>`<span class="tag mono">${esc(d)}</span>`).join(' '):'无'}</span></div>
+    <div class="kv"><span class="k">时效</span><span>${esc(r.expiry||'')}</span></div>
+    <div class="small" style="margin-top:var(--space-3)">口播原文：「推到 demo/* 分支，会触发预览部署」——所闻即所签，播的什么签的就是什么。</div>
+    ${decided
+      ? `<div class="xs ac-pass" style="margin-top:var(--space-4)">${icon('check',12)} ${esc(decided)}</div><div class="modal-row"><button class="btn" data-close="1">关上</button></div>`
+      : `<div class="modal-row">
+          <button class="btn btn-primary" data-appr="accept" data-rid="${r.id}">${icon('check',13)} 批准</button>
+          <button class="btn btn-ink-outline" data-appr="edit" data-rid="${r.id}">${icon('pencil',13)} 改后批准 <span class="stage-tag">仅 S2 · 本机</span></button>
+          <button class="btn btn-danger-outline" data-appr="reject" data-rid="${r.id}">拒绝</button>
+          <button class="btn" data-appr="ignore" data-rid="${r.id}">稍后</button>
+        </div>
+        <div id="appr-edit-area"></div>`}
+  `);
+}
+function openS3Modal(){
+  openModal(`
+    <div class="h-sec">${icon('fingerprint',15)} S3 强认证（演示环境）</div>
+    <div class="small">真实环境这里会唤起系统 Touch ID。S3 = 不可逆外部影响（合并 / 发布 / 删除），只在这台电脑上、由你本人完成；语音与远程永不出现这个按钮。</div>
+    <div class="h-sec" style="margin:var(--space-4) 0 var(--space-2)">流程（WebAuthn · rpId=localhost）</div>
+    <table class="data">
+      <tr><td class="mono" style="width:130px">1 challenge</td><td>daemon 签发单次挑战（120 秒），带 prospectiveTreeSha 对账</td></tr>
+      <tr><td class="mono">2 Touch ID</td><td>系统弹窗按指纹；同步凭据（BE/BS）会诚实展示，不宣称「密钥不出机」</td></tr>
+      <tr><td class="mono">3 verify</td><td>签出 S3MergeReceipt：单次消费、过期即失效、一挑战至多一收据</td></tr>
+      <tr><td class="mono">4 approve-merge</td><td>五重事务断言后进入 merging；失败走 merge_failed，不硬并</td></tr>
+    </table>
+    <div class="modal-row"><button class="btn" data-close="1">明白了</button></div>`);
+}
+function openAnchorGuideModal(f){
+  openModal(`
+    <div class="h-sec">这件事先挂到哪个项目？</div>
+    <div class="small">语音锚定要求 Focus 至少引用一个项目（承载边界：成本 / 记忆 / 产物才有落点）。这件事还没有项目。文字聊不受影响，随时可以。</div>
+    <div style="margin-top:var(--space-4);display:flex;flex-direction:column;gap:6px">
+      <button class="opt-btn" data-anchor-daily="${f.id}"><strong>挂到「日常」项目</strong><div class="xs faint">没有就建一个（~/SayDo/daily 真实目录，标准项目合同，不是系统魔法）</div></button>
+      ${DB.projects.map(p=>`<button class="opt-btn" data-anchor-proj="${f.id}|${p.id}"><strong>${esc(p.title)}</strong><div class="xs faint mono">${esc(p.path)}</div></button>`).join('')}
+      <button class="opt-btn" data-close="1">先不锚，继续文字聊</button>
+    </div>`);
+}
+function openTailnetModal(){
+  const items = DB.attention.filter(a=>a.color==='orange'&&!state.attnAck[a.id]).slice(0,4);
+  openModal(`
+    <div class="h-sec">手机薄版（tailnet）长这样</div>
+    <div style="display:flex;gap:var(--space-5);align-items:flex-start;flex-wrap:wrap">
+      <div style="width:280px;flex:none;border:1.5px solid var(--glass-border);border-radius:24px;padding:14px;background:var(--surface-glass-soft)">
+        <div class="xs muted" style="margin-bottom:8px">今天 · 薄版（只读为主）</div>
+        ${items.map(a=>`<div style="padding:10px;border:1px solid var(--glass-border);border-radius:10px;margin-bottom:8px;font-size:13px">
+          ${esc(a.title)}<div class="xs faint" style="margin-top:4px">${esc(a.focusTitle)}</div>
+          <button class="btn" style="margin-top:6px;width:100%;justify-content:center" disabled>回桌面或语音处理</button>
+        </div>`).join('')}
+      </div>
+      <div style="flex:1;min-width:220px">
+        <div class="small">薄版的原则是<strong>只能看、不能重授权</strong>：</div>
+        <ul class="pkg-list" style="margin-top:6px">
+          <li>${icon('check',12,'ac-pass')}<span>看进展、看通知、看成本</span></li>
+          <li>${icon('check',12,'ac-pass')}<span>低风险审批（≤S2）走 push / paired_device_pin</span></li>
+          <li>${icon('x',12,'ac-fail')}<span>S3 永不渲染，edit 仅本机屏幕</span></li>
+          <li>${icon('x',12,'ac-fail')}<span>不能改项目覆盖、不能删数据</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="modal-row"><button class="btn" data-close="1">关上</button></div>`);
+}
+function openMemoryModal(x){
+  const trustLabel = {user_stated:'你说过',user_approved:'你确认过',auto_low_impact:'自动·低风险',candidate:'待你复核',third_party:'第三方'};
+  const tierLabel = {M0:'用户档案',M1:'项目知识底座',M2:'累积产物结论',M3:'会话工作记忆'};
+  const isAgentSrc = x.source==='agent_output' || x.source==='import';
+  const f = focusById(x.focusId);
+  openModal(`
+    <div class="h-sec">记忆详情</div>
+    <div class="small" style="margin-bottom:var(--space-3)">${esc(x.text)}</div>
+    <div class="kv"><span class="k">层级</span><span class="mono">${x.tier}</span> · ${tierLabel[x.tier]}</div>
+    <div class="kv"><span class="k">信任</span><span><span class="trust-badge trust-${x.trust}">${trustLabel[x.trust]}</span>${x.trust==='candidate'?' <span class="xs faint">candidate 不生效，你确认后才进 trusted</span>':''}</span></div>
+    <div class="kv"><span class="k">来源</span><span class="mono">${x.source}</span></div>
+    <div class="kv"><span class="k">所属</span><span>${esc(f?f.title:'全局')}</span></div>
+    <div class="kv"><span class="k">claim</span><span class="mono faint">sha256:${Math.abs([...x.text].reduce((a,c)=>a*31+c.charCodeAt(0)|0,7)).toString(16).slice(0,8)}…</span></div>
+    <div class="h-sec" style="margin:var(--space-4) 0 var(--space-2)">来源核验（09 §4.1 四维）</div>
+    ${isAgentSrc
+      ? `<div class="small muted">来源类型是 ${x.source}：没有独立快照，不作事实依据，只能等确认环升格。</div>`
+      : `<table class="data">
+          <tr><td>快照</td><td class="mono">${x.source==='user_utterance'?'transcript:ses_…#turn 12':x.source==='repo_file'?'git:9c4f…:report/README.md':'user_edit 现场'}</td></tr>
+          <tr><td>完整性</td><td><span class="ac-pass">[ok] intact（digest 一致）</span></td></tr>
+          <tr><td>新鲜度</td><td><span class="ac-pass">[ok] fresh</span></td></tr>
+          <tr><td>引文匹配</td><td><span class="ac-pass">[ok] match</span></td></tr>
+          <tr><td>语义支持</td><td><span class="ac-pass">[ok] supported</span></td></tr>
+        </table>`}
+    <div class="modal-row">
+      ${x.trust==='candidate'?`<button class="btn btn-primary" id="mm-ok">记下</button><button class="btn" id="mm-no">不记</button>`:''}
+      <button class="btn" data-close="1">关上</button>
+    </div>`);
+  const mok = $('#mm-ok'); if(mok) mok.onclick = ()=>{ x.trust='user_approved'; closeModal(); rerenderMain(); toast('已升格为你确认过'); };
+  const mno = $('#mm-no'); if(mno) mno.onclick = ()=>{ DB.memory = DB.memory.filter(y=>y.id!==x.id); closeModal(); rerenderMain(); toast('已丢弃，不进记忆'); };
+}
+function openInputModal({title, body, label, value, okText, danger, onOk}){
+  openModal(`
+    <div class="h-sec">${title}</div>
+    ${body?`<div class="small" style="margin-bottom:var(--space-3)">${body}</div>`:''}
+    ${label!==undefined?`<div class="field"><label>${label}</label><input id="im-value" value="${value||''}"></div>`:''}
+    <div class="modal-row">
+      <button class="btn ${danger?'btn-danger-outline':'btn-primary'}" id="im-ok">${okText||'确定'}</button>
+      <button class="btn" data-close="1">取消</button>
+    </div>`);
+  $('#im-ok').onclick = ()=>{ const v = $('#im-value') ? $('#im-value').value.trim() : ''; onOk(v); };
+  const inp = $('#im-value'); if(inp){ inp.focus(); inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter') $('#im-ok').click(); }); }
+}
+
+/* ==================== 交互 ==================== */
+function toast(msg, ic='check'){
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = icon(ic,14)+esc(msg);
+  $('#toast-root').appendChild(el);
+  setTimeout(()=>el.remove(), 3400);
+}
+const AI_REPLIES = [
+  '收到。「缺料」的产物我会排到产物组最上面，并加一条到你的「今天」页。还有别的要调的吗？',
+  '明白了，这个判断我记下来了：右栏只做状态呈现，操作留在对话和今天页。我把它挂到决策包的修订里。',
+  '好，这条我会跟「缺料置顶」一起处理。要不要我顺手把暗色主题下的对比度也检查一遍？'
+];
+function scrollConvo(){
+  const el = $('.convo-col') || $('#main');
+  el.scrollTop = el.scrollHeight;
+}
+function locateTimeline(id){
+  const el = document.getElementById(id);
+  if(!el) return false;
+  el.scrollIntoView({behavior:'smooth', block:'center'});
+  el.classList.add('tl-flash');
+  setTimeout(()=>el.classList.remove('tl-flash'), 1800);
+  return true;
+}
+let replyIdx = 0;
+function convoKey(){
+  if(currentRoute.startsWith('#/focus/')) return currentRoute.split('/')[2];
+  if(currentRoute==='#/chat-new') return 'chat-new';
+  return null;
+}
+function simulateReply(key){
+  setTimeout(()=>{
+    (state.liveTurns[key] = state.liveTurns[key] || []).push({speaker:'ai', ts:new Date().toISOString(), heard:true, text:AI_REPLIES[replyIdx++ % AI_REPLIES.length]});
+    if(convoKey()===key){ rerenderMain(); scrollConvo(); }
+    /* S5：播报实时态——AI 轮出现后进入 TTS 播报态，可演示 barge-in */
+    state.playing = {key};
+    if(convoKey()===key) rerenderMain();
+    setTimeout(()=>{
+      if(state.playing && state.playing.key===key){
+        state.playing = null;
+        if(convoKey()===key) rerenderMain();
+      }
+    }, 2600);
+  }, 1400);
+}
+function pushUserTurn(text){
+  const key = convoKey(); if(!key) return;
+  (state.liveTurns[key] = state.liveTurns[key] || []).push({speaker:'user', ts:new Date().toISOString(), heard:true, text});
+  rerenderMain(); scrollConvo();
+  simulateReply(key);
+}
+function composerAction(act){
+  const c = state.composer;
+  if(act==='rec'){
+    const key = convoKey();
+    const f = key && key!=='chat-new' ? focusById(key) : null;
+    if(f && (!f.projectRefs || f.projectRefs.length===0)){ openAnchorGuideModal(f); return; }
+    c.mode='recording'; c.recSec=0;
+    c.timer = setInterval(()=>{ c.recSec++; const t=$('.composer .mono'); if(t) t.textContent=`${String(Math.floor(c.recSec/60)).padStart(2,'0')}:${String(c.recSec%60).padStart(2,'0')}`; },1000);
+    rerenderMain(); return; }
+  if(act==='cancel'){ clearInterval(c.timer); c.mode='idle'; rerenderMain(); return; }
+  if(act==='totext'){ clearInterval(c.timer); c.mode='transcribing'; rerenderMain();
+    setTimeout(()=>{ state.composer.mode='confirm'; rerenderMain(); },1600); return; }
+  if(act==='send'){ clearInterval(c.timer); c.mode='idle';
+    pushUserTurn('右栏可以，产物那组我希望「缺料」的排到最上面。'); return; }
+  if(act==='sendtext'){
+    const inp = $('#composer-edit')||$('#composer-input');
+    const text = inp && inp.value.trim() ? inp.value.trim() : '……';
+    c.mode='idle'; pushUserTurn(text); return; }
+}
+function resolveObligation(o, resolution){
+  o.status='resolved'; o.resolution=resolution||'done';
+  const attnId = 'ob:'+o.id;
+  if(DB.attention.find(a=>a.id===attnId)) state.attnAck[attnId]=true;
+}
+
+/* 主渲染 */
+let currentRoute = '#/today';
+function rerenderMain(){ route(currentRoute, true); }
+function route(hash, keepScroll){
+  currentRoute = hash;
+  const main = $('#main');
+  const [path, arg] = [hash.split('/').slice(0,2).join('/'), hash.split('/')[2]];
+  main.classList.toggle('main-locked', path==='#/focus');
+  renderSidebar(hash);
+  if(hash==='#/today' || hash==='#/' || hash==='') main.innerHTML = renderToday();
+  else if(hash==='#/board') main.innerHTML = renderBoard();
+  else if(path==='#/focus') main.innerHTML = renderFocus(arg);
+  else if(hash==='#/chat-new') main.innerHTML = renderChatNew();
+  else if(path==='#/review') main.innerHTML = renderReview(arg);
+  else if(hash==='#/memory') main.innerHTML = renderMemory();
+  else if(hash==='#/artifacts') main.innerHTML = renderArtifacts();
+  else if(hash==='#/cost') main.innerHTML = renderCost();
+  else if(hash==='#/settings') main.innerHTML = renderSettings();
+  else if(path==='#/records') main.innerHTML = renderRecords(arg);
+  else main.innerHTML = renderToday();
+  if(!keepScroll) main.scrollTop = 0;
+  wirePage();
+}
+function wirePage(){
+  const main = $('#main');
+  main.querySelectorAll('[data-go]').forEach(el=> el.onclick = ()=>{ location.hash = el.dataset.go; });
+  main.querySelectorAll('[data-attn]').forEach(el=> el.onclick = (e)=>{
+    if(e.target.closest('[data-ack]')) return;
+    const a = DB.attention.find(x=>x.id===el.dataset.attn);
+    if(a.action==='open_review') location.hash = '#/review/'+a.refId;
+    else if(a.action==='open_task_modal') openTaskModal(taskById(a.refId));
+    else if(a.action==='open_obligation') openObligationModal(obById(a.refId));
+    else if(a.action==='open_approval') openApprovalModal(DB.approvals.find(x=>x.id===a.refId));
+    else if(a.action==='open_confirm'){ location.hash = '#/focus/'+a.focusId; setTimeout(()=>locateTimeline('tl-conf-'+a.refId), 450); }
+    else location.hash = '#/focus/'+a.focusId;
+  });
+  main.querySelectorAll('[data-ack]').forEach(el=> el.onclick = (e)=>{
+    e.stopPropagation();
+    state.attnAck[el.dataset.ack]=true; rerenderMain();
+    toast('知道了，这条不再出现（ack 仅绿/灰；它若升级成橙/蓝会无视 ack 重现）');
+  });
+  const om = document.querySelector('[data-orange-more]'); if(om) om.onclick = ()=>{ state.orangeExpanded=true; rerenderMain(); };
+  const ol = document.querySelector('[data-orange-less]'); if(ol) ol.onclick = ()=>{ state.orangeExpanded=false; rerenderMain(); };
+  const qm = document.querySelector('[data-quick-more]'); if(qm) qm.onclick = ()=>{ state.quickExpanded=!state.quickExpanded; rerenderMain(); };
+  main.querySelectorAll('[data-goto-records]').forEach(el=> el.onclick = ()=>{ location.hash = '#/records/'+el.dataset.gotoRecords; });
+  main.querySelectorAll('[data-comp]').forEach(el=> el.onclick = ()=>composerAction(el.dataset.comp));
+  main.querySelectorAll('[data-barge]').forEach(el=> el.onclick = ()=>{
+    const key = convoKey();
+    const turns = state.liveTurns[key] || [];
+    for(let i=turns.length-1; i>=0; i--){ if(turns[i].speaker==='ai'){ turns[i].heard=false; break; } }
+    state.playing = null;
+    rerenderMain(); scrollConvo();
+    toast('已打断：后半句未送达，不作「已告知」依据（barge-in watermark）','pause');
+  });
+  main.querySelectorAll('[data-confirm-act]').forEach(el=> el.onclick = ()=>{
+    state.confirmResolved[el.dataset.rid] = el.dataset.confirmAct==='accept'?'accepted':'rejected';
+    state.attnAck['conf:'+el.dataset.rid]=true;
+    rerenderMain();
+    toast(el.dataset.confirmAct==='accept'?'已记住（你确认过，进 trusted）':'好的，不记');
+    if(el.dataset.confirmAct==='accept'){
+      const key = convoKey();
+      if(key){ setTimeout(()=>{
+        (state.liveTurns[key] = state.liveTurns[key]||[]).push({speaker:'ai', ts:new Date().toISOString(), heard:true, text:'记下了。断头不接尾是大忌，下一步也说清：你过一遍今天页和右栏，拍板要不要把这个方向应用到 console。'});
+        if(convoKey()===key){ rerenderMain(); scrollConvo(); }
+      }, 900); }
+    }
+  });
+  main.querySelectorAll('[data-mode]').forEach(el=> el.onclick = ()=>{ state.pkgMode = el.dataset.mode; rerenderMain(); });
+  const pa = $('#pkg-approve'); if(pa) pa.onclick = ()=>{
+    state.pkgApproved = true; rerenderMain();
+    toast(state.pkgMode==='direct'?'已拍板：一口气跑完，跑完等你验收':'已拍板：每步到你确认再走');
+  };
+  const pe = $('#pkg-expect'); if(pe) pe.onclick = ()=>openExpectModal();
+  const pr = $('#pkg-revise'); if(pr) pr.onclick = ()=>toast('说出要改的地方就行，比如「预算上限再低一点」','message');
+  main.querySelectorAll('[data-answer]').forEach(el=> el.onclick = ()=>{
+    const inp = $('#ans-'+el.dataset.answer);
+    state.blockedAnswer[el.dataset.answer] = inp?inp.value:'已回答';
+    state.attnAck['task:'+el.dataset.answer]=true;
+    rerenderMain(); toast('回答已送达，任务继续');
+  });
+  main.querySelectorAll('[data-stepok]').forEach(el=> el.onclick = ()=>{
+    state.stepConfirmed[el.dataset.stepok]=true; state.attnAck['task:'+el.dataset.stepok]=true;
+    rerenderMain(); toast('已确认，继续走下一步');
+  });
+  main.querySelectorAll('[data-stepno]').forEach(el=> el.onclick = ()=>toast('直接说哪不对，比如「录音态的计时太大」','pencil'));
+  main.querySelectorAll('[data-billing]').forEach(el=> el.onclick = ()=>{
+    if(el.dataset.billing==='1'){ state.billingCut=true; state.attnAck['task:tsk_saydo_expand']=true; rerenderMain(); toast('已拍板：切到 API 计费，月预算不变'); }
+    else { state.attnAck['task:tsk_saydo_expand']=true; rerenderMain(); toast('好，不切，任务停靠等你'); }
+  });
+  main.querySelectorAll('[data-retry]').forEach(el=> el.onclick = ()=>{
+    state.retried[el.dataset.retry]=true; rerenderMain(); toast('已重派，重新过全部门禁');
+  });
+  main.querySelectorAll('[data-mconflict]').forEach(el=> el.onclick = ()=>openConflictModal(taskById(el.dataset.mconflict)));
+  main.querySelectorAll('[data-drift]').forEach(el=> el.onclick = ()=>{
+    const act = el.dataset.drift;
+    if(act==='fix'){
+      state.driftResolved='fix';
+      const exp = EXPECTATIONS.foc_report;
+      exp.acceptance[2].state='untested'; exp.acceptance[2].note='已换字体方案重跑中（attempt 3）';
+      rerenderMain(); toast('已换字体方案重跑，期待不变（纠实施）','zap');
+    } else if(act==='watch'){
+      state.driftResolved='watch';
+      rerenderMain(); toast('好，挂着观察，8/12 还没解开我来提醒你','clock');
+    } else {
+      openDriftAdjustModal();
+    }
+  });
+  main.querySelectorAll('[data-exp-edit]').forEach(el=> el.onclick = ()=>{
+    openExpectEditModal(focusById(el.dataset.fid), el.dataset.expEdit, el.dataset.idx!=null?Number(el.dataset.idx):null);
+  });
+  main.querySelectorAll('[data-interview]').forEach(el=> el.onclick = ()=>{
+    state.interviewPicked = el.dataset.interview;
+    (state.liveTurns['foc_health'] = state.liveTurns['foc_health']||[]).push({speaker:'user', ts:new Date().toISOString(), heard:true, text:'先讲「'+el.dataset.interview+'」吧。'});
+    simulateReply('foc_health');
+    rerenderMain();
+  });
+  main.querySelectorAll('[data-fork]').forEach(el=> el.onclick = ()=>{
+    const src = focusById(el.dataset.fork);
+    const f = {id:'foc_'+Date.now(), title:src.title+'（续）', lifecycle:'captured', currentRevision:1,
+      spaceId:src.spaceId, direction:'从「'+src.title+'」fork 出来继续推进', projectRefs:[...(src.projectRefs||[])],
+      lanes:[{id:'lan_main',title:'主线'}], updatedAt:new Date().toISOString(), forkedFrom:src.id};
+    DB.focuses.push(f);
+    rerenderMain(); toast('已 fork（forked_from 留指针，历史各看各的）');
+    location.hash = '#/focus/'+f.id;
+  });
+  main.querySelectorAll('[data-s3]').forEach(el=> el.onclick = ()=>openS3Modal());
+  main.querySelectorAll('[data-gofocus]').forEach(el=> el.onclick = ()=>{
+    if(currentRoute === '#/focus/'+el.dataset.gofocus){
+      const inp = $('#composer-input');
+      if(inp){ inp.placeholder='就在下面说，比如「图表脚本失败的事怎么修」…'; inp.focus(); }
+      scrollConvo();
+      toast('就在下面说，我听着呢','message');
+      return;
+    }
+    location.hash = '#/focus/'+el.dataset.gofocus;
+  });
+  main.querySelectorAll('[data-goreview]').forEach(el=> el.onclick = ()=>{ location.hash = '#/review/'+el.dataset.goreview; });
+  main.querySelectorAll('[data-ob]').forEach(el=> el.onclick = ()=>{
+    const o = obById(el.dataset.ob);
+    if(o.actionRef && locateTimeline('tl-task-'+o.actionRef)) return;
+    openObligationModal(o);
+  });
+  main.querySelectorAll('[data-rail-task]').forEach(el=> el.onclick = ()=>{
+    if(!locateTimeline('tl-task-'+el.dataset.railTask)) openTaskModal(taskById(el.dataset.railTask));
+  });
+  main.querySelectorAll('[data-board-task]').forEach(el=> el.onclick = ()=>openTaskModal(taskById(el.dataset.boardTask)));
+  main.querySelectorAll('[data-board-ob]').forEach(el=> el.onclick = ()=>openObligationModal(obById(el.dataset.boardOb)));
+  main.querySelectorAll('[data-bcollapse]').forEach(el=> el.onclick = ()=>{
+    const fid = el.dataset.bcollapse;
+    const cur = state.boardCollapsed[fid] ?? (focusById(fid).lifecycle==='dormant');
+    state.boardCollapsed[fid] = !cur;
+    rerenderMain();
+  });
+  main.querySelectorAll('[data-bexpand]').forEach(el=> el.onclick = (e)=>{
+    e.stopPropagation();
+    state.boardExpand[el.dataset.bexpand] = true;
+    rerenderMain();
+  });
+  main.querySelectorAll('[data-art]').forEach(el=> el.onclick = ()=>{
+    const a = artById(el.dataset.art);
+    if(locateTimeline('tl-art-'+a.id)) return;
+    if(a.taskRef && locateTimeline('tl-task-'+a.taskRef)) return;
+    openArtifactModal(a);
+  });
+  main.querySelectorAll('[data-proj]').forEach(el=> el.onclick = ()=>openProjectModal(projById(el.dataset.proj)));
+  main.querySelectorAll('[data-expect-art]').forEach(el=> el.onclick = ()=>{
+    const fid = el.dataset.expectArt;
+    openInputModal({title:'我期待一个 X', label:'一句话说清你要什么产物（expected 挂账，我领义务去产出）', okText:'挂账', onOk(v){
+      if(!v){ toast('先说清楚要什么','x'); return; }
+      DB.artifacts.push({id:'art_'+Date.now(), focusId:fid, version:1, kind:'file', role:'expected', title:v, createdAt:new Date().toISOString()});
+      closeModal(); rerenderMain(); toast('已挂账：expected 产物进「待产出」，我这边同步开了对应义务','flag');
+    }});
+  });
+  const wake = $('#btn-wake-demo'); if(wake) wake.onclick = ()=>{
+    state.tripWoken = true;
+    const hotel = obById('fob_hotel'); if(hotel) resolveObligation(hotel,'done');
+    const iti = obById('fob_itinerary'); if(iti){ iti.status='open'; }
+    state.attnAck['ob:fob_hotel']=true;
+    rerenderMain(); toast('酒店已定，行程草案我开排了（dependency_woken），排好叫你','zap');
+  };
+  main.querySelectorAll('[data-ac]').forEach(el=> el.onclick = ()=>{
+    const tid = location.hash.split('/')[2]; state.reviewSel[tid] = Number(el.dataset.ac); rerenderMain();
+  });
+  main.querySelectorAll('[data-explain]').forEach(el=> el.onclick = ()=>{
+    const tid = location.hash.split('/')[2];
+    state.explainLevel = state.explainLevel || {};
+    state.explainLevel[tid] = state.explainLevel[tid]===el.dataset.explain ? undefined : el.dataset.explain;
+    rerenderMain();
+  });
+  main.querySelectorAll('[data-verdict]').forEach(el=> el.onclick = ()=>{
+    const tid = el.dataset.task; if(!state.acVerdicts[tid]) state.acVerdicts[tid]={};
+    state.acVerdicts[tid][state.reviewSel[tid]??0] = el.dataset.verdict; rerenderMain();
+  });
+  main.querySelectorAll('[data-overrule]').forEach(el=> el.onclick = ()=>toast('已记下推翻，会按你的口径重做这部分','history'));
+  const ap = $('#btn-approve'); if(ap) ap.onclick = ()=>toast('已通过验收。合并仍需你单独拍板','flag');
+  const rw = $('#btn-rework'); if(rw) rw.onclick = ()=>toast('说出返工意见，比如「第二章例子换掉」','pencil');
+  const rj = $('#btn-reject'); if(rj) rj.onclick = ()=>toast('已标记这轮不行，任务回到你手里','x');
+  main.querySelectorAll('[data-memopen]').forEach(el=> el.onclick = ()=>openMemoryModal(DB.memory.find(x=>x.id===el.dataset.memopen)));
+  main.querySelectorAll('[data-mem]').forEach(el=> el.onclick = (e)=>{
+    e.stopPropagation();
+    const mm = DB.memory.find(x=>x.id===el.dataset.id);
+    if(el.dataset.mem==='ok'){ mm.trust='user_approved'; }
+    else { DB.memory = DB.memory.filter(x=>x.id!==el.dataset.id); }
+    rerenderMain(); toast(el.dataset.mem==='ok'?'已升格为你确认过':'已丢弃，不进记忆');
+  });
+  main.querySelectorAll('[data-space-new]').forEach(el=> el.onclick = ()=>{
+    openInputModal({title:'新空间', label:'叫什么', okText:'创建', onOk(v){
+      if(!v){ toast('先给个名字','x'); return; }
+      DB.spaces.push({id:'spa_'+Date.now(), title:v});
+      closeModal(); rerenderMain(); toast('空间已创建');
+    }});
+  });
+  main.querySelectorAll('[data-space-rename]').forEach(el=> el.onclick = ()=>{
+    const sp = DB.spaces.find(s=>s.id===el.dataset.spaceRename);
+    openInputModal({title:'重命名空间', label:'新名字', value:sp.title, okText:'重命名', onOk(v){
+      if(!v){ toast('名字不能为空','x'); return; }
+      sp.title = v; closeModal(); rerenderMain(); toast('已重命名');
+    }});
+  });
+  main.querySelectorAll('[data-space-del]').forEach(el=> el.onclick = ()=>{
+    const sp = DB.spaces.find(s=>s.id===el.dataset.spaceDel);
+    const n = DB.focuses.filter(f=>f.spaceId===sp.id).length;
+    openInputModal({title:'删除空间「'+sp.title+'」', body:`里面的 ${n} 件 Focus 不会被删，只是不再归这个空间。`, okText:'删除', danger:true, onOk(){
+      DB.focuses.forEach(f=>{ if(f.spaceId===sp.id) f.spaceId=null; });
+      DB.spaces = DB.spaces.filter(s=>s.id!==sp.id);
+      closeModal(); rerenderMain(); toast('空间已删除，Focus 都还在');
+    }});
+  });
+  main.querySelectorAll('[data-farchive]').forEach(el=> el.onclick = ()=>{
+    openInputModal({title:'归档 Focus', label:'归档理由（必填）', value:'这件事告一段落了', okText:'归档', onOk(v){
+      if(!v){ toast('归档理由必填','x'); return; }
+      focusById(el.dataset.farchive).lifecycle='archived';
+      closeModal(); location.hash = '#/today'; toast('已归档（理由：'+v+'）· 归档不进 attention、拒绝新写入');
+    }});
+  });
+  main.querySelectorAll('[data-fabandon]').forEach(el=> el.onclick = ()=>{
+    openInputModal({title:'放弃这件 Focus', label:'放弃理由（必填）· 放弃 ≠ 收官，是你主动中止', value:'优先级变了，不再投入', okText:'放弃它', danger:true, onOk(v){
+      if(!v){ toast('放弃理由必填','x'); return; }
+      focusById(el.dataset.fabandon).lifecycle='abandoned';
+      closeModal(); location.hash = '#/today'; toast('已放弃（理由：'+v+'）· 放弃也是干净的收场');
+    }});
+  });
+  main.querySelectorAll('[data-freopen]').forEach(el=> el.onclick = ()=>{
+    focusById(el.dataset.freopen).lifecycle='active'; rerenderMain(); toast('已重开');
+  });
+  main.querySelectorAll('[data-redo]').forEach(el=> el.onclick = ()=>toast('preview：从 #31 重走将作废 3 条后续（exact set 语义），确认后执行','history'));
+  main.querySelectorAll('[data-laneop]').forEach(el=> el.onclick = ()=>{
+    const op = el.dataset.laneop;
+    toast({retire:'线已收起（有未收起的子线时会被拒）', redo:'preview：从此步重走将作废 2 条后续（exact set 语义）', cont:'已记下：新会话记账默认归这条线（defaultLane 注入）'}[op]||op,'history');
+  });
+  main.querySelectorAll('[data-dep-undo]').forEach(el=> el.onclick = ()=>{
+    const o = obById(el.dataset.depUndo);
+    if(o){ o.waitingOnObligationId=null; if(o.status==='waiting') o.status='open'; }
+    rerenderMain(); toast('依赖已解除（dependency 事件落账）');
+  });
+  main.querySelectorAll('[data-seg]').forEach(el=> el.onclick = ()=>{
+    state.segOpen = state.segOpen===el.dataset.seg ? null : el.dataset.seg;
+    rerenderMain();
+  });
+  const bf = $('#btn-forget'); if(bf) bf.onclick = ()=>{
+    openInputModal({title:'删除数据（forget_hard）', label:'要删哪条？（记忆或产物名）', okText:'全库覆写删除', danger:true, onOk(v){
+      if(!v){ toast('先说删哪条','x'); return; }
+      closeModal(); toast('已覆写删除：fts / projection / summary / backup / snapshot 五处同步（演示）','shieldAlert');
+    }});
+  };
+  const bt = $('#btn-tailnet'); if(bt) bt.onclick = ()=>openTailnetModal();
+}
+
+/* 弹窗内交互 */
+function wireModal(){
+  const root = $('#modal-root');
+  root.querySelectorAll('[data-close]').forEach(el=> el.onclick = closeModal);
+  root.querySelectorAll('[data-appr]').forEach(el=> el.onclick = ()=>{
+    const rid = el.dataset.rid; const act = el.dataset.appr;
+    state.approvalDone = state.approvalDone || {};
+    if(act==='edit'){
+      $('#appr-edit-area').innerHTML = `
+        <div class="field" style="margin-top:var(--space-3)"><label>改成什么样再批（原命令逐字可改）</label>
+        <textarea id="appr-cmd" rows="2">git push origin demo/redesign-2026-08-07</textarea></div>
+        <div class="modal-row"><button class="btn btn-primary" data-appr-confirm="${rid}">按我改的签新收据</button></div>`;
+      root.querySelectorAll('[data-appr-confirm]').forEach(b=> b.onclick = ()=>{
+        state.approvalDone[rid] = '已按你改的命令签出新收据（superseded_by_edit，旧收据作废）';
+        state.attnAck['appr:'+rid]=true;
+        closeModal(); rerenderMain(); toast('已改后批准，新收据已签','pencil');
+      });
+      return;
+    }
+    const doneText = {accept:'已批准（收据待消费）', reject:'已拒绝（rejected）', ignore:'先挂起，到点我再提醒你'}[act];
+    state.approvalDone[rid] = doneText;
+    state.attnAck['appr:'+rid]=true;
+    closeModal(); rerenderMain(); toast(doneText, act==='reject'?'x':'check');
+  });
+  root.querySelectorAll('[data-hp-yes],[data-hp-no]').forEach(el=> el.onclick = ()=>{
+    const tid = el.dataset.hpYes || el.dataset.hpNo;
+    state.blockedAnswer[tid] = el.dataset.hpYes !== undefined ? '可以发' : '不行，换写法';
+    state.attnAck['task:'+tid]=true;
+    closeModal(); rerenderMain(); toast('裁决已回传 Hopper（DecisionRequest resolved），任务继续','zap');
+  });
+  root.querySelectorAll('[data-anchor-daily]').forEach(el=> el.onclick = ()=>{
+    const f = focusById(el.dataset.anchorDaily);
+    let daily = DB.projects.find(p=>p.id==='prj_daily');
+    if(!daily){ daily = {id:'prj_daily', title:'日常', kind:'local_folder', path:'~/SayDo/daily'}; DB.projects.push(daily); }
+    f.projectRefs = [daily.id];
+    closeModal(); rerenderMain(); toast('已挂到「日常」项目，可以开口了','mic');
+  });
+  root.querySelectorAll('[data-anchor-proj]').forEach(el=> el.onclick = ()=>{
+    const [fid, pid] = el.dataset.anchorProj.split('|');
+    const f = focusById(fid);
+    f.projectRefs = [...new Set([...(f.projectRefs||[]), pid])];
+    closeModal(); rerenderMain(); toast('已挂到「'+(projById(pid)||{}).title+'」，可以开口了','mic');
+  });
+  const exn = $('#exp-next'); if(exn) exn.onclick = ()=>{
+    const p = DB.pkg;
+    const budget = Number($('#exp-budget').value)||p.cost.max.value;
+    const acs = [...document.querySelectorAll('[data-exp-ac]')].map(i=>i.value.trim()).filter(Boolean);
+    const diff = [];
+    if(budget!==p.cost.max.value) diff.push(`预算 ¥${p.cost.max.value} → ¥${budget}：第 3 步并入第 2 步，少一次截图复核`);
+    if(acs.length!==p.acceptance.length) diff.push(`验收标准 ${p.acceptance.length} 条 → ${acs.length} 条`);
+    if(!diff.length) diff.push('口径不变，只润色了措辞');
+    openModal(`
+      <div class="h-sec">我复述一遍影响，确认才生效</div>
+      <ul class="pkg-list" style="margin-top:var(--space-3)">${diff.map(d=>`<li>${icon('arrowRight',12)}<span>${esc(d)}</span></li>`).join('')}</ul>
+      <div class="xs faint" style="margin-top:var(--space-3)">确认后：包升为 r${p.revision+1}，revision 事件落账，历史不可篡改；我按新的做，不按旧的。改完没复述=没生效，防「你改了但我按旧的做」分叉。</div>
+      <div class="modal-row"><button class="btn btn-primary" id="exp-commit">确认，按新期待来</button><button class="btn" data-close="1">再想想</button></div>`);
+    const exCommit = $('#exp-commit'); if(exCommit) exCommit.onclick = ()=>{
+      if(acs.length) p.acceptance = acs;
+      p.cost.max.value = budget;
+      p.revision += 1;
+      closeModal(); rerenderMain(); toast('期待已直改并复述确认：包升 r'+p.revision+'（revision 事件落账）','flag');
+    };
+  };
+  const nfCreate = (goChat)=>{
+    const title = $('#nf-title').value.trim();
+    if(!title){ toast('先给个名字','x'); return; }
+    const f = {id:'foc_'+Date.now(), title, lifecycle:'captured', currentRevision:1,
+      spaceId:$('#nf-space').value, direction:$('#nf-dir').value.trim()||'还没说清方向，聊起来再定',
+      projectRefs:[], lanes:[{id:'lan_main',title:'主线'}], updatedAt:new Date().toISOString()};
+    DB.focuses.push(f);
+    closeModal(); toast('已立起来（captured）· 快速立卡完成；主路径仍是开口聊');
+    location.hash = goChat ? '#/focus/'+f.id : '#/today';
+  };
+  const nfc = $('#nf-create'); if(nfc) nfc.onclick = ()=>nfCreate(false);
+  const nfcc = $('#nf-create-chat'); if(nfcc) nfcc.onclick = ()=>{
+    const title = $('#nf-title').value.trim();
+    if(!title){ toast('先给个名字','x'); return; }
+    const f = {id:'foc_'+Date.now(), title, lifecycle:'captured', currentRevision:1,
+      spaceId:$('#nf-space').value, direction:$('#nf-dir').value.trim()||'还没说清方向，聊起来再定',
+      projectRefs:[], lanes:[{id:'lan_main',title:'主线'}], updatedAt:new Date().toISOString(), learning:true};
+    DB.focuses.push(f);
+    closeModal(); toast('已立起来（captured）· 快速立卡完成；主路径仍是开口聊');
+    location.hash = '#/focus/'+f.id;
+    setTimeout(()=>{
+      f.learning = false;
+      (state.liveTurns[f.id] = state.liveTurns[f.id]||[]).push({speaker:'ai', ts:new Date().toISOString(), heard:true, text:'学完了。我把相关的材料和你之前说过的偏好过了一遍：这件事我理解的要点有三个，先说给你听，你看对不对——不对的地方现在纠正最便宜。'});
+      if(currentRoute==='#/focus/'+f.id){ rerenderMain(); scrollConvo(); }
+      toast('奠基完成，可以开聊了','zap');
+    }, 6000);
+  };
+  root.querySelectorAll('[data-realize]').forEach(el=> el.onclick = ()=>{
+    const a = artById(el.dataset.realize);
+    a.role='deliverable'; a.digest='sha256:'+Math.random().toString(16).slice(2,6)+'…new'; a.version=(a.version||1);
+    if(a.obRef && obById(a.obRef)) resolveObligation(obById(a.obRef),'done');
+    closeModal(); rerenderMain(); toast('已标记产出（expected → deliverable，CAS）');
+  });
+  root.querySelectorAll('[data-export]').forEach(el=> el.onclick = ()=>{
+    const a = artById(el.dataset.export);
+    const blob = new Blob([JSON.stringify({bundle:[a], exportedAt:new Date().toISOString(), note:'跨 Focus 拒导'},null,2)],{type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a'); link.href=url; link.download=a.title+'.json'; link.click();
+    URL.revokeObjectURL(url); toast('已导出 JSON bundle');
+  });
+  root.querySelectorAll('[data-gotask]').forEach(el=> el.onclick = ()=>{ closeModal(); openTaskModal(taskById(el.dataset.gotask)); });
+  root.querySelectorAll('[data-date]').forEach(el=> el.onclick = ()=>{
+    state.datePicked = el.dataset.date;
+    resolveObligation(obById('fob_date'),'done');
+    const venue = obById('fob_venue'); if(venue){ venue.status='waiting'; venue.waitingOn='场地预订方'; venue.dueOrTrigger='场地确认，或 8/15 我提醒你'; }
+    closeModal(); rerenderMain(); toast('发布会定在 '+el.dataset.date+' · 「订场地」已醒（deferred → waiting）','calendar');
+  });
+  const dc = document.querySelector('[data-date-custom]'); if(dc) dc.onclick = ()=>{
+    const v = $('#date-custom').value.trim() || '9 月 19 日';
+    state.datePicked = v; resolveObligation(obById('fob_date'),'done');
+    const venue = obById('fob_venue'); if(venue){ venue.status='waiting'; venue.waitingOn='场地预订方'; }
+    closeModal(); rerenderMain(); toast('发布会定在 '+v,'calendar');
+  };
+  const csv = document.querySelector('[data-csv]'); if(csv) csv.onclick = ()=>{
+    state.csvPlaced = true;
+    const a = artById('art_csv'); if(a){ a.role='deliverable'; a.digest='sha256:q2csv…ok'; }
+    resolveObligation(obById('fob_csv'),'done');
+    closeModal(); rerenderMain(); toast('缺料已补上，跑批可以跑了','flag');
+  };
+  const pdf = document.querySelector('[data-pdf]'); if(pdf) pdf.onclick = ()=>{
+    resolveObligation(obById('fob_health_pdf'),'done');
+    closeModal(); rerenderMain(); toast('收到报告，我开始解读，圈出要复查的项叫你','zap');
+  };
+  const bg = document.querySelector('[data-budget]'); if(bg) bg.onclick = ()=>{
+    const v = $('#budget-ans').value.trim() || '两万可以';
+    resolveObligation(obById('fob_budget'),'done');
+    closeModal(); rerenderMain(); toast('记下了：'+v);
+  };
+  const apply = document.querySelector('[data-apply]'); if(apply) apply.onclick = ()=>{
+    resolveObligation(obById('fob_demo_review'),'done');
+    closeModal(); rerenderMain(); toast('好，走仓内评审流程：双 subagent + codex 对抗评审，然后出实施计划','flag');
+  };
+  const revise = document.querySelector('[data-revise]'); if(revise) revise.onclick = ()=>{
+    closeModal(); location.hash = '#/focus/foc_saydo'; toast('直接在对话里说哪里要改','message');
+  };
+  root.querySelectorAll('[data-nudge]').forEach(el=> el.onclick = ()=>{
+    closeModal(); toast('已记催办：到点没回我会提醒你（邮件通道 P1）','mail');
+  });
+  const wk = document.querySelector('[data-wake]'); if(wk) wk.onclick = ()=>{
+    closeModal();
+    state.tripWoken = true;
+    resolveObligation(obById('fob_hotel'),'done');
+    const iti = obById('fob_itinerary'); if(iti){ iti.status='open'; }
+    state.attnAck['ob:fob_hotel']=true;
+    rerenderMain(); toast('对方回复了，后续安排自动醒（dependency_woken）','zap');
+  };
+  root.querySelectorAll('[data-obdone]').forEach(el=> el.onclick = ()=>{
+    resolveObligation(obById(el.dataset.obdone),'done');
+    closeModal(); rerenderMain(); toast('已了结');
+  });
+  root.querySelectorAll('[data-obtoai]').forEach(el=> el.onclick = ()=>{
+    const o = obById(el.dataset.obtoai); o.owner='agent'; o.needs=undefined;
+    closeModal(); rerenderMain(); toast('转给我了，你不用再盯');
+  });
+  root.querySelectorAll('[data-later]').forEach(el=> el.onclick = ()=>{
+    const o = obById(el.dataset.later); o.status='deferred'; o.deferReason='你说稍后';
+    closeModal(); rerenderMain(); toast('好，先搁置，到点我提醒你','clock');
+  });
+  root.querySelectorAll('[data-confmine],[data-conftheirs]').forEach(el=> el.onclick = ()=>{
+    closeModal(); toast(el.dataset.confmine!==undefined?'已保留你的改法，任务重新合并':'已采用任务的，重新合并');
+  });
+  /* 任务弹窗内的按钮复用主页面行为 */
+  root.querySelectorAll('[data-go]').forEach(el=> el.onclick = ()=>{ closeModal(); location.hash = el.dataset.go; });
+  root.querySelectorAll('[data-gofocus]').forEach(el=> el.onclick = ()=>{ closeModal(); location.hash = '#/focus/'+el.dataset.gofocus; });
+  root.querySelectorAll('[data-answer]').forEach(el=> el.onclick = ()=>{
+    const inp = document.querySelector('#ans-'+el.dataset.answer);
+    state.blockedAnswer[el.dataset.answer] = inp?inp.value:'已回答';
+    state.attnAck['task:'+el.dataset.answer]=true;
+    closeModal(); rerenderMain(); toast('回答已送达，任务继续');
+  });
+  root.querySelectorAll('[data-stepok]').forEach(el=> el.onclick = ()=>{
+    state.stepConfirmed[el.dataset.stepok]=true; state.attnAck['task:'+el.dataset.stepok]=true;
+    closeModal(); rerenderMain(); toast('已确认，继续走下一步');
+  });
+  root.querySelectorAll('[data-stepno]').forEach(el=> el.onclick = ()=>toast('直接说哪不对，比如「录音态的计时太大」','pencil'));
+  root.querySelectorAll('[data-billing]').forEach(el=> el.onclick = ()=>{
+    if(el.dataset.billing==='1'){ state.billingCut=true; state.attnAck['task:tsk_saydo_expand']=true; closeModal(); rerenderMain(); toast('已拍板：切到 API 计费，月预算不变'); }
+    else { state.attnAck['task:tsk_saydo_expand']=true; closeModal(); rerenderMain(); toast('好，不切，任务停靠等你'); }
+  });
+  root.querySelectorAll('[data-s3]').forEach(el=> el.onclick = ()=>openS3Modal());
+  root.querySelectorAll('[data-retry]').forEach(el=> el.onclick = ()=>{
+    state.retried[el.dataset.retry]=true; closeModal(); rerenderMain(); toast('已重派，重新过全部门禁');
+  });
+  root.querySelectorAll('[data-mconflict]').forEach(el=> el.onclick = ()=>openConflictModal(taskById(el.dataset.mconflict)));
+  root.querySelectorAll('[data-goreview]').forEach(el=> el.onclick = ()=>{ closeModal(); location.hash = '#/review/'+el.dataset.goreview; });
+}
+
+/* 确认卡倒计时 */
+setInterval(()=>{
+  document.querySelectorAll('[data-countdown]').forEach(el=>{
+    const rid = el.dataset.countdown;
+    const r = DB.approvals.find(a=>a.id===rid);
+    if(!r || state.confirmResolved[rid]) return;
+    const left = Math.max(0, Math.round((new Date(r.presentedAt).getTime()+r.ttlMin*60000 - Date.now())/1000));
+    const txt = `${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`;
+    el.textContent = txt; state.confirmLeft[rid] = txt;
+    if(left===0){ state.confirmResolved[rid]='expired'; state.attnAck['conf:'+rid]=true; rerenderMain(); toast('超时未确认：这条不记（candidate 永不会自动生效，过期即丢不假装回流）','clock'); }
+  });
+}, 1000);
+
+/* 全局 */
+document.addEventListener('click', (e)=>{
+  if(state.bellOpen && !e.target.closest('#bell-dd') && !e.target.closest('#btn-bell')){
+    state.bellOpen=false; renderTopbar();
+  }
+});
+document.addEventListener('keydown',(e)=>{
+  if(e.key==='Escape'){
+    if($('#modal-ov')){ closeModal(); return; }
+    if(state.composer.mode!=='idle'){ composerAction('cancel'); }
+  }
+  if(e.key==='Enter' && e.target && (e.target.id==='composer-input'||e.target.id==='composer-edit')){ composerAction('sendtext'); }
+});
+$('#toggle-notes').onclick = (e)=>{ e.preventDefault(); $('#design-notes').classList.toggle('open'); };
+window.addEventListener('hashchange', ()=>route(location.hash||'#/today'));
+
+if(new URLSearchParams(location.search).get('theme')==='dark'){ state.theme='dark'; document.documentElement.dataset.theme='dark'; }
+renderDesignNotes();
+renderTopbar();
+route(location.hash || '#/today');
+</script>
+</body>
+</html>

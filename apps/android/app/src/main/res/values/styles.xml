@@ -1,0 +1,10 @@
+<resources>
+    <style name="Theme.SayDo" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">#FAFAFA</item>
+        <item name="android:statusBarColor">#FAFAFA</item>
+        <item name="colorAccent">#3157D5</item>
+    </style>
+</resources>

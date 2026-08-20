@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.octoooo.saydo",
+      "sha256_cert_fingerprints": [
+        "B1:05:99:4D:85:06:72:7A:BD:EA:70:0F:1D:D9:33:8E:8C:9F:5E:DF:FB:C0:E9:C4:E1:6C:BC:25:B7:4E:23:65"
+      ]
+    }
+  }
+]
