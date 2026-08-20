@@ -16,7 +16,7 @@
 | 0 | 顶栏 nav:怎么工作 / 为什么不一样 / 产品现状 / 下载 / 常见问题 / 中·EN / 主题 | — | 缺「文档」入口;「下载」名不副实(无安装包可下,实际是「开始用」) |
 | 1 | Hero:eyebrow + H1「说到,就做到。」+ 副标 + 长描述 + 双按钮(查看开源仓库 / 了解怎么工作)+ aside + 语音条 + 四色账本 + 图例 | `.hero` | 主视觉与账本合一很好。**主按钮指向 GitHub**——对访客而言首要动作应是「开始用」;仓库公开前该按钮更不宜为主 CTA。长描述一句 70+ 字可再收 |
 | 2 | 信任条:数据不出你的设备 / 开源免费 / 复用你已有的 AI 订阅 / 无账号·无云端·无埋点 | `.strip` | 好;「开源免费」受 C-1 约束 |
-| 3 | 怎么工作:七步时间线 | `#how` | 步 3「三件套 … 轻量 Demo」与步 6「在线语音回叫 → 桌面通知」超出现状(Demo 未接线;语音回叫 / 桌面通知未接,现有 = 控制台 + ntfy 推送) |
+| 3 | 怎么工作:七步时间线 | `#how` | (2026-08-20 已解除)Demo 小样与回叫升级链当日落地;步 3 / 6 用 B.3 更新版文案 |
 | 4 | 痛点对照:没有它的时候 / 有了说到 | `#contrast` | 好,保留 |
 | 5 | 为什么不一样:六卖点卡 | `#why` | 「先吃透,再办事」中「先深度研究透」偏重;「AI 真的在干活」把推理供给与执行器混为一句(Gemini CLI 不能执行;Claude Code 执行器在建) |
 | 6 | 产品现状:7 张卡(3 可用 + 4 Coming soon) | `#status` | 诚实区是亮点;「驱动你已有的 AI · 现在可用」需拆两层;可补「进行中」徽标承载 Claude Code 执行器(新增一种 badge 颜色属最小 UI 变更,可选) |
@@ -69,7 +69,7 @@
   *EN: A voice-first chief of staff for your projects. Just talk it through — it studies your project first, keeps a four-color ledger of everything, and once it understands, it drives the AI tools already on your machine. When the run and its checks are done, it calls you back for review.*
 - [改] 按钮:主 `开始用`(→ `#start`)/ 次 `了解怎么工作`(→ `#how`)
   *EN: Get started / How it works*
-- [改] aside:`桌面服务开源免费 · 查看 GitHub` | `iOS / Android / HarmonyOS · Coming soon`(GitHub 作为 aside 内链接;仓库公开前先不放链接,见 C-1)
+- [改] aside:`桌面服务开源免费 · 查看 GitHub` | `iOS / Android / HarmonyOS · Coming soon`(GitHub 链接指向已公开的仓库)
   *EN: Desktop service · free & open source · View on GitHub | iOS / Android / HarmonyOS · Coming soon*
 - [保留] 语音条示例句、四色账本四行与图例(文案已贴合产品:等你拍板 / 你欠的动作 / AI 正在办 / 等外部回音)。
 
@@ -83,12 +83,12 @@
 - 标题 [保留]:eyebrow `从聊一句,到办完叫你` / H2 `一个完整的闭环` / 引语 `你只管聊和拍板,重活它来。执行和检查都跑完,它主动叫你验收——你点头,才算交付。`
 - 1 开口聊 [保留]
 - 2 就绪决断 [保留]
-- 3 决策包 [改]:`端出决策包请你拍板:成果预览(做完你会得到什么)、实施计划(每步标好 AI 执行还是需要你配合)、预计花费与封顶。看着具体的东西说「对 / 不对 / 调一下」,比凭空写需求容易一个数量级。`
-  *EN: A decision pack lands in front of you: an outcome preview (what you'll get), a plan (each step marked AI-run or needs-you), and the expected cost with a hard cap. Saying "yes / no / tweak this" to something concrete is an order of magnitude easier than writing a spec from scratch.*
+- 3 决策包 [改]:`端出决策包请你拍板:成果预览(做完你会得到什么)、实施计划(每步标好 AI 执行还是需要你配合)、预计花费与封顶,外加一份轻量小样——和计划同源生成的网页预览,先看一眼「最终长什么样」。看着具体的东西说「对 / 不对 / 调一下」,比凭空写需求容易一个数量级。`
+  *EN: A decision pack lands in front of you: an outcome preview (what you'll get), a plan (each step marked AI-run or needs-you), the expected cost with a hard cap — plus a lightweight mock: a web preview generated from the same plan, so you can see what "done" looks like first. Saying "yes / no / tweak this" to something concrete is an order of magnitude easier than writing a spec from scratch.*
 - 4 你拍板 [保留]
 - 5 后台执行 [保留]
-- 6 办完叫你 [改]:`执行和检查都跑完,它主动叫你验收——说「等你验收」,而不是「做完了」。「今天」页亮起橙区,也能推到你的手机(ntfy);在线语音回叫与桌面通知在路上。`
-  *EN: When the run and its checks finish, it says "ready for your review" — not "done". It lights up the Today page and can push to your phone (ntfy); in-app voice callbacks and desktop notifications are on the way.*
+- 6 办完叫你 [改]:`执行和检查都跑完,它主动叫你验收——说「等你验收」,而不是「做完了」。回叫按升级链走:配好语音时它在线开口叫你,没应答再升级为桌面通知和手机推送(ntfy);免打扰时段只留一条轻推送,过后补叫。`
+  *EN: When the run and its checks finish, it says "ready for your review" — not "done". Callbacks escalate: with voice set up it speaks to you at the console; if you don't answer, it escalates to a desktop notification and a push to your phone (ntfy). During do-not-disturb hours it leaves one quiet push and follows up after.*
 - 7 验收沉淀 [保留]
 
 ## B.4 痛点对照
@@ -115,8 +115,8 @@
 - 驱动你已有的 AI · 现在可用 [改]:`对话、思考、评估可用你已登录的 Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot 订阅,或任一 OpenAI 兼容 API;真正动手改代码的执行器当前为 Cursor Agent。`
   *EN: Conversation, reasoning, and evaluation run on your signed-in Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot subscriptions, or any OpenAI-compatible API; the executor that actually edits code is Cursor Agent today.*
 - 项目记忆与四色账本 · 现在可用 [保留]
-- [可选新增] Claude Code 执行器 · 进行中:`用你的 Claude 订阅登录态驱动 Claude Code 在隔离 worktree 里改代码,审批门同样 fail-closed。方案已定,接入中。`(需新增一种「进行中」徽标;若不想动 UI,把这句并入上一张卡末尾)
-  *EN: Claude Code executor · In progress — drive Claude Code with your own Claude subscription in an isolated worktree, behind the same fail-closed approval gate. Designed, being wired in.*
+- [可选新增] Claude Code 执行器 · 进行中:`用你的 Claude 订阅登录态驱动 Claude Code 在隔离 worktree 里改代码,审批门同样 fail-closed。能力实测与审批门已落,接线中。`(需新增一种「进行中」徽标;若不想动 UI,把这句并入上一张卡末尾)
+  *EN: Claude Code executor · In progress — drive Claude Code with your own Claude subscription in an isolated worktree, behind the same fail-closed approval gate. Capabilities verified and the gate built; wiring in progress.*
 - iOS / Android / HarmonyOS / 来电式语音汇报 四卡 [保留]
 
 ## B.7 沟通面 ↔ 执行面
@@ -165,9 +165,9 @@
 | # | 事项 | 现状 | 建议 |
 |---|---|---|---|
 | C-1 | **已解除(2026-08-20)**:LICENSE = Apache-2.0;仓库已公开(`github.com/Octo-o-o-o/SayDo` = 快照仓,全史在私有归档;处置记录 `docs/plan/2026-08-20-repo-public-readiness.fable.md` §3.1) | 首页「开源免费」与 GitHub 直链成立 | 本稿可按原文案上线 |
-| C-2 | 「驱动你已有的 AI」两层混写 | 推理槽 7 家 CLI 可用;执行器仅 Cursor;Claude Code 执行器方案 v2 未开批;Gemini CLI 无执行计划 | 按 B.5 / B.6 拆句;是否加「进行中」徽标由 owner 定 |
-| C-3 | 七步第 3 步「轻量 Demo」 | 生成器已落地、生产无调用方 | B.3 删去 Demo,改写为预览 / 计划 / 花费 |
-| C-4 | 七步第 6 步「在线语音回叫 → 桌面通知」 | 两者未接线;现有 = 控制台 + ntfy | B.3 如实改写 |
+| C-2 | 「驱动你已有的 AI」两层混写 | 推理槽 7 家 CLI 可用;执行器仅 Cursor;Claude Code 执行器第一批(能力实测 + 审批门)已收口(2026-08-20)、接线批在途;Gemini CLI 无执行计划 | 按 B.5 / B.6 拆句;是否加「进行中」徽标由 owner 定 |
+| C-3 | **已解除(2026-08-20)**:七步第 3 步「轻量 Demo」 | S1 批落地:决策包同轮生成轻量小样(机械渲染)+ 控制台「看小样」+ 本机同轮上屏 | B.3 第 3 步已恢复小样表述(更新版) |
+| C-4 | **已解除(2026-08-20)**:七步第 6 步回叫升级链 | S2 批落地:在线语音回叫(控制台在线 + 语音管线健康)→ macOS 桌面通知 + ntfy;免打扰只推不响;「知道了」/开口即应答 | B.3 第 6 步已按新事实改写 |
 | C-5 | 「先深度研究透」 | 奠基 = 机械管道;LLM 深研未做 | B.5 改「读透结构、约定与关键文件」 |
 | C-6 | 「手机扫码即连」 | 需 `SAYDO_MOBILE_LAN=1`、仅私网、App 未上架(浏览器或自构建壳) | B.9 引语加限定;FAQ 保留但 Docs 写清 |
 | C-7 | 「语音无需额外配置,浏览器即可用」 | 成立(浏览器系统语音回退,2026-08-13) | 可保留;B.10 给更准版本供选 |
@@ -181,3 +181,4 @@
 - 对照现站中英文全文逐区核对;每条 [改] 的事实依据均可在 Docs 稿 §C.1 / §C.3 找到坐标;未引入任何未落地能力的承诺;状态词全稿只用「等你验收」「交付」。
 - 零 emoji:本稿过 `scripts/check-emoji.sh`。
 - 未动视觉:所有建议均为文案替换、链接指向与锚点;唯一可选 UI 变更 = 新增「进行中」徽标(B.6),已标可选并给不改 UI 的替代。
+- 2026-08-20 午前复核(第二轮):C-1 / C-3 / C-4 解除(仓库公开、Demo 小样与回叫升级链落地),B.1 aside / B.3 第 3、6 步 / B.6 进行中卡 / C 表同步更新;其余区块复核无变,可直接实施。

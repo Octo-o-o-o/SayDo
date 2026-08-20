@@ -79,7 +79,7 @@
 | **奠基(Foundation)** | 第一次接触项目时的阻塞式深度研究,建立项目知识底座(M1) | §9.2 |
 | **M0–M3 记忆** | M0 跨项目用户档案层 / M1 项目知识底座 / M2 累积产物 / M3 会话转写 | §9.1 |
 | **就绪(Readiness)** | 「够不够开始」的判定:按项目类型的就绪清单逐项确认,由独立评估器(与对话模型**不同家族**)复核 | §3.3、§5.4 |
-| **决策包** | 就绪后端出的成果预览 + 实施计划(每步标 AI 执行 / 需你配合)+ 预计花费与封顶,外加一句「现在开始?」(轻量 Demo 小样的生成器已落地、尚未接进对话流程) | §3.3 |
+| **决策包** | 就绪后端出的成果预览 + 实施计划(每步标 AI 执行 / 需你配合)+ 预计花费与封顶,外加一份轻量小样(与计划同源机械渲染的网页预览)和一句「现在开始?」 | §3.3 |
 | **执行模式** | **逐步确认**(每个出圈动作和步骤边界都先问你;出厂默认,当前唯一生效档)/ **直达验收**(一口气跑到等你验收,S2 类效果按念读签署的预授权清单放行;进行中) | §8.4 |
 | **S0–S3** | 动作风险分级(按效果算,不按动作名):S0 读 / S1 写 worktree 内 / S2 出圈可逆 / S3 不可逆或外部影响。S3 永远只走已认证屏幕,语音绝不放行 | §8.1 |
 | **Gate 0** | 开放自主派发前的安全门禁(身份授权、幂等、独立验收 oracle、secret/egress、意图审计、删除/同意传播);代码里没有 bypass 分支 | §8.2 |
@@ -136,10 +136,10 @@
 |---|---|---|---|
 | 1 开口聊 | 「今天」页点「开口聊」,按住说话或打字;随口一句「帮我记一下」立刻进账;它像采访一样一次问一个 | Context Pack(从 M0+M1+M2 挑相关切片 + 最近几轮)注入;采访纪律:一次一问、选择题优先、有问题预算 | 说 |
 | 2 就绪决断 | 它每轮自省「知识够不够 + 需求清不清」,缺哪维补哪维;够了才提议开工 | 按项目类型的就绪清单(coding:目标 / 可验证的验收标准 / 范围 / 约束 / 代码库关键部分已理解)逐项确认;确认 = 你亲口给出 + 它复述你点头;独立评估器(异族模型)在提议前复核 | 听提议 |
-| 3 决策包 | 端出成果预览、实施计划(每步标 AI 执行 / 需你配合)、范围内外、验收标准、风险,报预计花费与封顶;轻量 Demo 小样(HTML 预览或样章)的生成器已落地、尚未接进对话流程 | 计划落盘为可编辑产物,批准版本固化为「合同」;决策包有效期 24 小时 | 看 |
+| 3 决策包 | 端出成果预览、实施计划(每步标 AI 执行 / 需你配合)、范围内外、验收标准、风险,报预计花费与封顶;随包生成一份轻量小样(网页预览,与计划同源机械渲染)——控制台点「看小样」查看,本机对话时同轮放到你屏幕上 | 计划落盘为可编辑产物,批准版本固化为「合同」;小样随包固化(改包即重生成);决策包有效期 24 小时 | 看 |
 | 4 你拍板 | 说「就这样」/「开始」;执行模式当前按「逐步确认」(「一口气跑完」档的语音念读签署进行中,§8.4) | 两把钥匙:「证据够了」≠「有权的人批准了这个包+范围+预算+有效期」;派发收据 digest 绑定、单次消费;Gate 0 未关拒派发 | 拍板 |
 | 5 后台执行 | 在独立 git worktree 里跑,主工作区不被碰;每条 shell 命令过审批门;预算 / 活跃时长 / 回合三熔断;你可以走开,语音会话挂起 | 命令按效果分级 S0–S3;S0/S1 自动放行,S2 上浮要你确认(45 秒无应答即拒),S3 拒绝并要求屏幕强认证 | 可以走开 |
-| 6 办完叫你 | 执行和检查都跑完、产物落盘确认 → 它主动叫你:「执行和检查都跑完了,等你验收」 | settle 对账后才回叫(runner 退出不等于完成);优先级 blocked > failed > 待审批 > 待验收 > 进度(默认不叫);当前投递通道 = 控制台「今天」页橙区 + ntfy 手机推送(在线语音回叫合同已定未接线、桌面通知规划中,§11);免打扰窗口内只推不出声 | 被叫回来 |
+| 6 办完叫你 | 执行和检查都跑完、产物落盘确认 → 它主动叫你:「执行和检查都跑完了,等你验收」 | settle 对账后才回叫(runner 退出不等于完成);优先级 blocked > failed > 待审批 > 待验收 > 进度(默认不叫);投递按升级链:你在控制台且语音就绪 ⇒ 在线语音开口叫你(第一句就是回叫原因,30 秒没应答再升级)→ macOS 桌面通知 + ntfy 手机推送;免打扰窗口内只发一条低打扰推送、过后补叫(§11) | 被叫回来 |
 | 7 验收沉淀 | 口播摘要(一句话 / 150 字走读 / 它自己做的决策清单)+ 证据视图(diff、测试、决策、未验证项);你点头 → 过强认证合并 → 「交付了」;知识与产物留存 | 合并 = Touch ID / passkey 屏幕审批卡签单次收据,或你自己去终端合并(人工交接);会话末机械提名稳定结论为候选,你批准后进 M1 | 验收 |
 
 ### 3.3 采访、就绪与决策包:为什么不用你写需求文档
@@ -240,7 +240,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
 
 ### 4.8 常驻、备份、关停与重置
 
-- **常驻(launchd)**:`just daemon install | start | stop | restart | status | logs | deploy [sha]`——开机自起 + 崩溃自启,运行时树与开发树分离(`~/.saydo/runtime` → `~/.saydo/releases/<sha>`)。**当前注意**:`install` 前置要求语音管线的 launchd plist 已存在,而仓内尚未提供该 plist 的生成代码,在干净新机上 `install` 会直接失败——暂按「开发者 / 维护者功能,进行中」对待,普通用户用 §4.3 的前台方式即可。
+- **常驻(launchd)**:`just daemon install | start | stop | restart | status | logs | deploy [sha]`——开机自起 + 崩溃自启,运行时树与开发树分离(`~/.saydo/runtime` → `~/.saydo/releases/<sha>`)。`install` 会一并生成并装载语音管线的常驻配置(需要 `uv`);没装 `uv` 时用 `just daemon install --without-pipeline` 只装 daemon(桌面浏览器云端语音不可用,系统语音与文本照常);`uninstall` 对称卸载两者。日常上手用 §4.3 的前台方式即可,常驻适合长期挂机。
 - **更新**:`git pull && pnpm install && pnpm -r build`,然后重启 daemon(前台形态 Ctrl+C 再起;launchd 形态 `just daemon deploy`——会重启 daemon 与语音管线,挑空闲时段)。
 - **备份**:daemon 每日自动快照到 `~/.saydo/backups/<时间戳>/`(SQLite 在线备份 + `sessions/` + 用户档案 + 各项目的知识底座与奠基产物),保留期 `[params].backup_retention_days`(缺省 30 天);`just backup` 手动触发。
 - **关停**:`lsof -t -iTCP:47100 -sTCP:LISTEN | xargs kill; pkill -f saydo_pipeline`(`saydo up` 前台形态直接 Ctrl+C:会先停新派发、给活跃任务写「待续接」标记、再收口进程,下次启动接着跑)。
@@ -255,10 +255,10 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
 | 槽位 | 配置键 | 干什么 | 要什么 | 示例(仓库模板 / 向导「一个 key」卡) |
 |---|---|---|---|---|
 | **对话档** | `[models].dialog` | 每一轮对话:采访、答疑、口播 | 低延迟、中文口语好、工具调用纪律强 | API(OpenRouter,`openai/gpt-5.6-luna`) |
-| **沉思档** | `[models].thinking` | 任务卡起草、决策包 / 计划 / Demo 生成、奠基提炼 | 深推理,异步不阻塞对话 | API(OpenRouter,`openai/gpt-5.6-terra-pro`) |
+| **沉思档** | `[models].thinking` | 任务卡起草、决策包 / 计划生成、奠基提炼(轻量小样为机械渲染,不占模型) | 深推理,异步不阻塞对话 | API(OpenRouter,`openai/gpt-5.6-terra-pro`) |
 | **廉价档** | `[models].cheap` | 摘要叙事、热词抽取、事件打标等高频结构化调用 | 便宜、快 | API(OpenRouter,`google/gemini-3.1-flash-lite`) |
 | **评估档** | `[models].evaluator` | 独立判「够不够开始」(就绪深评) | **与对话/沉思不同家族**(§5.4) | API(OpenRouter,`anthropic/claude-sonnet-5`) |
-| **开发档(执行器)** | `[models.dev]` | 派发任务时驱动哪个 agent 改代码、用它的哪个模型 | 见 §6 | `agent = "cursor"`(本稿示例;当前唯一生产执行器。仓库模板仍写 `claude_code`,运行时会拒起) |
+| **开发档(执行器)** | `[models.dev]` | 派发任务时驱动哪个 agent 改代码、用它的哪个模型 | 见 §6 | `agent = "cursor"`(与仓库模板一致;当前唯一生产执行器) |
 
 为什么分档:对话档要的是延迟(你在等它出声),沉思档要的是质量(产出是「合同」),廉价档要的是成本(高频调用),评估档要的是独立性(换一家模型做裁判)。一个模型通吃四档要么慢、要么贵、要么不独立。
 
@@ -426,7 +426,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
 
 | 后端 | 状态 | 说明 |
 |---|---|---|
-| **Claude Code 执行器**(`agent = "claude_code"`) | **进行中** | 方案已定:以官方 `claude -p --output-format stream-json` 子进程为传输,用 Claude Code 的 `PreToolUse` hooks 做 S1–S3 裁决(文件工具也能进门,比 Cursor 多一层),钩子由命令行注入而非 worktree 内文件;订阅只经 `claude` 登录态消费、零 API key;不启用 bypass 权限、不做 live steer。分三批落地,尚未开批 |
+| **Claude Code 执行器**(`agent = "claude_code"`) | **进行中** | 方案已定:以官方 `claude -p --output-format stream-json` 子进程为传输,用 Claude Code 的 `PreToolUse` hooks 做 S1–S3 裁决(文件工具也能进门,比 Cursor 多一层),钩子由命令行注入而非 worktree 内文件;订阅只经 `claude` 登录态消费、零 API key;不启用 bypass 权限、不做 live steer。分三批落地:第一批(对官方 CLI 的真机能力实测 + 审批门纯函数)已收口,接线批在途 |
 | **Codex 执行器** | **规划中** | 设计上经 Hopper 批式路线(见下);当前 `agent = "codex"` 会被拒起 |
 | **Hopper 批式路线**(重任务 drop 进独立的 Hopper 任务系统:worktree / 事件溯源 / 崩溃恢复 / 预算 / 验收闸门) | **合同已定,生产绑定休眠** | daemon 主流程不启动它;锁定版本副本与专用 vault 的约定写在配置模板里但当前不被消费;Hopper 路线的合并恒为人工交接,不经 Touch ID 卡。对用户来说今天它不是可用功能 |
 | **provider-neutral 原生执行器**(任意 OpenAI 兼容后端) | **规划中** | 2026-08 决策推荐的方向(替代「拿 DeepSeek Harness 当默认 runner」——后者因审批缺省放行、钩子故障不阻断等与 fail-closed 红线冲突被否决) |
@@ -629,12 +629,12 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 
 - **触发**:只由 settle 后的状态触发(`ready_for_review` / blocked / failed 等),runner 退出不算;durable outbox,重放幂等,daemon 重启只叫一次。
 - **优先级**:blocked(等人)> failed > 待审批 > `ready_for_review` > 进度(默认不通知)。
-- **升级链(设计)**:L0 控制台在线 → 语音回叫(重建会话亲口播报,30 秒无应答挂断)→ L1 桌面通知 + ntfy 手机推送 → L2 blocked 仍无应答 → 电话。**当前落地**:控制台「今天」页橙区 + **ntfy 推送**(每 15 秒扫描 outbox,失败留队重试);L0 语音回叫合同已定、未接线;L1 桌面通知规划中;L2 电话与移动端来电式汇报规划中。
+- **升级链 [现在可用]**:**L0 在线语音回叫**——控制台在线、语音管线健康且你没在说话时,它直接开口,第一句就是回叫原因;30 秒没应答升级。**L1 macOS 桌面通知(系统通知中心)+ ntfy 手机推送**——任一送达即算已通知(桌面通知首次弹出可能需要在系统设置里允许通知);「今天」页橙区始终常亮。L2 电话与移动端来电式汇报规划中。sweep 每 15 秒扫 outbox,投递失败留队重试。
 - **ntfy**:`.env` 填 `NTFY_TOPIC`(随机串,手机 ntfy App 订阅同名主题)与 `NTFY_SERVER`(缺省 `https://ntfy.sh`,可自托管);消息 JSON POST(中文标题走 body),优先级 blocked / failed = 4,待验收 = 3;**深链只带路由、绝不带能力令牌**;标题经与 TTS 同一套脱敏(公网 topic 明文可订阅)。这两个键当前不在向导白名单内,需手改 `.env`。
-- **PagerDuty 式状态机**:pending → notified → acked → resolved;**ack 只停止升级,不等于解决、更不等于授权任何动作**;ack 后 30 分钟(`callback_resolution_timeout_min`)未解决重新升级。
-- **免打扰** `[dnd].window`(缺省 `23:00-08:00`,支持跨午夜):窗口内不外呼、记 snooze 到窗口末;窗口结束后按队列顺序补叫;设备不可达不算 DND,走短周期重试。
+- **PagerDuty 式状态机**:pending → notified → acked → resolved;**ack 只停止升级,不等于解决、更不等于授权任何动作**;ack 后 30 分钟(`callback_resolution_timeout_min`)未解决重新升级。ack 的途径:「通知」页点「知道了」,或你直接开口回话(语音回叫后的开口即视为已应答);任务离开待验收 / blocked 被解决时自动销账。
+- **免打扰** `[dnd].window`(缺省 `23:00-08:00`,支持跨午夜):窗口内不出声、不弹桌面,只发一条低优先级 ntfy(注明免打扰时段)并 snooze 到窗口末;窗口结束后按队列顺序补叫;设备不可达不算 DND,走短周期重试。
 - **拦截不等于叫人**:危险动作先把原因反馈给 agent 让它换路,同一意图被拦 ≥ 2 次才进回叫链。
-- 输出仲裁(语音会话中不插播、会议软件占麦时降级通知)已实现为合同与函数,随 L0 语音回叫接线启用(进行中)。
+- 输出仲裁 [现在可用]:你这轮话还没说完时不插播语音,该条降级走桌面 + 推送;「会议软件占麦」检测暂无数据源,恒按未占处理(如实)。
 
 ## 12. 语音
 
@@ -718,23 +718,21 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 | 四推理槽 CLI 订阅供给(Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot) | 现在可用 | 对话档走 CLI 为慢速文本模式 |
 | 首跑资源画像向导(三种方案卡 + 高级逐槽) | 现在可用 | |
 | 一件事 / 义务 / 期待 / 四色账本 / 确认卡降格 / 多步接续 | 现在可用 | |
-| 奠基(机械管道)+ M1 知识底座 + AGENTS.md 互通 + 会后提名批准 + 遗忘 | 现在可用 | LLM 深研档进行中 |
+| 奠基(机械管道)+ M1 知识底座 + AGENTS.md 互通 + 会后提名批准 + 遗忘 | 现在可用 | LLM 深研档规划中(方案在拟) |
 | 类型就绪清单 + 规则层 + 异族深评 + 复述确认绑定 | 现在可用 | |
-| 决策包(预览 / 计划 / 成本 / 风险 / 验收标准) | 现在可用 | Demo 小样生成器已落地未接线(进行中) |
+| 决策包(预览 / 计划 / 成本 / 风险 / 验收标准 / 轻量小样) | 现在可用 | 小样与计划同源机械渲染;控制台「看小样」+ 本机同轮上屏 |
 | Cursor CLI 执行器 + worktree 隔离 + 命令效果门 + 三熔断 + verify 冻结 | 现在可用 | |
 | 验收证据视图 + 三层口播 + Touch ID 合并卡 + 人工合并核验 | 现在可用 | Touch ID 卡真人过卡待 owner 触点 |
 | 逐步确认档 | 现在可用 | |
 | 直达验收档(预授权清单念读签署) | 进行中 | 合同与匹配逻辑已落,语音拍板环未接 |
-| ntfy 手机推送 + 免打扰 | 现在可用 | |
-| 在线语音回叫 / 输出仲裁 | 进行中(合同与函数已落,未接线) | |
-| 桌面通知 | 规划中 | |
+| 回叫升级链:在线语音回叫 → macOS 桌面通知 + ntfy 手机推送;免打扰;应答(ack) | 现在可用 | 语音回叫需控制台在线 + 语音管线健康;30 秒未应答升级;输出仲裁同批落地 |
 | 云端级联语音(豆包 ASR/TTS)+ 浏览器系统语音 + 热词纠错 | 现在可用 | 实时字幕、Silero VAD 进行中 |
 | coding 类型 | 现在可用 | |
 | writing 类型(窄版) | 现在可用(需开能力门) | 引证 / 归属合同等全量规划中;真人全链待验 |
 | research / marketing / planning / general 执行合同 | 规划中 | 上游采访 / 立账 / 调研可用 |
 | 局域网手机面(浏览器 / 壳) | 现在可用(dogfood 边界) | 无配对 / 无 E2E |
 | tailnet 薄版 | 现在可用(需手工配) | |
-| Claude Code 执行器 | 进行中 | 方案 v2 已定,分三批 |
+| Claude Code 执行器 | 进行中 | 分三批:第一批(对官方 CLI 的真机能力实测 + 审批门纯函数)已收口,接线批在途 |
 | Codex 执行器 / Hopper 批式路线 | 规划中 / 休眠 | |
 | provider-neutral 原生执行器 | 规划中 | |
 | 设备配对 / E2E 加密 / 推送隐私合同 | 规划中 | |
@@ -782,16 +780,16 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 
 **worktree 越来越多。** 设计上不自动删(便于捡回);自己 `git worktree remove <repo>/.saydo/worktrees/<taskId>` 清理。
 
-**常驻(launchd)装不上。** 当前 `install` 前置要求语音管线的 plist 已存在,仓内尚未提供其生成代码——普通用户先用前台方式(§4.3)。
+**常驻(launchd)装不上。** `just daemon install` 需要 `uv` 才能一并装语音管线常驻;报「未找到 uv」时按提示用 `just daemon install --without-pipeline` 只装 daemon(云端语音不可用,系统语音与文本照常),或先装 `uv` 再重跑(§4.8)。
 
 ## 18. 开源与参与
 
-- 仓库:`https://github.com/Octo-o-o-o/SayDo`(桌面服务:contracts / daemon / console / cli / pipeline 与全部设计文档、证据、过程档案同仓);执行后端候选 Hopper 为同作者独立仓。
+- 仓库:`https://github.com/Octo-o-o-o/SayDo`(桌面服务:contracts / daemon / console / cli / pipeline 与全部设计文档、证据、过程档案同仓);执行后端候选 Hopper 为同作者独立仓。公开仓为**快照仓**(自 2026-08-20 起):逐提交过程史保存在私有归档,文档中引用的历史 commit SHA 在归档中解析(仓库 README「过程史与归档」有说明)。
 - **许可证:Apache License 2.0**(含专利授权);「说到」/「SayDo」名称、印章 logo 与 `assets/` 品牌资产不在许可范围(Apache 2.0 第 6 条),衍生作品不得以原项目名义呈现;详见仓库 `LICENSE` / `NOTICE`。
 - 工程约定:全仓零 emoji;状态词纪律;Gate 0 无 bypass;契约不分叉(类型只从 `@saydo/contracts` import);审计与日志分流;两提交法(代码提交 + 证据提交)。
 - 本地开发:`pnpm install && pnpm -r build`,`just dev`(daemon + pipeline + console 热更),`just ci`(node + python 双矩阵 + emoji / 颜色 / 迁移门禁);发行验收 `pnpm --filter @saydo/cli verify:distribution`。
 - 设计文档地图:`docs/01–11`(愿景 / 产品定义 / 架构 / 关键机制 / 路线 / 参考 / 选型 / 模块 / 数据契约 / 话术 / UI)+ `docs/adr/`。
-- 反馈与支持:`support@octoooo.com`(请说明系统版本、是否已完成扫码配对;不要粘贴 API key、配对令牌或完整日志)。安全问题请邮件单独标注、先私下告知、勿公开细节。
+- 反馈与支持:`support@octoooo.com`(请说明系统版本、是否已完成扫码配对;不要粘贴 API key、配对令牌或完整日志)。安全问题按仓库 `SECURITY.md` 私下披露(邮件标题注明 SECURITY),勿公开细节。
 
 ## 19. 术语与状态词对照(中英)
 
@@ -831,7 +829,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 | 项目内目录 | `<workspace>/.saydo/{knowledge,foundation,worktrees,project.toml}`;产物 / 快照 / 深评记录 / 转写在 `~/.saydo/{artifacts,snapshots,assessments,sessions}` |
 | 环境变量 | `SAYDO_HOME`、`SAYDO_DAEMON_PORT`、`SAYDO_MOBILE_LAN=1`(局域网手机面)、`SAYDO_DEV=1`(dev profile 双开关) |
 | `.env` 常用键 | 模型:`OPENROUTER_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `DEEPSEEK_API_KEY`;语音:`VOLC_APP_ID` / `VOLC_ACCESS_TOKEN` / `DOUBAO_TTS_API_KEY`;推送:`NTFY_TOPIC` / `NTFY_SERVER` |
-| 常驻 | `just daemon install / start / stop / restart / status / logs / deploy [sha]`(install 当前有前置缺口,§4.8) |
+| 常驻 | `just daemon install / start / stop / restart / status / logs / deploy [sha]`(install 一并生成语音管线常驻配置;无 uv 用 `--without-pipeline`,§4.8) |
 | 备份 | `just backup` → `~/.saydo/backups/<时间戳>/`;自动每日;保留 30 天 |
 | 关停 | `lsof -t -iTCP:47100 -sTCP:LISTEN | xargs kill; pkill -f saydo_pipeline` |
 | 熔断缺省 | 活跃 45 分钟 / 80 回合 / 20 元;停靠老化 72 小时;决策包有效期 24 小时;S2 确认窗 45 秒 |
@@ -846,15 +844,15 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 
 1. **已解除(2026-08-20)**:LICENSE = Apache-2.0 已落;隐私项按选项 C 处置后仓库已公开——`github.com/Octo-o-o-o/SayDo` 为干净快照仓(逐提交过程史在私有归档 `SayDo-archive`),处置记录见 `docs/plan/2026-08-20-repo-public-readiness.fable.md` §3.1。「开源免费 · 前往 GitHub」口径成立;Docs §18 无需改动。
 2. **Hopper 仓(`github.com/Octo-o-o-o/Hopper`)可见性与许可证未核实**;B §18 只说「同作者独立仓」,未给 URL。若要给链接先确认公开。
-3. **官网「驱动你已有的 AI:Claude Code、Codex、Cursor、Gemini CLI 等已登录的 AI 工具直接接入 · 现在可用」**:对**推理槽**成立(7 家 CLI 已接线),对**执行器**只有 Cursor 成立;Claude Code 执行器是 08-19 入库的方案 v2(未开批),Codex 执行路线规划中,Gemini CLI 无执行计划。建议官网拆成两句(对话 / 思考用你已登录的 X/Y/Z;当前执行由 Cursor Agent 承担,Claude Code 执行后端在建)。Docs B §1.4 / §5 / §6 已拆清。
-4. **官网七步第 3 步「三件套 … 轻量 Demo(最终长什么样)」与第 6 步「从在线语音回叫升到桌面通知」**:Demo 小样生成器已落地但生产无调用方(决策包 `demoRef` 恒空);L0 语音回叫与桌面通知(osascript)均未接线,当前只有控制台橙区 + ntfy。Docs 已如实标「进行中」;官网是否微调由 owner 定。
+3. **官网「驱动你已有的 AI:Claude Code、Codex、Cursor、Gemini CLI 等已登录的 AI 工具直接接入 · 现在可用」**:对**推理槽**成立(7 家 CLI 已接线),对**执行器**只有 Cursor 成立;Claude Code 执行器是 08-19 入库的方案 v2(未开批),Codex 执行路线规划中,Gemini CLI 无执行计划。建议官网拆成两句(对话 / 思考用你已登录的 X/Y/Z;当前执行由 Cursor Agent 承担,Claude Code 执行后端在建)。Docs B §1.4 / §5 / §6 已拆清。**2026-08-20 更新**:Claude Code 执行器第一批(真机能力实测 + 审批门纯函数)已收口,接线批在途——「在建 / 接入中」口径不变。
+4. **已解除(2026-08-20)**:S1 批落地 Demo 小样(决策包同轮机械渲染 + 控制台「看小样」+ 本机同轮上屏);S2 批落地回叫升级链(在线语音回叫 → macOS 桌面通知 + ntfy;免打扰只推不响;「知道了」/开口即应答)。官网七步第 3 / 6 步可按原意保留,措辞见首页稿 B.3(2026-08-20 更新版);Docs B §3.2 / §11 / §16 已同步。
 5. **官网「先深度研究透、沉淀成持久知识底座」**:当前奠基是确定性机械管道(清单 + 关键文件摘录 + 四份文档 + AGENTS.md 指针),LLM 深研档未做。Docs B §1.1 / §9.2 已如实标注;官网「先吃透,再办事」的措辞尚可,但「深度研究」四字偏重,建议改「先读透项目」一类。
 6. **官网 FAQ「语音无需额外配置,浏览器即可用」**:成立(2026-08-13 起 VOLC 未配时回退浏览器 `SpeechRecognition` / `speechSynthesis`),但质量一般;Docs B §12 写成三档(打字 / 浏览器系统语音 / 云端级联)。官网可不改。
 7. **官网 FAQ「手机扫码即连」**:需 daemon 带 `SAYDO_MOBILE_LAN=1` 启动、手机浏览器或自构建壳、仅私网;App 未上架。Docs B §4.7 / §13 写明条件;官网可加一句「(需在本机开启局域网访问)」。
 8. **执行模式**:官网第 4 步未提模式,无须改;但仓内 02/04 口径「拍板时选直达 / 逐步」在生产是单档(组包恒 `step_confirm`,语音链拒直达)。Docs B §8.4 标「直达验收 进行中」。
-9. **`templates/saydo.config.example.toml` / `saydo.env.example` 陈旧**:头注「T17 四槽均走 API;CLI 订阅接入开发中」已过时(T18a/b 起四槽可 CLI);`[models.dev] agent = "claude_code"` 示例与运行时(仅 cursor 可起)不符。Docs 配置示例按当前代码写,**未照抄模板**;建议随 Docs 上线修模板(A §5 维护规则要求模板与 Docs 同源)。
-10. **`DEPLOY-测试机部署清单.md` §4 的 `node packages/cli/dist/saydo.js` 路径错误**:产物是 `dist/cli.mjs`(`packages/cli/package.json` bin)。Docs 已用正确路径;建议回修 DEPLOY 文档。
-11. **`just daemon install` 在干净新机不可用**:`launchd/cli.ts` 要求 `com.saydo.pipeline.plist` 已存在,仓内无生成代码(journal 记「手工 plist 先行,代码化登记下批」未做)。Docs B §4.8 如实标注;建议补齐或在 Docs 上线前把 install 改为不强依赖 pipeline plist。
+9. **已解除(2026-08-20,public-readiness 批)**:模板已对齐当前实现(七家 CLI 供给示例、cursor 执行器、`[tier1]` 注释示例、评估档双 ack),经两轮零上下文评审收口;Docs §5.6 示例与模板同源成立。
+10. **已解除(2026-08-20,public-readiness 批)**:DEPLOY 已改 `dist/cli.mjs`,并写清端口与控制台入口口径。
+11. **已解除(2026-08-20,public-readiness 批)**:`install` 自动生成并装载语音管线 plist(无 `uv` 用 `--without-pipeline`),`uninstall` 对称清理;真机实跑仍属 owner 触点。Docs B §4.8 已按新行为改写。
 12. **`enabled_project_types`**:代码缺省 `["coding"]`,owner 机 live 已 `["coding","writing"]`;writing 真人全链未验。Docs B §1.3 / §16 标「窄版可用(需开能力门)· 真人全链待验」。
 13. **订阅记账文案**:`docs/04` 写「订阅额度内(已用 N 次)」,UI 只显示「订阅额度内」,次数在周报。Docs 按 UI 写;二选一回修(改 UI 或改 04)。
 14. **M0 ≠ `~/.saydo/profile.md`**:无写入代码,M0 承载在账本 tier;`profile.md` 仅在备份源清单。Docs B §9.1 已按实情写;`docs/04` §1.1 表的 M0 存储列属超前表述,可加注。
@@ -925,9 +923,9 @@ v1 **没有**而 v2 新增的整节:§0 阅读指南、§3.3 采访 / 就绪原�
 
 ## C.4 Docs 上线前检查清单
 
-- [ ] C.1-1 仓库公开 + LICENSE 落定(或官网改口径)。
-- [ ] C.1-3/4/5/7 官网文案微调是否采纳(owner 定)。
-- [ ] C.1-9/10/11 模板、DEPLOY 文档、launchd install 缺口回修。
+- [x] C.1-1 已解除:仓库已公开(快照仓)+ Apache-2.0(2026-08-20)。
+- [ ] C.1-3/5/7 官网文案微调是否采纳(owner 定);C.1-4 已解除(Demo 与回叫升级链已落地)。
+- [x] C.1-9/10/11 已解除(public-readiness 批,2026-08-20)。
 - [ ] 英文版按 B §19 术语表翻译;状态词英译固定。
 - [ ] 页面过 `scripts/check-emoji.sh`;title / description / canonical / hreflang 与现有页一致;顶栏与页脚加「文档」入口。
 - [ ] B §16 完成度总表与 HANDOFF 当前批次核对一次(Claude 执行器若已开批,标注更新)。
@@ -939,4 +937,5 @@ v1 **没有**而 v2 新增的整节:§0 阅读指南、§3.3 采访 / 就绪原�
 - 对抗复核:一路零上下文 fact-checker 子代理冷读 B 面并逐条对照代码,报 24 条(1 条绝对路径 `~`、1 条示例配置 evaluator CLI 缺 ack、4 处产物 / 快照 / 深评 / 转写目录误写进项目目录、gate 脚本「不可写」写反、挂起触发词误写「去吧」、限流「停下问你 + 收据」超前、90 秒 vs 120 秒、桌面通知「进行中」应为「规划中」、DND 补叫顺序、§5.1 缺省列、多步接续上限 3、侧栏分组、自检时长 1–3 分钟、方案卡排序、端口环境变量与 `--no-open`、「帮我记一下」常态 vs 降级、会话末提名而非自动提炼、执行器 FAQ 条件、`jq`/`curl` 依赖、批号 (v0.4) 泄漏、`monthly` 无展示点、状态机节选、`id_ed25519` / `vite` 漏项、「发送」按钮文案)——**全部已回修**。同时确认高风险断言(示例配置可过 schema、七家 CLI 与登录提示、笼子旗标、执行器链、合并段、verify 冻结、数字缺省、完成度标注)为正确。
 - 零 emoji 门禁:`scripts/check-emoji.sh` 对本稿与首页稿均 clean。
 - 未做:英文整页翻译(A §6 留待实施);Codex 对抗评审(按 AGENTS.md 评审制度应补一次 `codex exec -m gpt-5.6-sol`,本轮未跑,建议随 Docs 页实施时一并做)。
+- 2026-08-20 午前复核(第二轮):S1(Demo 小样)、S2(回叫升级链)、public-readiness(模板 / DEPLOY / launchd)、W5.4-a(Claude 执行器第一批)相继收口并入 main,仓库按选项 C 公开;本稿 B §3.2 / §4.8 / §6.3 / §11 / §16 / §18 / 附录 与 C.1(3/4/9/10/11)/ C.4 已同步为收口后事实;首页稿 B.1 / B.3 / B.6 / C 表同步。
 
