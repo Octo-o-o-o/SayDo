@@ -1733,3 +1733,22 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
 
 ### 结论
 - 按评审前初稿写代码会被 Codex 88 判阻断。合同已收到 triage;实施以回修后 ADR-003/004 与 09 为准。官网 FAQ 不动;未授权不 commit/push/deploy。
+
+## R81 · Windows 对齐本机收口(2026-08-22)
+
+### 输入
+- owner:在本机完整测试 review,再把完整更新提交到 GitHub。
+- 合同:R80 回修后 ADR-003/004、09、WINDOWS-ALIGNMENT。基线 `84af899`。
+
+### 行动
+1. 本机跑 typecheck/lint/各包单测/emoji·color·migration 门禁/pipeline ruff+pytest/`verify:distribution`。
+2. Phase 末 code-review subagent 标出 A 级:Job 已销毁后 recover 仍 OpenJobObject;execRuntimeChild 重复 CloseHandle。均已回修,并吸收 koffi external、通知诚实失败、dev.mjs 直 spawn、darwin birth 去掉 pgrep1/token1。
+3. 证据落 `e2e/evidence/windows-alignment.md`;两提交法先代码后证据,再 push `feat/windows-alignment`。
+
+### 产出
+- 代码提交:`be82f98d5c1557379aa2adfacaefb7ee56fde098`(118 files, +4886/-1176)
+- 证据:`e2e/evidence/windows-alignment.md`(4492 / SHA-256 `ac99de67a1dd948c2b3030a25d600e42ff17333baed0a6718ffc1be4f7cb6f57`)
+- 本机数字:daemon 1643 passed / 33 skipped;pipeline 34 passed;verify:distribution `ok: true`(lifecycle settled_review)
+
+### 结论
+- Windows P0 工程面对齐已落盘。官网 FAQ 仍为暂不支持;Actions windows-latest 与 Scheduled Task 仍是 P1。无部署。
