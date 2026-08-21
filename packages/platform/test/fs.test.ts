@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -30,7 +30,8 @@ describe("fsIdentity", () => {
 describe("restrictOwnerOnly", () => {
   it("写入后当前用户仍可读,不抛", () => {
     if (hostKind() === "win32") nativeSync();
-    const root = mkdtempSync(join(tmpdir(), "saydo-plat-"));
+    // assertRealDirectory 要求 lexical === realpath;macOS 的 $TMPDIR 本身经 /var -> /private/var 符号链接。
+    const root = mkdtempSync(join(realpathSync(tmpdir()), "saydo-plat-"));
     roots.push(root);
     const f = join(root, "secret");
     writeFileSync(f, "x");

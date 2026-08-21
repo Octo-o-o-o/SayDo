@@ -32,7 +32,12 @@ import type { Logger } from "../src/obs/logger.js";
 
 const PRJ = "prj_01EXEC0000000000000000000A";
 // 必须在 owner home 子树内（workspace 政策），且沙箱可能禁写 $HOME 根目录。
-const OWNER_TEST_ROOT = mkdtempSync(join(tmpdir(), "saydo-tier1-executor-"));
+// win32 的 %TEMP% 本身就在 USERPROFILE 子树内;POSIX 的 $TMPDIR 不在 $HOME 下,只能用仓内路径。
+const OWNER_TEST_ROOT = mkdtempSync(
+  process.platform === "win32"
+    ? join(tmpdir(), "saydo-tier1-executor-")
+    : join(process.cwd(), ".saydo-tier1-executor-")
+);
 const PKG_DIGEST = `sha256:${"a".repeat(64)}`;
 
 const fakeLog = { info() {}, warn() {}, error() {}, child() { return fakeLog; } } as unknown as Logger;
@@ -977,7 +982,9 @@ setInterval(() => {}, 1000);
     const filter = join(saydoHome, "hanging-clean-filter.cjs");
     writeFileSync(
       filter,
-      `const { spawn } = require("node:child_process");
+      // POSIX 直接把脚本路径交给 git 执行,必须保留 shebang;win32 走显式 node 调用。
+      `#!/usr/bin/env node
+const { spawn } = require("node:child_process");
 const { writeFileSync } = require("node:fs");
 const { join } = require("node:path");
 writeFileSync(join(process.cwd(), "filter-parent.pid"), String(process.pid));

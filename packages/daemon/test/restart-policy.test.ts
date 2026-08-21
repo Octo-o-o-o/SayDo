@@ -189,8 +189,11 @@ describe("Tier1 executor-disabled restart policy", () => {
       [
         "-e",
         `const{spawn}=require('node:child_process');const{writeFileSync}=require('node:fs');` +
-          `const c=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore',detached:true});` +
-          `c.unref();writeFileSync(${JSON.stringify(childPidPath)},String(c.pid));setTimeout(()=>process.exit(0),200)`
+          // POSIX:后代必须留在组长进程组内,A4 断言的前提就是"组长死后组内仍有存活成员";
+          // win32 无进程组,后代需独立于 leader 才能验"经具名 Job 回收"。
+          `const w=process.platform==='win32';` +
+          `const c=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore',detached:w});` +
+          `if(w)c.unref();writeFileSync(${JSON.stringify(childPidPath)},String(c.pid));setTimeout(()=>process.exit(0),200)`
       ],
       { detached: true, stdio: "ignore" }
     );
