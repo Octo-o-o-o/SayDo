@@ -1591,3 +1591,118 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
 - live 可证部分已过:源码 daemon `bc2ac87` + Cursor grok/composer 武装 + 桌面/LAN 壳 + 文本对话闭环。
 - 无新的 live 产品阻断。Playwright 25 红仍是夹具债。不能当 v0.1.0 发布锁。
 - 副作用:开口聊烟测留下「未命名草稿」;live 模型仍是验收配置,未自动恢复备份。
+
+## R75 · 官网重建(双语/夜账本/移动适配,2026-08-19)
+
+### 输入
+- owner:完整阅读项目后重构官网,做成最优雅、最标准、能长期使用的网站;中英双语、亮暗双主题、移动端适配;已完成的标出来,未完成与正在开发的写 Coming soon,不做半成品;做好后部署。
+
+### 行动
+1. 盘点:读 docs/01/02 与 deploy/ 现站;explore subagent 出功能完成度+部署方式+品牌资产报告(结论:现站纯静态/Pages 手动上传;品牌定稿=印泥朱+纸上账本;三端 App 均未提审只能 Coming soon)。
+2. 重建 deploy/saydo-octoooo-com/:零构建静态站保留;`site.css` 全量重写(新增官网专用「夜账本」暖暗色层替代玻璃夜色;skip-link;印章装饰;票据圆角);首页重排(Hero+语音条+四色账本合一视觉、信任条、七步闭环、痛点对照、六卖点、新增「产品现状」诚实标注区、架构、隐私带、下载、FAQ、CTA、四栏页脚);新增 `/en/` 英文首页;新增 `/en/privacy|terms|support/` 英文法律页;中文法律三页骨架同步新页眉页脚、补 hreflang/canonical/meta description。
+3. 验证:Playwright 截图 双语×双主题×桌面/移动 共 8 组(.tmp/site-shots/);check-emoji.sh 十文件 clean。
+4. 评审:两个互补 subagent(内容事实性 / 前端工程质量)。A 级 1 项(1.6MB hero 图拖 LCP);B 级择要全部回修:流程第 6 步「手机推送」改带 Coming soon 限定、og:image 改绝对地址并补 og:url/site_name/twitter:card、暗色 btn-seal 对比度 3.96→4.92(新增 --nl-seal-fill #b8442f 与 --brand-seal-fill/-wash 语义)、hero-aside/footer-meta 由 text-faint 升 text-muted、账本「今天」h3 降为非 heading、防 FOUC 内联段加同步注释、color-mix 加兜底、960px 断点消歧、img 补尺寸与 lazy、aria-current=page、support 外链补 noopener;B3(EN 法律页缺失)以新增三页落地。勾形 SVG 图标属图标系统沿用旧站先例,不上浮。
+5. Codex 对抗评审:prompt 落 prompts/75-official-website-redesign.md,执行时 OpenAI 额度尽(2026-08-20 11:29 重置),未产出报告;报告位 research/codex-findings/75-official-website-redesign.md 暂缺,待额度恢复后补跑。
+
+### 产出
+- 站点:deploy/saydo-octoooo-com/(index.html / en/×4 页 / 法律三页 / site.css / theme.js / icon-hero.png 94KB、apple-touch-icon 27KB 重导)
+- 评审输入:prompts/75-official-website-redesign.md(2200 bytes / SHA-256 9e541f88c49428775579b1ffad09a712a516180d025723c5a1f0c463fed80d5b)
+- 日志:logs/75-website-redesign-review.log(2928 bytes / SHA-256 920669b5248368fb16d15a262ec1672438bed04f1d33954437366be24cf2a7c1;内容为额度错误,非有效评审)
+
+### 结论
+- 双 subagent 评审 A 级清零后部署 Cloudflare Pages(saydo.octoooo.com)。Codex 补跑为遗留项。
+
+## R76 · 官网首页 v2 + Docs 长文页(2026-08-20)
+
+### 输入
+- owner:逐页检查官网;按 Fable 两稿落地——首页结构文案稿 `docs/site/2026-08-20-homepage-structure-copy.fable.md`(A.2 结构 + B 节逐区文案,不动视觉组件)、Docs 内容稿 `docs/site/2026-08-20-docs-page-content.fable.md`(B 节 §0–§19 + 附录为正文);Docs 要优雅高级、与官网一致、有合适入口;保持当前 UI 风格。
+
+### 行动
+1. 首页中英双页按稿替换:主 CTA 改「开始用 → #start」(GitHub 降格到 hero aside 与尾 CTA 第三按钮);nav 与页脚加「文档」;七步第 3(决策包+小样)/ 6(回叫升级链含 ntfy)步、卖点第 2(读透非深研)/ 3(推理与执行器拆分)卡按稿重写;现状区两张「现在可用」卡改稿 + 新增「Claude Code 执行器 · 进行中」卡(badge-progress);`#download` → `#start` + 兼容空锚;macOS 卡加「安装说明 → /docs/#quickstart」与 GitHub 双链;FAQ 新增「要花钱吗」「会替我 push 或开 PR 吗」两问;尾 CTA 三按钮。六法律页页脚资源列同步加文档、产品列「下载」改「开始用」,support 页加文档指引。
+2. `site.css` 追加 Docs 排版(docs-hero / docs-layout 双栏 / docs-toc 桌面粘性 + docs-toc-mobile 折叠 / docs-body 长文 / docs-note / 表格 / pre / 行内 code / back-top;960/640 断点)与 .platform-links;未动任何既有组件。
+3. 委派两 coder 子代理并行生成 `docs/index.html`(120,898 bytes)与 `en/docs/index.html`(141,692 bytes):B 面 §0–§19 + 附录逐字转换/翻译(术语按 §B.19,状态词 ready for your review / delivered),39/对应处 badge 三档,7 个 pre 块机械提取转义。
+4. 验证:Playwright 15 组截图复查(首页双语双主题双端 + 法律页 + Docs 双语双主题双端);Docs 长页(73664px@2x)分段与定位裁切核查 quickstart 表格/代码块、§16 badge 表、页尾;自写全站链接校验器修三轮自身 bug 后 ALL-LINKS-OK(文件、锚点、跨页锚点全覆盖);check-emoji.sh 十二文件 clean。
+
+### 产出
+- 站点:deploy/saydo-octoooo-com/(首页×2 改版;新增 docs/ 与 en/docs/;site.css v3)
+- 评审输入:prompts/76-website-docs-review.md(2342 bytes / SHA-256 见下)
+- 日志:logs/76-website-docs-review.log(内容为模型容量错误,非有效评审)
+- prompts/76 SHA-256 3f2e8a1ce9a14fccdbcadff37ebbcf02fb615cfb0c92eeddacf7051635cbbdf9;log(2908 bytes)SHA-256 4961e45731aeaaf6dbd3fa81b3df42389abf919c1984eae412c3a1e05c696e78
+
+### 结论
+- 双 coder 自检(emoji/锚点/配对/转义)+ 本站截图与链接校验全部通过,部署 Cloudflare Pages。
+- Codex 对抗评审两轮(gpt-5.6-sol 与默认模型)均「model is at capacity」未产出;待容量恢复后按 prompts/76 补跑,报告位 research/codex-findings/76-website-docs-review.md 预留。
+
+## R77 · 官网/文档/HANDOFF 三层状态对齐交叉评审(2026-08-21)
+
+### 输入
+- owner:再仔细思考哪些状况已变、哪些承诺了却以为没做其实已做、哪些状态没对齐;提交 Codex 与 Claude Code 交叉评审后给最终建议。
+
+### 行动
+1. 自审修订草稿主张(C1–C10 / H1–H6),写入 `prompts/86-status-alignment-review.md`;硬纪律=对外对 HEAD、HANDOFF 对本机,禁止混层。
+2. 四路并行独立证伪:Codex `exec -m gpt-5.6-sol -c model_reasoning_effort=max`(exit 0,1001338ms);Claude Code 2.1.220 `--effort max`(exit 0,1106218ms);对外承诺 subagent;本机/HANDOFF subagent。
+3. 冲突裁决:Codex 沙箱 `claude auth status loggedIn=false` 不采(Claude Code + 本机路 + 调度会话均为 Max 已登录);删 Keychain 句不采;「不运营任何服务器」保留;文档不加「相对源码」;TTS 档案已对齐零动作。
+4. 本会话复核备份停摆(最后成功 `20260806T013953Z`;之后 `WorkspacePolicyError`)与场次① `e2e/owner-sessions/session-1.md` `current_status=failed`@ada7981。
+
+### 产出
+- 合成:`research/codex-findings/86-status-alignment-triage.md`(4556 bytes / SHA-256 823d3636a0a7d01aa66c770324d4973ebb90992d39193e5f54f1b9c1681b2ebd)
+- Codex:`research/codex-findings/86-status-alignment-codex.md`(25091 / 81824914d899cebc26eb04100307f8e470a941f14035f25fd531565a5cc8dd32)
+- Claude Code:`research/codex-findings/86-status-alignment-claude.md`(29009 / 82dab5051ea29f70f9e9cdf3b1a0c2f4804c17a718cd5d76028dc7d7bfa421de)
+- 对外:`research/codex-findings/86-status-alignment-product.md`(38662 / 93bede64fa1549531d530b6c378ce7b74f320d7920a7120f1edc3934849db9ee)
+- 本机:`research/codex-findings/86-status-alignment-runtime.md`(40818 / 61981a62ba6f214004c6992fbe0be5f63ced2d874032b7cd07c128b0789a4c52)
+- prompt:`prompts/86-status-alignment-review.md`(8470 / SHA-256 ac08701dd92e9287b62bd9f6bcbf6e27f7079b9a63876a3cbc371be5f133acf5)
+- logs: `logs/86-status-alignment-codex.log`(1024660 / SHA-256 82ecffe64b8e93c7d83cf9b2a29c583b17a09e05ae8815e4c42295d7f57c7992);`logs/86-status-alignment-claude.log`(3215 / SHA-256 cad7090a22b7a07abf423a8404ab5c86405e919ae85e0e02f9a7d391aea6cf97)
+- `scripts/check-emoji.sh` 对 prompt+五份报告 clean。未改官网、未改 HANDOFF、未 commit、未 deploy。
+
+### 结论
+- 四路总评一致「需收窄」。本周三件:① 首页撤内测口径+改首屏绝对句;② 法律页局域网/不上传收口、保留不运营服务器与 Keychain;③ HANDOFF/PLAN-2 事实账本(场次① failed、Claude 已登录、T19 前置门、备份停摆)。
+- 未授权禁止升常驻。T19 × tailnet 合同是升常驻硬前置。现树 `just t2-pair` 可做但结论不外推 HEAD。
+
+## R78 · 状态对齐 Grok 实施 + 实施后交叉评审(2026-08-21)
+
+### 输入
+- owner:再完整 review 所有内容,按最终建议用最标准方式派发 Grok CLI 实施,实施后完成 review。
+- 实施依据:`research/codex-findings/86-status-alignment-triage.md`；实施交接:`docs/plan/IMPL-PROMPT-11-STATUS-ALIGNMENT.md`。
+
+### 行动
+1. 先复核官网中英十页、两份官网源稿、HANDOFF、PLAN-2、86 四路报告与终裁,锁定「只改状态 / 承诺 / 证据,不改 runtime / canonical / live 配置」边界。
+2. 首次 Grok `--sandbox workspace` 未继承未跟踪评审文件并清理工作树；立即终止,从会话记录恢复五份 86 报告与 IMPL-PROMPT-11,用暂存 + stash 建安全快照后恢复工作树。随后以同一会话 `--resume`、`grok-4.6`、`--reasoning-effort xhigh`、`--always-approve --sandbox workspace --no-memory --disable-web-search --max-turns 60` 重派；Grok 未 commit / push / deploy。
+3. Grok 首轮完成官网、源稿、HANDOFF、PLAN-2 与 evidence 对齐；`UV_CACHE_DIR=/tmp/saydo-uv-cache just ci` exit 0。调度方随后检查十页静态链接、桌面 / 手机视口、坏图、console 与关键文案锚。
+4. 实施后同 prompt 派两路零上下文只读 subagent + Codex `gpt-5.6-sol` max 对抗复核。共同命中 A 级两条:Docs「无云端依赖」绝对句、隐私页「音频仅设备端 / never uploaded」；另命中 tailnet 状态过满、PLAN-2 CLI / SDK 与 live steer 漂移、`602aa09` 历史 HEAD、observedModel 休眠旧句、prompt 文本标记语义与后验 Playwright provenance。
+5. 终裁驳回「Claude Code 执行器不应写进行中」:W5.4-a 已有实装与 evidence,准确口径是「进行中,生产主流程未接」。其余 A 级与采纳 B 级全部最小回修；中英文、源稿、内部档案与 evidence 同批同步。
+6. 回修后复跑:`git diff --check` exit 0；emoji 门 exit 0；10 页静态审计 `pages=10 links_and_assets=420`；状态锚 `files=8 assertions=30`；`just ci` exit 0；Playwright 中英 Docs 桌面 + 中英 Privacy 手机均无横向溢出 / 坏图,console 0 error / 0 warning。收口前执行 `git restore --staged .` 仅撤销安全暂存,恢复原始无 staged 状态,工作树内容不变。
+
+### 产出
+- 实施 prompt:`docs/plan/IMPL-PROMPT-11-STATUS-ALIGNMENT.md`(17396 bytes / SHA-256 fc87b68f5d9096cd7077515490fcbc2b319cadc341d2215cbc5e7684dd4a7f59)
+- 后验 prompt:`prompts/87-status-alignment-post-implementation-review.md`(3838 / 25501d6b0a551b9d1de116d71b85889a1e559747fce174ea98168c3e7c39ca89)
+- 对外复核:`research/codex-findings/87-status-alignment-post-implementation-product.md`(1722 / e08799a6ac550d6b0d9539be21954a5cf169c6f1b1149ae6391499d07b617ee3)
+- 档案复核:`research/codex-findings/87-status-alignment-post-implementation-integrity.md`(1667 / c08753534a0d06dc9a22386284e9677c308ba2ccc909312407c0f95fc389af8b)
+- Codex:`research/codex-findings/87-status-alignment-post-implementation-codex.md`(15913 / ae1879eb9db53ab6d9bf2da388f3f94ac700ed7e917f3633289b0cd01d06f11b)
+- 终裁:`research/codex-findings/87-status-alignment-post-implementation-triage.md`(4107 / 18813b5c2175c9fe671127f4744285109ec28cc8a9333fe5aa03e67dfc951573)
+- 证据:`e2e/evidence/status-alignment-20260821.md`(12625 / a1343a67c6263ee5a4e20cde037b63b93e09c470ce0f1298b2732adf6de569ab)
+- 日志:`logs/87-status-alignment-grok-implementation.log`(3509 / ecc883e19e9167d7a7d361a77d5d60bb6d8941cd5629a7d82e4ea06bec0a6564)；`logs/87-status-alignment-post-implementation-codex.log`(2783709 / e0d623ee16d59e5a4f615d3040fe6dbd290fb1d2f8617e0878e6eb2c183f8304)
+
+### 结论
+- Grok 首轮实施后发现的 A 级 2 条与采纳 B 级已回修；驳回项未造成错误降档。
+- 实施与检查已跑完,等 owner 验收。未 commit、未 push、未部署；T19 × tailnet canonical 拍板、备份修复、Actions pnpm 冲突与 W5.4-b 仍按既有顺序待后续处理。
+
+## R79 · 状态对齐首次收口后的迟到复核回收(2026-08-21)
+
+### 输入
+- R78 首次收口后，两路后台只读复核返回；owner 要求对完成通知执行必要后续，不重复陈述已知结果。
+
+### 行动
+1. 先在当前工作树逐条重放，不直接照单修改。云端绝对句、联网语音例外、tailnet、CLI / SDK、live steer、历史 HEAD 与 provenance 大部分是回修前快照的重复发现，确认已关闭。
+2. 命中一条仍成立的 A 级：Docs 与原实施 prompt 写「语音不放行审批」，但 `docs/09` §3 明确 voice / `voice_weak` ≤ S2，`docs/10` §2.5 明确 S2 封闭肯定词表。中英 Docs、源稿统一为 LAN 不裁 S2/S3、语音确认封顶 S2、tailnet 配对屏幕面在支持后封顶 S2、S3 只走本机认证屏幕；IMPL-PROMPT-11 顶部追加后验勘误，原派发正文不改。
+3. 回收两条 B 级：LLM 深研由「进行中 / 规划中」分叉统一为「规划中」，当前奠基词条改回确定性机械管道；HANDOFF 备份失败补注本机 `~/.saydo/logs` / `~/.saydo/backups` 取证与仓内无原始日志。
+4. 验证：迟到锚点 `files=5 assertions=25`；`git diff --check` / emoji 门 / 10 页静态审计全绿；中英 Docs 1442×867 均无溢出、坏图与 console 告警；完整 `just ci` exit 0（contracts 103、console 264、daemon 1665 passed / 4 skipped、Python 33 passed）。
+
+### 产出
+- 迟到复核合成：`research/codex-findings/87-status-alignment-post-implementation-late.md`（1933 bytes / SHA-256 `0405aa51b475a698fdd3c7a3003abcb064391c920978c5ff8a9de0d30c418007`）。
+- 更新终裁：`research/codex-findings/87-status-alignment-post-implementation-triage.md`（5535 / `1fe0e4679a3164b9b4fafe18128b89eec4278baf57c8a48309721576c7a19821`）。
+- 更新 evidence：`e2e/evidence/status-alignment-20260821.md`（14255 / `33a7529b9d0aec331f57fefbc1ce0ac10a98aa3daa37c7110e0737e3ce562db7`）。
+- 更新实施 prompt：`docs/plan/IMPL-PROMPT-11-STATUS-ALIGNMENT.md`（17655 / `dcbb9ff96ee827b0d7f746fbc89d58bf0f61af749c5181d4a2f707c8ca531d19`）。
+
+### 结论
+- 迟到复核新增的 A 级 1 条与 B 级 2 条已回修；其余是已关闭重复项或无需动作的任务通知。
+- 实施与检查已跑完，等 owner 验收。仍未 commit、push、部署或修改 live 配置。

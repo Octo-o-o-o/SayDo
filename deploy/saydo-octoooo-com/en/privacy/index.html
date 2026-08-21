@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy · SayDo</title>
+  <meta name="description" content="SayDo runs no servers. Conversations, items, and ledger data stay on your devices; product data travels on your LAN or an encrypted overlay you configure." />
+  <meta name="theme-color" content="#f0ede4" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#171410" media="(prefers-color-scheme: dark)" />
+  <link rel="canonical" href="https://saydo.octoooo.com/en/privacy/" />
+  <link rel="alternate" hreflang="zh-Hans" href="https://saydo.octoooo.com/privacy/" />
+  <link rel="alternate" hreflang="en" href="https://saydo.octoooo.com/en/privacy/" />
+  <link rel="icon" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <!-- Pre-render theme: set data-theme before paint (empty falls back to prefers-color-scheme); keep this block byte-identical across all pages -->
+  <script>
+    (function () {
+      var t = "";
+      try { t = localStorage.getItem("saydo.theme") || ""; } catch (e) {}
+      if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
+      else if (t === "light") document.documentElement.setAttribute("data-theme", "light");
+    })();
+  </script>
+  <link rel="stylesheet" href="/tokens.css" />
+  <link rel="stylesheet" href="/site.css?v=20260820f" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a class="brand-lockup" href="/en/">
+        <img class="brand-mark" src="/icon-192.png" alt="" width="32" height="32" />
+        <span>SayDo</span>
+        <span class="brand-en">说到</span>
+      </a>
+      <nav class="nav" data-nav aria-label="Primary">
+        <a class="nav-link" href="/en/">Home</a>
+        <a class="nav-link" href="/en/terms/">Terms</a>
+        <a class="nav-link" href="/en/support/">Support</a>
+      </nav>
+      <div class="header-actions">
+        <span class="lang-switch" role="navigation" aria-label="Language">
+          <a href="/privacy/">中文</a>
+          <a class="is-active" href="/en/privacy/" aria-current="page">EN</a>
+        </span>
+        <button class="icon-btn theme-toggle" data-theme-toggle type="button" aria-label="Toggle dark mode">
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        </button>
+        <button class="icon-btn menu-toggle" data-menu-toggle type="button" aria-label="Open menu" aria-expanded="false">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="legal" id="main">
+    <div class="container">
+      <h1>SayDo Privacy Policy</h1>
+      <p class="lede">Effective: August 21, 2026&ensp;|&ensp;Developer: Yixiao Wang (individual)&ensp;|&ensp;Contact: <a href="mailto:support@octoooo.com">support@octoooo.com</a></p>
+
+      <h2>The one-sentence version</h2>
+      <p>SayDo runs no servers. Conversations, items, and ledger data are stored on <strong>your own devices</strong> (your computer and your phone). Product data travels on your own LAN or an encrypted overlay you configure. Cloud voice, AI upstreams, and push that you enable yourself are called directly from your computer to those third parties. The developer cannot access — and does not collect — any of your data.</p>
+
+      <h2>What we collect</h2>
+      <p>Nothing. The app has no developer-operated backend, no account system, no analytics, and no third-party tracking or advertising SDKs. No user data is uploaded to the developer. AI, optional cloud voice, and optional push that you configure yourself are governed by your agreements with those third parties.</p>
+
+      <h2>Device capabilities the app uses, and why</h2>
+      <table>
+        <thead>
+          <tr><th>Capability</th><th>Purpose</th><th>Where the data goes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Camera</td><td>Scanning the pairing QR code shown by the desktop side</td><td>Decoded on-device only; images are never stored</td></tr>
+          <tr><td>Microphone</td><td>Hold-to-talk voice input</td><td>Audio is passed to the system speech recognizer and is not stored by SayDo; whether recognition is on-device or network-based depends on app or OS settings and the OS vendor's implementation, and network processing is governed by that vendor's privacy terms</td></tr>
+          <tr><td>Speech recognition</td><td>Transcribing your speech to text (uses the system speech recognizer)</td><td>Transcribed text is sent only to <strong>your own paired computer</strong>; see the microphone row above for the network-recognition exception</td></tr>
+          <tr><td>Local network</td><td>Communicating with the SayDo service on your own computer</td><td>Your LAN or an encrypted overlay you configure, authenticated with the pairing token</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Storage and transmission</h2>
+      <ul>
+        <li>All items, conversations, and ledger data live in the SayDo data directory on <strong>your computer</strong>; the phone acts only as a display and input device for your computer;</li>
+        <li>Phone-to-computer communication happens on your LAN or an encrypted overlay you configure, authenticated by a token exchanged via QR pairing; the token is kept in the phone's secure system storage (iOS Keychain / Android Keystore / the HarmonyOS equivalent);</li>
+        <li>Third-party AI, optional cloud voice, and optional push that you enable on the desktop side are called directly by your computer, under your own agreements with those providers; the developer of this app never touches or sees them.</li>
+      </ul>
+
+      <h2>Data deletion</h2>
+      <p>Deleting the app removes all phone-side local data (pairing information and caches). Desktop-side data is managed and deleted by you on your computer.</p>
+
+      <h2>Children</h2>
+      <p>The app is not designed for children under 14, collects no personal information, and contains no content directed at children.</p>
+
+      <h2>Changes to this policy</h2>
+      <p>Any changes will be posted on this page with an updated effective date.</p>
+
+      <h2>Contact</h2>
+      <p><a href="mailto:support@octoooo.com">support@octoooo.com</a></p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand-col">
+          <span class="footer-brand">
+            <img src="/icon-192.png" alt="" width="28" height="28" loading="lazy" />
+            SayDo 说到
+          </span>
+          <p>A voice-first chief of staff for your projects. Local-first, open source, privacy-first.</p>
+        </div>
+        <div class="footer-col">
+          <h4>PRODUCT</h4>
+          <ul>
+            <li><a href="/en/#how">How it works</a></li>
+            <li><a href="/en/#why">Why different</a></li>
+            <li><a href="/en/#status">Status</a></li>
+            <li><a href="/en/#start">Get Started</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>RESOURCES</h4>
+          <ul>
+            <li><a href="/en/docs/">Docs</a></li>
+            <li><a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub</a></li>
+            <li><a href="/en/support/">Support</a></li>
+            <li><a href="/en/#faq">FAQ</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>LEGAL &amp; CONTACT</h4>
+          <ul>
+            <li><a href="/en/privacy/">Privacy policy</a></li>
+            <li><a href="/en/terms/">Terms of use</a></li>
+            <li><a href="mailto:support@octoooo.com">support@octoooo.com</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-meta">
+        <span>© <span data-year>2026</span> SayDo · Developer: Yixiao Wang</span>
+        <span>Local-first · Open source · Privacy-first</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/theme.js?v=20260820d" defer></script>
+</body>
+</html>

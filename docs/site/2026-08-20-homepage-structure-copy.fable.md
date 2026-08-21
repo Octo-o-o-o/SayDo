@@ -15,7 +15,7 @@
 |---|---|---|---|
 | 0 | 顶栏 nav:怎么工作 / 为什么不一样 / 产品现状 / 下载 / 常见问题 / 中·EN / 主题 | — | 缺「文档」入口;「下载」名不副实(无安装包可下,实际是「开始用」) |
 | 1 | Hero:eyebrow + H1「说到,就做到。」+ 副标 + 长描述 + 双按钮(查看开源仓库 / 了解怎么工作)+ aside + 语音条 + 四色账本 + 图例 | `.hero` | 主视觉与账本合一很好。**主按钮指向 GitHub**——对访客而言首要动作应是「开始用」;仓库公开前该按钮更不宜为主 CTA。长描述一句 70+ 字可再收 |
-| 2 | 信任条:数据不出你的设备 / 开源免费 / 复用你已有的 AI 订阅 / 无账号·无云端·无埋点 | `.strip` | 好;「开源免费」受 C-1 约束 |
+| 2 | 信任条:无账号 · 无云端后台 · 只连你自己配置的服务 / 开源免费 / 复用你已有的 AI 订阅 | `.strip` | 2026-08-21 对齐:删首屏绝对离机承诺 |
 | 3 | 怎么工作:七步时间线 | `#how` | (2026-08-20 已解除)Demo 小样与回叫升级链当日落地;步 3 / 6 用 B.3 更新版文案 |
 | 4 | 痛点对照:没有它的时候 / 有了说到 | `#contrast` | 好,保留 |
 | 5 | 为什么不一样:六卖点卡 | `#why` | 「先吃透,再办事」中「先深度研究透」偏重;「AI 真的在干活」把推理供给与执行器混为一句(Gemini CLI 不能执行;Claude Code 执行器在建) |
@@ -69,14 +69,14 @@
   *EN: A voice-first chief of staff for your projects. Just talk it through — it studies your project first, keeps a four-color ledger of everything, and once it understands, it drives the AI tools already on your machine. When the run and its checks are done, it calls you back for review.*
 - [改] 按钮:主 `开始用`(→ `#start`)/ 次 `了解怎么工作`(→ `#how`)
   *EN: Get started / How it works*
-- [改] aside:`桌面服务开源免费 · 查看 GitHub` | `iOS / Android / HarmonyOS · Coming soon`(GitHub 链接指向已公开的仓库)
-  *EN: Desktop service · free & open source · View on GitHub | iOS / Android / HarmonyOS · Coming soon*
+- [改] aside:`桌面服务开源免费 · 查看 GitHub` | `Windows / Linux 暂不支持、没有明确时间表` | `iOS / Android / HarmonyOS 开发中、尚未上架` | `邮件订阅进展`
+  *EN: Desktop service · free & open source · View on GitHub | Windows / Linux not supported yet; no timeline promised | iOS / Android / HarmonyOS in development, not in stores | Email for updates*
 - [保留] 语音条示例句、四色账本四行与图例(文案已贴合产品:等你拍板 / 你欠的动作 / AI 正在办 / 等外部回音)。
 
 ## B.2 信任条
 
-[保留] `数据不出你的设备 · 开源免费 · 复用你已有的 AI 订阅 · 无账号 · 无云端 · 无埋点`
-*EN: Your data never leaves your devices · Free & open source · Uses the AI subscriptions you already have · No accounts · No cloud · No tracking*
+[改] `开源免费 · 复用你已有的 AI 订阅 · 无账号 · 无云端后台 · 只连你自己配置的服务`(删首屏绝对离机承诺)
+*EN: Free & open source · Uses the AI subscriptions you already have · NO ACCOUNTS · NO BACKEND OF OURS · ONLY THE SERVICES YOU CONFIGURE*
 
 ## B.3 怎么工作(七步)
 
@@ -104,7 +104,8 @@
 - AI 真的在干活 [改]:`接上你电脑上已登录的 AI——Codex、Claude Code、Cursor、Gemini CLI、Grok 等替它对话、思考、评估;动手改代码由 Cursor Agent 承担,Claude Code 执行器在建。已订阅哪家用哪家,无需额外付费。`
   *EN: It plugs into the AI already signed in on your machine — Codex, Claude Code, Cursor, Gemini CLI, Grok and more for thinking and evaluation; hands-on code changes run through Cursor Agent today, with a Claude Code executor in progress. Whichever you subscribe to, it uses. No extra fees.*
 - 人拍板才算数 [保留]
-- 数据完全在你手里 [保留]
+- 数据完全在你手里 [改]:`没有开发者运营的云端后台，没有账号注册。对话、事项与账本保存在你自己的设备上；手机与电脑之间走你自己的局域网或你自行配置的加密组网。开发者无法访问、也不收集。`
+  *EN: No developer-operated backend, no accounts. Conversations, items, and the ledger stay on your devices. Phone and computer talk over your own LAN or an encrypted overlay you configure. The developer cannot access — and does not collect — any of your data.*
 - 跨设备同一本账 [保留]
 
 ## B.6 产品现状(7 卡)
@@ -115,32 +116,45 @@
 - 驱动你已有的 AI · 现在可用 [改]:`对话、思考、评估可用你已登录的 Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot 订阅,或任一 OpenAI 兼容 API;真正动手改代码的执行器当前为 Cursor Agent。`
   *EN: Conversation, reasoning, and evaluation run on your signed-in Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot subscriptions, or any OpenAI-compatible API; the executor that actually edits code is Cursor Agent today.*
 - 项目记忆与四色账本 · 现在可用 [保留]
-- [可选新增] Claude Code 执行器 · 进行中:`用你的 Claude 订阅登录态驱动 Claude Code 在隔离 worktree 里改代码,审批门同样 fail-closed。能力实测与审批门已落,接线中。`(需新增一种「进行中」徽标;若不想动 UI,把这句并入上一张卡末尾)
-  *EN: Claude Code executor · In progress — drive Claude Code with your own Claude subscription in an isolated worktree, behind the same fail-closed approval gate. Capabilities verified and the gate built; wiring in progress.*
+- [可选新增] Claude Code 执行器 · 进行中:`用你的 Claude 订阅登录态驱动 Claude Code 在隔离 worktree 里改代码,审批门同样 fail-closed。官方 CLI 能力实测与审批门判定逻辑已验证,尚未接入生产执行链。`(需新增一种「进行中」徽标;若不想动 UI,把这句并入上一张卡末尾)
+  *EN: Claude Code executor · In progress — drive Claude Code with your own Claude subscription in an isolated worktree, behind the same fail-closed approval gate. Capabilities and the gate decision logic have been verified against the official CLI; it is not yet wired into the production execution path.*
 - iOS / Android / HarmonyOS / 来电式语音汇报 四卡 [保留]
 
 ## B.7 沟通面 ↔ 执行面
 
-[保留] 全部文案。
+[改] 介绍段:`沟通天然是移动的，执行天然是固定的。手机只做沟通——说话、看进展、点头确认。局域网连接不能审批 S2 / S3；你自己的加密组网远程面审批封顶 S2；合并、删除等 S3 始终只在电脑上。重活留在你的电脑上。`
+*EN: Communication is naturally mobile; execution is naturally stationary. Your phone is for talking, watching progress, and nodding confirmations. A LAN connection cannot approve S2 / S3; a remote surface on your own encrypted overlay caps approvals at S2; merges, deletes, and other S3 actions stay on your computer.*
+架构节点:`说话、看进展、点头确认。局域网不能批 S2 / S3；自行配置的远程面审批封顶 S2；合并与删除始终回电脑。`
+*EN: Talk, watch progress, nod confirmations. LAN cannot approve S2 / S3; a remote surface you configure caps approvals at S2; merges and deletes always return to the computer.*
+连线标签:`局域网或自行配置的加密组网` / *LAN OR YOUR ENCRYPTED OVERLAY*
 
 ## B.8 隐私带
 
-[保留] 全部文案(与隐私政策一致)。
+[改] 保留标题「不运营任何服务器」/`No servers. Period.`。正文:`对话、事项与账本数据保存在你自己的设备上。手机与电脑之间的产品数据通道，走你自己的局域网或你自行配置的加密组网。你自行启用的云端语音、AI 上游和推送，由你的电脑直连第三方；开发者不接收这些数据。`
+*EN: Conversations, items, and ledger data stay on your devices. The product data path between phone and computer is your own LAN or an encrypted overlay you configure. Cloud voice, AI upstreams, and push that you enable yourself are called directly from your computer to those third parties; the developer does not receive that data.*
 
 ## B.9 开始用(`#start`,保留 `#download` 锚点)
 
 - 标题 [改]:eyebrow `开始用` / H2 `桌面开源,App 在路上`(保留)
-- 引语 [改]:`桌面服务是执行面,开源免费;移动 App 是沟通面,正在朝上架推进。在你的 Mac 上跑起桌面服务就能开聊:不需要申请任何 API key——电脑上有任意一家已登录的 AI 命令行工具即可;手机可在同一局域网里扫码连上,App 上架前先用手机浏览器。`
-  *EN: The desktop service is the execution side — free and open source. The mobile apps are the communication side, working toward store release. Run the desktop service on your Mac and start talking: no API keys to apply for — any signed-in AI command-line tool on your computer is enough. Your phone can pair over your LAN; until the apps ship, use the phone's browser.*
+- 引语 [改]:`桌面服务是执行面：macOS 开源免费、现在可用；Windows 与 Linux 暂不支持、没有明确时间表。移动 App 是沟通面，开发中、尚未上架、当前无可下载版本。在你的 Mac 上跑起桌面服务就能开聊。按文档显式打开局域网访问后，可用手机浏览器扫码连接。`
+  *EN: The desktop service is the execution side: macOS is free, open source, and available now; Windows and Linux are not supported yet, with no timeline promised. The mobile apps are the communication side: in development, not listed in any store, and there is nothing to download today. After you explicitly enable LAN access as documented, you can connect with a phone browser by scanning a QR code.*
 - macOS 卡 [改]:`macOS 桌面服务 · 开源免费 · 现在可用` + 链接 `安装说明 →`(`/docs/#quickstart`)+ `GitHub →`
   *EN: macOS desktop service · Free & open source · Available now · Install guide → · GitHub →*
-- iOS / Android / HarmonyOS 三卡 [保留] Coming soon
+- Windows / Linux 卡 [改]:徽章 `暂不支持` / *Not supported yet*;说明见引语「没有明确时间表 / no timeline promised」
+- iOS / Android / HarmonyOS 三卡 [改]:徽章 `开发中` / *In development*;尚未上架、当前无可下载版本。邮件按钮 `邮件订阅进展` / *Email for updates*(mailto subject 为更新通知,不是 beta access)
 
 ## B.10 FAQ
 
 - 标题 [保留]:`先说清楚它不是什么`
-- 五问 [保留](「需要什么前提」一问末句 `语音无需额外配置,浏览器即可用` 成立,可保留;如要更准:`语音不用额外配置——浏览器自带的系统语音就能说;想要更准更自然可选配云端语音`)
-  *EN (optional): Voice needs no setup — your browser's built-in speech works out of the box; cloud voice is an optional upgrade for better accuracy.*
+- 五问 [改其中三问]:
+  - 云服务:`不是。没有开发者运营的云端后台。重活在你自己的电脑上跑。你接入的第三方 AI 由你的电脑直接调用，开发者不经手、不可见。`
+    *EN: No. There is no developer-operated cloud backend. The heavy work runs on your own computer. The third-party AI you connect is called directly by your computer — the developer never touches or sees any of it.*
+  - 需要什么前提:`在你的电脑（macOS）上运行「说到」桌面服务。按文档显式打开局域网访问后，可用手机浏览器扫码连接。`
+    *EN: Run the desktop service on your Mac. After you explicitly enable LAN access as documented, you can connect with a phone browser by scanning a QR code.*
+  - 数据存在哪:`对话、事项与账本保存在你自己的设备上。手机与电脑之间走你自己的局域网或你自行配置的加密组网。你自行启用的云端语音、AI 上游和推送，由你的电脑直连第三方；开发者不接收这些数据。`
+    *EN: Conversations, items, and the ledger stay on your own devices. Phone and computer talk over your own LAN or an encrypted overlay you configure. Cloud voice, AI upstreams, and push that you enable yourself are called directly from your computer to those third parties; the developer does not receive that data.*
+  - 「需要什么前提」末句 `语音无需额外配置,浏览器即可用` 仍成立;如要更准:`语音不用额外配置——浏览器自带的系统语音就能说;想要更准更自然可选配云端语音`
+    *EN (optional): Voice needs no setup — your browser's built-in speech works out of the box; cloud voice is an optional upgrade for better accuracy.*
 - [新增] `要花钱吗?`:`桌面服务免费。AI 的费用直接付给你选的厂商:用你已有的订阅(额度内零额外费用),或你自己的 API key 按量计费;每个任务有成本、时长、回合三重熔断。说到不加价、不经手、不代充。`
   *EN: Does it cost money? The desktop service is free. AI costs go straight to the vendor you choose — your existing subscription (no extra fees within its quota) or your own API key, pay as you go — with per-task cost, time, and turn circuit-breakers. SayDo adds no markup and never handles payment.*
 - [新增] `它会替我 push 或开 PR 吗?`:`不会。它只在你项目里的独立 worktree 和 saydo/<任务> 分支上改代码;合并到你的分支要你 Touch ID 确认或自己动手;推送远端、开 PR 永远是你之后自己做的事。`
@@ -165,11 +179,11 @@
 | # | 事项 | 现状 | 建议 |
 |---|---|---|---|
 | C-1 | **已解除(2026-08-20)**:LICENSE = Apache-2.0;仓库已公开(`github.com/Octo-o-o-o/SayDo` = 快照仓,全史在私有归档;处置记录 `docs/plan/2026-08-20-repo-public-readiness.fable.md` §3.1) | 首页「开源免费」与 GitHub 直链成立 | 本稿可按原文案上线 |
-| C-2 | 「驱动你已有的 AI」两层混写 | 推理槽 7 家 CLI 可用;执行器仅 Cursor;Claude Code 执行器第一批(能力实测 + 审批门)已收口(2026-08-20)、接线批在途;Gemini CLI 无执行计划 | 按 B.5 / B.6 拆句;是否加「进行中」徽标由 owner 定 |
+| C-2 | 「驱动你已有的 AI」两层混写 | 推理槽 7 家 CLI 可用;执行器仅 Cursor;Claude Code 执行器第一批(官方 CLI 能力实测 + 审批门判定逻辑)已验证、尚未接入生产执行链;Gemini CLI 无执行计划 | 按 B.5 / B.6 拆句;进行中徽标可保留,不得把生产接线写成在途 |
 | C-3 | **已解除(2026-08-20)**:七步第 3 步「轻量 Demo」 | S1 批落地:决策包同轮生成轻量小样(机械渲染)+ 控制台「看小样」+ 本机同轮上屏 | B.3 第 3 步已恢复小样表述(更新版) |
 | C-4 | **已解除(2026-08-20)**:七步第 6 步回叫升级链 | S2 批落地:在线语音回叫(控制台在线 + 语音管线健康)→ macOS 桌面通知 + ntfy;免打扰只推不响;「知道了」/开口即应答 | B.3 第 6 步已按新事实改写 |
 | C-5 | 「先深度研究透」 | 奠基 = 机械管道;LLM 深研未做 | B.5 改「读透结构、约定与关键文件」 |
-| C-6 | 「手机扫码即连」 | 需 `SAYDO_MOBILE_LAN=1`、仅私网、App 未上架(浏览器或自构建壳) | B.9 引语加限定;FAQ 保留但 Docs 写清 |
+| C-6 | 「手机扫码即连」 | 需按文档显式打开局域网访问、仅私网、App 未上架(浏览器或自构建壳) | 首页写成「按文档显式打开局域网访问后，可用手机浏览器扫码连接」;不在首页暴露环境变量名;Docs 写清开关 |
 | C-7 | 「语音无需额外配置,浏览器即可用」 | 成立(浏览器系统语音回退,2026-08-13) | 可保留;B.10 给更准版本供选 |
 | C-8 | 英文页同步 | 现英文页与中文逐段对应 | 每处 [改] 都给了 EN;按同位置替换 |
 | C-9 | `#download` 改 `#start` | 站内 nav / 页脚 / en 页引用该锚点 | 保留旧 id 作兼容(同一 section 双 id 不合法——可在 section 上设 `id="start"`,并在其前放一个空 `<span id="download"></span>` 锚) |

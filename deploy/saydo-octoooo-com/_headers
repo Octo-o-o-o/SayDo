@@ -1,0 +1,5 @@
+/site.css
+  Cache-Control: public, max-age=120, must-revalidate
+
+/theme.js
+  Cache-Control: public, max-age=120, must-revalidate

@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>文档 · 说到 SayDo</title>
+  <meta name="description" content="「说到」(SayDo) 使用文档:安装与快速开始、模型与供给配置、执行器与安全审批、记忆与账本、回叫、语音、手机连接、隐私与费用、路线图与故障排查。" />
+  <meta name="theme-color" content="#f0ede4" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#171410" media="(prefers-color-scheme: dark)" />
+  <link rel="canonical" href="https://saydo.octoooo.com/docs/" />
+  <link rel="alternate" hreflang="zh-Hans" href="https://saydo.octoooo.com/docs/" />
+  <link rel="alternate" hreflang="en" href="https://saydo.octoooo.com/en/docs/" />
+  <link rel="icon" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <!-- 防 FOUC:渲染前同步设 data-theme(空值落 prefers-color-scheme);此段在全部页面逐字保持一致,改动需同步 -->
+  <script>
+    (function () {
+      var t = "";
+      try { t = localStorage.getItem("saydo.theme") || ""; } catch (e) {}
+      if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
+      else if (t === "light") document.documentElement.setAttribute("data-theme", "light");
+    })();
+  </script>
+  <link rel="stylesheet" href="/tokens.css" />
+  <link rel="stylesheet" href="/site.css?v=20260820f" />
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主内容</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a class="brand-lockup" href="/">
+        <img class="brand-mark" src="/icon-192.png" alt="" width="32" height="32" />
+        <span>说到</span>
+        <span class="brand-en">SAYDO</span>
+      </a>
+      <nav class="nav" data-nav aria-label="主导航">
+        <a class="nav-link" href="/#how">怎么工作</a>
+        <a class="nav-link" href="/#why">为什么不一样</a>
+        <a class="nav-link" href="/#status">产品现状</a>
+        <a class="nav-link" href="/#start">开始使用</a>
+        <a class="nav-link" href="/docs/" aria-current="page">文档</a>
+        <a class="nav-link" href="/#faq">常见问题</a>
+      </nav>
+      <div class="header-actions">
+        <span class="lang-switch" role="navigation" aria-label="语言切换">
+          <a class="is-active" href="/docs/" aria-current="page">中文</a>
+          <a href="/en/docs/">EN</a>
+        </span>
+        <button class="icon-btn theme-toggle" data-theme-toggle type="button" aria-label="切换亮暗主题">
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        </button>
+        <button class="icon-btn menu-toggle" data-menu-toggle type="button" aria-label="打开菜单" aria-expanded="false">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="container docs-hero">
+      <span class="eyebrow">文档</span>
+      <h1>说到使用文档</h1>
+      <p class="docs-lede">从安装跑起来，到把模型配到最好、看懂它的安全机制——全部在这里。完成度如实标注:现在可用 / 进行中 / 规划中。</p>
+    </div>
+    <div class="container docs-layout">
+      <details class="docs-toc-mobile"><summary>目录</summary><nav aria-label="文档目录">
+        <span class="toc-group">上手</span>
+        <a href="#s0">0 · 怎么读这份文档</a>
+        <a href="#s1">1 · 「说到」是什么</a>
+        <a href="#s2">2 · 核心概念速查</a>
+        <a href="#s3">3 · 工作原理</a>
+        <a href="#quickstart">4 · 快速开始</a>
+        <span class="toc-group">模型与供给</span>
+        <a href="#s5">5 · 模型与供给</a>
+        <a href="#s6">6 · 执行器</a>
+        <span class="toc-group">机制参考</span>
+        <a href="#s7">7 · 项目与 Git</a>
+        <a href="#s8">8 · 审批与安全</a>
+        <a href="#s9">9 · 记忆与账本</a>
+        <a href="#s10">10 · 验收与交付</a>
+        <a href="#s11">11 · 回叫与通知</a>
+        <a href="#s12">12 · 语音</a>
+        <span class="toc-group">手机、隐私与费用</span>
+        <a href="#s13">13 · 手机与远程</a>
+        <a href="#s14">14 · 隐私与数据</a>
+        <a href="#s15">15 · 费用</a>
+        <span class="toc-group">参考</span>
+        <a href="#s16">16 · 路线图与完成度</a>
+        <a href="#s17">17 · 常见问题与排查</a>
+        <a href="#s18">18 · 开源与参与</a>
+        <a href="#s19">19 · 术语对照</a>
+        <a href="#appendix">附录 · 速查表</a>
+      </nav></details>
+      <nav class="docs-toc" aria-label="文档目录">
+        <span class="toc-group">上手</span>
+        <a href="#s0">0 · 怎么读这份文档</a>
+        <a href="#s1">1 · 「说到」是什么</a>
+        <a href="#s2">2 · 核心概念速查</a>
+        <a href="#s3">3 · 工作原理</a>
+        <a href="#quickstart">4 · 快速开始</a>
+        <span class="toc-group">模型与供给</span>
+        <a href="#s5">5 · 模型与供给</a>
+        <a href="#s6">6 · 执行器</a>
+        <span class="toc-group">机制参考</span>
+        <a href="#s7">7 · 项目与 Git</a>
+        <a href="#s8">8 · 审批与安全</a>
+        <a href="#s9">9 · 记忆与账本</a>
+        <a href="#s10">10 · 验收与交付</a>
+        <a href="#s11">11 · 回叫与通知</a>
+        <a href="#s12">12 · 语音</a>
+        <span class="toc-group">手机、隐私与费用</span>
+        <a href="#s13">13 · 手机与远程</a>
+        <a href="#s14">14 · 隐私与数据</a>
+        <a href="#s15">15 · 费用</a>
+        <span class="toc-group">参考</span>
+        <a href="#s16">16 · 路线图与完成度</a>
+        <a href="#s17">17 · 常见问题与排查</a>
+        <a href="#s18">18 · 开源与参与</a>
+        <a href="#s19">19 · 术语对照</a>
+        <a href="#appendix">附录 · 速查表</a>
+      </nav>
+      <article class="docs-body">
+        <h2 id="s0">0. 怎么读这份文档</h2>
+        <ul>
+          <li><strong>只想先跑起来</strong>:读 §1(它是什么)→ §4(快速开始)→ §5.3(三种配置方案)就够;其余按需查。</li>
+          <li><strong>想知道它到底怎么做到的</strong>:§3(工作原理)→ §7(项目与 Git)→ §8(审批与安全)→ §9(记忆与账本)→ §10(验收与交付)。</li>
+          <li><strong>想配多家模型 / 多个 CLI 把效果调到最好</strong>:§5(模型与供给)全读,再看 §6(执行器)。</li>
+          <li><strong>关心数据去哪了、花不花钱</strong>:§14(隐私与数据)、§15(费用)。</li>
+          <li>每节标题后若带 <strong><span class="badge badge-live">现在可用</span> / <span class="badge badge-progress">进行中</span> / <span class="badge badge-soon">规划中</span></strong>,表示该节描述的能力当前状态;没带的 = 该节内容整体现在可用,个别差异在正文内标注。</li>
+          <li>文档口径以 macOS 桌面服务当前版本为准;移动 App 均未上架,手机相关内容以「可以这样连」而非「商店下载」为准(§13)。</li>
+        </ul>
+
+        <h2 id="s1">1. 「说到」(SayDo)是什么</h2>
+        <p>「说到」(SayDo)是<strong>一个你能对着说话的高级助手</strong>,运行在你自己的 Mac 上。你只管把事情聊清楚——甚至边聊边想清楚;它先吃透你的项目上下文,把每件事记成一本账;听懂了、火候够了,就主动提议开工,驱动你电脑上已有的 AI 工具去办;执行和检查都跑完,它主动叫你来验收;你点头,才算交付。</p>
+        <p>它的心智模型是<strong>幕僚长</strong>(chief of staff):天天和你聊、听懂就自己把事办成、做完来汇报——而不是「你说得越清楚我做得越好」的指令翻译器。核心竞争力不在用哪个模型,而在<strong>上下文工程 + 人机协作流程</strong>。</p>
+        <h3>1.1 三条核心承诺</h3>
+        <ul>
+          <li><strong>说了就记</strong>:按住说话(或打字),想到哪说到哪。随口一句「帮我记一下」立刻进账;答应的事、等你拍板的事、AI 正在办的事、等别人回音的事,件件有归属有去向。</li>
+          <li><strong>先吃透,再办事</strong>:第一次接触一个项目,它先做一次「奠基」——扫清项目结构与关键文件、吸收仓里已有的约定、生成持久的项目知识底座;之后每次对话都带着对你项目的理解,而不是从零开始。这是「说到」和「新开一个聊天窗口」的分水岭。(当前版本的奠基是确定性的机械管道;由沉思档模型做的深度研究是规划中的下一档,§9.2)</li>
+          <li><strong>人拍板才算数</strong>:开工前给你决策包(做什么、怎么做、哪些它做哪些要你配合、最终长什么样);办完只说「等你验收」,不说「做完了」;合并、交付,永远你点头才生效。</li>
+        </ul>
+        <h3>1.2 它不是什么</h3>
+        <ul>
+          <li><strong>不是语音输入法</strong>。它不做「语音转文字再粘贴」;语音只是入口,后面是理解上下文、立账、判断就绪、驱动执行、组织验收的完整闭环。</li>
+          <li><strong>不是「说到」自营云端代跑</strong>。没有承载产品数据的「说到」自营服务器,也没有账号注册。重活与任务、确认、审计等核心持久数据都在你自己的电脑上;你主动接入的第三方 AI、系统或浏览器语音识别、推送服务等例外由你的设备直接调用,按对应服务商条款处理,开发者不经手、不可见。</li>
+          <li><strong>不是又一个聊天客户端</strong>。语音识别、聊天、编码 agent 每一块都有成熟单点;「说到」做的是把「聊透 → 自动开工 → 办完叫你验收」治理成同一套闭环——含审批、预算、隔离、回叫、验收、沉淀。</li>
+          <li><strong>不是通用语音助手</strong>。不做闹钟、闲聊、放歌;不替代 IDE——diff、日志、长文档永远转屏幕看,语音只承载决策和摘要。</li>
+        </ul>
+        <h3>1.3 适用的事</h3>
+        <p>它服务「<strong>有明确产出物的事</strong>」:代码改动 / 文档 / 调研报告 / 文章 / 方案 / 行动计划。编码开发是主场景(工程师口述需求 → AI 在隔离 worktree 里开发 → 你验收合并);但同一套上游能力(奠基、采访、就绪决断、回叫、沉淀)也服务写作与生活筹备、调研这类非代码的事。当前项目类型能力门:<code>coding</code>(现在可用)、<code>writing</code>(窄版已落地,合并链复用 coding 的 worktree + 强认证合并;引用级引证、归属合同等全量仍规划中);<code>research</code> / <code>marketing</code> / <code>planning</code> / <code>general</code> 的专属执行合同规划中——但「立一件事盯着、记义务、采访、调研」这些上游能力对任何事都可用(§9.4)。</p>
+        <h3>1.4 当前状态一句话</h3>
+        <ul>
+          <li><strong>macOS 桌面服务</strong>(守护进程 daemon + Web 控制台 + 可选语音管线):现在可用,开源免费(见 §18 开源与参与)。</li>
+          <li><strong>驱动你已有的 AI</strong>:推理槽位可用 Claude Code / Codex / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI 的<strong>订阅登录态</strong>或任意 OpenAI 兼容 API(§5);<strong>执行器(真正改代码的 agent)当前为 Cursor CLI</strong>,Claude Code 执行器进行中,Codex 执行路线规划中(§6)。</li>
+          <li><strong>项目记忆与四色账本</strong>:现在可用。</li>
+          <li><strong>iOS / Android / HarmonyOS App</strong>:工程壳存在,均未提审上架;手机当前可经局域网用 App 壳或手机浏览器连接桌面服务(§13)。</li>
+          <li><strong>来电式语音汇报</strong>:规划中。</li>
+        </ul>
+        <h3>1.5 费用一句话</h3>
+        <p>桌面服务本身免费。AI 能力的费用直接付给你选的厂商——用你已有的 CLI 订阅(额度内零额外费用),或你自己的 API key 按量计费。「说到」不加价、不经手、不代充。细节见 §15。</p>
+
+        <h2 id="s2">2. 核心概念速查</h2>
+        <table>
+          <thead>
+            <tr><th>概念</th><th>一句话</th><th>详见</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>沟通面 / 执行面</strong></td><td>手机和浏览器是沟通面(说话、看进展、按来源面做允许的确认):LAN 不裁 S2/S3,语音确认封顶 S2,tailnet 配对屏幕面在支持后封顶 S2;S3 只在 Mac 认证屏幕。你的 Mac 是执行面(奠基、记忆、驱动 AI、后台办事)</td><td>§3.1、§13</td></tr>
+            <tr><td><strong>daemon(守护进程)</strong></td><td>桌面服务的核心常驻进程:持有全部账本与状态,托管 Web 控制台,执行工具调用,派发任务,发回叫。语音会话断了它也活着</td><td>§3.1</td></tr>
+            <tr><td><strong>Brain(对话大脑)</strong></td><td>对话轮次背后的模型:采访、答疑、口播;它<strong>没有直接执行权</strong>,所有副作用都经 daemon</td><td>§3.1</td></tr>
+            <tr><td><strong>一件事(Focus)</strong></td><td>账本的主轴:一件持续关注的事(可以关联 0..N 个项目,也可以不属于任何项目);下面挂「义务」(谁欠什么)与「期待」(做成什么样)</td><td>§9.4</td></tr>
+            <tr><td><strong>四色账本</strong></td><td>今天页的四个色区:<strong>等你拍板</strong>(橙)/ <strong>你欠的动作</strong>(蓝)/ <strong>AI 正在办</strong>(绿)/ <strong>等外部回音</strong>(灰)。每件事都有归属和去向</td><td>§9.4</td></tr>
+            <tr><td><strong>项目 / 工作区</strong></td><td>项目 = 一类产出物的承载边界;coding 项目的工作区是你本机的一个 git 仓库文件夹;非代码项目默认用系统管理的文件夹</td><td>§7.1</td></tr>
+            <tr><td><strong>奠基(Foundation)</strong></td><td>第一次接触项目时运行的确定性机械管道,建立项目知识底座(M1);LLM 深研规划中</td><td>§9.2</td></tr>
+            <tr><td><strong>M0–M3 记忆</strong></td><td>M0 跨项目用户档案层 / M1 项目知识底座 / M2 累积产物 / M3 会话转写</td><td>§9.1</td></tr>
+            <tr><td><strong>就绪(Readiness)</strong></td><td>「够不够开始」的判定:按项目类型的就绪清单逐项确认,由独立评估器(与对话模型<strong>不同家族</strong>)复核</td><td>§3.3、§5.4</td></tr>
+            <tr><td><strong>决策包</strong></td><td>就绪后端出的成果预览 + 实施计划(每步标 AI 执行 / 需你配合)+ 预计花费与封顶,外加一份轻量小样(与计划同源机械渲染的网页预览)和一句「现在开始?」</td><td>§3.3</td></tr>
+            <tr><td><strong>执行模式</strong></td><td><strong>逐步确认</strong>(每个出圈动作和步骤边界都先问你;出厂默认,当前唯一生效档)/ <strong>直达验收</strong>(一口气跑到等你验收,S2 类效果按念读签署的预授权清单放行;进行中)</td><td>§8.4</td></tr>
+            <tr><td><strong>S0–S3</strong></td><td>动作风险分级(按效果算,不按动作名):S0 读 / S1 写 worktree 内 / S2 出圈可逆 / S3 不可逆或外部影响。S3 永远只走已认证屏幕,语音绝不放行</td><td>§8.1</td></tr>
+            <tr><td><strong>Gate 0</strong></td><td>开放自主派发前的安全门禁(身份授权、幂等、独立验收 oracle、secret/egress、意图审计、删除/同意传播);代码里没有 bypass 分支</td><td>§8.2</td></tr>
+            <tr><td><strong>worktree 隔离</strong></td><td>每个任务一个独立 git worktree,主工作区永不被 agent 碰</td><td>§7.2</td></tr>
+            <tr><td><strong><code>ready_for_review</code></strong></td><td>执行和检查都跑完、产物落盘、等你验收的状态;回叫从这里触发。<strong>它不等于完成</strong>;合并/归档后才是「交付了」</td><td>§10.1</td></tr>
+            <tr><td><strong>推理槽位(四槽)</strong></td><td>对话 dialog / 沉思 thinking / 廉价 cheap / 评估 evaluator——各自可选 API 或订阅 CLI 供给</td><td>§5.1</td></tr>
+            <tr><td><strong>开发档(执行器)</strong></td><td>第五个槽位 <code>[models.dev]</code>:派发任务时<strong>驱动哪个 agent 去改代码</strong>(与上面「调哪个模型说话」是两回事)</td><td>§6</td></tr>
+            <tr><td><strong>BYOA(Bring Your Own Agent)</strong></td><td>用你本机已登录的 CLI(Codex / Claude Code / Cursor / Grok / Gemini / Qwen / Copilot)做推理供给,零 API key</td><td>§5.2</td></tr>
+            <tr><td><strong>cap-token</strong></td><td>控制台的本机能力令牌(<code>~/.saydo/.cap-token</code>),进控制台的 URL 里带它;删了会轮换</td><td>§4.3、§14</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="s3">3. 工作原理</h2>
+        <h3>3.1 整体架构:三层</h3>
+        <pre><code>人(说 / 听 / 偶尔看屏;拍板 / 审批)
+   │ 语音或文字(浏览器、手机)                回叫(语音 / 桌面通知 / 手机推送)
+┌──▽────────────────────────────────────────────────────────────┐
+│ 沟通面:Web 控制台(桌面浏览器)/ 手机(App 壳或手机浏览器,局域网)     │
+│   · 语音引擎(可选 Python 语音管线:ASR → 文本模型 → TTS)           │
+│   · Brain:采访 / 就绪自省 / 决策包 / 口播;无直接执行权              │
+├────────────────────────────────────────────────────────────────┤
+│ 控制面:daemon(Node 22,常驻)——一切 durable 状态的唯一持有者        │
+│   · 账本:一件事 / 义务 / 四色 attention / 记忆事件账本 / 审批收据     │
+│   · 工具执行、Context Pack 装配、任务派发、事件对账、回叫、成本记账     │
+│   · 本机 HTTP/WS(缺省 127.0.0.1:47100,能力令牌鉴权),托管控制台静态页 │
+├────────────────────────────────────────────────────────────────┤
+│ 执行面:本机 AI 执行器(Tier 1,当前 Cursor CLI)——在隔离 worktree 里  │
+│   改代码;每条 shell 命令经审批门回连 daemon;预算/时长/回合三熔断     │
+│   (另有经 Hopper 的批式执行路线,合同已定、生产绑定当前休眠,§6.3)    │
+└────────────────────────────────────────────────────────────────┘</code></pre>
+        <p>三条铁律贯穿全部设计:</p>
+        <ol>
+          <li><strong>Brain 的模型进程可丢弃、无直接执行权</strong>——语音会话或推理进程随时可以死掉重建,任务照跑;所有副作用发生在 daemon / 执行器。</li>
+          <li><strong>语音会话短命,任务长命</strong>——会话是事件驱动的窗口(空闲 45 秒或你说「先到这里 / 先这样 / 收工」就挂起,零成本);任务在后台持续执行,靠回叫把人拉回来。</li>
+          <li><strong>每项状态只有一个 owner</strong>——对话域状态归 daemon,执行域状态归执行器/后端;跨边界用 durable 协议(幂等 key、事件游标、收据)连接,不共用数据库。</li>
+        </ol>
+        <p><strong>组件一览</strong>(核心组件跑在你的 Mac 上；你主动启用的第三方 AI、联网语音识别与推送例外按对应服务商条款处理):</p>
+        <table>
+          <thead>
+            <tr><th>组件</th><th>是什么</th><th>备注</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>daemon</td><td>核心守护进程(TypeScript / Node 22):对话与任务状态的唯一持有者;托管控制台网页;审批门、账本、审计都在这</td><td>缺省端口 47100;只监听本机回环</td></tr>
+            <tr><td>console</td><td>Web 控制台(Vite + React);桌面与手机(移动壳路由)共用一套</td><td>由 daemon 直接托管,浏览器打开即用</td></tr>
+            <tr><td>pipeline</td><td>语音管线(Python):桌面浏览器的云端听与说(火山豆包 ASR / TTS)</td><td>可选;不起则用打字或浏览器系统语音</td></tr>
+            <tr><td>saydo CLI</td><td><code>saydo up / status / open</code>:前台持有 daemon、探活、开控制台</td><td>可选;与直接起 daemon 二选一</td></tr>
+            <tr><td>contracts</td><td>数据契约包(zod schema、状态机、digest):各组件不分叉的类型单源</td><td>开发者关心</td></tr>
+            <tr><td>执行器</td><td>拍板后在 worktree 里真的改代码的 agent(当前 Cursor CLI)</td><td>可选;没有不影响对话与记账</td></tr>
+          </tbody>
+        </table>
+        <h3>3.2 一次完整闭环:从聊一句到办完叫你</h3>
+        <table>
+          <thead>
+            <tr><th>步骤</th><th>发生什么</th><th>背后机制</th><th>你做什么</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1 开口聊</td><td>「今天」页点「开口聊」,按住说话或打字;随口一句「帮我记一下」立刻进账;它像采访一样一次问一个</td><td>Context Pack(从 M0+M1+M2 挑相关切片 + 最近几轮)注入;采访纪律:一次一问、选择题优先、有问题预算</td><td>说</td></tr>
+            <tr><td>2 就绪决断</td><td>它每轮自省「知识够不够 + 需求清不清」,缺哪维补哪维;够了才提议开工</td><td>按项目类型的就绪清单(coding:目标 / 可验证的验收标准 / 范围 / 约束 / 代码库关键部分已理解)逐项确认;确认 = 你亲口给出 + 它复述你点头;独立评估器(异族模型)在提议前复核</td><td>听提议</td></tr>
+            <tr><td>3 决策包</td><td>端出成果预览、实施计划(每步标 AI 执行 / 需你配合)、范围内外、验收标准、风险,报预计花费与封顶;随包生成一份轻量小样(网页预览,与计划同源机械渲染)——控制台点「看小样」查看,本机对话时同轮放到你屏幕上</td><td>计划落盘为可编辑产物,批准版本固化为「合同」;小样随包固化(改包即重生成);决策包有效期 24 小时</td><td>看</td></tr>
+            <tr><td>4 你拍板</td><td>说「就这样」/「开始」;执行模式当前按「逐步确认」(「一口气跑完」档的语音念读签署进行中,§8.4)</td><td>两把钥匙:「证据够了」≠「有权的人批准了这个包+范围+预算+有效期」;派发收据 digest 绑定、单次消费;Gate 0 未关拒派发</td><td>拍板</td></tr>
+            <tr><td>5 后台执行</td><td>在独立 git worktree 里跑,主工作区不被碰;每条 shell 命令过审批门;预算 / 活跃时长 / 回合三熔断;你可以走开,语音会话挂起</td><td>命令按效果分级 S0–S3;S0/S1 自动放行,S2 上浮要你确认(45 秒无应答即拒),S3 拒绝并要求屏幕强认证</td><td>可以走开</td></tr>
+            <tr><td>6 办完叫你</td><td>执行和检查都跑完、产物落盘确认 → 它主动叫你:「执行和检查都跑完了,等你验收」</td><td>settle 对账后才回叫(runner 退出不等于完成);优先级 blocked &gt; failed &gt; 待审批 &gt; 待验收 &gt; 进度(默认不叫);投递按升级链:你在控制台且语音就绪 ⇒ 在线语音开口叫你(第一句就是回叫原因,30 秒没应答再升级)→ macOS 桌面通知 + ntfy 手机推送;免打扰窗口内只发一条低打扰推送、过后补叫(§11)</td><td>被叫回来</td></tr>
+            <tr><td>7 验收沉淀</td><td>口播摘要(一句话 / 150 字走读 / 它自己做的决策清单)+ 证据视图(diff、测试、决策、未验证项);你点头 → 过强认证合并 → 「交付了」;知识与产物留存</td><td>合并 = Touch ID / passkey 屏幕审批卡签单次收据,或你自己去终端合并(人工交接);会话末机械提名稳定结论为候选,你批准后进 M1</td><td>验收</td></tr>
+          </tbody>
+        </table>
+        <h3>3.3 采访、就绪与决策包:为什么不用你写需求文档</h3>
+        <ul>
+          <li><strong>指令是有损压缩,对话是逐步展开。</strong>「说到」不要求你会下指令:你只管聊,它聊到自己懂了、准备够了,主动提议开始。<strong>规格是它的产物,不是你的输入。</strong></li>
+          <li><strong>认知负担从「表达」转移到「判断」</strong>:不让你凭空把需求说全,而是让你看着具体的东西(成果预览 + 计划 + Demo)说「对 / 不对 / 调一下」。</li>
+          <li><strong>就绪判定是类型化的</strong>:开发缺验收标准不能开工,写作缺核心论点成不了文;所以先识别这是哪类事,再拿对应清单判就绪。清单里的 critical 项没确认覆盖,它机械地出不了包(不是靠模型自觉)。</li>
+          <li><strong>防「相关错误链」</strong>:同一个模型产事实、判缺口、做 Demo、再自评「够不够」,错误高度相关。所以「够不够开始」由<strong>独立评估器</strong>复核——与对话/沉思模型<strong>不同家族</strong>、只读证据账本、不读 Brain 的自辩(这也是 §5.4 异族规则的由来)。</li>
+          <li><strong>三个正交档位</strong>(设计原则,落地程度不一):对话车道(Quick 一两句确认直接干 / Guided 标准采访 / Explore 开放脑暴——规划中,当前只有埋点)× 执行模式(逐步确认 现在可用 / 直达验收 进行中)× 治理深度(S0–S3 由动作效果决定,现在可用)。守门句:你可以把对话调快、把确认调稀,<strong>但不能把任何动作的风险等级或 S3 门槛调低</strong>。</li>
+        </ul>
+
+        <h2 id="quickstart">4. 快速开始(普通用户路径)</h2>
+        <div class="docs-note"><p>目标:一台 Mac、一个你已登录的 AI CLI(或一个 API key),十几分钟跑起来并开口聊。</p></div>
+        <h3>4.1 前提</h3>
+        <table>
+          <thead>
+            <tr><th>项</th><th>要求</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>系统</td><td>macOS(Apple Silicon / Intel 均可)</td><td>常驻、通知、打开浏览器等链路都是 macOS 实现;其他系统未支持</td></tr>
+            <tr><td>Node</td><td><strong>22.x</strong>(<code>&gt;=22 &lt;23</code>)</td><td>桌面服务与 CLI 的运行时;用 nvm / fnm / Homebrew 装</td></tr>
+            <tr><td>pnpm</td><td>10.x</td><td><code>corepack enable</code> 即可</td></tr>
+            <tr><td>git</td><td>任意新版</td><td>构建与任务隔离(worktree)都要</td></tr>
+            <tr><td>一个 AI 供给</td><td>二选一:① 本机已登录任一已接线 CLI(Codex / Claude Code / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI);② 一个 OpenAI 兼容 API key(OpenRouter / OpenAI / Anthropic / DeepSeek)</td><td>只聊天、立账、调研不需要 key(走 CLI 订阅);见 §5.3</td></tr>
+            <tr><td>可选 · Python 3.11+ 与 <code>uv</code></td><td>只有<strong>桌面浏览器云端语音</strong>(火山豆包 ASR/TTS)才需要</td><td>不配也能说话:浏览器系统语音兜底(§12)</td></tr>
+            <tr><td>可选 · <code>cursor-agent</code> 登录态 + <code>jq</code></td><td>只有<strong>派发执行任务</strong>(让 AI 真改代码)才需要</td><td>没有不阻断对话,只是拍板后不会起执行器(§6)</td></tr>
+          </tbody>
+        </table>
+        <h3>4.2 安装</h3>
+        <p>目前以源码形式分发(尚无 npm / Homebrew 包,见 §16):</p>
+        <pre><code>git clone https://github.com/Octo-o-o-o/SayDo.git &amp;&amp; cd SayDo
+pnpm install &amp;&amp; pnpm -r build      # build 必须:daemon 托管的控制台页来自 packages/console/dist</code></pre>
+        <h3>4.3 启动桌面服务</h3>
+        <p>两种等价方式,任选其一(同一个数据目录 <code>~/.saydo</code> 同时只允许一个实例):</p>
+        <pre><code># 方式一:直接起 daemon(开发形态;在仓库根目录执行)
+mkdir -p ~/.saydo
+(cd packages/daemon &amp;&amp; SAYDO_HOME=$HOME/.saydo nohup ./node_modules/.bin/tsx src/index.ts &gt;&gt; ~/.saydo/daemon.log 2&gt;&amp;1 &amp;)
+
+# 方式二:用 saydo 命令行(可分发形态;先构建一次)
+pnpm --filter @saydo/cli build
+node packages/cli/dist/cli.mjs up        # 前台持有 daemon,Ctrl+C 优雅退出并可续接任务
+node packages/cli/dist/cli.mjs status    # 探活:0=已连上 / 1=端口空闲 / 2=端口冲突
+node packages/cli/dist/cli.mjs open      # 打开控制台</code></pre>
+        <ul>
+          <li>缺省端口 <strong>47100</strong>(直起 daemon 用环境变量 <code>SAYDO_DAEMON_PORT</code> 覆盖;<code>saydo</code> 命令行只认 <code>--port</code>);缺省只监听本机回环地址。<code>saydo up</code> 缺省会自动打开浏览器,<code>--no-open</code> 可关。</li>
+          <li>数据目录缺省 <code>~/.saydo</code>(<code>--home</code> 或 <code>SAYDO_HOME</code> 覆盖)。首次启动会自动生成:<code>config.toml</code>(占位模板)、<code>.cap-token</code>(控制台令牌)、<code>saydo.db</code>、<code>sessions/</code>、<code>logs/</code>、<code>projects/</code> 等。</li>
+          <li>健康探针:<code>curl -s http://127.0.0.1:47100/health</code>(<code>ok:true</code> 即起来了;tsx 冷启动约 10–15 秒)。</li>
+          <li>进控制台:<code>open "http://localhost:47100/?token=$(cat ~/.saydo/.cap-token)"</code>(<code>saydo open</code> 做的就是这件事)。注意用 <strong>localhost</strong>:为了 Touch ID 合并卡的 WebAuthn 绑定,<code>127.0.0.1</code> 的页面请求会被重定向到 <code>localhost</code>。令牌首次注入后存在浏览器本地,之后的链接不必再带。</li>
+        </ul>
+        <h3>4.4 首次使用:资源画像向导</h3>
+        <p>进门先看到<strong>资源画像</strong>:它清点这台机器能用的模型来源(装了哪些 CLI、哪些已登录、<code>.env</code> 里有哪些 key),然后给出方案卡(§5.3 三种)。典型零 key 流程:</p>
+        <ol>
+          <li>看到「全用 Codex(订阅内零成本)」之类的一键卡(每家已登录的 CLI 一张;列表按 已登录 &gt; 仅安装 &gt; 未装 排序,同档内按用过次数);</li>
+          <li>勾两条知情确认(评估档与对话同族 / 评估器笼隔离不可证,§5.4);</li>
+          <li>点「确认并启动」→ 写入待生效配置 → <strong>自检 1/2</strong>(四槽各真调一次)→ 重启服务 → <strong>自检 2/2</strong>(生效后再确认)→ 落到「开口聊」。全 CLI 方案每槽一次 15–25 秒,<strong>两轮自检合计约 1–3 分钟</strong>(视 CLI 而定,可能更久),界面有进度与耗时;</li>
+          <li>之后随时可在「设置」里换方案、逐槽手配(高级模式)。</li>
+        </ol>
+        <p>没配好对话档之前,进哪一页都会先弹向导(有「先随便看看」逃生口);首次且账本为空时,它会先说一句固定开场白请你「随便说三件这周要办的事」给你立账看看。</p>
+        <h3>4.5 开口聊:今天页</h3>
+        <p>控制台左栏:<strong>开口聊</strong>(主入口)/ <strong>今天</strong>(四色账本,唯一「需要你」入口)/ <strong>全景看板</strong> / 「正在持续的事」分组(按空间列出各件事)/ 「记录」分组:<strong>记忆库</strong> / <strong>产物</strong> / <strong>成本</strong> / <strong>设置</strong>;旧版 Dashboard、审批中心、通知、任务、Focus 列表(旧)、看板(旧)收在「旧版」折叠组里。</p>
+        <ul>
+          <li>「今天」页点「开口聊」:打字,或按住说话(§12);想到哪说到哪。</li>
+          <li>聊成熟它会问你要不要立成一件持续关注的事;要它办的、你欠它的、等别人的,都会出现在「今天」页的四色区。</li>
+          <li>开发类请求会真的走「采访 → 就绪 → 决策包 → 拍板 → 派发」全链(§3.2);拍板前它会报预计花费与封顶。</li>
+          <li>已知体感(不是坏了):CLI 对话模式每轮想 15–25 秒是常态,别连点(桌面端单次调用 120 秒上限后才报错);偶尔只回应一半诉求,再问一次即可;「帮我记一下」类随口记录通常当轮提议落账,偶尔会降级先进记忆库(菜单里可看),立起事后可再挂账。</li>
+        </ul>
+        <h3>4.6 可选:桌面浏览器语音</h3>
+        <ul>
+          <li><strong>零配置</strong>:浏览器有系统语音识别(Chrome / Safari 的 <code>SpeechRecognition</code>)就能按住说话、朗读回复;质量一般,识别文本走文字通道。</li>
+          <li><strong>云端语音(更准更自然)</strong>:在 <code>~/.saydo/.env</code> 填火山豆包的 <code>VOLC_APP_ID</code> + <code>VOLC_ACCESS_TOKEN</code>(流式识别,带你项目术语的热词偏置)与 <code>DOUBAO_TTS_API_KEY</code>(seed-tts-2.0 合成),并起 Python 语音管线:</li>
+        </ul>
+        <pre><code>cd pipeline &amp;&amp; uv sync
+SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pipeline &gt;&gt; ~/.saydo/pipeline.log 2&gt;&amp;1 &amp;</code></pre>
+        <p>配好后控制台自动切到云端;管线缺席时 <code>/readyz</code> 报 <code>voiceReady=false</code>(文本与控制面照常可用,不算启动失败)。细节见 §12。</p>
+        <h3>4.7 可选:手机连接(局域网)</h3>
+        <p>手机 App 均未上架;当前可经局域网用<strong>手机浏览器</strong>(或自行构建的 App 壳)连到桌面服务:</p>
+        <ol>
+          <li>启动 daemon 时加 <code>SAYDO_MOBILE_LAN=1</code>(监听 <code>0.0.0.0</code>,只接受内网 RFC1918 来源 + 能力令牌 + Host/Origin 校验三道门);</li>
+          <li>查本机内网 IP(<code>ipconfig getifaddr en0</code>),把 <code>http://&lt;内网IP&gt;:47100/?token=&lt;cap-token&gt;</code> 做成二维码(令牌不要贴进第三方在线工具)给手机扫;手机浏览器直接打开该 URL 也行(移动壳路由 <code>#/m</code>);</li>
+          <li>手机上从下方胶囊按住说话(iPhone 走系统语音识别,不需要 Python 管线),上滑选放进哪件事;看「今天」四色、看进展、对立账 / 记账类确认卡点头或撤回。<strong>执行中的命令审批(S2)与合并 / 删除(S3)只在本机受信屏幕出现,局域网手机面不能裁决</strong>(手机上没有设备配对身份)。</li>
+        </ol>
+        <p>这是 dogfood 级的临时边界(局域网明文 HTTP + 长期能力令牌),<strong>不要暴露到不受信网络</strong>;设备配对 / 端到端加密 / 商店版 App 见 §13 与 §16。删 <code>~/.saydo/.cap-token</code> 再重启会轮换令牌,所有已连设备一起掉线需重扫。</p>
+        <h3>4.8 常驻、备份、关停与重置</h3>
+        <ul>
+          <li><strong>常驻(launchd)</strong>:<code>just daemon install | start | stop | restart | status | logs | deploy [sha]</code>——开机自起 + 崩溃自启,运行时树与开发树分离(<code>~/.saydo/runtime</code> → <code>~/.saydo/releases/&lt;sha&gt;</code>)。<code>install</code> 会一并生成并装载语音管线的常驻配置(需要 <code>uv</code>);没装 <code>uv</code> 时用 <code>just daemon install --without-pipeline</code> 只装 daemon(桌面浏览器云端语音不可用,系统语音与文本照常);<code>uninstall</code> 对称卸载两者。日常上手用 §4.3 的前台方式即可,常驻适合长期挂机。</li>
+          <li><strong>更新</strong>:<code>git pull &amp;&amp; pnpm install &amp;&amp; pnpm -r build</code>,然后重启 daemon(前台形态 Ctrl+C 再起;launchd 形态 <code>just daemon deploy</code>——会重启 daemon 与语音管线,挑空闲时段)。</li>
+          <li><strong>备份</strong>:daemon 每日自动快照到 <code>~/.saydo/backups/&lt;时间戳&gt;/</code>(SQLite 在线备份 + <code>sessions/</code> + 用户档案 + 各项目的知识底座与奠基产物),保留期 <code>[params].backup_retention_days</code>(缺省 30 天);<code>just backup</code> 手动触发。</li>
+          <li><strong>关停</strong>:<code>lsof -t -iTCP:47100 -sTCP:LISTEN | xargs kill; pkill -f saydo_pipeline</code>(<code>saydo up</code> 前台形态直接 Ctrl+C:会先停新派发、给活跃任务写「待续接」标记、再收口进程,下次启动接着跑)。</li>
+          <li><strong>完全重置</strong>(回到全新用户):停完后 <code>rm -rf ~/.saydo</code>——会轮换令牌,也会删掉全部账本与记忆;项目工作区里的 <code>&lt;repo&gt;/.saydo/</code> 不在此目录,需单独处理。</li>
+        </ul>
+
+        <h2 id="s5">5. 模型与供给(高级用户必读)</h2>
+        <p>「说到」把模型用途拆成<strong>五个槽位</strong>,每个槽位独立选供给方式与模型。这是「一个订阅就能用」和「多家模型配合到最好」两种玩法的同一套机制。</p>
+        <h3>5.1 五个槽位</h3>
+        <table>
+          <thead>
+            <tr><th>槽位</th><th>配置键</th><th>干什么</th><th>要什么</th><th>示例(仓库模板 / 向导「一个 key」卡)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>对话档</strong></td><td><code>[models].dialog</code></td><td>每一轮对话:采访、答疑、口播</td><td>低延迟、中文口语好、工具调用纪律强</td><td>API(OpenRouter,<code>openai/gpt-5.6-luna</code>)</td></tr>
+            <tr><td><strong>沉思档</strong></td><td><code>[models].thinking</code></td><td>任务卡起草、决策包 / 计划生成、奠基提炼(轻量小样为机械渲染,不占模型)</td><td>深推理,异步不阻塞对话</td><td>API(OpenRouter,<code>openai/gpt-5.6-terra-pro</code>)</td></tr>
+            <tr><td><strong>廉价档</strong></td><td><code>[models].cheap</code></td><td>摘要叙事、热词抽取、事件打标等高频结构化调用</td><td>便宜、快</td><td>API(OpenRouter,<code>google/gemini-3.1-flash-lite</code>)</td></tr>
+            <tr><td><strong>评估档</strong></td><td><code>[models].evaluator</code></td><td>独立判「够不够开始」(就绪深评)</td><td><strong>与对话/沉思不同家族</strong>(§5.4)</td><td>API(OpenRouter,<code>anthropic/claude-sonnet-5</code>)</td></tr>
+            <tr><td><strong>开发档(执行器)</strong></td><td><code>[models.dev]</code></td><td>派发任务时驱动哪个 agent 改代码、用它的哪个模型</td><td>见 §6</td><td><code>agent = "cursor"</code>(与仓库模板一致;当前唯一生产执行器)</td></tr>
+          </tbody>
+        </table>
+        <p>为什么分档:对话档要的是延迟(你在等它出声),沉思档要的是质量(产出是「合同」),廉价档要的是成本(高频调用),评估档要的是独立性(换一家模型做裁判)。一个模型通吃四档要么慢、要么贵、要么不独立。</p>
+        <h3>5.2 两种供给方式</h3>
+        <p><strong>方式 A · API 直连</strong>(<code>{ provider = "api", via = "&lt;端点名&gt;", model = "..." }</code>)</p>
+        <ul>
+          <li>任意 <strong>OpenAI 兼容</strong>端点:在 <code>[providers.api.&lt;name&gt;]</code> 声明 <code>base_url</code> + <code>api_key = "env:VAR"</code>(key 只能以环境变量引用,<strong>禁止明文写进配置</strong>)。</li>
+          <li>推荐网关 <strong>OpenRouter</strong>:一个 key 打通多家(缺省模板就是它);也可直连单家(OpenAI / Anthropic / DeepSeek / 月之暗面 / 阿里百炼……模板有示例)。</li>
+          <li>模型名带厂商前缀时(<code>openai/…</code>、<code>anthropic/…</code>、<code>google/…</code>、<code>deepseek/…</code>、<code>x-ai/…</code>、<code>qwen/…</code>)家族自动解析;单家直连端点模型名无前缀时,端点要显式写 <code>family = "deepseek"</code> 之类——给 §5.4 的异族校验用。</li>
+          <li>对话档走 API 时是<strong>实时模式</strong>:完整多轮工具环、流式、秒级返回,语音对话就靠它。</li>
+        </ul>
+        <p><strong>方式 B · 订阅 CLI(BYOA)</strong>(<code>{ provider = "&lt;x&gt;_cli", model = "..." }</code>)</p>
+        <p>用你本机<strong>已经登录</strong>的 AI 命令行工具做推理供给,零 API key、走你的订阅额度。当前已接线的 CLI:</p>
+        <table>
+          <thead>
+            <tr><th>provider</th><th>对应命令</th><th>备注</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>codex_cli</code></td><td><code>codex</code></td><td>家族恒 GPT;可配 <code>reasoning</code>(none/minimal/low/medium/high/xhigh/max);model 可省</td></tr>
+            <tr><td><code>claude_cli</code></td><td><code>claude</code></td><td>家族恒 Claude;model 可省</td></tr>
+            <tr><td><code>cursor_cli</code></td><td><code>cursor-agent</code></td><td><strong>model 必填</strong>(如 <code>claude-fable-5-thinking-max</code>、<code>cursor-grok-4.6-high-fast</code>),家族按模型名解析</td></tr>
+            <tr><td><code>grok_cli</code></td><td><code>grok</code></td><td>家族恒 grok;model 可省</td></tr>
+            <tr><td><code>gemini_cli</code></td><td><code>gemini</code></td><td>家族来自显式 model 名或流内上报;解析不出则该槽阻断</td></tr>
+            <tr><td><code>qwen_cli</code></td><td><code>qwen</code></td><td>同上(传输型 CLI)</td></tr>
+            <tr><td><code>copilot_cli</code></td><td><code>copilot</code></td><td>同上(传输型 CLI)</td></tr>
+          </tbody>
+        </table>
+        <p>(<code>kimi_cli</code> / <code>opencode_cli</code> 只在资源画像里「可识别」,<strong>不能</strong>当供给——本机实测无法在执行前可证零工具,出于安全不接线。)</p>
+        <p>登录是你与厂商之间的事:用各家官方方式登录,「说到」只探测「装没装 / 登没登录 / 能列出哪些模型」,未登录时向导给出可直接粘贴的修复命令(以向导提示为准):</p>
+        <table>
+          <thead>
+            <tr><th>CLI</th><th>登录</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>cursor-agent</code></td><td><code>cursor-agent login</code></td></tr>
+            <tr><td><code>codex</code></td><td><code>codex login</code></td></tr>
+            <tr><td><code>claude</code></td><td><code>claude auth login</code></td></tr>
+            <tr><td><code>grok</code></td><td><code>grok login</code></td></tr>
+            <tr><td><code>gemini</code></td><td>在终端运行 <code>gemini</code> 完成 Google 登录</td></tr>
+            <tr><td><code>qwen</code></td><td>配置 OpenAI 兼容端点或 <code>OPENAI_API_KEY</code>(它走上游 API 计费,账本文案如实区分)</td></tr>
+            <tr><td><code>copilot</code></td><td><code>copilot login</code></td></tr>
+          </tbody>
+        </table>
+        <p>BYOA 的工作方式与纪律(你会在界面上感到的部分):</p>
+        <ul>
+          <li><strong>一发一收、无状态</strong>:每次调用起一个新的 CLI 子进程,不复用会话(刻意不用 resume——会话落盘与隐私开关互斥,且实测 resume 对延迟也无收益)。</li>
+          <li><strong>对话档走 CLI = 慢速文本模式</strong>(<code>dialog_cli_oneshot</code>):每轮约 15–25 秒,返回一段回复 + 最多 8 个结构化动作(记一笔、立任务、查状态、提议开工……),daemon 逐个执行;<strong>不进入语音实时环</strong>(语音对话请给对话档配 API)。这不是卡死,界面会显示慢速徽标与进度。</li>
+          <li><strong>真实自检后才生效</strong>:配置保存时,每个走 CLI 的槽都会真的调一次(对话档要回合法 envelope,廉价档要过 schema,评估档要过与生产同形的深评请求并上报实际模型),四槽全过才重启生效;任一失败只把该槽标红并给人话原因,不伪装成功。</li>
+          <li><strong>笼子</strong>:推理用的 CLI 调用在<strong>逐次新建的空隔离目录</strong>里跑、prompt 头部硬禁「执行命令 / 读文件」,并按 CLI 能力用最严的零工具旗标(Claude <code>--tools ""</code>、Codex 只读沙箱、Grok <code>--tools ""</code>、Gemini/Qwen/Copilot 各自的 deny 策略 + 隔离 HOME);流里一旦出现工具调用事件立即终止作废(tripwire)。Cursor CLI 没有可证零工具旗标,只有「ask 模式 + tripwire 检测」,是三档里最弱的笼。正因为 CLI 笼都「限写不限读」(读盘不可挡,评估器理论上能翻到 Brain 的自辩),<strong>评估档用任何 CLI 都需要你亲手勾两条知情确认</strong>(同族 + 隔离,§5.4)。</li>
+          <li><strong>实际模型复核</strong>:每次调用记录 <code>requestedModel / observedModel</code>,流内上报的模型家族与配置不符即该次作废;Codex / Claude 这类固定家族 CLI 在可执行文件身份核验(绝对路径 + 内容 digest 登记)通过时允许按登记家族放行。</li>
+        </ul>
+        <h3>5.3 三种配置方案(首跑向导里的三张卡)</h3>
+        <p>首次进控制台会看到「资源画像向导」:它探测本机装了哪些 CLI、哪些已登录、<code>.env</code> 里已有哪些 key,然后给出可一键套用的方案卡——</p>
+        <table>
+          <thead>
+            <tr><th>方案</th><th>适合谁</th><th>四个推理槽怎么配</th><th>体验</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>全用某个 CLI</strong>(如「全用 Codex」)</td><td>只有一个订阅、不想申请 key</td><td>对话 / 沉思 / 廉价 / 评估四槽全走该 CLI</td><td>零 key 零终端;对话每轮 15–25 秒(慢速文本模式);订阅额度内零额外费用。评估档走 CLI 且与对话同族,需勾「同族知情确认」+「隔离知情确认」两条</td></tr>
+            <tr><td><strong>对话走 API + 其余槽 CLI</strong></td><td>有订阅,也愿意为实时对话花一点 API 费</td><td>对话档 API(秒级、可语音);沉思 / 廉价 / 评估走 CLI</td><td>推荐的「又快又省」组合;评估档走 CLI 同样需勾两条知情确认</td></tr>
+            <tr><td><strong>一个 key 全搞定</strong></td><td>没有任何 CLI 订阅</td><td>四槽都走 OpenRouter API,各槽按规格指定模型</td><td>秒级返回;按量计费,以服务商账单为准</td></tr>
+          </tbody>
+        </table>
+        <p>向导的「高级模式」允许逐槽手配:每槽独立选 API 端点 / 任一已登录 CLI / 指定模型;两路都要四槽自检全绿才会重启生效。进阶玩法举例:</p>
+        <ul>
+          <li>对话档 API(如 OpenRouter 上的 <code>google/gemini-3.1-flash</code> 类低延迟模型,家族 gemini)+ 沉思档 <code>cursor_cli</code>(<code>claude-fable-5-thinking-max</code>,家族 claude)+ 廉价档 <code>grok_cli</code> + 评估档 <code>codex_cli</code>(<code>reasoning = "max"</code>,家族 gpt)——对话快、沉思强、评估与对话 / 沉思都异族,且沉思与评估不共享同一家订阅时窗(评估档走 CLI 需勾两条知情确认)。</li>
+          <li>全 API 但分家:对话 / 沉思走一家,评估走另一家;或用 OpenRouter 统一 key、按槽挑不同厂商的模型。</li>
+          <li>项目级覆盖(控制台项目设置):某个项目把<strong>对话档 / 沉思档</strong>换成更强(或更省)的 API 模型、改开发档模型、改预算上限;项目层只允许 API binding,评估档不可覆盖(它是护栏锚点)。</li>
+        </ul>
+        <h3>5.4 异族规则:评估器必须换一家</h3>
+        <p>「够不够开始」的判定若由同一个模型(或同一家族)自评,错误会与生成高度相关。因此:</p>
+        <ul>
+          <li>评估档的模型家族 <strong>不得</strong> 与对话档、沉思档相同(fail-closed:同族且未确认 → 评估档 <code>unarmed</code>,daemon 启动给提示;对话仍可用,但就绪深评不会武装)。</li>
+          <li>家族按<strong>解析后的实际模型</strong>判:<code>openai/…</code>→gpt、<code>anthropic/…</code>/fable/sonnet/opus→claude、<code>google/…</code>→gemini、deepseek、grok、qwen、composer(Cursor 自研)……;<code>codex_cli</code> 恒 gpt、<code>claude_cli</code> 恒 claude、<code>grok_cli</code> 恒 grok;Cursor CLI 按你填的模型名解析。</li>
+          <li><strong>知情豁免两条</strong>(必须你亲手勾,界面不代签):<code>evaluator_same_family_ack</code>(接受同族评估,代价是独立性下降)、<code>evaluator_isolation_ack</code>(接受「限写不限读」的 CLI 笼做评估器,代价是「评估器读不到 Brain 自辩」不可证)。<strong>评估档只要走 CLI(任何一家、不论家族是否相异),两条都必须为 true</strong>;评估档走 API 且异族则一条都不需要。「全用某 CLI」方案天然需要这两条。</li>
+          <li>评估档走 CLI 的武装条件 = 两条 ack 都为 true + 自检通过 + 实际模型家族可证;任一不满足就 <code>unarmed</code>(原因会分别显示 <code>same_family_blocked</code> / <code>isolation_ack_required</code> / <code>cli_self_test_required</code> / <code>cli_self_test_failed</code>)。</li>
+          <li>相邻规则:沉思档 / 廉价档的 CLI 未登记或自检失败时,<strong>如实回落到对话档供给</strong>(状态显示 <code>fallback_dialog</code> 并给原因),服务不中断、不伪装成 active。</li>
+        </ul>
+        <h3>5.5 计费与记账口径</h3>
+        <ul>
+          <li><strong>订阅 CLI 调用不产生「元」</strong>:成本账本记为 <code>source = subscription</code>,界面显示「订阅额度内」(调用次数在周报里看)——不显示 ¥0、不显示「未知」、不预测剩余额度。只有探测到该 CLI 的认证面确属订阅(如 Gemini 个人 OAuth、Copilot GitHub 登录)才写「订阅内零成本」;若 CLI 上游其实是 API key 计费(如 Qwen 配 key),文案如实改为「按该 CLI 的上游计费方式,说到不代付」。</li>
+          <li><strong>API 调用按单价表估算</strong>:<code>[pricing]</code> 无表项的模型成本显示「还没有确切数字」(绝不编数、不显示 0)。真正拦你的是<strong>每个任务</strong>的成本 / 时长 / 回合三熔断(§8.5),成本封顶只约束 API 计费部分,订阅调用靠墙钟 + 回合数兜底;<code>[budget].monthly</code> 目前只是配置项(无任何执行或展示点),不是硬闸。</li>
+          <li><strong>订阅限流不静默转计费</strong>:触发周 / 5 小时时窗限流时,该次调用返回可重试的限流错误并如实告知,<strong>绝不自动转 API 计费</strong>。「停下问你切按量计费还是等重置 + 单次 billing-switch 收据(有效期 10 分钟)」与「durable 排队自动重放」两套合同已落,生产尚未接入(进行中)。</li>
+        </ul>
+        <h3>5.6 配置文件参考</h3>
+        <p>全局配置 <code>~/.saydo/config.toml</code>(非密)+ <code>~/.saydo/.env</code>(密钥真值;永不进 Git);仓库 <code>templates/</code> 下有可复制模板。首跑向导写的就是这两个文件,手改后重启 daemon 生效(配置非法时 daemon 进入「仅恢复」模式:健康探针与设置自救页可用,对话与派发停用,见 §17)。</p>
+        <pre><code>[models]
+profile   = "default"                # default | dev(dev 还需环境变量 SAYDO_DEV=1,双开关)
+dialog    = { provider = "api", via = "openrouter", model = "openai/gpt-5.6-luna" }     # 家族 gpt,实时语音环
+thinking  = { provider = "codex_cli", reasoning = "high" }                            # 家族恒 gpt,走 ChatGPT 订阅
+cheap     = { provider = "grok_cli" }                                                 # 家族恒 grok,model 省略=CLI 默认
+evaluator = { provider = "api", via = "openrouter", model = "anthropic/claude-sonnet-5" } # 家族 claude,与上两者异族,无需 ack
+# evaluator_same_family_ack = true   # 评估档走任一 CLI 时两条都必填(否则就绪深评 unarmed);评估档走 API 且同族时只需第一条
+# evaluator_isolation_ack   = true
+
+[models.dev]                         # 开发档 = 执行器(§6)
+agent     = "cursor"
+transport = "cli"
+model     = "grok-4.6"               # 以 cursor-agent 当前可列出的模型名为准
+
+[providers.api.openrouter]
+base_url = "https://openrouter.ai/api/v1"
+api_key  = "env:OPENROUTER_API_KEY"  # 恒 env 引用;多家网关不写 family
+# provider_order = ["deepinfra"]     # 可选:聚合网关钉死上游路由顺序并禁自动兜底(确定性路由)
+# [providers.api.deepseek]           # 单家直连示例:模型名无前缀 ⇒ family 必填
+# base_url = "https://api.deepseek.com/v1"
+# api_key  = "env:DEEPSEEK_API_KEY"
+# family   = "deepseek"
+
+[voice]
+engine = "cascade"                   # 级联:ASR → 文本模型 → TTS
+asr    = "volc"                      # 火山豆包流式识别(带热词偏置)
+tts    = "volc"                      # 豆包 seed-tts-2.0 v3 双向流式
+
+[privacy]
+store_audio          = false         # 录音与转写分别同意
+store_transcript     = true
+audio_retention_days = 0
+
+[budget]
+monthly  = 200                       # 当前只是配置项(无执行点),不是硬闸;真正的熔断在每个任务(§8.5)
+currency = "CNY"
+task_max_default = 20                # 单任务成本封顶缺省(元;只约束 API 计费部分)
+
+[dnd]
+window = "23:00-08:00"               # 免打扰:窗口内不外呼,记 snooze 到窗口末后按队列补叫
+
+[tier1]                              # 执行器(Cursor CLI)版本钉死,两键齐备才启用
+cursor_agent_bin            = "/Users/&lt;你&gt;/.local/share/cursor-agent/versions/&lt;ver&gt;/cursor-agent"  # 必须绝对路径,不接受 ~
+cursor_agent_pinned_version = "&lt;ver&gt;"
+
+[gate0]
+enabled = true
+bypass  = false                      # 恒 false;为 true 反而一律拒绝派发(防误配)
+
+[params]                             # 可调参数(节选)
+foundation_budget_min  = 5           # 奠基墙钟上限(分钟)
+interview_question_budget = 8        # 采访问题预算
+park_aging_hours       = 72          # 停靠老化:等人超过 72h 取消并转草稿
+proposed_ttl_hours     = 24          # 决策包有效期
+backup_retention_days  = 30
+enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing"]</code></pre>
+        <p><code>.env</code> 常用键:<code>OPENROUTER_API_KEY</code> / <code>OPENAI_API_KEY</code> / <code>ANTHROPIC_API_KEY</code> / <code>DEEPSEEK_API_KEY</code>(按你建的端点填)、<code>DOUBAO_TTS_API_KEY</code> + <code>VOLC_APP_ID</code> + <code>VOLC_ACCESS_TOKEN</code>(桌面浏览器语音用,§12)、<code>NTFY_TOPIC</code> + <code>NTFY_SERVER</code>(手机推送,§11)。</p>
+        <p>项目层可覆盖的键白名单见 §7.1(<code>&lt;workspace&gt;/.saydo/project.toml</code>):只允许 <code>[project]/[git]/[verify]/[setup]</code> 与 budget / dnd / params 子集;<strong>models / providers / gate0 / hopper / privacy / voice 出现在项目层一律拒绝</strong>——仓库随附文件是不可信输入,不能把你的 key 引到别人的端点。</p>
+
+        <h2 id="s6">6. 执行器(开发档):谁来真的改代码</h2>
+        <h3>6.1 两套词表,别混</h3>
+        <ul>
+          <li><strong>推理槽的 CLI 供给</strong>(§5.2)= 让 Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot 的 CLI <strong>替 Brain 说话、想事、评估</strong>——它们只做一发一收的文本推理,不碰你的仓库。</li>
+          <li><strong>执行器(开发档,<code>[models.dev]</code>)</strong>= 拍板后<strong>在 worktree 里真的改代码、跑命令的 agent</strong>。词表 <code>claude_code | cursor | codex</code>,但<strong>当前只有 <code>cursor</code> 有生产实现</strong>;配成别的会被 daemon 拒起执行器(fail-closed,不会偷偷拿 Cursor 二进制冒充),对话不受影响。</li>
+        </ul>
+        <h3>6.2 当前可用:Cursor CLI 执行器 <span class="badge badge-live">现在可用</span></h3>
+        <ul>
+          <li>驱动方式:<code>cursor-agent -p --force --trust --output-format stream-json --model &lt;model&gt; [--resume &lt;chatId&gt;] &lt;prompt&gt;</code>,在任务 worktree 里跑;模型填 <code>cursor-agent</code> 当前可列出的任一模型名(已实测过 Grok 4.6 与 Composer 2.5;Claude 系亦可),事件流上报的实际模型家族与配置不符即该轮作废。</li>
+          <li>审批门:执行器为每个 worktree 写 <code>.cursor/hooks.json</code>,<code>beforeShellExecution</code> 钩子<strong>同步阻塞</strong>回连 daemon 的本机 unix socket;daemon 按命令<strong>效果</strong>分级裁决(§8.1/§8.3);钩子超时、JSON 畸形、socket 不通一律 = 拒绝;事件流里出现 shell 调用却没有对应门请求 ⇒ 判定门被绕过,立即终止任务(canary)。</li>
+          <li>版本钉死:<code>[tier1].cursor_agent_bin</code> 必须是锁定副本的<strong>绝对路径</strong>(<code>…/versions/&lt;ver&gt;/cursor-agent</code>)+ <code>cursor_agent_pinned_version</code> 精确相等;两键齐备才启用执行器——防 <code>cursor-agent</code> 自更新后行为漂移。升级 = 改两键 + 重跑门禁。</li>
+          <li>凭据剥离:agent 进程环境只带 <code>PATH/HOME/USER/LOGNAME/SHELL/LANG/LC_ALL/LC_CTYPE/TERM/TMPDIR</code> 十个变量,不带任何 API key / token;它的登录态在它自己的 HOME 存储里。</li>
+          <li>诚实边界:Cursor 后端只有 shell 通道过门,内建的文件读写 / 联网工具不经钩子——所以它的网络出口能力表如实标 <code>egress = uncontrolled</code>,隔离靠「独立 worktree + 凭据剥离 + 命令门」,<strong>不是沙箱</strong>;不信任的任务请用逐步确认档并盯紧 S2。</li>
+          <li>中途改需求(steer):当前没有任何后端支持运行中即时注入;运行中的任务 = <strong>终止本轮再带新指令续跑</strong>(<code>cancel_resume</code>,worktree 保留),排队 / 停靠中的任务 = 下次运行时注入(<code>queued_delta</code>)。它会如实告诉你是哪一种。</li>
+        </ul>
+        <h3>6.3 进行中与规划中</h3>
+        <table>
+          <thead>
+            <tr><th>后端</th><th>状态</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Claude Code 执行器</strong>(<code>agent = "claude_code"</code>)</td><td><span class="badge badge-progress">进行中</span></td><td>方案已定:以官方 <code>claude -p --output-format stream-json</code> 子进程为传输,用 Claude Code 的 <code>PreToolUse</code> hooks 做 S1–S3 裁决(文件工具也能进门,比 Cursor 多一层),钩子由命令行注入而非 worktree 内文件;订阅只经 <code>claude</code> 登录态消费、零 API key;不启用 bypass 权限、不做 live steer。第一批官方 CLI 能力实测 + 审批门纯函数层已收口；生产执行主流程接线是下一步</td></tr>
+            <tr><td><strong>Codex 执行器</strong></td><td><span class="badge badge-soon">规划中</span></td><td>设计上经 Hopper 批式路线(见下);当前 <code>agent = "codex"</code> 会被拒起</td></tr>
+            <tr><td><strong>Hopper 批式路线</strong>(重任务 drop 进独立的 Hopper 任务系统:worktree / 事件溯源 / 崩溃恢复 / 预算 / 验收闸门)</td><td><strong>合同已定,生产绑定休眠</strong></td><td>daemon 主流程不启动它;锁定版本副本与专用 vault 的约定写在配置模板里但当前不被消费;Hopper 路线的合并恒为人工交接,不经 Touch ID 卡。对用户来说今天它不是可用功能</td></tr>
+            <tr><td><strong>provider-neutral 原生执行器</strong>(任意 OpenAI 兼容后端)</td><td><span class="badge badge-soon">规划中</span></td><td>2026-08 决策推荐的方向(替代「拿 DeepSeek Harness 当默认 runner」——后者因审批缺省放行、钩子故障不阻断等与 fail-closed 红线冲突被否决)</td></tr>
+            <tr><td><strong>Gemini CLI 作执行器</strong></td><td>无此计划</td><td>Gemini CLI 仅作推理槽供给</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="s7">7. 项目与 Git:它怎么和你的仓库打交道</h2>
+        <h3>7.1 项目与工作区</h3>
+        <ul>
+          <li><strong>一个 coding 项目 = 你本机的一个文件夹(git 仓)</strong>,以绝对路径登记(<code>~/</code> 可;符号链接会被解析;记录文件系统身份防漂移)。硬约束:必须在你的用户目录内、不能与 <code>~/.saydo</code> 重叠、不能与其他现役项目互为父子目录。</li>
+          <li><strong>不支持「给我一个远端仓库 URL 我来 clone」</strong>:全部实现都以本地文件夹为前提;想用远端仓先自己 clone 下来。</li>
+          <li><strong>登记方式</strong>:对话里点名本地路径(它只从<strong>你当前这句原话里的唯一路径字面量</strong>解析,只读核验目录存在,复述「这个本地项目、类型 X」请你封闭确认后才采用——否认、歧义、路径不存在、路径不是你亲口说的,一律零写入,绝不由模型编路径自动挂靠);或在控制台受信终端选择已有项目。非代码的事(写作、调研、生活筹备)默认用系统管理目录 <code>~/.saydo/projects/&lt;id&gt;</code>,不会拦着你「先选文件夹」。</li>
+          <li><strong>项目内目录</strong> <code>&lt;workspace&gt;/.saydo/</code>:<code>knowledge/</code>(M1 知识底座,Markdown,人可读可改,自带独立 git 历史)/ <code>foundation/</code>(奠基产物与 manifest)/ <code>worktrees/&lt;taskId&gt;/</code>(任务隔离树)/ <code>project.toml</code>(项目层配置)。产物库、源快照、就绪深评记录与会话转写都在全局 <code>~/.saydo/{artifacts,snapshots,assessments,sessions}</code>,不在项目目录。<strong>建议把 <code>.saydo/</code> 加进项目 <code>.gitignore</code></strong>(daemon 不会替你改 <code>.gitignore</code>;知识库想团队共享可显式提交 <code>knowledge/</code>)。</li>
+          <li><strong><code>project.toml</code></strong>(仓库随附、视为不可信输入):只认 <code>[project]</code>(type / exec_mode_default)、<code>[git].protected</code>(保护分支,<strong>与缺省 <code>["main","master"] 取并集</code></strong>,只能加不能减)、<code>[[verify.entries]]</code>(验收命令登记,§7.4)、<code>[setup].command</code>(装依赖命令)、以及 budget / dnd / params 子集;<code>models / providers / gate0 / hopper / privacy / voice / pricing / tier1</code> 出现即拒收(拒键不拒文件,拒收项落审计)。文件坏了 = 该项目的任务认领转 blocked 叫人,不带宽松缺省硬跑。</li>
+          <li><strong>AGENTS.md 互通</strong>:奠基时反向吸收仓里已有的 AGENTS.md / CLAUDE.md / <code>.cursor/rules</code>;输出侧在 AGENTS.md 放一段幂等指针块指向知识底座(<code>&lt;!-- saydo:knowledge:begin/end --&gt;</code>),换工具时知识库价值不归零。</li>
+        </ul>
+        <h3>7.2 每个任务一个 worktree</h3>
+        <ul>
+          <li>拍板派发后,执行器在 <code>&lt;repo&gt;/.saydo/worktrees/&lt;taskId&gt;/</code> 建 <code>git worktree add -b saydo/&lt;taskId&gt; … HEAD</code>——<strong>分支名 <code>saydo/&lt;taskId&gt;</code>,从主仓当前 HEAD 切出</strong>;同一任务返工 / 恢复复用同一 worktree。<strong>你的主工作区在执行期不会被碰</strong>(agent cwd 锁死在 worktree;圈外命令按 S2/S3 上浮或拒)。</li>
+          <li>装依赖:<code>[setup].command</code> 只接受 <code>pnpm / npm / yarn</code> 的 <code>install / i / ci</code> 形态,旗标白名单,且<strong>强制追加 <code>--ignore-scripts</code></strong>(postinstall 属供应链执行面,确需时按 S2 上浮)。</li>
+          <li>agent 的 prompt 里明写:只在当前工作目录内改动、<strong>不要 git push</strong>、改动不需要你合并。</li>
+          <li>同仓任务串行、跨仓并行;重型仓库可单 worktree 串行。</li>
+          <li><strong>worktree 不会被自动删除</strong>(取消也保留,方便捡回);磁盘上会累积 <code>&lt;repo&gt;/.saydo/worktrees/</code>,定期自己 <code>git worktree remove</code> / 清理。</li>
+        </ul>
+        <h3>7.3 完成、验收与合并:它不会替你 push,也不会开 PR</h3>
+        <ol>
+          <li>执行跑完 → <strong>daemon(不是 agent)</strong>对 worktree 拍树快照(<code>git add -A</code> 排除 <code>.cursor/</code> 后 <code>write-tree</code> 得到 <code>treeSha</code>)→ 在 worktree 里<strong>重跑冻结的验收命令</strong>(§7.4)→ 产 settle 证明(任务 / 轮次 / 决策包版本 / treeSha / verify digest / 转写游标)→ 任务进入 <strong><code>ready_for_review</code></strong> → 回叫你。之后任何漂移都会被发现。</li>
+          <li>你在验收面三选一:<strong>通过</strong>(记录批准的 <code>treeSha</code>,进入「等合并」)/ <strong>要改</strong>(同任务新一轮,复用 worktree,意见进下次 prompt)/ <strong>作废</strong>(取消本轮)。</li>
+          <li>合并两条路,都是「人触发」:
+            <ul>
+              <li><strong>Touch ID / passkey 审批卡</strong>(Tier1 缺省):屏幕上完成一次 WebAuthn 强认证,签一张绑定 任务 / 轮次 / 决策包版本 / 预期树 的单次收据;daemon 凭收据执行:复核 worktree 现树 == 收据树(漂移拒)→ 隔离环境再跑一遍冻结 verify(不过 ⇒ <code>merge_failed</code> 转人工)→ 断言主仓未动(<code>merge-base == HEAD</code>)且主仓已跟踪文件干净(有未提交改动 ⇒ 转人工)→ <code>git commit-tree</code> + <strong><code>git merge --ff-only</code></strong> 到主仓当前分支(只快进、不改写历史;提交信息形如 <code>saydo: merge &lt;taskId&gt; (S3 approved)</code>)→ 再断言 HEAD 树 → 「交付了」。首次使用要先在本机「注册批准指纹」(一次性)。</li>
+              <li><strong>人工合并交接</strong>(没注册 passkey、或你想自己来):它给你一个交接入口,你在终端自己 merge;之后点「核验」,daemon <strong>现读</strong>主仓 <code>HEAD</code> 的树与批准时落库的 <code>treeSha</code> 对账,一致才推进到「交付了」,不一致拒绝并留痕(防「已回滚却显示完成」)。</li>
+            </ul>
+          </li>
+          <li><strong>它不 push、不开 PR</strong>:全部实现里没有推送远端或创建 Pull Request 的路径;agent 若自己敲 <code>git push</code>,按 S2(feature 分支)/ S3(保护分支或 force)上浮或拒。推远端、开 PR 是你验收合并后自己做的事。</li>
+          <li>语音面<strong>永不渲染</strong>合并按钮;局域网 / tailnet 手机面调用合并动作会被拒并审计。</li>
+        </ol>
+        <h3>7.4 验收命令只认登记模板(防命令注入与「自证通过」)</h3>
+        <ul>
+          <li>在 <code>project.toml</code> 登记:<code>[[verify.entries]] name="test" source="package_script" ref="test"</code>(<code>source</code> 只有 <code>package_script</code> / <code>justfile</code> 两种);Brain 只能<strong>选</strong>登记项,任何拼接串拒绝。</li>
+          <li><strong>内容冻结</strong>:派发 / 认领时冻结每条 verify 的 argv + 脚本内容 digest + 相关框架配置文件(vitest / vite / playwright / jest / tsc / eslint / pytest / ruff / mocha 等已知 config)的 digest;执行前重读重算,不符 ⇒ fail-closed。agent 合法改了测试脚本 ⇒ 拦下转 blocked 回叫「要改验证命令,需要你重新拍板」(Plan Delta),不静默放行也不静默死。</li>
+          <li>没登记任何 verify 的 coding 任务<strong>不 settle</strong>,转 blocked 叫人——独立验收 oracle 是门禁,不是可选项。</li>
+          <li>verify 跑在比 agent 更窄的环境(HOME 换成一次性空目录)。诚实边界:绝对路径直读与出网仍不可挡,完整隔离 = 后续容器 / sandbox。</li>
+          <li>合并前会<strong>再跑一次</strong>冻结 verify。</li>
+        </ul>
+
+        <h2 id="s8">8. 审批与安全</h2>
+        <h3>8.1 风险按效果分级 S0–S3</h3>
+        <p>语音是弱认证通道(在场任何人都能说话、识别有误听率),所以审批权按风险分级;<strong>分级由效果计算,不按动作名</strong>:<code>效果 × 目标(圈内 / 圈外)× 触及数据敏感度 × 身份凭据 × 触发的下游(CI / 部署)× 成本</code>。</p>
+        <table>
+          <thead>
+            <tr><th>级别</th><th>典型(缺省,可被效果升级)</th><th>审批方式</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>S0 读</td><td>读代码、只读命令</td><td>自动放行</td></tr>
+            <tr><td>S1 写(worktree 内)</td><td>改代码、跑登记的 verify、本地 commit</td><td>自动放行</td></tr>
+            <tr><td>S2 出圈但可逆</td><td>装依赖、push 到 feature 分支、未识别的命令</td><td>逐步确认档:屏幕 / 语音确认(缺省 45 秒窗,超时即拒);直达验收档:命中念读签署的预授权清单则放行(当前未在语音链启用,见 §8.4)</td></tr>
+            <tr><td>S3 不可逆 / 外部影响</td><td>合并到保护分支、force push、部署、花钱、删数据、对外发消息</td><td><strong>必须已认证屏幕(Touch ID / passkey)</strong>;语音绝不放行——同一麦克风的复述不构成独立认证因子</td></tr>
+          </tbody>
+        </table>
+        <p>升级规则:触及 <code>.env</code> / 凭据 / 客户数据 ⇒ 至少 S2;依赖带 postinstall ⇒ 至少 S2 且必须出清单;push 触发预览部署 ⇒ S3;push 到保护分支 ⇒ S3。</p>
+        <h3>8.2 Gate 0:能不能开工的总闸</h3>
+        <p>Gate 0 不是运行期的命令门,而是<strong>开放自主派发前必须关闭的六项安全门禁</strong>,每次派发前都检查 <code>[gate0] enabled = true &amp;&amp; bypass = false</code>,<strong>代码里没有 bypass 分支</strong>(配置文件损坏时按「未关」处理,拒派发而不是带宽松缺省继续):</p>
+        <table>
+          <thead>
+            <tr><th>门</th><th>内容</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>G1 身份 / 授权</td><td>单用户假设显式化;S3 只走屏幕;控制台能力令牌 + Host/Origin 白名单 + DNS rebinding 防护;审批门完整性(socket 裁决、canary)</td></tr>
+            <tr><td>G2 跨边界事务幂等</td><td>回叫 outbox 唯一、事件游标 + 崩溃重放</td></tr>
+            <tr><td>G3 独立 acceptance oracle</td><td>verify 白名单 + 内容冻结 + Plan Delta;生成方不自评</td></tr>
+            <tr><td>G4 secret / egress 隔离</td><td>agent 环境剥离凭据;出口能力按适配器如实声明(Cursor = uncontrolled,不假绿);setup 缺省 <code>--ignore-scripts</code>;TTS 脱敏</td></tr>
+            <tr><td>G5 意图审计</td><td>转写 → 收据 → 任务三方留痕贯通;审计表不可变(触发器)</td></tr>
+            <tr><td>G6 删除 / 同意传播</td><td>「忘掉这个」硬删通路;录音 / 转写分别同意;备份按保留期整份过期</td></tr>
+          </tbody>
+        </table>
+        <h3>8.3 每条 shell 命令怎么过门</h3>
+        <ul>
+          <li>物理链:worktree 内 <code>.cursor/hooks.json</code> → daemon 供给、放在 worktree 之外 <code>~/.saydo/tier1/</code> 的 gate 脚本(与 agent 同用户,<strong>当前不保证 agent 不可写</strong>——诚实口径)→ unix socket → daemon 裁决;补偿控制 = 每次门请求都重算脚本完整性,漂移 ⇒ 取消全部活跃任务。</li>
+          <li>分类器把命令<strong>保守</strong>推导成效果:识别不出的一律按 S2 上浮;词面含 <code>.env / credential / secret / .pem / .key / id_rsa / id_ed25519 / .npmrc / .netrc / keychain / token</code> ⇒ 敏感升级;force push / 绝对路径删除 / 管道执行远端脚本 ⇒ S3;复合命令(<code>&amp;&amp;</code> / <code>;</code> / <code>|</code> / 子 shell)按<strong>最高风险段</strong>归类,任一段不可判 ⇒ 整条不可判。<code>node / python / tsx / just</code> 等任意代码执行入口也按 S2(<code>node -e "fetch(…)"</code> 与 <code>node build.js</code> 词面无法区分);已登记的 verify(如 <code>just test</code>)在门里<strong>先于</strong>分类表匹配,仍自动放行。</li>
+          <li>裁决:S0/S1 放行;S2 上浮(45 秒,超时 = 拒);S3 直接拒;风险计算异常 = 拒。<strong>每条命令独立审批,一次放行不得长期有效</strong>。</li>
+          <li>第四个动作「<strong>修改后批准</strong>」:你可以把命令改一改再批,agent 收到编辑后的命令原样重试即命中这张单次收据。</li>
+          <li>每条 S2 一张收据,绑定父决策包 digest 与拍板轮次,接受即消费。</li>
+        </ul>
+        <h3>8.4 执行模式两档</h3>
+        <table>
+          <thead>
+            <tr><th>档</th><th>语义</th><th>现状</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>逐步确认</strong>(出厂默认,口语「每步问我 / 盯着点」)</td><td>每个出圈动作(S2)前置确认 + 计划步骤边界确认;agent 提问即时上浮;S0/S1 任何档都不问(worktree 已兜底)</td><td><strong>现在可用</strong>——当前全部任务都按此姿态执行</td></tr>
+            <tr><td><strong>直达验收</strong>(口语「一口气跑完」)</td><td>拍板即授权整包:决策包逐项声明并<strong>念出</strong>本任务预计的 S2 效果类(带约束参数:装哪些包 / 推哪个分支模式),随包 digest 签署;运行中命中清单自动放行(落预授权收据,执行点复验有效期),未命中或被升级的拒绝并反馈 agent 换路</td><td><strong>进行中</strong>——预授权清单的合同与匹配逻辑已落,但语音拍板环尚未接入念读签署,组包恒为逐步确认;拍板时选「一口气」会被如实告知走屏幕或改逐步确认</td></tr>
+          </tbody>
+        </table>
+        <p>不变量(任何档位不得触碰):效果分级、S3 屏幕强认证、三熔断、verify 白名单、Plan Delta 重授权、回叫优先级、状态词纪律、两把钥匙、Gate 0。<strong>预授权范围永远属于决策包、由你听到并签署;模式只是这份清单的启用开关</strong>——否则「切到全自动」就成了一句话扩权通道。默认收紧(逐步确认)是对冲自动化偏信;「信任毕业制」被明确否决。</p>
+        <h3>8.5 三熔断与停靠老化</h3>
+        <ul>
+          <li><strong>三熔断</strong>(任一触发 ⇒ cancel ⇒ 带上下文进 blocked 叫你):<strong>活跃墙钟</strong>(缺省 45 分钟,审批 / 提问停靠期停表)+ <strong>回合数</strong>(缺省 80)+ <strong>API 成本</strong>(来自决策包封顶,缺省 20 元;只约束 API 计费部分,订阅调用靠前两者兜底)。项目级可覆盖三者。「15 分钟无事件」只能抓挂死,抓不住「活跃地兜圈烧钱」,所以三者缺一不可。</li>
+          <li><strong>停靠老化</strong>:等你验收 / 等你解 blocked 超过 <code>park_aging_hours</code>(缺省 72 小时)⇒ 取消并转草稿卡(停靠占着 worktree 与同仓队列,不能无限悬挂);长停靠恢复时强制复验收据有效期。</li>
+          <li><strong>决策包有效期</strong> <code>proposed_ttl_hours</code>(缺省 24 小时),过期作废;同项目新提议 supersede 旧的。</li>
+        </ul>
+        <h3>8.6 其他安全纪律</h3>
+        <ul>
+          <li><strong>TTS 脱敏</strong>:token、密钥、客户数据、完整本机路径永不进语音(路径说「某个配置文件」,密钥说「一处凭据」)。</li>
+          <li><strong>控制台调用方身份</strong>:每次请求 / WS 握手校验能力令牌,Host / Origin 白名单,防恶意网页绕过语音授权直调 daemon;缺省只监听本机回环。</li>
+          <li><strong>记忆写路径</strong>:第三方内容(仓库 / 网页 / 资料)永远不能定义「你喜欢什么 / 允许什么 / 凭据在哪」;候选 → 受信需人批(§9.3)。</li>
+          <li><strong>审计与日志分流</strong>:日志可轮转,审计表不可变;敏感 payload 只记 digest 不记原文。</li>
+        </ul>
+
+        <h2 id="s9">9. 记忆与账本</h2>
+        <h3>9.1 四层记忆(M0–M3)</h3>
+        <table>
+          <thead>
+            <tr><th>层</th><th>名称</th><th>存储</th><th>生命周期</th><th>内容</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>M0</td><td>用户档案</td><td>记忆账本中的跨项目层(<code>~/.saydo/saydo.db</code>;<code>~/.saydo/profile.md</code> 已纳入备份保护范围,作为人可读投影规划中)</td><td>跨项目、长期</td><td>偏好、技术栈、沟通风格、术语热词(顺带提升识别准确率)</td></tr>
+            <tr><td>M1</td><td>项目知识底座</td><td><code>&lt;workspace&gt;/.saydo/knowledge/</code>(Markdown,人可读;<code>m1-notes.md</code> 为账本投影)</td><td>项目级、长期稳定</td><td>项目目标 / 约束、代码库理解(架构 / 模块 / 术语)、关键决策、领域知识</td></tr>
+            <tr><td>M2</td><td>累积对话知识</td><td>产物库(<code>~/.saydo/artifacts/</code> + 主库索引,按项目归属)</td><td>项目级、随对话增长</td><td>每次对话新生成的方案 / 决策、调研资料(版本化、可召回)</td></tr>
+            <tr><td>M3</td><td>会话工作记忆</td><td>上下文窗口 + 转写(<code>~/.saydo/sessions/&lt;id&gt;.jsonl</code>)</td><td>单次会话</td><td>最近 N 轮、当前任务</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Context Pack</strong> = 每轮从 M0 + M1 + M2 挑相关切片 + M3 最近几轮拼进窗口(带版本,失配则重取);检索用 SQLite FTS5(trigram,BM25)答「我们决定过什么」,代码事实永远现场 <code>rg</code> 现读、不进知识库(无陈旧税;短于 3 字符的词靠 rg 兜底)。</p>
+        <p><strong>真相源</strong>:记忆域以 <strong>append-only 记忆事件账本</strong>为真相,Markdown 文件与 SQLite 索引都是可重建投影;源码与 Git 永远是代码事实的最终权威。<code>m1-notes.md</code> 是单向投影——直接改文件不会回写记忆,要改就对它说(P0 没有文件监听)。</p>
+        <h3>9.2 奠基(Foundation)<span class="badge badge-live">现在可用</span> · 机械管道</h3>
+        <p>第一次接触一个项目时触发,阻塞式(「学习中」是一等会话状态,会说清在学什么、进度、还要多久):</p>
+        <ul>
+          <li>扫文件清单与语言分布;按白名单读关键文件(README / AGENTS.md / CLAUDE.md / package.json / pyproject.toml / justfile / Makefile / Cargo.toml / go.mod 等,单文件摘录上限 6000 字符);</li>
+          <li>反向吸收你仓里已有的 AGENTS.md / CLAUDE.md / <code>.cursor/rules</code>;</li>
+          <li>生成四份知识文档:<code>core.md</code> / <code>inventory.md</code> / <code>build-test-run.md</code>(标注「未运行验证」)/ <code>conventions.md</code>;</li>
+          <li>预算:缺省 5 分钟墙钟 + 200k token,超限产出 partial 并如实写「还没读完,按已读部分回答」;</li>
+          <li><strong>按 generation 原子切换</strong>(<code>knowledge/gen-N/</code> + <code>current</code> 链接;失败保留旧代),<code>knowledge/</code> 目录自带独立 git 历史;奠基换代后,依赖旧代知识的就绪绑定自动失效(不拿过期理解开工);</li>
+          <li>在你的 AGENTS.md 里放一段幂等指针块(<code>&lt;!-- saydo:knowledge:begin … end --&gt;</code>)指向知识底座,写失败(只读仓 / 权限)静默降级不翻转已发布的 generation。</li>
+          <li>会话预热(每次,轻):按 <code>git diff</code> 四组种子(已提交 / 暂存 / 未暂存 / 未跟踪)增量刷新;rebase / force-push 不会被误判为「全删」。</li>
+        </ul>
+        <p>诚实标注:<strong>当前奠基是确定性的机械管道(清单 + 摘录 + 文档生成),不含由沉思档模型做的 LLM 深度研究</strong>——后者是规划中的下一档。</p>
+        <h3>9.3 记忆写路径:候选 → 受信(安全边界)</h3>
+        <p>持久记忆的头号风险不是陈旧,而是<strong>来源污染与跨项目泄漏</strong>。写路径是:</p>
+        <pre><code>raw evidence(不可信)→ candidate(带来源 / 引文 / 信任级 / 有效期)→ 冲突 / taint / policy 检查
+→ 低影响的项目本地事实可自动入库;偏好 / 决策 / 外部事实需你批准 → trusted</code></pre>
+        <ul>
+          <li>直入 trusted 的只有<strong>你亲口说的</strong>(<code>user_stated</code>)与<strong>低影响机械事实</strong>(git 跟踪的仓内文件 / 你的编辑,且是事实性陈述);命中指令 / 副作用词(<code>curl | sh</code>、<code>rm -rf</code>、<code>sudo</code>、<code>git push</code>、「部署 / 上线 / 删库 / 迁移」…)一律降为候选;来自网页 / agent 输出 / 导入的一律候选。</li>
+          <li><strong>M0 红线</strong>:第三方内容永远不能定义「你喜欢什么 / 允许什么 / 凭据在哪」;M0 只接受你亲述或你批准的。</li>
+          <li>会后提炼 = <strong>机械提名 + 你批准</strong>(不是自动沉淀):会话挂起时按决策性词表(「决定 / 定了 / 就用 / 以后都 / 统一用 / 拍板」…)提名最多 5 条候选,你在记忆库页逐条批准 / 拒绝(拒绝 = 软遗忘,否定不复活)。</li>
+          <li><strong>遗忘</strong>:失效标记(不删行,投影排除)/ 软遗忘 / <strong>硬删</strong>(「忘掉这个」:tombstone + 历史正文就地覆写为 <code>[forgotten]</code> + 从全文索引、投影、源快照正文与评估记录里清除)。诚实边界:自动快照备份是不可变整体文件,硬删不逐条清备份,靠保留期(缺省 30 天)到期整份删除闭合。</li>
+        </ul>
+        <h3>9.4 一件事、义务与四色账本 <span class="badge badge-live">现在可用</span></h3>
+        <p>控制台主轴是「<strong>一件事</strong>」(Focus):一件持续关注的事,生命周期 captured / active / dormant / closed / abandoned / archived;可以关联 0..N 个项目,也可以不属于任何项目(生活筹备、调研都行);下面挂<strong>义务</strong>(谁欠什么:owner = 你 / AI / 外部,状态 open / in_progress / waiting / deferred / blocked → resolved / superseded)与<strong>期待</strong>(做成什么样的验收标准,改了要 AI 复述影响再确认)。</p>
+        <p><strong>四色账本</strong>(今天页)不是独立的表,而是从账本现算出来的「球在谁」视图:</p>
+        <table>
+          <thead>
+            <tr><th>色</th><th>含义</th><th>来源</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>橙 · 等你拍板</td><td>需要你回答 / 决定</td><td>待确认卡、等你验收的任务、owner=你且需要决策 / 补充的义务、任何被前置终止(blocked)的事</td></tr>
+            <tr><td>蓝 · 你欠的动作</td><td>需要你动手</td><td>owner=你、需要行动的义务</td></tr>
+            <tr><td>绿 · AI 正在办</td><td>球在 AI</td><td>排队 / 运行中的任务、owner=AI 的未结义务</td></tr>
+            <tr><td>灰 · 等外部回音</td><td>球在别人</td><td>owner=外部的未结义务</td></tr>
+          </tbody>
+        </table>
+        <ul>
+          <li>「帮我记一下 / 记一条 / 别忘了」⇒ 当轮立即提议落账(决定 = decision,待办按归属,要查证 = check),经<strong>确认卡</strong>(你点头或倒计时)写入;同一句里多条可一卡确认、全有或全无。若当前对话工具面没有落账工具,会降级先记进记忆库并告诉你「立起来后可以再挂到账上」。</li>
+          <li><strong>销账</strong>:义务由 AI 提议 resolve(done / abandoned / 不再适用)经你确认;AI 自己的义务标 done 必须带可验证证据(产物 / 任务 / 事件三查);叙事性修订不销账。绿 / 灰条目可「知道了」让它从收件箱消失,橙 / 蓝不能 ack、只能靠源数据变化消失;条目升级(绿 → 橙)时无视历史 ack 必然重现。</li>
+          <li><strong>确认卡过期不蒸发</strong>:屏幕档确认卡超时(10 分钟)会按归属降格落到对应色区(「待你补一句」形态);语音档 5 秒倒计时自动执行属设计内;防风暴:同会话同事日限 5 条,超限聚合。</li>
+          <li><strong>多步接续</strong>:你确认一步后 AI 自动续走下一步,连续自动最多 3 步,到上限就停下来挂账(防失控)。</li>
+        </ul>
+
+        <h2 id="s10">10. 验收与交付</h2>
+        <h3>10.1 状态词纪律(硬约束)</h3>
+        <table>
+          <thead>
+            <tr><th>状态</th><th>含义</th><th>它怎么说</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>run.completed</code></td><td>agent 进程退出(闸门 / 产物可能还没 settle)</td><td><strong>不播报「完成」</strong></td></tr>
+            <tr><td><code>ready_for_review</code></td><td>验收闸门跑完、产物落盘确认,等你验收</td><td>「执行和检查都跑完了,等你验收」</td></tr>
+            <tr><td><code>task.done</code></td><td>你验收 + 合并 / 归档后</td><td>「这件事交付了」</td></tr>
+          </tbody>
+        </table>
+        <p>执行任务不预估剩余时长,只说已发生(「跑了 18 分钟」);成本 unknown 说「还没有确切数字」,不说 0。</p>
+        <p>任务状态机(coding 类,节选主干;另有 confirmed / paused_step_boundary / merge_failed / cancel_settled / superseded 等状态):</p>
+        <pre><code>queued → running → ready_for_review → review_approved_waiting_merge → merging → task_done
+              ↑            │ 要改:同任务新一轮(复用 worktree)
+              └────────────┘
+  任一阶段:blocked(等你:S2 超时 / 提问 / 熔断 / verify 缺失)· failed(可重试)· cancel_requested(作废,worktree 保留)</code></pre>
+        <h3>10.2 证据视图</h3>
+        <p>任务验收面按<strong>验收标准组织</strong>:左边标准、右边证据(diff、测试结果、它自己做的决策清单、未验证项)。纪律:agent 自报的证据用空心标记以示降权、可推翻;没绑上证据的项诚实标 unknown,不显示伪精确;决策清单与口播<strong>同源</strong>(落库的 <code>decisions</code>),口播与上屏一致。</p>
+        <h3>10.3 口播摘要三层</h3>
+        <ol>
+          <li><strong>一句话</strong>(≤40 字,纯规则):「改了 5 个文件,测试 12/12 过,1 个待确认决策」——文件数来自 git、测试数来自独立闸门,未知标 unknown 不写 0;</li>
+          <li><strong>走读</strong>(150 字口语稿,你说「讲讲」时);</li>
+          <li><strong>决策清单</strong>(每条 = 决策 + 理由 + 可推翻动作,≤5 条;从事件流机械抽取 → 廉价档惰性提炼一次 → 落库)。</li>
+        </ol>
+        <p>原始事件流<strong>永不</strong>直接进对话模型;叙事模型只做措辞,不得产生规则层没有的数字。</p>
+        <h3>10.4 验收三态与合并</h3>
+        <p>通过 / 要改(同任务新一轮,复用 worktree,意见进下次 prompt)/ 作废;通过后按 §7.3 的两条路合并。写作类另有「逐节裁决」屏障:settle 不等于全绿,未逐条裁决不能通过。</p>
+
+        <h2 id="s11">11. 回叫与通知</h2>
+        <ul>
+          <li><strong>触发</strong>:只由 settle 后的状态触发(<code>ready_for_review</code> / blocked / failed 等),runner 退出不算;durable outbox,重放幂等,daemon 重启只叫一次。</li>
+          <li><strong>优先级</strong>:blocked(等人)&gt; failed &gt; 待审批 &gt; <code>ready_for_review</code> &gt; 进度(默认不通知)。</li>
+          <li><strong>升级链 <span class="badge badge-live">现在可用</span></strong>:<strong>L0 在线语音回叫</strong>——控制台在线、语音管线健康且你没在说话时,它直接开口,第一句就是回叫原因;30 秒没应答升级。<strong>L1 macOS 桌面通知(系统通知中心)+ ntfy 手机推送</strong>——任一送达即算已通知(桌面通知首次弹出可能需要在系统设置里允许通知);「今天」页橙区始终常亮。L2 电话与移动端来电式汇报规划中。sweep 每 15 秒扫 outbox,投递失败留队重试。</li>
+          <li><strong>ntfy</strong>:<code>.env</code> 填 <code>NTFY_TOPIC</code>(随机串,手机 ntfy App 订阅同名主题)与 <code>NTFY_SERVER</code>(缺省 <code>https://ntfy.sh</code>,可自托管);消息 JSON POST(中文标题走 body),优先级 blocked / failed = 4,待验收 = 3;<strong>深链只带路由、绝不带能力令牌</strong>;标题经与 TTS 同一套脱敏(公网 topic 明文可订阅)。这两个键当前不在向导白名单内,需手改 <code>.env</code>。</li>
+          <li><strong>PagerDuty 式状态机</strong>:pending → notified → acked → resolved;<strong>ack 只停止升级,不等于解决、更不等于授权任何动作</strong>;ack 后 30 分钟(<code>callback_resolution_timeout_min</code>)未解决重新升级。ack 的途径:「通知」页点「知道了」,或你直接开口回话(语音回叫后的开口即视为已应答);任务离开待验收 / blocked 被解决时自动销账。</li>
+          <li><strong>免打扰</strong> <code>[dnd].window</code>(缺省 <code>23:00-08:00</code>,支持跨午夜):窗口内不出声、不弹桌面,只发一条低优先级 ntfy(注明免打扰时段)并 snooze 到窗口末;窗口结束后按队列顺序补叫;设备不可达不算 DND,走短周期重试。</li>
+          <li><strong>拦截不等于叫人</strong>:危险动作先把原因反馈给 agent 让它换路,同一意图被拦 ≥ 2 次才进回叫链。</li>
+          <li>输出仲裁 <span class="badge badge-live">现在可用</span>:你这轮话还没说完时不插播语音,该条降级走桌面 + 推送;「会议软件占麦」检测暂无数据源,恒按未占处理(如实)。</li>
+        </ul>
+
+        <h2 id="s12">12. 语音</h2>
+        <h3>12.1 三档语音能力</h3>
+        <table>
+          <thead>
+            <tr><th>档</th><th>条件</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>打字</strong>(始终可用)</td><td>无</td><td>任何时候都能打字;键盘自带的系统听写也能用</td></tr>
+            <tr><td><strong>浏览器系统语音</strong>(零配置)</td><td>浏览器支持 <code>SpeechRecognition</code>(Chrome / Safari)</td><td>按住说话 → 浏览器识别 → 文字通道进对话;朗读用 <code>speechSynthesis</code>。质量一般</td></tr>
+            <tr><td><strong>云端级联语音</strong>(更准更自然)</td><td><code>.env</code> 填火山豆包三键 + 起 Python 语音管线</td><td>ASR = 火山豆包 sauc 流式(带<strong>热词偏置</strong>:你纠正过的术语、项目符号自动注入,实测术语召回 +10 点);TTS = 豆包 seed-tts-2.0 v3 双向流式(首句先播、可随时打断);当前识别形态 = 按住说话松手后整段识别(实时字幕规划中)</td></tr>
+            <tr><td><strong>手机原生语音</strong></td><td>iOS / Android 壳</td><td>走系统语音识别与合成;设备端或联网处理取决于应用 / 系统设置与厂商实现,联网时按系统厂商条款处理;不需要 Python 管线</td></tr>
+          </tbody>
+        </table>
+        <h3>12.2 采集与轮次</h3>
+        <ul>
+          <li>桌面三种触发:<strong>点击 - 再点击</strong>(toggle)/ <strong>键盘长按</strong>(按住空格)/ <strong>免手 VAD</strong>(能量 RMS + hangover 状态机 + 语义「说完了没」词表 + 显式「<strong>说完了</strong>」按钮兜底;中英混说默认延长静音阈值 900ms);嘈杂环境走按住说话。</li>
+          <li>录完二选一:「<strong>发送</strong>」(语音气泡先进对话,转写异步补挂,AI 即刻开跑)/「<strong>转文字改一改</strong>」(转写只进输入框,改字后发送);「取消」彻底丢弃。转写在途必有显式「转写中」状态;空转写 / 超时给「没听清」。</li>
+          <li><strong>打断</strong>:TTS 立停;未播完的文本标 <code>heard=false</code>、不进对话事实;被打断的授权类播报(S2 / 预授权清单)立即作废当前确认,随后的裸肯定「好 / 可以」不消费旧收据。</li>
+          <li><strong>重听上一问</strong>:原文重放,不重新生成。</li>
+          <li><strong>误听纠错</strong>:说「不是 X,是 Y」 ⇒ 纠正进 M0 热词(<code>热词:X-&gt;Y</code>),下次识别带偏置;连续误听降级打字。</li>
+          <li>会话空闲 45 秒或你说「先到这里 / 先这样 / 收工」即挂起(零成本),收尾语必含状态:「任务在跑,到验收点我叫你」。</li>
+        </ul>
+        <h3>12.3 口播纪律</h3>
+        <p>人格 = 幕僚长:简短、口语、中文、不念代码、先结论后细节;口播 ≤ 30 秒;清单 &gt; 3 项转屏幕;选项一次最多念 3 个。<strong>TTS 脱敏红线</strong>:token / 密钥 / 客户数据 / 完整本机路径永不进语音;PEM 块、<code>sha256:</code>、Bearer、<code>sk-</code>/<code>ghp_</code> 等前缀、云访问密钥、绝对路径、11–19 位数字串、≥20 位裸密钥串自动替换。</p>
+
+        <h2 id="s13">13. 手机与远程</h2>
+        <h3>13.1 今天能做什么</h3>
+        <ul>
+          <li><strong>局域网直连</strong>(<code>SAYDO_MOBILE_LAN=1</code>,§4.7):手机浏览器或自行构建的 App 壳打开 <code>http://&lt;内网IP&gt;:47100/?token=…</code>(桌面控制台可出二维码;<strong>只对 RFC1918 私网地址出码</strong>,公网 / CGNAT 不出)。手机面是移动壳路由(<code>#/m</code>):今天四色、一件事详情、最近对话回放、最近记忆;发文字 / 原生语音转文字进对话;对立账 / 记账类确认卡点头 / 撤回。LAN 面 HTTP 路由白名单极窄(只读投影 + 首跑开场白),写口、设置写口、S3、全文屏幕文本一律拒。</li>
+          <li><strong>tailnet(Tailscale)面,进行中</strong>:目标合同是 <code>config.toml</code> <code>[t2].tailnet_hosts = [...]</code>(纯主机名 / IP 显式白名单,<strong>禁通配</strong>,含任一非法项整面不开)+ <code>[t2].listen</code>;<code>just t2-pair</code> 出配对 URL(一次性注入手机本地会话,深链之后不带令牌)。目标 tailnet 面可看任务、批 S2 级审批(review / decide / 记忆候选批准),合并链动作与 <code>/dev/*</code> 注入通道 403 引导回桌面。开发机的 Tailscale / MagicDNS 底座已就绪,但当前 HEAD 的 setup probe 仍会拒绝 tailnet 配置,尚不能作为受支持入口。</li>
+          <li><strong>S3 永远不在手机</strong>:四重断言(socket 必须本机回环、Origin 精确 <code>http://localhost:&lt;port&gt;</code>、来源面 <code>local</code>、rpId 固定 <code>localhost</code>),拒绝文案「S3 操作只在本机受信终端完成——回到桌面屏幕操作」;S3 工具也不进对话模型的工具面。</li>
+          <li><strong>诚实边界</strong>:当前 LAN 面是「局域网明文 HTTP + 长期能力令牌」的 dogfood 临时边界,<strong>没有设备配对 / 逐设备身份 / 端到端加密</strong>;删令牌重启即全员掉线。不要暴露到不受信网络。</li>
+        </ul>
+        <h3>13.2 App 状态</h3>
+        <table>
+          <thead>
+            <tr><th>端</th><th>状态</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>iOS</td><td>未提审</td><td>原生 SwiftUI 壳(扫码配对、原生语音识别 / 合成、Web 容器)工程存在;App Store 记录已建(中文店名「说到」),无可提审包</td></tr>
+            <tr><td>Android</td><td>未提审</td><td>Kotlin 壳可构建;Play 应用记录已建(<code>com.octoooo.saydo</code>),无可提审包</td></tr>
+            <tr><td>HarmonyOS</td><td>未提审</td><td>HarmonyOS NEXT ArkTS 壳;AppGallery 记录与发布证书已就绪,Profile 未建</td></tr>
+          </tbody>
+        </table>
+        <p>三端共同的不可提审原因:无生产配对 / 信任层、明文 LAN、审核夹具未执行。上架前要做的:设备配对(一次性票据 + Noise XX 互认证 + 桌面人工确认 + 信任设备免确认重连)、推送隐私合同(payload 只带 opaque id)、来电式汇报(PushKit 唤醒 + CallKit 来电 UI)。这些都是规划中。</p>
+        <h3>13.3 设计原则</h3>
+        <p>沟通天然是移动的,执行天然是固定的:手机只做沟通面(说话、看进展、点头确认)。局域网手机面不裁决 S2/S3;语音确认按 canonical 封顶 S2;tailnet 配对屏幕面在支持后同样封顶 S2;合并、删除等 S3 始终只在本机认证屏幕。重活留在你的 Mac;手机断连不影响后端执行。远程通道默认只读;电话 DTMF(规划中)只做 ack / snooze / 拒绝,不做任何审批。</p>
+
+        <h2 id="s14">14. 隐私与数据</h2>
+        <ul>
+          <li><strong>没有服务器、没有账号、没有埋点</strong>:代码里没有任何遥测 / 统计 / 广告 SDK;开发者无法访问、也不收集你的数据。</li>
+          <li><strong>数据在哪</strong>:
+            <ul>
+              <li><code>~/.saydo/saydo.db</code>(任务 / 审批 / 成本 / 记忆事件 / 审计等主库)、<code>~/.saydo/sessions/*.jsonl</code>(转写,目录权限 0700)、<code>~/.saydo/.cap-token</code>(控制台令牌,0600)、<code>~/.saydo/logs/</code>、<code>~/.saydo/backups/</code>;</li>
+              <li><code>&lt;workspace&gt;/.saydo/</code>(知识底座 / 奠基 / worktrees / project.toml);<code>~/.saydo/{artifacts,snapshots,assessments}</code>(产物 / 源快照 / 就绪深评记录);</li>
+              <li>第三方 AI 由你的电脑直接调用(CLI 订阅或 API key),适用你与服务商的协议。</li>
+            </ul>
+          </li>
+          <li><strong>语音的数据去向(两端不同,请分清)</strong>:手机端与浏览器使用系统或浏览器提供的语音识别;设备端或联网处理取决于应用 / 系统 / 浏览器设置与厂商实现,联网时音频按相应厂商条款处理。<strong>桌面端配了火山豆包 key 时,音频经 WebSocket 发到火山引擎云端识别与合成</strong>——这是你自己配置、你的电脑直连的第三方服务。缺省 <code>store_audio = false</code>(当前版本根本没有写录音文件的代码路径)、<code>store_transcript = true</code>(可关;关了轮内流程照常、只是不落盘,并如实标注)。</li>
+          <li><strong>什么流量会出网</strong>(以下是主要路径,不是穷举):① 你接入的 AI 上游——CLI 订阅工具走它们各自的官方通道,API key 直连你配置的端点;② 系统 / 浏览器联网语音识别,以及你启用桌面云端语音时的火山豆包识别与合成;③ 可选的 ntfy 推送(你配置的 topic,标题经脱敏)。</li>
+          <li><strong>审计不可变</strong>:审计表有数据库触发器禁 UPDATE / DELETE;敏感 payload 只记 digest 不记原文;每条带 actor。日志可轮转,审计不可变。</li>
+          <li><strong>调用方身份</strong>:控制台能力令牌 + Host / Origin 白名单 + DNS rebinding 防护;缺省只监听本机回环;LAN / tailnet 面另有来源门(§13)。</li>
+          <li><strong>备份</strong>:每日自动快照(SQLite 在线备份 + sessions + 各项目 foundation / knowledge),保留期缺省 30 天;<code>just backup</code> 手动。</li>
+          <li><strong>删除</strong>:「忘掉这个」硬删传播到索引 / 投影 / 源快照 / 评估记录;备份按保留期整份过期(如实告知);完全重置 = 删 <code>~/.saydo</code>(令牌轮换、设备掉线)。</li>
+          <li><strong>迁移</strong>:新机装好后把 <code>~/.saydo/</code>(或某份备份)拷回即可;令牌与执行器锁定副本需重新登记;各项目的 <code>&lt;workspace&gt;/.saydo/</code>(知识底座 / 奠基 / worktrees)随项目目录走。</li>
+          <li>完整隐私政策见 <a href="/privacy/">/privacy/</a>。</li>
+        </ul>
+
+        <h2 id="s15">15. 费用</h2>
+        <ul>
+          <li><strong>软件</strong>:桌面服务开源免费;App 免费、无内购(规划中)。</li>
+          <li><strong>AI 费用去向</strong>:
+            <ul>
+              <li><strong>订阅 CLI(BYOA)</strong>:走你已有的 Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot 订阅额度,零额外费用;账本显示「订阅额度内」;撞限流该次调用如实报错,不偷偷转计费。</li>
+              <li><strong>API key</strong>:按各家账单;账本按 <code>[pricing]</code> 单价表估算(缺省不填 = 显示「还没有确切数字」,不编数);每个任务有成本封顶(缺省 20 元)+ 活跃 45 分钟 + 80 回合三熔断。</li>
+              <li><strong>语音(可选)</strong>:火山豆包 ASR / TTS 按你的火山账号计费;浏览器系统语音免费。</li>
+              <li><strong>推送(可选)</strong>:ntfy 公共服务器免费 / 自托管。</li>
+            </ul>
+          </li>
+          <li>「说到」不加价、不经手、不代充。<strong>放外人用之前先确认额度</strong>:开发类请求会真实派发执行任务、消耗订阅或 API 额度。</li>
+        </ul>
+
+        <h2 id="s16">16. 路线图与完成度总表</h2>
+        <table>
+          <thead>
+            <tr><th>能力</th><th>状态</th><th>备注</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>macOS 桌面服务(daemon + 控制台)</td><td><span class="badge badge-live">现在可用</span></td><td>源码分发;npm / Homebrew 包与桌面 App 壳规划中</td></tr>
+            <tr><td>四推理槽 API 供给(OpenAI 兼容 / OpenRouter)</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
+            <tr><td>四推理槽 CLI 订阅供给(Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot)</td><td><span class="badge badge-live">现在可用</span></td><td>对话档走 CLI 为慢速文本模式</td></tr>
+            <tr><td>首跑资源画像向导(三种方案卡 + 高级逐槽)</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
+            <tr><td>一件事 / 义务 / 期待 / 四色账本 / 确认卡降格 / 多步接续</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
+            <tr><td>奠基(机械管道)+ M1 知识底座 + AGENTS.md 互通 + 会后提名批准 + 遗忘</td><td><span class="badge badge-live">现在可用</span></td><td>LLM 深研档规划中(方案在拟)</td></tr>
+            <tr><td>类型就绪清单 + 规则层 + 异族深评 + 复述确认绑定</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
+            <tr><td>决策包(预览 / 计划 / 成本 / 风险 / 验收标准 / 轻量小样)</td><td><span class="badge badge-live">现在可用</span></td><td>小样与计划同源机械渲染;控制台「看小样」+ 本机同轮上屏</td></tr>
+            <tr><td>Cursor CLI 执行器 + worktree 隔离 + 命令效果门 + 三熔断 + verify 冻结</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
+            <tr><td>验收证据视图 + 三层口播 + Touch ID 合并卡 + 人工合并核验</td><td><span class="badge badge-live">现在可用</span></td><td>Touch ID 卡真人过卡待 owner 触点</td></tr>
+            <tr><td>逐步确认档</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
+            <tr><td>直达验收档(预授权清单念读签署)</td><td><span class="badge badge-progress">进行中</span></td><td>合同与匹配逻辑已落,语音拍板环未接</td></tr>
+            <tr><td>回叫升级链:在线语音回叫 → macOS 桌面通知 + ntfy 手机推送;免打扰;应答(ack)</td><td><span class="badge badge-live">现在可用</span></td><td>语音回叫需控制台在线 + 语音管线健康;30 秒未应答升级;输出仲裁同批落地</td></tr>
+            <tr><td>云端级联语音(豆包 ASR/TTS)+ 浏览器系统语音 + 热词纠错</td><td><span class="badge badge-live">现在可用</span></td><td>实时字幕、Silero VAD 规划中</td></tr>
+            <tr><td>coding 类型</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
+            <tr><td>writing 类型(窄版)</td><td><span class="badge badge-live">现在可用</span>(需开能力门)</td><td>引证 / 归属合同等全量规划中;真人全链待验</td></tr>
+            <tr><td>research / marketing / planning / general 执行合同</td><td><span class="badge badge-soon">规划中</span></td><td>上游采访 / 立账 / 调研可用</td></tr>
+            <tr><td>局域网手机面(浏览器 / 壳)</td><td><span class="badge badge-live">现在可用</span>(dogfood 边界)</td><td>无配对 / 无 E2E</td></tr>
+            <tr><td>tailnet 薄版</td><td><span class="badge badge-progress">进行中</span></td><td>Tailscale / MagicDNS 底座已就绪；当前 HEAD 的 setup probe 仍拒绝 tailnet 配置，尚不能作为受支持入口</td></tr>
+            <tr><td>Claude Code 执行器</td><td><span class="badge badge-progress">进行中</span></td><td>第一批官方 CLI 能力实测 + 审批门纯函数层已收口；生产执行主流程接线是下一步</td></tr>
+            <tr><td>Codex 执行器 / Hopper 批式路线</td><td><span class="badge badge-soon">规划中</span> / 休眠</td><td></td></tr>
+            <tr><td>provider-neutral 原生执行器</td><td><span class="badge badge-soon">规划中</span></td><td></td></tr>
+            <tr><td>设备配对 / E2E 加密 / 推送隐私合同</td><td><span class="badge badge-soon">规划中</span></td><td></td></tr>
+            <tr><td>iOS / Android / HarmonyOS App 上架</td><td><span class="badge badge-soon">规划中</span></td><td>商店记录已建,壳工程存在</td></tr>
+            <tr><td>来电式语音汇报(PushKit + CallKit)</td><td><span class="badge badge-soon">规划中</span></td><td></td></tr>
+            <tr><td>电话回叫 / S2S 语音引擎 / 本地全栈语音 / 唤醒词</td><td><span class="badge badge-soon">规划中</span></td><td></td></tr>
+            <tr><td>对话车道 Quick / Guided / Explore</td><td><span class="badge badge-soon">规划中</span></td><td>只有埋点</td></tr>
+            <tr><td>主动巡检 / 多人会议旁听</td><td><span class="badge badge-soon">规划中</span></td><td></td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="s17">17. 常见问题与故障排查</h2>
+        <p><strong>这是语音输入法吗?</strong> 不是。语音只是入口;后面是理解上下文、立账、判断就绪、驱动执行、组织验收的闭环。</p>
+        <p><strong>是把我的项目上传到「说到」自营云端代跑吗?</strong> 不是。没有承载产品数据的「说到」自营云后台;重活和核心持久数据在你的电脑上;你主动配置的第三方 AI、系统或浏览器语音识别、推送服务等例外由你的设备直连并适用对应服务商条款。</p>
+        <p><strong>需要什么前提?</strong> macOS + Node 22 + 一个已登录的 AI CLI(或一个 API key)。语音和执行都是可选增量(§4)。</p>
+        <p><strong>不配任何 key 能用吗?</strong> 能:本机有任一已登录 CLI 即可零 key 开聊(对话每轮 15–25 秒的慢速文本模式);语音走浏览器系统语音或打字。</p>
+        <p><strong>它怎么知道「办完了」?</strong> 执行和检查都跑完、产物落盘,它说「等你验收」——不说「做完了」;你点头、过强认证合并,才是「交付了」。</p>
+        <p><strong>它会不会偷偷花钱?</strong> 订阅调用不产生费用、撞限流只会如实报错不会转计费;API 调用有每任务成本封顶 + 活跃时长 + 回合三熔断;S3(花钱 / 部署 / 删数据 / 对外发消息)必须你在屏幕上强认证。</p>
+        <p><strong>它会 push 到 GitHub 或开 PR 吗?</strong> 不会。它在 <code>saydo/&lt;taskId&gt;</code> 分支的 worktree 里改代码;合并到你当前分支要你 Touch ID 或自己 merge;push / PR 是你之后自己做的。</p>
+        <p><strong>对话每轮要等十几二十秒,是卡了吗?</strong> 不是。对话档走 CLI 订阅就是慢速文本模式(15–25 秒);界面有慢速徽标;桌面端单次 CLI 调用 120 秒上限后明确报错(手机页 90 秒提示重发)。想要秒级对话给对话档配一个 API key(§5.3 方案二)。</p>
+        <p><strong>界面说「仅恢复模式 / recovery-only」。</strong> 活动配置非法(TOML 坏了、参数越界、项目覆盖冲突等):daemon 不退,只留健康探针、控制台静态页与设置自救写口;对话、派发、合并、恢复任务全停。去设置页按提示重建安全配置或清理非法项目覆盖,再重启。</p>
+        <p><strong>向导说某个 CLI「可识别,暂不能当模型供给」。</strong> 该 CLI(如 kimi / opencode)无法在执行前可证零工具,出于安全不接线;换一家或用 API。</p>
+        <p><strong>评估档一直 unarmed。</strong> 看原因:同族未确认(勾 <code>evaluator_same_family_ack</code> 或换家族)/ CLI 评估器缺隔离确认(勾 <code>evaluator_isolation_ack</code>)/ 自检失败 / 实际模型家族上报 unknown。unarmed 不影响对话,只是就绪深评不武装。</p>
+        <p><strong>打开控制台白页 / 没反应。</strong> 先 <code>curl -s http://127.0.0.1:47100/health</code>;不是 <code>ok:true</code> 就看 <code>~/.saydo/daemon.log</code>(tsx 冷启动 10–15 秒);确认 URL 带了 <code>?token=</code>、用的是 <code>localhost</code>。</p>
+        <p><strong>支持 Windows / Linux 吗?</strong> 暂不支持,当前面向 macOS(常驻、通知、打开浏览器等链路为 macOS 实现);没有明确时间表,不承诺。</p>
+        <p><strong>端口冲突。</strong> <code>saydo status</code> 退出码 2 = 47100 被别的服务或另一个数据目录的 daemon 占着;不会自动换端口或杀进程,用 <code>--port</code> 换或停掉对方。</p>
+        <p><strong>手机扫码连不上 / 全部掉线。</strong> 确认 daemon 带 <code>SAYDO_MOBILE_LAN=1</code>、手机与电脑同一私网;删过 <code>.cap-token</code> 会轮换令牌,重新扫码。</p>
+        <p><strong>拍板后没有起执行器。</strong> <code>[models.dev]</code> 的 <code>agent</code> 须为 <code>cursor</code>(或留空,缺省即 cursor)且 <code>model</code> 非空;<code>[tier1]</code> 两键(锁定二进制<strong>绝对路径</strong>,不接受 <code>~</code> + 版本)齐备;<code>jq</code> 与 <code>curl</code> 在 PATH(gate 脚本硬依赖,缺 <code>jq</code> 时连拒绝回执都产不出,一律视为拒绝);<code>cursor-agent</code> 已登录。否则队列里的任务停在 queued 并给处方化日志,对话不受影响。</p>
+        <p><strong>任务停在 blocked。</strong> 看原因:S2 等你确认超时 / 没有登记 verify / project.toml 坏了 / 工作区或 <code>.git</code> 不见了 / agent 提问 / 熔断触发。解了在任务页「重试 / 回答」。</p>
+        <p><strong>worktree 越来越多。</strong> 设计上不自动删(便于捡回);自己 <code>git worktree remove &lt;repo&gt;/.saydo/worktrees/&lt;taskId&gt;</code> 清理。</p>
+        <p><strong>常驻(launchd)装不上。</strong> <code>just daemon install</code> 需要 <code>uv</code> 才能一并装语音管线常驻;报「未找到 uv」时按提示用 <code>just daemon install --without-pipeline</code> 只装 daemon(云端语音不可用,系统语音与文本照常),或先装 <code>uv</code> 再重跑(§4.8)。</p>
+
+        <h2 id="s18">18. 开源与参与</h2>
+        <ul>
+          <li>仓库:<a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener"><code>https://github.com/Octo-o-o-o/SayDo</code></a>(桌面服务:contracts / daemon / console / cli / pipeline 与全部设计文档、证据、过程档案同仓);执行后端候选 Hopper 为同作者独立仓。公开仓为<strong>快照仓</strong>(自 2026-08-20 起):逐提交过程史保存在私有归档,文档中引用的历史 commit SHA 在归档中解析(仓库 README「过程史与归档」有说明)。</li>
+          <li><strong>许可证:Apache License 2.0</strong>(含专利授权);「说到」/「SayDo」名称、印章 logo 与 <code>assets/</code> 品牌资产不在许可范围(Apache 2.0 第 6 条),衍生作品不得以原项目名义呈现;详见仓库 <code>LICENSE</code> / <code>NOTICE</code>。</li>
+          <li>工程约定:全仓零 emoji;状态词纪律;Gate 0 无 bypass;契约不分叉(类型只从 <code>@saydo/contracts</code> import);审计与日志分流;两提交法(代码提交 + 证据提交)。</li>
+          <li>本地开发:<code>pnpm install &amp;&amp; pnpm -r build</code>,<code>just dev</code>(daemon + pipeline + console 热更),<code>just ci</code>(node + python 双矩阵 + emoji / 颜色 / 迁移门禁);发行验收 <code>pnpm --filter @saydo/cli verify:distribution</code>。</li>
+          <li>设计文档地图:<code>docs/01–11</code>(愿景 / 产品定义 / 架构 / 关键机制 / 路线 / 参考 / 选型 / 模块 / 数据契约 / 话术 / UI)+ <code>docs/adr/</code>。</li>
+          <li>反馈与支持:<a href="mailto:support@octoooo.com"><code>support@octoooo.com</code></a>(请说明系统版本、是否已完成扫码配对;不要粘贴 API key、配对令牌或完整日志)。安全问题按仓库 <code>SECURITY.md</code> 私下披露(邮件标题注明 SECURITY),勿公开细节。</li>
+        </ul>
+
+        <h2 id="s19">19. 术语与状态词对照(中英)</h2>
+        <table>
+          <thead>
+            <tr><th>中文</th><th>English</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>说到</td><td>SayDo</td><td>产品名</td></tr>
+            <tr><td>沟通面 / 执行面</td><td>communication surface / execution surface</td><td></td></tr>
+            <tr><td>一件事</td><td>Focus</td><td>账本主轴</td></tr>
+            <tr><td>义务</td><td>obligation</td><td>谁欠什么</td></tr>
+            <tr><td>期待</td><td>expectation</td><td>验收标准的管理层</td></tr>
+            <tr><td>四色账本</td><td>four-color ledger</td><td>等你拍板 awaiting your call / 你欠的动作 owed by you / AI 正在办 AI working / 等外部回音 waiting externally</td></tr>
+            <tr><td>奠基</td><td>grounding / foundation</td><td>项目知识底座建立</td></tr>
+            <tr><td>知识底座</td><td>knowledge base(M1)</td><td></td></tr>
+            <tr><td>就绪</td><td>readiness</td><td></td></tr>
+            <tr><td>决策包</td><td>decision pack</td><td></td></tr>
+            <tr><td>拍板</td><td>sign-off</td><td></td></tr>
+            <tr><td>逐步确认 / 直达验收</td><td>step-confirm / direct-to-review</td><td>执行模式</td></tr>
+            <tr><td>等你验收</td><td>ready for your review</td><td>状态词,不说 done</td></tr>
+            <tr><td>交付了</td><td>delivered</td><td>合并 / 归档后</td></tr>
+            <tr><td>回叫</td><td>callback</td><td></td></tr>
+            <tr><td>停靠</td><td>parked</td><td>等人期间</td></tr>
+            <tr><td>熔断</td><td>circuit breaker</td><td></td></tr>
+            <tr><td>推理槽位 / 开发档</td><td>reasoning slots / dev slot (executor)</td><td></td></tr>
+            <tr><td>订阅 CLI 供给</td><td>BYOA (bring your own agent)</td><td></td></tr>
+            <tr><td>异族</td><td>different model family</td><td>评估器规则</td></tr>
+            <tr><td>能力令牌</td><td>capability token</td><td></td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="appendix">附录 · 速查表</h2>
+        <table>
+          <thead>
+            <tr><th>项</th><th>值</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>daemon 端口</td><td>47100(直起 daemon:<code>SAYDO_DAEMON_PORT</code>;<code>saydo</code> CLI:<code>--port</code>)</td></tr>
+            <tr><td>控制台入口</td><td><code>http://localhost:47100/?token=$(cat ~/.saydo/.cap-token)</code>(<code>saydo open</code>)</td></tr>
+            <tr><td>健康 / 就绪探针</td><td><code>GET /health</code>、<code>GET /readyz</code>(<code>voiceReady=false</code> 不算启动失败)</td></tr>
+            <tr><td>数据目录</td><td><code>~/.saydo</code>(<code>--home</code> / <code>SAYDO_HOME</code>,绝对路径)</td></tr>
+            <tr><td>配置 / 密钥</td><td><code>~/.saydo/config.toml</code> / <code>~/.saydo/.env</code>(模板在仓库 <code>templates/</code>)</td></tr>
+            <tr><td>项目内目录</td><td><code>&lt;workspace&gt;/.saydo/{knowledge,foundation,worktrees,project.toml}</code>;产物 / 快照 / 深评记录 / 转写在 <code>~/.saydo/{artifacts,snapshots,assessments,sessions}</code></td></tr>
+            <tr><td>环境变量</td><td><code>SAYDO_HOME</code>、<code>SAYDO_DAEMON_PORT</code>、<code>SAYDO_MOBILE_LAN=1</code>(局域网手机面)、<code>SAYDO_DEV=1</code>(dev profile 双开关)</td></tr>
+            <tr><td><code>.env</code> 常用键</td><td>模型:<code>OPENROUTER_API_KEY</code> / <code>OPENAI_API_KEY</code> / <code>ANTHROPIC_API_KEY</code> / <code>DEEPSEEK_API_KEY</code>;语音:<code>VOLC_APP_ID</code> / <code>VOLC_ACCESS_TOKEN</code> / <code>DOUBAO_TTS_API_KEY</code>;推送:<code>NTFY_TOPIC</code> / <code>NTFY_SERVER</code></td></tr>
+            <tr><td>常驻</td><td><code>just daemon install / start / stop / restart / status / logs / deploy [sha]</code>(install 一并生成语音管线常驻配置;无 uv 用 <code>--without-pipeline</code>,§4.8)</td></tr>
+            <tr><td>备份</td><td><code>just backup</code> → <code>~/.saydo/backups/&lt;时间戳&gt;/</code>;自动每日;保留 30 天</td></tr>
+            <tr><td>关停</td><td><code>lsof -t -iTCP:47100 -sTCP:LISTEN | xargs kill; pkill -f saydo_pipeline</code></td></tr>
+            <tr><td>熔断缺省</td><td>活跃 45 分钟 / 80 回合 / 20 元;停靠老化 72 小时;决策包有效期 24 小时;S2 确认窗 45 秒</td></tr>
+            <tr><td>分支 / 目录</td><td><code>saydo/&lt;taskId&gt;</code> @ <code>&lt;repo&gt;/.saydo/worktrees/&lt;taskId&gt;</code></td></tr>
+          </tbody>
+        </table>
+
+        <a class="back-top" href="#main">回到顶部 ↑</a>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand-col">
+          <span class="footer-brand">
+            <img src="/icon-192.png" alt="" width="28" height="28" loading="lazy" />
+            说到 SayDo
+          </span>
+          <p>一个你能对着说话的高级助手。本地优先，开源，隐私至上。</p>
+        </div>
+        <div class="footer-col">
+          <h4>产品</h4>
+          <ul>
+            <li><a href="/#how">怎么工作</a></li>
+            <li><a href="/#why">为什么不一样</a></li>
+            <li><a href="/#status">产品现状</a></li>
+            <li><a href="/#start">开始使用</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>资源</h4>
+          <ul>
+            <li><a href="/docs/">文档</a></li>
+            <li><a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub</a></li>
+            <li><a href="/support/">支持</a></li>
+            <li><a href="/#faq">常见问题</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>法律与联系</h4>
+          <ul>
+            <li><a href="/privacy/">隐私政策</a></li>
+            <li><a href="/terms/">使用条款</a></li>
+            <li><a href="mailto:support@octoooo.com">support@octoooo.com</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-meta">
+        <span>© <span data-year>2026</span> 说到（SayDo）· 开发者 汪义骁</span>
+        <span>本地优先 · 开源 · 隐私至上</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/theme.js?v=20260820d" defer></script>
+</body>
+</html>

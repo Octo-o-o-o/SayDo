@@ -7,14 +7,16 @@
 
 ## 0. 现状锚点(2026-07-26 00:50 定稿时刻快照;开批时现状以 `HANDOFF.md` 为准)
 
+> **2026-08-21 当前(覆盖下表过期现时态):**Claude 订阅已就位；W5.4-a 纯函数层已收口；下一项为 **W5.4-b 生产执行主流程接线**。Actions billing 已恢复；剩 workflow pnpm 版本冲突，修复须走公开快照仓通道。场次 1 = `failed` @ `ada7981c`，待 owner 复验；场次 2–4 = `not_run`。T2 = 组网已就绪，待手机烟测；结论只对 `ada7981c`，不得外推当前 HEAD。T19 × tailnet 合同拍板并回写 canonical + 备份恢复可用，二者都是任何升常驻动作的前置；本批不改 canonical、不修备份、不部署。活动树 / 常驻 runtime / release config 的当前三层坐标唯一以 `HANDOFF.md` §1「当前快照」行为准，本计划不复制第二套现时坐标。
+
 | 面 | 状态 | 证据 |
 |---|---|---|
 | P0+P0.5 工程 | 收口(rc.1 @ `628f7e4`);P0.5-A 含 presentation 完整形态(§14-A2/A8)已交付 | `e2e/evidence/final-readback.md`/`closeout-verification.md`/`p05.md` |
-| 接线批 / 执行器批 | 完成 | `wiring-batch.md`;`executor-batch.md`/`tier1-conformance.md`;HEAD `602aa09` |
-| 场次①②③④ | 历史快照曾写可约；当前须先 commit/deploy 发布前回修并通过 runtime preflight | HANDOFF §2-1；开场前确认 `[tier1]` 两键 |
+| 接线批 / 执行器批 | 完成 | `wiring-batch.md`;`executor-batch.md`/`tier1-conformance.md`;2026-07-26 历史证据提交 `602aa09`（不是当前 HEAD） |
+| 场次①②③④ | **2026-08-21:**场次 1 = `failed` @ `ada7981c`，待 owner 从步骤 1 复验；场次 2–4 = `not_run`。2026-08-21 00:20 `[t2]` / `listen` 已使旧锁再次作废 | HANDOFF §2-1；`e2e/owner-sessions/session-1..4.md` |
 | 真人音频底板 | 已录并烟测 3/5(两条稳定误听登记) | `~/.saydo/owner-audio/` + rerun-smoke.py;journal R45 |
 | dogfood 仓 | OctoDesk(coding)+ OctoBlog(writing,窄版后接入) | IMPL-PROMPT-5 §3.5 |
-| 外部解锁 | Claude 订阅=下周(CLI-only);Actions billing=8 月;OpenAI key=可选;CURSOR_API_KEY=无额度(购入才解锁 5.9) | IMPL-PROMPT-5 §3.5;计划 v2.2⑧ |
+| 外部解锁 | Claude 订阅已就位(CLI-only,Max);Actions billing 已恢复(剩 pnpm 版本键,走公开快照仓);OpenAI key=可选;CURSOR_API_KEY=无额度(购入才解锁 5.9) | HANDOFF §2-5/§2-6;IMPL-PROMPT-5 §3.5 |
 
 ## 1. 工作流总表(W1–W9 + 合同轮 R-A/R-B/R-C)
 
@@ -35,7 +37,7 @@
 | 1.8 | **转写引证 ref 口径统一**:`liveTools.ts` 写 `transcript:<sessionId>#<turnId>` 而 `snapshotter.ts` 要求裸 turnId——user_utterance 类 critical claim 回读必失败;三处(liveTools/snapshotter/verify)统一 + §12 反例 | Codex 18 A-2 实现侧证据;writing 就绪的"核心论点用户亲口确认"依赖此链 | 反例绿;user_utterance claim 回读抽查 e2e 过 |
 | 1.9 | **排产源移交落账**:HANDOFF"开工先读"链加 PLAN-2;HANDOFF §1 加"当前批次指针"行(开批写入/收口清除) | 本方案 §4 互斥协议 | HANDOFF 两处在案 |
 
-### W2 · 提前批四项 + 安全五件(4–7 天)——**状态:已收口(2026-07-26,`ce24c14→086001d` 13 提交 + 场次①修复九项;evidence `pull-forward-batch.md`;/impl-review 通过,报告 `research/2026-07-26-saydo-w2-impl-readback.fable.md`;E 阶段按合同门正确顺延至 W4)**。owner 补验待办:Tailscale 扩展批准→手机烟测、TTS 音色拍板、场次①重做(细则 = [IMPL-PROMPT-5](IMPL-PROMPT-5-PULLFORWARD.md))
+### W2 · 提前批四项 + 安全五件(4–7 天)——**状态:已收口(2026-07-26,`ce24c14→086001d` 13 提交 + 场次①修复九项;evidence `pull-forward-batch.md`;/impl-review 通过,报告 `research/2026-07-26-saydo-w2-impl-readback.fable.md`;E 阶段按合同门正确顺延至 W4)**。owner 补验待办:**2026-08-21** T2 组网已就绪(`ada7981c`,结论不外推 HEAD)→待手机烟测、TTS live 音色仍由 owner 另定、场次①已 `failed` 待从步骤 1 复验(细则 = [IMPL-PROMPT-5](IMPL-PROMPT-5-PULLFORWARD.md))
 
 launchd 常驻(A)→ T2 薄版切片(B;顺手评估 ntfy X-Call 电话 TTS 作电话形态解锁前的零成本过渡层,07 D11"自带")→ M1 奠基完整版+生长闭环+AGENTS.md 互通(C:OctoDesk 首次真奠基;consolidation 只提名、人批准)→ VAD 免手+语义 EOU+AEC 外放(D;D2 打断语义 spike 已由 SayDo 仓 ADR 结项,07 状态行回写挂 R-C sweep)。
 
@@ -50,14 +52,14 @@ launchd 常驻(A)→ T2 薄版切片(B;顺手评估 ntfy X-Call 电话 TTS 作�
 
 S3 卡(console 卡+认证+收据+合并链;requestManualMerge 降级路径)→ writing 窄版(门禁开值+收尾边+话术+迁移+OctoBlog 奠基接入)→ 10 golden 覆盖扩 writing/S3 卡场景 → **双项目最小并行切片**(双 dogfood 项目各一队列/并发 2 + 同项目串行守恒 + 排队可见——防 OctoBlog 长文任务把 OctoDesk 编码任务挡在单队列里;冲突状态机/黑板完整版留 W6)→ E2E:OctoBlog 一篇真实文章"聊→开始写→成稿→逐节验收→定稿"全链(**选材避开外部网页引证依赖**——窄版无引证合同)+ S3 卡真人过一次。
 
-### W5 · 体验完善批(5–8 天;前置=W4;Claude 项挂订阅解锁;合同增量按通则③)——**W5a 前段批已收口(2026-07-27,`086001d→eabc5ac` 12 提交;evidence `w5a-batch.md`;/impl-review 通过,报告 `research/2026-07-27-saydo-w5a-impl-readback.fable.md`;canonical 待回写 8 条已随后落盘)**:5.1 / 5.2 / 5.3(cancel_resume 档+capabilities 分级)/ 5.5 / 5.7 / 5.10 + 5.11 篮内两项(订阅限流 durable 重放、11 §3 紧凑模式)+ TTS 音色落地已交付;**W5 剩余** = 5.4(挂 Claude 订阅)· 5.6/5.8/5.9(挂 §6 二次确认)· 5.3 尾(Tier2 步序循环挂 §6-10)· 5.11 篮剩余六项(批容量顺延,evidence 登记)
+### W5 · 体验完善批(5–8 天;前置=W4;Claude 订阅已就位;合同增量按通则③)——**W5a 前段批已收口(2026-07-27,`086001d→eabc5ac` 12 提交;evidence `w5a-batch.md`;/impl-review 通过,报告 `research/2026-07-27-saydo-w5a-impl-readback.fable.md`;canonical 待回写 8 条已随后落盘)**:5.1 / 5.2 / 5.3(cancel_resume 档+capabilities 分级)/ 5.5 / 5.7 / 5.10 + 5.11 篮内两项(订阅限流 durable 重放、11 §3 紧凑模式)+ TTS 音色落地已交付;**W5.4-a** 纯函数层已收口(2026-08-20);**W5 剩余** = **5.4-b 生产执行主流程接线**· 5.6/5.8/5.9(挂 §6 二次确认)· 5.3 尾(Tier2 步序循环挂 §6-10)· 5.11 篮剩余六项(批容量顺延,evidence 登记)
 
 | # | 项 | 出处 |
 |---|---|---|
 | 5.1 | decisions[] 摘要层 + `open_on_screen` 打通编辑器 | 05 P1 |
 | 5.2 | edit 审批(第四动作:修改后重签)——09 §3 已有骨架(`decision:"edit"`/`superseded_by_edit`/重签句/§12-3 测试项);refDigest/revision 联动细则若超骨架 ⇒ 回 canonical 文件面(R-B 收) | 09 §3(P1) |
 | 5.3 | steer 矩阵**增量**:`queued_delta` 已 live(执行器批);本项收窄为 cancel_resume 档落地 + Hopper capabilities 握手消费(steer 能力分级)——**Hopper 桥本体已收口(P0.5-B),不重复排**;Hopper `step_confirm` 缺省仍 unsupported(04 §5.4 矩阵),Tier2 步序循环**先做轻决策**(dogfood 中 route=hopper 且需 S2 的任务出现频次)再实施 | 05 P1;03 §5;04 §5.4;`p05.md` |
-| 5.4 | **Claude SDK Tier1 主档接入**(订阅解锁后):四能力冒烟 + live steer + dev↔产品缺省切换 + observedModel 豁免的身份核验实施(工程 ADR-002 收窄条款) | 计划 0.0(b);HANDOFF #4/#6 |
+| 5.4 | **Claude Code CLI (`claude -p`) Tier1 主档接入**:订阅已就位。**5.4-a**(spike + 审批门纯函数层)已收口。**5.4-b**=生产执行主流程接线(下一项:配置、审批门、恢复、记账、自检)；**5.4-c**=live 冒烟、conformance 与 canonical 收口。CLI 方案本轮不实现 streaming input / live steer，仍使用 `queued_delta` / `cancel_resume`；BYOA `claude_cli` 的条件豁免已随 T18 落地，Tier1 `claude_code` 不使用该豁免 | 计划 0.0(b);HANDOFF #4/#6;evidence `w54a-claude-cli.md`;方案 `2026-08-19-w54-claude-cli-tier1.fable.md` |
 | 5.5 | 项目级模型/预算覆盖(设置页,08 §6 路由表·项目设置行)——**承载 = daemon 受控设置表,不落 project.toml**(09 §11 白名单:项目层出现 models/providers 等禁键即拒,反例已有,不得放宽)+ `cache_write_input_tokens` 列位;成本三档预设 → §6 二次确认 | 02 §5.1;09 §9 注/§11 白名单 |
 | 5.6 | §14-A6 遗留项处置:hard-forget 独立 deletion job 表/per-store progress——canonical 自注"低价值维护负担(owner 反空壳判据)" → **§6 二次确认**(presentation 完整形态 = §14-A2/A8,**已于 P0.5-A 交付**,不在本期) | 09 §14-A6/§9 注 |
 | 5.7 | 产物库控制面(时间线/diff/子集导出);sqlite-vec → §6 二次确认(FTS5 不足有记录时) | modules/b B4/B5 |
@@ -68,7 +70,7 @@ S3 卡(console 卡+认证+收据+合并链;requestManualMerge 降级路径)→ w
 
 ### remote-mobile-w0 · 8 月临时轨道(2026-08-16 已收口;插在 W5.4 之前)——**状态:已收口(代码 `addfd1965a5144223df3bfa3f7c407976664929a`)**
 
-LAN `remote-mobile` 第 0 步(处方 `docs/review/2026-08-13-mobile-shell-strategy-final.fable.md` §3;范围 `docs/review/2026-08-16-now-vs-later.md`)。完成定义=代码 + 临时 Chromium/LAN 证据,不部署常驻、不宣称真机 WKWebView 狗粮。`just ci` 双矩阵绿;定向 Playwright 6/6;canonical Codex 74 B 已吸收。下一工程批回到 **W5 剩余**。四场真人验收为 owner 并行轨,不进本代码批。
+LAN `remote-mobile` 第 0 步(处方 `docs/review/2026-08-13-mobile-shell-strategy-final.fable.md` §3;范围 `docs/review/2026-08-16-now-vs-later.md`)。完成定义=代码 + 临时 Chromium/LAN 证据,不部署常驻、不宣称真机 WKWebView 狗粮。`just ci` 双矩阵绿;定向 Playwright 6/6;canonical Codex 74 B 已吸收。下一工程批回到 **W5.4-b 生产执行主流程接线**。四场真人验收为 owner 并行轨,不进本代码批。T19 × tailnet 合同拍板并回写 canonical、以及备份恢复可用,都是任何升常驻动作的前置;本批不改 canonical、不修备份、不部署。
 
 ### R-B · 合同轮(本仓 canonical 文件面,重制度;1 天+评审;W5 收口后串行):规模与通道合同
 
@@ -121,7 +123,8 @@ W2(A/B/C/D)────┼──> 场次②③④/v0.1.0(owner)──> dogfood �
 R-A(canonical 文件面;已收口)──────────> W4 ──> W5 ──> W6 ──> W7(7.2 独立)
 R-B(canonical 文件面;W5 后串行)─────────────> W6/W7.2/7.3
 R-C(canonical 文件面,锚=R-A 收口+W4 首篇反馈)──> W8
-外部解锁:Claude 订阅(下周)→5.4;OpenAI key→7.4/7.6;CURSOR_API_KEY 购入→5.9;服务器→W8 挂起轨 T3;billing(8 月)→CI 云端;Apple Developer($99/年)→7.3
+外部解锁:Claude 订阅已就位→剩余 5.4-b 接线;OpenAI key→7.4/7.6;CURSOR_API_KEY 购入→5.9;服务器→W8 挂起轨 T3;Actions billing 已恢复(剩 pnpm 版本键,走公开快照仓);Apple Developer($99/年)→7.3
+升常驻前置(2026-08-21):T19 × tailnet 合同拍板并回写 09/11 + 备份 `workspace_identity_changed` 恢复可用;二者都未关之前禁止 `just daemon deploy` 灌 HEAD / 加 `SAYDO_MOBILE_LAN`
 ```
 
 **单仓单批规则(2026-07-29 迁移后)**:本仓任何时刻只允许一个活动批次，合同轮、纯实现批、A5-armed 与 UI 批均按当前指针串行，不以文件集不重叠为例外。互斥靠 HANDOFF §1“当前批次指针”——开批断言指针为空并写入批号，收口清除;非空时其他批一律停。
@@ -137,7 +140,7 @@ R-C(canonical 文件面,锚=R-A 收口+W4 首篇反馈)──> W8
 ## 4. 工期、关键路径与风险
 
 - **工程量粗估 30–49 人日**(W1:2-3 / W2:4-7 / W4:3-5 / W5:5-8 / W6:4-6 / W7:6-10 / W8:6-10;W7/W8 相对 W2 刻度偏乐观 2–3 倍,开批拆子批重估)+ 合同轮三轮(各 1–2 天 + 重制度评审)。**电话形态(40–55 工程日)与 E1/E2 实验机器不计入本量**——前者是触发解锁的独立锁定计划,后者挂"第二用户/对外发布"触发;所有"挂触发/挂解锁/§6 二次确认"项**不计入"全部完成"欠账**,其状态以 W1.5 周报触发线读数与 §6 勾选记录为准(Codex 19 B-1 口径)。
-- **真实关键路径不是工程量**,是:owner 触点(场次①–④/听感/真人过卡/手机配合/账号开通)、外部解锁(Claude 下周/OpenAI key/Apple Dev/billing 8 月/服务器)、每批评审来回(经验:readback+回收批 ≈ 批本体等量,journal R38/R39 实证)、W9 数据积累节拍。**墙钟粗估 4–8 周**(参照:首发 34–47 人日估算实际 ≈1.5 墙钟日/批交付,批间隔主要耗在评审与 owner 触点)。
+- **真实关键路径不是工程量**,是:owner 触点(场次①已 `failed`@`ada7981c` 待复验 / 听感 / 真人过卡 / 手机烟测 / 账号开通)、外部解锁(Claude 订阅已就位、剩 5.4-b 接线;OpenAI key/Apple Dev/服务器;Actions billing 已恢复、剩 pnpm 版本键)、升常驻前置(T19 × tailnet 合同 + 备份恢复)、每批评审来回(经验:readback+回收批 ≈ 批本体等量,journal R38/R39 实证)、W9 数据积累节拍。**墙钟粗估 4–8 周**(参照:首发 34–47 人日估算实际 ≈1.5 墙钟日/批交付,批间隔主要耗在评审与 owner 触点)。
 - **大批拆分授权**:W7/W8 预授权拆多个实施子批,每子批独立 prompt+evidence+readback(范围不变的拆批实施侧可自决;范围增删上浮 owner)。
 - **风险表**:① 长周期漂移 ⇒ 通则①②④ + 批次指针 + 每批坐标核验;② S3 认证选型 spike 失败 ⇒ R-A 给双方案降级;③ 多任务竞态 ⇒ §12 反例 + CAS 纪律;④ SIP/PushKit 外部审核 ⇒ 账号在 W5 期间开通(§5);⑤ dogfood 与实施同仓干扰 ⇒ 派单走 OctoDesk/OctoBlog,实施走 SayDo,天然隔离;⑥ **实施批与 dogfood 共用 cursor/Claude 订阅时窗** ⇒ 07 D18 纪律 3 并发预检已有,W5.4 前尤其注意;⑦ 价值证据显示某项无用 ⇒ 上浮 owner,不自作主张砍。
 - **评审制度**:每批末 code-review subagent(A 级必修);canonical 回写=一致性 subagent+Codex 攒批;合同轮=重制度;readback 用 /impl-review(责任方=owner 在本仓独立会话触发)。
@@ -146,7 +149,7 @@ R-C(canonical 文件面,锚=R-A 收口+W4 首篇反馈)──> W8
 
 | 时点 | 触点 | 缺省动作(无回复时) |
 |---|---|---|
-| 最近停点 | A3 门语义确认 → 发布前回修 commit/deploy → 场次①②;T2 手机组网按需解锁;Claude 订阅购入+`claude` 登录 | 未授权 commit/deploy=不直接开场;A3 语义未确认=场次②前暂停回修 |
+| 最近停点 | 场次① `failed` @ `ada7981c` 待 owner 从步骤 1 复验;场次②–④ `not_run`;T2 组网已就绪(只对 `ada7981c`)待手机烟测;W5.4-b 接线;T19 × tailnet 合同 + 备份恢复 = 升常驻前置 | 未授权 commit/deploy=不升常驻;T19 未拍板=禁止灌 HEAD / 加 `SAYDO_MOBILE_LAN` |
 | 首发验收 | 场次③④ → `v0.1.0`;W4 S3 卡真人过卡 + OctoBlog 首篇文章验收;周报开始阅读(含触发线读数)+ 两个手工字段自报 | 场次顺延=首发维持未交付；除验收暴露的 A 级问题外不扩 W5 |
 | 首发后 | 设计 ADR-003 载体拍板(7.3 开工前);Apple Developer 账号($99/年)与 SIP/ntfy 付费档开通决定;OpenAI key 给/不给(7.4/7.6);CURSOR_API_KEY 购/不购(5.9);§6 二次确认清单勾选 | 未拍设计 ADR-003 ⇒ 7.3 顺延、先做 W7 其余;key 不给 ⇒ 对应项转"挂解锁"不计欠账 |
 | 持续 | 每批 readback 触发(/impl-review);多人旁听 discovery/T3 服务器(想启动时说) | 无 |
@@ -179,5 +182,5 @@ R-C(canonical 文件面,锚=R-A 收口+W4 首篇反馈)──> W8
 5. **交接锚**:§2 依赖图注的四段 SHA 链;合同轮进行中其他会话不得写相同 canonical 文件。
 6. **拆批授权**:W7/W8 预授权拆子批(范围不变自决,范围增删上浮);每子批独立 prompt+evidence+readback。
 7. **W9 巡检**:每批收口仪式含"触发线读数"一节(数据来自 W1.5 周报);达线项由本仓计划会话立即立项。
-8. **执行顺序(当前)**:IMPL-PROMPT-6(W1)→ IMPL-PROMPT-5(W2)→ IMPL-PROMPT-7(W5a)→ IMPL-PROMPT-8(W4)→ **RA-closeout(2026-07-28 已收口,evidence `ra-closeout-batch.md`:pending 裁决 (a) 案 + promoteProject 接线 + A2 挑战绑定固化 v12 + 迁移框架 FK 合规 + tailnet 对表等六小项;deploy @ `c59edd1`,writing 已翻值)** → **A3-armed(2026-07-28 已收口,`2f2f7d8→103e2f6` 5 提交,随后语音稳定性与双动作修复继续部署，2026-07-29 runtime clean @ `838aeea`;活动仓迁移提交 `f28489d` 尚待部署时窗;方案 `research/2026-07-28-a3-armed-design.md` v1.2,评审链 = 双 SA + Codex 23 5A/7B 全吸收;canonical 09 covered 块等 18 处已落;核心 = 候选绑定→复述确认升格(人在环)、ReadinessBinding 一等实体(v13)、checklist/evidence 双 digest 版本、dispatch 消费事务内权威复核、pending 最小清单、门拒绝集收窄 isReadinessBlocking([warn] owner 声明项)、生产恒 armed;§12-15 反例 22 例,批末 review 1A/2B 全修;Codex 22 五条关闭条件全闭——R-A ready 翻转条件仅剩 owner 对门语义收窄的确认;evidence `e2e/evidence/a3-armed-batch.md`,journal R55)** → 当前先补首发发布前工程阻断、真人验收与 runtime 对齐。**8 月体验工程**(T16–T20/M1/D1/上架)已合入 main,此前未映射进本表;2026-08-16 owner 停点确认插入 **`remote-mobile-w0`**(LAN 进壳第 0 步,处方 `docs/review/2026-08-13-mobile-shell-strategy-final.fable.md` §3;**已收口,代码 `addfd1965a5144223df3bfa3f7c407976664929a`**)。该批不取代 W5 剩余、不部署常驻。下一工程批仍是 **W5 剩余**(5.4 挂 Claude 订阅),随后 **R-B 合同轮 → A5-armed → 就绪确认卡 UI 批**,每次只开一个批。四场真人验收为 owner 并行轨,不进本代码批、也不排到全部工程之后。
+8. **执行顺序(当前)**:IMPL-PROMPT-6(W1)→ IMPL-PROMPT-5(W2)→ IMPL-PROMPT-7(W5a)→ IMPL-PROMPT-8(W4)→ **RA-closeout(2026-07-28 已收口,evidence `ra-closeout-batch.md`:pending 裁决 (a) 案 + promoteProject 接线 + A2 挑战绑定固化 v12 + 迁移框架 FK 合规 + tailnet 对表等六小项;deploy @ `c59edd1`,writing 已翻值)** → **A3-armed(2026-07-28 已收口,`2f2f7d8→103e2f6` 5 提交,随后语音稳定性与双动作修复继续部署，2026-07-29 runtime clean @ `838aeea`;活动仓迁移提交 `f28489d` 尚待部署时窗;方案 `research/2026-07-28-a3-armed-design.md` v1.2,评审链 = 双 SA + Codex 23 5A/7B 全吸收;canonical 09 covered 块等 18 处已落;核心 = 候选绑定→复述确认升格(人在环)、ReadinessBinding 一等实体(v13)、checklist/evidence 双 digest 版本、dispatch 消费事务内权威复核、pending 最小清单、门拒绝集收窄 isReadinessBlocking([warn] owner 声明项)、生产恒 armed;§12-15 反例 22 例,批末 review 1A/2B 全修;Codex 22 五条关闭条件全闭——R-A ready 翻转条件仅剩 owner 对门语义收窄的确认;evidence `e2e/evidence/a3-armed-batch.md`,journal R55)** → **W5.4-a**(2026-08-20 已收口,纯函数层,evidence `w54a-claude-cli.md`)。**8 月体验工程**(T16–T20/M1/D1/上架)已合入 main,此前未映射进本表;2026-08-16 owner 停点确认插入 **`remote-mobile-w0`**(LAN 进壳第 0 步,处方 `docs/review/2026-08-13-mobile-shell-strategy-final.fable.md` §3;**已收口,代码 `addfd1965a5144223df3bfa3f7c407976664929a`**)。该批不取代 W5 剩余、**完成定义仍是不部署常驻**。下一工程批是 **W5.4-b 生产执行主流程接线**,随后 **R-B 合同轮 → A5-armed → 就绪确认卡 UI 批**,每次只开一个批。升常驻的前置 = T19 × tailnet 合同拍板并回写 canonical + 备份恢复可用。四场真人验收为 owner 并行轨:场次 1 已 `failed` @ `ada7981c` 待复验,场次 2–4 `not_run`;不进本代码批、也不排到全部工程之后。
 9. **journal 纪律**:合同轮按 AGENTS.md 记轮次;实施批收口后在本仓 journal 补一行索引(R44/R45 模式)。

@@ -94,6 +94,13 @@ expected_tag     = "v0.1.0-saydo-baseline.2"  # annotated tag(^{commit}=上面 S
 enabled = true
 bypass  = false                # 恒 false;为 true 时 dispatch 一律拒绝(防误配)
 
+# ============ T2 薄版(Tailscale 组网;09 §11)============
+# 本机 Tailscale 连上后,把 MagicDNS 主机名与 100.x 地址写入枚举,listen 改 0.0.0.0,
+# 再重启 daemon;`just t2-pair` 出配对 URL。禁通配;含非法项则整面不开。
+# [t2]
+# tailnet_hosts = ["your-machine.tailxxxx.ts.net", "100.x.y.z"]
+# listen        = "0.0.0.0"
+
 # ============ 三方 API 端点(OpenAI 兼容 base_url;对比调试用,每家一档)============
 # 槽位里用 { provider = "api", via = "<档名>", model = "..." } 引用。全部 api_key 恒 env 引用、禁明文。
 #

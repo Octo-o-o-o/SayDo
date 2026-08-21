@@ -4,10 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>使用条款 · 说到</title>
+  <meta name="description" content="「说到」（SayDo）使用条款：开源桌面软件与移动伴侣的许可、责任划分与免责说明。" />
   <meta name="theme-color" content="#f0ede4" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#12161f" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#171410" media="(prefers-color-scheme: dark)" />
+  <link rel="canonical" href="https://saydo.octoooo.com/terms/" />
+  <link rel="alternate" hreflang="zh-Hans" href="https://saydo.octoooo.com/terms/" />
+  <link rel="alternate" hreflang="en" href="https://saydo.octoooo.com/en/terms/" />
   <link rel="icon" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <!-- 防 FOUC:渲染前同步设 data-theme(空值落 prefers-color-scheme);此段在全部页面逐字保持一致,改动需同步 -->
   <script>
     (function () {
       var t = "";
@@ -17,14 +22,17 @@
     })();
   </script>
   <link rel="stylesheet" href="/tokens.css" />
-  <link rel="stylesheet" href="/site.css" />
+  <link rel="stylesheet" href="/site.css?v=20260820f" />
 </head>
 <body>
+  <a class="skip-link" href="#main">跳到主内容</a>
+
   <header class="site-header">
     <div class="container">
       <a class="brand-lockup" href="/">
-        <img class="brand-mark" src="/icon-192.png" alt="说到" />
+        <img class="brand-mark" src="/icon-192.png" alt="" width="32" height="32" />
         <span>说到</span>
+        <span class="brand-en">SAYDO</span>
       </a>
       <nav class="nav" data-nav aria-label="主导航">
         <a class="nav-link" href="/">首页</a>
@@ -32,6 +40,10 @@
         <a class="nav-link" href="/support/">支持</a>
       </nav>
       <div class="header-actions">
+        <span class="lang-switch" role="navigation" aria-label="语言切换">
+          <a class="is-active" href="/terms/" aria-current="page">中文</a>
+          <a href="/en/terms/">EN</a>
+        </span>
         <button class="icon-btn theme-toggle" data-theme-toggle type="button" aria-label="切换亮暗主题">
           <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
           <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
@@ -43,11 +55,11 @@
     </div>
   </header>
 
-  <main class="legal">
+  <main class="legal" id="main">
     <div class="container">
       <h1>使用条款</h1>
-      <p class="lede">生效日期：2026 年 8 月 13 日　|　开发者：汪义骁（个人）</p>
-      <p>「说到」（英文名 SayDo）是开源桌面软件的移动伴侣。你在自己的电脑上运行桌面服务，用手机扫码在局域网内连接。开发者不提供云端代管，也不为你保管账号。</p>
+      <p class="lede">生效日期：2026 年 8 月 21 日　|　开发者：汪义骁（个人）</p>
+      <p>「说到」（英文名 SayDo）是开源桌面软件的移动伴侣。你在自己的电脑上运行桌面服务，用手机扫码在局域网或你自行配置的加密组网内连接。开发者不提供云端代管，也不为你保管账号。</p>
       <h2>许可</h2>
       <p>本应用免费提供。你可以按开源仓库中的许可证使用桌面端源码。商店分发的移动应用按各商店标准许可授予你个人、非独占的使用权。</p>
       <h2>你需要自行负责的部分</h2>
@@ -66,21 +78,47 @@
   <footer class="site-footer">
     <div class="container">
       <div class="footer-grid">
-        <span class="footer-brand">
-          <img src="/icon-192.png" alt="" />
-          说到 SayDo
-        </span>
-        <nav class="footer-links" aria-label="页脚导航">
-          <a href="/">首页</a>
-          <a href="/privacy/">隐私政策</a>
-          <a href="/support/">支持</a>
-          <a href="mailto:support@octoooo.com">support@octoooo.com</a>
-        </nav>
-        <div class="footer-meta">© 2026 说到（SayDo）· 开发者 汪义骁 · 本地优先 · 开源 · 隐私至上</div>
+        <div class="footer-brand-col">
+          <span class="footer-brand">
+            <img src="/icon-192.png" alt="" width="28" height="28" loading="lazy" />
+            说到 SayDo
+          </span>
+          <p>一个你能对着说话的高级助手。本地优先，开源，隐私至上。</p>
+        </div>
+        <div class="footer-col">
+          <h4>产品</h4>
+          <ul>
+            <li><a href="/#how">怎么工作</a></li>
+            <li><a href="/#why">为什么不一样</a></li>
+            <li><a href="/#status">产品现状</a></li>
+            <li><a href="/#start">开始使用</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>资源</h4>
+          <ul>
+            <li><a href="/docs/">文档</a></li>
+            <li><a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub</a></li>
+            <li><a href="/support/">支持</a></li>
+            <li><a href="/#faq">常见问题</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>法律与联系</h4>
+          <ul>
+            <li><a href="/privacy/">隐私政策</a></li>
+            <li><a href="/terms/">使用条款</a></li>
+            <li><a href="mailto:support@octoooo.com">support@octoooo.com</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-meta">
+        <span>© <span data-year>2026</span> 说到（SayDo）· 开发者 汪义骁</span>
+        <span>本地优先 · 开源 · 隐私至上</span>
       </div>
     </div>
   </footer>
 
-  <script src="/theme.js" defer></script>
+  <script src="/theme.js?v=20260820d" defer></script>
 </body>
 </html>

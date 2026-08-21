@@ -4,21 +4,30 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>说到 SayDo — 说到，就做到</title>
-  <meta name="description" content="说到（SayDo）是一个你能对着说话的高级助手。把事情聊清楚，它先吃透你的项目，记成一本四色账本，听懂了就驱动你电脑上已有的 AI 去办事，办完叫你验收。没有云端服务器，数据全在你自己的设备上。" />
+  <meta name="description" content="说到（SayDo）是一个你能对着说话的高级助手。把事情聊清楚，它先吃透你的项目，听懂了就驱动你电脑上已有的 AI 去办事，办完叫你验收。没有开发者运营的云端后台。对话、事项与账本保存在你自己的设备上。" />
   <meta name="theme-color" content="#f0ede4" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#12161f" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#171410" media="(prefers-color-scheme: dark)" />
+
+  <link rel="canonical" href="https://saydo.octoooo.com/" />
+  <link rel="alternate" hreflang="zh-Hans" href="https://saydo.octoooo.com/" />
+  <link rel="alternate" hreflang="en" href="https://saydo.octoooo.com/en/" />
+  <link rel="alternate" hreflang="x-default" href="https://saydo.octoooo.com/" />
 
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="说到 SayDo — 说到，就做到" />
-  <meta property="og:description" content="一个你能对着说话的高级助手。聊清楚，它去办，办完叫你。数据全在你自己的设备上。" />
-  <meta property="og:image" content="/icon-1024.png" />
+  <meta property="og:description" content="一个你能对着说话的高级助手。聊清楚，它去办，办完叫你验收。没有开发者运营的云端后台。" />
+  <meta property="og:url" content="https://saydo.octoooo.com/" />
+  <meta property="og:site_name" content="说到 SayDo" />
+  <meta property="og:image" content="https://saydo.octoooo.com/icon-1024.png" />
   <meta property="og:locale" content="zh_CN" />
+  <meta property="og:locale:alternate" content="en_US" />
+  <meta name="twitter:card" content="summary" />
 
   <link rel="icon" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-  <!-- 防 FOUC:渲染前同步设 data-theme(空值落 prefers-color-scheme) -->
+  <!-- 防 FOUC:渲染前同步设 data-theme(空值落 prefers-color-scheme);此段在全部页面逐字保持一致,改动需同步 -->
   <script>
     (function () {
       var t = "";
@@ -29,24 +38,32 @@
   </script>
 
   <link rel="stylesheet" href="/tokens.css" />
-  <link rel="stylesheet" href="/site.css" />
+  <link rel="stylesheet" href="/site.css?v=20260820f" />
 </head>
 <body>
+  <a class="skip-link" href="#main">跳到主内容</a>
+
   <!-- ===================== 顶栏 ===================== -->
   <header class="site-header">
     <div class="container">
       <a class="brand-lockup" href="/">
-        <img class="brand-mark" src="/icon-192.png" alt="说到" />
+        <img class="brand-mark" src="/icon-192.png" alt="" width="32" height="32" />
         <span>说到</span>
+        <span class="brand-en">SAYDO</span>
       </a>
       <nav class="nav" data-nav aria-label="主导航">
         <a class="nav-link" href="#how">怎么工作</a>
         <a class="nav-link" href="#why">为什么不一样</a>
-        <a class="nav-link" href="#privacy">隐私</a>
-        <a class="nav-link" href="#download">下载</a>
+        <a class="nav-link" href="#status">产品现状</a>
+        <a class="nav-link" href="#start">开始使用</a>
+        <a class="nav-link" href="/docs/">文档</a>
         <a class="nav-link" href="#faq">常见问题</a>
       </nav>
       <div class="header-actions">
+        <span class="lang-switch" role="navigation" aria-label="语言切换">
+          <a class="is-active" href="/" aria-current="page">中文</a>
+          <a href="/en/">EN</a>
+        </span>
         <button class="icon-btn theme-toggle" data-theme-toggle type="button" aria-label="切换亮暗主题">
           <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
           <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
@@ -61,105 +78,105 @@
     </div>
   </header>
 
-  <main>
+  <main id="main">
     <!-- ===================== Hero ===================== -->
     <section class="hero">
       <div class="container">
-        <img class="hero-mark" src="/icon-1024.png" alt="" width="88" height="88" data-reveal />
-        <h1 class="hero-title" data-reveal data-reveal-delay="1">说到，就做到。</h1>
-        <p class="hero-sub" data-reveal data-reveal-delay="2">聊清楚，它去办，办完叫你。</p>
-        <p class="hero-desc" data-reveal data-reveal-delay="2">一个你能对着说话的高级助手。说过的话转头就忘、答应的事不知道办到哪了——「说到」把「说」和「做」连起来：你只管把事聊清楚，它替你记成一本账，听懂了就驱动你电脑上已有的 AI 去办事，办完叫你验收。</p>
+        <p class="hero-eyebrow" data-reveal>语音驱动 · 本地优先 · 开源</p>
+        <h1 class="hero-title" data-reveal data-reveal-delay="1">说到，<span class="seal-word">就做到。</span></h1>
+        <p class="hero-sub" data-reveal data-reveal-delay="2">聊清楚，它去办，办完叫你验收。</p>
+        <p class="hero-desc" data-reveal data-reveal-delay="2">一个你能对着说话的高级助手。你只管把事聊清楚——它先读透你的项目，把每件事记成一本四色账；听懂了，就驱动你电脑上已有的 AI 去办；执行和检查都跑完，叫你来验收。</p>
         <div class="hero-actions" data-reveal data-reveal-delay="3">
-          <a class="btn btn-primary btn-lg" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
-            查看开源仓库
-          </a>
+          <a class="btn btn-seal btn-lg" href="#start">开始使用</a>
           <a class="btn btn-secondary btn-lg" href="#how">了解怎么工作</a>
         </div>
-        <p class="hero-aside" data-reveal data-reveal-delay="3">桌面服务开源免费 · 移动 App 即将上架</p>
+        <p class="hero-aside" data-reveal data-reveal-delay="3">
+          <span>桌面服务开源免费 · <a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">查看 GitHub</a></span>
+          <span class="dot-sep"></span>
+          <span>Windows / Linux 暂不支持、没有明确时间表 · iOS / Android / HarmonyOS 开发中、尚未上架 · <a href="mailto:octoooo@octoooo.com?subject=%E8%AF%B4%E5%88%B0%E6%9B%B4%E6%96%B0%E9%80%9A%E7%9F%A5">邮件订阅进展</a></span>
+        </p>
+
+        <div class="hero-visual" data-reveal data-reveal-delay="3">
+          <div class="voice-bar">
+            <span class="vb-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+            </span>
+            <span class="vb-text">「把昨天说的导出功能做了，用 CSV。」</span>
+            <span class="vb-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+          </div>
+          <div class="ledger">
+            <div class="ledger-head">
+              <p class="ledger-title">今天</p>
+              <span class="date" data-today>今天</span>
+            </div>
+            <div class="ledger-row" data-tone="ochre">
+              <span class="dot"></span>
+              <div class="body">
+                <div class="t">导出功能用 CSV 还是 Excel？等你定个格式</div>
+                <div class="meta">昨天 10:24 · 来自语音</div>
+              </div>
+              <span class="chip">等你拍板</span>
+            </div>
+            <div class="ledger-row" data-tone="indigo">
+              <span class="dot"></span>
+              <div class="body">
+                <div class="t">回复设计稿确认邮件</div>
+                <div class="meta">今天 09:10 · 你欠的动作</div>
+              </div>
+              <span class="chip">你来做</span>
+            </div>
+            <div class="ledger-row" data-tone="pine">
+              <span class="dot"></span>
+              <div class="body">
+                <div class="t">重构登录模块，独立 worktree 跑着</div>
+                <div class="meta">AI 正在办 · 已 40 分钟</div>
+              </div>
+              <span class="chip">AI 在办</span>
+            </div>
+            <div class="ledger-row" data-tone="muted">
+              <span class="dot"></span>
+              <div class="body">
+                <div class="t">等第三方 API 配额审批回来</div>
+                <div class="meta">等外部回音 · 预计明天</div>
+              </div>
+              <span class="chip">等回音</span>
+            </div>
+          </div>
+          <div class="legend" style="margin-top:var(--space-4)">
+            <span class="legend-item" data-tone="ochre"><span class="swatch"></span>等你拍板</span>
+            <span class="legend-item" data-tone="indigo"><span class="swatch"></span>你欠的动作</span>
+            <span class="legend-item" data-tone="pine"><span class="swatch"></span>AI 正在办</span>
+            <span class="legend-item" data-tone="muted"><span class="swatch"></span>等外部回音</span>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- ===================== 痛点 → 解法 ===================== -->
-    <section class="section section--tight">
+    <!-- ===================== 信任条 ===================== -->
+    <div class="strip">
       <div class="container">
-        <div class="contrast" data-reveal>
-          <div class="contrast-cell">
-            <span class="tag">没有它的时候</span>
-            <p style="font-size:var(--text-md);color:var(--text-secondary)">说过的话，转头就忘；答应的事，不知道办到哪了。该等谁的、谁在办、办得怎么样——全靠脑子记和来回翻聊天记录。</p>
-          </div>
-          <div class="contrast-cell is-after">
-            <span class="tag">有了说到 →</span>
-            <p style="font-size:var(--text-md)">每件事都有归属和去向，一眼看清：等你拍板的、你欠的动作、AI 正在办的、等外部回音的，四色分明，件件有着落。</p>
-          </div>
-        </div>
+        <span class="strip-item">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg>
+          开源免费
+        </span>
+        <span class="strip-item">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+          复用你已有的 AI 订阅
+        </span>
+        <span class="strip-item">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+          无账号 · 无云端后台 · 只连你自己配置的服务
+        </span>
       </div>
-    </section>
-
-    <!-- ===================== 四色账本 ===================== -->
-    <section class="section" id="ledger">
-      <div class="container">
-        <div class="section-head" style="text-align:center;margin-inline:auto" data-reveal>
-          <span class="eyebrow">一本账，不是一堆待办</span>
-          <h2 class="section-title">每件事，都有归属和去向</h2>
-          <p class="section-lead" style="margin-inline:auto">你只管说，说到替你把每件事记进一本账——四种颜色，分清是谁的事、办到哪一步。</p>
-        </div>
-
-        <div class="ledger" data-reveal>
-          <div class="ledger-head">
-            <h3>今天</h3>
-            <span class="date" data-today>今天</span>
-          </div>
-          <div class="ledger-row" data-tone="ochre">
-            <span class="dot"></span>
-            <div class="body">
-              <div class="t">导出功能用 CSV 还是 Excel？等你定个格式</div>
-              <div class="meta">昨天 10:24 · 来自语音</div>
-            </div>
-            <span class="chip">等你拍板</span>
-          </div>
-          <div class="ledger-row" data-tone="indigo">
-            <span class="dot"></span>
-            <div class="body">
-              <div class="t">回复设计稿确认邮件</div>
-              <div class="meta">今天 09:10 · 你欠的动作</div>
-            </div>
-            <span class="chip">你来做</span>
-          </div>
-          <div class="ledger-row" data-tone="pine">
-            <span class="dot"></span>
-            <div class="body">
-              <div class="t">重构登录模块，独立 worktree 跑着</div>
-              <div class="meta">AI 正在办 · 已 40 分钟</div>
-            </div>
-            <span class="chip">AI 在办</span>
-          </div>
-          <div class="ledger-row" data-tone="muted">
-            <span class="dot"></span>
-            <div class="body">
-              <div class="t">等第三方 API 配额审批回来</div>
-              <div class="meta">等外部回音 · 预计明天</div>
-            </div>
-            <span class="chip">等回音</span>
-          </div>
-        </div>
-
-        <div class="legend" data-reveal>
-          <span class="legend-item" data-tone="ochre"><span class="swatch"></span>等你拍板</span>
-          <span class="legend-item" data-tone="indigo"><span class="swatch"></span>你欠的动作</span>
-          <span class="legend-item" data-tone="pine"><span class="swatch"></span>AI 正在办</span>
-          <span class="legend-item" data-tone="muted"><span class="swatch"></span>等外部回音</span>
-        </div>
-      </div>
-    </section>
+    </div>
 
     <!-- ===================== 怎么工作(工作流时间线) ===================== -->
-    <section class="section" id="how" style="background:var(--surface-soft)">
+    <section class="section" id="how">
       <div class="container">
         <div class="section-head" data-reveal>
           <span class="eyebrow">从聊一句，到办完叫你</span>
           <h2 class="section-title">一个完整的闭环</h2>
-          <p class="section-lead">你只管聊和拍板，重活它来。执行和检查都跑完，它主动叫你验收——办完了才算交付。</p>
+          <p class="section-lead">你只管聊和拍板，重活它来。执行和检查都跑完，它主动叫你验收——你点头，才算交付。</p>
         </div>
 
         <div class="flow" data-reveal>
@@ -181,7 +198,7 @@
             <div class="flow-num">3</div>
             <div class="flow-body">
               <h3><span class="step-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg></span>决策包</h3>
-              <p>端出三件套请你拍板：成果预览（做完你会得到什么）、实施计划（每步标好 AI 执行还是需要你配合）、轻量 Demo（最终长什么样）。</p>
+              <p>端出决策包请你拍板：成果预览（做完你会得到什么）、实施计划（每步标好 AI 执行还是需要你配合）、预计花费与封顶，外加一份轻量小样——和计划同源生成的网页预览，先看一眼「最终长什么样」。看着具体的东西说「对 / 不对 / 调一下」，比凭空写需求容易一个数量级。</p>
             </div>
           </div>
           <div class="flow-step is-seal">
@@ -202,22 +219,38 @@
             <div class="flow-num">6</div>
             <div class="flow-body">
               <h3><span class="step-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>办完叫你</h3>
-              <p>执行和检查都跑完，它主动叫你验收——说「等你验收」，而不是「做完了」。该升级通知渠道时，从在线语音回叫一路升到桌面通知、手机推送。</p>
+              <p>执行和检查都跑完，它主动叫你验收——说「等你验收」，而不是「做完了」。回叫按升级链走：配好语音时它在线开口叫你，没应答再升级为桌面通知和手机推送（ntfy）；免打扰时段只留一条轻推送，过后补叫。</p>
             </div>
           </div>
           <div class="flow-step is-seal">
             <div class="flow-num">7</div>
             <div class="flow-body">
               <h3><span class="step-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></span>验收沉淀</h3>
-              <p>口播摘要加证据视图（diff、测试、决策），按验收标准组织好。你点头，办完盖章销账；知识与产物留存，下次接着用。</p>
+              <p>口播摘要加证据视图（diff、测试、决策），按验收标准组织好。你点头，盖章销账；知识与产物留存，下次接着用。</p>
             </div>
           </div>
         </div>
       </div>
     </section>
 
+    <!-- ===================== 痛点 → 解法 ===================== -->
+    <section class="section section--tight" id="contrast">
+      <div class="container">
+        <div class="contrast" data-reveal>
+          <div class="contrast-cell">
+            <span class="tag">没有它的时候</span>
+            <p style="font-size:var(--text-md);color:var(--text-secondary)">说过的话，转头就忘；答应的事，不知道办到哪了。该等谁的、谁在办、办得怎么样——全靠脑子记和来回翻聊天记录。</p>
+          </div>
+          <div class="contrast-cell is-after">
+            <span class="tag">有了说到 →</span>
+            <p style="font-size:var(--text-md)">每件事都有归属和去向，一眼看清：等你拍板的、你欠的动作、AI 正在办的、等外部回音的，四色分明，件件有着落。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ===================== 为什么不一样(卖点) ===================== -->
-    <section class="section" id="why">
+    <section class="section section--alt" id="why">
       <div class="container">
         <div class="section-head" data-reveal>
           <span class="eyebrow">为什么不一样</span>
@@ -232,50 +265,81 @@
             <p class="card-body">按住说话，想到哪说到哪。随口一句「帮我记一下」立刻进账，不用专门开 app、不用组织语言。</p>
           </div>
           <div class="card" data-reveal data-reveal-delay="1">
-            <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg></div>
-            <h3 class="card-title">一本账，不是一堆待办</h3>
-            <p class="card-body">每件事都有归属和去向，四色分明。该等谁、谁在办、办到哪，一眼看清，件件有着落。</p>
+            <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></div>
+            <h3 class="card-title">先吃透，再办事</h3>
+            <p class="card-body">第一次聊一个项目，先读透结构、约定与关键文件，沉淀成持久知识底座，之后每次都带着对你项目的理解开聊。这是「说到」和「新开一个聊天窗口」的分水岭。</p>
           </div>
           <div class="card" data-reveal data-reveal-delay="2">
             <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></div>
             <h3 class="card-title">AI 真的在干活</h3>
-            <p class="card-body">接上你电脑上已有的 AI——Claude Code、Codex、Cursor、Grok、Gemini CLI、Qwen Code、GitHub Copilot CLI，更多接入中，无需额外付费。对话、整理、跟进、动手都由它来。</p>
+            <p class="card-body">接上你电脑上已登录的 AI——Codex、Claude Code、Cursor、Gemini CLI、Grok 等替它对话、思考、评估；动手改代码由 Cursor Agent 承担，Claude Code 执行器在建。已订阅哪家用哪家，无需额外付费。</p>
           </div>
           <div class="card" data-reveal>
-            <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-            <h3 class="card-title">数据完全在你手里</h3>
-            <p class="card-body">没有云端服务器，没有账号注册。手机扫码连你自己的电脑，数据只在你的设备和局域网里，开发者无法访问、也不收集。</p>
+            <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+            <h3 class="card-title">人拍板才算数</h3>
+            <p class="card-body">开工前给决策包三件套，做完说「等你验收」而不是「做完了」。合并、交付，永远你点头才算。</p>
           </div>
           <div class="card" data-reveal data-reveal-delay="1">
+            <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            <h3 class="card-title">数据完全在你手里</h3>
+            <p class="card-body">没有开发者运营的云端后台，没有账号注册。对话、事项与账本保存在你自己的设备上；手机与电脑之间走你自己的局域网或你自行配置的加密组网。开发者无法访问、也不收集。</p>
+          </div>
+          <div class="card" data-reveal data-reveal-delay="2">
             <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></div>
             <h3 class="card-title">跨设备同一本账</h3>
             <p class="card-body">手机上说的，电脑上看得见；电脑里记的，手机上盯得住。沟通天然是移动的，执行天然是固定的。</p>
           </div>
-          <div class="card" data-reveal data-reveal-delay="2">
-            <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></div>
-            <h3 class="card-title">先吃透，再办事</h3>
-            <p class="card-body">第一次聊一个项目，先深度研究透、沉淀成持久知识底座。这是「说到」和「新开一个聊天窗口」的分水岭。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== 产品现状(诚实标注) ===================== -->
+    <section class="section" id="status">
+      <div class="container">
+        <div class="section-head" data-reveal>
+          <span class="eyebrow">完成度</span>
+          <h2 class="section-title">已交付、在途与规划</h2>
+          <p class="section-lead">每项只标此刻真实的完成度。计划中的，不提前写成可用。</p>
+        </div>
+
+        <div class="status-grid">
+          <div class="status-card" data-reveal>
+            <div class="sc-top"><h3>驱动你已有的 AI</h3><span class="badge badge-live">现在可用</span></div>
+            <p>对话、思考与评估走你本机已登录的 Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot，或任一 OpenAI 兼容 API。动手改代码的执行器，当前为 Cursor Agent。</p>
+          </div>
+          <div class="status-card" data-reveal data-reveal-delay="1">
+            <div class="sc-top"><h3>Claude Code 执行器</h3><span class="badge badge-progress">进行中</span></div>
+            <p>以 Claude 订阅登录态在隔离 worktree 中改代码，审批门同样 fail-closed。官方 CLI 能力实测与审批门判定逻辑已验证，尚未接入生产执行链。</p>
+          </div>
+          <div class="status-card" data-reveal data-reveal-delay="2">
+            <div class="sc-top"><h3>项目记忆与四色账本</h3><span class="badge badge-live">现在可用</span></div>
+            <p>项目奠基、持久知识底座、四色归属账本与验收证据视图。会话写入账本，可复查、可回溯。</p>
+          </div>
+          <div class="status-card" data-reveal>
+            <div class="sc-top"><h3>来电式语音汇报</h3><span class="badge badge-soon">Coming soon</span></div>
+            <p>执行结束后以系统来电形态叫醒并口播进展。PushKit 唤醒，CallKit 来电界面。</p>
           </div>
         </div>
       </div>
     </section>
 
     <!-- ===================== 架构示意 ===================== -->
-    <section class="section section--tight" style="background:var(--surface-soft)">
+    <section class="section section--alt">
       <div class="container">
-        <div class="section-head" style="text-align:center;margin-inline:auto" data-reveal>
+        <div class="section-head is-center" data-reveal>
           <span class="eyebrow">沟通面 ↔ 执行面</span>
           <h2 class="section-title">手机说话，电脑办事</h2>
-          <p class="section-lead" style="margin-inline:auto">沟通天然是移动的，执行天然是固定的。手机只做沟通——说话、看进展、拍板、审批；重活留在你的电脑上。</p>
+          <p class="section-lead">沟通天然是移动的，执行天然是固定的。手机只做沟通——说话、看进展、点头确认。局域网连接不能审批 S2 / S3；你自己的加密组网远程面审批封顶 S2；合并、删除等 S3 始终只在电脑上。重活留在你的电脑上。</p>
         </div>
         <div class="arch" data-reveal>
           <div class="arch-node">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
             <h3>沟通面 · 你的手机</h3>
-            <p>说话、看进展、拍板、审批。随时在手，断了也不影响后端。</p>
+            <p>说话、看进展、点头确认。局域网不能批 S2 / S3；自行配置的远程面审批封顶 S2；合并与删除始终回电脑。随时在手，断了也不影响后端。</p>
           </div>
           <div class="arch-link" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>
+            <span class="al-label">局域网或自行配置的加密组网</span>
           </div>
           <div class="arch-node">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
@@ -289,14 +353,14 @@
     <!-- ===================== 隐私承诺 ===================== -->
     <section class="section" id="privacy">
       <div class="container">
-        <div class="card" data-reveal style="display:flex;gap:var(--space-5);align-items:flex-start;flex-wrap:wrap">
-          <div class="card-icon" style="margin-bottom:0;width:48px;height:48px;flex:none">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+        <div class="privacy-band" data-reveal>
+          <div class="card-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
           </div>
-          <div style="flex:1;min-width:240px">
+          <div class="pb-body">
             <span class="eyebrow">隐私至上，本地优先</span>
-            <h2 class="section-title" style="font-size:var(--text-2xl);margin-bottom:var(--space-3)">不运营任何服务器</h2>
-            <p style="color:var(--text-secondary);margin-bottom:var(--space-4)">你的对话、语音、事项与账本数据，全部保存在你自己的设备上，在你自己的局域网内传输。没有账号体系，不埋点，不接入第三方统计或广告 SDK。开发者无法访问、也不收集你的任何数据。</p>
+            <h2>不运营任何服务器</h2>
+            <p>对话、事项与账本数据保存在你自己的设备上。手机与电脑之间的产品数据通道，走你自己的局域网或你自行配置的加密组网。你自行启用的云端语音、AI 上游和推送，由你的电脑直连第三方；开发者不接收这些数据。没有账号体系，不埋点，不接入第三方统计或广告 SDK。</p>
             <a class="btn btn-secondary" href="/privacy/">查看完整隐私政策
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </a>
@@ -305,34 +369,63 @@
       </div>
     </section>
 
-    <!-- ===================== 下载 ===================== -->
-    <section class="section" id="download" style="background:var(--surface-soft)">
+    <!-- ===================== 开始使用 ===================== -->
+    <span id="download"></span>
+    <section class="section section--alt" id="start">
       <div class="container">
-        <div class="section-head" style="text-align:center;margin-inline:auto" data-reveal>
-          <span class="eyebrow">开始用</span>
-          <h2 class="section-title">桌面开源，App 即将上架</h2>
-          <p class="section-lead" style="margin-inline:auto">桌面服务是执行面，开源免费；移动 App 是沟通面，三端即将上架。前提是在你的 macOS 上跑起桌面服务，手机扫码即连。不需要申请任何 API key——电脑上有任意一家已登录的 AI CLI，就能直接开聊。</p>
+        <div class="section-head is-center" data-reveal>
+          <span class="eyebrow">开始使用</span>
+          <h2 class="section-title">桌面开源，App 在路上</h2>
+          <p class="section-lead">桌面服务是执行面：macOS 开源免费、现在可用；Windows 与 Linux 暂不支持、没有明确时间表。移动 App 是沟通面，开发中、尚未上架、当前无可下载版本。在你的 Mac 上跑起桌面服务就能开聊：不需要申请任何 API key——电脑上有任意一家已登录的 AI 命令行工具即可。按文档显式打开局域网访问后，可用手机浏览器扫码连接。</p>
         </div>
-        <div class="platforms" data-reveal>
-          <a class="platform is-open" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
-            <span class="name">macOS 桌面服务</span>
-            <span class="status">开源免费 · 现在可用</span>
-          </a>
-          <div class="platform">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><path d="M10 2c1 .5 2 2 2 5"/></svg>
-            <span class="name">iOS</span>
-            <span class="badge-soon">即将上架</span>
+        <div class="platform-groups" data-reveal>
+          <div class="platform-group">
+            <h3 class="group-label">桌面</h3>
+            <div class="platforms">
+              <div class="platform is-open">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                <span class="name">macOS 桌面服务</span>
+                <span class="badge badge-live">开源免费 · 现在可用</span>
+                <span class="platform-links">
+                  <a href="/docs/#quickstart">安装说明 →</a>
+                  <a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub →</a>
+                </span>
+              </div>
+              <div class="platform">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>
+                <span class="name">Windows</span>
+                <span class="badge badge-soon">暂不支持</span>
+              </div>
+              <div class="platform">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+                <span class="name">Linux</span>
+                <span class="badge badge-soon">暂不支持</span>
+              </div>
+            </div>
           </div>
-          <div class="platform">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-            <span class="name">Android</span>
-            <span class="badge-soon">即将上架</span>
+          <div class="platform-group">
+            <h3 class="group-label">移动</h3>
+            <div class="platforms">
+              <div class="platform">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><path d="M10 2c1 .5 2 2 2 5"/></svg>
+                <span class="name">iOS</span>
+                <span class="badge badge-progress">开发中</span>
+              </div>
+              <div class="platform">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+                <span class="name">Android</span>
+                <span class="badge badge-progress">开发中</span>
+              </div>
+              <div class="platform">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+                <span class="name">HarmonyOS</span>
+                <span class="badge badge-progress">开发中</span>
+              </div>
+            </div>
           </div>
-          <div class="platform">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
-            <span class="name">HarmonyOS</span>
-            <span class="badge-soon">即将上架</span>
+          <div class="platform-apply">
+            <p class="apply-note">Windows 与 Linux 暂不支持、没有明确时间表。移动 App 开发中、尚未上架、当前无可下载版本。</p>
+            <a class="btn btn-secondary" href="mailto:octoooo@octoooo.com?subject=%E8%AF%B4%E5%88%B0%E6%9B%B4%E6%96%B0%E9%80%9A%E7%9F%A5">邮件订阅进展</a>
           </div>
         </div>
       </div>
@@ -341,7 +434,7 @@
     <!-- ===================== FAQ ===================== -->
     <section class="section" id="faq">
       <div class="container">
-        <div class="section-head" style="text-align:center;margin-inline:auto" data-reveal>
+        <div class="section-head is-center" data-reveal>
           <span class="eyebrow">常见问题</span>
           <h2 class="section-title">先说清楚它不是什么</h2>
         </div>
@@ -352,19 +445,27 @@
           </details>
           <details class="faq-item">
             <summary>是把我的项目上传到云端代跑吗？<span class="chev"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
-            <div class="answer">不是。没有云端服务器。重活在你自己的电脑上跑，手机只在局域网里和它说话。你接入的第三方 AI（CLI 订阅或 API key）由你的电脑直接调用，开发者不经手、不可见。</div>
+            <div class="answer">不是。没有开发者运营的云端后台。重活在你自己的电脑上跑。你接入的第三方 AI（CLI 订阅或 API key）由你的电脑直接调用，开发者不经手、不可见。</div>
           </details>
           <details class="faq-item">
             <summary>需要什么前提？<span class="chev"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
-            <div class="answer">在你的电脑（macOS）上运行「说到」桌面服务（开源免费），手机扫码即连。AI 用 Claude Code、Codex、Cursor、Grok、Gemini CLI、Qwen Code、GitHub Copilot CLI，更多接入中——已订阅哪家就用哪家，无需额外付费。语音无需额外配置，浏览器即可用。</div>
+            <div class="answer">在你的电脑（macOS）上运行「说到」桌面服务（开源免费）。按文档显式打开局域网访问后，可用手机浏览器扫码连接。AI 用你已有的 Claude Code、Codex、Cursor、Gemini CLI 等已登录工具——订阅是谁家的就用谁家的，无需额外付费。语音无需额外配置，浏览器即可用。</div>
           </details>
           <details class="faq-item">
             <summary>我的数据存在哪？<span class="chev"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
-            <div class="answer">全部在你自己的设备上。对话、语音、事项与账本都存在你的电脑里；手机与电脑之间在你的局域网内通信，凭一次性扫码交换的令牌鉴权。删除应用即删除手机端本地数据，电脑端由你自行管理。</div>
+            <div class="answer">对话、事项与账本保存在你自己的设备上。手机与电脑之间走你自己的局域网或你自行配置的加密组网。你自行启用的云端语音、AI 上游和推送，由你的电脑直连第三方；开发者不接收这些数据。删除应用即删除手机端本地数据，电脑端由你自行管理。</div>
           </details>
           <details class="faq-item">
             <summary>它怎么知道「办完了」？<span class="chev"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
-            <div class="answer">执行和检查都跑完，它会说「等你验收」——而不是「做完了」。它把成果按验收标准组织好（diff、测试、决策），你点头才算办完盖章销账。合并、交付，永远是你拍板才算数。</div>
+            <div class="answer">执行和检查都跑完，它会说「等你验收」——而不是「做完了」。它把成果按验收标准组织好（diff、测试、决策），你点头才算盖章销账。合并、交付，永远是你拍板才算数。</div>
+          </details>
+          <details class="faq-item">
+            <summary>要花钱吗？<span class="chev"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
+            <div class="answer">桌面服务免费。AI 的费用直接付给你选的厂商：用你已有的订阅（额度内零额外费用），或你自己的 API key 按量计费；每个任务有成本、时长、回合三重熔断。说到不加价、不经手、不代充。</div>
+          </details>
+          <details class="faq-item">
+            <summary>它会替我 push 或开 PR 吗？<span class="chev"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
+            <div class="answer">不会。它只在你项目里的独立 worktree 和 saydo/&lt;任务&gt; 分支上改代码；合并到你的分支要你 Touch ID 确认或自己动手；推送远端、开 PR 永远是你之后自己做的事。</div>
           </details>
         </div>
       </div>
@@ -375,13 +476,11 @@
       <div class="container">
         <div class="cta-band" data-reveal>
           <h2>把「说」和「做」连起来</h2>
-          <p>桌面服务开源免费，App 即将上架。从今天起，说过的事，件件有着落。</p>
+          <p>桌面服务开源免费，App 在路上。从今天起，说过的事，件件有着落。</p>
           <div class="hero-actions">
-            <a class="btn btn-seal btn-lg" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
-              前往 GitHub
-            </a>
-            <a class="btn btn-secondary btn-lg" href="/privacy/">了解隐私承诺</a>
+            <a class="btn btn-seal btn-lg" href="#start">开始使用</a>
+            <a class="btn btn-secondary btn-lg" href="/docs/">读文档</a>
+            <a class="btn btn-secondary btn-lg" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">前往 GitHub</a>
           </div>
         </div>
       </div>
@@ -392,22 +491,47 @@
   <footer class="site-footer">
     <div class="container">
       <div class="footer-grid">
-        <span class="footer-brand">
-          <img src="/icon-192.png" alt="" />
-          说到 SayDo
-        </span>
-        <nav class="footer-links" aria-label="页脚导航">
-          <a href="/privacy/">隐私政策</a>
-          <a href="/terms/">使用条款</a>
-          <a href="/support/">支持</a>
-          <a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub</a>
-          <a href="mailto:support@octoooo.com">support@octoooo.com</a>
-        </nav>
-        <div class="footer-meta">© 2026 说到（SayDo）· 开发者 汪义骁 · 本地优先 · 开源 · 隐私至上</div>
+        <div class="footer-brand-col">
+          <span class="footer-brand">
+            <img src="/icon-192.png" alt="" width="28" height="28" loading="lazy" />
+            说到 SayDo
+          </span>
+          <p>一个你能对着说话的高级助手。本地优先，开源，隐私至上。</p>
+        </div>
+        <div class="footer-col">
+          <h4>产品</h4>
+          <ul>
+            <li><a href="#how">怎么工作</a></li>
+            <li><a href="#why">为什么不一样</a></li>
+            <li><a href="#status">产品现状</a></li>
+            <li><a href="#start">开始使用</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>资源</h4>
+          <ul>
+            <li><a href="/docs/">文档</a></li>
+            <li><a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub</a></li>
+            <li><a href="/support/">支持</a></li>
+            <li><a href="#faq">常见问题</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>法律与联系</h4>
+          <ul>
+            <li><a href="/privacy/">隐私政策</a></li>
+            <li><a href="/terms/">使用条款</a></li>
+            <li><a href="mailto:support@octoooo.com">support@octoooo.com</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-meta">
+        <span>© <span data-year>2026</span> 说到（SayDo）· 开发者 汪义骁</span>
+        <span>本地优先 · 开源 · 隐私至上</span>
       </div>
     </div>
   </footer>
 
-  <script src="/theme.js" defer></script>
+  <script src="/theme.js?v=20260820d" defer></script>
 </body>
 </html>

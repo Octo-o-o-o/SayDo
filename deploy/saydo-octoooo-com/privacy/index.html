@@ -4,11 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>隐私政策 · 说到</title>
-  <meta name="description" content="「说到」不运营任何服务器。你的对话、语音、事项与账本数据，全部保存在你自己的设备上。" />
+  <meta name="description" content="「说到」不运营任何服务器。对话、事项与账本保存在你自己的设备上；产品数据走你自己的局域网或你自行配置的加密组网。" />
   <meta name="theme-color" content="#f0ede4" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#12161f" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#171410" media="(prefers-color-scheme: dark)" />
+  <link rel="canonical" href="https://saydo.octoooo.com/privacy/" />
+  <link rel="alternate" hreflang="zh-Hans" href="https://saydo.octoooo.com/privacy/" />
+  <link rel="alternate" hreflang="en" href="https://saydo.octoooo.com/en/privacy/" />
   <link rel="icon" href="/favicon.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <!-- 防 FOUC:渲染前同步设 data-theme(空值落 prefers-color-scheme);此段在全部页面逐字保持一致,改动需同步 -->
   <script>
     (function () {
       var t = "";
@@ -18,14 +22,17 @@
     })();
   </script>
   <link rel="stylesheet" href="/tokens.css" />
-  <link rel="stylesheet" href="/site.css" />
+  <link rel="stylesheet" href="/site.css?v=20260820f" />
 </head>
 <body>
+  <a class="skip-link" href="#main">跳到主内容</a>
+
   <header class="site-header">
     <div class="container">
       <a class="brand-lockup" href="/">
-        <img class="brand-mark" src="/icon-192.png" alt="说到" />
+        <img class="brand-mark" src="/icon-192.png" alt="" width="32" height="32" />
         <span>说到</span>
+        <span class="brand-en">SAYDO</span>
       </a>
       <nav class="nav" data-nav aria-label="主导航">
         <a class="nav-link" href="/">首页</a>
@@ -33,6 +40,10 @@
         <a class="nav-link" href="/support/">支持</a>
       </nav>
       <div class="header-actions">
+        <span class="lang-switch" role="navigation" aria-label="语言切换">
+          <a class="is-active" href="/privacy/" aria-current="page">中文</a>
+          <a href="/en/privacy/">EN</a>
+        </span>
         <button class="icon-btn theme-toggle" data-theme-toggle type="button" aria-label="切换亮暗主题">
           <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
           <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
@@ -44,16 +55,16 @@
     </div>
   </header>
 
-  <main class="legal">
+  <main class="legal" id="main">
     <div class="container">
       <h1>「说到」(SayDo) 隐私政策</h1>
-      <p class="lede">生效日期：2026 年 8 月 13 日　|　开发者：汪义骁（个人）　|　联系方式：<a href="mailto:support@octoooo.com">support@octoooo.com</a></p>
+      <p class="lede">生效日期：2026 年 8 月 21 日　|　开发者：汪义骁（个人）　|　联系方式：<a href="mailto:support@octoooo.com">support@octoooo.com</a></p>
 
       <h2>一句话版本</h2>
-      <p>「说到」不运营任何服务器。你的对话、语音、事项与账本数据，全部保存在<strong>你自己的设备</strong>（你的电脑与手机）上，在你自己的局域网内传输，开发者无法访问、也不收集你的任何数据。</p>
+      <p>「说到」不运营任何服务器。对话、事项与账本数据保存在<strong>你自己的设备</strong>（你的电脑与手机）上；产品数据在你自己的局域网或你自行配置的加密组网内传输。你自行启用的云端语音、AI 上游和推送，由你的电脑直连第三方。开发者无法访问、也不收集你的任何数据。</p>
 
       <h2>我们收集哪些信息</h2>
-      <p>不收集。本应用没有开发者运营的服务端，不设账号体系，不埋点，不接入第三方统计/广告 SDK，不上传任何用户数据。</p>
+      <p>不收集。本应用没有开发者运营的服务端，不设账号体系，不埋点，不接入第三方统计/广告 SDK，不向开发者上传任何用户数据。你自行配置的 AI、可选云端语音、可选推送，适用你与相应第三方的协议。</p>
 
       <h2>应用会使用哪些设备能力，为什么</h2>
       <table>
@@ -62,17 +73,17 @@
         </thead>
         <tbody>
           <tr><td>相机</td><td>扫描桌面端展示的配对二维码</td><td>仅本机解析，不存储图像</td></tr>
-          <tr><td>麦克风</td><td>按住说话</td><td>音频仅在本机处理，不上传</td></tr>
-          <tr><td>语音识别</td><td>将你的话转成文字（使用系统语音识别，默认设备端处理）</td><td>转写文本仅发送到<strong>你自己配对的电脑</strong>；若你在系统设置中允许了联网语音识别，适用操作系统厂商的隐私条款</td></tr>
-          <tr><td>本地网络</td><td>与你自己电脑上的「说到」服务通信</td><td>仅限你的局域网，凭配对令牌通信</td></tr>
+          <tr><td>麦克风</td><td>按住说话</td><td>音频交给系统语音识别，「说到」不保存音频；是在设备端处理还是联网处理，取决于应用或系统设置与操作系统厂商的实现，联网时适用该厂商的隐私条款</td></tr>
+          <tr><td>语音识别</td><td>将你的话转成文字（使用系统语音识别）</td><td>转写文本仅发送到<strong>你自己配对的电脑</strong>；联网识别的音频处理例外见上行</td></tr>
+          <tr><td>本地网络</td><td>与你自己电脑上的「说到」服务通信</td><td>你的局域网或你自行配置的加密组网，凭配对令牌通信</td></tr>
         </tbody>
       </table>
 
       <h2>数据存储与传输</h2>
       <ul>
         <li>所有事项、对话与账本数据存储在<strong>你的电脑</strong>上的「说到」数据目录；手机端仅作为你电脑的显示与输入设备；</li>
-        <li>手机与电脑之间的通信发生在你的局域网内，凭一次性扫码交换的令牌鉴权；令牌保存在手机系统安全存储（iOS Keychain / Android Keystore / HarmonyOS 等价设施）中；</li>
-        <li>你在桌面端配置的第三方 AI 服务（你自己的 CLI 订阅或 API key）由你的电脑直接调用，适用你与相应服务商之间的协议；本应用开发者不经手、不可见。</li>
+        <li>手机与电脑之间的通信发生在你的局域网或你自行配置的加密组网内，凭扫码交换的令牌鉴权；令牌保存在手机系统安全存储（iOS Keychain / Android Keystore / HarmonyOS 等价设施）中；</li>
+        <li>你在桌面端自行启用的第三方 AI、可选云端语音与可选推送，由你的电脑直接调用，适用你与相应服务商之间的协议；本应用开发者不经手、不可见。</li>
       </ul>
 
       <h2>数据删除</h2>
@@ -92,21 +103,47 @@
   <footer class="site-footer">
     <div class="container">
       <div class="footer-grid">
-        <span class="footer-brand">
-          <img src="/icon-192.png" alt="" />
-          说到 SayDo
-        </span>
-        <nav class="footer-links" aria-label="页脚导航">
-          <a href="/">首页</a>
-          <a href="/terms/">使用条款</a>
-          <a href="/support/">支持</a>
-          <a href="mailto:support@octoooo.com">support@octoooo.com</a>
-        </nav>
-        <div class="footer-meta">© 2026 说到（SayDo）· 开发者 汪义骁 · 本地优先 · 开源 · 隐私至上</div>
+        <div class="footer-brand-col">
+          <span class="footer-brand">
+            <img src="/icon-192.png" alt="" width="28" height="28" loading="lazy" />
+            说到 SayDo
+          </span>
+          <p>一个你能对着说话的高级助手。本地优先，开源，隐私至上。</p>
+        </div>
+        <div class="footer-col">
+          <h4>产品</h4>
+          <ul>
+            <li><a href="/#how">怎么工作</a></li>
+            <li><a href="/#why">为什么不一样</a></li>
+            <li><a href="/#status">产品现状</a></li>
+            <li><a href="/#start">开始使用</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>资源</h4>
+          <ul>
+            <li><a href="/docs/">文档</a></li>
+            <li><a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub</a></li>
+            <li><a href="/support/">支持</a></li>
+            <li><a href="/#faq">常见问题</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>法律与联系</h4>
+          <ul>
+            <li><a href="/privacy/">隐私政策</a></li>
+            <li><a href="/terms/">使用条款</a></li>
+            <li><a href="mailto:support@octoooo.com">support@octoooo.com</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-meta">
+        <span>© <span data-year>2026</span> 说到（SayDo）· 开发者 汪义骁</span>
+        <span>本地优先 · 开源 · 隐私至上</span>
       </div>
     </div>
   </footer>
 
-  <script src="/theme.js" defer></script>
+  <script src="/theme.js?v=20260820d" defer></script>
 </body>
 </html>

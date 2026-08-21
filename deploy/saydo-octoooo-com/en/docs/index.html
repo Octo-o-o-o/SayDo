@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Docs · SayDo</title>
+  <meta name="description" content="The SayDo manual: install and quickstart, model and provider configuration, executors and approval safety, memory and the ledger, callbacks, voice, phone setup, privacy and cost, roadmap and troubleshooting." />
+  <meta name="theme-color" content="#f0ede4" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#171410" media="(prefers-color-scheme: dark)" />
+  <link rel="canonical" href="https://saydo.octoooo.com/en/docs/" />
+  <link rel="alternate" hreflang="zh-Hans" href="https://saydo.octoooo.com/docs/" />
+  <link rel="alternate" hreflang="en" href="https://saydo.octoooo.com/en/docs/" />
+  <link rel="icon" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <!-- Pre-render theme: set data-theme before paint (empty falls back to prefers-color-scheme); keep this block byte-identical across all pages -->
+  <script>
+    (function () {
+      var t = "";
+      try { t = localStorage.getItem("saydo.theme") || ""; } catch (e) {}
+      if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
+      else if (t === "light") document.documentElement.setAttribute("data-theme", "light");
+    })();
+  </script>
+  <link rel="stylesheet" href="/tokens.css" />
+  <link rel="stylesheet" href="/site.css?v=20260820f" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a class="brand-lockup" href="/en/">
+        <img class="brand-mark" src="/icon-192.png" alt="" width="32" height="32" />
+        <span>SayDo</span>
+        <span class="brand-en">说到</span>
+      </a>
+      <nav class="nav" data-nav aria-label="Primary">
+        <a class="nav-link" href="/en/#how">How it works</a>
+        <a class="nav-link" href="/en/#why">Why different</a>
+        <a class="nav-link" href="/en/#status">Status</a>
+        <a class="nav-link" href="/en/#start">Get Started</a>
+        <a class="nav-link" href="/en/docs/" aria-current="page">Docs</a>
+        <a class="nav-link" href="/en/#faq">FAQ</a>
+      </nav>
+      <div class="header-actions">
+        <span class="lang-switch" role="navigation" aria-label="Language">
+          <a href="/docs/">中文</a>
+          <a class="is-active" href="/en/docs/" aria-current="page">EN</a>
+        </span>
+        <button class="icon-btn theme-toggle" data-theme-toggle type="button" aria-label="Toggle dark mode">
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        </button>
+        <button class="icon-btn menu-toggle" data-menu-toggle type="button" aria-label="Open menu" aria-expanded="false">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="container docs-hero">
+      <span class="eyebrow">DOCS</span>
+      <h1>The SayDo Manual</h1>
+      <p class="docs-lede">From install to first conversation, to tuning your models and understanding the safety model — all in one place. Status is labeled honestly: Available now / In progress / Planned.</p>
+    </div>
+    <div class="container docs-layout">
+      <details class="docs-toc-mobile"><summary>Contents</summary><nav aria-label="Table of contents">
+        <span class="toc-group">Getting started</span>
+        <a href="#s0">0 · How to read this</a>
+        <a href="#s1">1 · What SayDo is</a>
+        <a href="#s2">2 · Core concepts</a>
+        <a href="#s3">3 · How it works</a>
+        <a href="#quickstart">4 · Quickstart</a>
+        <span class="toc-group">Models &amp; supply</span>
+        <a href="#s5">5 · Models &amp; providers</a>
+        <a href="#s6">6 · Executors</a>
+        <span class="toc-group">Mechanisms</span>
+        <a href="#s7">7 · Projects &amp; Git</a>
+        <a href="#s8">8 · Approvals &amp; safety</a>
+        <a href="#s9">9 · Memory &amp; the ledger</a>
+        <a href="#s10">10 · Review &amp; delivery</a>
+        <a href="#s11">11 · Callbacks &amp; notifications</a>
+        <a href="#s12">12 · Voice</a>
+        <span class="toc-group">Mobile, privacy &amp; cost</span>
+        <a href="#s13">13 · Phone &amp; remote</a>
+        <a href="#s14">14 · Privacy &amp; data</a>
+        <a href="#s15">15 · Cost</a>
+        <span class="toc-group">Reference</span>
+        <a href="#s16">16 · Roadmap &amp; status</a>
+        <a href="#s17">17 · FAQ &amp; troubleshooting</a>
+        <a href="#s18">18 · Open source</a>
+        <a href="#s19">19 · Terminology</a>
+        <a href="#appendix">Appendix · Cheat sheet</a>
+      </nav></details>
+      <nav class="docs-toc" aria-label="Table of contents">
+        <span class="toc-group">Getting started</span>
+        <a href="#s0">0 · How to read this</a>
+        <a href="#s1">1 · What SayDo is</a>
+        <a href="#s2">2 · Core concepts</a>
+        <a href="#s3">3 · How it works</a>
+        <a href="#quickstart">4 · Quickstart</a>
+        <span class="toc-group">Models &amp; supply</span>
+        <a href="#s5">5 · Models &amp; providers</a>
+        <a href="#s6">6 · Executors</a>
+        <span class="toc-group">Mechanisms</span>
+        <a href="#s7">7 · Projects &amp; Git</a>
+        <a href="#s8">8 · Approvals &amp; safety</a>
+        <a href="#s9">9 · Memory &amp; the ledger</a>
+        <a href="#s10">10 · Review &amp; delivery</a>
+        <a href="#s11">11 · Callbacks &amp; notifications</a>
+        <a href="#s12">12 · Voice</a>
+        <span class="toc-group">Mobile, privacy &amp; cost</span>
+        <a href="#s13">13 · Phone &amp; remote</a>
+        <a href="#s14">14 · Privacy &amp; data</a>
+        <a href="#s15">15 · Cost</a>
+        <span class="toc-group">Reference</span>
+        <a href="#s16">16 · Roadmap &amp; status</a>
+        <a href="#s17">17 · FAQ &amp; troubleshooting</a>
+        <a href="#s18">18 · Open source</a>
+        <a href="#s19">19 · Terminology</a>
+        <a href="#appendix">Appendix · Cheat sheet</a>
+      </nav>
+      <article class="docs-body">
+
+        <h2 id="s0">0. How to read this document</h2>
+        <ul>
+          <li><strong>Just want to get it running</strong>: read §1 (what it is) → §4 (quickstart) → §5.3 (the three setup plans); look up the rest as needed.</li>
+          <li><strong>Want to know how it actually works</strong>: §3 (how it works) → §7 (projects &amp; Git) → §8 (approvals &amp; safety) → §9 (memory &amp; the ledger) → §10 (review &amp; delivery).</li>
+          <li><strong>Want to combine multiple model vendors / CLIs for the best results</strong>: read all of §5 (models &amp; providers), then §6 (executors).</li>
+          <li><strong>Care about where your data goes and what it costs</strong>: §14 (privacy &amp; data), §15 (cost).</li>
+          <li>A section title carrying <span class="badge badge-live">Available now</span> / <span class="badge badge-progress">In progress</span> / <span class="badge badge-soon">Planned</span> marks the current state of the capability it describes; sections without a badge are available now as a whole, with individual exceptions noted inline.</li>
+          <li>This document tracks the current version of the macOS desktop service; none of the mobile apps are in stores yet, so everything phone-related is written as "how you can connect today", not "download from a store" (§13).</li>
+        </ul>
+
+        <h2 id="s1">1. What SayDo is</h2>
+        <p>SayDo is <strong>a chief of staff you can talk to out loud</strong>, running on your own Mac. You just talk things through — even think out loud while you talk. It first builds deep context on your projects and keeps every item in a ledger; once it understands and things are ready, it proposes to start work and drives the AI tools already on your computer; when execution and checks have run, it calls you back to review; only your nod makes it delivered.</p>
+        <p>Its mental model is a <strong>chief of staff</strong>: talks with you every day, understands and gets things done on its own, then reports back — not an instruction translator of "the clearer you speak, the better I do". The core competitiveness is not which model it uses, but <strong>context engineering + the human–AI collaboration workflow</strong>.</p>
+        <h3>1.1 Three core promises</h3>
+        <ul>
+          <li><strong>Said means recorded</strong>: hold to talk (or type) and think out loud. A casual "note this for me" goes straight into the ledger; things it promised, things awaiting your sign-off, things the AI is working on, things waiting on others — every item has an owner and a destination.</li>
+          <li><strong>Understand first, then act</strong>: the first time it meets a project, it runs a <strong>grounding</strong> pass — scans the project structure and key files, absorbs the conventions already in your repo, and builds a durable project knowledge base; every later conversation carries its understanding of your project instead of starting from zero. This is the dividing line between SayDo and "opening a new chat window". (In the current version grounding is a deterministic mechanical pipeline; deep research by the thinking-slot model is a planned next tier — §9.2.)</li>
+          <li><strong>Only your sign-off counts</strong>: before work starts you get a decision pack (what will be done, how, which parts it does and which need you, what the result will look like); afterwards it only says "ready for your review", never "done"; merge and delivery always take effect only when you approve.</li>
+        </ul>
+        <h3>1.2 What it is not</h3>
+        <ul>
+          <li><strong>Not a voice input method.</strong> It doesn't do "speech-to-text then paste"; voice is only the entry point — behind it is a full loop of understanding context, opening ledger entries, judging readiness, driving execution, and organizing review.</li>
+          <li><strong>Not a SayDo-operated cloud runner.</strong> SayDo has no hosted backend carrying product data and no account signup. Heavy work and core persistent data such as tasks, approvals, and audit stay on your computer; third-party AI, system or browser speech recognition, and push services that you choose are called directly by your devices under those providers' terms — the developer never touches or sees them.</li>
+          <li><strong>Not another chat client.</strong> Speech recognition, chat, and coding agents each have mature point solutions; what SayDo does is govern "talk it through → start work automatically → call you to review when it ran" into one closed loop — with approvals, budgets, isolation, callbacks, review, and retention.</li>
+          <li><strong>Not a general voice assistant.</strong> No alarms, small talk, or music; it doesn't replace your IDE — diffs, logs, and long documents always go to the screen; voice carries only decisions and summaries.</li>
+        </ul>
+        <h3>1.3 What it's for</h3>
+        <p>It serves <strong>"things with a concrete deliverable"</strong>: code changes / documents / research reports / articles / proposals / action plans. Coding is the main scenario (an engineer dictates requirements → the AI develops in an isolated worktree → you review and merge); but the same upstream capabilities (grounding, interviewing, readiness judgment, callbacks, retention) also serve non-code work like writing, life planning, and research. Current capability gates by project type: <code>coding</code> (available now), <code>writing</code> (a narrow version has landed, reusing coding's worktree + strong-authentication merge chain; citation-level referencing, attribution contracts and the full scope are still planned); dedicated execution contracts for <code>research</code> / <code>marketing</code> / <code>planning</code> / <code>general</code> are planned — but the upstream capabilities "open a Focus item and track it, record obligations, interview, research" work for anything (§9.4).</p>
+        <h3>1.4 Current status in one breath</h3>
+        <ul>
+          <li><strong>macOS desktop service</strong> (daemon + Web console + optional voice pipeline): available now, open source and free (see §18 Open source &amp; contributing).</li>
+          <li><strong>Drives the AI you already have</strong>: reasoning slots can use the <strong>subscription login</strong> of Claude Code / Codex / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI, or any OpenAI-compatible API (§5); <strong>the executor (the agent that actually edits code) is currently Cursor CLI</strong>, the Claude Code executor is in progress, and the Codex execution route is planned (§6).</li>
+          <li><strong>Project memory &amp; the four-color ledger</strong>: available now.</li>
+          <li><strong>iOS / Android / HarmonyOS apps</strong>: engineering shells exist; none submitted to stores. Today a phone can connect to the desktop service over the LAN via an app shell or the mobile browser (§13).</li>
+          <li><strong>Call-style voice briefings</strong>: planned.</li>
+        </ul>
+        <h3>1.5 Cost in one breath</h3>
+        <p>The desktop service itself is free. AI costs go directly to the vendors you choose — use your existing CLI subscriptions (zero extra cost within quota) or your own API keys on pay-as-you-go. SayDo adds no markup, never touches the money, and doesn't top up for you. Details in §15.</p>
+
+        <h2 id="s2">2. Core concepts at a glance</h2>
+        <table>
+          <thead>
+            <tr><th>Concept</th><th>In one sentence</th><th>Details</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Communication surface / execution surface</strong></td><td>The phone and browser are the communication surface (talk, watch progress, and make confirmations allowed for that source): LAN cannot decide S2/S3; voice confirmation is capped at S2; once supported, the paired tailnet screen is also capped at S2; S3 stays on the authenticated Mac screen. Your Mac is the execution surface (grounding, memory, driving AI, background work)</td><td>§3.1, §13</td></tr>
+            <tr><td><strong>daemon</strong></td><td>The core resident process of the desktop service: holds all ledgers and state, serves the Web console, executes tool calls, dispatches tasks, fires callbacks. It stays alive even when a voice session drops</td><td>§3.1</td></tr>
+            <tr><td><strong>Brain (dialog brain)</strong></td><td>The model behind conversation turns: interviews, answers, spoken summaries; it has <strong>no direct execution power</strong> — every side effect goes through the daemon</td><td>§3.1</td></tr>
+            <tr><td><strong>Focus</strong></td><td>The spine of the ledger: one continuously tracked item (can link 0..N projects, or belong to none); <strong>obligations</strong> (who owes what) and <strong>expectations</strong> (what "done right" looks like) hang under it</td><td>§9.4</td></tr>
+            <tr><td><strong>Four-color ledger</strong></td><td>The four color zones of the Today page: <strong>awaiting your call</strong> (orange) / <strong>owed by you</strong> (blue) / <strong>AI working</strong> (green) / <strong>waiting externally</strong> (gray). Every item has an owner and a destination</td><td>§9.4</td></tr>
+            <tr><td><strong>Project / workspace</strong></td><td>A project = the boundary carrying one kind of deliverable; a coding project's workspace is a git repo folder on your machine; non-code projects default to a system-managed folder</td><td>§7.1</td></tr>
+            <tr><td><strong>Grounding (Foundation)</strong></td><td>A deterministic mechanical pipeline run on first contact with a project; builds the project knowledge base (M1). LLM deep research is planned</td><td>§9.2</td></tr>
+            <tr><td><strong>M0–M3 memory</strong></td><td>M0 cross-project user profile / M1 project knowledge base / M2 accumulated artifacts / M3 session transcript</td><td>§9.1</td></tr>
+            <tr><td><strong>Readiness</strong></td><td>The "enough to start?" judgment: confirmed item by item against the project type's readiness checklist, re-checked by an independent evaluator (a <strong>different model family</strong> from the dialog model)</td><td>§3.3, §5.4</td></tr>
+            <tr><td><strong>Decision pack</strong></td><td>Once ready: a deliverable preview + implementation plan (each step marked AI-executed / needs you) + estimated cost and cap, plus a lightweight demo (a web preview mechanically rendered from the same source as the plan) and one question: "start now?"</td><td>§3.3</td></tr>
+            <tr><td><strong>Execution modes</strong></td><td><strong>step-confirm</strong> (asks you before every out-of-circle action and step boundary; factory default, currently the only active mode) / <strong>direct-to-review</strong> (runs straight through to "ready for your review"; S2-class effects pass via a read-aloud-signed pre-authorization list; in progress)</td><td>§8.4</td></tr>
+            <tr><td><strong>S0–S3</strong></td><td>Risk grading of actions (computed from effects, not action names): S0 read / S1 write inside the worktree / S2 out-of-circle but reversible / S3 irreversible or external impact. S3 only ever goes through an authenticated screen — voice never approves it</td><td>§8.1</td></tr>
+            <tr><td><strong>Gate 0</strong></td><td>The safety gate that must be closed before autonomous dispatch opens (identity &amp; authorization, idempotency, independent acceptance oracle, secret/egress, intent audit, deletion/consent propagation); there is no bypass branch in the code</td><td>§8.2</td></tr>
+            <tr><td><strong>worktree isolation</strong></td><td>Each task gets its own git worktree; the agent never touches your main working tree</td><td>§7.2</td></tr>
+            <tr><td><strong><code>ready_for_review</code></strong></td><td>The state where execution and checks have run, artifacts are on disk, and it's ready for your review; callbacks fire from here. <strong>It does not mean done</strong> — only after merge / archive is it "delivered"</td><td>§10.1</td></tr>
+            <tr><td><strong>Reasoning slots (four)</strong></td><td>dialog / thinking / cheap / evaluator — each independently supplied by API or subscription CLI</td><td>§5.1</td></tr>
+            <tr><td><strong>Dev slot (executor)</strong></td><td>The fifth slot <code>[models.dev]</code>: <strong>which agent edits the code</strong> when a task is dispatched (a different question from "which model talks")</td><td>§6</td></tr>
+            <tr><td><strong>BYOA (bring your own agent)</strong></td><td>Use CLIs already logged in on your machine (Codex / Claude Code / Cursor / Grok / Gemini / Qwen / Copilot) as reasoning supply — zero API keys</td><td>§5.2</td></tr>
+            <tr><td><strong>cap-token</strong></td><td>The console's local capability token (<code>~/.saydo/.cap-token</code>), carried in the console URL; deleting it rotates it</td><td>§4.3, §14</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="s3">3. How it works</h2>
+        <h3>3.1 Overall architecture: three layers</h3>
+<pre>
+You (speak / listen / occasionally look at the screen; sign off / approve)
+   │ voice or text (browser, phone)              callback (voice / desktop notification / phone push)
+┌──▽─────────────────────────────────────────────────────────────────┐
+│ Communication surface: Web console (desktop browser) / phone        │
+│   (app shell or mobile browser, LAN)                                │
+│   · Voice engine (optional Python voice pipeline: ASR → LLM → TTS)  │
+│   · Brain: interview / readiness self-check / decision packs /      │
+│     spoken summaries; no direct execution power                     │
+├─────────────────────────────────────────────────────────────────────┤
+│ Control plane: daemon (Node 22, resident) — sole owner of all       │
+│   durable state                                                     │
+│   · Ledger: Focus items / obligations / four-color attention /      │
+│     memory event ledger / approval receipts                         │
+│   · Tool execution, Context Pack assembly, task dispatch, event     │
+│     reconciliation, callbacks, cost accounting                      │
+│   · Local HTTP/WS (default 127.0.0.1:47100, capability-token auth), │
+│     serves the console static pages                                 │
+├─────────────────────────────────────────────────────────────────────┤
+│ Execution surface: local AI executor (Tier 1, currently Cursor CLI) │
+│   — edits code in an isolated worktree; every shell command goes    │
+│   back to the daemon through the approval gate; three circuit       │
+│   breakers: budget / duration / turns                               │
+│   (a separate batch execution route via Hopper: contract settled,   │
+│   production binding dormant, §6.3)                                 │
+└─────────────────────────────────────────────────────────────────────┘
+</pre>
+        <p>Three iron rules run through the entire design:</p>
+        <ol>
+          <li><strong>The Brain's model process is disposable and has no direct execution power</strong> — voice sessions or reasoning processes can die and be rebuilt at any time while tasks keep running; all side effects happen in the daemon / executor.</li>
+          <li><strong>Voice sessions are short-lived; tasks are long-lived</strong> — a session is an event-driven window (suspended after 45 idle seconds or when you say "that's it for now / leave it here / wrap up", at zero cost); tasks keep executing in the background, and callbacks pull you back.</li>
+          <li><strong>Every piece of state has exactly one owner</strong> — dialog-domain state belongs to the daemon, execution-domain state to the executor / backend; boundaries are connected by durable protocols (idempotency keys, event cursors, receipts), not a shared database.</li>
+        </ol>
+        <p><strong>Component overview</strong> (the core components run on your Mac; third-party AI, network speech recognition, and push that you choose are exceptions governed by those providers' terms):</p>
+        <table>
+          <thead>
+            <tr><th>Component</th><th>What it is</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>daemon</td><td>Core resident process (TypeScript / Node 22): sole owner of dialog and task state; serves the console pages; the approval gate, ledgers, and audit all live here</td><td>Default port 47100; listens on loopback only</td></tr>
+            <tr><td>console</td><td>Web console (Vite + React); one codebase shared by desktop and phone (mobile shell route)</td><td>Served directly by the daemon; open in a browser and use</td></tr>
+            <tr><td>pipeline</td><td>Voice pipeline (Python): cloud hearing and speaking for the desktop browser (Volcano Doubao ASR / TTS)</td><td>Optional; without it, type or use browser system voice</td></tr>
+            <tr><td>saydo CLI</td><td><code>saydo up / status / open</code>: holds the daemon in the foreground, health-checks, opens the console</td><td>Optional; an alternative to starting the daemon directly</td></tr>
+            <tr><td>contracts</td><td>Data contract package (zod schemas, state machines, digests): the single type source that keeps components from forking</td><td>For developers</td></tr>
+            <tr><td>Executor</td><td>The agent that actually edits code in a worktree after sign-off (currently Cursor CLI)</td><td>Optional; conversation and ledger work without it</td></tr>
+          </tbody>
+        </table>
+        <h3>3.2 One full loop: from one sentence to "come review it"</h3>
+        <table>
+          <thead>
+            <tr><th>Step</th><th>What happens</th><th>Mechanism behind it</th><th>You</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1 Start talking</td><td>On the Today page tap "start talking", hold to talk or type; a casual "note this for me" goes straight to the ledger; it interviews one question at a time</td><td>Context Pack injection (relevant slices from M0+M1+M2 + recent turns); interview discipline: one question at a time, multiple-choice first, a question budget</td><td>talk</td></tr>
+            <tr><td>2 Readiness call</td><td>Each turn it self-checks "enough knowledge + clear requirements", filling whichever dimension is short; only then does it propose to start</td><td>The project type's readiness checklist (coding: goal / verifiable acceptance criteria / scope / constraints / key parts of the codebase understood), item by item; "confirmed" = you said it yourself + it plays it back and you nod; an independent evaluator (different model family) re-checks before any proposal</td><td>hear the proposal</td></tr>
+            <tr><td>3 Decision pack</td><td>Delivers the deliverable preview, implementation plan (each step marked AI / needs you), in/out of scope, acceptance criteria, risks, plus estimated cost and cap; a lightweight demo (web preview, mechanically rendered from the same source as the plan) ships with the pack — tap "view demo" in the console; in a local conversation it appears on your screen in the same turn</td><td>The plan lands on disk as an editable artifact; the approved version freezes into the "contract"; the demo freezes with the pack (edit the pack and it regenerates); a decision pack is valid for 24 hours</td><td>look</td></tr>
+            <tr><td>4 Your sign-off</td><td>Say "that's it" / "start"; the execution mode is currently step-confirm (read-aloud signing for the "run it straight through" mode is in progress, §8.4)</td><td>Two keys: "enough evidence" ≠ "an authorized person approved this pack + scope + budget + validity"; the dispatch receipt is digest-bound and single-use; if Gate 0 isn't closed, dispatch is refused</td><td>sign off</td></tr>
+            <tr><td>5 Background execution</td><td>Runs in its own git worktree; your main working tree is never touched; every shell command passes the approval gate; three circuit breakers: budget / active duration / turns; you can walk away — the voice session suspends</td><td>Commands are graded S0–S3 by effect; S0/S1 pass automatically, S2 escalates for your confirmation (refused after 45 s without an answer), S3 is refused and demands on-screen strong authentication</td><td>walk away</td></tr>
+            <tr><td>6 Calls you when it ran</td><td>Execution and checks have run, artifacts confirmed on disk → it calls you on its own: "execution and checks have run — ready for your review"</td><td>The callback fires only after settle reconciliation (the runner exiting doesn't mean done); priority: blocked &gt; failed &gt; pending approval &gt; ready for review &gt; progress (silent by default); delivery follows the escalation chain: you're at the console with voice ready ⇒ it speaks to you online (first sentence is the callback reason; escalates after 30 s with no response) → macOS desktop notification + ntfy phone push; inside the do-not-disturb window it sends one low-interruption push and calls back after the window (§11)</td><td>get called back</td></tr>
+            <tr><td>7 Review &amp; retain</td><td>Spoken summary (one sentence / 150-character walkthrough / the list of decisions it made itself) + evidence view (diffs, tests, decisions, unverified items); you nod → strong-authentication merge → "delivered"; knowledge and artifacts are retained</td><td>Merge = a Touch ID / passkey on-screen approval card signing a single-use receipt, or you merge in the terminal yourself (manual handoff); at session end, stable conclusions are mechanically nominated as candidates and enter M1 when you approve</td><td>review</td></tr>
+          </tbody>
+        </table>
+        <h3>3.3 Interview, readiness, decision packs: why you never write a requirements doc</h3>
+        <ul>
+          <li><strong>Instructions are lossy compression; conversation is progressive unfolding.</strong> SayDo doesn't require you to be good at prompting: you just talk, and when it understands and is ready, it proposes to start. <strong>The spec is its output, not your input.</strong></li>
+          <li><strong>Cognitive load shifts from "expressing" to "judging"</strong>: instead of conjuring complete requirements from thin air, you look at concrete things (deliverable preview + plan + demo) and say "right / wrong / adjust".</li>
+          <li><strong>Readiness is typed</strong>: development can't start without acceptance criteria; writing can't form without a core thesis. So it first identifies what kind of thing this is, then judges readiness with the matching checklist. If critical items aren't confirmed as covered, it mechanically cannot produce a pack (not left to the model's self-discipline).</li>
+          <li><strong>Guarding against "correlated error chains"</strong>: if the same model produces facts, judges gaps, builds the demo, and then self-assesses "good enough", the errors are highly correlated. So "enough to start" is re-checked by an <strong>independent evaluator</strong> — a <strong>different model family</strong> from the dialog / thinking models, reading only the evidence ledger, never the Brain's self-defense (this is where §5.4's different-family rule comes from).</li>
+          <li><strong>Three orthogonal dials</strong> (design principle; landing varies): conversation lane (Quick: a sentence or two of confirmation then go / Guided: standard interview / Explore: open brainstorm — planned, currently only instrumented) × execution mode (step-confirm available now / direct-to-review in progress) × governance depth (S0–S3 decided by action effects, available now). The guard sentence: you can speed up the conversation and thin out confirmations, <strong>but you can never lower any action's risk grade or the S3 threshold</strong>.</li>
+        </ul>
+
+        <h2 id="quickstart">4. Quickstart (the normal user path)</h2>
+        <div class="docs-note"><p>Goal: one Mac, one AI CLI you're logged into (or one API key) — up and talking in about fifteen minutes.</p></div>
+        <h3>4.1 Prerequisites</h3>
+        <table>
+          <thead>
+            <tr><th>Item</th><th>Requirement</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>System</td><td>macOS (Apple Silicon or Intel)</td><td>Residency, notifications, opening the browser etc. are macOS implementations; other systems unsupported</td></tr>
+            <tr><td>Node</td><td><strong>22.x</strong> (<code>&gt;=22 &lt;23</code>)</td><td>Runtime of the desktop service and CLI; install via nvm / fnm / Homebrew</td></tr>
+            <tr><td>pnpm</td><td>10.x</td><td><code>corepack enable</code> is enough</td></tr>
+            <tr><td>git</td><td>any recent version</td><td>Needed for builds and task isolation (worktrees)</td></tr>
+            <tr><td>One AI supply</td><td>Either: ① any wired CLI already logged in locally (Codex / Claude Code / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI); or ② an OpenAI-compatible API key (OpenRouter / OpenAI / Anthropic / DeepSeek)</td><td>Chatting, ledger entries, and research need no key (they use CLI subscriptions); see §5.3</td></tr>
+            <tr><td>Optional · Python 3.11+ with <code>uv</code></td><td>Only needed for <strong>desktop-browser cloud voice</strong> (Volcano Doubao ASR/TTS)</td><td>Without it you can still talk: browser system voice is the fallback (§12)</td></tr>
+            <tr><td>Optional · <code>cursor-agent</code> login + <code>jq</code></td><td>Only needed to <strong>dispatch execution tasks</strong> (letting the AI actually edit code)</td><td>Its absence doesn't block conversation — sign-off just won't launch an executor (§6)</td></tr>
+          </tbody>
+        </table>
+        <h3>4.2 Install</h3>
+        <p>Currently distributed as source (no npm / Homebrew package yet, see §16):</p>
+<pre><code>git clone https://github.com/Octo-o-o-o/SayDo.git &amp;&amp; cd SayDo
+pnpm install &amp;&amp; pnpm -r build      # build is required: the console pages served by the daemon come from packages/console/dist
+</code></pre>
+        <h3>4.3 Start the desktop service</h3>
+        <p>Two equivalent ways — pick one (the same data directory <code>~/.saydo</code> allows only one instance at a time):</p>
+<pre><code># Option 1: start the daemon directly (development form; run from the repo root)
+mkdir -p ~/.saydo
+(cd packages/daemon &amp;&amp; SAYDO_HOME=$HOME/.saydo nohup ./node_modules/.bin/tsx src/index.ts &gt;&gt; ~/.saydo/daemon.log 2&gt;&amp;1 &amp;)
+
+# Option 2: use the saydo CLI (distributable form; build once first)
+pnpm --filter @saydo/cli build
+node packages/cli/dist/cli.mjs up        # holds the daemon in the foreground; Ctrl+C exits gracefully and tasks resume
+node packages/cli/dist/cli.mjs status    # health probe: 0=connected / 1=port free / 2=port conflict
+node packages/cli/dist/cli.mjs open      # opens the console
+</code></pre>
+        <ul>
+          <li>Default port <strong>47100</strong> (override with the <code>SAYDO_DAEMON_PORT</code> environment variable when starting the daemon directly; the <code>saydo</code> CLI only accepts <code>--port</code>); listens on the loopback address by default. <code>saydo up</code> opens the browser automatically by default; <code>--no-open</code> disables that.</li>
+          <li>The data directory defaults to <code>~/.saydo</code> (override with <code>--home</code> or <code>SAYDO_HOME</code>). First launch auto-generates: <code>config.toml</code> (placeholder template), <code>.cap-token</code> (console token), <code>saydo.db</code>, <code>sessions/</code>, <code>logs/</code>, <code>projects/</code>, etc.</li>
+          <li>Health probe: <code>curl -s http://127.0.0.1:47100/health</code> (<code>ok:true</code> means it's up; a tsx cold start takes about 10–15 seconds).</li>
+          <li>Open the console: <code>open "http://localhost:47100/?token=$(cat ~/.saydo/.cap-token)"</code> (this is exactly what <code>saydo open</code> does). Note the <strong>localhost</strong>: for the WebAuthn binding of the Touch ID merge card, page requests to <code>127.0.0.1</code> are redirected to <code>localhost</code>. After the first injection the token lives in browser-local storage; later links don't need to carry it.</li>
+        </ul>
+        <h3>4.4 First run: the resource profile wizard</h3>
+        <p>The first thing you see is the <strong>resource profile</strong>: it inventories the model sources available on this machine (which CLIs are installed, which are logged in, which keys are in <code>.env</code>), then offers plan cards (the three plans of §5.3). A typical zero-key flow:</p>
+        <ol>
+          <li>You see a one-tap card like "all on Codex (zero cost within subscription)" (one card per logged-in CLI; the list sorts logged-in &gt; installed-only &gt; not-installed, and by usage count within a tier);</li>
+          <li>Tick two informed confirmations (evaluator same family as dialog / evaluator cage isolation not provable, §5.4);</li>
+          <li>Tap "confirm and start" → writes the pending configuration → <strong>self-check 1/2</strong> (one real call per slot) → restarts the service → <strong>self-check 2/2</strong> (re-verified after taking effect) → lands on "start talking". For an all-CLI plan each slot takes 15–25 seconds per check, <strong>about 1–3 minutes total for both rounds</strong> (varies by CLI, can be longer), with progress and elapsed time shown;</li>
+          <li>Afterwards you can switch plans in "settings" anytime, or configure slot by slot (advanced mode).</li>
+        </ol>
+        <p>Until the dialog slot is configured, every page bounces you into the wizard (with a "just look around" escape hatch); on the very first run with an empty ledger, it opens with a fixed greeting asking you to "name any three things you need to do this week" to show you how the ledger works.</p>
+        <h3>4.5 Start talking: the Today page</h3>
+        <p>Console left rail: <strong>start talking</strong> (main entry) / <strong>Today</strong> (the four-color ledger, the only "needs you" entry) / <strong>Overview board</strong> / an "ongoing items" group (Focus items listed by space) / a "records" group: <strong>memory</strong> / <strong>artifacts</strong> / <strong>cost</strong> / <strong>settings</strong>; the legacy Dashboard, approval center, notifications, tasks, Focus list (old), and board (old) live in a collapsed "legacy" group.</p>
+        <ul>
+          <li>On the Today page, tap "start talking": type, or hold to talk (§12); think out loud.</li>
+          <li>When a conversation ripens, it asks whether to open a Focus item; things you want it to do, things you owe it, and things waiting on others all appear in the four color zones of the Today page.</li>
+          <li>Development requests really walk the whole chain "interview → readiness → decision pack → sign-off → dispatch" (§3.2); before sign-off it quotes the estimated cost and cap.</li>
+          <li>Known feel (not broken): 15–25 seconds of thinking per turn is normal in CLI dialog mode — don't double-click (the desktop only errors after a 120-second per-call cap); occasionally it answers only half of what you asked — just ask again; casual "note this for me" items are usually proposed for the ledger in the same turn, occasionally they degrade into the memory store first (visible in the menu) and can be attached to the ledger once the item exists.</li>
+        </ul>
+        <h3>4.6 Optional: desktop browser voice</h3>
+        <ul>
+          <li><strong>Zero config</strong>: if the browser has system speech recognition (Chrome / Safari <code>SpeechRecognition</code>), you can hold to talk and have replies read aloud; quality is average and recognized text goes through the text channel.</li>
+          <li><strong>Cloud voice (more accurate, more natural)</strong>: fill the Volcano Doubao keys <code>VOLC_APP_ID</code> + <code>VOLC_ACCESS_TOKEN</code> (streaming recognition with hot-word bias toward your project terminology) and <code>DOUBAO_TTS_API_KEY</code> (seed-tts-2.0 synthesis) in <code>~/.saydo/.env</code>, then start the Python voice pipeline:</li>
+        </ul>
+<pre><code>cd pipeline &amp;&amp; uv sync
+SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pipeline &gt;&gt; ~/.saydo/pipeline.log 2&gt;&amp;1 &amp;
+</code></pre>
+        <p>Once configured, the console switches to cloud voice automatically; when the pipeline is absent, <code>/readyz</code> reports <code>voiceReady=false</code> (text and the control plane keep working — not a startup failure). Details in §12.</p>
+        <h3>4.7 Optional: phone connection (LAN)</h3>
+        <p>The phone apps are not in stores; today you can connect to the desktop service over the LAN using a <strong>mobile browser</strong> (or a self-built app shell):</p>
+        <ol>
+          <li>Start the daemon with <code>SAYDO_MOBILE_LAN=1</code> (listens on <code>0.0.0.0</code>, behind three gates: RFC1918 private-network sources only + capability token + Host/Origin checks);</li>
+          <li>Find your LAN IP (<code>ipconfig getifaddr en0</code>), turn <code>http://&lt;LAN-IP&gt;:47100/?token=&lt;cap-token&gt;</code> into a QR code (don't paste the token into third-party online tools) and scan it with the phone; opening the URL directly in the mobile browser works too (mobile shell route <code>#/m</code>);</li>
+          <li>On the phone, hold the capsule at the bottom to talk (iPhone uses system speech recognition — no Python pipeline needed), swipe up to choose which Focus item it belongs to; see the four colors of Today, watch progress, nod or retract ledger-type confirmation cards. <strong>Approvals of running commands (S2) and merge / delete (S3) only ever appear on the local trusted screen — a LAN phone surface cannot rule on them</strong> (the phone has no paired device identity).</li>
+        </ol>
+        <p>This is a dogfood-grade temporary boundary (cleartext LAN HTTP + a long-lived capability token) — <strong>do not expose it to untrusted networks</strong>; device pairing / end-to-end encryption / store apps are covered in §13 and §16. Deleting <code>~/.saydo/.cap-token</code> and restarting rotates the token; every connected device drops and must re-scan.</p>
+        <h3>4.8 Residency, backup, shutdown, reset</h3>
+        <ul>
+          <li><strong>Residency (launchd)</strong>: <code>just daemon install | start | stop | restart | status | logs | deploy [sha]</code> — auto-start at login + auto-restart on crash, with the runtime tree separated from the development tree (<code>~/.saydo/runtime</code> → <code>~/.saydo/releases/&lt;sha&gt;</code>). <code>install</code> also generates and loads the voice pipeline's residency config (requires <code>uv</code>); without <code>uv</code>, use <code>just daemon install --without-pipeline</code> to install only the daemon (desktop cloud voice unavailable; system voice and text work as usual); <code>uninstall</code> removes both symmetrically. For daily use the foreground forms in §4.3 are enough; residency suits long-running setups.</li>
+          <li><strong>Update</strong>: <code>git pull &amp;&amp; pnpm install &amp;&amp; pnpm -r build</code>, then restart the daemon (foreground form: Ctrl+C and start again; launchd form: <code>just daemon deploy</code> — restarts the daemon and the voice pipeline, pick an idle moment).</li>
+          <li><strong>Backup</strong>: the daemon snapshots automatically every day to <code>~/.saydo/backups/&lt;timestamp&gt;/</code> (online SQLite backup + <code>sessions/</code> + the user profile + each project's knowledge base and grounding artifacts), retained for <code>[params].backup_retention_days</code> (default 30 days); <code>just backup</code> triggers one manually.</li>
+          <li><strong>Shutdown</strong>: <code>lsof -t -iTCP:47100 -sTCP:LISTEN | xargs kill; pkill -f saydo_pipeline</code> (in the <code>saydo up</code> foreground form just Ctrl+C: it first stops new dispatches, writes "to be resumed" markers for active tasks, then closes down; the next start picks up where it left).</li>
+          <li><strong>Full reset</strong> (back to a brand-new user): after stopping, <code>rm -rf ~/.saydo</code> — this rotates the token and also deletes all ledgers and memory; <code>&lt;repo&gt;/.saydo/</code> inside project workspaces is outside this directory and must be handled separately.</li>
+        </ul>
+
+        <h2 id="s5">5. Models &amp; providers (required reading for advanced users)</h2>
+        <p>SayDo splits model usage into <strong>five slots</strong>, each with its own supply method and model. This is the same mechanism behind both "one subscription does everything" and "combining multiple vendors for the best results".</p>
+        <h3>5.1 The five slots</h3>
+        <table>
+          <thead>
+            <tr><th>Slot</th><th>Config key</th><th>What it does</th><th>What it needs</th><th>Example (repo template / wizard "one key" card)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>dialog</strong></td><td><code>[models].dialog</code></td><td>Every conversation turn: interview, Q&amp;A, spoken summaries</td><td>Low latency, good spoken Chinese, strong tool-call discipline</td><td>API (OpenRouter, <code>openai/gpt-5.6-luna</code>)</td></tr>
+            <tr><td><strong>thinking</strong></td><td><code>[models].thinking</code></td><td>Task card drafting, decision pack / plan generation, grounding distillation (the lightweight demo is mechanically rendered and uses no model)</td><td>Deep reasoning, async without blocking dialog</td><td>API (OpenRouter, <code>openai/gpt-5.6-terra-pro</code>)</td></tr>
+            <tr><td><strong>cheap</strong></td><td><code>[models].cheap</code></td><td>Summary narration, hot-word extraction, event tagging and other high-frequency structured calls</td><td>Cheap, fast</td><td>API (OpenRouter, <code>google/gemini-3.1-flash-lite</code>)</td></tr>
+            <tr><td><strong>evaluator</strong></td><td><code>[models].evaluator</code></td><td>Independently judges "enough to start" (readiness deep assessment)</td><td><strong>A different family from dialog / thinking</strong> (§5.4)</td><td>API (OpenRouter, <code>anthropic/claude-sonnet-5</code>)</td></tr>
+            <tr><td><strong>dev (executor)</strong></td><td><code>[models.dev]</code></td><td>Which agent edits code on dispatch, and which of its models</td><td>See §6</td><td><code>agent = "cursor"</code> (matches the repo template; the only production executor today)</td></tr>
+          </tbody>
+        </table>
+        <p>Why split: dialog wants latency (you're waiting for it to speak), thinking wants quality (its output is the "contract"), cheap wants cost (high-frequency calls), evaluator wants independence (a referee from another vendor). One model for all four slots is either slow, expensive, or not independent.</p>
+        <h3>5.2 Two supply methods</h3>
+        <p><strong>Method A · direct API</strong> (<code>{ provider = "api", via = "&lt;endpoint name&gt;", model = "..." }</code>)</p>
+        <ul>
+          <li>Any <strong>OpenAI-compatible</strong> endpoint: declare <code>base_url</code> + <code>api_key = "env:VAR"</code> under <code>[providers.api.&lt;name&gt;]</code> (keys may only be referenced as environment variables — <strong>never written into the config in plaintext</strong>).</li>
+          <li>Recommended gateway: <strong>OpenRouter</strong> — one key reaches many vendors (it's the default template); direct single-vendor connections also work (OpenAI / Anthropic / DeepSeek / Moonshot / Alibaba Bailian… the template has examples).</li>
+          <li>When the model name carries a vendor prefix (<code>openai/…</code>, <code>anthropic/…</code>, <code>google/…</code>, <code>deepseek/…</code>, <code>x-ai/…</code>, <code>qwen/…</code>), the family resolves automatically; on single-vendor endpoints whose model names have no prefix, the endpoint must declare <code>family = "deepseek"</code> or similar explicitly — used by §5.4's different-family check.</li>
+          <li>A dialog slot on API runs in <strong>realtime mode</strong>: full multi-turn tool loop, streaming, sub-second returns — voice conversations rely on it.</li>
+        </ul>
+        <p><strong>Method B · subscription CLI (BYOA)</strong> (<code>{ provider = "&lt;x&gt;_cli", model = "..." }</code>)</p>
+        <p>Use AI command-line tools <strong>already logged in</strong> on your machine as reasoning supply — zero API keys, billed to your subscription quota. Currently wired CLIs:</p>
+        <table>
+          <thead>
+            <tr><th>provider</th><th>Command</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>codex_cli</code></td><td><code>codex</code></td><td>Family always GPT; optional <code>reasoning</code> (none/minimal/low/medium/high/xhigh/max); model may be omitted</td></tr>
+            <tr><td><code>claude_cli</code></td><td><code>claude</code></td><td>Family always Claude; model may be omitted</td></tr>
+            <tr><td><code>cursor_cli</code></td><td><code>cursor-agent</code></td><td><strong>model required</strong> (e.g. <code>claude-fable-5-thinking-max</code>, <code>cursor-grok-4.6-high-fast</code>); family resolved from the model name</td></tr>
+            <tr><td><code>grok_cli</code></td><td><code>grok</code></td><td>Family always grok; model may be omitted</td></tr>
+            <tr><td><code>gemini_cli</code></td><td><code>gemini</code></td><td>Family from the explicit model name or in-stream reporting; if it can't be resolved, the slot is blocked</td></tr>
+            <tr><td><code>qwen_cli</code></td><td><code>qwen</code></td><td>Same (transport-style CLI)</td></tr>
+            <tr><td><code>copilot_cli</code></td><td><code>copilot</code></td><td>Same (transport-style CLI)</td></tr>
+          </tbody>
+        </table>
+        <p>(<code>kimi_cli</code> / <code>opencode_cli</code> are only "recognized" in the resource profile and <strong>cannot</strong> be used as supply — local testing showed zero-tool operation cannot be proven before execution, so for safety they are not wired.)</p>
+        <p>Login is between you and the vendor: log in with each vendor's official method; SayDo only probes "installed? / logged in? / which models can it list?", and the wizard offers paste-ready fix commands when one isn't logged in (follow the wizard's hints):</p>
+        <table>
+          <thead>
+            <tr><th>CLI</th><th>Login</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>cursor-agent</code></td><td><code>cursor-agent login</code></td></tr>
+            <tr><td><code>codex</code></td><td><code>codex login</code></td></tr>
+            <tr><td><code>claude</code></td><td><code>claude auth login</code></td></tr>
+            <tr><td><code>grok</code></td><td><code>grok login</code></td></tr>
+            <tr><td><code>gemini</code></td><td>Run <code>gemini</code> in a terminal to complete the Google login</td></tr>
+            <tr><td><code>qwen</code></td><td>Configure an OpenAI-compatible endpoint or <code>OPENAI_API_KEY</code> (it bills through the upstream API, and the ledger copy says so honestly)</td></tr>
+            <tr><td><code>copilot</code></td><td><code>copilot login</code></td></tr>
+          </tbody>
+        </table>
+        <p>How BYOA works and its discipline (the part you'll feel in the UI):</p>
+        <ul>
+          <li><strong>One shot, stateless</strong>: every call spawns a fresh CLI subprocess; sessions are never reused (resume is deliberately avoided — session persistence conflicts with privacy switches, and in testing resume gained no latency either).</li>
+          <li><strong>Dialog slot on CLI = slow text mode</strong> (<code>dialog_cli_oneshot</code>): about 15–25 seconds per turn, returning one reply plus up to 8 structured actions (record a note, open a task, check status, propose to start…), which the daemon executes one by one; <strong>it does not enter the voice realtime loop</strong> (give the dialog slot an API for voice conversations). This is not a hang — the UI shows a slow-mode badge and progress.</li>
+          <li><strong>Takes effect only after real self-checks</strong>: when the config is saved, every CLI-backed slot makes one real call (the dialog slot must return a valid envelope, the cheap slot must pass schema, the evaluator must pass a deep-assessment request of the same shape as production and report the actual model); all four slots must pass before the restart takes effect; any failure marks only that slot red with a plain-language reason — no fake success.</li>
+          <li><strong>The cage</strong>: CLI calls for reasoning run in a <strong>fresh empty isolated directory each time</strong>, the prompt header hard-bans "execute commands / read files", and each CLI gets its strictest zero-tool flags (Claude <code>--tools ""</code>, Codex read-only sandbox, Grok <code>--tools ""</code>, Gemini/Qwen/Copilot their own deny policies + isolated HOME); if a tool-call event appears in the stream, the call is terminated and voided immediately (tripwire). Cursor CLI has no provable zero-tool flag — only "ask mode + tripwire detection", the weakest cage of the three. Precisely because CLI cages are "write-limited but not read-limited" (disk reads can't be blocked, so an evaluator could in theory read the Brain's self-defense), <strong>any evaluator slot on any CLI requires you to personally tick two informed confirmations</strong> (same-family + isolation, §5.4).</li>
+          <li><strong>Actual-model verification</strong>: every call records <code>requestedModel / observedModel</code>; if the model family reported in-stream doesn't match the config, that call is voided; fixed-family CLIs like Codex / Claude may pass under their registered family when binary identity verification (absolute path + content digest registration) succeeds.</li>
+        </ul>
+        <h3>5.3 Three setup plans (the three cards in the first-run wizard)</h3>
+        <p>The first time you enter the console you see the "resource profile wizard": it probes which CLIs are installed, which are logged in, and which keys are already in <code>.env</code>, then offers one-tap plan cards —</p>
+        <table>
+          <thead>
+            <tr><th>Plan</th><th>Who it fits</th><th>How the four reasoning slots are configured</th><th>Experience</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>All on one CLI</strong> (e.g. "all on Codex")</td><td>One subscription, don't want to apply for keys</td><td>dialog / thinking / cheap / evaluator all on that CLI</td><td>Zero keys, zero terminal; 15–25 s per turn (slow text mode); zero extra cost within subscription quota. The evaluator on CLI and same family as dialog requires ticking both the "same-family informed confirmation" and the "isolation informed confirmation"</td></tr>
+            <tr><td><strong>Dialog on API + the rest on CLI</strong></td><td>Have a subscription, willing to pay a little API for realtime dialog</td><td>dialog on API (sub-second, voice-capable); thinking / cheap / evaluator on CLI</td><td>The recommended "fast and cheap" combination; the evaluator on CLI also needs the two confirmations</td></tr>
+            <tr><td><strong>One key for everything</strong></td><td>No CLI subscriptions</td><td>All four slots on the OpenRouter API, models assigned per slot spec</td><td>Sub-second returns; pay-as-you-go per the provider's bill</td></tr>
+          </tbody>
+        </table>
+        <p>The wizard's "advanced mode" allows slot-by-slot manual configuration: each slot independently picks an API endpoint / any logged-in CLI / a specific model; both routes require all four self-checks green before the restart takes effect. Advanced combinations, for example:</p>
+        <ul>
+          <li>dialog on API (e.g. a low-latency model like <code>google/gemini-3.1-flash</code> on OpenRouter, family gemini) + thinking on <code>cursor_cli</code> (<code>claude-fable-5-thinking-max</code>, family claude) + cheap on <code>grok_cli</code> + evaluator on <code>codex_cli</code> (<code>reasoning = "max"</code>, family gpt) — fast dialog, strong thinking, the evaluator in a different family from both dialog and thinking, and thinking and evaluator don't share the same vendor's subscription window (the evaluator on CLI requires the two confirmations).</li>
+          <li>All-API but split vendors: dialog / thinking on one vendor, the evaluator on another; or one OpenRouter key with different vendors' models per slot.</li>
+          <li>Project-level overrides (console project settings): a project can switch the <strong>dialog / thinking slots</strong> to a stronger (or cheaper) API model, change the dev-slot model, or change the budget cap; the project layer only allows API bindings, and the evaluator slot cannot be overridden (it's the guardrail anchor).</li>
+        </ul>
+        <h3>5.4 The different-family rule: the evaluator must be another vendor</h3>
+        <p>If the "enough to start" judgment were self-assessed by the same model (or family), errors would correlate strongly with generation. Therefore:</p>
+        <ul>
+          <li>The evaluator slot's model family <strong>must not</strong> match dialog or thinking (fail-closed: same family without confirmation → evaluator <code>unarmed</code>, the daemon warns at startup; conversation still works, but readiness deep assessment won't arm).</li>
+          <li>Family is judged by the <strong>resolved actual model</strong>: <code>openai/…</code>→gpt, <code>anthropic/…</code>/fable/sonnet/opus→claude, <code>google/…</code>→gemini, deepseek, grok, qwen, composer (Cursor's own)…; <code>codex_cli</code> is always gpt, <code>claude_cli</code> always claude, <code>grok_cli</code> always grok; Cursor CLI resolves from the model name you fill in.</li>
+          <li><strong>Two informed exemptions</strong> (you must tick them yourself; the UI won't sign for you): <code>evaluator_same_family_ack</code> (accept same-family evaluation, at the cost of reduced independence), <code>evaluator_isolation_ack</code> (accept a "write-limited but not read-limited" CLI cage as evaluator, at the cost that "the evaluator can't read the Brain's self-defense" being unprovable). <strong>Whenever the evaluator slot uses any CLI (any vendor, regardless of family), both must be true</strong>; an evaluator on API with a different family needs neither. The "all on one CLI" plan inherently needs both.</li>
+          <li>Arming conditions for an evaluator on CLI = both acks true + self-check passed + actual model family provable; anything missing means <code>unarmed</code> (the reasons show as <code>same_family_blocked</code> / <code>isolation_ack_required</code> / <code>cli_self_test_required</code> / <code>cli_self_test_failed</code>).</li>
+          <li>Adjacent rule: when a thinking / cheap slot's CLI is unregistered or fails self-check, it <strong>honestly falls back to the dialog slot's supply</strong> (status shows <code>fallback_dialog</code> with the reason) — the service doesn't break and doesn't pretend to be active.</li>
+        </ul>
+        <h3>5.5 Billing &amp; accounting</h3>
+        <ul>
+          <li><strong>Subscription CLI calls produce no "yuan"</strong>: the cost ledger records them as <code>source = subscription</code>, shown as "within subscription quota" (call counts appear in the weekly report) — not ¥0, not "unknown", and no quota forecasts. Only when the CLI's authentication is verified to be genuinely subscription-based (e.g. Gemini personal OAuth, Copilot GitHub login) is it written as "zero cost within subscription"; if the CLI's upstream is actually API-key billing (e.g. Qwen with a key configured), the copy honestly changes to "billed per the CLI's upstream method — SayDo doesn't pay for you".</li>
+          <li><strong>API calls are estimated from the price table</strong>: models without an entry in <code>[pricing]</code> show "no exact figure yet" (never invented numbers, never 0). What actually stops you is the <strong>per-task</strong> triple circuit breaker of cost / duration / turns (§8.5); the cost cap only constrains the API-billed part — subscription calls are backstopped by wall-clock + turn count; <code>[budget].monthly</code> is currently just a config item (no enforcement or display point), not a hard gate.</li>
+          <li><strong>Subscription rate limits never silently convert to billing</strong>: when a weekly / 5-hour window rate limit hits, that call returns a retryable rate-limit error and tells you honestly, <strong>never auto-switching to API billing</strong>. Two contracts — "stop and ask whether to switch to pay-as-you-go or wait for the reset + a single-use billing-switch receipt (valid 10 minutes)" and "durable queue with automatic replay" — have landed but are not yet wired into production (in progress).</li>
+        </ul>
+        <h3>5.6 Configuration file reference</h3>
+        <p>Global config <code>~/.saydo/config.toml</code> (non-secret) + <code>~/.saydo/.env</code> (the actual secrets; never enters Git); copyable templates live in the repo's <code>templates/</code>. The first-run wizard writes exactly these two files; edit by hand and restart the daemon to apply (with invalid config the daemon enters "recovery-only" mode: the health probe and the settings self-rescue page stay up, dialog and dispatch are disabled — §17).</p>
+<pre><code>[models]
+profile   = "default"                # default | dev (dev also needs the SAYDO_DEV=1 env var; two switches)
+dialog    = { provider = "api", via = "openrouter", model = "openai/gpt-5.6-luna" }     # family gpt, realtime voice loop
+thinking  = { provider = "codex_cli", reasoning = "high" }                            # family always gpt, billed to the ChatGPT subscription
+cheap     = { provider = "grok_cli" }                                                 # family always grok; model omitted = CLI default
+evaluator = { provider = "api", via = "openrouter", model = "anthropic/claude-sonnet-5" } # family claude, different from both above, no ack needed
+# evaluator_same_family_ack = true   # both lines are required when the evaluator uses any CLI (otherwise readiness deep assessment stays unarmed); evaluator on API with the same family needs only the first
+# evaluator_isolation_ack   = true
+
+[models.dev]                         # dev slot = executor (§6)
+agent     = "cursor"
+transport = "cli"
+model     = "grok-4.6"               # use a model name currently listed by cursor-agent
+
+[providers.api.openrouter]
+base_url = "https://openrouter.ai/api/v1"
+api_key  = "env:OPENROUTER_API_KEY"  # always an env reference; multi-vendor gateways declare no family
+# provider_order = ["deepinfra"]     # optional: pin the upstream routing order on an aggregator gateway and disable automatic fallback (deterministic routing)
+# [providers.api.deepseek]           # single-vendor direct example: model names have no prefix ⇒ family is required
+# base_url = "https://api.deepseek.com/v1"
+# api_key  = "env:DEEPSEEK_API_KEY"
+# family   = "deepseek"
+
+[voice]
+engine = "cascade"                   # cascade: ASR → text model → TTS
+asr    = "volc"                      # Volcano Doubao streaming recognition (with hot-word bias)
+tts    = "volc"                      # Doubao seed-tts-2.0 v3 bidirectional streaming
+
+[privacy]
+store_audio          = false         # recording and transcripts are consented separately
+store_transcript     = true
+audio_retention_days = 0
+
+[budget]
+monthly  = 200                       # currently just a config item (no enforcement point), not a hard gate; the real breakers are per-task (§8.5)
+currency = "CNY"
+task_max_default = 20                # default per-task cost cap (yuan; constrains only the API-billed part)
+
+[dnd]
+window = "23:00-08:00"               # do not disturb: no outbound calls inside the window; snoozed to the window end, then called back in queue order
+
+[tier1]                              # executor (Cursor CLI) version pinning; enabled only when both keys are present
+cursor_agent_bin            = "/Users/&lt;you&gt;/.local/share/cursor-agent/versions/&lt;ver&gt;/cursor-agent"  # must be an absolute path; ~ is not accepted
+cursor_agent_pinned_version = "&lt;ver&gt;"
+
+[gate0]
+enabled = true
+bypass  = false                      # always false; true actually refuses all dispatch (guards against misconfiguration)
+
+[params]                             # tunable parameters (excerpt)
+foundation_budget_min  = 5           # grounding wall-clock cap (minutes)
+interview_question_budget = 8        # interview question budget
+park_aging_hours       = 72          # park aging: waiting on a human for over 72h cancels and converts to a draft
+proposed_ttl_hours     = 24          # decision pack validity
+backup_retention_days  = 30
+enabled_project_types  = ["coding"]  # type capability gate; may enable ["coding","writing"]
+</code></pre>
+        <p>Common <code>.env</code> keys: <code>OPENROUTER_API_KEY</code> / <code>OPENAI_API_KEY</code> / <code>ANTHROPIC_API_KEY</code> / <code>DEEPSEEK_API_KEY</code> (fill per the endpoints you create), <code>DOUBAO_TTS_API_KEY</code> + <code>VOLC_APP_ID</code> + <code>VOLC_ACCESS_TOKEN</code> (desktop browser voice, §12), <code>NTFY_TOPIC</code> + <code>NTFY_SERVER</code> (phone push, §11).</p>
+        <p>The whitelist of project-level overridable keys is in §7.1 (<code>&lt;workspace&gt;/.saydo/project.toml</code>): only <code>[project]/[git]/[verify]/[setup]</code> and budget / dnd / params subsets; <strong>models / providers / gate0 / hopper / privacy / voice at the project layer are refused outright</strong> — a file shipped with a repo is untrusted input and must not point your keys at someone else's endpoint.</p>
+
+        <h2 id="s6">6. Executors (the dev slot): who actually edits code</h2>
+        <h3>6.1 Two vocabularies — don't mix them</h3>
+        <ul>
+          <li><strong>CLI supply for reasoning slots</strong> (§5.2) = letting the Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot CLIs <strong>speak, think, and evaluate for the Brain</strong> — they do one-shot text reasoning only and never touch your repo.</li>
+          <li><strong>Executors (dev slot, <code>[models.dev]</code>)</strong> = the agent that, after sign-off, <strong>actually edits code and runs commands in a worktree</strong>. The vocabulary is <code>claude_code | cursor | codex</code>, but <strong>only <code>cursor</code> has a production implementation today</strong>; configuring anything else makes the daemon refuse to start the executor (fail-closed — it won't quietly substitute the Cursor binary); conversation is unaffected.</li>
+        </ul>
+        <h3>6.2 Currently available: the Cursor CLI executor <span class="badge badge-live">Available now</span></h3>
+        <ul>
+          <li>Driven as: <code>cursor-agent -p --force --trust --output-format stream-json --model &lt;model&gt; [--resume &lt;chatId&gt;] &lt;prompt&gt;</code>, running in the task's worktree; model = any model name currently listed by <code>cursor-agent</code> (Grok 4.6 and Composer 2.5 verified in testing; Claude-family models also work); if the actual model family reported in the event stream doesn't match the config, that round is voided.</li>
+          <li>Approval gate: the executor writes <code>.cursor/hooks.json</code> per worktree; the <code>beforeShellExecution</code> hook <strong>blocks synchronously</strong> and calls back to the daemon's local unix socket; the daemon rules by command <strong>effect</strong> (§8.1/§8.3); hook timeout, malformed JSON, or an unreachable socket all mean refuse; a shell call in the event stream without a matching gate request ⇒ the gate is judged bypassed and the task is terminated immediately (canary).</li>
+          <li>Version pinning: <code>[tier1].cursor_agent_bin</code> must be the <strong>absolute path</strong> of the locked copy (<code>…/versions/&lt;ver&gt;/cursor-agent</code>) plus <code>cursor_agent_pinned_version</code> exactly equal; the executor is enabled only when both keys are present — guarding against behavior drift after <code>cursor-agent</code> self-updates. Upgrading = change both keys + rerun the gate.</li>
+          <li>Credential stripping: the agent process environment carries only ten variables — <code>PATH/HOME/USER/LOGNAME/SHELL/LANG/LC_ALL/LC_CTYPE/TERM/TMPDIR</code> — no API keys or tokens; its login state lives in its own HOME storage.</li>
+          <li>Honest boundary: on the Cursor backend only the shell channel passes the gate; built-in file read/write / networking tools don't go through the hook — so its network egress capability is honestly marked <code>egress = uncontrolled</code>; isolation relies on "separate worktree + credential stripping + command gate", <strong>not a sandbox</strong>; for tasks you don't trust, use step-confirm mode and watch S2 closely.</li>
+          <li>Changing requirements mid-run (steer): no backend currently supports live injection into a running task; a running task = <strong>terminate the current round and resume with the new instructions</strong> (<code>cancel_resume</code>, worktree kept), a queued / parked task = injected at its next run (<code>queued_delta</code>). It tells you honestly which case applies.</li>
+        </ul>
+        <h3>6.3 In progress &amp; planned</h3>
+        <table>
+          <thead>
+            <tr><th>Backend</th><th>Status</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Claude Code executor</strong> (<code>agent = "claude_code"</code>)</td><td><span class="badge badge-progress">In progress</span></td><td>Plan settled: the official <code>claude -p --output-format stream-json</code> subprocess as transport, Claude Code's <code>PreToolUse</code> hooks for S1–S3 rulings (file tools pass the gate too — one layer more than Cursor), hooks injected from the command line rather than files inside the worktree; subscriptions consumed only through the <code>claude</code> login, zero API keys; no bypass permissions, no live steer. Batch one (official CLI capability testing + approval-gate pure functions) is closed; wiring the production execution path is next</td></tr>
+            <tr><td><strong>Codex executor</strong></td><td><span class="badge badge-soon">Planned</span></td><td>Designed via the Hopper batch route (below); <code>agent = "codex"</code> is refused today</td></tr>
+            <tr><td><strong>Hopper batch route</strong> (heavy tasks dropped into the standalone Hopper task system: worktree / event sourcing / crash recovery / budget / review gates)</td><td>Contract settled, production binding dormant</td><td>The daemon's main flow doesn't start it; the locked-version copy and dedicated vault conventions are written in the config template but currently not consumed; merges on the Hopper route are always manual handoff, never the Touch ID card. For users it is not a usable feature today</td></tr>
+            <tr><td><strong>provider-neutral native executor</strong> (any OpenAI-compatible backend)</td><td><span class="badge badge-soon">Planned</span></td><td>The direction recommended by the 2026-08 decision (replacing "make the DeepSeek Harness the default runner" — the latter was rejected for conflicting with fail-closed red lines: approvals defaulting to allow, hook failures not blocking, etc.)</td></tr>
+            <tr><td><strong>Gemini CLI as executor</strong></td><td>Not planned</td><td>Gemini CLI serves reasoning slots only</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="s7">7. Projects &amp; Git: how it works with your repos</h2>
+        <h3>7.1 Projects &amp; workspaces</h3>
+        <ul>
+          <li><strong>A coding project = a folder on your machine (a git repo)</strong>, registered by absolute path (<code>~/</code> allowed; symlinks resolved; filesystem identity recorded to prevent drift). Hard constraints: must be inside your user directory, must not overlap <code>~/.saydo</code>, must not be a parent/child of another active project.</li>
+          <li><strong>No "give me a remote repo URL and clone it for me"</strong>: the whole implementation assumes a local folder; clone remote repos yourself first.</li>
+          <li><strong>How to register</strong>: name the local path in conversation (it parses only <strong>the single path literal in your own current sentence</strong>, read-only verifies the directory exists, plays back "this local project, type X" and adopts it only after your closed confirmation — denial, ambiguity, a nonexistent path, or a path you didn't say yourself all mean zero writes; the model never invents a path and attaches it automatically); or pick an existing project at the console's trusted terminal. Non-code work (writing, research, life planning) defaults to the system-managed directory <code>~/.saydo/projects/&lt;id&gt;</code> and won't stop you to "pick a folder first".</li>
+          <li><strong>In-project directory</strong> <code>&lt;workspace&gt;/.saydo/</code>: <code>knowledge/</code> (the M1 knowledge base, Markdown, human-readable and editable, with its own git history) / <code>foundation/</code> (grounding artifacts and manifest) / <code>worktrees/&lt;taskId&gt;/</code> (task isolation trees) / <code>project.toml</code> (project-layer config). The artifact store, source snapshots, readiness deep-assessment records, and session transcripts all live in the global <code>~/.saydo/{artifacts,snapshots,assessments,sessions}</code>, not in the project directory. <strong>Adding <code>.saydo/</code> to the project's <code>.gitignore</code> is recommended</strong> (the daemon won't edit <code>.gitignore</code> for you; to share the knowledge base with a team, commit <code>knowledge/</code> explicitly).</li>
+          <li><strong><code>project.toml</code></strong> (shipped with the repo, treated as untrusted input): only <code>[project]</code> (type / exec_mode_default), <code>[git].protected</code> (protected branches, <strong>unioned with the default <code>["main","master"]</code></strong> — can only add, never remove), <code>[[verify.entries]]</code> (acceptance command registration, §7.4), <code>[setup].command</code> (dependency install command), and budget / dnd / params subsets are accepted; <code>models / providers / gate0 / hopper / privacy / voice / pricing / tier1</code> appearing means refusal (keys are refused, not the file; refusals land in the audit). A broken file = the project's task pickup turns blocked and calls a human — it never plows ahead with lenient defaults.</li>
+          <li><strong>AGENTS.md interop</strong>: grounding reverse-absorbs the AGENTS.md / CLAUDE.md / <code>.cursor/rules</code> already in your repo; on the output side it places an idempotent pointer block in AGENTS.md pointing at the knowledge base (<code>&lt;!-- saydo:knowledge:begin/end --&gt;</code>), so the knowledge base's value doesn't zero out when you switch tools.</li>
+        </ul>
+        <h3>7.2 One worktree per task</h3>
+        <ul>
+          <li>After sign-off and dispatch, the executor runs <code>git worktree add -b saydo/&lt;taskId&gt; … HEAD</code> under <code>&lt;repo&gt;/.saydo/worktrees/&lt;taskId&gt;/</code> — <strong>branch name <code>saydo/&lt;taskId&gt;</code>, cut from the main repo's current HEAD</strong>; rework / resume of the same task reuses the same worktree. <strong>Your main working tree is never touched during execution</strong> (the agent's cwd is locked to the worktree; out-of-circle commands escalate or are refused per S2/S3).</li>
+          <li>Installing dependencies: <code>[setup].command</code> only accepts <code>pnpm / npm / yarn</code> in <code>install / i / ci</code> form with a flag whitelist, and <strong><code>--ignore-scripts</code> is force-appended</strong> (postinstall belongs to the supply-chain execution surface; escalate as S2 when genuinely needed).</li>
+          <li>The agent's prompt states explicitly: only make changes inside the current working directory, <strong>do not git push</strong>, and do not merge your changes.</li>
+          <li>Tasks in the same repo run serially; tasks across repos run in parallel; heavy repos can serialize on a single worktree.</li>
+          <li><strong>Worktrees are never auto-deleted</strong> (kept even on cancel, so work can be recovered); <code>&lt;repo&gt;/.saydo/worktrees/</code> accumulates on disk — <code>git worktree remove</code> / clean up periodically yourself.</li>
+        </ul>
+        <h3>7.3 Completion, review, merge: it never pushes for you, and never opens PRs</h3>
+        <ol>
+          <li>When execution finishes → <strong>the daemon (not the agent)</strong> snapshots the worktree tree (<code>git add -A</code> excluding <code>.cursor/</code>, then <code>write-tree</code> for the <code>treeSha</code>) → <strong>re-runs the frozen acceptance commands</strong> in the worktree (§7.4) → produces the settle proof (task / round / decision pack version / treeSha / verify digest / transcript cursor) → the task enters <strong><code>ready_for_review</code></strong> → calls you. Any drift afterwards is detected.</li>
+          <li>On the review surface you pick one of three: <strong>approve</strong> (records the approved <code>treeSha</code>, enters "awaiting merge") / <strong>needs changes</strong> (a new round of the same task, reusing the worktree, your feedback goes into the next prompt) / <strong>void</strong> (cancel this round).</li>
+          <li>Two merge paths, both human-triggered:
+            <ul>
+              <li><strong>Touch ID / passkey approval card</strong> (Tier1 default): one WebAuthn strong authentication on screen signs a single-use receipt binding task / round / decision pack version / expected tree; with the receipt the daemon: re-checks the worktree's current tree == receipt tree (drift refuses) → re-runs the frozen verify in an isolated environment (failure ⇒ <code>merge_failed</code>, to manual) → asserts the main repo hasn't moved (<code>merge-base == HEAD</code>) and its tracked files are clean (uncommitted changes ⇒ to manual) → <code>git commit-tree</code> + <strong><code>git merge --ff-only</code></strong> into the main repo's current branch (fast-forward only, no history rewrite; commit message like <code>saydo: merge &lt;taskId&gt; (S3 approved)</code>) → asserts the HEAD tree once more → "delivered". First use requires a one-time "register approval fingerprint" on the machine.</li>
+              <li><strong>Manual merge handoff</strong> (no passkey registered, or you prefer to do it yourself): it gives you a handoff entry; you merge in the terminal yourself; then tap "verify" and the daemon <strong>re-reads</strong> the main repo's <code>HEAD</code> tree and reconciles it against the <code>treeSha</code> stored at approval — match advances to "delivered", mismatch refuses and leaves a trace (guards against "rolled back but shown as done").</li>
+            </ul>
+          </li>
+          <li><strong>It never pushes and never opens PRs</strong>: no code path anywhere pushes to a remote or creates a Pull Request; if the agent types <code>git push</code> itself, it escalates or is refused per S2 (feature branches) / S3 (protected branches or force). Pushing and opening PRs are things you do yourself after reviewing and merging.</li>
+          <li>The voice surface <strong>never renders</strong> merge buttons; merge actions invoked from a LAN / tailnet phone surface are refused and audited.</li>
+        </ol>
+        <h3>7.4 Acceptance commands only from registered templates (against command injection and "self-certified passes")</h3>
+        <ul>
+          <li>Register in <code>project.toml</code>: <code>[[verify.entries]] name="test" source="package_script" ref="test"</code> (<code>source</code> is only <code>package_script</code> / <code>justfile</code>); the Brain can only <strong>choose</strong> among registered entries — any assembled string is refused.</li>
+          <li><strong>Content freeze</strong>: at dispatch / pickup, each verify's argv + script content digest + digests of related framework config files (known configs like vitest / vite / playwright / jest / tsc / eslint / pytest / ruff / mocha) are frozen; re-read and re-computed before execution, mismatch ⇒ fail-closed. If the agent legitimately modified the test scripts ⇒ blocked and calls you back: "the verification commands need to change — your re-sign-off is needed" (Plan Delta); never silently allowed and never silently dead.</li>
+          <li>A coding task with no registered verify <strong>does not settle</strong> — it turns blocked and calls a human: the independent acceptance oracle is a gate, not an option.</li>
+          <li>Verify runs in an environment narrower than the agent's (HOME replaced with a one-time empty directory). Honest boundary: absolute-path reads and network egress still can't be blocked; full isolation = containers / sandboxes later.</li>
+          <li>The frozen verify is run <strong>once more</strong> before merging.</li>
+        </ul>
+
+        <h2 id="s8">8. Approvals &amp; safety</h2>
+        <h3>8.1 Risk graded by effect, S0–S3</h3>
+        <p>Voice is a weak authentication channel (anyone present can speak; recognition has an error rate), so approval power is graded by risk; <strong>grades are computed from effects, not action names</strong>: <code>effect × target (inside / outside the circle) × data sensitivity touched × identity credentials × downstream triggered (CI / deploy) × cost</code>.</p>
+        <table>
+          <thead>
+            <tr><th>Level</th><th>Typical (defaults; effects can upgrade)</th><th>Approval</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>S0 read</td><td>Reading code, read-only commands</td><td>Automatic</td></tr>
+            <tr><td>S1 write (inside worktree)</td><td>Editing code, running registered verify, local commit</td><td>Automatic</td></tr>
+            <tr><td>S2 out-of-circle but reversible</td><td>Installing dependencies, pushing to a feature branch, unrecognized commands</td><td>step-confirm: on-screen / voice confirmation (45-second window by default, timeout = refuse); direct-to-review: passes if it matches the read-aloud-signed pre-authorization list (not currently enabled on the voice chain, §8.4)</td></tr>
+            <tr><td>S3 irreversible / external impact</td><td>Merging to a protected branch, force push, deploy, spending money, deleting data, messaging the outside world</td><td><strong>An authenticated screen (Touch ID / passkey) is mandatory</strong>; voice never approves — a playback into the same microphone is not an independent authentication factor</td></tr>
+          </tbody>
+        </table>
+        <p>Upgrade rules: touching <code>.env</code> / credentials / customer data ⇒ at least S2; dependencies with postinstall ⇒ at least S2 and must produce a list; push triggering preview deploys ⇒ S3; push to protected branches ⇒ S3.</p>
+        <h3>8.2 Gate 0: the master switch for whether work may start</h3>
+        <p>Gate 0 is not a runtime command gate but <strong>six safety gates that must be closed before autonomous dispatch opens</strong>. Before every dispatch it checks <code>[gate0] enabled = true &amp;&amp; bypass = false</code>, and <strong>there is no bypass branch in the code</strong> (a corrupted config file is treated as "not closed" — dispatch is refused rather than continuing with lenient defaults):</p>
+        <table>
+          <thead>
+            <tr><th>Gate</th><th>Content</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>G1 identity / authorization</td><td>Single-user assumption made explicit; S3 only on screen; console capability token + Host/Origin whitelist + DNS rebinding protection; approval-gate integrity (socket rulings, canary)</td></tr>
+            <tr><td>G2 cross-boundary transaction idempotency</td><td>Unique callback outbox, event cursors + crash replay</td></tr>
+            <tr><td>G3 independent acceptance oracle</td><td>verify whitelist + content freeze + Plan Delta; the generator never grades itself</td></tr>
+            <tr><td>G4 secret / egress isolation</td><td>Agent environment stripped of credentials; egress capability honestly declared per adapter (Cursor = uncontrolled, no fake green); setup defaults to <code>--ignore-scripts</code>; TTS redaction</td></tr>
+            <tr><td>G5 intent audit</td><td>Transcript → receipt → task traces connected end to end; the audit table is immutable (triggers)</td></tr>
+            <tr><td>G6 deletion / consent propagation</td><td>A hard-delete path for "forget this"; recording and transcripts consented separately; backups expire whole per retention</td></tr>
+          </tbody>
+        </table>
+        <h3>8.3 How each shell command passes the gate</h3>
+        <ul>
+          <li>Physical chain: <code>.cursor/hooks.json</code> inside the worktree → the gate script supplied by the daemon and placed outside the worktree at <code>~/.saydo/tier1/</code> (same user as the agent, <strong>currently not guaranteed unwritable by the agent</strong> — the honest account) → unix socket → daemon ruling; compensating control = the script's integrity is recomputed on every gate request, and drift ⇒ all active tasks cancelled.</li>
+          <li>The classifier <strong>conservatively</strong> derives effects from commands: anything unrecognized escalates as S2; commands lexically containing <code>.env / credential / secret / .pem / .key / id_rsa / id_ed25519 / .npmrc / .netrc / keychain / token</code> ⇒ sensitive upgrade; force push / absolute-path deletion / piping remote scripts into execution ⇒ S3; compound commands (<code>&amp;&amp;</code> / <code>;</code> / <code>|</code> / subshells) are classified by their <strong>highest-risk segment</strong>, and any unjudgeable segment makes the whole command unjudgeable. Arbitrary code execution entries like <code>node / python / tsx / just</code> are also S2 (<code>node -e "fetch(…)"</code> and <code>node build.js</code> are lexically indistinguishable); registered verify (e.g. <code>just test</code>) matches <strong>before</strong> the classification table at the gate and still passes automatically.</li>
+          <li>Rulings: S0/S1 pass; S2 escalate (45 seconds, timeout = refuse); S3 refuse outright; risk-calculation errors = refuse. <strong>Every command is approved independently; one approval never goes long-lived.</strong></li>
+          <li>A fourth action, "<strong>edit and approve</strong>": you may modify the command before approving; the agent retries the edited command verbatim and hits this single-use receipt.</li>
+          <li>Each S2 gets one receipt, bound to the parent decision pack's digest and the sign-off round, consumed on acceptance.</li>
+        </ul>
+        <h3>8.4 Two execution modes</h3>
+        <table>
+          <thead>
+            <tr><th>Mode</th><th>Semantics</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>step-confirm</strong> (factory default; colloquially "ask me every step / keep an eye on it")</td><td>Every out-of-circle action (S2) confirmed beforehand + confirmation at plan step boundaries; agent questions escalate immediately; S0/S1 never ask in any mode (the worktree already backstops them)</td><td><span class="badge badge-live">Available now</span> — all tasks currently execute in this posture</td></tr>
+            <tr><td><strong>direct-to-review</strong> (colloquially "run it straight through")</td><td>Sign-off authorizes the whole pack: the decision pack declares item by item and <strong>reads aloud</strong> this task's expected S2 effect classes (with constraint parameters: which packages to install / which branch pattern to push), signed with the pack's digest; during the run, matches on the list pass automatically (a pre-authorization receipt is recorded and validity re-checked at the enforcement point), misses or upgrades are refused with feedback to the agent to take another route</td><td><span class="badge badge-progress">In progress</span> — the pre-authorization list's contract and matching logic have landed, but the voice sign-off loop isn't wired for read-aloud signing yet, so packs are always assembled as step-confirm; choosing "straight through" at sign-off is honestly answered with a redirect to the screen or to step-confirm</td></tr>
+          </tbody>
+        </table>
+        <p>Invariants (no mode may touch): effect grading, S3 on-screen strong authentication, the three circuit breakers, the verify whitelist, Plan Delta re-authorization, callback priority, status-word discipline, the two keys, Gate 0. <strong>The pre-authorization scope always belongs to the decision pack — heard and signed by you; the mode is only the enabling switch for that list</strong> — otherwise "switch to full auto" would become a one-sentence privilege-escalation channel. Defaulting tight (step-confirm) hedges automation bias; "trust graduation" was explicitly rejected.</p>
+        <h3>8.5 Three circuit breakers &amp; park aging</h3>
+        <ul>
+          <li><strong>Three circuit breakers</strong> (any one trips ⇒ cancel ⇒ enters blocked with context and calls you): <strong>active wall-clock</strong> (default 45 minutes; the clock stops while parked for approvals / questions) + <strong>turn count</strong> (default 80) + <strong>API cost</strong> (from the decision pack's cap, default 20 yuan; constrains only the API-billed part — subscription calls are backstopped by the first two). All three are project-overridable. "No events for 15 minutes" only catches hangs, not "actively burning money in circles" — so all three are indispensable.</li>
+          <li><strong>Park aging</strong>: waiting on your review or on you to unblock beyond <code>park_aging_hours</code> (default 72 hours) ⇒ cancel and convert to a draft card (a parked task holds a worktree and the same-repo queue — it can't hang forever); resuming from a long park forces receipt-validity re-checks.</li>
+          <li><strong>Decision pack validity</strong> <code>proposed_ttl_hours</code> (default 24 hours), void on expiry; a new proposal for the same project supersedes the old.</li>
+        </ul>
+        <h3>8.6 Other safety discipline</h3>
+        <ul>
+          <li><strong>TTS redaction</strong>: tokens, keys, customer data, and full local paths never enter voice (a path is spoken as "a config file", a key as "a credential").</li>
+          <li><strong>Console caller identity</strong>: every request / WS handshake validates the capability token, with a Host / Origin whitelist, stopping malicious web pages from bypassing voice authorization to call the daemon directly; listens on loopback only by default.</li>
+          <li><strong>Memory write path</strong>: third-party content (repos / web pages / documents) can never define "what you like / what you allow / where your credentials are"; candidate → trusted requires human approval (§9.3).</li>
+          <li><strong>Audit / log separation</strong>: logs may rotate; the audit table is immutable; sensitive payloads are recorded as digests only, never in the clear.</li>
+        </ul>
+
+        <h2 id="s9">9. Memory &amp; the ledger</h2>
+        <h3>9.1 Four layers of memory (M0–M3)</h3>
+        <table>
+          <thead>
+            <tr><th>Layer</th><th>Name</th><th>Storage</th><th>Lifecycle</th><th>Content</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>M0</td><td>User profile</td><td>The cross-project tier of the memory ledger (<code>~/.saydo/saydo.db</code>; <code>~/.saydo/profile.md</code> is covered by backup protection, and a human-readable projection is planned)</td><td>Cross-project, long-term</td><td>Preferences, tech stack, communication style, terminology hot words (incidentally improves recognition accuracy)</td></tr>
+            <tr><td>M1</td><td>Project knowledge base</td><td><code>&lt;workspace&gt;/.saydo/knowledge/</code> (Markdown, human-readable; <code>m1-notes.md</code> is the ledger projection)</td><td>Project-level, long-term stable</td><td>Project goals / constraints, codebase understanding (architecture / modules / terminology), key decisions, domain knowledge</td></tr>
+            <tr><td>M2</td><td>Accumulated conversation knowledge</td><td>Artifact store (<code>~/.saydo/artifacts/</code> + main-database index, attributed by project)</td><td>Project-level, grows with conversations</td><td>New plans / decisions and research material from each conversation (versioned, recallable)</td></tr>
+            <tr><td>M3</td><td>Session working memory</td><td>Context window + transcript (<code>~/.saydo/sessions/&lt;id&gt;.jsonl</code>)</td><td>Single session</td><td>The last N turns, the current task</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Context Pack</strong> = each turn picks relevant slices from M0 + M1 + M2 plus M3's recent turns into the window (versioned; re-fetched on mismatch); retrieval uses SQLite FTS5 (trigram, BM25) to answer "what did we decide?", while code facts are always read live with <code>rg</code> and never enter the knowledge base (no staleness tax; terms shorter than 3 characters are backstopped by rg).</p>
+        <p><strong>Source of truth</strong>: the memory domain's truth is the <strong>append-only memory event ledger</strong>; Markdown files and the SQLite index are rebuildable projections; source code and Git are always the final authority on code facts. <code>m1-notes.md</code> is a one-way projection — editing the file directly doesn't write back to memory; to change it, tell SayDo (P0 has no file watching).</p>
+        <h3>9.2 Grounding (Foundation) <span class="badge badge-live">Available now</span> · mechanical pipeline</h3>
+        <p>Triggered on first contact with a project, blocking ("learning" is a first-class session state — it says what it's learning, progress, and how long remains):</p>
+        <ul>
+          <li>Scans the file inventory and language distribution; reads key files by whitelist (README / AGENTS.md / CLAUDE.md / package.json / pyproject.toml / justfile / Makefile / Cargo.toml / go.mod etc., 6000-character excerpt cap per file);</li>
+          <li>Reverse-absorbs the AGENTS.md / CLAUDE.md / <code>.cursor/rules</code> already in your repo;</li>
+          <li>Generates four knowledge documents: <code>core.md</code> / <code>inventory.md</code> / <code>build-test-run.md</code> (marked "not run-verified") / <code>conventions.md</code>;</li>
+          <li>Budget: 5 minutes wall-clock + 200k tokens by default; over budget produces a partial and honestly writes "haven't finished reading — answering from what was read";</li>
+          <li><strong>Atomic switch by generation</strong> (<code>knowledge/gen-N/</code> + a <code>current</code> link; failures keep the old generation), and the <code>knowledge/</code> directory carries its own git history; after a grounding generation change, readiness bindings that depended on old-generation knowledge automatically lapse (no starting work on stale understanding);</li>
+          <li>Places an idempotent pointer block in your AGENTS.md (<code>&lt;!-- saydo:knowledge:begin … end --&gt;</code>) pointing at the knowledge base; write failures (read-only repo / permissions) degrade silently without flipping the published generation.</li>
+          <li>Session warm-up (every time, lightweight): incremental refresh seeded by four <code>git diff</code> groups (committed / staged / unstaged / untracked); rebase / force-push is never misjudged as "everything deleted".</li>
+        </ul>
+        <p>Honest note: <strong>grounding today is a deterministic mechanical pipeline (inventory + excerpts + document generation), without LLM deep research by the thinking-slot model</strong> — the latter is a planned next tier.</p>
+        <h3>9.3 The memory write path: candidate → trusted (a safety boundary)</h3>
+        <p>The top risk of persistent memory isn't staleness but <strong>source pollution and cross-project leakage</strong>. The write path is:</p>
+<pre>
+raw evidence (untrusted) → candidate (with source / citation / trust level / expiry) → conflict / taint / policy checks
+→ low-impact project-local facts may enter automatically; preferences / decisions / external facts need your approval → trusted
+</pre>
+        <ul>
+          <li>Only <strong>what you said yourself</strong> (<code>user_stated</code>) and <strong>low-impact mechanical facts</strong> (git-tracked in-repo files / your edits, and factual statements) enter trusted directly; anything hitting instruction / side-effect words (<code>curl | sh</code>, <code>rm -rf</code>, <code>sudo</code>, <code>git push</code>, "deploy / go live / drop the database / migrate"…) is demoted to candidate; anything from web pages / agent output / imports is always a candidate.</li>
+          <li><strong>The M0 red line</strong>: third-party content can never define "what you like / what you allow / where your credentials are"; M0 accepts only your own words or what you approve.</li>
+          <li>Post-session distillation = <strong>mechanical nomination + your approval</strong> (not automatic retention): when a session suspends, up to 5 candidates are nominated by a decision-word vocabulary ("decided / settled / let's use / from now on / standardize on / signed off"…); you approve / reject them one by one on the memory page (rejection = soft forgetting; a denial is never resurrected).</li>
+          <li><strong>Forgetting</strong>: invalidation markers (rows kept, excluded from projections) / soft forgetting / <strong>hard delete</strong> ("forget this": tombstone + historical content overwritten in place with <code>[forgotten]</code> + purged from the full-text index, projections, source snapshot bodies, and assessment records). Honest boundary: automatic snapshot backups are immutable whole files — hard delete doesn't purge backups entry by entry; they close out by expiring whole per the retention period (default 30 days).</li>
+        </ul>
+        <h3>9.4 Focus, obligations &amp; the four-color ledger <span class="badge badge-live">Available now</span></h3>
+        <p>The console's spine is the <strong>Focus</strong>: one continuously tracked item, lifecycle captured / active / dormant / closed / abandoned / archived; it can link 0..N projects or belong to none (life planning and research are fine); under it hang <strong>obligations</strong> (who owes what: owner = you / AI / external; status open / in_progress / waiting / deferred / blocked → resolved / superseded) and <strong>expectations</strong> (acceptance criteria for what "done right" looks like — changes require the AI to play back the impact and re-confirm).</p>
+        <p>The <strong>four-color ledger</strong> (Today page) is not a separate table but a "whose ball is it" view computed live from the ledger:</p>
+        <table>
+          <thead>
+            <tr><th>Color</th><th>Meaning</th><th>Source</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Orange · awaiting your call</td><td>Needs your answer / decision</td><td>Pending confirmation cards, tasks ready for your review, obligations owned by you that need a decision / input, anything terminated upstream (blocked)</td></tr>
+            <tr><td>Blue · owed by you</td><td>Needs your action</td><td>Obligations owned by you that need action</td></tr>
+            <tr><td>Green · AI working</td><td>Ball with the AI</td><td>Queued / running tasks, open obligations owned by the AI</td></tr>
+            <tr><td>Gray · waiting externally</td><td>Ball with someone else</td><td>Open obligations owned by external parties</td></tr>
+          </tbody>
+        </table>
+        <ul>
+          <li>"Note this for me / jot this down / don't forget" ⇒ proposed for the ledger immediately in the same turn (a decision = decision, a to-do by attribution, something to verify = check), written via a <strong>confirmation card</strong> (your nod or a countdown); multiple items in one sentence can be confirmed on one card, all-or-nothing. If the current dialog's tool surface has no ledger tool, it degrades into the memory store first and tells you "it can be attached to the ledger once the item exists".</li>
+          <li><strong>Clearing entries</strong>: obligations are resolved (done / abandoned / no longer applicable) by the AI's proposal with your confirmation; the AI marking its own obligation done must carry verifiable evidence (three checks: artifact / task / event); narrative revisions don't clear entries. Green / gray entries can be "got it"-ed away from the inbox; orange / blue cannot be acked and only disappear when the source data changes; when an entry upgrades (green → orange) it always reappears, ignoring historical acks.</li>
+          <li><strong>Confirmation cards don't evaporate on expiry</strong>: an on-screen confirmation card that times out (10 minutes) degrades by attribution into the matching color zone (a "waiting for one more word from you" form); the voice mode's 5-second countdown auto-execution is by design; storm guard: at most 5 cards per session per item per day, aggregated beyond that.</li>
+          <li><strong>Multi-step continuation</strong>: after you confirm one step, the AI automatically continues to the next, at most 3 consecutive automatic steps, then stops and parks on the ledger (runaway guard).</li>
+        </ul>
+
+        <h2 id="s10">10. Review &amp; delivery</h2>
+        <h3>10.1 Status-word discipline (hard constraint)</h3>
+        <table>
+          <thead>
+            <tr><th>Status</th><th>Meaning</th><th>What it says</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>run.completed</code></td><td>The agent process exited (the gate / artifacts may not have settled yet)</td><td><strong>Never announces "done"</strong></td></tr>
+            <tr><td><code>ready_for_review</code></td><td>The acceptance gate ran, artifacts confirmed on disk, ready for your review</td><td>"Execution and checks have run — ready for your review"</td></tr>
+            <tr><td><code>task.done</code></td><td>After your review + merge / archive</td><td>"This item is delivered"</td></tr>
+          </tbody>
+        </table>
+        <p>Execution tasks never estimate remaining time, only report elapsed ("ran for 18 minutes"); unknown cost says "no exact figure yet", never 0.</p>
+        <p>Task state machine (coding type, main trunk excerpt; there are also states like confirmed / paused_step_boundary / merge_failed / cancel_settled / superseded):</p>
+<pre>
+queued → running → ready_for_review → review_approved_waiting_merge → merging → task_done
+              ↑            │ needs changes: new round of the same task (reuses the worktree)
+              └────────────┘
+  at any stage: blocked (waiting on you: S2 timeout / question / circuit breaker / missing verify) · failed (retryable) · cancel_requested (voided, worktree kept)
+</pre>
+        <h3>10.2 The evidence view</h3>
+        <p>The task review surface is <strong>organized by acceptance criteria</strong>: criteria on the left, evidence on the right (diffs, test results, the list of decisions it made itself, unverified items). Discipline: agent-self-reported evidence is marked hollow to show downgrading and can be overturned; items with no bound evidence are honestly marked unknown — no fake precision; the decision list and the spoken summary are <strong>same-sourced</strong> (the persisted <code>decisions</code>), so what's spoken matches what's on screen.</p>
+        <h3>10.3 Three layers of spoken summary</h3>
+        <ol>
+          <li><strong>One sentence</strong> (≤40 characters, pure rules): "changed 5 files, tests 12/12 passing, 1 decision awaiting confirmation" — file counts from git, test counts from the independent gate, unknowns marked unknown, never written as 0;</li>
+          <li><strong>Walkthrough</strong> (a 150-character spoken script, when you say "tell me more");</li>
+          <li><strong>Decision list</strong> (each entry = decision + reason + overturnable action, ≤5 entries; mechanically extracted from the event stream → lazily distilled once by the cheap slot → persisted).</li>
+        </ol>
+        <p>The raw event stream <strong>never</strong> goes directly into the dialog model; the narration model only phrases — it may not produce numbers the rules layer didn't.</p>
+        <h3>10.4 Review tri-state &amp; merge</h3>
+        <p>Approve / needs changes (new round of the same task, reusing the worktree, feedback into the next prompt) / void; after approval, merge per §7.3's two paths. The writing type has an extra "section-by-section ruling" barrier: settle doesn't mean all green, and approval is impossible without per-item rulings.</p>
+
+        <h2 id="s11">11. Callbacks &amp; notifications</h2>
+        <ul>
+          <li><strong>Trigger</strong>: fired only by post-settle states (<code>ready_for_review</code> / blocked / failed etc.) — the runner exiting doesn't count; durable outbox, idempotent replay, one call only across daemon restarts.</li>
+          <li><strong>Priority</strong>: blocked (waiting on a human) &gt; failed &gt; pending approval &gt; <code>ready_for_review</code> &gt; progress (silent by default).</li>
+          <li><strong>Escalation chain <span class="badge badge-live">Available now</span></strong>: <strong>L0 online voice callback</strong> — when the console is online, the voice pipeline healthy, and you're not speaking, it speaks up directly, and the first sentence is the callback reason; escalates after 30 seconds without a response. <strong>L1 macOS desktop notification (system notification center) + ntfy phone push</strong> — either one delivered counts as notified (the first desktop notification may need to be allowed in system settings); the orange zone of the Today page stays lit throughout. L2 phone calls and call-style mobile briefings are planned. A sweep scans the outbox every 15 seconds; delivery failures stay queued and retry.</li>
+          <li><strong>ntfy</strong>: fill <code>NTFY_TOPIC</code> (a random string; subscribe to the same topic in the ntfy phone app) and <code>NTFY_SERVER</code> (default <code>https://ntfy.sh</code>, self-hostable) in <code>.env</code>; messages are JSON POSTed (Chinese titles go in the body), priority blocked / failed = 4, ready-for-review = 3; <strong>deep links carry only routes, never the capability token</strong>; titles go through the same redaction as TTS (a public topic is plaintext-subscribable). These two keys aren't in the wizard whitelist today — edit <code>.env</code> by hand.</li>
+          <li><strong>PagerDuty-style state machine</strong>: pending → notified → acked → resolved; <strong>ack only stops escalation — it doesn't mean resolved, and certainly doesn't authorize any action</strong>; unresolved 30 minutes after ack (<code>callback_resolution_timeout_min</code>) re-escalates. Ways to ack: tap "got it" on the notifications page, or simply speak back (speaking after a voice callback counts as answered); when a task leaves ready-for-review / blocked as resolved, the entry clears automatically.</li>
+          <li><strong>Do not disturb</strong> <code>[dnd].window</code> (default <code>23:00-08:00</code>, supports crossing midnight): inside the window it neither speaks nor pops desktop notifications — it sends one low-priority ntfy (marked as DND hours) and snoozes to the window's end; after the window it calls back in queue order; an unreachable device is not DND — it goes to short-cycle retries.</li>
+          <li><strong>Intercepting isn't calling you</strong>: dangerous actions first feed the reason back to the agent to take another route; the same intent must be blocked ≥ 2 times before entering the callback chain.</li>
+          <li>Output arbitration <span class="badge badge-live">Available now</span>: it doesn't interrupt with voice while you're still mid-sentence — the item degrades to desktop + push; "meeting software holding the mic" detection has no data source yet and is always treated as not held (honestly).</li>
+        </ul>
+
+        <h2 id="s12">12. Voice</h2>
+        <h3>12.1 Tiers of voice capability</h3>
+        <table>
+          <thead>
+            <tr><th>Tier</th><th>Requirement</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Typing</strong> (always available)</td><td>None</td><td>Type anytime; the keyboard's built-in system dictation works too</td></tr>
+            <tr><td><strong>Browser system voice</strong> (zero config)</td><td>Browser supports <code>SpeechRecognition</code> (Chrome / Safari)</td><td>Hold to talk → browser recognition → text channel into the conversation; replies read with <code>speechSynthesis</code>. Average quality</td></tr>
+            <tr><td><strong>Cloud cascade voice</strong> (more accurate, more natural)</td><td>The three Volcano Doubao keys in <code>.env</code> + the Python voice pipeline running</td><td>ASR = Volcano Doubao sauc streaming (with <strong>hot-word bias</strong>: terminology you've corrected and project symbols auto-injected, +10 points of term recall in testing); TTS = Doubao seed-tts-2.0 v3 bidirectional streaming (first sentence plays early, interruptible anytime); current recognition form = hold to talk, whole-utterance recognition on release (live captions planned)</td></tr>
+            <tr><td><strong>Phone native voice</strong></td><td>iOS / Android shell</td><td>Uses system speech recognition and synthesis; whether processing is on-device or network-based depends on app / OS settings and the vendor's implementation, and network processing is governed by that vendor's terms; no Python pipeline needed</td></tr>
+          </tbody>
+        </table>
+        <h3>12.2 Capture &amp; turns</h3>
+        <ul>
+          <li>Three desktop triggers: <strong>click - click again</strong> (toggle) / <strong>keyboard long-press</strong> (hold space) / <strong>hands-free VAD</strong> (energy RMS + hangover state machine + a semantic "are they done?" vocabulary + an explicit "<strong>I'm done</strong>" button backstop; mixed Chinese-English speech defaults to a longer 900 ms silence threshold); noisy environments → hold to talk.</li>
+          <li>After recording, pick one: "<strong>send</strong>" (the voice bubble enters the conversation first, the transcript attaches asynchronously, the AI starts immediately) / "<strong>transcribe and edit</strong>" (the transcript goes only into the input box; edit, then send); "cancel" discards completely. An in-flight transcript always shows an explicit "transcribing" state; empty transcript / timeout gives "didn't catch that".</li>
+          <li><strong>Interrupting</strong>: TTS stops immediately; unplayed text is marked <code>heard=false</code> and never enters conversation facts; an interrupted authorization-class announcement (S2 / pre-authorization list) immediately voids the current confirmation, and a subsequent bare "yes / okay" doesn't consume the old receipt.</li>
+          <li><strong>Replay the last question</strong>: replays the original audio — never regenerates.</li>
+          <li><strong>Correcting mishearing</strong>: say "not X, it's Y" ⇒ the correction enters the M0 hot words (<code>hotword: X-&gt;Y</code>) and biases the next recognition; repeated mishearing degrades to typing.</li>
+          <li>A session suspends after 45 idle seconds or when you say "that's it for now / leave it here / wrap up" (zero cost); the closing words always carry status: "the task is running — I'll call you at the review point".</li>
+        </ul>
+        <h3>12.3 Spoken discipline</h3>
+        <p>Persona = chief of staff: brief, colloquial, in Chinese, never reads code aloud, conclusion before details; spoken turns ≤ 30 seconds; lists longer than 3 items go to the screen; at most 3 options read at a time. <strong>The TTS redaction red line</strong>: tokens / keys / customer data / full local paths never enter voice; PEM blocks, <code>sha256:</code>, Bearer, <code>sk-</code>/<code>ghp_</code>-style prefixes, cloud access keys, absolute paths, 11–19-digit number strings, and bare key strings of ≥20 characters are automatically replaced.</p>
+
+        <h2 id="s13">13. Phone &amp; remote</h2>
+        <h3>13.1 What you can do today</h3>
+        <ul>
+          <li><strong>Direct LAN connection</strong> (<code>SAYDO_MOBILE_LAN=1</code>, §4.7): a mobile browser or self-built app shell opens <code>http://&lt;LAN-IP&gt;:47100/?token=…</code> (the desktop console can show a QR code; <strong>codes are only offered for RFC1918 private addresses</strong> — never for public / CGNAT addresses). The phone surface is the mobile shell route (<code>#/m</code>): Today's four colors, Focus item details, recent conversation replay, recent memory; send text / native speech-to-text into the conversation; nod or retract ledger-type confirmation cards. The LAN surface's HTTP route whitelist is extremely narrow (read-only projections + the first-run greeting); write endpoints, settings write endpoints, S3, and full-screen text are all refused.</li>
+          <li><strong>The tailnet (Tailscale) surface — in progress</strong>: the target contract uses <code>config.toml</code> <code>[t2].tailnet_hosts = [...]</code> (an explicit whitelist of bare hostnames / IPs — <strong>wildcards banned</strong>, any illegal entry keeps the whole surface closed) + <code>[t2].listen</code>; <code>just t2-pair</code> produces the pairing URL (one-time injection of the phone's local session; deep links carry no token afterwards). The target surface can view tasks and approve S2-level approvals (review / decide / memory candidate approval); merge-chain actions and the <code>/dev/*</code> injection channel get 403 with guidance back to the desktop. Tailscale and MagicDNS are ready on the development machine, but the current HEAD setup probe still rejects tailnet configuration, so this is not yet a supported entry point.</li>
+          <li><strong>S3 is never on the phone</strong>: four assertions (socket must be the local loopback, Origin exactly <code>http://localhost:&lt;port&gt;</code>, source surface <code>local</code>, rpId fixed to <code>localhost</code>), with the refusal copy "S3 operations only happen at the local trusted terminal — go back to the desktop screen"; S3 tools aren't in the dialog model's tool surface either.</li>
+          <li><strong>Honest boundary</strong>: the LAN surface today is a dogfood-grade temporary boundary of "cleartext LAN HTTP + a long-lived capability token" — <strong>no device pairing / per-device identity / end-to-end encryption</strong>; deleting the token and restarting drops everyone. Do not expose it to untrusted networks.</li>
+        </ul>
+        <h3>13.2 App status</h3>
+        <table>
+          <thead>
+            <tr><th>Platform</th><th>Status</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>iOS</td><td>Not submitted</td><td>Native SwiftUI shell (QR pairing, native speech recognition / synthesis, web container) engineering exists; App Store record created (Chinese store name "说到"), no submittable build</td></tr>
+            <tr><td>Android</td><td>Not submitted</td><td>Kotlin shell builds; Play app record created (<code>com.octoooo.saydo</code>), no submittable build</td></tr>
+            <tr><td>HarmonyOS</td><td>Not submitted</td><td>HarmonyOS NEXT ArkTS shell; AppGallery record and release certificate ready, Profile not yet created</td></tr>
+          </tbody>
+        </table>
+        <p>The shared reason none can be submitted: no production pairing / trust layer, cleartext LAN, review fixtures not executed. Before store release: device pairing (one-time ticket + Noise XX mutual authentication + manual desktop confirmation + trusted-device confirmation-free reconnect), push privacy contract (payload carries only opaque ids), call-style briefings (PushKit wake + CallKit incoming-call UI). All planned.</p>
+        <h3>13.3 Design principles</h3>
+        <p>Communication is naturally mobile; execution is naturally stationary: the phone is only a communication surface (talk, watch progress, nod confirmations). The LAN phone surface cannot decide S2/S3; voice confirmation is capped at S2 under the canonical approval grammar; once supported, the paired tailnet screen is also capped at S2; merges, deletes, and other S3 actions stay on the authenticated local screen. Heavy work stays on your Mac; a phone disconnect never affects backend execution. Remote channels are read-only by default; phone DTMF (planned) only does ack / snooze / refuse — never any approval.</p>
+
+        <h2 id="s14">14. Privacy &amp; data</h2>
+        <ul>
+          <li><strong>No servers, no accounts, no tracking</strong>: the code contains no telemetry / analytics / advertising SDKs; the developer cannot access — and does not collect — your data.</li>
+          <li><strong>Where the data lives</strong>:
+            <ul>
+              <li><code>~/.saydo/saydo.db</code> (the main database: tasks / approvals / costs / memory events / audit…), <code>~/.saydo/sessions/*.jsonl</code> (transcripts, directory permission 0700), <code>~/.saydo/.cap-token</code> (console token, 0600), <code>~/.saydo/logs/</code>, <code>~/.saydo/backups/</code>;</li>
+              <li><code>&lt;workspace&gt;/.saydo/</code> (knowledge base / grounding / worktrees / project.toml); <code>~/.saydo/{artifacts,snapshots,assessments}</code> (artifacts / source snapshots / readiness deep-assessment records);</li>
+              <li>Third-party AI is called directly by your computer (CLI subscriptions or API keys), under your own agreements with those providers.</li>
+            </ul>
+          </li>
+          <li><strong>Where voice data goes (the two ends differ — keep them straight)</strong>: phone and browser voice use speech recognition supplied by the OS or browser; whether processing is on-device or network-based depends on app, OS, or browser settings and the provider's implementation, and network processing is governed by that provider's terms. <strong>On the desktop end with Volcano Doubao keys configured, audio travels over WebSocket to the Volcano Engine cloud for recognition and synthesis</strong> — a third-party service you configured yourself, connected directly from your computer. Defaults: <code>store_audio = false</code> (the current version has no code path that writes audio files at all), <code>store_transcript = true</code> (can be turned off; off means in-turn flow works as usual, just nothing lands on disk — marked honestly).</li>
+          <li><strong>What traffic leaves the machine</strong> (the main paths below are not exhaustive): ① the AI upstreams you connect — CLI subscription tools go through their official channels, API keys connect directly to your configured endpoints; ② system / browser network speech recognition and Volcano Doubao recognition and synthesis when desktop cloud voice is enabled; ③ optional ntfy push (your configured topic, titles redacted).</li>
+          <li><strong>Immutable audit</strong>: database triggers ban UPDATE / DELETE on the audit table; sensitive payloads are recorded as digests only, never in the clear; every entry carries an actor. Logs may rotate; audit may not.</li>
+          <li><strong>Caller identity</strong>: console capability token + Host / Origin whitelist + DNS rebinding protection; listens on loopback only by default; LAN / tailnet surfaces have their own source gates (§13).</li>
+          <li><strong>Backup</strong>: automatic daily snapshots (online SQLite backup + sessions + each project's foundation / knowledge), default 30-day retention; <code>just backup</code> manually.</li>
+          <li><strong>Deletion</strong>: "forget this" hard-delete propagates to indexes / projections / source snapshots / assessment records; backups expire whole per retention (stated honestly); full reset = delete <code>~/.saydo</code> (token rotated, devices dropped).</li>
+          <li><strong>Migration</strong>: after setting up a new machine, copy <code>~/.saydo/</code> (or one of the backups) back; the token and the executor's locked copies need re-registration; each project's <code>&lt;workspace&gt;/.saydo/</code> (knowledge base / grounding / worktrees) travels with the project directory.</li>
+          <li>Full privacy policy at <a href="/en/privacy/">/privacy/</a>.</li>
+        </ul>
+
+        <h2 id="s15">15. Cost</h2>
+        <ul>
+          <li><strong>Software</strong>: the desktop service is open source and free; the apps are free with no in-app purchases (planned).</li>
+          <li><strong>Where AI costs go</strong>:
+            <ul>
+              <li><strong>Subscription CLIs (BYOA)</strong>: billed to your existing Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot subscription quota, zero extra cost; the ledger shows "within subscription quota"; hitting a rate limit errors honestly for that call — never silently converts to billing.</li>
+              <li><strong>API keys</strong>: per each vendor's bill; the ledger estimates from the <code>[pricing]</code> price table (unfilled by default = shows "no exact figure yet", no invented numbers); every task has a cost cap (default 20 yuan) + the triple circuit breaker of 45 active minutes + 80 turns.</li>
+              <li><strong>Voice (optional)</strong>: Volcano Doubao ASR / TTS bills to your Volcano account; browser system voice is free.</li>
+              <li><strong>Push (optional)</strong>: the ntfy public server is free, or self-host.</li>
+            </ul>
+          </li>
+          <li>SayDo adds no markup, never touches the money, doesn't top up for you. <strong>Before letting others use it, check your quota</strong>: development requests really dispatch execution tasks that consume subscription or API quota.</li>
+        </ul>
+
+        <h2 id="s16">16. Roadmap &amp; status</h2>
+        <table>
+          <thead>
+            <tr><th>Capability</th><th>Status</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>macOS desktop service (daemon + console)</td><td><span class="badge badge-live">Available now</span></td><td>Source distribution; npm / Homebrew packages and a desktop app shell planned</td></tr>
+            <tr><td>Four reasoning slots on API supply (OpenAI-compatible / OpenRouter)</td><td><span class="badge badge-live">Available now</span></td><td></td></tr>
+            <tr><td>Four reasoning slots on CLI subscription supply (Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot)</td><td><span class="badge badge-live">Available now</span></td><td>Dialog slot on CLI is slow text mode</td></tr>
+            <tr><td>First-run resource profile wizard (three plan cards + advanced per-slot)</td><td><span class="badge badge-live">Available now</span></td><td></td></tr>
+            <tr><td>Focus / obligations / expectations / four-color ledger / confirmation card degradation / multi-step continuation</td><td><span class="badge badge-live">Available now</span></td><td></td></tr>
+            <tr><td>Grounding (mechanical pipeline) + M1 knowledge base + AGENTS.md interop + post-session nomination &amp; approval + forgetting</td><td><span class="badge badge-live">Available now</span></td><td>LLM deep-research tier planned (design in progress)</td></tr>
+            <tr><td>Typed readiness checklists + rules layer + different-family deep assessment + playback-confirmation binding</td><td><span class="badge badge-live">Available now</span></td><td></td></tr>
+            <tr><td>Decision packs (preview / plan / cost / risk / acceptance criteria / lightweight demo)</td><td><span class="badge badge-live">Available now</span></td><td>The demo is mechanically rendered from the same source as the plan; "view demo" in the console + same-turn on-screen locally</td></tr>
+            <tr><td>Cursor CLI executor + worktree isolation + command effect gate + three circuit breakers + verify freeze</td><td><span class="badge badge-live">Available now</span></td><td></td></tr>
+            <tr><td>Review evidence view + three-layer spoken summary + Touch ID merge card + manual merge verification</td><td><span class="badge badge-live">Available now</span></td><td>Live human pass on the Touch ID card pending the owner's touch</td></tr>
+            <tr><td>step-confirm mode</td><td><span class="badge badge-live">Available now</span></td><td></td></tr>
+            <tr><td>direct-to-review mode (read-aloud-signed pre-authorization list)</td><td><span class="badge badge-progress">In progress</span></td><td>Contract and matching logic landed; voice sign-off loop not wired</td></tr>
+            <tr><td>Callback escalation chain: online voice callback → macOS desktop notification + ntfy phone push; do not disturb; ack</td><td><span class="badge badge-live">Available now</span></td><td>Voice callback needs console online + voice pipeline healthy; escalates after 30 s unanswered; output arbitration landed in the same batch</td></tr>
+            <tr><td>Cloud cascade voice (Doubao ASR/TTS) + browser system voice + hot-word correction</td><td><span class="badge badge-live">Available now</span></td><td>Live captions, Silero VAD planned</td></tr>
+            <tr><td>coding type</td><td><span class="badge badge-live">Available now</span></td><td></td></tr>
+            <tr><td>writing type (narrow)</td><td><span class="badge badge-live">Available now</span> (capability gate required)</td><td>Citations / attribution contracts and full scope planned; full human pass pending</td></tr>
+            <tr><td>research / marketing / planning / general execution contracts</td><td><span class="badge badge-soon">Planned</span></td><td>Upstream interview / ledger / research usable</td></tr>
+            <tr><td>LAN phone surface (browser / shell)</td><td><span class="badge badge-live">Available now</span> (dogfood boundary)</td><td>No pairing / no E2E</td></tr>
+            <tr><td>tailnet thin version</td><td><span class="badge badge-progress">In progress</span></td><td>Tailscale / MagicDNS are ready; the current HEAD setup probe still rejects tailnet configuration, so it is not yet a supported entry point</td></tr>
+            <tr><td>Claude Code executor</td><td><span class="badge badge-progress">In progress</span></td><td>Batch one (official CLI capability testing + approval-gate pure functions) is closed; wiring the production execution path is next</td></tr>
+            <tr><td>Codex executor / Hopper batch route</td><td><span class="badge badge-soon">Planned</span> / dormant</td><td></td></tr>
+            <tr><td>provider-neutral native executor</td><td><span class="badge badge-soon">Planned</span></td><td></td></tr>
+            <tr><td>Device pairing / E2E encryption / push privacy contract</td><td><span class="badge badge-soon">Planned</span></td><td></td></tr>
+            <tr><td>iOS / Android / HarmonyOS store release</td><td><span class="badge badge-soon">Planned</span></td><td>Store records created, shell engineering exists</td></tr>
+            <tr><td>Call-style voice briefings (PushKit + CallKit)</td><td><span class="badge badge-soon">Planned</span></td><td></td></tr>
+            <tr><td>Phone callbacks / S2S voice engine / local full-stack voice / wake word</td><td><span class="badge badge-soon">Planned</span></td><td></td></tr>
+            <tr><td>Conversation lanes Quick / Guided / Explore</td><td><span class="badge badge-soon">Planned</span></td><td>Only instrumented</td></tr>
+            <tr><td>Proactive check-ins / sitting in on multi-person meetings</td><td><span class="badge badge-soon">Planned</span></td><td></td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="s17">17. FAQ &amp; troubleshooting</h2>
+        <p><strong>Is this a voice input method?</strong> No. Voice is only the entry point; behind it is the loop of understanding context, opening ledger entries, judging readiness, driving execution, and organizing review.</p>
+        <p><strong>Does it upload my project to a SayDo-operated cloud runner?</strong> No. SayDo has no hosted backend carrying product data; heavy work and core persistent data stay on your computer. Third-party AI, system or browser speech recognition, and push services that you choose are called directly by your devices under those providers' terms.</p>
+        <p><strong>What are the prerequisites?</strong> macOS + Node 22 + one logged-in AI CLI (or one API key). Voice and execution are optional increments (§4).</p>
+        <p><strong>Can I use it without any keys?</strong> Yes: any logged-in CLI on the machine means zero-key chatting (15–25 s per turn in slow text mode); voice via browser system voice or typing.</p>
+        <p><strong>How does it know "it's done"?</strong> When execution and checks have run and artifacts are on disk, it says "ready for your review" — never "done"; your nod plus strong-authentication merge makes it "delivered".</p>
+        <p><strong>Can it secretly spend money?</strong> Subscription calls cost nothing and rate limits only error honestly without converting to billing; API calls have a per-task cost cap + active duration + turn count triple circuit breaker; S3 (spending / deploying / deleting data / messaging outside) requires your on-screen strong authentication.</p>
+        <p><strong>Will it push to GitHub or open PRs?</strong> No. It edits code in a worktree on the <code>saydo/&lt;taskId&gt;</code> branch; merging into your current branch takes your Touch ID or your own merge; pushing / PRs are yours afterwards.</p>
+        <p><strong>Each turn takes fifteen to twenty seconds — is it stuck?</strong> No. A dialog slot on CLI subscription is slow text mode (15–25 s); the UI shows a slow badge; the desktop errors explicitly after a 120-second per-CLI-call cap (the phone page suggests resending at 90 s). For sub-second dialog, give the dialog slot an API key (§5.3 plan two).</p>
+        <p><strong>The UI says "recovery-only mode".</strong> The active config is invalid (broken TOML, out-of-range parameters, project override conflicts…): the daemon doesn't exit — it keeps only the health probe, console static pages, and the settings self-rescue write endpoint; dialog, dispatch, merge, and task resume all stop. Go to the settings page, rebuild a safe config or clean up invalid project overrides as prompted, then restart.</p>
+        <p><strong>The wizard says a CLI is "recognized but cannot be used as model supply".</strong> That CLI (e.g. kimi / opencode) cannot prove zero-tool before execution, so for safety it isn't wired; switch vendors or use an API.</p>
+        <p><strong>The evaluator stays unarmed.</strong> Check the reason: same family unconfirmed (tick <code>evaluator_same_family_ack</code> or change family) / CLI evaluator missing the isolation confirmation (tick <code>evaluator_isolation_ack</code>) / self-check failed / actual model family reported unknown. unarmed doesn't affect dialog — readiness deep assessment just won't arm.</p>
+        <p><strong>The console opens blank / unresponsive.</strong> First <code>curl -s http://127.0.0.1:47100/health</code>; if not <code>ok:true</code>, check <code>~/.saydo/daemon.log</code> (tsx cold start takes 10–15 s); confirm the URL carries <code>?token=</code> and uses <code>localhost</code>.</p>
+        <p><strong>Windows / Linux support?</strong> Not for now — it targets macOS (residency, notifications, browser opening etc. are macOS implementations); no clear timeline, no promises.</p>
+        <p><strong>Port conflict.</strong> <code>saydo status</code> exit code 2 = 47100 is held by another service or a daemon of another data directory; it won't auto-switch ports or kill processes — use <code>--port</code> or stop the other side.</p>
+        <p><strong>Phone can't connect by QR / everything dropped.</strong> Confirm the daemon runs with <code>SAYDO_MOBILE_LAN=1</code> and the phone and computer are on the same private network; a deleted <code>.cap-token</code> rotates the token — scan again.</p>
+        <p><strong>No executor started after sign-off.</strong> <code>[models.dev]</code>'s <code>agent</code> must be <code>cursor</code> (or empty — cursor is the default) with a non-empty <code>model</code>; both <code>[tier1]</code> keys (locked binary <strong>absolute path</strong>, <code>~</code> not accepted + version) present; <code>jq</code> and <code>curl</code> on PATH (hard dependencies of the gate script — without <code>jq</code> even the refusal receipt can't be produced, so everything counts as refused); <code>cursor-agent</code> logged in. Otherwise queued tasks stay in queued with prescriptive logs; dialog is unaffected.</p>
+        <p><strong>Task stuck in blocked.</strong> Check the reason: S2 confirmation timed out / no verify registered / project.toml broken / workspace or <code>.git</code> gone / agent asked a question / a circuit breaker tripped. Resolve it, then "retry / answer" on the task page.</p>
+        <p><strong>Worktrees piling up.</strong> By design they're not auto-deleted (for recovery); clean up yourself with <code>git worktree remove &lt;repo&gt;/.saydo/worktrees/&lt;taskId&gt;</code>.</p>
+        <p><strong>Residency (launchd) won't install.</strong> <code>just daemon install</code> needs <code>uv</code> to also install the voice pipeline residency; when it reports "uv not found", use <code>just daemon install --without-pipeline</code> as prompted to install only the daemon (cloud voice unavailable; system voice and text work as usual), or install <code>uv</code> first and rerun (§4.8).</p>
+
+        <h2 id="s18">18. Open source &amp; contributing</h2>
+        <ul>
+          <li>Repository: <code>https://github.com/Octo-o-o-o/SayDo</code> (the desktop service — contracts / daemon / console / cli / pipeline — with all design documents, evidence, and process archives in the same repo); the executor-backend candidate Hopper is a separate repo by the same author. The public repo is a <strong>snapshot repo</strong> (since 2026-08-20): the commit-by-commit process history is kept in a private archive, and historical commit SHAs referenced in documents resolve there (see "process history &amp; archive" in the repo README).</li>
+          <li><strong>License: Apache License 2.0</strong> (with patent grant); the "说到" / "SayDo" names, the seal logo, and the <code>assets/</code> brand assets are not covered by the license (Apache 2.0 §6) — derivative works may not present themselves under the original project's name; see <code>LICENSE</code> / <code>NOTICE</code> in the repo.</li>
+          <li>Engineering conventions: zero emoji repo-wide; status-word discipline; no Gate 0 bypass; contracts never fork (types are only imported from <code>@saydo/contracts</code>); audit / log separation; the two-commit method (code commit + evidence commit).</li>
+          <li>Local development: <code>pnpm install &amp;&amp; pnpm -r build</code>, <code>just dev</code> (daemon + pipeline + console with hot reload), <code>just ci</code> (node + python dual matrix + emoji / color / migration gates); distribution acceptance <code>pnpm --filter @saydo/cli verify:distribution</code>.</li>
+          <li>Design document map: <code>docs/01–11</code> (vision / product definition / architecture / key mechanisms / roadmap / references / selection / modules / data contracts / voice scripts / UI) + <code>docs/adr/</code>.</li>
+          <li>Feedback &amp; support: <code>support@octoooo.com</code> (please state your OS version and whether QR pairing is done; do not paste API keys, pairing tokens, or full logs). Report security issues privately per the repo's <code>SECURITY.md</code> (mark the email subject SECURITY) — don't disclose details publicly.</li>
+        </ul>
+
+        <h2 id="s19">19. Terminology (Chinese–English)</h2>
+        <table>
+          <thead>
+            <tr><th>中文</th><th>English</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>说到</td><td>SayDo</td><td>Product name</td></tr>
+            <tr><td>沟通面 / 执行面</td><td>communication surface / execution surface</td><td></td></tr>
+            <tr><td>一件事</td><td>Focus</td><td>The ledger's spine</td></tr>
+            <tr><td>义务</td><td>obligation</td><td>Who owes what</td></tr>
+            <tr><td>期待</td><td>expectation</td><td>The management layer of acceptance criteria</td></tr>
+            <tr><td>四色账本</td><td>four-color ledger</td><td>等你拍板 awaiting your call / 你欠的动作 owed by you / AI 正在办 AI working / 等外部回音 waiting externally</td></tr>
+            <tr><td>奠基</td><td>grounding / foundation</td><td>Building the project knowledge base</td></tr>
+            <tr><td>知识底座</td><td>knowledge base (M1)</td><td></td></tr>
+            <tr><td>就绪</td><td>readiness</td><td></td></tr>
+            <tr><td>决策包</td><td>decision pack</td><td></td></tr>
+            <tr><td>拍板</td><td>sign-off</td><td></td></tr>
+            <tr><td>逐步确认 / 直达验收</td><td>step-confirm / direct-to-review</td><td>Execution modes</td></tr>
+            <tr><td>等你验收</td><td>ready for your review</td><td>Status word — never "done"</td></tr>
+            <tr><td>交付了</td><td>delivered</td><td>After merge / archive</td></tr>
+            <tr><td>回叫</td><td>callback</td><td></td></tr>
+            <tr><td>停靠</td><td>parked</td><td>While waiting on a human</td></tr>
+            <tr><td>熔断</td><td>circuit breaker</td><td></td></tr>
+            <tr><td>推理槽位 / 开发档</td><td>reasoning slots / dev slot (executor)</td><td></td></tr>
+            <tr><td>订阅 CLI 供给</td><td>BYOA (bring your own agent)</td><td></td></tr>
+            <tr><td>异族</td><td>different model family</td><td>The evaluator rule</td></tr>
+            <tr><td>能力令牌</td><td>capability token</td><td></td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="appendix">Appendix · Cheat sheet</h2>
+        <table>
+          <thead>
+            <tr><th>Item</th><th>Value</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>daemon port</td><td>47100 (daemon direct: <code>SAYDO_DAEMON_PORT</code>; <code>saydo</code> CLI: <code>--port</code>)</td></tr>
+            <tr><td>Console entry</td><td><code>http://localhost:47100/?token=$(cat ~/.saydo/.cap-token)</code> (<code>saydo open</code>)</td></tr>
+            <tr><td>Health / readiness probes</td><td><code>GET /health</code>, <code>GET /readyz</code> (<code>voiceReady=false</code> is not a startup failure)</td></tr>
+            <tr><td>Data directory</td><td><code>~/.saydo</code> (<code>--home</code> / <code>SAYDO_HOME</code>, absolute path)</td></tr>
+            <tr><td>Config / secrets</td><td><code>~/.saydo/config.toml</code> / <code>~/.saydo/.env</code> (templates in the repo's <code>templates/</code>)</td></tr>
+            <tr><td>In-project directory</td><td><code>&lt;workspace&gt;/.saydo/{knowledge,foundation,worktrees,project.toml}</code>; artifacts / snapshots / deep-assessment records / transcripts in <code>~/.saydo/{artifacts,snapshots,assessments,sessions}</code></td></tr>
+            <tr><td>Environment variables</td><td><code>SAYDO_HOME</code>, <code>SAYDO_DAEMON_PORT</code>, <code>SAYDO_MOBILE_LAN=1</code> (LAN phone surface), <code>SAYDO_DEV=1</code> (dev profile double switch)</td></tr>
+            <tr><td>Common <code>.env</code> keys</td><td>Models: <code>OPENROUTER_API_KEY</code> / <code>OPENAI_API_KEY</code> / <code>ANTHROPIC_API_KEY</code> / <code>DEEPSEEK_API_KEY</code>; voice: <code>VOLC_APP_ID</code> / <code>VOLC_ACCESS_TOKEN</code> / <code>DOUBAO_TTS_API_KEY</code>; push: <code>NTFY_TOPIC</code> / <code>NTFY_SERVER</code></td></tr>
+            <tr><td>Residency</td><td><code>just daemon install / start / stop / restart / status / logs / deploy [sha]</code> (install also generates the voice pipeline residency config; without uv use <code>--without-pipeline</code>, §4.8)</td></tr>
+            <tr><td>Backup</td><td><code>just backup</code> → <code>~/.saydo/backups/&lt;timestamp&gt;/</code>; automatic daily; 30-day retention</td></tr>
+            <tr><td>Shutdown</td><td><code>lsof -t -iTCP:47100 -sTCP:LISTEN | xargs kill; pkill -f saydo_pipeline</code></td></tr>
+            <tr><td>Circuit breaker defaults</td><td>45 active minutes / 80 turns / 20 yuan; park aging 72 hours; decision pack validity 24 hours; S2 confirmation window 45 seconds</td></tr>
+            <tr><td>Branch / directory</td><td><code>saydo/&lt;taskId&gt;</code> @ <code>&lt;repo&gt;/.saydo/worktrees/&lt;taskId&gt;</code></td></tr>
+          </tbody>
+        </table>
+
+        <a class="back-top" href="#main">Back to top ↑</a>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand-col">
+          <span class="footer-brand">
+            <img src="/icon-192.png" alt="" width="28" height="28" loading="lazy" />
+            SayDo 说到
+          </span>
+          <p>A voice-first chief of staff for your projects. Local-first, open source, privacy-first.</p>
+        </div>
+        <div class="footer-col">
+          <h4>PRODUCT</h4>
+          <ul>
+            <li><a href="/en/#how">How it works</a></li>
+            <li><a href="/en/#why">Why different</a></li>
+            <li><a href="/en/#status">Status</a></li>
+            <li><a href="/en/#start">Get Started</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>RESOURCES</h4>
+          <ul>
+            <li><a href="/en/docs/">Docs</a></li>
+            <li><a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub</a></li>
+            <li><a href="/en/support/">Support</a></li>
+            <li><a href="/en/#faq">FAQ</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>LEGAL &amp; CONTACT</h4>
+          <ul>
+            <li><a href="/en/privacy/">Privacy policy</a></li>
+            <li><a href="/en/terms/">Terms of use</a></li>
+            <li><a href="mailto:support@octoooo.com">support@octoooo.com</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-meta">
+        <span>© <span data-year>2026</span> SayDo · Developer: Yixiao Wang</span>
+        <span>Local-first · Open source · Privacy-first</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/theme.js?v=20260820d" defer></script>
+</body>
+</html>
