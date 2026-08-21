@@ -1,6 +1,7 @@
 import { lstatSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, normalize, relative, sep } from "node:path";
+import { hostKind } from "@saydo/platform";
 import type { EffectDescriptor } from "../policy/engine.js";
 
 /** 按文件名收窄的敏感基名(圈内写 ⇒ touchesSensitiveData / S2)。`.env*` 含 .envrc / .env.local */
@@ -49,7 +50,7 @@ export function resolveFileToolPath(path: string, cwd: string): ResolvedFileTool
   const expanded = expandUser(path.trim());
   if (expanded === "unresolvable") return { unresolvable: true };
   if (hasDotDotComponent(expanded)) return { dotdot: true };
-  if (/^[A-Za-z]:[\\/]/.test(expanded)) return { unresolvable: true };
+  if (hostKind() !== "win32" && /^[A-Za-z]:[\\/]/u.test(expanded)) return { unresolvable: true };
   let abs = expanded;
   if (!isAbsolute(abs)) {
     if (!cwd || typeof cwd !== "string") return { unresolvable: true };

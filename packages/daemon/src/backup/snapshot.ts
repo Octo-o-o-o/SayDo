@@ -176,7 +176,8 @@ function validateProductionSnapshot(
     transcriptFiles = new Set(
       transcriptRows.map((row) => {
         const name = basename(row.transcript_path);
-        if (name !== row.transcript_path.split("/").at(-1) || !name.endsWith(".jsonl")) {
+        const lastSeg = row.transcript_path.replaceAll("\\", "/").split("/").at(-1);
+        if (name !== lastSeg || !name.endsWith(".jsonl")) {
           throw new Error("session transcript_path 非法");
         }
         return name;

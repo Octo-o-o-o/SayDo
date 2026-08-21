@@ -2,7 +2,7 @@
 
 import { chmodSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildLaunchdPlist,
@@ -261,7 +261,7 @@ describe("resolveUvBin(A3:不调 which,只信 PATH 绝对项)", () => {
     }
   });
 
-  it("非可执行文件跳过", () => {
+  it.skipIf(process.platform === "win32")("非可执行文件跳过", () => {
     const dir = mkdtempSync(join(tmpdir(), "saydo-uv-nx-"));
     const bin = join(dir, "uv");
     writeFileSync(bin, "#!/bin/sh\n");
@@ -283,8 +283,8 @@ describe("resolveUvBin(A3:不调 which,只信 PATH 绝对项)", () => {
     const prev = process.cwd();
     process.chdir(root);
     try {
-      expect(resolveUvBin({ PATH: "rel:.: " })).toBeNull();
-      expect(resolveUvBin({ PATH: `:${relDir}` })).toBe(bin);
+      expect(resolveUvBin({ PATH: ["rel", ".", " "].join(delimiter) })).toBeNull();
+      expect(resolveUvBin({ PATH: `${delimiter}${relDir}` })).toBe(bin);
     } finally {
       process.chdir(prev);
       rmSync(root, { recursive: true, force: true });

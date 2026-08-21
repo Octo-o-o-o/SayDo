@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterAll } from "vitest";
 
 const ROOT = resolve(import.meta.dirname, "../../../..");
@@ -44,7 +45,10 @@ async function waitForHealth(port: number, predicate: (health: { pid: number }) 
   let lastError: unknown;
   for (let attempt = 0; attempt < 160; attempt++) {
     try {
-      const response = await fetch(`http://127.0.0.1:${port}/health`);
+      const response = await fetch(`http://127.0.0.1:${port}/health`, {
+        keepalive: false,
+        headers: { connection: "close" }
+      });
       if (response.ok) {
         const health = (await response.json()) as { pid: number; runtimeSha: string; stateRootDigest: string };
         if (predicate(health)) return health;
@@ -65,7 +69,7 @@ export async function startDaemonProcess(input: {
 }): Promise<DaemonProcess> {
   let logs = "";
   const args = [
-    ...(input.importBeforeTsx ?? []).flatMap((modulePath) => ["--import", modulePath]),
+    ...(input.importBeforeTsx ?? []).flatMap((modulePath) => ["--import", pathToFileURL(modulePath).href]),
     TSX_CLI,
     DAEMON_ENTRY
   ];
@@ -85,6 +89,9 @@ export async function startDaemonProcess(input: {
   };
   child.stdout?.on("data", collect);
   child.stderr?.on("data", collect);
+  child.stdout?.on("error", () => undefined);
+  child.stderr?.on("error", () => undefined);
+  child.on("error", () => undefined);
   try {
     await waitForHealth(input.port);
   } catch (err) {
@@ -97,7 +104,8 @@ export async function startDaemonProcess(input: {
   const api = (path: string, init: RequestInit = {}) =>
     fetch(`http://127.0.0.1:${input.port}${path}`, {
       ...init,
-      headers: { "x-saydo-token": token, ...(init.headers ?? {}) }
+      keepalive: false,
+      headers: { "x-saydo-token": token, connection: "close", ...(init.headers ?? {}) }
     });
   const alivePids = () =>
     [...knownPids].filter((pid) => {
@@ -127,7 +135,9 @@ export async function startDaemonProcess(input: {
       // 不用 waitForHealth 轮询,避免对已退出的 daemon 白等 8 秒。
       try {
         const response = await fetch(`http://127.0.0.1:${input.port}/health`, {
-          signal: AbortSignal.timeout(500)
+          signal: AbortSignal.timeout(500),
+          keepalive: false,
+          headers: { connection: "close" }
         });
         if (response.ok) knownPids.add(((await response.json()) as { pid: number }).pid);
       } catch {

@@ -64,7 +64,7 @@ describe("B3 奠基:中型仓缺省预算内完成", () => {
       expect(existsSync(join(dir, ".saydo", "knowledge", "current", doc)), `current/${doc}`).toBe(true);
       const legacy = join(dir, ".saydo", "knowledge", doc);
       expect(lstatSync(legacy).isSymbolicLink(), `${doc} legacy compatibility link`).toBe(true);
-      expect(readlinkSync(legacy)).toBe(`current/${doc}`);
+      expect(readlinkSync(legacy).replaceAll("\\", "/")).toBe(`current/${doc}`);
     }
     const buildRun = readFileSync(join(dir, ".saydo", "knowledge", "current", "build-test-run.md"), "utf8");
     const conventions = readFileSync(join(dir, ".saydo", "knowledge", "current", "conventions.md"), "utf8");
@@ -119,7 +119,7 @@ describe("B3 奠基:中型仓缺省预算内完成", () => {
       const legacy = join(dir, ".saydo", "knowledge", doc);
       const current = join(dir, ".saydo", "knowledge", "current", doc);
       expect(lstatSync(legacy).isSymbolicLink(), `${doc} upgraded link`).toBe(true);
-      expect(readlinkSync(legacy)).toBe(`current/${doc}`);
+      expect(readlinkSync(legacy).replaceAll("\\", "/")).toBe(`current/${doc}`);
       expect(readFileSync(legacy)).toStrictEqual(readFileSync(current));
     }
   });

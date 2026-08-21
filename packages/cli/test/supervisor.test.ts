@@ -1,9 +1,9 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { homeLockAllowsReap } from "../src/supervisor.js";
-import { execFileSync } from "node:child_process";
+import { processBirth } from "@saydo/platform";
+import { cliStopPath, consumeCliStop, homeLockAllowsReap } from "../src/supervisor.js";
 
 const homes = new Set<string>();
 
@@ -21,23 +21,8 @@ function home(): string {
 describe("startup emergency cleanup ownership", () => {
   it("只允许清理本次 child 的 HOME；另一端口的现役 owner 不受影响", () => {
     const root = home();
-    let processStart: string;
-    try {
-      processStart = execFileSync("ps", ["-o", "lstart=", "-p", String(process.pid)], {
-        encoding: "utf8"
-      }).trim();
-    } catch {
-      try {
-        const raw = execFileSync("pgrep", ["-lf", "node"], { encoding: "utf8" });
-        const line = raw
-          .split("\n")
-          .map((item) => item.trim())
-          .find((item) => item === String(process.pid) || item.startsWith(`${String(process.pid)} `));
-        processStart = line ? `pgrep1:${line.slice(0, 240)}` : `alive1:${process.pid}`;
-      } catch {
-        processStart = `alive1:${process.pid}`;
-      }
-    }
+    const processStart = processBirth(process.pid);
+    if (!processStart) throw new Error("本进程 birth 不可用");
     writeFileSync(join(root, ".daemon-supervisor.lock"), JSON.stringify({
       version: 1,
       pid: process.pid,
@@ -55,5 +40,19 @@ describe("startup emergency cleanup ownership", () => {
     expect(homeLockAllowsReap(root, { pid: process.pid, instanceId: "current-instance" })).toBe(false);
     rmSync(lock);
     expect(homeLockAllowsReap(root, { pid: process.pid, instanceId: "current-instance" })).toBe(false);
+  });
+});
+
+describe("cli-stop 文件", () => {
+  it("按 pid 分文件,白名单 reason 消费后删除,非法内容忽略", () => {
+    const root = home();
+    mkdirSync(join(root, "runtime"), { recursive: true });
+    const path = cliStopPath(root, 4242);
+    expect(path).toBe(join(root, "runtime", "cli-stop-4242"));
+    writeFileSync(path, "cli_sigint\n");
+    expect(consumeCliStop(root, 4242)).toBe("cli_sigint");
+    expect(consumeCliStop(root, 4242)).toBeUndefined();
+    writeFileSync(cliStopPath(root, 4242), "taskkill\n");
+    expect(consumeCliStop(root, 4242)).toBeUndefined();
   });
 });

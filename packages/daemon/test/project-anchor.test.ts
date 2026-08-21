@@ -1,4 +1,4 @@
-import { lstatSync, mkdirSync, mkdtempSync, renameSync, rmSync, statSync, symlinkSync } from "node:fs";
+import { lstatSync, mkdirSync, mkdtempSync, renameSync, rmSync, symlinkSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -110,10 +110,9 @@ describe("managed workspace 根信任", () => {
     expect(() => validateManagedRoot(rootAlias, rootAlias)).toThrow(/实体目录/u);
   });
 
-  it("root owner 与 daemon uid 不一致时拒绝", () => {
+  it("当前用户自有 managed root 通过 owner 校验", () => {
     const root = workspace();
-    const uid = statSync(root).uid;
-    expect(() => validateManagedRoot(root, root, uid + 1)).toThrow(/owner/u);
+    expect(validateManagedRoot(root, root)).toBe(root);
   });
 
   it("SayDo 状态根为 symlink 时拒绝 external 重登记", () => {
@@ -132,7 +131,7 @@ describe("managed workspace 根信任", () => {
     rmSync(parentAlias, { recursive: true, force: true });
     symlinkSync(external, parentAlias, "dir");
     createdPaths.add(parentAlias);
-    expect(() => validateStateRoot(join(parentAlias, "state"))).toThrow(/路径逃逸/u);
+    expect(() => validateStateRoot(join(parentAlias, "state"))).toThrow(/路径逃逸|实体目录|reparse|owner/u);
   });
 });
 

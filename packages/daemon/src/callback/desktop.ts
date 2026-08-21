@@ -58,3 +58,21 @@ export function notifyMacDesktop(
     }
   });
 }
+
+export function notifyWinDesktop(
+  _spawnDetached: SpawnDetached,
+  _input: { title: string; body: string }
+): Promise<boolean> {
+  // P0 不假装 toast 已投递。Write-Output 几乎总能 spawn 成功,会挡住 ntfy 降级。
+  return Promise.resolve(false);
+}
+
+export function notifyDesktop(
+  spawnDetached: SpawnDetached,
+  input: { title: string; body: string },
+  platform = process.platform
+): Promise<boolean> {
+  if (platform === "darwin") return notifyMacDesktop(spawnDetached, input);
+  if (platform === "win32") return notifyWinDesktop(spawnDetached, input);
+  return Promise.resolve(false);
+}

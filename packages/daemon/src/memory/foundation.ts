@@ -12,6 +12,7 @@ import { execFileSync } from "node:child_process";
 import {
   copyFileSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -20,9 +21,10 @@ import {
   rmSync,
   statSync,
   symlinkSync,
+  unlinkSync,
   writeFileSync
 } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, dirname, isAbsolute, join } from "node:path";
 import { textDigest } from "@saydo/contracts";
 import { estimateTokens } from "./compiler.js";
 
@@ -70,6 +72,42 @@ const LANG_BY_EXT: Record<string, string> = {
 const EXCERPT_LIMIT = 6_000;
 /** 单文件尺寸上限(bytes;超过只记清单不读内容——binary/超大文件排除) */
 const FILE_SIZE_LIMIT = 512 * 1024;
+
+function removeLink(path: string): void {
+  try {
+    if (lstatSync(path).isSymbolicLink()) {
+      unlinkSync(path);
+      return;
+    }
+  } catch {
+    return;
+  }
+  rmSync(path, { recursive: true, force: true });
+}
+
+/** POSIX:tmp symlink + rename 覆盖。win32 不能 rename 覆盖已存在的目录/junction,必须先拆旧链。 */
+function replaceSymlink(linkPath: string, target: string, kind: "dir" | "file"): void {
+  const tmp = `${linkPath}.${process.pid}.replacing`;
+  rmSync(tmp, { recursive: true, force: true });
+  try {
+    if (process.platform === "win32") {
+      try {
+        symlinkSync(target, tmp, kind);
+      } catch {
+        if (kind !== "dir") throw new Error(`win32 file symlink failed:${linkPath}`);
+        const abs = isAbsolute(target) ? target : join(dirname(linkPath), target);
+        symlinkSync(abs, tmp, "junction");
+      }
+      removeLink(linkPath);
+      renameSync(tmp, linkPath);
+      return;
+    }
+    symlinkSync(target, tmp);
+    renameSync(tmp, linkPath);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
 const stripManagedKnowledgeBlock = (text: string) =>
   text
     .replace(
@@ -393,10 +431,7 @@ export class FoundationBuilder {
     writeFileSync(tmp, JSON.stringify({ generation: manifest.generation, manifest: manifestFile }));
     renameSync(tmp, join(this.foundationDir, "current.json"));
     // 原子切换 2:knowledge/current symlink(外部消费视图)
-    const linkTmp = join(this.knowledgeDir, ".current.tmp");
-    rmSync(linkTmp, { force: true });
-    symlinkSync(`gen-${manifest.generation}`, linkTmp);
-    renameSync(linkTmp, join(this.knowledgeDir, "current"));
+    replaceSymlink(join(this.knowledgeDir, "current"), `gen-${manifest.generation}`, "dir");
     // generation 1 曾把四件知识文档直接写在 knowledge/ 根。保留这些旧消费路径，但改为
     // 跟随 current 的兼容 symlink，避免泛路径消费者永远读到首代陈旧内容。
     try {
@@ -416,14 +451,7 @@ export class FoundationBuilder {
 
   private refreshLegacyKnowledgeLinks(): void {
     for (const doc of ["core.md", "inventory.md", "build-test-run.md", "conventions.md"]) {
-      const tmp = join(this.knowledgeDir, `.${doc}.current.tmp`);
-      rmSync(tmp, { force: true });
-      try {
-        symlinkSync(`current/${doc}`, tmp);
-        renameSync(tmp, join(this.knowledgeDir, doc));
-      } finally {
-        rmSync(tmp, { force: true });
-      }
+      replaceSymlink(join(this.knowledgeDir, doc), `current/${doc}`, "file");
     }
   }
 

@@ -18,6 +18,7 @@ import {
 } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
+import { fsyncFile, restrictOwnerOnly } from "@saydo/platform";
 
 export const PENDING_SUFFIX = ".pending";
 export const BAK_SUFFIX = ".bak";
@@ -42,12 +43,7 @@ export function pendingPaths(saydoHome: string, baseName: string): {
 }
 
 function fsyncPath(path: string): void {
-  const fd = openSync(path, "r");
-  try {
-    fsyncSync(fd);
-  } finally {
-    closeSync(fd);
-  }
+  fsyncFile(path);
 }
 
 function fsyncDir(dir: string): void {
@@ -291,18 +287,15 @@ export function writePendingFile(pendingPath: string, content: string, mode = 0o
   } catch {
     // 某些 FS 不支持 chmod
   }
-  const fd = openSync(tmp, "r");
-  try {
-    fsyncSync(fd);
-  } finally {
-    closeSync(fd);
-  }
+  fsyncPath(tmp);
   renameSync(tmp, pendingPath);
   try {
     chmodSync(pendingPath, mode);
   } catch {
     /* ignore */
   }
+  // POSIX: chmod 0600;win32: chmod 无效,必须 ACL 收口(设计 ADR-004 owner-only)
+  restrictOwnerOnly(pendingPath, "file");
 }
 
 /** 测试辅助:清理残留 pending/tmp */

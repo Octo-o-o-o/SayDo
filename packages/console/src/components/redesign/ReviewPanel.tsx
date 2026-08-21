@@ -192,7 +192,7 @@ export function ReviewPanel({ ctx, onAction, backLabel }: {
             <ActionRow>
               {ctx.s3 ? (
                 <>
-                  <Btn variant="s3" icon={Fingerprint} onClick={() => emit({ type: "s3_merge" })}>用 Touch ID 批准并合并</Btn>
+                  <Btn variant="s3" icon={Fingerprint} onClick={() => emit({ type: "s3_merge" })}>用本机认证批准并合并</Btn>
                   <span style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>S3 不可逆 · 只能在这台电脑上完成,语音与远程永不出现此按钮</span>
                 </>
               ) : (

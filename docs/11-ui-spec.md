@@ -344,7 +344,7 @@
 
 - 恒定结构:效果描述(spokenForm 同文,10 #39)→ 项目/任务上下文(必带,04 §5.2)→ 约束参数表(mono)→ digest 尾码(mono,faint)→ 操作行。
 - S2:accept/ignore 双按钮;S3:单一"去屏幕确认"入口 + 强认证流程(样式独立:error 描边卡 + `shield-alert`);**语音 UI 永不渲染 S3 批准按钮**。**edit 第四动作已实施(W5a 2026-07-27,09 §3 骨架)**:"修改后批准"按钮仅 S2 ∧ 有 pending_command 时渲染——旧张 superseded_by_edit + 新张重签(新 nonce/新 refDigest),编辑后命令风险重估 S3 ⇒ 拒(不开 S3 预批面);S3 卡不适用 edit。
-- **S3 卡 WebAuthn 交互(R-A 2026-07-26;09 §3.3)**:S3 卡按钮文案"用 Touch ID 批准"(`fingerprint` 图标),点击触发浏览器原生 `navigator.credentials.get`(Touch ID/passkey 系统弹窗)——**认证 UI 由 OS 提供,SayDo 不自绘密码框**;成功→daemon 校验断言签 S3 收据→动作执行,失败→error toast 不放行。**仅本机受信终端渲染**:tailnet/远程来源(`via="tailnet"`)一律不渲染 S3 卡,置"请回桌面完成"引导(09 §3.3 红线;W2 已 403)。未注册 passkey ⇒ 卡降级为"去受信终端手动合并"(requestManualMerge 降级路径)。按钮下诚实注脚(同步凭据条款,09 §3.3):"批准指纹可能经 iCloud 同步到你的其他设备;批准动作本身只能在这台电脑完成。"
+- **S3 卡 WebAuthn 交互(R-A 2026-07-26;09 §3.3;设计 ADR-004)**:S3 卡按钮文案"用本机认证批准"(`fingerprint` 图标;macOS 系统弹窗仍可能显示 Touch ID,Windows 显示 Windows Hello),点击触发浏览器原生 `navigator.credentials.get`(platform authenticator)——**认证 UI 由 OS 提供,SayDo 不自绘密码框**;成功→daemon 校验断言签 S3 收据→动作执行,失败→error toast 不放行。**仅本机受信终端渲染**:tailnet/远程来源(`via="tailnet"`)一律不渲染 S3 卡,置"请回桌面完成"引导(09 §3.3 红线;W2 已 403)。未注册 passkey ⇒ 卡降级为"去受信终端手动合并"(requestManualMerge 降级路径)。按钮下诚实注脚(同步凭据条款,09 §3.3):"本机生物或 PIN 凭据可能经系统账号同步到你的其他设备;批准动作本身只能在这台电脑完成。"
 - 超时/被打断即置灰并标注终局(timeout_rejected 等),不可再点(收据单次消费的视觉表达)。
 
 ### 5.5 review 证据视图(任务详情主体)
@@ -352,7 +352,7 @@
 - 按 `DecisionPackage.acceptance[]` 分组:每条 AC 一行 `AcceptanceCheck`(pass=`check`/fail=`x`/unknown=`circle-dashed`+"未验证",禁伪精确)。**decisions 区已实施(W5a 2026-07-27)**:证据视图内 decisions 列表(每条=决策+理由+可推翻,≤5 条)读 `tier1_runs.decisions_json`——与语音口播同一落库份(09 §13 生产语义注)。
 - 路径二任务:证据主体 = 嵌 Hopper trust-report(自包含单文件,09/设计 ADR-001)。**嵌入合同(Codex 复审 A2/A4)**:`RunSettled.summary_path` 指向 `.md`——校验其在受信 vault 内(防越界路径)后**受控映射到同 basename 的 `.html`**(post-run 同时生成),文件缺失/扩展名异常按证据缺失处理;**展示层做确定性字符转换**(Hopper 报告内含 emoji,渲染前按映射表替换为 Lucide 图标/文本标记 + DOM 字符门禁),**原始文件原样留存、不改变证据 digest**——转换只发生在呈现层。
 - 操作行:验收通过(次按钮)/ 提修改(次按钮,文案"这轮不作废")/ **作废这轮**(危险描边,带二次确认对话框——§5.1 危险确认纪律;走取消链,10 #34)/ 合并(S3 组件;**批准前置灰**,§5.4 终局置灰同款)/ **我已合并,核验**(次按钮,归 S3 组件组)。零外部跳转(diff/日志深链仅工程排障入口,collapsed)。**writing 任务(R-A 补完 2026-07-27,Codex 21 A5)**:manual 验收项未逐条裁决前"验收通过"置灰(writingSettleBarrier ④,09 §6.1a);AcceptanceCheck 行提供逐条 pass/fail 勾选,勾选结果即 approve 载荷的一部分——settled ≠ 全绿,禁默认 pass 投影。
-- **合并按钮语义(R-A 2026-07-26;S3 卡兑现后收窄)**:`review_approved_waiting_merge` 态下——**主路径 = "用 Touch ID 批准合并"**(S3 卡,§5.4;过卡→daemon 本地 rebase+verify+合并,09 §3.3);**"我已合并,核验"降级为次要入口**(仅未注册 passkey / owner 选人工时用,触发 MergeProof watcher 对账外部合并)。coding 与 writing(content_done 态)同构此操作行;writing 的"合并"= 文章稿并回主分支(02 §5.0)。
+- **合并按钮语义(R-A 2026-07-26;S3 卡兑现后收窄;设计 ADR-004)**:`review_approved_waiting_merge` 态下——**主路径 = "用本机认证批准合并"**(S3 卡,§5.4;过卡→daemon 本地 rebase+verify+合并,09 §3.3);**"我已合并,核验"降级为次要入口**(仅未注册 passkey / owner 选人工时用,触发 MergeProof watcher 对账外部合并)。coding 与 writing(content_done 态)同构此操作行;writing 的"合并"= 文章稿并回主分支(02 §5.0)。
 
 ### 5.6 转写流(对话页)
 

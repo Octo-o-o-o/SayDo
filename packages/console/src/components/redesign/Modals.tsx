@@ -229,12 +229,12 @@ export function S3InfoModal({ onClose, inline }: { onClose?: () => void; inline?
   return (
     <ModalFrame title="S3 强认证(演示环境)" icon={Fingerprint} onClose={onClose} inline={inline}>
       <div style={{ fontSize: "var(--text-sm)" }}>
-        真实环境这里会唤起系统 Touch ID。S3 = 不可逆外部影响(合并 / 发布 / 删除),只在这台电脑上、由你本人完成;语音与远程永不出现这个按钮。
+        真实环境这里会唤起系统本机认证(Touch ID / Windows Hello)。S3 = 不可逆外部影响(合并 / 发布 / 删除),只在这台电脑上、由你本人完成;语音与远程永不出现这个按钮。
       </div>
       <div style={{ fontSize: "var(--text-md)", fontWeight: 600, margin: "var(--space-4) 0 var(--space-2)" }}>流程(WebAuthn · rpId=localhost)</div>
       {[
         ["1 challenge", "daemon 签发单次挑战(120 秒),带 prospectiveTreeSha 对账"],
-        ["2 Touch ID", "系统弹窗按指纹;同步凭据(BE/BS)会诚实展示,不宣称「密钥不出机」"],
+        ["2 本机认证", "系统弹窗(生物或 PIN);同步凭据(BE/BS)会诚实展示,不宣称「密钥不出机」"],
         ["3 verify", "签出 S3MergeReceipt:单次消费、过期即失效、一挑战至多一收据"],
         ["4 approve-merge", "五重事务断言后进入 merging;失败走 merge_failed,不硬并"]
       ].map(([k, v]) => (

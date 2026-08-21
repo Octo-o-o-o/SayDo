@@ -64,7 +64,7 @@ export function TaskCard({ task, onAction, inModal }: {
   } else if (vs === "review_approved_waiting_merge") {
     actions = (
       <>
-        <Btn variant="s3" icon={Fingerprint} onClick={() => onAction?.({ type: "s3_merge" }, task)}>用 Touch ID 批准合并</Btn>
+        <Btn variant="s3" icon={Fingerprint} onClick={() => onAction?.({ type: "s3_merge" }, task)}>用本机认证批准合并</Btn>
         <span style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>S3 不可逆 · 仅这台电脑</span>
       </>
     );

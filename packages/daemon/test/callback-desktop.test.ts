@@ -5,6 +5,7 @@ import {
   DESKTOP_BODY_MAX,
   DESKTOP_TITLE_MAX,
   escapeOsa,
+  notifyDesktop,
   notifyMacDesktop,
   truncateForOsa,
   type DetachedChild
@@ -72,5 +73,21 @@ describe("notifyMacDesktop 注入 spawn", () => {
       body: "等你验收"
     });
     expect(ok).toBe(true);
+  });
+});
+
+describe("notifyDesktop 分发", () => {
+  it("win32 诚实失败,不假装 toast,好让 ntfy 接手", async () => {
+    let spawned = false;
+    const ok = await notifyDesktop(
+      () => {
+        spawned = true;
+        return { unref: () => undefined };
+      },
+      { title: "SayDo · t", body: "等你验收" },
+      "win32"
+    );
+    expect(spawned).toBe(false);
+    expect(ok).toBe(false);
   });
 });

@@ -1706,3 +1706,30 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
 ### 结论
 - 迟到复核新增的 A 级 1 条与 B 级 2 条已回修；其余是已关闭重复项或无需动作的任务通知。
 - 实施与检查已跑完，等 owner 验收。仍未 commit、push、部署或修改 live 配置。
+
+## R80 · Windows 对齐合同评审与 triage 回修(2026-08-21)
+
+### 输入
+- owner:项目尚不支持 Windows;先拉 GitHub 最新,设计完整对齐方案,Codex 交叉评审,再按最完整方案实施。明确否决 WSL 当产品 SKU,否决「只做对话面、关掉 Tier1」当终局。
+
+### 行动
+1. 本地旧 `main` 与远程无关;对齐基线 `origin/main` `84af899`(`snapshot: 2026-08-21 from internal 11e3653`),分支 `feat/windows-alignment`。
+2. 落设计包(设计 ADR-004 / 工程 ADR-003 / `docs/plan/WINDOWS-ALIGNMENT.md`)并回写 02/03/04/07/09/11。
+3. 三路独立审:一致性 subagent、实现可行性 subagent、Codex `exec -m gpt-5.6-sol -c model_reasoning_effort=max`(exit 0)。Codex 88 当时设计包 `[fail]` A=7 B=7 C=1,阻断按初稿实施。
+4. triage 全吸收无驳回。关键重选:Windows 门 = 环回临时端口 + HMAC,禁止 Node 默认 DACL Named Pipe 与 win32 AF_UNIX;具名 Job + `KILL_ON_JOB_CLOSE`;birth 禁止 `pgrep`/`alive1`;ACL 精确 DACL 回读;词法先拒 URI;verify 隔离 USERPROFILE 族;本批独占 gate 运输,W5.4-b 暂停改 `handleGateRequest`。
+5. 按 triage 回修 ADR-004/003、09 §1/§9/§11/§12-10、07 D8、03 文首、02 §7、10 #20、WINDOWS-ALIGNMENT、PLAN-2 W-Win。随后按回修后合同实施 `@saydo/platform` 与 Win.1–8。
+
+### 产出
+- 设计 ADR-004:`docs/adr/design/ADR-004-windows-platform.md`(9687 / SHA-256 `e0e2b27b6ca467601d050197ca5e8e8c87b1923b8ee9a7d8d0e7a836275aa204`)
+- 工程 ADR-003:`docs/adr/ADR-003-os-adapters.md`(8199 / `ffbc0847bb64104f7cd43ca8550aa9c2a5ef56686029292ca33ab206d7c49a4a`)
+- 任务计划:`docs/plan/WINDOWS-ALIGNMENT.md`(10968 / `99dc6c59df17ee8a33bf43eb4c312ec9036b80fcecfed680192fda6635f9ec49`)
+- PLAN-2:`docs/plan/IMPLEMENTATION-PLAN-2.md`(37985 / `bbc1cb07ce0fab94ab92e6975047456faa2f540f06be069a2b65363e1765d826`)
+- triage:`research/codex-findings/88-windows-alignment-triage.md`(2355 / `b01c2ecee3bba27c4f09c08c89ebf83d0fbf53fe08475bfe5938400747172087`)
+- Codex 报告:`research/codex-findings/88-windows-alignment-codex.md`(2232 / `410c851055592eb22259f401baa826c6ac069fbb45ce3f7e632cfd08b014e6e6`)
+- 一致性:`research/codex-findings/88-windows-alignment-consistency.md`(1776 / `f2a8a418d53cfb6448d7b69c0a1c0e61865ce9d68f0defbf9914e66b5c370d7c`)
+- 实现可行性:`research/codex-findings/88-windows-alignment-implementation.md`(1553 / `5dac3fb3373f9df446b90ece824829882a8ab77e36eae8bc0b0a1e33b530663f`)
+- prompts:`prompts/88-windows-alignment-codex-review.md`(2298 / `50784136a1ff0850da3b29e6de081c3046373d3410c13622c5f806e2bf1bfb43`);`prompts/88-windows-alignment-consistency-review.md`(454 / `411964fc31c0fdf19caae38cde0695299cfb656fe8ab1f8906b182cfa24a7753`);`prompts/88-windows-alignment-implementation-review.md`(707 / `1b72b8268f68343c2b931265108c4595dcde937af286444f901dd0d89378cb77`)
+- Codex 日志:`logs/88-windows-alignment-codex.log`(887742 / `955523f64a62e08f463153344ef947cc6134c7714e3b65dd60ea7526d974d957`)
+
+### 结论
+- 按评审前初稿写代码会被 Codex 88 判阻断。合同已收到 triage;实施以回修后 ADR-003/004 与 09 为准。官网 FAQ 不动;未授权不 commit/push/deploy。

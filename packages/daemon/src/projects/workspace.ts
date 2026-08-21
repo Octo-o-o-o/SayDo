@@ -1,8 +1,14 @@
-import { existsSync, lstatSync, mkdirSync, realpathSync, statSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, realpathSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { jcsDigest } from "@saydo/contracts";
+import {
+  assertOwnedByCurrentUser,
+  assertRealDirectory,
+  isReparsePoint,
+  restrictOwnerOnly
+} from "@saydo/platform";
 
 export type WorkspacePolicyCode =
   | "workspace_path_form"
@@ -68,32 +74,34 @@ function nearestExistingAncestor(path: string): string {
 function assertLexicalPathIsReal(path: string, code: "workspace_state_overlap" | "workspace_managed_root"): void {
   const lexical = resolve(path);
   const existing = nearestExistingAncestor(lexical);
-  const existingStat = lstatSync(existing);
-  if (existingStat.isSymbolicLink() || !existingStat.isDirectory() || realpathSync(existing) !== existing) {
-    throw new WorkspacePolicyError(code, "路径父级包含 symlink 或不是实体目录");
+  try {
+    if (isReparsePoint(existing) || !lstatSync(existing).isDirectory() || realpathSync(existing) !== existing) {
+      throw new WorkspacePolicyError(code, "路径父级包含漂移链接或不是实体目录");
+    }
+  } catch (err) {
+    if (err instanceof WorkspacePolicyError) throw err;
+    throw new WorkspacePolicyError(code, "路径父级包含漂移链接或不是实体目录");
   }
 }
 
 export function validateManagedRoot(
   root: string,
-  expectedRoot = resolve(root),
-  ownerUid = process.getuid?.()
+  expectedRoot = resolve(root)
 ): string {
   if (!existsSync(root)) {
     throw new WorkspacePolicyError("workspace_managed_root", "daemon-owned root 不存在");
   }
-  const rootStat = lstatSync(root);
-  if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) {
-    throw new WorkspacePolicyError("workspace_managed_root", "daemon-owned root 不是实体目录");
+  try {
+    const resolvedRoot = assertRealDirectory(root);
+    if (resolvedRoot !== expectedRoot) {
+      throw new WorkspacePolicyError("workspace_managed_root", "daemon-owned root 发生路径逃逸");
+    }
+    assertOwnedByCurrentUser(resolvedRoot);
+    return resolvedRoot;
+  } catch (err) {
+    if (err instanceof WorkspacePolicyError) throw err;
+    throw new WorkspacePolicyError("workspace_managed_root", "daemon-owned root 不是实体目录或 owner 不匹配");
   }
-  const resolvedRoot = realpathSync(root);
-  if (resolvedRoot !== expectedRoot) {
-    throw new WorkspacePolicyError("workspace_managed_root", "daemon-owned root 发生路径逃逸");
-  }
-  if (ownerUid !== undefined && statSync(resolvedRoot).uid !== ownerUid) {
-    throw new WorkspacePolicyError("workspace_managed_owner", "daemon-owned root owner 不匹配");
-  }
-  return resolvedRoot;
 }
 
 export function validateStateRoot(
@@ -103,25 +111,24 @@ export function validateStateRoot(
   if (!existsSync(stateRoot)) {
     throw new WorkspacePolicyError("workspace_state_overlap", "SayDo 状态根不存在");
   }
-  const stateStat = lstatSync(stateRoot);
-  if (stateStat.isSymbolicLink() || !stateStat.isDirectory()) {
-    throw new WorkspacePolicyError("workspace_state_overlap", "SayDo 状态根不是实体目录");
+  try {
+    const resolvedState = assertRealDirectory(stateRoot);
+    if (resolvedState !== expectedStateRoot) {
+      throw new WorkspacePolicyError("workspace_state_overlap", "SayDo 状态根发生路径逃逸");
+    }
+    assertOwnedByCurrentUser(resolvedState);
+    return resolvedState;
+  } catch (err) {
+    if (err instanceof WorkspacePolicyError) throw err;
+    throw new WorkspacePolicyError("workspace_state_overlap", "SayDo 状态根不是实体目录或 owner 不匹配");
   }
-  const resolvedState = realpathSync(stateRoot);
-  if (resolvedState !== expectedStateRoot) {
-    throw new WorkspacePolicyError("workspace_state_overlap", "SayDo 状态根发生路径逃逸");
-  }
-  const getuid = process.getuid?.();
-  if (getuid !== undefined && statSync(resolvedState).uid !== getuid) {
-    throw new WorkspacePolicyError("workspace_state_overlap", "SayDo 状态根 owner 不匹配");
-  }
-  return resolvedState;
 }
 
 export function ensureStateRoot(): string {
   const stateRoot = saydoStateRoot();
   assertLexicalPathIsReal(stateRoot, "workspace_state_overlap");
   if (!existsSync(stateRoot)) mkdirSync(stateRoot, { recursive: true, mode: 0o700 });
+  restrictOwnerOnly(stateRoot, "dir");
   return validateStateRoot(stateRoot, stateRoot);
 }
 
@@ -129,6 +136,7 @@ export function ensureManagedWorkspaceRoot(): string {
   const stateRoot = ensureStateRoot();
   const root = join(stateRoot, "projects");
   mkdirSync(root, { recursive: true, mode: 0o700 });
+  restrictOwnerOnly(root, "dir");
   return validateManagedRoot(root, join(stateRoot, "projects"));
 }
 
@@ -141,19 +149,20 @@ export function validateManagedWorkspace(projectId: string, raw: string): string
     throw new WorkspacePolicyError("workspace_managed_root", "managed workspace 不在 daemon-owned root");
   }
   if (!existsSync(expected)) return expected;
-  const linkStat = lstatSync(expected);
-  if (linkStat.isSymbolicLink() || !linkStat.isDirectory()) {
-    throw new WorkspacePolicyError("workspace_managed_root", "managed workspace 不是受管目录");
+  try {
+    if (isReparsePoint(expected) || !lstatSync(expected).isDirectory()) {
+      throw new WorkspacePolicyError("workspace_managed_root", "managed workspace 不是受管目录");
+    }
+    const resolved = realpathSync(expected);
+    if (resolved !== resolve(resolvedRoot, projectId)) {
+      throw new WorkspacePolicyError("workspace_managed_root", "managed workspace 逃逸 daemon-owned root");
+    }
+    assertOwnedByCurrentUser(resolved);
+    return expected;
+  } catch (err) {
+    if (err instanceof WorkspacePolicyError) throw err;
+    throw new WorkspacePolicyError("workspace_managed_root", "managed workspace 不是受管目录或 owner 不匹配");
   }
-  const resolved = realpathSync(expected);
-  if (resolved !== resolve(resolvedRoot, projectId)) {
-    throw new WorkspacePolicyError("workspace_managed_root", "managed workspace 逃逸 daemon-owned root");
-  }
-  const getuid = process.getuid?.();
-  if (getuid !== undefined && statSync(resolved).uid !== getuid) {
-    throw new WorkspacePolicyError("workspace_managed_owner", "managed workspace owner 不匹配");
-  }
-  return expected;
 }
 
 function isStrictDescendant(parent: string, child: string): boolean {
@@ -223,6 +232,9 @@ export function canonicalizeWorkspace(raw: string): WorkspaceIdentity {
   }
   if (!stat.isDirectory()) {
     throw new WorkspacePolicyError("workspace_not_directory", "路径不是目录", path);
+  }
+  if (isReparsePoint(path)) {
+    throw new WorkspacePolicyError("workspace_not_directory", "路径是漂移链接", path);
   }
   assertAllowedWorkspacePath(path);
   return { path, dev: String(stat.dev), ino: String(stat.ino) };

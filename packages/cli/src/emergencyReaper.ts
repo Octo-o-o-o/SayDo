@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
+import { hostKind, killOwnedTree, nativeSync, processAlive, processBirth } from "@saydo/platform";
 
 interface AgentOwner {
   version: 1;
@@ -10,6 +11,7 @@ interface AgentOwner {
   processStart: string;
   ownerPid?: number;
   ownerInstanceId?: string;
+  jobName?: string;
 }
 
 interface RuntimeChildOwner {
@@ -21,9 +23,11 @@ interface RuntimeChildOwner {
   ownerPid: number;
   ownerInstanceId?: string;
   commandToken?: string;
+  jobName?: string;
 }
 
 function groupAlive(pid: number): boolean {
+  if (hostKind() === "win32") return processAlive(pid);
   try {
     process.kill(-pid, 0);
     return true;
@@ -34,23 +38,8 @@ function groupAlive(pid: number): boolean {
   }
 }
 
-function processAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ESRCH") return false;
-    if ((err as NodeJS.ErrnoException).code === "EPERM") return true;
-    throw err;
-  }
-}
-
-async function killGroupAndWait(pid: number, timeoutMessage: string): Promise<void> {
-  try {
-    process.kill(-pid, "SIGKILL");
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "ESRCH") throw err;
-  }
+async function killGroupAndWait(pid: number, timeoutMessage: string, expectedBirth: string, jobName?: string): Promise<void> {
+  await killOwnedTree({ pid, expectedBirth, ...(jobName ? { jobName } : {}) });
   const deadline = Date.now() + 5_000;
   while (groupAlive(pid)) {
     if (Date.now() >= deadline) throw new Error(timeoutMessage);
@@ -58,48 +47,43 @@ async function killGroupAndWait(pid: number, timeoutMessage: string): Promise<vo
   }
 }
 
-function processStart(pid: number, binary: string, commandToken?: string): string | null {
-  if (process.platform === "win32") return null;
+function processStart(pid: number, _binary?: string, _commandToken?: string): string | null {
+  return processBirth(pid);
+}
+
+function posixCommandContains(pid: number, binary: string, commandToken: string): boolean {
   try {
-    const options = { encoding: "utf8" as const, timeout: 2_000 };
     const ps = existsSync("/bin/ps") ? "/bin/ps" : existsSync("/usr/bin/ps") ? "/usr/bin/ps" : "ps";
-    const fields = execFileSync(
-      ps,
-      ["-o", "pgid=", "-o", "lstart=", "-o", "command=", "-p", String(pid)],
-      options
-    ).trim().split(/\s+/u);
-    const pgid = Number(fields[0]);
-    const started = fields.slice(1, 6).join(" ");
-    const command = fields.slice(6).join(" ");
-    if (pgid !== pid || !command.includes(binary) || (commandToken && !command.includes(commandToken))) return null;
-    return started || null;
-  } catch {
-    // ps 不可用时回退 pgrep 命令行身份（与 daemon restartPolicy 同源口径）。
-    try {
-      const base = binary.split("/").pop() ?? binary;
-      const pattern = commandToken && commandToken.length >= 8 ? commandToken : base.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-      const raw = execFileSync("pgrep", ["-lf", pattern], { encoding: "utf8", timeout: 2_000 });
-      const line = raw
-        .split("\n")
-        .map((item) => item.trim())
-        .find((item) => item === String(pid) || item.startsWith(`${String(pid)} `));
-      if (!line) throw new Error("pgrep miss");
-      if (!line.includes(base) && !line.includes(binary)) throw new Error("binary miss");
-      if (commandToken && !line.includes(commandToken)) throw new Error("token miss");
-      return `pgrep1:${line.slice(0, 240)}`;
-    } catch {
-      if (commandToken && commandToken.length >= 12) {
-        try {
-          process.kill(pid, 0);
-          const base = binary.split("/").pop() ?? binary;
-          return `token1:${pid}:${base}:${commandToken}`;
-        } catch {
-          return null;
-        }
-      }
-      return null;
+    const command = execFileSync(ps, ["-o", "command=", "-p", String(pid)], {
+      encoding: "utf8",
+      timeout: 2_000
+    }).trim();
+    if (command.includes(commandToken) && (command.includes(binary) || command.includes(binary.split("/").pop() ?? binary))) {
+      return true;
     }
+  } catch {
+    // macOS sandbox 常禁 setuid ps，回退 pgrep 命令行身份。
   }
+  try {
+    const raw = execFileSync("pgrep", ["-lf", commandToken], { encoding: "utf8", timeout: 2_000 });
+    return raw
+      .split("\n")
+      .map((item) => item.trim())
+      .some((item) => item === String(pid) || item.startsWith(`${String(pid)} `));
+  } catch {
+    return false;
+  }
+}
+
+async function reapWin32DeadLeaderJob(
+  pid: number,
+  expectedBirth: string,
+  jobName: string | undefined,
+  timeoutMessage: string
+): Promise<boolean> {
+  if (!jobName) return false;
+  await killGroupAndWait(pid, timeoutMessage, expectedBirth, jobName);
+  return true;
 }
 
 function readLegacyPid(runDir: string): number | null {
@@ -135,7 +119,7 @@ export async function reapOwnedAgentGroups(
   home: string,
   generation?: OwnedDaemonGeneration
 ): Promise<number> {
-  if (process.platform === "win32") throw new Error("Windows agent process-group reaper 尚未闭环");
+  if (hostKind() === "win32") nativeSync();
   const runsRoot = join(home, "tier1", "runs");
   let reaped = 0;
   const deferredLegacy: { runId: string; pid: number }[] = [];
@@ -163,6 +147,17 @@ export async function reapOwnedAgentGroups(
     const observedStart = processStart(owner.pid, owner.binary);
     if (observedStart === null) {
       if (processAlive(owner.pid)) throw new Error(`agent ownership identity unverified:${entry.name}`);
+      if (hostKind() === "win32") {
+        if (await reapWin32DeadLeaderJob(
+          owner.pid,
+          owner.processStart,
+          owner.jobName,
+          `agent process group drain timeout:${entry.name}`
+        )) {
+          reaped += 1;
+        }
+        continue;
+      }
       // A4: dead leader 后不得仅凭数值 PGID kill；无法证明成员 birth identity 时 fail-closed。
       if (groupAlive(owner.pid)) {
         throw new Error(`agent process group alive after leader death:${entry.name}`);
@@ -172,7 +167,7 @@ export async function reapOwnedAgentGroups(
     if (observedStart !== owner.processStart) {
       throw new Error(`agent ownership identity mismatch:${entry.name}`);
     }
-    await killGroupAndWait(owner.pid, `agent process group drain timeout:${entry.name}`);
+    await killGroupAndWait(owner.pid, `agent process group drain timeout:${entry.name}`, owner.processStart, owner.jobName);
     reaped += 1;
   }
   const childrenRoot = join(home, "runtime", "children");
@@ -187,7 +182,8 @@ export async function reapOwnedAgentGroups(
         typeof parsed.kind !== "string" || typeof parsed.binary !== "string" ||
         !(typeof parsed.processStart === "string" || parsed.processStart === null) ||
         !Number.isInteger(parsed.ownerPid) ||
-        !(parsed.commandToken === undefined || typeof parsed.commandToken === "string")
+        !(parsed.commandToken === undefined || typeof parsed.commandToken === "string") ||
+        !(parsed.jobName === undefined || typeof parsed.jobName === "string")
       ) throw new Error("invalid runtime child owner");
       owner = parsed as RuntimeChildOwner;
     } catch {
@@ -197,29 +193,61 @@ export async function reapOwnedAgentGroups(
       continue;
     }
     if (!groupAlive(owner.pid)) {
+      if (hostKind() === "win32" && owner.jobName) {
+        const birth = owner.processStart ?? `gone:${String(owner.pid)}`;
+        if (await reapWin32DeadLeaderJob(
+          owner.pid,
+          birth,
+          owner.jobName,
+          `runtime child process group drain timeout:${owner.kind}`
+        )) {
+          rmSync(path, { force: true });
+          reaped += 1;
+          continue;
+        }
+      }
       rmSync(path, { force: true });
       continue;
     }
     if (owner.processStart === null) {
-      if (!owner.commandToken || processStart(owner.pid, owner.binary, owner.commandToken) === null) {
+      const observedPending = processStart(owner.pid, owner.binary, owner.commandToken);
+      if (!owner.commandToken || observedPending === null) {
         throw new Error(`live runtime child ownership pending:${owner.kind}:${String(owner.pid)}`);
       }
-      try {
-        process.kill(-owner.pid, "SIGKILL");
-      } catch (err) {
-        if ((err as NodeJS.ErrnoException).code !== "ESRCH") throw err;
+      if (hostKind() === "win32") {
+        if (!owner.jobName) {
+          throw new Error(`live runtime child missing jobName:${owner.kind}:${String(owner.pid)}`);
+        }
+        if (!owner.jobName.includes(owner.commandToken)) {
+          throw new Error(`live runtime child ownership pending:${owner.kind}:${String(owner.pid)}`);
+        }
+      } else if (!posixCommandContains(owner.pid, owner.binary, owner.commandToken)) {
+        throw new Error(`live runtime child ownership pending:${owner.kind}:${String(owner.pid)}`);
       }
-      const deadline = Date.now() + 5_000;
-      while (groupAlive(owner.pid)) {
-        if (Date.now() >= deadline) throw new Error(`pending runtime child drain timeout:${owner.kind}`);
-        await new Promise((resolve) => setTimeout(resolve, 20));
-      }
+      await killGroupAndWait(
+        owner.pid,
+        `pending runtime child drain timeout:${owner.kind}`,
+        observedPending,
+        owner.jobName
+      );
       rmSync(path, { force: true });
       reaped += 1;
       continue;
     }
     const observedStart = processStart(owner.pid, owner.binary, owner.commandToken);
     if (observedStart === null && !processAlive(owner.pid)) {
+      if (hostKind() === "win32") {
+        if (await reapWin32DeadLeaderJob(
+          owner.pid,
+          owner.processStart,
+          owner.jobName,
+          `runtime child process group drain timeout:${owner.kind}`
+        )) {
+          rmSync(path, { force: true });
+          reaped += 1;
+        }
+        continue;
+      }
       // A4: leader 已死、组仍可能存活时禁止数值 PGID 盲杀。
       if (groupAlive(owner.pid)) {
         throw new Error(`runtime child process group alive after leader death:${owner.kind}:${String(owner.pid)}`);
@@ -230,7 +258,7 @@ export async function reapOwnedAgentGroups(
     if (observedStart !== owner.processStart) {
       throw new Error(`runtime child ownership identity mismatch:${owner.kind}:${String(owner.pid)}`);
     }
-    await killGroupAndWait(owner.pid, `runtime child process group drain timeout:${owner.kind}`);
+    await killGroupAndWait(owner.pid, `runtime child process group drain timeout:${owner.kind}`, owner.processStart, owner.jobName);
     rmSync(path, { force: true });
     reaped += 1;
   }

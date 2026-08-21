@@ -1,8 +1,17 @@
-import { spawn, type ChildProcessByStdio } from "node:child_process";
+import { execFileSync, spawn, type ChildProcessByStdio } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import type { Readable, Writable } from "node:stream";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { delimiter, extname, join } from "node:path";
+import {
+  assignPidToJob,
+  closeNamedJob,
+  createNamedJob,
+  hostKind,
+  processAlive,
+  processBirth,
+  type NamedJob
+} from "@saydo/platform";
 import { readOwnedAgentProcessStart } from "./tier1/restartPolicy.js";
 
 export interface RuntimeChildOwnershipRecord {
@@ -14,6 +23,7 @@ export interface RuntimeChildOwnershipRecord {
   ownerPid: number;
   ownerInstanceId: string;
   commandToken?: string;
+  jobName?: string;
 }
 
 export interface RuntimeChildLease {
@@ -27,6 +37,8 @@ export interface RuntimeChildSpawnOptions {
   stdin: "ignore" | "pipe";
   stdout: "ignore" | "pipe";
   stderr: "ignore" | "pipe" | "inherit";
+  /** 覆盖进程级 registry 根;并行测试必须按调用方 HOME 隔离 */
+  registryHome?: string;
 }
 
 export interface SpawnedRuntimeChild {
@@ -97,7 +109,13 @@ const permit = createReadStream(null, { fd: 3, autoClose: true });
 permit.once("data", () => {
   if (granted) return;
   granted = true;
-  child = spawn(target, args, { cwd: process.cwd(), env: process.env, stdio: ["pipe", "inherit", "inherit"] });
+  const js = require("node:path").extname(target).toLowerCase();
+  const wrapJs = js === ".js" || js === ".mjs" || js === ".cjs" ||
+    (process.platform === "win32" && js === "");
+  const spawnFile = wrapJs ? process.execPath : target;
+  const spawnArgs = wrapJs ? [target, ...args] : args;
+  const useShell = process.platform === "win32" && (js === ".cmd" || js === ".bat");
+  child = spawn(spawnFile, spawnArgs, { cwd: process.cwd(), env: process.env, stdio: ["pipe", "inherit", "inherit"], windowsHide: true, shell: useShell });
   process.stdin.pipe(child.stdin);
   child.once("error", (err) => { process.stderr.write(String(err)); drainAndExit(127); });
   child.once("exit", (code, signal) => {
@@ -114,8 +132,36 @@ for (const signal of ["SIGTERM", "SIGINT"]) {
 }
 `;
 
-let runtimeChildHome: string | null = null;
+export function runtimeChildJobName(pid: number): string | undefined {
+  return runtimeJobs.get(pid)?.name;
+}
+
+export function signalRuntimeChildTree(pid: number, signal: NodeJS.Signals): void {
+  if (hostKind() === "win32") {
+    if (signal === "SIGKILL") {
+      const owned = runtimeJobs.get(pid);
+      if (owned) {
+        closeNamedJob(owned);
+        runtimeJobs.delete(pid);
+        return;
+      }
+    }
+    try {
+      process.kill(pid, signal);
+    } catch {
+      // ESRCH / EINVAL
+    }
+    return;
+  }
+  try {
+    process.kill(-pid, signal);
+  } catch {
+    // ESRCH
+  }
+}
+let runtimeChildHome: string | undefined;
 let runtimeOwnerInstanceId = `pid-${String(process.pid)}`;
+const runtimeJobs = new Map<number, NamedJob>();
 
 export function configureRuntimeChildRegistry(home: string, ownerInstanceId = `pid-${String(process.pid)}`): void {
   runtimeChildHome = home;
@@ -126,9 +172,9 @@ export function runtimeChildOwnerIdentity(): { ownerPid: number; ownerInstanceId
   return { ownerPid: process.pid, ownerInstanceId: runtimeOwnerInstanceId };
 }
 
-function prepareRuntimeChildRoot(): void {
-  if (!runtimeChildHome || process.platform === "win32") return;
-  const root = join(runtimeChildHome, "runtime", "children");
+function prepareRuntimeChildRoot(home = runtimeChildHome): void {
+  if (!home) return;
+  const root = join(home, "runtime", "children");
   mkdirSync(root, { recursive: true, mode: 0o700 });
   const probe = join(root, `.write-probe-${process.pid}-${randomUUID()}`);
   let created = false;
@@ -143,7 +189,7 @@ function prepareRuntimeChildRoot(): void {
 export type RuntimeProcessGroupState = "alive" | "gone" | "unknown";
 
 export function runtimeProcessGroupState(pid: number): RuntimeProcessGroupState {
-  if (process.platform === "win32") return "unknown";
+  if (hostKind() === "win32") return processAlive(pid) ? "alive" : "gone";
   try {
     process.kill(-pid, 0);
     return "alive";
@@ -175,15 +221,16 @@ export function beginRuntimeChild(
   pid: number,
   binary: string,
   kind: string,
-  options: { commandToken?: string; permit?: NodeJS.WritableStream } = {}
+  options: { commandToken?: string; permit?: NodeJS.WritableStream; jobName?: string; registryHome?: string } = {}
 ): RuntimeChildLease {
-  if (!runtimeChildHome || process.platform === "win32" || pid <= 1) {
+  const home = options.registryHome ?? runtimeChildHome;
+  if (!home || pid <= 1) {
     return {
       establish: async () => { options.permit?.end("1"); },
       release: () => undefined
     };
   }
-  const root = join(runtimeChildHome, "runtime", "children");
+  const root = join(home, "runtime", "children");
   mkdirSync(root, { recursive: true, mode: 0o700 });
   const path = join(root, `${String(pid)}.json`);
   const pending: RuntimeChildOwnershipRecord = {
@@ -194,7 +241,8 @@ export function beginRuntimeChild(
     processStart: null,
     ownerPid: process.pid,
     ownerInstanceId: runtimeOwnerInstanceId,
-    ...(options.commandToken ? { commandToken: options.commandToken } : {})
+    ...(options.commandToken ? { commandToken: options.commandToken } : {}),
+    ...(options.jobName ? { jobName: options.jobName } : {})
   };
   writeRecord(path, pending);
   let released = false;
@@ -203,7 +251,9 @@ export function beginRuntimeChild(
       const deadline = Date.now() + 2_000;
       let processStart: string | null = null;
       while (!released && processStart === null && Date.now() < deadline) {
-        processStart = readOwnedAgentProcessStart(pid, binary, options.commandToken);
+        processStart = hostKind() === "win32"
+          ? processBirth(pid)
+          : readOwnedAgentProcessStart(pid, binary, options.commandToken);
         if (processStart === null && groupAlive(pid)) await new Promise((resolve) => setTimeout(resolve, 20));
         else if (processStart === null) return;
       }
@@ -230,25 +280,74 @@ export function beginRuntimeChild(
  * wrapper 在 fd3 收到 permit 前不 spawn 目标；daemon 硬退会关闭 pipe，wrapper 自退。
  * durable birth owner 原子发布后才写 permit，因此不存在“目标已执行但 owner 仍 pending”的窗口。
  */
+function resolveSpawnFile(file: string, env?: NodeJS.ProcessEnv): string {
+  if (hostKind() !== "win32") return file;
+  if (file.includes("/") || file.includes("\\") || extname(file) !== "") {
+    return file;
+  }
+  const pathEnv = env?.PATH ?? process.env.PATH ?? "";
+  const pathext = (env?.PATHEXT ?? process.env.PATHEXT ?? ".EXE;.CMD;.BAT;.COM").split(";").filter(Boolean);
+  for (const dir of pathEnv.split(delimiter)) {
+    if (!dir) continue;
+    for (const suffix of pathext) {
+      const candidate = join(dir, file + suffix);
+      if (existsSync(candidate)) return candidate;
+    }
+  }
+  return file;
+}
+
+/** Windows 上无扩展名/.js 的 agent 必须经 node.exe;生产 cursor-agent.exe 直跑。 */
+export function execAgentFileSync(
+  file: string,
+  args: string[],
+  options: { encoding: "utf8"; timeout?: number } = { encoding: "utf8" }
+): string {
+  const resolved = resolveSpawnFile(file);
+  const ext = extname(resolved).toLowerCase();
+  const wrapJs = ext === ".js" || ext === ".mjs" || ext === ".cjs" ||
+    (hostKind() === "win32" && ext === "");
+  const useShell = hostKind() === "win32" && (ext === ".cmd" || ext === ".bat");
+  const spawnFile = wrapJs ? process.execPath : resolved;
+  const spawnArgs = wrapJs ? [resolved, ...args] : args;
+  return execFileSync(spawnFile, spawnArgs, {
+    encoding: options.encoding,
+    ...(options.timeout !== undefined ? { timeout: options.timeout } : {}),
+    windowsHide: true,
+    ...(useShell ? { shell: true } : {})
+  }).trim();
+}
+
 export function spawnRuntimeChild(
   file: string,
   args: string[],
   options: RuntimeChildSpawnOptions,
   kind: string
 ): SpawnedRuntimeChild {
+  const registryHome = options.registryHome ?? runtimeChildHome;
   // 先验证 durable registry 可写，避免 wrapper 已启动却没有任何 ownership 锚点。
-  prepareRuntimeChildRoot();
+  prepareRuntimeChildRoot(registryHome);
   const commandToken = `saydo-child-${randomUUID()}`;
+  const resolvedFile = resolveSpawnFile(file, options.env);
+  let job: NamedJob | undefined;
+  if (hostKind() === "win32") {
+    job = createNamedJob(`Local\\SayDoJob-${runtimeOwnerInstanceId}-${commandToken}`);
+  }
   const child = spawn(
     process.execPath,
-    ["-e", RUNTIME_CHILD_WRAPPER, commandToken, file, JSON.stringify(args)],
+    ["-e", RUNTIME_CHILD_WRAPPER, commandToken, resolvedFile, JSON.stringify(args)],
     {
       ...(options.cwd ? { cwd: options.cwd } : {}),
       ...(options.env ? { env: options.env } : {}),
       stdio: ["pipe", "pipe", "pipe", "pipe"],
-      detached: process.platform !== "win32"
+      detached: hostKind() !== "win32",
+      windowsHide: true
     }
   );
+  if (job && child.pid) {
+    assignPidToJob(job, child.pid);
+    runtimeJobs.set(child.pid, job);
+  }
   const permit = child.stdio[3] as Readable | Writable | null;
   const permitWritable = permit && "write" in permit ? permit : undefined;
   if (options.stdin === "ignore") child.stdin.end();
@@ -259,17 +358,33 @@ export function spawnRuntimeChild(
   try {
     lease = beginRuntimeChild(child.pid ?? -1, process.execPath, kind, {
       commandToken,
-      ...(permitWritable ? { permit: permitWritable } : {})
+      ...(permitWritable ? { permit: permitWritable } : {}),
+      ...(job ? { jobName: job.name } : {}),
+      ...(registryHome ? { registryHome } : {})
     });
   } catch (err) {
-    // preflight 后仍可能被外部文件系统变更击中；目标尚未获 permit，只需收口 wrapper。
     try { permitWritable?.end(); } catch { /* best effort */ }
     try { child.stdin.end(); } catch { /* best effort */ }
     try { child.kill("SIGKILL"); } catch { /* best effort */ }
+    if (job) {
+      try { closeNamedJob(job); } catch { /* best effort */ }
+      if (child.pid) runtimeJobs.delete(child.pid);
+    }
     child.stdout.resume();
     child.stderr.resume();
     throw err;
   }
+  const innerRelease = lease.release.bind(lease);
+  lease.release = () => {
+    innerRelease();
+    if (child.pid) {
+      const owned = runtimeJobs.get(child.pid);
+      if (owned) {
+        try { closeNamedJob(owned); } catch { /* KILL_ON_JOB_CLOSE */ }
+        runtimeJobs.delete(child.pid);
+      }
+    }
+  };
   return { child, lease, commandToken };
 }
 
@@ -304,8 +419,16 @@ export async function execRuntimeChild(
   const maxBuffer = options.maxBuffer ?? 512 * 1024;
   const signalTree = (signal: NodeJS.Signals): void => {
     try {
-      if (process.platform !== "win32" && child.pid) process.kill(-child.pid, signal);
-      else child.kill(signal);
+      if (hostKind() !== "win32" && child.pid) process.kill(-child.pid, signal);
+      else if (child.pid) {
+        const owned = runtimeJobs.get(child.pid);
+        if (owned) {
+          runtimeJobs.delete(child.pid);
+          closeNamedJob(owned);
+        } else {
+          child.kill(signal);
+        }
+      }
     } catch {
       // close/group probe 决定最终结果。
     }

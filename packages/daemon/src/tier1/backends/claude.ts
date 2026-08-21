@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { explainCliProcessFailure } from "../../providers/byoa/processFailure.js";
-import { buildClaudeGateScript, writeGateScriptAtomic, type GatePaths } from "../gateScript.js";
+import { cursorHookCommand } from "../adapter.js";
+import { buildClaudeGateMjs, buildClaudeGateScript, writeGateScriptAtomic, type GatePaths } from "../gateScript.js";
 import type { Tier1Backend, Tier1BuildArgvInput, Tier1Event } from "./types.js";
 
 export const CLAUDE_TOOLS = "Bash,Read,Write,Edit,NotebookEdit";
@@ -97,7 +97,7 @@ export function buildClaudeHooksSettings(gateScriptPath: string, hookTimeoutSec 
       PreToolUse: [
         {
           matcher: CLAUDE_HOOK_MATCHER,
-          hooks: [{ type: "command", command: gateScriptPath, timeout: hookTimeoutSec }]
+          hooks: [{ type: "command", command: cursorHookCommand(gateScriptPath), timeout: hookTimeoutSec }]
         }
       ]
     }
@@ -221,8 +221,12 @@ export function claudeBackend(): Tier1Backend {
     buildArgv: buildClaudeArgv,
     provisionHooks(_cwd: string, gate: GatePaths) {
       mkdirSync(gate.dir, { recursive: true });
-      const scriptPath = join(gate.dir, "gate-claude.sh");
-      writeGateScriptAtomic(scriptPath, buildClaudeGateScript(gate.sockPath, gate.logPath));
+      const scriptPath = gate.claudeScriptPath;
+      if (process.platform === "win32") {
+        writeGateScriptAtomic(scriptPath, buildClaudeGateMjs(gate.bindPath, gate.secretPath, gate.logPath));
+      } else {
+        writeGateScriptAtomic(scriptPath, buildClaudeGateScript(gate.sockPath, gate.logPath));
+      }
       const settings = buildClaudeHooksSettings(scriptPath, 120);
       return { extraArgs: ["--settings", settings], filesWritten: [scriptPath] };
     },

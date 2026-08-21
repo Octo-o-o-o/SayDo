@@ -6,7 +6,7 @@
 ## 0. 选型原则
 
 1. **复用而非自建**:下游有现成实现(尤其自家 Hopper)就不重写;自建只留三块独特能力 + 控制面桥。
-2. **本地优先、可替换**:macOS 本地跑通为先;云服务全部走 provider 抽象,能一行换供应商;每个云组件都要有本地/降级选项。
+2. **本地优先、可替换**:桌面执行面 = macOS **与** Windows(设计 ADR-004;机制见工程 ADR-003);云服务全部走 provider 抽象,能一行换供应商;每个云组件都要有本地/降级选项。官网在 W-Win 收口前仍可写"Windows 暂不支持",不得倒逼合同只承认 macOS。
 3. **license 卫生**:MIT/BSD/Apache 可直接集成;AGPL/GPL(Claude Squad、cmux)只抄机制、不引代码。
 4. **能力按运行时探测**:不按模型名/版本假设 agent 能力(steer/审批),探测失败走降级路径。
 5. **每引入一个依赖都要有明确回报**:不上编排框架全家桶、不为"以后可能用到"引库。
@@ -20,7 +20,7 @@
 | D2 | 语音管线 | Pipecat(独立 Python 进程)+ Silero VAD | 待 spike(打断语义) |
 | D3 | 模型分档 | 对话档 / 沉思档 / 廉价档三档 + 异族 evaluator | 定稿(具体模型可配置) |
 | D4 | ASR | **火山豆包 bigmodel 流式(sauc)+ 热词偏置**(定档;MLX Whisper 本地选项) | 定稿(2026-07-24;工程 ADR-101) |
-| D5 | TTS | **火山豆包 seed-tts-2.0 大模型 · v3 双向流式 WebSocket**(定档)+ 本地兜底(Kokoro MLX / `say`) | 定稿(2026-07-23;owner 已有可用实现复用) |
+| D5 | TTS | **火山豆包 seed-tts-2.0 大模型 · v3 双向流式 WebSocket**(定档)+ 本地兜底按 OS(macOS:Kokoro MLX/`say`;Windows P0:无本地则 ntfy,P1:SAPI/piper) | 定稿(2026-07-23;Windows 投影 2026-08-21 设计 ADR-004) |
 | D6 | S2S 引擎 | OpenAI Realtime,仅对话呈现层 | 分期(P2) |
 | D7 | 执行后端 | Hopper(现状 task 粒度起步) | 定稿 |
 | D8 | agent 接入 | Claude=Agent SDK(Tier 1,产品缺省);**Cursor=CLI hooks(Tier 1,dev 缺省;SDK=P1)**;Codex=经 Hopper exec(Tier 2)→ 评估 app-server | 定稿 |
@@ -32,7 +32,7 @@
 | D14 | 控制台前端 | Vite + React 单页,daemon 静态托管,不用 Electron | 定稿 |
 | D15 | 成本与观测 | Hopper usage 中枢 + daemon 会话账本;LiteLLM/Langfuse 按需后引 | 定稿 |
 | D16 | 存储 | SQLite(better-sqlite3)+ JSONL 事件流 | 定稿 |
-| D17 | 分发形态 | CLI + daemon 手动起步 → launchd 常驻(~~P1~~ **已提前**,05 §4 提前批 #1)→ 菜单栏(P2) | 定稿 |
+| D17 | 分发形态 | CLI + daemon 手动起步 → macOS launchd(已提前) / Windows CLI supervisor(P0)+ Scheduled Task(P1) → 菜单栏(P2) | 定稿(Windows 投影设计 ADR-004) |
 | D18 | 模型供给 | API 直连 + 本地 Agent CLI 订阅复用;thinking/cheap/evaluator 的 CLI 无状态一发一收与 `dialog_cli_oneshot` 文本单发均为正式形态 | 已实施(T18 三轮精化;对话 CLI 仅判死语音实时环与完整多轮工具环,2026-08-11) |
 
 ## 2. 运行时与存储
@@ -50,9 +50,9 @@
 
 ### D17 分发:先 CLI,后常驻(定稿)
 
-P0 `voiced` 手动启动(开发迭代快);P1 launchd 常驻 + 开机自启;P2 才考虑菜单栏原生壳(届时评估 Swift menubar vs Tauri,不用 Electron——一个常驻语音 daemon 不需要 300MB 的壳)。
+P0 `voiced` / `saydo up` 手动启动(开发迭代快);macOS P1 launchd 常驻 + 开机自启;Windows P0 同 CLI supervisor,P1 当前用户 Scheduled Task(设计 ADR-004,不模拟 plist);P2 才考虑菜单栏原生壳(届时评估 Swift menubar vs Tauri,不用 Electron——一个常驻语音 daemon 不需要 300MB 的壳)。
 
-**状态(W2 提前批 #1 已实施,2026-07-26)**:launchd 常驻落地(`com.saydo.daemon` plist:RunAtLoad 重登录自起 + KeepAlive.SuccessfulExit=false 崩溃自启;`just daemon <install|…|deploy>` 命令面);**运行时/开发树分离**(场次① C2):常驻从 `~/.saydo/runtime` 独立树跑收口 SHA(`just daemon deploy`),开发树改码/测试不打断在场语音会话。菜单栏仍 P2。
+**状态(W2 提前批 #1 已实施,2026-07-26)**:macOS launchd 常驻落地(`com.saydo.daemon` plist:RunAtLoad 重登录自起 + KeepAlive.SuccessfulExit=false 崩溃自启;`just daemon <install|…|deploy>` 命令面);**运行时/开发树分离**(场次① C2):常驻从 `~/.saydo/runtime` 独立树跑收口 SHA(`just daemon deploy`),开发树改码/测试不打断在场语音会话。菜单栏仍 P2。Windows 常驻安装器属 W-Win P1,不在 W2 范围。
 
 ## 3. 语音链路
 
@@ -79,7 +79,7 @@ P0 `voiced` 手动启动(开发迭代快);P1 launchd 常驻 + 开机自启;P2 �
   - **鉴权走 HTTP header**(新方案,区别于旧 appid-in-JSON):`X-Api-Key: <DOUBAO_TTS_API_KEY>`、`X-Api-Resource-Id: seed-tts-2.0`、`X-Api-Connect-Id: <uuid>`——**不再用 `VOLC_API_KEY`+`VOLC_APP_ID` 那套**。
   - 模型 `seed-tts-2.0-expressive`(高表现力,对话/播报首选)或 `seed-tts-2.0-standard`;音频 24kHz;二进制事件帧 ConnectionStarted→SessionStarted→TTSResponse(多包)→SessionFinished→ConnectionFinished。
   - **复用现成实现**:owner 的 `repo-demo-recorder` 技能 `scripts/add-tts-narration.mjs`(`engine=doubao-tts-v3`)已是这套协议的可运行实现(编码/解帧/事件机、`ws` 包 header 注入)——SayDo 的 TTS adapter(E1/A2 语音链)直接移植其 `encodeDoubaoMessage`/`decodeDoubaoMessage`/session 循环,砍掉录屏混音部分即可。
-  - 本地兜底链不变:Kokoro MLX(需预热)→ piper → macOS `say`(应急,保证"回叫永远发得出声")。
+  - 本地兜底链按 OS:macOS = Kokoro MLX(需预热)→ piper → `say`;Windows = 云端主路径,P0 无本地引擎时 TTS=disabled 且回叫降 ntfy(诚实),P1 = piper win 或 SAPI(设计 ADR-004 §4)。"回叫永远发得出声"在 Windows P0 由 ntfy/桌面通知承接,不假装 `say`。
 - **端到端 S2S 备选(P2)**:火山另有「豆包端到端实时语音大模型」(S2S-Omni,`api/v3` 端到端)——与 D6 的 S2S 呈现层同归 P2,P0 级联不用。
 - **剩余 spike(不阻塞定档,仅调参)**:分句策略下的真实首包延迟、`speech_rate`/`loudness_rate`/音色选型(如 `zh_female_*_bigtts`)的主观质量。
 
@@ -116,7 +116,7 @@ P0 `voiced` 手动启动(开发迭代快);P1 launchd 常驻 + 开机自启;P2 �
 | Agent | P0 | 演进 |
 |---|---|---|
 | Claude Code | **Agent SDK streaming**(Tier 1:canUseTool 审批 + 运行中 steer)——**不走 CLI**(Claude CLI 无 canUseTool,一手实测);**产品缺省后端** | — |
-| Cursor | **Tier 1 dev 机缺省后端 = CLI 订阅态(2026-07-23 实测通过,`research/spikes/cursor-cli-tier1/`)**:`cursor-agent -p --force --trust [--resume <chatId>]` + 任务 worktree 内 `.cursor/hooks.json` 的 `beforeShellExecution` 钩子——无头下钩子**同步阻塞、回连 daemon 等决策、可靠拦截**(canUseTool 等价物,三测 A/B/C 全过);**零 API key、走 Cursor 订阅额度**(owner 该账号 CLI 有额度、API key 无额度)。**关键约束**:CLI 仅工具级钩子生效、**仅 `deny` 可靠**(故 `--force`+"默认 deny 批准才放行",只依赖已验证语义)、JSON 必用 `jq`(防 fail-open)、无 live steer(→ §13 `queued_delta`/`cancel_resume`) | `@cursor/sdk`(API key,更强流式/更低延迟)= **后续优化**,脚本备于 `research/spikes/cursor-sdk-tier1/`,owner 想用 API 时切,接口同层(canUseTool 语义抽象,tier1_runs.adapter 预留) |
+| Cursor | **Tier 1 dev 机缺省后端 = CLI 订阅态(2026-07-23 实测通过,`research/spikes/cursor-cli-tier1/`)**:`cursor-agent -p --force --trust [--resume <chatId>]` + 任务 worktree 内 `.cursor/hooks.json` 的 `beforeShellExecution` 钩子——无头下钩子**同步阻塞、回连 daemon 等决策、可靠拦截**(canUseTool 等价物,三测 A/B/C 全过);**零 API key、走 Cursor 订阅额度**(owner 该账号 CLI 有额度、API key 无额度)。**关键约束**:CLI 仅工具级钩子生效、**仅 `deny` 可靠**(故 `--force`+"默认 deny 批准才放行",只依赖已验证语义)、JSON **必用 JSON 解析器**(POSIX=`jq`;Windows=Node `JSON.parse`;防 fail-open)、无 live steer(→ 09 `queued_delta`/`cancel_resume`) | `@cursor/sdk`(API key,更强流式/更低延迟)= **后续优化**,脚本备于 `research/spikes/cursor-sdk-tier1/`,owner 想用 API 时切,接口同层(canUseTool 语义抽象,tier1_runs.adapter 预留) |
 | Codex | 经 Hopper 现状 `codex exec` adapter(Tier 2) | P1/P2 评估 **app-server**(`turn/steer` + 审批回调)——官方正道,待 Hopper M3b 或缝合层直连 |
 
 适配器模式借 spawner / ai-ide-cli(四方法 + 能力矩阵);Tier 1 执行器接口按 **canUseTool 语义**抽象,后端(claude_sdk / cursor_cli / 未来 cursor_sdk)可换,`tier1_runs.adapter` 字段承载;**ACP(Agent Client Protocol)持续跟进不押注**——Zed/JetBrains 共建、25+ agent,若成事实标准则适配层整体切 ACP。
@@ -139,7 +139,7 @@ P0 `voiced` 手动启动(开发迭代快);P1 launchd 常驻 + 开机自启;P2 �
 
 ### D11 通知/推送:ntfy 起步,直连收尾(定稿)
 
-- P0:**ntfy**(自托管,32k stars,自带 `X-Call` 电话 TTS)+ `osascript` 桌面通知——一天接通。
+- P0:**ntfy**(自托管,32k stars,自带 `X-Call` 电话 TTS)+ OS 桌面通知(macOS=`osascript`;Windows=toast,失败同构降 ntfy;工程 ADR-003)——一天接通。
 - P1(随移动端):**自建 APNs(JWT ES256 HTTP/2)/ FCM(OAuth)直连**,抄 OctoDesk 推送隐私契约(payload 只带 opaque id + meta 白名单、token 只存 digest);PushKit/CallKit 承载"来电式汇报"。
 - P2:电话回叫用 Realtime SIP **呼入**模型(外呼要 Twilio + 自建媒体桥,成本运维高,进阶可选)。
 

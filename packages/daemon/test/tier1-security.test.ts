@@ -11,7 +11,7 @@ import { verifyIdentity, extractToken } from "../src/net/identity.js";
 import { decideCommand, GateCanary, type GateRequest } from "../src/tier1/gate.js";
 import { freezeVerify, precheckVerify, planDeltaCallback } from "../src/tier1/verifyFreeze.js";
 import { verifyEnv } from "../src/tier1/executor.js";
-import { buildCursorHooksJson, CursorCliAdapter, setupArgv, type CursorSpawner } from "../src/tier1/adapter.js";
+import { buildCursorHooksJson, cursorHookCommand, CursorCliAdapter, setupArgv, type CursorSpawner } from "../src/tier1/adapter.js";
 
 const registry = { packageScripts: ["test", "typecheck"], justfileTasks: ["ci"] };
 const req = (over: Partial<GateRequest> & { effect: GateRequest["effect"] }): GateRequest => ({
@@ -214,29 +214,31 @@ describe("W5a 3.1-② verify 执行 env 隔离(tier1-conformance §4 [warn] 清�
     writeFileSync(join(fakeRealHome, ".ssh", "id_rsa"), ["fake", "key", "material"].join("-"));
     const isolatedHome = mkdtempSync(join(tmpdir(), "saydo-vh-"));
 
-    const env = verifyEnv({ ...process.env, HOME: fakeRealHome }, isolatedHome);
+    const env = verifyEnv({ ...process.env, HOME: fakeRealHome, USERPROFILE: fakeRealHome }, isolatedHome);
     expect(env.HOME).toBe(isolatedHome);
+    if (process.platform === "win32") expect(env.USERPROFILE).toBe(isolatedHome);
     expect(env.USER).toBeUndefined(); // 最小白名单:USER/LOGNAME/SHELL 不透传
     expect(env.SHELL).toBeUndefined();
     expect(Object.keys(env).some((k) => /KEY|TOKEN|SECRET/i.test(k))).toBe(false);
 
-    // 对照组:同命令在旧 env(真实 HOME)下能读到 —— 证明反例断言的是隔离而非命令写错
     const read = (e: Record<string, string>): number => {
+      const home = e.USERPROFILE ?? e.HOME;
+      if (!home) throw new Error("test home missing");
       try {
-        execFileSync("sh", ["-c", 'cat "$HOME/.ssh/id_rsa"'], { env: e, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+        readFileSync(join(home, ".ssh", "id_rsa"));
         return 0;
-      } catch (err) {
-        return (err as { status?: number }).status ?? 1;
+      } catch {
+        return 1;
       }
     };
-    expect(read({ PATH: process.env.PATH as string, HOME: fakeRealHome })).toBe(0); // 旧行为可达
-    expect(read(env)).not.toBe(0); // 隔离后不可达(反例绿)
+    expect(read({ PATH: process.env.PATH as string, HOME: fakeRealHome, USERPROFILE: fakeRealHome })).toBe(0);
+    expect(read(env)).not.toBe(0);
   });
 
   it("COREPACK_HOME 定向透传(pnpm shim 缓存面),缺省指向真实 HOME 缺省缓存;显式配置优先", () => {
     const isolated = mkdtempSync(join(tmpdir(), "saydo-vh2-"));
     const e1 = verifyEnv({ HOME: "/Users/u", PATH: "/bin" }, isolated);
-    expect(e1.COREPACK_HOME).toBe("/Users/u/.cache/node/corepack");
+    expect(e1.COREPACK_HOME).toBe(join("/Users/u", ".cache", "node", "corepack"));
     const e2 = verifyEnv({ HOME: "/Users/u", PATH: "/bin", COREPACK_HOME: "/opt/corepack" }, isolated);
     expect(e2.COREPACK_HOME).toBe("/opt/corepack");
   });
@@ -259,7 +261,7 @@ describe("适配器:cursor worktree 供给 + 版本 pin + egress(G4)", () => {
     const hooks = JSON.parse(buildCursorHooksJson("/locked/gate.sh")) as {
       hooks: { beforeShellExecution: { command: string; failClosed: boolean }[] };
     };
-    expect(hooks.hooks.beforeShellExecution[0]?.command).toBe("/locked/gate.sh");
+    expect(hooks.hooks.beforeShellExecution[0]?.command).toBe(cursorHookCommand("/locked/gate.sh"));
     expect(hooks.hooks.beforeShellExecution[0]?.failClosed).toBe(true);
     expect(setupArgv("pnpm")).toContain("--ignore-scripts");
     expect(setupArgv("npm")).toContain("--ignore-scripts");

@@ -1,10 +1,10 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
 import { verifiedProjectWorkspace } from "../storage/dao/projects.js";
 import { classifyActiveWork } from "./activeWorkClassifier.js";
+import { hostKind, killOwnedTree, processAlive, processBirth } from "@saydo/platform";
 
 export const RESTART_RECOVERABLE_STATES = "('reserved','running','step_paused')";
 const DRAINABLE_TIER1_STATES = "('reserved','running','step_paused','cancel_requested')";
@@ -29,6 +29,7 @@ export interface AgentOwnershipRecord {
   commandToken?: string;
   ownerPid?: number;
   ownerInstanceId?: string;
+  jobName?: string;
 }
 
 function drainCandidates(db: Db): RestartCandidate[] {
@@ -88,69 +89,12 @@ function readOwnedAgent(saydoHome: string, row: RestartCandidate): AgentOwnershi
   }
 }
 
-function readPsProcessStart(pid: number, binary: string, commandToken?: string): string | null {
-  try {
-    const options = { encoding: "utf8" as const, timeout: 2_000 };
-    const ps = existsSync("/bin/ps") ? "/bin/ps" : existsSync("/usr/bin/ps") ? "/usr/bin/ps" : "ps";
-    const fields = execFileSync(
-      ps,
-      ["-o", "pgid=", "-o", "lstart=", "-o", "command=", "-p", String(pid)],
-      options
-    ).trim().split(/\s+/u);
-    const pgid = Number(fields[0]);
-    const processStart = fields.slice(1, 6).join(" ");
-    const command = fields.slice(6).join(" ");
-    if (pgid !== pid || !command.includes(binary) || (commandToken && !command.includes(commandToken))) return null;
-    return processStart || null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * ps 不可用时用 pgrep 命令行身份（A4 live-leader executable identity）。
- * macOS sandbox 常禁 setuid ps，但 pgrep 可读 cmdline。
- */
-function readPgrepProcessStart(pid: number, binary: string, commandToken?: string): string | null {
-  try {
-    // pgrep -lf 的 pattern 是正则；绝对路径里的 / 会毁掉匹配，改用 basename 或 token。
-    const base = binary.split("/").pop() ?? binary;
-    const pattern = commandToken && commandToken.length >= 8 ? commandToken : base.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-    const raw = execFileSync("pgrep", ["-lf", pattern], { encoding: "utf8", timeout: 2_000 });
-    const line = raw
-      .split("\n")
-      .map((item) => item.trim())
-      .find((item) => item === String(pid) || item.startsWith(`${String(pid)} `));
-    if (!line) return null;
-    if (!line.includes(base) && !line.includes(binary)) return null;
-    if (commandToken && !line.includes(commandToken)) return null;
-    // 截断超长 prompt，保留身份锚。
-    return `pgrep1:${line.slice(0, 240)}`;
-  } catch {
-    return null;
-  }
-}
-
-export function readOwnedAgentProcessStart(pid: number, binary: string, commandToken?: string): string | null {
-  if (process.platform === "win32") return null;
-  const fromPs = readPsProcessStart(pid, binary, commandToken);
-  if (fromPs) return fromPs;
-  const fromPgrep = readPgrepProcessStart(pid, binary, commandToken);
-  if (fromPgrep) return fromPgrep;
-  // 最后回退：进程仍存活且带有不可复用 commandToken 时，用 token 锚定（ps 沙箱禁测路径）。
-  if (commandToken && commandToken.length >= 12) {
-    try {
-      process.kill(pid, 0);
-      const base = binary.split("/").pop() ?? binary;
-      return `token1:${pid}:${base}:${commandToken}`;
-    } catch {
-      return null;
-    }
-  }
-  return null;
+export function readOwnedAgentProcessStart(pid: number, _binary?: string, _commandToken?: string): string | null {
+  return processBirth(pid);
 }
 
 function processGroupAlive(pgid: number): boolean {
+  if (hostKind() === "win32") return processAlive(pgid);
   try {
     process.kill(-pgid, 0);
     return true;
@@ -207,6 +151,10 @@ function verifiedOwnedAgent(saydoHome: string, row: RestartCandidate, audit: Aud
       if ((err as NodeJS.ErrnoException).code !== "ESRCH") throw err;
     }
     if (leaderAlive) throw new Error(`tier1 agent ownership identity unverified:${row.run_id}`);
+    if (hostKind() === "win32") {
+      if (!record.jobName) return null;
+      return record;
+    }
     // A4: leader 已死时不得仅凭数值 PGID 收口——PID/PGID 复用可误杀无关组。
     // 无法证明存活成员的 birth identity 时保留 owner、fail-closed。
     if (processGroupAlive(record.pid)) {
@@ -227,7 +175,12 @@ export async function reapOwnedTier1Agent(
   const record = verifiedOwnedAgent(saydoHome, row, audit);
   if (!record) return;
   try {
-    process.kill(-record.pid, "SIGKILL");
+    if (hostKind() === "win32") {
+      if (!record.jobName) throw new Error(`tier1 agent job name missing:${row.run_id}`);
+      await killOwnedTree({ pid: record.pid, expectedBirth: record.processStart, jobName: record.jobName });
+    } else {
+      process.kill(-record.pid, "SIGKILL");
+    }
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ESRCH") throw err;
   }

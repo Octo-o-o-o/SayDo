@@ -87,36 +87,61 @@ function closingQuoteIndex(text: string, quote: string, start: number): number {
   return -1;
 }
 
-function pathSpans(text: string): string[] {
-  const normalized = text.normalize("NFC");
-  if (/file:\/\//iu.test(normalized)) {
-    throw new WorkspacePolicyError("workspace_path_form", "不接受 file:// URI");
+function isDriveAbsAt(text: string, index: number): boolean {
+  if (index + 2 >= text.length) return false;
+  const letter = text[index];
+  if (!letter || !/[A-Za-z]/u.test(letter)) return false;
+  if (text[index + 1] !== ":") return false;
+  const slash = text[index + 2];
+  if (slash !== "/" && slash !== "\\") return false;
+  const next = text[index + 3];
+  if (next === "/" || next === "\\") return false;
+  if (index > 0 && /[A-Za-z0-9]/u.test(text[index - 1] as string)) return false;
+  return true;
+}
+
+function isPathStartAt(text: string, index: number): boolean {
+  return text.startsWith("/", index) || text.startsWith("~/", index) || isDriveAbsAt(text, index);
+}
+
+function rejectForbiddenPathForms(normalized: string): void {
+  if (/(?:file|https?|ftp):\/\//iu.test(normalized)) {
+    throw new WorkspacePolicyError("workspace_path_form", "不接受 URI scheme 路径");
   }
-  if (/~(?!\/)[^/\s，。！？；,!?;]+[/]/u.test(normalized)) {
+  if (normalized.includes("\\\\?\\") || /(?:^|[\s"'`])\\\\[A-Za-z0-9._-]+\\/u.test(normalized)) {
+    throw new WorkspacePolicyError("workspace_path_form", "不接受 UNC 或扩展路径");
+  }
+  if (/~(?!\/)[^/\s，。！？；,!?;]+[/\\]/u.test(normalized)) {
     throw new WorkspacePolicyError("workspace_path_form", "不接受 ~user/ 路径");
   }
+}
+
+function pathSpans(text: string): string[] {
+  const normalized = text.normalize("NFC");
+  rejectForbiddenPathForms(normalized);
   const spans: { start: number; end: number; value: string }[] = [];
   for (let i = 0; i < normalized.length; i++) {
     const char = normalized[i] as string;
     if (['"', "'", "`"].includes(char) && !isWordApostrophe(normalized, i)) {
       const end = closingQuoteIndex(normalized, char, i + 1);
-      const opensPath = normalized.startsWith("/", i + 1) || normalized.startsWith("~/", i + 1);
+      const opensPath = isPathStartAt(normalized, i + 1);
       if (end < 0) {
         if (opensPath) throw new WorkspacePolicyError("workspace_path_form", "路径引号必须闭合");
         continue;
       }
-      if (!opensPath) {
+      const value = normalized.slice(i + 1, end);
+      if (!opensPath || !isPathStartAt(value, 0)) {
         i = end;
         continue;
       }
-      const value = normalized.slice(i + 1, end);
       spans.push({ start: i, end: end + 1, value });
       i = end;
       continue;
     }
     const tilde = normalized.startsWith("~/", i);
-    if (!tilde && char !== "/") continue;
-    let end = i + (tilde ? 2 : 1);
+    const drive = isDriveAbsAt(normalized, i);
+    if (!tilde && char !== "/" && !drive) continue;
+    let end = i + (tilde ? 2 : drive ? 3 : 1);
     while (
       end < normalized.length &&
       !PATH_TERMINATORS.test(normalized[end] as string)
@@ -157,7 +182,7 @@ function isPositiveWorkspaceAnchorTurn(text: string, paths: string[]): boolean {
   if (paths.length !== 1) return false;
   const normalized = text.normalize("NFC").toLowerCase();
   // 非法 URI 形态继续交给 handler 返回 workspace_path_form，不降格成普通对话。
-  if (normalized.includes("file://")) return true;
+  if (normalized.includes("file://") || /(?:https?|ftp):\/\//iu.test(normalized)) return true;
   const path = paths[0]?.normalize("NFC").toLowerCase() ?? "";
   const first = normalized.indexOf(path);
   if (first < 0 || normalized.indexOf(path, first + path.length) >= 0) return false;

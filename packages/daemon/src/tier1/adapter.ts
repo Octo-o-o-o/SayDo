@@ -6,6 +6,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { execAgentFileSync } from "../runtimeChildRegistry.js";
 
 export type AdapterKind = "claude_code" | "cursor" | "codex";
 
@@ -38,13 +39,20 @@ export interface ProvisionResult {
   hooksJsonPath: string;
 }
 
-/** cursor hooks.json 生成(beforeShellExecution 阻塞钩子回连 daemon 审批 socket) */
-export function buildCursorHooksJson(gateScriptPath: string, timeoutSec = 90): string {
+/** cursor hooks.json 的 command:POSIX 直接脚本路径;win32 = 引用过的 node.exe + 脚本 */
+export function cursorHookCommand(gateScriptPath: string, nodeExe = process.execPath): string {
+  if (process.platform !== "win32") return gateScriptPath;
+  const quote = (value: string): string => `"${value.replace(/"/g, '""')}"`;
+  return `${quote(nodeExe)} ${quote(gateScriptPath)}`;
+}
+
+/** cursor hooks.json 生成(beforeShellExecution 阻塞钩子回连 daemon 审批通道) */
+export function buildCursorHooksJson(gateScriptPath: string, timeoutSec = 90, nodeExe = process.execPath): string {
   return JSON.stringify(
     {
       version: 1,
       hooks: {
-        beforeShellExecution: [{ command: gateScriptPath, failClosed: true, timeout: timeoutSec }]
+        beforeShellExecution: [{ command: cursorHookCommand(gateScriptPath, nodeExe), failClosed: true, timeout: timeoutSec }]
       }
     },
     null,
@@ -64,7 +72,7 @@ export function realCursorSpawner(lockedBinary?: string): CursorSpawner {
   const bin = lockedBinary ?? "cursor-agent";
   return {
     version() {
-      return execFileSync(bin, ["--version"], { encoding: "utf8" }).trim();
+      return execAgentFileSync(bin, ["--version"], { encoding: "utf8" });
     },
     addWorktree(repoPath, worktreePath, branch) {
       execFileSync("git", ["worktree", "add", "-b", branch, worktreePath, "HEAD"], { cwd: repoPath, stdio: "ignore" });

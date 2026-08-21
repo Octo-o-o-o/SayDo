@@ -121,7 +121,7 @@ Codex 对抗审查指出双维"太粗、无量表、无校准",实施时按以�
 免打扰:  静音窗口内只推送不出声;blocked/failed 在窗口结束后立即补叫
 ```
 
-> **实现注记(2026-08-20 S2,评审 1 返工)**:L0 三要素 = 该任务所属项目有 console peer 在线 ∧ pipeline TTS 健康 ∧ 该 session **没有在途用户轮**(`LiveDialog.hasUserTurnInFlight`;开口留下的 `currentUserTurn` 不算 busy)。busy 按候选条目各自 session 判:该 session 头一条 queue,同 session 其余降 L1;其它空闲 session 仍可 L0。无语音条件直接 L1。桌面通知 = macOS 通知中心(`osascript display notification`)。DND 窗口内对 **pending 与 requeued** 只推低优先级 ntfy 一次并 snooze,不语音不桌面;去重靠 `snoozed_until`,审计 `callback.dnd_pushed` 只留痕。`micHeldByMeeting` 无数据源,恒 `false`(下方「会议占麦」是目标语义,S2 未接)。电话 L2 未做,`escalation` 上限 1。resolution-timeout 只把 acked 写成 `requeued`,投递成功才 `notified`。L0 30s 应答窗相对 15s sweep 最坏约 45s。
+> **实现注记(2026-08-20 S2,评审 1 返工)**:L0 三要素 = 该任务所属项目有 console peer 在线 ∧ pipeline TTS 健康 ∧ 该 session **没有在途用户轮**(`LiveDialog.hasUserTurnInFlight`;开口留下的 `currentUserTurn` 不算 busy)。busy 按候选条目各自 session 判:该 session 头一条 queue,同 session 其余降 L1;其它空闲 session 仍可 L0。无语音条件直接 L1。桌面通知 = OS provider(macOS=`osascript display notification`;Windows=toast;失败同构降 ntfy,设计 ADR-004 / 工程 ADR-003)。DND 窗口内对 **pending 与 requeued** 只推低优先级 ntfy 一次并 snooze,不语音不桌面;去重靠 `snoozed_until`,审计 `callback.dnd_pushed` 只留痕。`micHeldByMeeting` 无数据源,恒 `false`(下方「会议占麦」是目标语义,S2 未接)。电话 L2 未做,`escalation` 上限 1。resolution-timeout 只把 acked 写成 `requeued`,投递成功才 `notified`。L0 30s 应答窗相对 15s sweep 最坏约 45s。
 
 - **PagerDuty 式状态机**:`pending → notified(level n) → ack'd → resolved`;ack 只停止升级、**不等于解决、更不等于授权任何动作**,resolution timeout 到期未处理**重新升级**(防"接了电话又睡");urgency 两档(验收=低 / 卡住审批=高);电话层 DTMF 只做 `ack / snooze / 拒绝`,**不做任何副作用审批**(见 §5.2 远程通道)。
 - **拦截 ≠ 叫人**(直达验收档语义;逐步确认档下 S2 直接上浮,不做双拦截缓冲):危险动作先把原因反馈给 agent 让它换路,同一意图被拦 ≥ 2 次才进回叫链——可把回叫频率降一个数量级。事件优先级与升级链**不随执行模式变**,模式只改变哪些事件会成为 approval_request(§5.4)。

@@ -3,7 +3,8 @@
 // 返回校验过的 PATH 项本身,不用 realpath 替换(brew 升级后 cellar 路径会失效)。
 
 import { accessSync, constants, statSync } from "node:fs";
-import { basename, isAbsolute, join } from "node:path";
+import { basename, delimiter, isAbsolute, join } from "node:path";
+import { hostKind } from "@saydo/platform";
 
 export function isExistingDirectory(path: string): boolean {
   try {
@@ -13,20 +14,27 @@ export function isExistingDirectory(path: string): boolean {
   }
 }
 
+function uvBasenames(): string[] {
+  return hostKind() === "win32" ? ["uv.exe", "uv.cmd", "uv"] : ["uv"];
+}
+
 export function resolveUvBin(env: NodeJS.ProcessEnv = process.env): string | null {
-  for (const dir of (env["PATH"] ?? "").split(":")) {
+  const names = uvBasenames();
+  for (const dir of (env["PATH"] ?? "").split(delimiter)) {
     if (!dir || dir === ".") continue;
     if (!isAbsolute(dir)) continue;
-    const candidate = join(dir, "uv");
-    if (!isAbsolute(candidate) || basename(candidate) !== "uv") continue;
-    try {
-      const st = statSync(candidate);
-      if (!st.isFile()) continue;
-      accessSync(candidate, constants.X_OK);
-    } catch {
-      continue;
+    for (const name of names) {
+      const candidate = join(dir, name);
+      if (!isAbsolute(candidate) || !names.includes(basename(candidate))) continue;
+      try {
+        const st = statSync(candidate);
+        if (!st.isFile()) continue;
+        if (hostKind() !== "win32") accessSync(candidate, constants.X_OK);
+      } catch {
+        continue;
+      }
+      return candidate;
     }
-    return candidate;
   }
   return null;
 }

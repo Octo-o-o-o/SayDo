@@ -7,6 +7,7 @@
 
 import { chmodSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { restrictOwnerOnly } from "@saydo/platform";
 
 /** hooks timeout 120s(spike 原件);curl 110s 留余量;daemon 侧 S2 审批 45s 收据窗在其内 */
 export const GATE_CURL_TIMEOUT_SEC = 110;
@@ -44,18 +45,26 @@ exit 0
 
 export interface GatePaths {
   dir: string;
+  /** 当前 backend 活动入口(POSIX=gate.sh, win32=gate-cursor.mjs) */
   scriptPath: string;
+  claudeScriptPath: string;
   sockPath: string;
   logPath: string;
+  bindPath: string;
+  secretPath: string;
 }
 
 export function gatePaths(saydoHome: string): GatePaths {
   const dir = join(saydoHome, "tier1");
+  const win = process.platform === "win32";
   return {
     dir,
-    scriptPath: join(dir, "gate.sh"),
+    scriptPath: join(dir, win ? "gate-cursor.mjs" : "gate.sh"),
+    claudeScriptPath: join(dir, win ? "gate-claude.mjs" : "gate-claude.sh"),
     sockPath: join(saydoHome, "tier1-gate.sock"),
-    logPath: join(dir, "gate-fired.log")
+    logPath: join(dir, "gate-fired.log"),
+    bindPath: join(dir, "gate-bind.json"),
+    secretPath: join(dir, "gate-secret")
   };
 }
 
@@ -67,11 +76,24 @@ export function writeGateScriptAtomic(scriptPath: string, content: string): void
   renameSync(tmp, scriptPath);
 }
 
+export function buildActiveGateScript(p: GatePaths): string {
+  if (process.platform === "win32") {
+    return buildCursorGateMjs(p.bindPath, p.secretPath, p.logPath);
+  }
+  return buildGateScript(p.sockPath, p.logPath);
+}
+
 /** 启动时供给(幂等重写;0o755 可执行) */
 export function ensureGateScript(saydoHome: string): GatePaths {
   const p = gatePaths(saydoHome);
-  mkdirSync(p.dir, { recursive: true });
-  writeGateScriptAtomic(p.scriptPath, buildGateScript(p.sockPath, p.logPath));
+  mkdirSync(p.dir, { recursive: true, mode: 0o700 });
+  if (process.platform === "win32") restrictOwnerOnly(p.dir, "dir");
+  writeGateScriptAtomic(p.scriptPath, buildActiveGateScript(p));
+  if (process.platform === "win32") {
+    restrictOwnerOnly(p.scriptPath, "file");
+    writeGateScriptAtomic(p.claudeScriptPath, buildClaudeGateMjs(p.bindPath, p.secretPath, p.logPath));
+    restrictOwnerOnly(p.claudeScriptPath, "file");
+  }
   return p;
 }
 
@@ -196,6 +218,206 @@ case "$tool" in
     emit_fail
     ;;
 esac
+`;
+}
+
+const GATE_MJS_IMPORTS = `import { createHmac } from "node:crypto";
+import { appendFileSync, readFileSync } from "node:fs";
+import http from "node:http";
+`;
+
+function gatePostClientSource(timeoutMs: number): string {
+  return `
+function postGate(bodyObj) {
+  const bodyBuf = Buffer.from(JSON.stringify(bodyObj), "utf8");
+  return new Promise((resolve) => {
+    let bind;
+    try {
+      bind = JSON.parse(readFileSync(BIND_PATH, "utf8"));
+    } catch {
+      resolve("");
+      return;
+    }
+    if (bind.host !== "127.0.0.1" || typeof bind.port !== "number" || bind.port === 47100) {
+      resolve("");
+      return;
+    }
+    let secret;
+    try {
+      secret = readFileSync(SECRET_PATH);
+    } catch {
+      resolve("");
+      return;
+    }
+    const hex = createHmac("sha256", secret).update(bodyBuf).digest("hex");
+    const req = http.request({
+      host: "127.0.0.1",
+      port: bind.port,
+      path: "/gate",
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "content-length": String(bodyBuf.length),
+        "x-saydo-gate": hex
+      },
+      timeout: ${String(timeoutMs)}
+    }, (res) => {
+      const chunks = [];
+      res.on("data", (c) => chunks.push(c));
+      res.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    });
+    req.on("error", () => resolve(""));
+    req.on("timeout", () => {
+      req.destroy();
+      resolve("");
+    });
+    req.write(bodyBuf);
+    req.end();
+  });
+}
+
+function logLine(obj) {
+  try {
+    appendFileSync(LOG_PATH, JSON.stringify({ ts: Math.floor(Date.now() / 1000), ...obj }) + "\\n");
+  } catch {
+    // 日志失败不阻断门
+  }
+}
+`;
+}
+
+/** Windows Cursor beforeShellExecution 入口(Node JSON.parse + HMAC;禁止字符串拼接 JSON) */
+export function buildCursorGateMjs(
+  bindPath: string,
+  secretPath: string,
+  logPath: string,
+  timeoutSec = GATE_CURL_TIMEOUT_SEC
+): string {
+  const timeoutMs = assertPositiveInt(timeoutSec, "cursorGateTimeoutSec") * 1000;
+  return `#!/usr/bin/env node
+${GATE_MJS_IMPORTS}const BIND_PATH = ${JSON.stringify(bindPath)};
+const SECRET_PATH = ${JSON.stringify(secretPath)};
+const LOG_PATH = ${JSON.stringify(logPath)};
+${gatePostClientSource(timeoutMs)}
+function deny(msg) {
+  process.stdout.write(JSON.stringify({ permission: "deny", agent_message: msg }));
+}
+
+const raw = readFileSync(0, "utf8");
+let input;
+try {
+  input = JSON.parse(raw);
+} catch {
+  deny("SayDo gate: malformed hook input (fail-closed)");
+  process.exit(0);
+}
+if (!input || typeof input !== "object" || Array.isArray(input)) {
+  deny("SayDo gate: malformed hook input (fail-closed)");
+  process.exit(0);
+}
+if (input.kind !== undefined && input.kind !== "command") {
+  deny("SayDo gate: unknown kind (fail-closed)");
+  process.exit(0);
+}
+const command = input.command;
+if (typeof command !== "string" || command.length === 0) {
+  deny("SayDo gate: malformed hook input (fail-closed)");
+  process.exit(0);
+}
+const cwd = typeof input.cwd === "string" && input.cwd
+  ? input.cwd
+  : (typeof input.workspace_root === "string" && input.workspace_root ? input.workspace_root : process.cwd());
+logLine({ cmd: command, cwd });
+const respRaw = await postGate({ command, cwd });
+let resp;
+try {
+  resp = JSON.parse(respRaw);
+} catch {
+  deny("SayDo gate denied (fail-closed)");
+  process.exit(0);
+}
+if (resp && resp.permission === "allow") {
+  process.stdout.write(JSON.stringify({ permission: "allow" }));
+} else {
+  const msg = resp && typeof resp.agent_message === "string" && resp.agent_message
+    ? resp.agent_message
+    : "SayDo gate denied (fail-closed)";
+  deny(msg);
+}
+process.exit(0);
+`;
+}
+
+/** Windows Claude PreToolUse:Bash 映射为 command;其余 kind 本批 deny */
+export function buildClaudeGateMjs(
+  bindPath: string,
+  secretPath: string,
+  logPath: string,
+  opts?: { timeoutSec?: number }
+): string {
+  const timeoutMs = assertPositiveInt(opts?.timeoutSec ?? CLAUDE_GATE_CURL_TIMEOUT_SEC, "claudeGateTimeoutSec") * 1000;
+  return `#!/usr/bin/env node
+${GATE_MJS_IMPORTS}const BIND_PATH = ${JSON.stringify(bindPath)};
+const SECRET_PATH = ${JSON.stringify(secretPath)};
+const LOG_PATH = ${JSON.stringify(logPath)};
+const DENY_STATIC = ${JSON.stringify(CLAUDE_HOOK_DENY_STATIC)};
+${gatePostClientSource(timeoutMs)}
+function emitDeny(msg) {
+  process.stdout.write(JSON.stringify({
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: msg
+    }
+  }));
+}
+function emitFail() {
+  process.stdout.write(DENY_STATIC);
+  process.exit(2);
+}
+function emitAllow() {
+  process.stdout.write(JSON.stringify({
+    hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow" }
+  }));
+  process.exit(0);
+}
+
+const raw = readFileSync(0, "utf8");
+if (!raw) emitFail();
+let input;
+try {
+  input = JSON.parse(raw);
+} catch {
+  emitFail();
+}
+if (!input || typeof input !== "object" || Array.isArray(input)) emitFail();
+const tool = input.tool_name;
+if (typeof tool !== "string" || tool.length === 0) emitFail();
+const cwd = typeof input.cwd === "string" && input.cwd ? input.cwd : process.cwd();
+logLine({ tool, cwd });
+if (tool !== "Bash") {
+  emitDeny("SayDo gate: unknown kind (fail-closed)");
+  process.exit(0);
+}
+const command = input.tool_input && typeof input.tool_input.command === "string"
+  ? input.tool_input.command
+  : "";
+if (!command) emitFail();
+const respRaw = await postGate({ kind: "command", command, cwd });
+let resp;
+try {
+  resp = JSON.parse(respRaw);
+} catch {
+  emitFail();
+}
+if (resp && resp.permission === "allow") emitAllow();
+if (resp && resp.permission === "deny") {
+  emitDeny(typeof resp.agent_message === "string" && resp.agent_message
+    ? resp.agent_message
+    : "SayDo gate denied (fail-closed)");
+  process.exit(0);
+}
+emitFail();
 `;
 }
 

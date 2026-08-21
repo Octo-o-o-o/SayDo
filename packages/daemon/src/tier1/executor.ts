@@ -31,12 +31,12 @@ import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
 import type { Logger } from "../obs/logger.js";
 import type { CallbackEngine } from "../callback/engine.js";
-import { runtimeChildOwnerIdentity, runtimeProcessGroupState, spawnRuntimeChild } from "../runtimeChildRegistry.js";
+import { runtimeChildJobName, runtimeChildOwnerIdentity, runtimeProcessGroupState, signalRuntimeChildTree, spawnRuntimeChild, execAgentFileSync } from "../runtimeChildRegistry.js";
 import { insertTier1Run, nextAttempt, setTier1RunNativeSession, transitionTask, transitionTier1Run, type Tier1RunRow } from "../storage/dao/tasks.js";
 import { readTaskMessages, settleCancel } from "./operations.js";
 import { decideCommand, type GateDecision } from "./gate.js";
 import { commandToEffect, matchesFrozenVerify } from "./cmdEffect.js";
-import { freezeVerify, precheckVerify, planDeltaCallback, type FrozenVerify } from "./verifyFreeze.js";
+import { freezeVerify, precheckVerify, planDeltaCallback, verifyRunnerArgv, type FrozenVerify } from "./verifyFreeze.js";
 import { readProjectExecConfig, type ProjectExecConfig } from "./projectConfig.js";
 import { loadProjectConfig } from "../config/project.js";
 import { bindLedgerRef, getActiveBindingForTask, tier1LedgerRef } from "../focus/binding.js";
@@ -56,6 +56,7 @@ import type { Tier1Backend } from "./backends/types.js";
 import { familyFromModelName } from "../config/family.js";
 import type { RuntimeApprovalFlow } from "./approvalFlow.js";
 import type { GateWireRequest, GateWireResponse } from "./gateServer.js";
+import { hostKind, processBirth } from "@saydo/platform";
 import { verifiedProjectWorkspace } from "../storage/dao/projects.js";
 import {
   RESTART_RECOVERABLE_STATES,
@@ -110,7 +111,30 @@ export interface AgentSpawner {
 }
 
 /** 凭据剥离 env 白名单(G4:agent 环境不带任何 key/token;登录态走 HOME 下 cursor 自身存储) */
-export const AGENT_ENV_ALLOWLIST = ["PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LC_ALL", "LC_CTYPE", "TERM", "TMPDIR"] as const;
+export const AGENT_ENV_ALLOWLIST = [
+  "PATH",
+  "HOME",
+  "USER",
+  "LOGNAME",
+  "SHELL",
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
+  "TERM",
+  "TMPDIR",
+  "TEMP",
+  "TMP",
+  "USERPROFILE",
+  "USERNAME",
+  "HOMEDRIVE",
+  "HOMEPATH",
+  "APPDATA",
+  "LOCALAPPDATA",
+  "PATHEXT",
+  "SYSTEMROOT",
+  "WINDIR",
+  "COMSPEC"
+] as const;
 
 export function strippedAgentEnv(source: NodeJS.ProcessEnv): Record<string, string> {
   const out: Record<string, string> = {};
@@ -130,7 +154,7 @@ export function strippedAgentEnv(source: NodeJS.ProcessEnv): Record<string, stri
  * 凭据可达性。诚实边界:绝对路径直读(/Users/<u>/.ssh)与出网仍不可挡,完整隔离 = P1
  * 容器/sandbox(与 config 冻结同族登记)。
  */
-export const VERIFY_ENV_ALLOWLIST = ["PATH", "LANG", "LC_ALL", "LC_CTYPE", "TERM", "TMPDIR"] as const;
+export const VERIFY_ENV_ALLOWLIST = ["PATH", "LANG", "LC_ALL", "LC_CTYPE", "TERM", "TMPDIR", "TEMP", "TMP", "PATHEXT", "SYSTEMROOT", "WINDIR", "COMSPEC"] as const;
 
 export function verifyEnv(source: NodeJS.ProcessEnv, isolatedHome: string): Record<string, string> {
   const out: Record<string, string> = {};
@@ -139,7 +163,14 @@ export function verifyEnv(source: NodeJS.ProcessEnv, isolatedHome: string): Reco
     if (v !== undefined) out[k] = v;
   }
   out.HOME = isolatedHome;
-  const realHome = source.HOME;
+  if (process.platform === "win32") {
+    out.USERPROFILE = isolatedHome;
+    out.HOMEDRIVE = isolatedHome.slice(0, 2);
+    out.HOMEPATH = isolatedHome.slice(2) || "\\";
+    out.APPDATA = join(isolatedHome, "AppData", "Roaming");
+    out.LOCALAPPDATA = join(isolatedHome, "AppData", "Local");
+  }
+  const realHome = source.HOME ?? source.USERPROFILE;
   const corepackHome = source.COREPACK_HOME ?? (realHome ? join(realHome, ".cache", "node", "corepack") : undefined);
   if (corepackHome !== undefined) out.COREPACK_HOME = corepackHome;
   return out;
@@ -148,7 +179,7 @@ export function verifyEnv(source: NodeJS.ProcessEnv, isolatedHome: string): Reco
 export function realAgentSpawner(backend: Tier1Backend = cursorBackend()): AgentSpawner {
   return {
     version(binary) {
-      return execFileSync(binary, ["--version"], { encoding: "utf8", timeout: 10_000 }).trim();
+      return execAgentFileSync(binary, ["--version"], { encoding: "utf8", timeout: 10_000 });
     },
     spawn(i) {
       // argv 由 backend 提供(cursor:`-p --force --trust --output-format stream-json`)
@@ -192,7 +223,7 @@ export function realAgentSpawner(backend: Tier1Backend = cursorBackend()): Agent
       });
       const hardKill = (): void => {
         try {
-          if (child.pid) process.kill(-child.pid, "SIGKILL");
+          if (child.pid) signalRuntimeChildTree(child.pid, "SIGKILL");
         } catch {
           child.kill("SIGKILL");
         }
@@ -202,7 +233,7 @@ export function realAgentSpawner(backend: Tier1Backend = cursorBackend()): Agent
         waitExitTimer = setTimeout(() => {
           if (settled || finishing) return;
           try {
-            if (child.pid) process.kill(-child.pid, "SIGTERM");
+            if (child.pid) signalRuntimeChildTree(child.pid, "SIGTERM");
           } catch {
             child.kill("SIGTERM");
           }
@@ -287,7 +318,7 @@ export function realAgentSpawner(backend: Tier1Backend = cursorBackend()): Agent
         kill() {
           if (settled || finishing || escalationTimer) return;
           try {
-            if (child.pid) process.kill(-child.pid, "SIGTERM");
+            if (child.pid) signalRuntimeChildTree(child.pid, "SIGTERM");
           } catch {
             child.kill("SIGTERM");
           }
@@ -314,8 +345,11 @@ export interface ExecutorConfig {
   model: string;
   adapter: Adapter;
   gateScriptPath: string;
-  /** gate.sh 期望内容(= buildGateScript(sockPath, logPath);W2 阶段0-① A1 补偿控制的比对基准) */
+  /** gate 活动入口期望内容(POSIX=gate.sh, win32=gate-cursor.mjs) */
   gateScriptExpected: string;
+  /** win32 环回绑定文件;POSIX 不设 */
+  gateBindPath?: string;
+  gateBindExpected?: string;
   hooksTimeoutSec?: number;
   verifyTimeoutMs?: number;
   protectedBranches?: readonly string[];
@@ -393,10 +427,12 @@ interface ActiveRun {
   /** 认领 barrier：owner+session 或 terminal/unrecoverable 后 resolve。 */
   claimReady: (() => void) | null;
   claimPromise: Promise<void> | null;
+  /** W5a 3.5 本 run 生效模型 */
+  model: string;
   /** 终局原因(canary/熔断/取消先到先得,settle 按此分链) */
   abort: { kind: "canary" | "budget" | "cancel" | "steer_resume"; detail: string } | null;
-  /** 生效模型(W5a 3.5:项目覆盖 > cfg.model;spawn 与 observedModel 族校验同源用它) */
-  model: string;
+  /** 本 run 的 .cursor/hooks.json;provision 后才设,digest 补偿用 */
+  hooksJsonPath: string | null;
 }
 
 const ACTIVE_RUN_STATES = "('reserved','running','step_paused','cancel_requested')";
@@ -451,27 +487,51 @@ export class Tier1Executor {
 
   // ---------- gate 决策链(gateServer handler;fail-closed) ----------
 
+  private expectedHooksJson(): string {
+    return buildCursorHooksJson(this.d.cfg.gateScriptPath, this.d.cfg.hooksTimeoutSec ?? 120);
+  }
+
+  private gateIntegritySurfaces(): { path: string; expected: string }[] {
+    const out: { path: string; expected: string }[] = [
+      { path: this.d.cfg.gateScriptPath, expected: this.d.cfg.gateScriptExpected }
+    ];
+    const bindPath = this.d.cfg.gateBindPath;
+    const bindExpected = this.d.cfg.gateBindExpected;
+    if (bindPath && bindExpected !== undefined) {
+      out.push({ path: bindPath, expected: bindExpected });
+    }
+    const hooksExpected = this.expectedHooksJson();
+    for (const run of this.active.values()) {
+      if (run.hooksJsonPath) out.push({ path: run.hooksJsonPath, expected: hooksExpected });
+    }
+    return out;
+  }
+
   /**
-   * W2 阶段0-①(Codex 20 A1 补偿控制):每收 gate 请求重读 gate.sh 与 buildGateScript() 期望比对。
-   * 背景:gate.sh 在 ~/.saydo/tier1/(worktree 外)但同 UID 非强制不可写——agent 内置 write 工具
-   * 不经 shell 门,可改写 gate.sh 洗审批(POST 撒谎命令,canary 计数不破)。漂移 ⇒ 审计 +
-   * 终止全部活跃 run(门完整性破坏 = canary 同族安全事件,任务 failed)+ 重写自愈 + 本请求 deny。
-   * 完整解(独立 UID/容器 + 写工具进门)P1,与 verify-HOME 同族(05 §4/09 §11 诚实口径)。
+   * W2 阶段0-①(Codex 20 A1;Codex 88 扩活动入口):每收 gate 请求重读当前 backend 实际入口
+   * 以及 hooks.json / gate-bind.json。任一漂移 ⇒ 审计 + 终止全部活跃 run + 自愈重写 + 本请求 deny。
    */
   private gateScriptDriftGuard(): boolean {
-    let actual: string | null;
-    try {
-      actual = readFileSync(this.d.cfg.gateScriptPath, "utf8");
-    } catch {
-      actual = null; // 读不出(被删/权限)同样按漂移处置,fail-closed
+    const surfaces = this.gateIntegritySurfaces();
+    const drifted: { path: string; expected: string; actual: string | null }[] = [];
+    for (const surface of surfaces) {
+      let actual: string | null;
+      try {
+        actual = readFileSync(surface.path, "utf8");
+      } catch {
+        actual = null;
+      }
+      if (actual !== surface.expected) drifted.push({ ...surface, actual });
     }
-    if (actual === this.d.cfg.gateScriptExpected) return false;
+    if (drifted.length === 0) return false;
+    const first = drifted[0]!;
     this.d.audit.record({
       actor: "daemon",
       action: "tier1.gate_script_drift",
       meta: {
-        expectedDigest: textDigest(this.d.cfg.gateScriptExpected),
-        actualDigest: actual === null ? "unreadable" : textDigest(actual),
+        expectedDigest: textDigest(first.expected),
+        actualDigest: first.actual === null ? "unreadable" : textDigest(first.actual),
+        surfaces: drifted.map((d) => d.path.slice(-120)),
         activeRuns: this.active.size
       }
     });
@@ -480,12 +540,15 @@ export class Tier1Executor {
       run.abort = { kind: "canary", detail: "gate_script_drift" };
       run.proc?.kill();
     }
-    try {
-      // 自愈重写(与启动时 ensureGateScript 同语义;原子 tmp+rename——迟到评审 C 回收,
-      // 防并发在途 hook exec 到半截脚本)
-      writeGateScriptAtomic(this.d.cfg.gateScriptPath, this.d.cfg.gateScriptExpected);
-    } catch (err) {
-      this.d.log.error("gate.sh 自愈重写失败", { error: String(err).slice(0, 160) });
+    for (const surface of drifted) {
+      try {
+        writeGateScriptAtomic(surface.path, surface.expected);
+      } catch (err) {
+        this.d.log.error("gate integrity self-heal failed", {
+          path: surface.path.slice(-120),
+          error: String(err).slice(0, 160)
+        });
+      }
     }
     return true;
   }
@@ -493,6 +556,12 @@ export class Tier1Executor {
   async handleGateRequest(req: GateWireRequest): Promise<GateWireResponse> {
     if (this.gateScriptDriftGuard()) {
       return { permission: "deny", agent_message: "SayDo gate: gate script integrity check failed (fail-closed)" };
+    }
+    if (req.kind && req.kind !== "command") {
+      return { permission: "deny", agent_message: "SayDo gate: unknown kind (fail-closed)" };
+    }
+    if (!req.command) {
+      return { permission: "deny", agent_message: "SayDo gate: missing command (fail-closed)" };
     }
     const run = this.findRunByCwd(req.cwd);
     if (!run) {
@@ -849,7 +918,8 @@ export class Tier1Executor {
       claimReady: null,
       claimPromise: null,
       abort: null,
-      model: this.resolveRunModel(row.project_id, runId)
+      model: this.resolveRunModel(row.project_id, runId),
+      hooksJsonPath: null
     };
     this.active.set(runId, active);
     active.completion = this.runAttempt(active).catch((err) => {
@@ -911,7 +981,8 @@ export class Tier1Executor {
       ...(options.env ? { env: options.env } : {}),
       stdin: "ignore",
       stdout: options.captureStdout ? "pipe" : "ignore",
-      stderr: "ignore"
+      stderr: "ignore",
+      registryHome: this.d.cfg.saydoHome
     }, `tier1:${run.runId}:managed`);
     const { child, lease: childLease } = spawned;
     child.stdin.end();
@@ -935,8 +1006,7 @@ export class Tier1Executor {
     });
     const signalTree = (signal: NodeJS.Signals): void => {
       try {
-        if (process.platform !== "win32" && child.pid) process.kill(-child.pid, signal);
-        else child.kill(signal);
+        if (child.pid) signalRuntimeChildTree(child.pid, signal);
       } catch {
         // 后续 group probe 给出权威结果。
       }
@@ -1128,10 +1198,9 @@ export class Tier1Executor {
     }
     const cursorDir = join(run.worktree, ".cursor");
     mkdirSync(cursorDir, { recursive: true });
-    writeFileSync(
-      join(cursorDir, "hooks.json"),
-      buildCursorHooksJson(this.d.cfg.gateScriptPath, this.d.cfg.hooksTimeoutSec ?? 120)
-    );
+    const hooksJsonPath = join(cursorDir, "hooks.json");
+    writeFileSync(hooksJsonPath, this.expectedHooksJson());
+    run.hooksJsonPath = hooksJsonPath;
   }
 
   private buildPrompt(run: ActiveRun, isResume: boolean): string {
@@ -1379,7 +1448,7 @@ export class Tier1Executor {
         }
         return;
       }
-      const vr = await this.execVerify(run, pre.argv);
+      const vr = await this.execVerify(run, verifyRunnerArgv(pre.argv));
       if (run.restartPending) return;
       verifyResults.push({ templateRef: frozen.templateRef, ...vr });
       if (vr.exitCode !== 0) {
@@ -1434,7 +1503,7 @@ export class Tier1Executor {
         }
         return;
       }
-      const vr = await this.execVerify(run, pre.argv);
+      const vr = await this.execVerify(run, verifyRunnerArgv(pre.argv));
       if (run.restartPending) return;
       verifyResults.push({ templateRef: frozen.templateRef, ...vr });
     }
@@ -1970,7 +2039,8 @@ export class Tier1Executor {
         claimReady: null,
         claimPromise: null,
         abort: null,
-        model: this.resolveRunModel(task.project_id, runId)
+        model: this.resolveRunModel(task.project_id, runId),
+        hooksJsonPath: null
       };
       let resolveClaim!: () => void;
       active.claimPromise = new Promise<void>((resolve) => { resolveClaim = resolve; });
@@ -2220,10 +2290,10 @@ export class Tier1Executor {
       const deadline = Date.now() + 2_000;
       let processStart: string | null = null;
       while (processStart === null && Date.now() < deadline) {
-        // wrapper 是 node + commandToken；-e 脚本过长时 ps/pgrep 会截断，必须带 token 回退。
-        processStart =
-          readOwnedAgentProcessStart(proc.pid, process.execPath, proc.commandToken) ??
-          readOwnedAgentProcessStart(proc.pid, this.d.cfg.lockedBinary, proc.commandToken);
+        processStart = hostKind() === "win32"
+          ? processBirth(proc.pid)
+          : (readOwnedAgentProcessStart(proc.pid, process.execPath, proc.commandToken) ??
+            readOwnedAgentProcessStart(proc.pid, this.d.cfg.lockedBinary, proc.commandToken));
         if (processStart === null) await new Promise((resolve) => setTimeout(resolve, 20));
       }
       if (processStart === null && run.terminalResultReceived) {
@@ -2233,6 +2303,7 @@ export class Tier1Executor {
       if (!processStart) throw new Error("agent process ownership identity unavailable");
       const ownerPath = join(runDir, "agent-owner.json");
       const temporary = `${ownerPath}.${process.pid}.tmp`;
+      const jobName = runtimeChildJobName(proc.pid);
       try {
         writeFileSync(
           temporary,
@@ -2243,6 +2314,7 @@ export class Tier1Executor {
             binary: this.d.cfg.lockedBinary,
             worktree: run.worktree,
             processStart,
+            ...(jobName ? { jobName } : {}),
             ...runtimeChildOwnerIdentity()
           } satisfies AgentOwnershipRecord),
           { mode: 0o600 }

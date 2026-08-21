@@ -307,7 +307,7 @@ export async function webauthnCreate(challenge: string, rpId: string): Promise<s
   });
 }
 
-/** 断言(webauthn.get):Touch ID 系统弹窗(09 §3.3 签发链 ②) */
+/** 断言(webauthn.get):本机认证系统弹窗(09 §3.3 签发链 ②) */
 export async function webauthnGet(challenge: string, rpId: string, allowCredentialId: string): Promise<string> {
   const cred = (await navigator.credentials.get({
     publicKey: {
