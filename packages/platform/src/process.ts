@@ -49,6 +49,64 @@ function linuxBirthFromProc(pid: number): string | null {
   }
 }
 
+export interface ProcessAnchor {
+  /** 进程组 id。win32 无进程组语义,processAnchor 在该平台恒为 null。 */
+  pgid: number;
+  /** 完整命令行(argv 以空格连接);读不到为 null。 */
+  command: string | null;
+}
+
+function linuxAnchor(pid: number): ProcessAnchor | null {
+  try {
+    // comm 字段可能含空格与括号,只能从最后一个 ")" 之后重新切分。
+    const stat = readFileSync(`/proc/${String(pid)}/stat`, "utf8");
+    const close = stat.lastIndexOf(")");
+    if (close < 0) return null;
+    const rest = stat.slice(close + 2).split(" ");
+    const pgrp = Number(rest[2]);
+    if (!Number.isInteger(pgrp)) return null;
+    let command: string | null = null;
+    try {
+      command = readFileSync(`/proc/${String(pid)}/cmdline`, "utf8").replaceAll("\0", " ").trim() || null;
+    } catch {
+      command = null;
+    }
+    return { pgid: pgrp, command };
+  } catch {
+    return null;
+  }
+}
+
+function psAnchor(pid: number): ProcessAnchor | null {
+  try {
+    const ps = existsSync("/bin/ps") ? "/bin/ps" : existsSync("/usr/bin/ps") ? "/usr/bin/ps" : "ps";
+    const raw = execFileSync(ps, ["-o", "pgid=", "-o", "command=", "-p", String(pid)], {
+      encoding: "utf8",
+      timeout: 2_000
+    }).trim();
+    const match = /^(\d+)\s+([\s\S]*)$/u.exec(raw);
+    if (!match) return null;
+    const pgid = Number(match[1]);
+    if (!Number.isInteger(pgid)) return null;
+    return { pgid, command: (match[2] ?? "").trim() || null };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * POSIX 进程身份锚:进程组 id + 命令行。
+ * 用途是「杀之前先证明这个 pid 仍是我们启动的那个组长」——POSIX 收口走 kill(-pid) 作用于整组,
+ * 只靠秒级 birth 时间戳不足以挡住 PID 复用。win32 无进程组语义,由具名 Job 承担同一职责,返回 null。
+ */
+export function processAnchor(pid: number): ProcessAnchor | null {
+  if (!Number.isInteger(pid) || pid <= 0) return null;
+  const kind = hostKind();
+  if (kind === "win32") return null;
+  if (kind === "linux") return linuxAnchor(pid);
+  return psAnchor(pid);
+}
+
 export function processBirth(pid: number): string | null {
   if (!Number.isInteger(pid) || pid <= 0) return null;
   const kind = hostKind();

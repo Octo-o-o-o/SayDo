@@ -4,7 +4,7 @@ import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
 import { verifiedProjectWorkspace } from "../storage/dao/projects.js";
 import { classifyActiveWork } from "./activeWorkClassifier.js";
-import { hostKind, killOwnedTree, processAlive, processBirth } from "@saydo/platform";
+import { hostKind, killOwnedTree, processAlive, processAnchor, processBirth } from "@saydo/platform";
 
 export const RESTART_RECOVERABLE_STATES = "('reserved','running','step_paused')";
 const DRAINABLE_TIER1_STATES = "('reserved','running','step_paused','cancel_requested')";
@@ -89,7 +89,25 @@ function readOwnedAgent(saydoHome: string, row: RestartCandidate): AgentOwnershi
   }
 }
 
-export function readOwnedAgentProcessStart(pid: number, _binary?: string, _commandToken?: string): string | null {
+/**
+ * 受管 agent 的身份锚。
+ *
+ * win32:具名 Job + birth 已足够,Job 句柄本身就把「哪些进程属于这次执行」钉死。
+ * POSIX:收口走 `kill(-pid)` 作用于**整个进程组**,只比对秒级 birth 时间戳挡不住 PID 复用——
+ * 复用到同一数值且同秒启动的无关进程,会让我们把它所在的组整组杀掉。因此在取 birth 之前
+ * 必须先证明:(1) pid 仍是自身进程组的组长(pgid === pid),(2) 命令行仍是我们启动的那个
+ * 二进制 / 一次性 commandToken。任一不成立即返回 null,由调用方走 fail-closed 分支。
+ */
+export function readOwnedAgentProcessStart(pid: number, binary?: string, commandToken?: string): string | null {
+  if (hostKind() === "win32") return processBirth(pid);
+  const anchor = processAnchor(pid);
+  if (!anchor || anchor.pgid !== pid) return null;
+  if (binary !== undefined || commandToken !== undefined) {
+    const command = anchor.command;
+    if (command === null) return null;
+    if (binary !== undefined && !command.includes(binary)) return null;
+    if (commandToken !== undefined && !command.includes(commandToken)) return null;
+  }
   return processBirth(pid);
 }
 

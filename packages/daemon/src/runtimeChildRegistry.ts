@@ -41,6 +41,22 @@ export interface RuntimeChildSpawnOptions {
   registryHome?: string;
 }
 
+/**
+ * cmd.exe 元字符。Node 在 Windows 上对 `shell: true` 是「把 file 与 args 用空格 join、零转义」
+ * 后整串交给 `cmd.exe /d /s /c`,任何元字符都会被 cmd 当语法解释(命令拼接、重定向、变量展开)。
+ * 我们不自己实现 cmd 引用规则(其引号/脱字符/`%` 展开的交互极易写出静默错误的转义),
+ * 而是 fail-closed 拒绝:.cmd/.bat 目标一律要求参数不含元字符。需要传这类参数时,
+ * 应改用 .exe 或显式 `node <script>` 形态,两者都不经 shell。
+ */
+export const CMD_SHELL_METACHARS = /[&|<>^"%!()\r\n]/u;
+
+export function assertNoCmdShellMetachars(parts: readonly string[]): void {
+  const bad = parts.find((part) => CMD_SHELL_METACHARS.test(part));
+  if (bad !== undefined) {
+    throw new Error(`cmd/bat 参数含 shell 元字符,fail-closed 拒绝执行:${bad.slice(0, 80)}`);
+  }
+}
+
 export interface SpawnedRuntimeChild {
   child: ChildProcessByStdio<Writable, Readable, Readable>;
   lease: RuntimeChildLease;
@@ -115,6 +131,12 @@ permit.once("data", () => {
   const spawnFile = wrapJs ? process.execPath : target;
   const spawnArgs = wrapJs ? [target, ...args] : args;
   const useShell = process.platform === "win32" && (js === ".cmd" || js === ".bat");
+  // shell:true 下 Node 对 Windows 是零转义 join,元字符会被 cmd 当语法执行 ⇒ fail-closed。
+  if (useShell && [spawnFile, ...spawnArgs].some((a) => /[&|<>^"%!()\r\n]/.test(String(a)))) {
+    process.stderr.write("saydo: cmd/bat argument contains shell metacharacter (fail-closed)");
+    drainAndExit(126);
+    return;
+  }
   child = spawn(spawnFile, spawnArgs, { cwd: process.cwd(), env: process.env, stdio: ["pipe", "inherit", "inherit"], windowsHide: true, shell: useShell });
   process.stdin.pipe(child.stdin);
   child.once("error", (err) => { process.stderr.write(String(err)); drainAndExit(127); });
@@ -159,6 +181,11 @@ export function signalRuntimeChildTree(pid: number, signal: NodeJS.Signals): voi
     // ESRCH
   }
 }
+/** wrapper 源码(供门禁做语法自检:它经 `node -e` 执行,语法错会让所有受管子进程静默失败)。 */
+export function runtimeChildWrapperSource(): string {
+  return RUNTIME_CHILD_WRAPPER;
+}
+
 let runtimeChildHome: string | undefined;
 let runtimeOwnerInstanceId = `pid-${String(process.pid)}`;
 const runtimeJobs = new Map<number, NamedJob>();
@@ -310,6 +337,7 @@ export function execAgentFileSync(
   const useShell = hostKind() === "win32" && (ext === ".cmd" || ext === ".bat");
   const spawnFile = wrapJs ? process.execPath : resolved;
   const spawnArgs = wrapJs ? [resolved, ...args] : args;
+  if (useShell) assertNoCmdShellMetachars([spawnFile, ...spawnArgs]);
   return execFileSync(spawnFile, spawnArgs, {
     encoding: options.encoding,
     ...(options.timeout !== undefined ? { timeout: options.timeout } : {}),
