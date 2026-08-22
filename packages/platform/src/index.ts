@@ -16,9 +16,11 @@ export {
   createNamedJob,
   killOwnedTree,
   processAlive,
+  processAnchor,
   processBirth,
   type KillClaim,
-  type NamedJob
+  type NamedJob,
+  type ProcessAnchor
 } from "./process.js";
 export { acquireExclusiveLink } from "./lock.js";
 export {
