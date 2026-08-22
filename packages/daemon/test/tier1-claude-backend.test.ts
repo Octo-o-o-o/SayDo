@@ -1,11 +1,13 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import {
   buildClaudeArgv,
   buildClaudeHooksSettings,
   claudeBackend,
+  claudeEnvOverrides,
   parseClaudeTier1Line
 } from "../src/tier1/backends/claude.js";
 import { explainCliProcessFailure } from "../src/providers/byoa/processFailure.js";
@@ -103,8 +105,15 @@ describe("claude hooks JSON 快照", () => {
       hooks: { PreToolUse: Array<{ hooks: Array<{ command: string }> }> };
     };
     const cmd = settings.hooks.PreToolUse[0]?.hooks[0]?.command ?? "";
-    if (process.platform === "win32") expect(cmd).toContain("gate-claude.mjs");
-    else expect(cmd).toBe(out.filesWritten[0]);
+    // 评审 91 B-3:POSIX 的 command 是 shell 引用过的脚本路径,不是裸路径。
+    // 评审 92:不再拿同一 helper 生成期望值(那样两边同时错也会绿)——直接让 shell 解析,
+    // 断言解析结果就是那个真实文件路径。
+    if (process.platform === "win32") {
+      expect(cmd).toContain("gate-claude.mjs");
+    } else {
+      const parsed = execFileSync("/bin/sh", ["-c", `printf '%s' ${cmd}`], { encoding: "utf8" });
+      expect(parsed).toBe(out.filesWritten[0]);
+    }
     expect(readFileSync(out.filesWritten[0]!, "utf8")).toContain("PreToolUse");
   });
 });
@@ -190,5 +199,19 @@ describe("claude.ts 不引用 parseClaudeLine", () => {
   it("源码不含 parseClaudeLine", () => {
     const src = readFileSync(join(__dirname, "../src/tier1/backends/claude.ts"), "utf8");
     expect(src.includes("parseClaudeLine")).toBe(false);
+  });
+});
+
+describe("claudeEnvOverrides(W5.4-b C1;09 §11 G4 例外两键,方案 D13)", () => {
+  it("键集合恰为 DISABLE_AUTOUPDATER/SHELL 且值为终版(不多不少)", () => {
+    expect(claudeEnvOverrides).toEqual({ DISABLE_AUTOUPDATER: "1", SHELL: "/bin/sh" });
+    expect(Object.keys(claudeEnvOverrides).sort()).toEqual(["DISABLE_AUTOUPDATER", "SHELL"]);
+  });
+
+  it("恒不含 ANTHROPIC_* / CLAUDE_CODE_OAUTH_TOKEN(订阅只经 CLI 登录态,红线 4)", () => {
+    for (const key of Object.keys(claudeEnvOverrides)) {
+      expect(key.startsWith("ANTHROPIC_")).toBe(false);
+      expect(key).not.toBe("CLAUDE_CODE_OAUTH_TOKEN");
+    }
   });
 });

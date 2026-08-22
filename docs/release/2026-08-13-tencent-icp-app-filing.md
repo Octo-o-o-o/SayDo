@@ -5,5 +5,7 @@
 > 以及本机 `~/.saydo/private/2026-08-13-tencent-icp-app-filing.md`。
 >
 > 公开可述事实:App 备案已于 2026-08-13 提交腾讯云初审(订单号私存);主体为既有个人备案
-> `京ICP备2025153079号` 增补 App 服务;审核状态跟踪见
+> `京ICP备2025153079号` 增补 App 服务;2026-08-21 管局审核通过,App 服务号
+> `京ICP备2025153079号-4A`(服务名「说到」,域名 `saydo.octoooo.com`)。
+> 进度与后续动作见
 > [2026-08-13-store-submission-status.md](2026-08-13-store-submission-status.md)。

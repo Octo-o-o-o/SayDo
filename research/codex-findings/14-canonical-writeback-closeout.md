@@ -8,7 +8,7 @@
 > | #1b turn_ref 对 screen/push runtime_effect 过约束 | A(并入#1) | 属实但 fail-closed 方向、P0 无该路径,无实伤 | **注记不改表**:09 §9 DDL 行内注明 P1 随 additive 迁移放宽 |
 > | #2 停靠 T 边调度未接线/transitionTask 非 CAS | B | 属实(parkAging 无生产调度;单线程+同步 SQLite 竞态窗口极小) | **登记上浮 owner**(功能建设,超收口边界;dogfood 前接线即可,72h 老化在 owner 日用场景 dogfood 期才有对象) |
 > | #3a protected 替换语义 | A | 属实(e50668e 只修了 [] 顶默认,未做并集) | **已修** `e4b6ab3`:effectiveProtectedBranches 并集贯穿 contracts/policy |
-> | #3b 项目层配置生产加载缺失(schema 无 project/git/verify/setup;mergeConfig 无生产调用) | A→B(重定级) | 属实;但当前无任何路径传入项目值 ⇒ 无运行时暴露("库+测试就绪、生产未接线"=staged 形态) | **登记上浮 owner**(接线属功能建设;защит面:并集修复后即使接线也无降级风险) |
+> | #3b 项目层配置生产加载缺失(schema 无 project/git/verify/setup;mergeConfig 无生产调用) | A→B(重定级) | 属实;但当前无任何路径传入项目值 ⇒ 无运行时暴露("库+测试就绪、生产未接线"=staged 形态) | **登记上浮 owner**(接线属功能建设;防护面:并集修复后即使接线也无降级风险) |
 > | #3c 备份保留期硬编码 30 | B(并入#3) | 属实 | **已修** `e4b6ab3`:每轮重读 [params].backup_retention_days |
 > | #4 api observedModel 严格断言未兑现 | A | 属实(provider 只提取不拦;evaluator/thinking 消费端未校验;dialog 拦缺失不拦族——后者 p0-readback 已注记"评审跟踪") | **已修** `e4b6ab3`:openaiCompat 缺 model 即作废(canonical 义务在 provider 层),evaluator/thinking/dialog 天然继承;dialog 族校验保持"评审跟踪"登记(BYOA 侧 consume.ts 分档自始正确);§12-9 措辞已补分档括注 |
 > | #5 params/invocation 测试锚虚 | B | 部分属实(assertParamSanity 存在但无直接测试;invocation 字段不全) | assertParamSanity 反例**已补** `e4b6ab3`;invocation 统一 finally 落账**登记**(结构改动随 dogfood 期) |

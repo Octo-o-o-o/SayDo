@@ -8,7 +8,7 @@
 |---|---|---|
 | 设计 ADR-001 | `design/ADR-001-execution-layer.md`:执行层复用 Hopper、锁版本、不等待、双路径 | 已批准 |
 | 设计 ADR-003 | 产品载体与部署组合 | 预留，尚未成文 |
-| 设计 ADR-004 | `design/ADR-004-windows-platform.md`:桌面 OS 矩阵,Windows 一等公民对齐 | 已决策,评审中 |
+| 设计 ADR-004 | `design/ADR-004-windows-platform.md`:桌面 OS 矩阵,Windows 一等公民对齐 | 已批准(2026-08-22 实施收口) |
 
 设计 ADR-002 不使用，以免与已存在的工程 ADR-002 混读。
 
@@ -17,8 +17,8 @@
 | 编号 | 决策 | 状态 |
 |---|---|---|
 | 工程 ADR-001 | `ADR-001-pipecat-interrupt-go.md`:Pipecat 打断语义 spike | 已定 |
-| 工程 ADR-002 | `ADR-002-byoa-observed-model.md`:BYOA observedModel 断言 | 已定，豁免休眠 |
-| 工程 ADR-003 | `ADR-003-os-adapters.md`:OS 适配层(进程/IPC/ACL/常驻/通知) | 已决策,评审中 |
+| 工程 ADR-002 | `ADR-002-byoa-observed-model.md`:BYOA observedModel 断言 | 已定;豁免链已随 T18 落地(见文末「状态更正」2026-08-21),实践不触发,Tier1 `claude_code` 不使用 |
+| 工程 ADR-003 | `ADR-003-os-adapters.md`:OS 适配层(进程/IPC/ACL/常驻/通知) | 已决策(2026-08-22 `@saydo/platform` 已落地;Linux 口径见 §10) |
 | 工程 ADR-101 | `ADR-101-asr-volc.md`:火山 sauc ASR 定档 | 已定 |
 
 新增 ADR 必须先选定序列，再使用该序列的下一个可用编号。跨文档链接应指向完整文件路径。

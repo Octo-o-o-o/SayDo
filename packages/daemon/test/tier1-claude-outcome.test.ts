@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
+import { isRateRejectStatus,
   buildTier1SubscriptionCostEntry,
   classifyClaudeRunOutcome
 } from "../src/tier1/claudeOutcome.js";
@@ -102,5 +102,37 @@ describe("buildTier1SubscriptionCostEntry", () => {
     const e = buildTier1SubscriptionCostEntry({ taskId: "t1", runId: "r1" });
     expect("id" in e).toBe(false);
     expect(e.meta.taskId).toBe("t1");
+  });
+});
+
+describe("isRateRejectStatus(评审 92:按实测枚举精确匹配,不做自然语言分词)", () => {
+  it("枚举内的拒绝态命中(大小写与前后空白归一)", () => {
+    for (const s of ["rejected", "rate_limited", "RATE_LIMITED", " exhausted ", "quota_exceeded", "blocked"]) {
+      expect(isRateRejectStatus(s)).toBe(true);
+    }
+  });
+
+  it("真实 fixture 的 allowed 不命中", () => {
+    expect(isRateRejectStatus("allowed")).toBe(false);
+  });
+
+  it("前三版分词方案各自漏掉的形态,现在一律不命中(未知串不判限流)", () => {
+    for (const s of [
+      "unlimited",        // v1 裸子串误判
+      "not_limited",      // v2 整词误判
+      "quota_not_exceeded",
+      "not_rate_limited", // v3 否定前缀方案仍漏(否定词不与拒绝词相邻)
+      "not_quota_exceeded",
+      "unblocked",
+      "active",
+      ""
+    ]) {
+      expect(isRateRejectStatus(s)).toBe(false);
+    }
+  });
+
+  it("枚举外的复合串不再靠猜(要支持须补枚举 + 补 fixture)", () => {
+    expect(isRateRejectStatus("rate_limited_not_cached")).toBe(false);
+    expect(isRateRejectStatus("not_cached_but_limited")).toBe(false);
   });
 });

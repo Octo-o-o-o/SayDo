@@ -22,7 +22,7 @@
     })();
   </script>
   <link rel="stylesheet" href="/tokens.css" />
-  <link rel="stylesheet" href="/site.css?v=20260820f" />
+  <link rel="stylesheet" href="/site.css?v=20260821a" />
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主内容</a>
@@ -129,11 +129,11 @@
           <li><strong>想配多家模型 / 多个 CLI 把效果调到最好</strong>:§5(模型与供给)全读,再看 §6(执行器)。</li>
           <li><strong>关心数据去哪了、花不花钱</strong>:§14(隐私与数据)、§15(费用)。</li>
           <li>每节标题后若带 <strong><span class="badge badge-live">现在可用</span> / <span class="badge badge-progress">进行中</span> / <span class="badge badge-soon">规划中</span></strong>,表示该节描述的能力当前状态;没带的 = 该节内容整体现在可用,个别差异在正文内标注。</li>
-          <li>文档口径以 macOS 桌面服务当前版本为准;移动 App 均未上架,手机相关内容以「可以这样连」而非「商店下载」为准(§13)。</li>
+          <li>文档口径以桌面服务当前版本为准(macOS 为主线;Windows 已完成原生 P0 适配并经真机验证、Linux 经 CI 全量验证,二者可运行但常驻安装与系统通知仍是 macOS 实现);移动 App 均未上架,手机相关内容以「可以这样连」而非「商店下载」为准(§13)。</li>
         </ul>
 
         <h2 id="s1">1. 「说到」(SayDo)是什么</h2>
-        <p>「说到」(SayDo)是<strong>一个你能对着说话的高级助手</strong>,运行在你自己的 Mac 上。你只管把事情聊清楚——甚至边聊边想清楚;它先吃透你的项目上下文,把每件事记成一本账;听懂了、火候够了,就主动提议开工,驱动你电脑上已有的 AI 工具去办;执行和检查都跑完,它主动叫你来验收;你点头,才算交付。</p>
+        <p>「说到」(SayDo)是<strong>一个你能对着说话的高级助手</strong>,运行在你自己的电脑上(macOS 主线;Windows / Linux 已可运行)。你只管把事情聊清楚——甚至边聊边想清楚;它先吃透你的项目上下文,把每件事记成一本账;听懂了、火候够了,就主动提议开工,驱动你电脑上已有的 AI 工具去办;执行和检查都跑完,它主动叫你来验收;你点头,才算交付。</p>
         <p>它的心智模型是<strong>幕僚长</strong>(chief of staff):天天和你聊、听懂就自己把事办成、做完来汇报——而不是「你说得越清楚我做得越好」的指令翻译器。核心竞争力不在用哪个模型,而在<strong>上下文工程 + 人机协作流程</strong>。</p>
         <h3>1.1 三条核心承诺</h3>
         <ul>
@@ -162,12 +162,13 @@
         <p>桌面服务本身免费。AI 能力的费用直接付给你选的厂商——用你已有的 CLI 订阅(额度内零额外费用),或你自己的 API key 按量计费。「说到」不加价、不经手、不代充。细节见 §15。</p>
 
         <h2 id="s2">2. 核心概念速查</h2>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>概念</th><th>一句话</th><th>详见</th></tr>
           </thead>
           <tbody>
-            <tr><td><strong>沟通面 / 执行面</strong></td><td>手机和浏览器是沟通面(说话、看进展、按来源面做允许的确认):LAN 不裁 S2/S3,语音确认封顶 S2,tailnet 配对屏幕面在支持后封顶 S2;S3 只在 Mac 认证屏幕。你的 Mac 是执行面(奠基、记忆、驱动 AI、后台办事)</td><td>§3.1、§13</td></tr>
+            <tr><td><strong>沟通面 / 执行面</strong></td><td>手机和浏览器是沟通面(说话、看进展、按来源面做允许的确认):LAN 不裁 S2/S3,语音确认封顶 S2,tailnet 配对屏幕面在支持后封顶 S2;S3 只在本机认证屏幕。你的电脑是执行面(奠基、记忆、驱动 AI、后台办事)</td><td>§3.1、§13</td></tr>
             <tr><td><strong>daemon(守护进程)</strong></td><td>桌面服务的核心常驻进程:持有全部账本与状态,托管 Web 控制台,执行工具调用,派发任务,发回叫。语音会话断了它也活着</td><td>§3.1</td></tr>
             <tr><td><strong>Brain(对话大脑)</strong></td><td>对话轮次背后的模型:采访、答疑、口播;它<strong>没有直接执行权</strong>,所有副作用都经 daemon</td><td>§3.1</td></tr>
             <tr><td><strong>一件事(Focus)</strong></td><td>账本的主轴:一件持续关注的事(可以关联 0..N 个项目,也可以不属于任何项目);下面挂「义务」(谁欠什么)与「期待」(做成什么样)</td><td>§9.4</td></tr>
@@ -188,32 +189,34 @@
             <tr><td><strong>cap-token</strong></td><td>控制台的本机能力令牌(<code>~/.saydo/.cap-token</code>),进控制台的 URL 里带它;删了会轮换</td><td>§4.3、§14</td></tr>
           </tbody>
         </table>
+        </div>
 
         <h2 id="s3">3. 工作原理</h2>
         <h3>3.1 整体架构:三层</h3>
-        <pre><code>人(说 / 听 / 偶尔看屏;拍板 / 审批)
-   │ 语音或文字(浏览器、手机)                回叫(语音 / 桌面通知 / 手机推送)
-┌──▽────────────────────────────────────────────────────────────┐
-│ 沟通面:Web 控制台(桌面浏览器)/ 手机(App 壳或手机浏览器,局域网)     │
-│   · 语音引擎(可选 Python 语音管线:ASR → 文本模型 → TTS)           │
-│   · Brain:采访 / 就绪自省 / 决策包 / 口播;无直接执行权              │
-├────────────────────────────────────────────────────────────────┤
-│ 控制面:daemon(Node 22,常驻)——一切 durable 状态的唯一持有者        │
-│   · 账本:一件事 / 义务 / 四色 attention / 记忆事件账本 / 审批收据     │
-│   · 工具执行、Context Pack 装配、任务派发、事件对账、回叫、成本记账     │
+        <pre class="fig"><code>人(说 / 听 / 偶尔看屏;拍板 / 审批)
+   │ 语音或文字(浏览器、手机)          回叫(语音 / 桌面通知 / 手机推送)
+┌──▽───────────────────────────────────────────────────────────────────┐
+│ 沟通面:Web 控制台(桌面浏览器)/ 手机(App 壳或手机浏览器,局域网)       │
+│   · 语音引擎(可选 Python 语音管线:ASR → 文本模型 → TTS)              │
+│   · Brain:采访 / 就绪自省 / 决策包 / 口播;无直接执行权               │
+├──────────────────────────────────────────────────────────────────────┤
+│ 控制面:daemon(Node 22,常驻)——一切 durable 状态的唯一持有者           │
+│   · 账本:一件事 / 义务 / 四色 attention / 记忆事件账本 / 审批收据    │
+│   · 工具执行、Context Pack 装配、任务派发、事件对账、回叫、成本记账  │
 │   · 本机 HTTP/WS(缺省 127.0.0.1:47100,能力令牌鉴权),托管控制台静态页 │
-├────────────────────────────────────────────────────────────────┤
-│ 执行面:本机 AI 执行器(Tier 1,当前 Cursor CLI)——在隔离 worktree 里  │
+├──────────────────────────────────────────────────────────────────────┤
+│ 执行面:本机 AI 执行器(Tier 1,当前 Cursor CLI)——在隔离 worktree 里    │
 │   改代码;每条 shell 命令经审批门回连 daemon;预算/时长/回合三熔断     │
-│   (另有经 Hopper 的批式执行路线,合同已定、生产绑定当前休眠,§6.3)    │
-└────────────────────────────────────────────────────────────────┘</code></pre>
+│   (另有经 Hopper 的批式执行路线,合同已定、生产绑定当前休眠,§6.3)     │
+└──────────────────────────────────────────────────────────────────────┘</code></pre>
         <p>三条铁律贯穿全部设计:</p>
         <ol>
           <li><strong>Brain 的模型进程可丢弃、无直接执行权</strong>——语音会话或推理进程随时可以死掉重建,任务照跑;所有副作用发生在 daemon / 执行器。</li>
           <li><strong>语音会话短命,任务长命</strong>——会话是事件驱动的窗口(空闲 45 秒或你说「先到这里 / 先这样 / 收工」就挂起,零成本);任务在后台持续执行,靠回叫把人拉回来。</li>
           <li><strong>每项状态只有一个 owner</strong>——对话域状态归 daemon,执行域状态归执行器/后端;跨边界用 durable 协议(幂等 key、事件游标、收据)连接,不共用数据库。</li>
         </ol>
-        <p><strong>组件一览</strong>(核心组件跑在你的 Mac 上；你主动启用的第三方 AI、联网语音识别与推送例外按对应服务商条款处理):</p>
+        <p><strong>组件一览</strong>(核心组件跑在你自己的电脑上；你主动启用的第三方 AI、联网语音识别与推送例外按对应服务商条款处理):</p>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>组件</th><th>是什么</th><th>备注</th></tr>
@@ -227,7 +230,9 @@
             <tr><td>执行器</td><td>拍板后在 worktree 里真的改代码的 agent(当前 Cursor CLI)</td><td>可选;没有不影响对话与记账</td></tr>
           </tbody>
         </table>
+        </div>
         <h3>3.2 一次完整闭环:从聊一句到办完叫你</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>步骤</th><th>发生什么</th><th>背后机制</th><th>你做什么</th></tr>
@@ -242,6 +247,7 @@
             <tr><td>7 验收沉淀</td><td>口播摘要(一句话 / 150 字走读 / 它自己做的决策清单)+ 证据视图(diff、测试、决策、未验证项);你点头 → 过强认证合并 → 「交付了」;知识与产物留存</td><td>合并 = Touch ID / passkey 屏幕审批卡签单次收据,或你自己去终端合并(人工交接);会话末机械提名稳定结论为候选,你批准后进 M1</td><td>验收</td></tr>
           </tbody>
         </table>
+        </div>
         <h3>3.3 采访、就绪与决策包:为什么不用你写需求文档</h3>
         <ul>
           <li><strong>指令是有损压缩,对话是逐步展开。</strong>「说到」不要求你会下指令:你只管聊,它聊到自己懂了、准备够了,主动提议开始。<strong>规格是它的产物,不是你的输入。</strong></li>
@@ -252,14 +258,15 @@
         </ul>
 
         <h2 id="quickstart">4. 快速开始(普通用户路径)</h2>
-        <div class="docs-note"><p>目标:一台 Mac、一个你已登录的 AI CLI(或一个 API key),十几分钟跑起来并开口聊。</p></div>
+        <div class="docs-note"><p>目标:一台电脑(macOS 主线;Windows / Linux 同样可跑)、一个你已登录的 AI CLI(或一个 API key),十几分钟跑起来并开口聊。</p></div>
         <h3>4.1 前提</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>项</th><th>要求</th><th>说明</th></tr>
           </thead>
           <tbody>
-            <tr><td>系统</td><td>macOS(Apple Silicon / Intel 均可)</td><td>常驻、通知、打开浏览器等链路都是 macOS 实现;其他系统未支持</td></tr>
+            <tr><td>系统</td><td>macOS(Apple Silicon / Intel 均可)· Windows · Linux</td><td>三端都能跑桌面服务;<strong>常驻安装、系统通知、打开浏览器等链路当前仍是 macOS 实现</strong>,Windows/Linux 需前台运行</td></tr>
             <tr><td>Node</td><td><strong>22.x</strong>(<code>&gt;=22 &lt;23</code>)</td><td>桌面服务与 CLI 的运行时;用 nvm / fnm / Homebrew 装</td></tr>
             <tr><td>pnpm</td><td>10.x</td><td><code>corepack enable</code> 即可</td></tr>
             <tr><td>git</td><td>任意新版</td><td>构建与任务隔离(worktree)都要</td></tr>
@@ -268,6 +275,7 @@
             <tr><td>可选 · <code>cursor-agent</code> 登录态 + <code>jq</code></td><td>只有<strong>派发执行任务</strong>(让 AI 真改代码)才需要</td><td>没有不阻断对话,只是拍板后不会起执行器(§6)</td></tr>
           </tbody>
         </table>
+        </div>
         <h3>4.2 安装</h3>
         <p>目前以源码形式分发(尚无 npm / Homebrew 包,见 §16):</p>
         <pre><code>git clone https://github.com/Octo-o-o-o/SayDo.git &amp;&amp; cd SayDo
@@ -334,6 +342,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
         <h2 id="s5">5. 模型与供给(高级用户必读)</h2>
         <p>「说到」把模型用途拆成<strong>五个槽位</strong>,每个槽位独立选供给方式与模型。这是「一个订阅就能用」和「多家模型配合到最好」两种玩法的同一套机制。</p>
         <h3>5.1 五个槽位</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>槽位</th><th>配置键</th><th>干什么</th><th>要什么</th><th>示例(仓库模板 / 向导「一个 key」卡)</th></tr>
@@ -346,6 +355,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
             <tr><td><strong>开发档(执行器)</strong></td><td><code>[models.dev]</code></td><td>派发任务时驱动哪个 agent 改代码、用它的哪个模型</td><td>见 §6</td><td><code>agent = "cursor"</code>(与仓库模板一致;当前唯一生产执行器)</td></tr>
           </tbody>
         </table>
+        </div>
         <p>为什么分档:对话档要的是延迟(你在等它出声),沉思档要的是质量(产出是「合同」),廉价档要的是成本(高频调用),评估档要的是独立性(换一家模型做裁判)。一个模型通吃四档要么慢、要么贵、要么不独立。</p>
         <h3>5.2 两种供给方式</h3>
         <p><strong>方式 A · API 直连</strong>(<code>{ provider = "api", via = "&lt;端点名&gt;", model = "..." }</code>)</p>
@@ -357,6 +367,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
         </ul>
         <p><strong>方式 B · 订阅 CLI(BYOA)</strong>(<code>{ provider = "&lt;x&gt;_cli", model = "..." }</code>)</p>
         <p>用你本机<strong>已经登录</strong>的 AI 命令行工具做推理供给,零 API key、走你的订阅额度。当前已接线的 CLI:</p>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>provider</th><th>对应命令</th><th>备注</th></tr>
@@ -371,8 +382,10 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
             <tr><td><code>copilot_cli</code></td><td><code>copilot</code></td><td>同上(传输型 CLI)</td></tr>
           </tbody>
         </table>
+        </div>
         <p>(<code>kimi_cli</code> / <code>opencode_cli</code> 只在资源画像里「可识别」,<strong>不能</strong>当供给——本机实测无法在执行前可证零工具,出于安全不接线。)</p>
         <p>登录是你与厂商之间的事:用各家官方方式登录,「说到」只探测「装没装 / 登没登录 / 能列出哪些模型」,未登录时向导给出可直接粘贴的修复命令(以向导提示为准):</p>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>CLI</th><th>登录</th></tr>
@@ -387,6 +400,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
             <tr><td><code>copilot</code></td><td><code>copilot login</code></td></tr>
           </tbody>
         </table>
+        </div>
         <p>BYOA 的工作方式与纪律(你会在界面上感到的部分):</p>
         <ul>
           <li><strong>一发一收、无状态</strong>:每次调用起一个新的 CLI 子进程,不复用会话(刻意不用 resume——会话落盘与隐私开关互斥,且实测 resume 对延迟也无收益)。</li>
@@ -397,6 +411,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
         </ul>
         <h3>5.3 三种配置方案(首跑向导里的三张卡)</h3>
         <p>首次进控制台会看到「资源画像向导」:它探测本机装了哪些 CLI、哪些已登录、<code>.env</code> 里已有哪些 key,然后给出可一键套用的方案卡——</p>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>方案</th><th>适合谁</th><th>四个推理槽怎么配</th><th>体验</th></tr>
@@ -407,6 +422,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
             <tr><td><strong>一个 key 全搞定</strong></td><td>没有任何 CLI 订阅</td><td>四槽都走 OpenRouter API,各槽按规格指定模型</td><td>秒级返回;按量计费,以服务商账单为准</td></tr>
           </tbody>
         </table>
+        </div>
         <p>向导的「高级模式」允许逐槽手配:每槽独立选 API 端点 / 任一已登录 CLI / 指定模型;两路都要四槽自检全绿才会重启生效。进阶玩法举例:</p>
         <ul>
           <li>对话档 API(如 OpenRouter 上的 <code>google/gemini-3.1-flash</code> 类低延迟模型,家族 gemini)+ 沉思档 <code>cursor_cli</code>(<code>claude-fable-5-thinking-max</code>,家族 claude)+ 廉价档 <code>grok_cli</code> + 评估档 <code>codex_cli</code>(<code>reasoning = "max"</code>,家族 gpt)——对话快、沉思强、评估与对话 / 沉思都异族,且沉思与评估不共享同一家订阅时窗(评估档走 CLI 需勾两条知情确认)。</li>
@@ -505,6 +521,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
           <li>中途改需求(steer):当前没有任何后端支持运行中即时注入;运行中的任务 = <strong>终止本轮再带新指令续跑</strong>(<code>cancel_resume</code>,worktree 保留),排队 / 停靠中的任务 = 下次运行时注入(<code>queued_delta</code>)。它会如实告诉你是哪一种。</li>
         </ul>
         <h3>6.3 进行中与规划中</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>后端</th><th>状态</th><th>说明</th></tr>
@@ -517,6 +534,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td><strong>Gemini CLI 作执行器</strong></td><td>无此计划</td><td>Gemini CLI 仅作推理槽供给</td></tr>
           </tbody>
         </table>
+        </div>
 
         <h2 id="s7">7. 项目与 Git:它怎么和你的仓库打交道</h2>
         <h3>7.1 项目与工作区</h3>
@@ -559,8 +577,9 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         </ul>
 
         <h2 id="s8">8. 审批与安全</h2>
-        <h3>8.1 风险按效果分级 S0–S3</h3>
+        <h3>8.1 风险按效果分级 <span class="hnum">S0–S3</span></h3>
         <p>语音是弱认证通道(在场任何人都能说话、识别有误听率),所以审批权按风险分级;<strong>分级由效果计算,不按动作名</strong>:<code>效果 × 目标(圈内 / 圈外)× 触及数据敏感度 × 身份凭据 × 触发的下游(CI / 部署)× 成本</code>。</p>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>级别</th><th>典型(缺省,可被效果升级)</th><th>审批方式</th></tr>
@@ -572,9 +591,11 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td>S3 不可逆 / 外部影响</td><td>合并到保护分支、force push、部署、花钱、删数据、对外发消息</td><td><strong>必须已认证屏幕(Touch ID / passkey)</strong>;语音绝不放行——同一麦克风的复述不构成独立认证因子</td></tr>
           </tbody>
         </table>
+        </div>
         <p>升级规则:触及 <code>.env</code> / 凭据 / 客户数据 ⇒ 至少 S2;依赖带 postinstall ⇒ 至少 S2 且必须出清单;push 触发预览部署 ⇒ S3;push 到保护分支 ⇒ S3。</p>
-        <h3>8.2 Gate 0:能不能开工的总闸</h3>
+        <h3>8.2 <span class="hnum">Gate 0</span>:能不能开工的总闸</h3>
         <p>Gate 0 不是运行期的命令门,而是<strong>开放自主派发前必须关闭的六项安全门禁</strong>,每次派发前都检查 <code>[gate0] enabled = true &amp;&amp; bypass = false</code>,<strong>代码里没有 bypass 分支</strong>(配置文件损坏时按「未关」处理,拒派发而不是带宽松缺省继续):</p>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>门</th><th>内容</th></tr>
@@ -588,6 +609,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td>G6 删除 / 同意传播</td><td>「忘掉这个」硬删通路;录音 / 转写分别同意;备份按保留期整份过期</td></tr>
           </tbody>
         </table>
+        </div>
         <h3>8.3 每条 shell 命令怎么过门</h3>
         <ul>
           <li>物理链:worktree 内 <code>.cursor/hooks.json</code> → daemon 供给、放在 worktree 之外 <code>~/.saydo/tier1/</code> 的 gate 脚本(与 agent 同用户,<strong>当前不保证 agent 不可写</strong>——诚实口径)→ unix socket → daemon 裁决;补偿控制 = 每次门请求都重算脚本完整性,漂移 ⇒ 取消全部活跃任务。</li>
@@ -597,6 +619,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
           <li>每条 S2 一张收据,绑定父决策包 digest 与拍板轮次,接受即消费。</li>
         </ul>
         <h3>8.4 执行模式两档</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>档</th><th>语义</th><th>现状</th></tr>
@@ -606,6 +629,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td><strong>直达验收</strong>(口语「一口气跑完」)</td><td>拍板即授权整包:决策包逐项声明并<strong>念出</strong>本任务预计的 S2 效果类(带约束参数:装哪些包 / 推哪个分支模式),随包 digest 签署;运行中命中清单自动放行(落预授权收据,执行点复验有效期),未命中或被升级的拒绝并反馈 agent 换路</td><td><strong>进行中</strong>——预授权清单的合同与匹配逻辑已落,但语音拍板环尚未接入念读签署,组包恒为逐步确认;拍板时选「一口气」会被如实告知走屏幕或改逐步确认</td></tr>
           </tbody>
         </table>
+        </div>
         <p>不变量(任何档位不得触碰):效果分级、S3 屏幕强认证、三熔断、verify 白名单、Plan Delta 重授权、回叫优先级、状态词纪律、两把钥匙、Gate 0。<strong>预授权范围永远属于决策包、由你听到并签署;模式只是这份清单的启用开关</strong>——否则「切到全自动」就成了一句话扩权通道。默认收紧(逐步确认)是对冲自动化偏信;「信任毕业制」被明确否决。</p>
         <h3>8.5 三熔断与停靠老化</h3>
         <ul>
@@ -622,7 +646,8 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         </ul>
 
         <h2 id="s9">9. 记忆与账本</h2>
-        <h3>9.1 四层记忆(M0–M3)</h3>
+        <h3>9.1 四层记忆(<span class="hnum">M0–M3</span>)</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>层</th><th>名称</th><th>存储</th><th>生命周期</th><th>内容</th></tr>
@@ -634,9 +659,10 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td>M3</td><td>会话工作记忆</td><td>上下文窗口 + 转写(<code>~/.saydo/sessions/&lt;id&gt;.jsonl</code>)</td><td>单次会话</td><td>最近 N 轮、当前任务</td></tr>
           </tbody>
         </table>
+        </div>
         <p><strong>Context Pack</strong> = 每轮从 M0 + M1 + M2 挑相关切片 + M3 最近几轮拼进窗口(带版本,失配则重取);检索用 SQLite FTS5(trigram,BM25)答「我们决定过什么」,代码事实永远现场 <code>rg</code> 现读、不进知识库(无陈旧税;短于 3 字符的词靠 rg 兜底)。</p>
         <p><strong>真相源</strong>:记忆域以 <strong>append-only 记忆事件账本</strong>为真相,Markdown 文件与 SQLite 索引都是可重建投影;源码与 Git 永远是代码事实的最终权威。<code>m1-notes.md</code> 是单向投影——直接改文件不会回写记忆,要改就对它说(P0 没有文件监听)。</p>
-        <h3>9.2 奠基(Foundation)<span class="badge badge-live">现在可用</span> · 机械管道</h3>
+        <h3>9.2 奠基(Foundation) <span class="badge badge-live">现在可用</span> <span class="h3-note">· 机械管道</span></h3>
         <p>第一次接触一个项目时触发,阻塞式(「学习中」是一等会话状态,会说清在学什么、进度、还要多久):</p>
         <ul>
           <li>扫文件清单与语言分布;按白名单读关键文件(README / AGENTS.md / CLAUDE.md / package.json / pyproject.toml / justfile / Makefile / Cargo.toml / go.mod 等,单文件摘录上限 6000 字符);</li>
@@ -661,6 +687,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         <h3>9.4 一件事、义务与四色账本 <span class="badge badge-live">现在可用</span></h3>
         <p>控制台主轴是「<strong>一件事</strong>」(Focus):一件持续关注的事,生命周期 captured / active / dormant / closed / abandoned / archived;可以关联 0..N 个项目,也可以不属于任何项目(生活筹备、调研都行);下面挂<strong>义务</strong>(谁欠什么:owner = 你 / AI / 外部,状态 open / in_progress / waiting / deferred / blocked → resolved / superseded)与<strong>期待</strong>(做成什么样的验收标准,改了要 AI 复述影响再确认)。</p>
         <p><strong>四色账本</strong>(今天页)不是独立的表,而是从账本现算出来的「球在谁」视图:</p>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>色</th><th>含义</th><th>来源</th></tr>
@@ -672,6 +699,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td>灰 · 等外部回音</td><td>球在别人</td><td>owner=外部的未结义务</td></tr>
           </tbody>
         </table>
+        </div>
         <ul>
           <li>「帮我记一下 / 记一条 / 别忘了」⇒ 当轮立即提议落账(决定 = decision,待办按归属,要查证 = check),经<strong>确认卡</strong>(你点头或倒计时)写入;同一句里多条可一卡确认、全有或全无。若当前对话工具面没有落账工具,会降级先记进记忆库并告诉你「立起来后可以再挂到账上」。</li>
           <li><strong>销账</strong>:义务由 AI 提议 resolve(done / abandoned / 不再适用)经你确认;AI 自己的义务标 done 必须带可验证证据(产物 / 任务 / 事件三查);叙事性修订不销账。绿 / 灰条目可「知道了」让它从收件箱消失,橙 / 蓝不能 ack、只能靠源数据变化消失;条目升级(绿 → 橙)时无视历史 ack 必然重现。</li>
@@ -681,6 +709,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
 
         <h2 id="s10">10. 验收与交付</h2>
         <h3>10.1 状态词纪律(硬约束)</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>状态</th><th>含义</th><th>它怎么说</th></tr>
@@ -691,12 +720,14 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td><code>task.done</code></td><td>你验收 + 合并 / 归档后</td><td>「这件事交付了」</td></tr>
           </tbody>
         </table>
+        </div>
         <p>执行任务不预估剩余时长,只说已发生(「跑了 18 分钟」);成本 unknown 说「还没有确切数字」,不说 0。</p>
         <p>任务状态机(coding 类,节选主干;另有 confirmed / paused_step_boundary / merge_failed / cancel_settled / superseded 等状态):</p>
-        <pre><code>queued → running → ready_for_review → review_approved_waiting_merge → merging → task_done
+        <pre class="fig"><code>queued → running → ready_for_review → review_approved_waiting_merge → merging → task_done
               ↑            │ 要改:同任务新一轮(复用 worktree)
               └────────────┘
-  任一阶段:blocked(等你:S2 超时 / 提问 / 熔断 / verify 缺失)· failed(可重试)· cancel_requested(作废,worktree 保留)</code></pre>
+  任一阶段:blocked(等你:S2 超时 / 提问 / 熔断 / verify 缺失)· failed(可重试)
+          · cancel_requested(作废,worktree 保留)</code></pre>
         <h3>10.2 证据视图</h3>
         <p>任务验收面按<strong>验收标准组织</strong>:左边标准、右边证据(diff、测试结果、它自己做的决策清单、未验证项)。纪律:agent 自报的证据用空心标记以示降权、可推翻;没绑上证据的项诚实标 unknown,不显示伪精确;决策清单与口播<strong>同源</strong>(落库的 <code>decisions</code>),口播与上屏一致。</p>
         <h3>10.3 口播摘要三层</h3>
@@ -723,6 +754,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
 
         <h2 id="s12">12. 语音</h2>
         <h3>12.1 三档语音能力</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>档</th><th>条件</th><th>说明</th></tr>
@@ -734,6 +766,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td><strong>手机原生语音</strong></td><td>iOS / Android 壳</td><td>走系统语音识别与合成;设备端或联网处理取决于应用 / 系统设置与厂商实现,联网时按系统厂商条款处理;不需要 Python 管线</td></tr>
           </tbody>
         </table>
+        </div>
         <h3>12.2 采集与轮次</h3>
         <ul>
           <li>桌面三种触发:<strong>点击 - 再点击</strong>(toggle)/ <strong>键盘长按</strong>(按住空格)/ <strong>免手 VAD</strong>(能量 RMS + hangover 状态机 + 语义「说完了没」词表 + 显式「<strong>说完了</strong>」按钮兜底;中英混说默认延长静音阈值 900ms);嘈杂环境走按住说话。</li>
@@ -755,6 +788,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
           <li><strong>诚实边界</strong>:当前 LAN 面是「局域网明文 HTTP + 长期能力令牌」的 dogfood 临时边界,<strong>没有设备配对 / 逐设备身份 / 端到端加密</strong>;删令牌重启即全员掉线。不要暴露到不受信网络。</li>
         </ul>
         <h3>13.2 App 状态</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>端</th><th>状态</th><th>说明</th></tr>
@@ -765,9 +799,10 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td>HarmonyOS</td><td>未提审</td><td>HarmonyOS NEXT ArkTS 壳;AppGallery 记录与发布证书已就绪,Profile 未建</td></tr>
           </tbody>
         </table>
+        </div>
         <p>三端共同的不可提审原因:无生产配对 / 信任层、明文 LAN、审核夹具未执行。上架前要做的:设备配对(一次性票据 + Noise XX 互认证 + 桌面人工确认 + 信任设备免确认重连)、推送隐私合同(payload 只带 opaque id)、来电式汇报(PushKit 唤醒 + CallKit 来电 UI)。这些都是规划中。</p>
         <h3>13.3 设计原则</h3>
-        <p>沟通天然是移动的,执行天然是固定的:手机只做沟通面(说话、看进展、点头确认)。局域网手机面不裁决 S2/S3;语音确认按 canonical 封顶 S2;tailnet 配对屏幕面在支持后同样封顶 S2;合并、删除等 S3 始终只在本机认证屏幕。重活留在你的 Mac;手机断连不影响后端执行。远程通道默认只读;电话 DTMF(规划中)只做 ack / snooze / 拒绝,不做任何审批。</p>
+        <p>沟通天然是移动的,执行天然是固定的:手机只做沟通面(说话、看进展、点头确认)。局域网手机面不裁决 S2/S3;语音确认按 canonical 封顶 S2;tailnet 配对屏幕面在支持后同样封顶 S2;合并、删除等 S3 始终只在本机认证屏幕。重活留在你的电脑;手机断连不影响后端执行。远程通道默认只读;电话 DTMF(规划中)只做 ack / snooze / 拒绝,不做任何审批。</p>
 
         <h2 id="s14">14. 隐私与数据</h2>
         <ul>
@@ -804,12 +839,13 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         </ul>
 
         <h2 id="s16">16. 路线图与完成度总表</h2>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>能力</th><th>状态</th><th>备注</th></tr>
           </thead>
           <tbody>
-            <tr><td>macOS 桌面服务(daemon + 控制台)</td><td><span class="badge badge-live">现在可用</span></td><td>源码分发;npm / Homebrew 包与桌面 App 壳规划中</td></tr>
+            <tr><td>桌面服务(daemon + 控制台)· macOS / Windows / Linux</td><td><span class="badge badge-live">现在可用</span></td><td>源码分发;npm / Homebrew 包与桌面 App 壳规划中。常驻安装(launchd)与系统通知目前只有 macOS 实现</td></tr>
             <tr><td>四推理槽 API 供给(OpenAI 兼容 / OpenRouter)</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
             <tr><td>四推理槽 CLI 订阅供给(Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot)</td><td><span class="badge badge-live">现在可用</span></td><td>对话档走 CLI 为慢速文本模式</td></tr>
             <tr><td>首跑资源画像向导(三种方案卡 + 高级逐槽)</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
@@ -839,11 +875,12 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td>主动巡检 / 多人会议旁听</td><td><span class="badge badge-soon">规划中</span></td><td></td></tr>
           </tbody>
         </table>
+        </div>
 
         <h2 id="s17">17. 常见问题与故障排查</h2>
         <p><strong>这是语音输入法吗?</strong> 不是。语音只是入口;后面是理解上下文、立账、判断就绪、驱动执行、组织验收的闭环。</p>
         <p><strong>是把我的项目上传到「说到」自营云端代跑吗?</strong> 不是。没有承载产品数据的「说到」自营云后台;重活和核心持久数据在你的电脑上;你主动配置的第三方 AI、系统或浏览器语音识别、推送服务等例外由你的设备直连并适用对应服务商条款。</p>
-        <p><strong>需要什么前提?</strong> macOS + Node 22 + 一个已登录的 AI CLI(或一个 API key)。语音和执行都是可选增量(§4)。</p>
+        <p><strong>需要什么前提?</strong> macOS / Windows / Linux + Node 22 + 一个已登录的 AI CLI(或一个 API key);常驻安装与系统通知目前只有 macOS 实现。语音和执行都是可选增量(§4)。</p>
         <p><strong>不配任何 key 能用吗?</strong> 能:本机有任一已登录 CLI 即可零 key 开聊(对话每轮 15–25 秒的慢速文本模式);语音走浏览器系统语音或打字。</p>
         <p><strong>它怎么知道「办完了」?</strong> 执行和检查都跑完、产物落盘,它说「等你验收」——不说「做完了」;你点头、过强认证合并,才是「交付了」。</p>
         <p><strong>它会不会偷偷花钱?</strong> 订阅调用不产生费用、撞限流只会如实报错不会转计费;API 调用有每任务成本封顶 + 活跃时长 + 回合三熔断;S3(花钱 / 部署 / 删数据 / 对外发消息)必须你在屏幕上强认证。</p>
@@ -853,7 +890,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         <p><strong>向导说某个 CLI「可识别,暂不能当模型供给」。</strong> 该 CLI(如 kimi / opencode)无法在执行前可证零工具,出于安全不接线;换一家或用 API。</p>
         <p><strong>评估档一直 unarmed。</strong> 看原因:同族未确认(勾 <code>evaluator_same_family_ack</code> 或换家族)/ CLI 评估器缺隔离确认(勾 <code>evaluator_isolation_ack</code>)/ 自检失败 / 实际模型家族上报 unknown。unarmed 不影响对话,只是就绪深评不武装。</p>
         <p><strong>打开控制台白页 / 没反应。</strong> 先 <code>curl -s http://127.0.0.1:47100/health</code>;不是 <code>ok:true</code> 就看 <code>~/.saydo/daemon.log</code>(tsx 冷启动 10–15 秒);确认 URL 带了 <code>?token=</code>、用的是 <code>localhost</code>。</p>
-        <p><strong>支持 Windows / Linux 吗?</strong> 暂不支持,当前面向 macOS(常驻、通知、打开浏览器等链路为 macOS 实现);没有明确时间表,不承诺。</p>
+        <p><strong>支持 Windows / Linux 吗?</strong> 支持。Windows 已完成原生 P0 适配并经真机全量验证,Linux 经 CI(node + python)全量验证,均可运行;常驻安装、系统通知等链路当前仍为 macOS 实现,后续按 ADR-003/ADR-004 逐批补齐。</p>
         <p><strong>端口冲突。</strong> <code>saydo status</code> 退出码 2 = 47100 被别的服务或另一个数据目录的 daemon 占着;不会自动换端口或杀进程,用 <code>--port</code> 换或停掉对方。</p>
         <p><strong>手机扫码连不上 / 全部掉线。</strong> 确认 daemon 带 <code>SAYDO_MOBILE_LAN=1</code>、手机与电脑同一私网;删过 <code>.cap-token</code> 会轮换令牌,重新扫码。</p>
         <p><strong>拍板后没有起执行器。</strong> <code>[models.dev]</code> 的 <code>agent</code> 须为 <code>cursor</code>(或留空,缺省即 cursor)且 <code>model</code> 非空;<code>[tier1]</code> 两键(锁定二进制<strong>绝对路径</strong>,不接受 <code>~</code> + 版本)齐备;<code>jq</code> 与 <code>curl</code> 在 PATH(gate 脚本硬依赖,缺 <code>jq</code> 时连拒绝回执都产不出,一律视为拒绝);<code>cursor-agent</code> 已登录。否则队列里的任务停在 queued 并给处方化日志,对话不受影响。</p>
@@ -872,6 +909,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         </ul>
 
         <h2 id="s19">19. 术语与状态词对照(中英)</h2>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>中文</th><th>English</th><th>说明</th></tr>
@@ -900,8 +938,10 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td>能力令牌</td><td>capability token</td><td></td></tr>
           </tbody>
         </table>
+        </div>
 
         <h2 id="appendix">附录 · 速查表</h2>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>项</th><th>值</th></tr>
@@ -922,6 +962,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td>分支 / 目录</td><td><code>saydo/&lt;taskId&gt;</code> @ <code>&lt;repo&gt;/.saydo/worktrees/&lt;taskId&gt;</code></td></tr>
           </tbody>
         </table>
+        </div>
 
         <a class="back-top" href="#main">回到顶部 ↑</a>
       </article>
@@ -966,7 +1007,8 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         </div>
       </div>
       <div class="footer-meta">
-        <span>© <span data-year>2026</span> 说到（SayDo）· 开发者 汪义骁</span>
+        <span>© <span data-year>2026</span> 说到（SayDo） · 开发者 汪义骁</span>
+        <a class="icp-beian" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">京ICP备2025153079号-4A</a>
         <span>本地优先 · 开源 · 隐私至上</span>
       </div>
     </div>

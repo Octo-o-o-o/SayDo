@@ -9,19 +9,51 @@ import { existsSync, unlinkSync } from "node:fs";
 import { z } from "zod";
 import { listenGateHttp } from "@saydo/platform";
 
-const gateRequestSchema = z.object({
-  cwd: z.string(),
-  command: z.string().optional(),
-  kind: z.enum(["command", "file_write", "file_read"]).optional()
+const legacyGateRequestSchema = z.object({
+  command: z.string(),
+  cwd: z.string()
 });
-export type GateWireRequest = z.infer<typeof gateRequestSchema>;
+const commandKindGateRequestSchema = z.object({
+  kind: z.literal("command"),
+  command: z.string(),
+  cwd: z.string()
+});
+const fileWriteGateRequestSchema = z.object({
+  kind: z.literal("file_write"),
+  tool: z.string(),
+  path: z.string(),
+  cwd: z.string()
+});
+const fileReadGateRequestSchema = z.object({
+  kind: z.literal("file_read"),
+  path: z.string(),
+  cwd: z.string()
+});
 
-export function parseGateWireRequest(json: unknown): GateWireRequest {
-  return gateRequestSchema.parse(json);
+export type GateWireRequest =
+  | z.infer<typeof legacyGateRequestSchema>
+  | z.infer<typeof commandKindGateRequestSchema>
+  | z.infer<typeof fileWriteGateRequestSchema>
+  | z.infer<typeof fileReadGateRequestSchema>;
+
+/** 无 kind 不注入键(cursor 既有 wire `{command,cwd}` 零改动);未知 kind 拒. */
+export function parseGateWireRequest(raw: unknown): GateWireRequest {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    throw new Error("gate request must be an object");
+  }
+  const rec = raw as Record<string, unknown>;
+  if ("kind" in rec) {
+    const k = rec["kind"];
+    if (k === "command") return commandKindGateRequestSchema.parse(raw);
+    if (k === "file_write") return fileWriteGateRequestSchema.parse(raw);
+    if (k === "file_read") return fileReadGateRequestSchema.parse(raw);
+    throw new Error(`unknown gate request kind: ${String(k)}`);
+  }
+  return legacyGateRequestSchema.parse(raw);
 }
 
 export interface GateWireResponse {
-  permission: "allow" | "deny";
+  permission: "allow" | "deny" | "no_decision";
   agent_message?: string;
 }
 
@@ -56,7 +88,7 @@ export function startGateServer(sockPath: string, handler: GateHandler): Server 
       if (res.writableEnded) return;
       void (async () => {
         try {
-          const parsed = gateRequestSchema.parse(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+          const parsed = parseGateWireRequest(JSON.parse(Buffer.concat(chunks).toString("utf8")));
           const out = await handler(parsed);
           res.writeHead(200, { "content-type": "application/json" });
           res.end(JSON.stringify(out));

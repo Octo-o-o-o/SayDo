@@ -2,12 +2,24 @@
 // 真 bash + 真 curl --unix-socket + 真 jq(spike 8 通过版语义):
 // deny 缺省 / allow 放行 / daemon 不可达=deny / 畸形响应=deny / 未知路由=deny(fail-closed 全谱)。
 
-import { execFile } from "node:child_process";
-import { mkdtempSync, writeFileSync, chmodSync } from "node:fs";
+import { execFile, execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, writeFileSync, chmodSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Server } from "node:http";
+import { newId } from "@saydo/contracts";
+import { openDb, type Db } from "../src/storage/db.js";
+import { createSqliteAuditSink } from "../src/storage/dao/misc.js";
+import { insertProject } from "../src/storage/dao/projects.js";
+import { canonicalizeWorkspace } from "../src/projects/workspace.js";
+import { insertTask } from "../src/storage/dao/tasks.js";
+import { CallbackEngine } from "../src/callback/engine.js";
+import { insertApproval } from "../src/storage/dao/approvals.js";
+import { Tier1Executor, type AgentProcessHandle, type AgentSpawner } from "../src/tier1/executor.js";
+import { RuntimeApprovalFlow } from "../src/tier1/approvalFlow.js";
+import type { AuditSink } from "../src/obs/audit.js";
+import type { Logger } from "../src/obs/logger.js";
 import {
   buildClaudeGateScript,
   buildGateScript,
@@ -15,7 +27,7 @@ import {
   ensureGateScript,
   gatePaths
 } from "../src/tier1/gateScript.js";
-import { startGateServer, type GateWireRequest } from "../src/tier1/gateServer.js";
+import { parseGateWireRequest, startGateServer, type GateWireRequest } from "../src/tier1/gateServer.js";
 
 function runGate(scriptPath: string, hookInput: object): Promise<{ stdout: string; code: number }> {
   return new Promise((resolve) => {
@@ -333,11 +345,15 @@ describe.skipIf(process.platform === "win32")("gate-claude.sh 物理链路(W5.4-
     expect(unk.code).toBe(2);
   });
 
-  it("Write 圈外即使桩 allow 仍 deny", async () => {
+  // 评审 A-1/B-4 + owner 2026-08-22 裁决「现在就真对齐」:
+  // 脚本不再判「绝对路径是否在 cwd 下」——那条需要 worktree 根,而脚本全局单份、只拿得到 hook 的 cwd,
+  // daemon 的 findRunByCwd 又明确允许 cwd 落在 worktree 子目录,拿 cwd 当圈根会误拒圈内文件。
+  // 圈内外改由 daemon 的 fileToolToEffect(..., run.worktree) 单点裁决;脚本只保留与圈根无关的越界向量。
+  it("Write 圈外绝对路径:脚本转发,由 daemon 裁决(不再脚本层预拒)", async () => {
     const home = mkdtempSync(join(tmpdir(), "saydo-cg-"));
     const script = writeClaude(home);
     const p = gatePaths(home);
-    server = rawServer(p.sockPath, { permission: "allow" });
+    server = rawServer(p.sockPath, { permission: "deny", agent_message: "outside worktree" });
     const r = await runClaude(script, {
       tool_name: "Write",
       tool_input: { file_path: "/etc/x" },
@@ -347,11 +363,40 @@ describe.skipIf(process.platform === "win32")("gate-claude.sh 物理链路(W5.4-
     expect(r.code).toBe(0);
   });
 
-  it("Read 圈外即使桩 allow 仍 deny", async () => {
+  it("Write 路径穿越(.. 分量)仍在脚本层预拒,桩 allow 也不放行", async () => {
     const home = mkdtempSync(join(tmpdir(), "saydo-cg-"));
     const script = writeClaude(home);
     const p = gatePaths(home);
     server = rawServer(p.sockPath, { permission: "allow" });
+    for (const fp of ["/tmp/wt/../etc/x", "~/x", "$HOME/x"]) {
+      const r = await runClaude(script, {
+        tool_name: "Write",
+        tool_input: { file_path: fp },
+        cwd: "/tmp/wt"
+      });
+      expect(hookDecision(r.stdout)).toBe("deny");
+      expect(r.code).toBe(0);
+    }
+  });
+
+  it("合法文件名含连续点(foo..bar)不再被误拒(评审 92 新 C)", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-cg-"));
+    const script = writeClaude(home);
+    const p = gatePaths(home);
+    server = rawServer(p.sockPath, { permission: "allow" });
+    const r = await runClaude(script, {
+      tool_name: "Write",
+      tool_input: { file_path: "/tmp/wt/foo..bar" },
+      cwd: "/tmp/wt"
+    });
+    expect(hookDecision(r.stdout)).toBe("allow");
+  });
+
+  it("Read 圈外绝对路径:脚本转发,由 daemon 裁决", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-cg-"));
+    const script = writeClaude(home);
+    const p = gatePaths(home);
+    server = rawServer(p.sockPath, { permission: "deny", agent_message: "outside worktree" });
     const r = await runClaude(script, {
       tool_name: "Read",
       tool_input: { file_path: "/etc/hosts" },
@@ -399,5 +444,254 @@ describe.skipIf(process.platform === "win32")("gate-claude.sh 物理链路(W5.4-
     });
     expect(hookDecision(r.stdout)).toBe("allow");
     expect(seen.some((b) => b.includes("a'$(whoami).ts"))).toBe(true);
+  });
+});
+
+describe("GateWireRequest 判别联合(W5.4-b C2a;无 kind 不注入键)", () => {
+  it("legacy {command,cwd} 解析结果不含 kind", () => {
+    expect(parseGateWireRequest({ command: "ls", cwd: "/tmp/wt" })).toEqual({ command: "ls", cwd: "/tmp/wt" });
+  });
+
+  it("kind:command / file_write / file_read 原样保留 kind", () => {
+    expect(parseGateWireRequest({ kind: "command", command: "ls", cwd: "/wt" })).toEqual({
+      kind: "command",
+      command: "ls",
+      cwd: "/wt"
+    });
+    expect(parseGateWireRequest({ kind: "file_write", tool: "Write", path: "/wt/a.ts", cwd: "/wt" })).toEqual({
+      kind: "file_write",
+      tool: "Write",
+      path: "/wt/a.ts",
+      cwd: "/wt"
+    });
+    expect(parseGateWireRequest({ kind: "file_read", path: "/wt/a.ts", cwd: "/wt" })).toEqual({
+      kind: "file_read",
+      path: "/wt/a.ts",
+      cwd: "/wt"
+    });
+  });
+
+  it("未知 kind 拒(socket 层 deny,handler 不调用)", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-gk-"));
+    const p = gatePaths(home);
+    mkdirSync(p.dir, { recursive: true });
+    const seen: GateWireRequest[] = [];
+    server = startGateServer(p.sockPath, (req) => {
+      seen.push(req);
+      return Promise.resolve({ permission: "allow" as const });
+    });
+    const body = await new Promise<string>((resolve) => {
+      execFile(
+        "curl",
+        [
+          "-s",
+          "--unix-socket",
+          p.sockPath,
+          "-X",
+          "POST",
+          "-H",
+          "content-type: application/json",
+          "--data-binary",
+          JSON.stringify({ kind: "shell", command: "ls", cwd: "/wt" }),
+          "http://saydo/gate"
+        ],
+        { timeout: 5000 },
+        (_e, stdout) => resolve(stdout)
+      );
+    });
+    expect((JSON.parse(body) as { permission: string }).permission).toBe("deny");
+    expect(seen).toHaveLength(0);
+  });
+});
+
+const GATE_OWNER_ROOT = mkdtempSync(join(process.cwd(), ".saydo-tier1-gate-wire-"));
+const GATE_PKG = `sha256:${"b".repeat(64)}`;
+const gateLog = { info() {}, warn() {}, error() {}, child() { return gateLog; } } as unknown as Logger;
+
+afterAll(() => {
+  rmSync(GATE_OWNER_ROOT, { recursive: true, force: true });
+});
+
+describe("handleGateRequest 经 unix socket:圈内 allow / 敏感 S2 / 圈外 deny / file_read 两态", () => {
+  let db: Db;
+  let audit: AuditSink;
+  let approvals: RuntimeApprovalFlow;
+  let executor: Tier1Executor;
+  let saydoHome: string;
+  let wt: string;
+
+  class HangSpawner implements AgentSpawner {
+    spawned = 0;
+    version(): string {
+      return "1.0.0-pinned";
+    }
+    spawn(i: { binary: string; model: string; prompt: string; cwd: string; env: Record<string, string> }): AgentProcessHandle {
+      this.spawned++;
+      wt = i.cwd;
+      const cbs: ((l: string) => void)[] = [];
+      const exitP = new Promise<{ exitCode: number }>(() => undefined);
+      setTimeout(() => {
+        for (const cb of cbs) cb(JSON.stringify({ type: "system", subtype: "init", model: "fable-5-max" }));
+      }, 5);
+      return {
+        pid: 4243,
+        onLine: (cb) => cbs.push(cb),
+        kill: () => undefined,
+        wait: () => exitP
+      };
+    }
+  }
+
+  beforeEach(async () => {
+    saydoHome = mkdtempSync(join(tmpdir(), "saydo-gwh-"));
+    db = openDb(join(saydoHome, "saydo.db"));
+    audit = createSqliteAuditSink(db);
+    approvals = new RuntimeApprovalFlow({
+      db,
+      audit,
+      confirm: null,
+      say: null,
+      activeVoiceSession: () => null,
+      receiptTimeoutSec: () => 2
+    });
+    const repo = mkdtempSync(join(GATE_OWNER_ROOT, "repo-"));
+    execFileSync("git", ["init", "-q", "--initial-branch=main"], { cwd: repo });
+    execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: repo });
+    execFileSync("git", ["config", "user.name", "t"], { cwd: repo });
+    mkdirSync(join(repo, ".saydo"));
+    writeFileSync(join(repo, ".saydo", "project.toml"), '[[verify.entries]]\nname = "test"\nsource = "package_script"\nref = "test"\n');
+    writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "g", version: "1.0.0", scripts: { test: "true" } }));
+    writeFileSync(join(repo, "README.md"), "g\n");
+    execFileSync("git", ["add", "-A"], { cwd: repo });
+    execFileSync("git", ["commit", "-qm", "init"], { cwd: repo });
+    const PRJ = "prj_01GATEWRX0000000000000000A";
+    insertProject(db, {
+      id: PRJ,
+      title: "门接线",
+      type: "coding",
+      status: "active",
+      workspace: { kind: "local_folder", path: repo, managed: false },
+      executionModeDefault: "step_confirm",
+      createdAt: "2026-07-25T12:00:00.000Z",
+      updatedAt: "2026-07-25T12:00:00.000Z"
+    });
+    const identity = canonicalizeWorkspace(repo);
+    db.prepare(
+      `UPDATE projects SET workspace_json=?, canonical_workspace_path=?, workspace_dev=?, workspace_ino=? WHERE id=?`
+    ).run(
+      JSON.stringify({ kind: "local_folder", path: identity.path, managed: false }),
+      identity.path,
+      identity.dev,
+      identity.ino,
+      PRJ
+    );
+    const t0 = new Date().toISOString();
+    const TSK = "tsk_01GATEWRX0000000000000000A";
+    insertTask(
+      db,
+      {
+        id: TSK,
+        projectId: PRJ,
+        packageRef: { packageId: newId("pkg"), revision: 1, digest: GATE_PKG },
+        title: "门接线",
+        specMarkdown: "# x",
+        route: "tier1",
+        adapter: "cursor",
+        status: "confirmed",
+        budget: { walltimeActiveMin: 45, maxTurns: 80, maxCost: 20 },
+        updatedAt: t0
+      },
+      t0
+    );
+    db.prepare("UPDATE tasks SET status='queued', updated_at=? WHERE id=?").run(t0, TSK);
+    insertApproval(db, {
+      id: newId("apr"),
+      kind: "dispatch_package",
+      refDigest: GATE_PKG,
+      turnRef: newId("ses"),
+      riskLevel: "S2",
+      principal: "owner",
+      decidedVia: "voice",
+      authStrength: "voice_weak",
+      decision: "accept",
+      nonce: `n-${newId("apr")}`,
+      issuedAt: t0,
+      expiresAt: "2099-01-01T00:00:00.000Z",
+      outcome: "consumed",
+      consumedAt: t0
+    });
+    const gp = ensureGateScript(saydoHome);
+    const hang = new HangSpawner();
+    executor = new Tier1Executor({
+      db,
+      audit,
+      log: gateLog,
+      callbacks: new CallbackEngine({ db, audit }),
+      approvals,
+      spawner: hang,
+      cfg: {
+        saydoHome,
+        lockedBinary: "/fake/versions/1.0.0-pinned/cursor-agent",
+        pinnedVersion: "1.0.0-pinned",
+        model: "fable-5-max",
+        adapter: "cursor",
+        gateScriptPath: gp.scriptPath,
+        gateScriptExpected: buildGateScript(gp.sockPath, gp.logPath),
+        gateClaudeScriptPath: gp.claudeScriptPath,
+        gateClaudeScriptExpected: buildClaudeGateScript(gp.sockPath, gp.logPath),
+        verifyTimeoutMs: 30_000
+      }
+    });
+    executor.tick();
+    await vi.waitFor(() => expect(hang.spawned).toBe(1));
+    server = startGateServer(gp.sockPath, (req) => executor.handleGateRequest(req));
+  });
+
+  function postGate(body: object): Promise<{ permission: string; agent_message?: string }> {
+    const p = gatePaths(saydoHome);
+    return new Promise((resolve) => {
+      execFile(
+        "curl",
+        [
+          "-s",
+          "--unix-socket",
+          p.sockPath,
+          "-X",
+          "POST",
+          "-H",
+          "content-type: application/json",
+          "--data-binary",
+          JSON.stringify(body),
+          "http://saydo/gate"
+        ],
+        { timeout: 8000 },
+        (_e, stdout) => resolve(JSON.parse(stdout.trim() || "{}") as { permission: string; agent_message?: string })
+      );
+    });
+  }
+
+  it("圈内 file_write 非敏感 allow", async () => {
+    const r = await postGate({ kind: "file_write", tool: "Write", path: join(wt, "README.md"), cwd: wt });
+    expect(r.permission).toBe("allow");
+  });
+
+  it("圈内敏感基名 S2(等审批);圈外 write deny 无 pending", async () => {
+    const pending = postGate({ kind: "file_write", tool: "Write", path: join(wt, ".env"), cwd: wt });
+    await vi.waitFor(() => expect(approvals.pendingCount()).toBe(1));
+    const outside = await postGate({ kind: "file_write", tool: "Write", path: "/etc/passwd", cwd: wt });
+    expect(outside.permission).toBe("deny");
+    expect(approvals.pendingCount()).toBe(1);
+    const receipt = db.prepare("SELECT id FROM approvals WHERE kind='runtime_effect' AND outcome='pending'").get() as {
+      id: string;
+    };
+    expect(approvals.decide(receipt.id, "reject", { via: "screen" }).ok).toBe(true);
+    expect((await pending).permission).toBe("deny");
+  });
+
+  it("file_read 圈内 no_decision / 圈外 deny", async () => {
+    const inside = await postGate({ kind: "file_read", path: join(wt, "README.md"), cwd: wt });
+    expect(inside.permission).toBe("no_decision");
+    const outside = await postGate({ kind: "file_read", path: "/etc/hosts", cwd: wt });
+    expect(outside.permission).toBe("deny");
   });
 });

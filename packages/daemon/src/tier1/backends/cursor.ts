@@ -1,5 +1,8 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { parseCursorLine } from "../../providers/byoa/parsers.js";
 import { explainCliProcessFailure } from "../../providers/byoa/processFailure.js";
+import { buildCursorHooksJson } from "../adapter.js";
 import type { GatePaths } from "../gateScript.js";
 import type { Tier1Backend, Tier1BuildArgvInput, Tier1Event } from "./types.js";
 
@@ -45,8 +48,12 @@ export function cursorBackend(): Tier1Backend {
   return {
     adapter: "cursor",
     buildArgv: cursorBuildArgv,
-    provisionHooks(_cwd: string, _gate: GatePaths) {
-      return { extraArgs: [], filesWritten: [] };
+    provisionHooks(cwd: string, gate: GatePaths, hookTimeoutSec?: number) {
+      const cursorDir = join(cwd, ".cursor");
+      mkdirSync(cursorDir, { recursive: true });
+      const hooksJsonPath = join(cursorDir, "hooks.json");
+      writeFileSync(hooksJsonPath, buildCursorHooksJson(gate.scriptPath, hookTimeoutSec ?? 120));
+      return { extraArgs: [], filesWritten: [hooksJsonPath] };
     },
     parseLine: (line) => [cursorParseLine(line)],
     isTerminalResult: cursorIsTerminalResult,

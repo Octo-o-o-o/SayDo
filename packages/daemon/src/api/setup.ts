@@ -65,6 +65,12 @@ import {
   type ResolverLog
 } from "../providers/slotResolvers.js";
 import type { ChatRequest, ChatResult, LlmProvider } from "../providers/types.js";
+import {
+  defaultTier1Probes,
+  runTier1SelfTest,
+  type Tier1SelfTestProbes,
+  type Tier1SelfTestReport
+} from "../tier1/selfTest.js";
 import { DRAFT_JSON_SCHEMA, draftPackageSchema } from "../brain/liveTools.js";
 import {
   DIALOG_CLI_ONESHOT_JSON_SCHEMA,
@@ -157,6 +163,8 @@ export interface SetupTestResult {
   configSource: "pending" | "active" | "none";
   envSource: "pending" | "active" | "none";
   slots: Partial<Record<SlotName | "voice", SlotTestResult>>;
+  /** scope=tier1 的执行器后端自检报告(W5.4-b C1;additive,其余 scope 不带) */
+  tier1?: Tier1SelfTestReport;
 }
 
 export type WriteConfigResult =
@@ -794,15 +802,17 @@ const SECRET_NAME_LIST = SECRET_NAME_WHITELIST.join("|");
 
 // ---------- POST test ----------
 
-export type SetupTestScope = "plan" | "voice";
+export type SetupTestScope = "plan" | "voice" | "tier1";
 
 export interface SetupTestInput {
   saydoHome: string;
   voice: { pipelinePeer: boolean; asr: "ok" | "degraded" | "down"; tts: "ok" | "degraded" | "down" };
   processEnv?: Record<string, string | undefined>;
   audit?: AuditSink;
-  /** plan=方案自检(默认,不含 voice);voice=设置页单独测语音。 */
+  /** plan=方案自检(默认,不含 voice);voice=设置页单独测语音;tier1=执行器后端自检(W5.4-b C1)。 */
   scope?: SetupTestScope;
+  /** scope=tier1 的检查 probe(缺省真调本机;测试注入 fake,不真调 claude)。 */
+  tier1Probes?: Tier1SelfTestProbes;
   /** 注入:保留真实 resolver,仅替换 provider.chat 网络边界。 */
   slotChatFn?: (slot: "dialog" | "thinking" | "cheap" | "evaluator", req: ChatRequest, callIndex: number) => Promise<ChatResult>;
   cliTestFn?: (bin: string, signal?: AbortSignal) => Promise<SlotTestResult>;
@@ -827,7 +837,10 @@ export function setupSelfTestPrompt(body: string, reinforced = false): string {
 
 export function parseSetupTestRequest(body: unknown): { scope: SetupTestScope } {
   if (typeof body !== "object" || body === null || Array.isArray(body)) return { scope: "plan" };
-  return { scope: (body as Record<string, unknown>)["scope"] === "voice" ? "voice" : "plan" };
+  const scope = (body as Record<string, unknown>)["scope"];
+  if (scope === "voice") return { scope: "voice" };
+  if (scope === "tier1") return { scope: "tier1" };
+  return { scope: "plan" };
 }
 
 /** 最小真调用 max_tokens≤8(独立 fetch,不经 openaiCompat 的 3000 下限) */
@@ -1047,6 +1060,17 @@ export async function runSetupTest(input: SetupTestInput): Promise<SetupTestResu
   const envSource = envMerged.source;
   if (input.scope === "voice") {
     return { configSource, envSource, slots: { voice: evaluateVoiceSlot(env, input.voice) } };
+  }
+  if (input.scope === "tier1") {
+    // W5.4-b C1:执行器后端自检(按生效 adapter 分叉;检查项经 probe 注入,live 走查归 W5.4-c)
+    const tier1 = await runTier1SelfTest({
+      saydoHome,
+      cfg,
+      probes: input.tier1Probes ?? defaultTier1Probes(),
+      ...(input.now ? { now: input.now } : {}),
+      ...(input.signal ? { signal: input.signal } : {})
+    });
+    return { configSource, envSource, slots: {}, tier1 };
   }
   const runtimeTarget = configSource === "pending" || envSource === "pending" ? "pending" : "active";
   const runtimeActivation =

@@ -58,7 +58,11 @@
 
 ## 3. 测试环境口径
 
-- **不得**以 `ubuntu-latest` runner 的绿判定"Linux 可用":它预装 jq/curl/git/procps,会掩盖依赖缺口。
+> **口径边界(2026-08-22,评审 90 A-7 后 owner 裁决)**:本节判定的是**「Linux 可升正式 SKU」**,不是官网措辞。
+> owner 已解除官网侧限制(官网可写「Linux 桌面服务已开放」+ 同句披露常驻/通知仍为 macOS 实现),
+> 但**本节的最小镜像依赖面验证仍是升 SKU 的前置,未解除**。两者不要互相援引。
+
+- **不得**以 `ubuntu-latest` runner 的绿判定"Linux 可用(可升 SKU)":它预装 jq/curl/git/procps,会掩盖依赖缺口。
   依赖面必须在最小镜像(`node:*-slim` / distroless)上验证。
 - 常驻与 linger 只能在**真实 systemd 主机**上验(容器默认无 systemd;WSL2 需显式开 `systemd=true`)。
 - 架构:云主机常见 x86_64,开发机若为 Apple Silicon 需注意原生模块(`better-sqlite3`、`koffi`)的

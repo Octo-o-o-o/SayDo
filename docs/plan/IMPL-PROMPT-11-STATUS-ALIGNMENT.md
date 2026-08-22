@@ -1,5 +1,6 @@
 # SayDo 状态对齐批（官网承诺 + 内部事实账本）· 实施 Prompt（第十一轮交接；2026-08-21，owner 已授权开批）
 
+> 编号勘误(2026-08-21 事后,评审 88):本文件与 `IMPL-PROMPT-11-PUBLIC-READINESS.md` 撞用「第十一轮」;12/13 已被 S1/S2 批占用,本批按时间序实为**第 14 轮交接**。原始派发正文与上行自称不改(post-run ordinal erratum),沿革登记于 `history/DEV-VERSION-LEDGER.md` §3。
 > 背景：四路独立评审及终裁见 `research/codex-findings/86-status-alignment-triage.md`。本批只把已经确认的事实写回官网、官网源稿、`HANDOFF.md` 与 `IMPLEMENTATION-PLAN-2.md`，不处理需要 owner 另行拍板的工程项。
 > 性质：中英文对外文案 + 内部状态档案对齐。无运行时代码、无 canonical 合同语义、无部署。
 > 调度分工：实施 = Grok CLI `grok-4.6`、`--reasoning-effort xhigh`、`--always-approve --sandbox workspace`；评估 = 独立只读会话；实施与评估会话隔离。

@@ -214,6 +214,20 @@ export function setTier1RunNativeSession(db: Db, id: string, nativeSessionId: st
   ).run({ id, sid: nativeSessionId, now });
 }
 
+/** claude 首跑预生成 / reserved 恢复重生成:覆写钥匙并回到未确认。 */
+export function overwriteTier1RunNativeSession(db: Db, id: string, nativeSessionId: string, now: string): void {
+  db.prepare(
+    "UPDATE tier1_runs SET native_session_id = @sid, native_session_confirmed = 0, updated_at = @now WHERE id = @id"
+  ).run({ id, sid: nativeSessionId, now });
+}
+
+/** system/init.session_id 对上后置确认位。 */
+export function confirmTier1RunNativeSession(db: Db, id: string, now: string): void {
+  db.prepare(
+    "UPDATE tier1_runs SET native_session_confirmed = 1, updated_at = @now WHERE id = @id AND native_session_id IS NOT NULL"
+  ).run({ id, now });
+}
+
 /** 返工/retry:INSERT 新行 attempt+1(旧行终态不动、证据不串线,09 §9 attempt 规则) */
 export function nextAttempt(db: Db, taskId: string): number {
   const row = db.prepare("SELECT MAX(attempt) AS a FROM tier1_runs WHERE task_id = ?").get(taskId) as { a: number | null };

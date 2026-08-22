@@ -39,9 +39,16 @@ export interface ProvisionResult {
   hooksJsonPath: string;
 }
 
-/** cursor hooks.json 的 command:POSIX 直接脚本路径;win32 = 引用过的 node.exe + 脚本 */
+/**
+ * hook 的 command 串(cursor `hooks.json` 与 claude `--settings` 共用)。
+ * POSIX = 单引号包裹的脚本路径;win32 = 引用过的 node.exe + 脚本。
+ *
+ * 评审 91 B-3:POSIX 此前裸拼路径。该串由 shell 执行,`SAYDO_HOME` 含空格或单引号时
+ * 会被切成多个词或直接语法损坏——门脚本执行不起来,等于每条命令都拿不到裁决。
+ * 脚本正文里的 SOCK/LOG 已转义,这里是最后一处裸拼。
+ */
 export function cursorHookCommand(gateScriptPath: string, nodeExe = process.execPath): string {
-  if (process.platform !== "win32") return gateScriptPath;
+  if (process.platform !== "win32") return `'${gateScriptPath.replace(/'/g, `'\\''`)}'`;
   const quote = (value: string): string => `"${value.replace(/"/g, '""')}"`;
   return `${quote(nodeExe)} ${quote(gateScriptPath)}`;
 }

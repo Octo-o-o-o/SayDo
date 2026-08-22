@@ -1,7 +1,7 @@
 # 03 · 系统架构(Architecture)
 
 > 本篇给出总体架构、组件职责、执行层集成、数据存储、部署拓扑与技术选型。运行机制(记忆、就绪、审批、回叫、成本)见 [04 · 关键机制](04-key-mechanisms.md);模块级分解与接口契约见 [08 · 分模块设计](08-module-design.md);分期见 [05 · 落地与路线](05-roadmap.md)。
-> **状态分三行**:**执行层边界 = 已批准**([设计 ADR-001](adr/design/ADR-001-execution-layer.md):以 Hopper 为执行后端,复用现状、锁版本、双路径);**桌面 OS 矩阵 = 已决策**([设计 ADR-004](adr/design/ADR-004-windows-platform.md):Windows 是目标正式执行面,工程对齐进行中,机制走 [工程 ADR-003](adr/ADR-003-os-adapters.md) 适配层,不变量不放宽;P0 证据收口且 owner 授权前不宣布产品已支持);**产品载体与部署组合 = proposed**(独立 vs 并入千手,待 owner 拍板,见 05 §2——未来设计 ADR-003 只覆盖载体,不 supersede 设计 ADR-001/004)。
+> **状态分三行**:**执行层边界 = 已批准**([设计 ADR-001](adr/design/ADR-001-execution-layer.md):以 Hopper 为执行后端,复用现状、锁版本、双路径);**桌面 OS 矩阵 = 已批准**([设计 ADR-004](adr/design/ADR-004-windows-platform.md):Windows 是正式执行面,**P0 工程对齐已收口(2026-08-22 真机全量门禁)**,机制走 [工程 ADR-003](adr/ADR-003-os-adapters.md) 适配层,不变量不放宽;对外口径已由 owner 授权翻转为「Windows / Linux 桌面服务已开放」,同句须披露常驻安装与系统通知仍为 macOS 实现;Linux 未升正式 SKU);**产品载体与部署组合 = proposed**(独立 vs 并入千手,待 owner 拍板,见 05 §2——未来设计 ADR-003 只覆盖载体,不 supersede 设计 ADR-001/004)。
 
 ## 1. 总体分层:语音前脑 + 控制面桥 + 执行后端
 

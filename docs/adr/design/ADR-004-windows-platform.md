@@ -17,11 +17,19 @@
 | B. 原生 Windows 对话面 + 关闭 Tier1/常驻 | 只修 daemon 起得来,派发与审批门标 unsupported | **否决作终局**。与"完整对齐"和 T1 执行面定义冲突;可作为实施**内部里程碑**,不得对外称为 Windows 支持 |
 | C. 原生 Windows 一等公民(本 ADR) | 不变量跨 OS;机制走 adapter;能力矩阵诚实分期 | **采纳** |
 
-**Linux**:本批不升正式 SKU。POSIX 路径本就可跑(无 launchd);不为 Linux 单开 CI 或官网承诺。将来若升 SKU,复用本 ADR 的不变量 + systemd user unit,另开设计增量。
+**Linux**:本批不升正式 SKU。POSIX 路径本就可跑(无 launchd)。将来若升 SKU,复用本 ADR 的不变量 + systemd user unit,另开设计增量。
+
+> **owner 解除(2026-08-22)**:原文「不为 Linux 单开 CI 或官网承诺」中的**官网承诺**部分由 owner 明确解除——
+> 官网可写「Windows / Linux 桌面服务已开放」,但必须同句写明「常驻安装、系统通知等链路当前为 macOS 实现」。
+> **未解除的部分**:Linux 仍**不是正式 SKU**;`docs/plan/LINUX-ALIGNMENT.md` §3 的「不得以 `ubuntu-latest` 绿判定
+> Linux 可用、依赖面须在最小镜像验证」仍是**升 SKU 的前置**,不因官网口径放开而关闭。
+> 证据不对称如实记:Windows = 真机全量门禁(10.0.26200,daemon 1643 passed,evidence `windows-alignment.md`);
+> Linux = `ubuntu-latest` node+python 双 job 绿 + `node:22-slim` 的后代回收实测,**尚无最小镜像全量依赖面验证**。
+> 出处:评审 90 A-7 提出冲突,owner 2026-08-22 裁决「两个都保留,改 canonical」。
 
 ## 2. 决策
 
-1. **Windows 10 22H2+ / Windows 11 x64 是目标正式桌面执行面**(与 macOS 并列;工程对齐进行中,P0 证据收口且 owner 授权前不宣布产品已支持)。
+1. **Windows 10 22H2+ / Windows 11 x64 是目标正式桌面执行面**(与 macOS 并列)。~~工程对齐进行中,P0 证据收口且 owner 授权前不宣布产品已支持~~ —— **两个条件已于 2026-08-22 达成**:P0 证据收口(Windows 10.0.26200 真机全量门禁,`e2e/evidence/windows-alignment.md`)+ owner 授权;官网口径已翻转,同句须披露常驻安装与系统通知仍为 macOS 实现。
    ARM64 为 best-effort,不单开合同。最低 Node 22、Python 3.12、**本地固定 NTFS**(启动时机械断言,非 ReFS/SMB/subst/可移动盘)。
 2. **不变量跨 OS,机制可替换**。09/04/Gate 0 的语义(fail-closed 身份、禁静默信 path 字符串、
    门超时 deny、每命令独立审批、S3 仅本机强认证、状态根不可为可漂移链接)不得因换 OS 放宽。
@@ -30,7 +38,7 @@
 3. **能力矩阵(见 §4)是诚实口径**:未列 P0 的能力不得在 Windows 上假装已有。
    macOS 既有**安全**行为零放宽;实例锁去掉 `alive1`/`pgrep` birth 是 hardening,
    无进程起始时刻则拒起(可用性变化,见工程 ADR-003)。
-4. **官网 FAQ 在本批收口且 owner 授权前保持"暂不支持"**。
+4. ~~**官网 FAQ 在本批收口且 owner 授权前保持"暂不支持"**~~ **条件已达成(2026-08-22)**:本批已收口(真机全量门禁 `e2e/evidence/windows-alignment.md` + Linux Actions 双 job 绿),owner 已在本轮授权并翻转中英八页与 FAQ;翻转后口径必须同时写明「常驻安装、系统通知等链路当前为 macOS 实现」,不得只说"已支持"。
    内部 canonical 写"目标正式执行面,工程对齐进行中,狗粮面 = 本机 daemon/console/pipeline/Tier1"。
    禁止用官网旧句阻挡本仓合同回写。
 5. **WSL 不是支持面,也不是测试替身**。P0 验收 = owner 机原生 Windows 上 `just ci`/`pnpm ci:node`;
@@ -98,7 +106,7 @@
 
 | 文件 | 回写要点 |
 |---|---|
-| `docs/02` §7 | T2 执行面改为"家里/公司的桌面(macOS 或 Windows)";补"工程对齐进行中,未对外宣布支持" |
+| `docs/02` §7 | T2 执行面改为"家里/公司的桌面(macOS / Windows / Linux)"。~~补"工程对齐进行中,未对外宣布支持"~~ **2026-08-22 作废**:owner 已解除官网承诺限制,该行改为"三端桌面服务已开放 + 同句披露常驻安装与系统通知仍为 macOS 实现" |
 | `docs/03` 文首 + §7 | 增加桌面 OS 矩阵指针;Keychain → OS 机密存储(Keychain / DPAPI) |
 | `docs/04` §4 实现注记 | 桌面通知 = OS provider,macOS=`osascript`,Windows=toast,失败降 ntfy |
 | `docs/07` 原则 2、D5、D11、D17 | macOS 优先 → 桌面 OS 矩阵;补 Windows 行 |
@@ -112,4 +120,7 @@
 
 - **正**:owner Windows 开发机可按与 macOS 相同的 Gate 0 / 审批 / 身份纪律狗粮;合同不再把 POSIX 当宇宙。
 - **负**:审批门与进程回收要在 Windows 上重测 fail-closed;NTFS junction 与 PID 复用是新攻击面,必须用 §3 表挡住。
-- **非后果**:不宣布产品已支持 Windows;不降低 macOS 门完整性。
+- **非后果**:不降低 macOS 门完整性。
+  > 原文「不宣布产品已支持 Windows」由 owner 于 2026-08-22 解除(评审 90 A-7):Windows 已有真机全量门禁,
+  > 官网可写「已开放 / 现在可用」,但必须同句披露常驻安装与系统通知仍为 macOS 实现。
+  > 与 §约束 4 的达成条件同源,两处口径一致。

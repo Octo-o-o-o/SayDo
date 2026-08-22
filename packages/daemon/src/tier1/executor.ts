@@ -12,9 +12,10 @@
 // - 同仓串行:同 project 一活跃 run;跨仓并行(P0 单执行器进程内)。
 
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline";
-import { join, sep } from "node:path";
+import { basename, join, sep } from "node:path";
 import {
   newId,
   textDigest,
@@ -31,11 +32,23 @@ import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
 import type { Logger } from "../obs/logger.js";
 import type { CallbackEngine } from "../callback/engine.js";
+import { buildCursorHooksJson } from "./adapter.js";
 import { runtimeChildJobName, runtimeChildOwnerIdentity, runtimeProcessGroupState, signalRuntimeChildTree, spawnRuntimeChild, execAgentFileSync } from "../runtimeChildRegistry.js";
-import { insertTier1Run, nextAttempt, setTier1RunNativeSession, transitionTask, transitionTier1Run, type Tier1RunRow } from "../storage/dao/tasks.js";
+import {
+  confirmTier1RunNativeSession,
+  insertTier1Run,
+  nextAttempt,
+  overwriteTier1RunNativeSession,
+  setTier1RunNativeSession,
+  transitionTask,
+  transitionTier1Run,
+  type Tier1RunRow
+} from "../storage/dao/tasks.js";
 import { readTaskMessages, settleCancel } from "./operations.js";
 import { decideCommand, type GateDecision } from "./gate.js";
 import { commandToEffect, matchesFrozenVerify } from "./cmdEffect.js";
+import { fileToolToEffect, resolveFileToolPath } from "./fileToolEffect.js";
+import { computeRisk, type EffectDescriptor, type RiskLevel } from "../policy/engine.js";
 import { freezeVerify, precheckVerify, planDeltaCallback, verifyRunnerArgv, type FrozenVerify } from "./verifyFreeze.js";
 import { readProjectExecConfig, type ProjectExecConfig } from "./projectConfig.js";
 import { loadProjectConfig } from "../config/project.js";
@@ -47,12 +60,17 @@ function bindLedgerRefIfPresent(db: Db, taskId: string, nowIso: string): void {
   bindLedgerRef(db, taskId, tier1LedgerRef(taskId), { nowIso });
 }
 import type { ArtifactStore } from "../artifacts/store.js";
-import { effectiveDevModel, getProjectOverrides } from "../config/projectOverrides.js";
+import { effectiveDevModelForAdapter, getProjectOverrides } from "../config/projectOverrides.js";
 import { assertExactVersion } from "./validateConfig.js";
-import { writeGateScriptAtomic } from "./gateScript.js";
-import { buildCursorHooksJson } from "./adapter.js";
+import { gatePaths, writeDataSurfaceAtomic, writeGateScriptAtomic, type GatePaths } from "./gateScript.js";
 import { cursorBackend, isCursorShellToolCall } from "./backends/cursor.js";
-import type { Tier1Backend } from "./backends/types.js";
+import { CLAUDE_CLOSED_TOOLS, claudeEnvOverrides } from "./backends/claude.js";
+import type { Tier1Backend, Tier1Event } from "./backends/types.js";
+import { classifyClaudeRunOutcome, isRateRejectStatus } from "./claudeOutcome.js";
+import { recordTier1SubscriptionRun } from "../cost/ledger.js";
+import { enqueueRateLimited } from "../providers/byoa/retryQueue.js";
+import { checkRunAdapterConsistency } from "./resolveAdapter.js";
+import { verifyClaudeIdentity } from "./claudeIdentity.js";
 import { familyFromModelName } from "../config/family.js";
 import type { RuntimeApprovalFlow } from "./approvalFlow.js";
 import type { GateWireRequest, GateWireResponse } from "./gateServer.js";
@@ -73,6 +91,20 @@ import {
   asProcessGroupLifecycleError,
   isProcessGroupLifecycleError
 } from "../processGroupLifecycle.js";
+
+const FILE_WRITE_TOOLS = new Set(["Write", "Edit", "NotebookEdit"]);
+
+function fileReceiptCommand(tool: string, path: string, cwd: string): string {
+  const resolved = resolveFileToolPath(path, cwd);
+  const abs = "abs" in resolved ? resolved.abs : path;
+  return `${tool} ${abs}`;
+}
+
+function wireReceiptCommand(req: GateWireRequest): string {
+  if (!("kind" in req) || req.kind === "command") return req.command;
+  if (req.kind === "file_write") return fileReceiptCommand(req.tool, req.path, req.cwd);
+  return fileReceiptCommand("Read", req.path, req.cwd);
+}
 
 // ---------- 可注入进程层(测试 fake;真实现走 nodeSpawn) ----------
 
@@ -350,6 +382,12 @@ export interface ExecutorConfig {
   /** win32 环回绑定文件;POSIX 不设 */
   gateBindPath?: string;
   gateBindExpected?: string;
+  /** gate-claude.sh 路径;与 gate.sh 同目录,drift guard 两脚本集合(缺省不检=仅 cursor 既有测试) */
+  gateClaudeScriptPath?: string;
+  /** gate-claude.sh 期望内容;任一脚本不符 ⇒ 既有 fail-closed */
+  gateClaudeScriptExpected?: string;
+  /** claude `--max-turns`(缺省 200);cursor 忽略 */
+  claudeMaxTurns?: number;
   hooksTimeoutSec?: number;
   verifyTimeoutMs?: number;
   protectedBranches?: readonly string[];
@@ -403,6 +441,12 @@ interface ActiveRun {
   /** 审批/停靠期停表(三熔断律:活跃墙钟不含等人时间) */
   approvalWaitMs: number;
   approvalWaitingSince: number | null;
+  /** 当前重叠等待深度;approvalWaitingSince 取并集窗口起点 */
+  approvalWaitDepth: number;
+  /** 同一 run 未决 S2:第二张直接 deny,不插播 */
+  s2Pending: boolean;
+  /** unknown/parse_error 行计数(进审计,执行档不作废) */
+  unknownEventCount: number;
   eventLine: number;
   observedModel: string | null;
   resultText: string;
@@ -417,9 +461,20 @@ interface ActiveRun {
   resumeRestartMarker: boolean;
   /** 恢复开始时观察到的 marker epoch；仅可清同代或更旧 marker。 */
   resumeMarkerEpoch: number;
-  expectedResumeSessionId: string | null;
+  expectedSessionIdentity: string | null;
+  isResume: boolean;
   resumeSessionConfirmed: boolean;
   resumeSessionError: string | null;
+  observedModels: Set<string>;
+  gatedToolResults: number;
+  toolUseById: Map<string, string>;
+  rateLimitEvents: Array<{ status?: string; resetsAt?: number; rateLimitType?: string }>;
+  resultEvent: Extract<Tier1Event, { kind: "result" }> | null;
+  gateDenyCount: number;
+  stderrTail: string;
+  authViolation: boolean;
+  resumeNotFoundRetryUsed: boolean;
+  costRecorded: boolean;
   agentOwnershipEstablished: boolean;
   nativeResumeAudited: boolean;
   /** 进程组已明确 ESRCH；未验证前禁止写 processExited proof。 */
@@ -433,6 +488,48 @@ interface ActiveRun {
   abort: { kind: "canary" | "budget" | "cancel" | "steer_resume"; detail: string } | null;
   /** 本 run 的 .cursor/hooks.json;provision 后才设,digest 补偿用 */
   hooksJsonPath: string | null;
+}
+
+function streamRuntimeFields(): Pick<
+  ActiveRun,
+  | "expectedSessionIdentity"
+  | "isResume"
+  | "observedModels"
+  | "gatedToolResults"
+  | "toolUseById"
+  | "rateLimitEvents"
+  | "resultEvent"
+  | "gateDenyCount"
+  | "stderrTail"
+  | "authViolation"
+  | "resumeNotFoundRetryUsed"
+  | "costRecorded"
+> {
+  return {
+    expectedSessionIdentity: null,
+    isResume: false,
+    observedModels: new Set<string>(),
+    gatedToolResults: 0,
+    toolUseById: new Map<string, string>(),
+    rateLimitEvents: [],
+    resultEvent: null,
+    gateDenyCount: 0,
+    stderrTail: "",
+    authViolation: false,
+    resumeNotFoundRetryUsed: false,
+    costRecorded: false
+  };
+}
+
+/** spawn 前二进制身份核验不通过(09 §11:不符 ⇒ binary_identity_mismatch 不认领) */
+export class Tier1BinaryIdentityError extends Error {
+  constructor(
+    readonly code: string,
+    detail: string
+  ) {
+    super(`binary_identity_mismatch:${code} ${detail}`);
+    this.name = "Tier1BinaryIdentityError";
+  }
 }
 
 const ACTIVE_RUN_STATES = "('reserved','running','step_paused','cancel_requested')";
@@ -495,6 +592,11 @@ export class Tier1Executor {
     const out: { path: string; expected: string }[] = [
       { path: this.d.cfg.gateScriptPath, expected: this.d.cfg.gateScriptExpected }
     ];
+    const claudeScriptPath = this.d.cfg.gateClaudeScriptPath;
+    const claudeScriptExpected = this.d.cfg.gateClaudeScriptExpected;
+    if (claudeScriptPath && claudeScriptExpected !== undefined) {
+      out.push({ path: claudeScriptPath, expected: claudeScriptExpected });
+    }
     const bindPath = this.d.cfg.gateBindPath;
     const bindExpected = this.d.cfg.gateBindExpected;
     if (bindPath && bindExpected !== undefined) {
@@ -511,6 +613,13 @@ export class Tier1Executor {
    * W2 阶段0-①(Codex 20 A1;Codex 88 扩活动入口):每收 gate 请求重读当前 backend 实际入口
    * 以及 hooks.json / gate-bind.json。任一漂移 ⇒ 审计 + 终止全部活跃 run + 自愈重写 + 本请求 deny。
    */
+  /**
+   * 自愈未收口锁存(评审 92 C-1):win32 上 `restrictOwnerOnly` 可能抛(ACL 收紧或 readback 失败),
+   * 此时 rename 已完成、内容已正确 ⇒ 下一次 drift guard 只比内容就会判"无漂移"放行,
+   * 而那个文件的 owner-only DACL 其实没恢复。锁存后持续 fail-closed,直到某次自愈整体成功。
+   */
+  private gateSelfHealPending = new Set<string>();
+
   private gateScriptDriftGuard(): boolean {
     const surfaces = this.gateIntegritySurfaces();
     const drifted: { path: string; expected: string; actual: string | null }[] = [];
@@ -519,22 +628,32 @@ export class Tier1Executor {
       try {
         actual = readFileSync(surface.path, "utf8");
       } catch {
-        actual = null;
+        actual = null; // 读不出(被删/权限)同样按漂移处置,fail-closed
       }
       if (actual !== surface.expected) drifted.push({ ...surface, actual });
     }
-    if (drifted.length === 0) return false;
-    const first = drifted[0]!;
-    this.d.audit.record({
-      actor: "daemon",
-      action: "tier1.gate_script_drift",
-      meta: {
-        expectedDigest: textDigest(first.expected),
-        actualDigest: first.actual === null ? "unreadable" : textDigest(first.actual),
-        surfaces: drifted.map((d) => d.path.slice(-120)),
-        activeRuns: this.active.size
+    // 上轮自愈没收口的面:即便内容已对也必须继续按漂移处置(ACL 未恢复)
+    if (drifted.length === 0 && this.gateSelfHealPending.size > 0) {
+      for (const surface of surfaces) {
+        if (this.gateSelfHealPending.has(surface.path)) {
+          drifted.push({ ...surface, actual: surface.expected });
+        }
       }
-    });
+    }
+    if (drifted.length === 0) return false;
+    for (const d of drifted) {
+      this.d.audit.record({
+        actor: "daemon",
+        action: "tier1.gate_script_drift",
+        meta: {
+          expectedDigest: textDigest(d.expected),
+          actualDigest: d.actual === null ? "unreadable" : textDigest(d.actual),
+          activeRuns: this.active.size,
+          script: basename(d.path),
+          path: d.path.slice(-120)
+        }
+      });
+    }
     for (const run of this.active.values()) {
       if (run.abort) continue;
       run.abort = { kind: "canary", detail: "gate_script_drift" };
@@ -542,8 +661,26 @@ export class Tier1Executor {
     }
     for (const surface of drifted) {
       try {
-        writeGateScriptAtomic(surface.path, surface.expected);
+        // 自愈重写(与启动时 ensureGateScript 同语义;原子 tmp+rename)。
+        // 评审 90 C-1:只有门脚本本体走 writeGateScriptAtomic(它固定 chmod 0755);
+        // hooks.json / gate-bind.json 是 JSON 数据面,用 0600 原子写,别把数据文件改成可执行。
+        const isScript =
+          surface.path === this.d.cfg.gateScriptPath || surface.path === this.d.cfg.gateClaudeScriptPath;
+        if (isScript) {
+          writeGateScriptAtomic(surface.path, surface.expected);
+        } else {
+          writeDataSurfaceAtomic(surface.path, surface.expected);
+        }
+        this.gateSelfHealPending.delete(surface.path);
       } catch (err) {
+        // 评审 92 C-1:失败必须锁存。rename 可能已成功而 ACL 收紧失败,
+        // 只比内容的下一轮会误判"已无漂移"并放行一个 DACL 没恢复的门文件。
+        this.gateSelfHealPending.add(surface.path);
+        this.d.audit.record({
+          actor: "daemon",
+          action: "tier1.gate_self_heal_failed",
+          meta: { script: basename(surface.path), path: surface.path.slice(-120), error: String(err).slice(0, 160) }
+        });
         this.d.log.error("gate integrity self-heal failed", {
           path: surface.path.slice(-120),
           error: String(err).slice(0, 160)
@@ -557,18 +694,12 @@ export class Tier1Executor {
     if (this.gateScriptDriftGuard()) {
       return { permission: "deny", agent_message: "SayDo gate: gate script integrity check failed (fail-closed)" };
     }
-    if (req.kind && req.kind !== "command") {
-      return { permission: "deny", agent_message: "SayDo gate: unknown kind (fail-closed)" };
-    }
-    if (!req.command) {
-      return { permission: "deny", agent_message: "SayDo gate: missing command (fail-closed)" };
-    }
     const run = this.findRunByCwd(req.cwd);
     if (!run) {
       this.d.audit.record({
         actor: "daemon",
         action: "tier1.gate_unmatched_deny",
-        meta: { cwd: req.cwd.slice(0, 120), commandDigest: textDigest(req.command) }
+        meta: { cwd: req.cwd.slice(0, 120), commandDigest: textDigest(wireReceiptCommand(req)) }
       });
       return { permission: "deny", agent_message: "SayDo gate: no active run matches this worktree (fail-closed)" };
     }
@@ -578,41 +709,109 @@ export class Tier1Executor {
     if (run.restartPending) {
       return { permission: "deny", agent_message: "SayDo gate: daemon is preparing to restart" };
     }
-    const seq = ++run.gateSeq; // gateSeq 即门请求计数(canary 对账的左边);每条命令独立(律④)
-    const effect = matchesFrozenVerify(req.command, run.frozen.map((f) => f.argv))
-      ? ({ kind: "run_registered_verify" } as const)
-      : commandToEffect(req.command);
+    if ("kind" in req && req.kind === "file_write") return this.handleFileWriteGate(run, req);
+    if ("kind" in req && req.kind === "file_read") return this.handleFileReadGate(run, req);
+    const command = "command" in req ? req.command : "";
+    return this.handleCommandGate(run, command, "kind" in req && req.kind === "command" ? "command" : undefined);
+  }
 
-    run.approvalWaitingSince = Date.now(); // S0/S1 即时返回,计时归零误差可忽略;S2 挂起期停表
+  private beginApprovalWait(run: ActiveRun): void {
+    run.approvalWaitDepth += 1;
+    if (run.approvalWaitingSince === null) run.approvalWaitingSince = Date.now();
+  }
+
+  private endApprovalWait(run: ActiveRun): void {
+    run.approvalWaitDepth = Math.max(0, run.approvalWaitDepth - 1);
+    if (run.approvalWaitDepth === 0 && run.approvalWaitingSince !== null) {
+      run.approvalWaitMs += Date.now() - run.approvalWaitingSince;
+      run.approvalWaitingSince = null;
+    }
+  }
+
+  private riskOf(effect: EffectDescriptor, run: ActiveRun): RiskLevel {
+    try {
+      return computeRisk(effect, { protectedBranches: run.protectedBranches }).level;
+    } catch {
+      return "S3";
+    }
+  }
+
+  private denyConcurrentS2(
+    run: ActiveRun,
+    seq: number,
+    command: string,
+    effect: EffectDescriptor,
+    extra?: { tool?: string; kind?: string }
+  ): GateWireResponse {
+    this.d.audit.record({
+      actor: "daemon",
+      action: "tier1.gate_decision",
+      meta: {
+        taskId: run.taskId,
+        runId: run.runId,
+        seq,
+        risk: "S2",
+        permission: "deny",
+        effectKind: effect.kind,
+        commandDigest: textDigest(command),
+        reason: "concurrent_s2",
+        ...(extra?.kind ? { kind: extra.kind } : {}),
+        ...(extra?.tool ? { tool: extra.tool } : {})
+      }
+    });
+    return { permission: "deny", agent_message: "SayDo gate: 等待审批结果后再试" };
+  }
+
+  private async decideForRun(
+    run: ActiveRun,
+    seq: number,
+    command: string,
+    effect: EffectDescriptor
+  ): Promise<GateDecision> {
+    return decideCommand(
+      { taskId: run.taskId, seq, command, effect },
+      {
+        registry: run.registry,
+        protectedBranches: run.protectedBranches,
+        stepConfirm: (gateReq, risk) =>
+          this.d.approvals.request({
+            taskId: run.taskId,
+            runId: run.runId,
+            seq: gateReq.seq,
+            command: gateReq.command,
+            effect: gateReq.effect,
+            risk,
+            taskTitle: run.taskTitle,
+            packageDigest: run.packageDigest,
+            dispatchTurnRef: run.dispatchTurnRef
+          }),
+        approvalTimeoutMs: ((this.d.cfg.receiptTimeoutSec?.() ?? 45) + 5) * 1000
+      }
+    );
+  }
+
+  private async handleCommandGate(
+    run: ActiveRun,
+    command: string,
+    wireKind?: "command"
+  ): Promise<GateWireResponse> {
+    const seq = ++run.gateSeq;
+    const effect = matchesFrozenVerify(command, run.frozen.map((f) => f.argv))
+      ? ({ kind: "run_registered_verify" } as const)
+      : commandToEffect(command);
+    const risk = this.riskOf(effect, run);
+    if (risk === "S2" && run.s2Pending) {
+      run.gateDenyCount++;
+    return this.denyConcurrentS2(run, seq, command, effect, wireKind ? { kind: wireKind } : undefined);
+    }
+    if (risk === "S2") run.s2Pending = true;
+    this.beginApprovalWait(run);
     let decision: GateDecision;
     try {
-      decision = await decideCommand(
-        { taskId: run.taskId, seq, command: req.command, effect },
-        {
-          registry: run.registry,
-          // run 级保护面(W1.3):全局 ∪ 项目 [git].protected;engine 内再并 main/master 缺省
-          protectedBranches: run.protectedBranches,
-          stepConfirm: (gateReq, risk) =>
-            this.d.approvals.request({
-              taskId: run.taskId,
-              runId: run.runId,
-              seq: gateReq.seq,
-              command: gateReq.command,
-              effect: gateReq.effect,
-              risk,
-              taskTitle: run.taskTitle,
-              packageDigest: run.packageDigest,
-              dispatchTurnRef: run.dispatchTurnRef
-            }),
-          // 收据窗(45s)+ 缓冲由 approvalFlow 主导终局;这里的 race 上限只兜底
-          approvalTimeoutMs: ((this.d.cfg.receiptTimeoutSec?.() ?? 45) + 5) * 1000
-        }
-      );
+      decision = await this.decideForRun(run, seq, command, effect);
     } finally {
-      if (run.approvalWaitingSince !== null) {
-        run.approvalWaitMs += Date.now() - run.approvalWaitingSince;
-        run.approvalWaitingSince = null;
-      }
+      if (risk === "S2") run.s2Pending = false;
+      this.endApprovalWait(run);
     }
     this.d.audit.record({
       actor: "daemon",
@@ -624,12 +823,12 @@ export class Tier1Executor {
         risk: decision.risk,
         permission: decision.permission,
         effectKind: effect.kind,
-        commandDigest: textDigest(req.command)
+        commandDigest: textDigest(command),
+        ...(wireKind ? { kind: wireKind } : {})
       }
     });
     if (decision.permission === "allow") return { permission: "allow" };
-    // W5a 3.3:edit 第四动作的 deny 回执——owner"修改后批准"时把编辑后命令带给 agent,
-    // agent 按建议原样重试即命中单次预批收据(approvalFlow.request 消费点)
+    run.gateDenyCount++;
     const suggestion = this.d.approvals.consumeEditSuggestion(run.taskId, seq);
     if (suggestion) {
       return {
@@ -638,6 +837,136 @@ export class Tier1Executor {
       };
     }
     return { permission: "deny", agent_message: `SayDo gate denied (${decision.risk}): ${decision.reason}` };
+  }
+
+  private async handleFileWriteGate(
+    run: ActiveRun,
+    req: Extract<GateWireRequest, { kind: "file_write" }>
+  ): Promise<GateWireResponse> {
+    const command = fileReceiptCommand(req.tool, req.path, req.cwd);
+    if (!FILE_WRITE_TOOLS.has(req.tool)) {
+      const seq = ++run.gateSeq;
+      run.gateDenyCount++;
+      this.d.audit.record({
+        actor: "daemon",
+        action: "tier1.gate_decision",
+        meta: {
+          taskId: run.taskId,
+          runId: run.runId,
+          seq,
+          risk: "S3",
+          permission: "deny",
+          effectKind: "delete_data",
+          commandDigest: textDigest(command),
+          kind: "file_write",
+          tool: req.tool
+        }
+      });
+      return { permission: "deny", agent_message: "SayDo gate denied (S3): tool not on write face (fail-closed)" };
+    }
+    const effect = fileToolToEffect(req.tool, req.path, req.cwd, run.worktree);
+    if (effect.kind !== "write_worktree") {
+      const seq = ++run.gateSeq;
+      run.gateDenyCount++;
+      this.d.audit.record({
+        actor: "daemon",
+        action: "tier1.gate_decision",
+        meta: {
+          taskId: run.taskId,
+          runId: run.runId,
+          seq,
+          risk: "S3",
+          permission: "deny",
+          effectKind: effect.kind,
+          commandDigest: textDigest(command),
+          kind: "file_write",
+          tool: req.tool
+        }
+      });
+      return { permission: "deny", agent_message: "SayDo gate denied (S3): write outside worktree or unresolvable" };
+    }
+    if (effect.touchesSensitiveData) {
+      const resolved = resolveFileToolPath(req.path, req.cwd);
+      const abs = "abs" in resolved ? resolved.abs : req.path;
+      effect.target = basename(abs.replace(/\\/g, "/"));
+    }
+    const risk = this.riskOf(effect, run);
+    const seq = ++run.gateSeq;
+    if (risk === "S2" && run.s2Pending) {
+      run.gateDenyCount++;
+      return this.denyConcurrentS2(run, seq, command, effect, { kind: "file_write", tool: req.tool });
+    }
+    if (risk === "S2") run.s2Pending = true;
+    this.beginApprovalWait(run);
+    let decision: GateDecision;
+    try {
+      decision = await this.decideForRun(run, seq, command, effect);
+    } finally {
+      if (risk === "S2") run.s2Pending = false;
+      this.endApprovalWait(run);
+    }
+    this.d.audit.record({
+      actor: "daemon",
+      action: "tier1.gate_decision",
+      meta: {
+        taskId: run.taskId,
+        runId: run.runId,
+        seq,
+        risk: decision.risk,
+        permission: decision.permission,
+        effectKind: effect.kind,
+        commandDigest: textDigest(command),
+        kind: "file_write",
+        tool: req.tool
+      }
+    });
+    if (decision.permission === "allow") return { permission: "allow" };
+    run.gateDenyCount++;
+    return { permission: "deny", agent_message: `SayDo gate denied (${decision.risk}): ${decision.reason}` };
+  }
+
+  private handleFileReadGate(
+    run: ActiveRun,
+    req: Extract<GateWireRequest, { kind: "file_read" }>
+  ): GateWireResponse {
+    const command = fileReceiptCommand("Read", req.path, req.cwd);
+    const effect = fileToolToEffect("Read", req.path, req.cwd, run.worktree);
+    const seq = ++run.gateSeq;
+    if (effect.kind === "read") {
+      this.d.audit.record({
+        actor: "daemon",
+        action: "tier1.gate_decision",
+        meta: {
+          taskId: run.taskId,
+          runId: run.runId,
+          seq,
+          risk: "S0",
+          permission: "no_decision",
+          effectKind: "read",
+          commandDigest: textDigest(command),
+          kind: "file_read",
+          tool: "Read"
+        }
+      });
+      return { permission: "no_decision" };
+    }
+    run.gateDenyCount++;
+    this.d.audit.record({
+      actor: "daemon",
+      action: "tier1.gate_decision",
+      meta: {
+        taskId: run.taskId,
+        runId: run.runId,
+        seq,
+        risk: "S3",
+        permission: "deny",
+        effectKind: effect.kind,
+        commandDigest: textDigest(command),
+        kind: "file_read",
+        tool: "Read"
+      }
+    });
+    return { permission: "deny", agent_message: "SayDo gate denied (S3): read outside worktree (fail-closed)" };
   }
 
   /** cwd 匹配 run 的 worktree(含子目录);两侧 realpath 规范化——macOS /var↔/private/var
@@ -677,6 +1006,18 @@ export class Tier1Executor {
   private checkCanaries(): void {
     for (const run of this.active.values()) {
       if (run.abort || run.restartPending) continue;
+      if (this.backend.canaryLeft !== "shell_started") {
+        if (run.gatedToolResults > run.gateSeq) {
+          if (run.canarySuspect) {
+            this.tripCanary(run, `tool_result=${run.gatedToolResults} > gate_requests=${run.gateSeq} (两tick确认)`);
+          } else {
+            run.canarySuspect = true;
+          }
+        } else {
+          run.canarySuspect = false;
+        }
+        continue;
+      }
       if (run.shellStarted > run.gateSeq) {
         if (run.canarySuspect) {
           this.tripCanary(run, `shell_started=${run.shellStarted} > gate_requests=${run.gateSeq} (两tick确认)`);
@@ -729,6 +1070,7 @@ export class Tier1Executor {
     run.startedMs = Date.now();
     run.approvalWaitMs = 0;
     run.approvalWaitingSince = null;
+    run.approvalWaitDepth = 0;
     this.d.db
       .prepare("UPDATE tier1_runs SET budget_active_ms=?, budget_tool_calls=?, updated_at=? WHERE id=?")
       .run(run.budgetActiveMs, run.toolCalls, this.now().toISOString(), run.runId);
@@ -899,6 +1241,9 @@ export class Tier1Executor {
       startedMs: Date.now(),
       approvalWaitMs: 0,
       approvalWaitingSince: null,
+      approvalWaitDepth: 0,
+      s2Pending: false,
+      unknownEventCount: 0,
       eventLine: 0,
       observedModel: null,
       resultText: "",
@@ -909,7 +1254,7 @@ export class Tier1Executor {
       restartEpoch: 0,
       resumeRestartMarker: false,
       resumeMarkerEpoch: 0,
-      expectedResumeSessionId: null,
+      ...streamRuntimeFields(),
       resumeSessionConfirmed: false,
       resumeSessionError: null,
       agentOwnershipEstablished: false,
@@ -934,11 +1279,27 @@ export class Tier1Executor {
     });
   }
 
-  /** W5a 3.5 开发档生效模型:project_settings 覆盖 > cfg.model(受控表,非 project.toml——09 §11 白名单不放宽) */
+  /** W5a 3.5 开发档生效模型:project_settings 覆盖 > cfg.model(受控表,非 project.toml——09 §11 白名单不放宽)。
+   *  C2b:按生效 adapter 匹配,mismatch 忽略覆盖并审计。 */
   private resolveRunModel(projectId: string, runId: string): string {
     try {
-      const eff = effectiveDevModel(this.d.cfg.model, getProjectOverrides(this.d.db, projectId));
-      if (eff.source === "project") {
+      const eff = effectiveDevModelForAdapter(
+        this.d.cfg.model,
+        getProjectOverrides(this.d.db, projectId),
+        this.d.cfg.adapter
+      );
+      if (eff.ignored) {
+        this.d.audit.record({
+          actor: "daemon",
+          action: "tier1.model_override_ignored_adapter_mismatch",
+          meta: {
+            projectId,
+            runId,
+            overrideAgent: eff.ignored.overrideAgent,
+            effectiveAdapter: eff.ignored.effectiveAdapter
+          }
+        });
+      } else if (eff.source === "project") {
         this.d.audit.record({
           actor: "daemon",
           action: "tier1.model_override_applied",
@@ -1091,7 +1452,7 @@ export class Tier1Executor {
     run.protectedBranches = [...(this.d.cfg.protectedBranches ?? []), ...full.gitProtected];
   }
 
-  private async runAttempt(run: ActiveRun, opts: { resume?: boolean } = {}): Promise<void> {
+  private async runAttempt(run: ActiveRun, opts: { resume?: boolean; reservedRecover?: boolean } = {}): Promise<void> {
     const d = this.d;
     if (run.restartPending) {
       this.resolveClaim(run);
@@ -1153,13 +1514,17 @@ export class Tier1Executor {
 
     // 5) spawn(prompt = 任务卡 + task_messages 消费口 + 执行约定)
     const prompt = this.buildPrompt(run, opts.resume === true);
-    const proc = d.spawner.spawn({
-      binary: d.cfg.lockedBinary,
-      model: run.model, // W5a 3.5:项目覆盖生效模型
-      prompt,
-      cwd: run.worktree,
-      env: strippedAgentEnv(process.env)
-    });
+    const keys = this.resolveSpawnSession(run, { reservedRecover: opts.reservedRecover === true, allowQueuedDelta: opts.reservedRecover !== true });
+    let proc: AgentProcessHandle;
+    try {
+      proc = this.spawnAgent(run, prompt, keys.resumeChatId, keys.sessionId);
+    } catch (err) {
+      if (err instanceof Tier1BinaryIdentityError) {
+        this.finalizeBinaryIdentityFailure(run, err);
+        return;
+      }
+      throw err;
+    }
     run.proc = proc;
     const eventsPath = join(this.runDir(run.runId), "events.jsonl");
     proc.onLine((line) => this.consumeEventLine(run, line, eventsPath));
@@ -1169,6 +1534,7 @@ export class Tier1Executor {
     this.resolveClaim(run);
     try {
       const { exitCode } = await proc.wait();
+      this.captureProcTail(run, proc);
       run.proc = null;
       run.processGroupVerifiedExited = true;
       this.clearAgentOwnership(run);
@@ -1196,11 +1562,131 @@ export class Tier1Executor {
       if (run.restartPending) return;
       if (provision.exitCode !== 0) throw new Error(`git worktree exit ${provision.exitCode}`);
     }
-    const cursorDir = join(run.worktree, ".cursor");
-    mkdirSync(cursorDir, { recursive: true });
-    const hooksJsonPath = join(cursorDir, "hooks.json");
-    writeFileSync(hooksJsonPath, this.expectedHooksJson());
-    run.hooksJsonPath = hooksJsonPath;
+    const hooked = this.provisionBackendHooks(run.worktree);
+    // hooks.json 只有 cursor 后端落在 worktree 内;claude 的门脚本在 ~/.saydo/tier1/,
+    // 由 cfg.gateClaudeScriptPath/Expected 覆盖漂移面,不重复登记(否则期望值比错对象恒漂移)
+    run.hooksJsonPath = this.backend.adapter === "cursor" ? (hooked.filesWritten[0] ?? null) : null;
+  }
+
+  /**
+   * 门脚本路径单源:供给侧(backend.provisionHooks)与漂移基准侧(cfg.gateScript*)必须同源,
+   * 否则 hooks.json 里写的入口与 drift guard 比对的期望值可以分叉,变成"恒漂移"或"漏比对"。
+   * 目录/sock/bind/secret 仍由 gatePaths 按 saydoHome 推导。
+   */
+  private gatePathBundle(): GatePaths {
+    const p = gatePaths(this.d.cfg.saydoHome);
+    return {
+      ...p,
+      scriptPath: this.d.cfg.gateScriptPath,
+      ...(this.d.cfg.gateClaudeScriptPath ? { claudeScriptPath: this.d.cfg.gateClaudeScriptPath } : {})
+    };
+  }
+
+  private provisionBackendHooks(cwd: string): { extraArgs: string[]; filesWritten: string[] } {
+    return this.backend.provisionHooks(cwd, this.gatePathBundle(), this.d.cfg.hooksTimeoutSec ?? 120);
+  }
+
+  /**
+   * 09 §11 claude_code 承载段:身份登记「启动与**每次 spawn 前**核验」。
+   * digest 重算走 checkBinaryIdentity 的 mtime/size 缓存(D12 取舍),常态零额外哈希。
+   * 不符 ⇒ 抛 Tier1BinaryIdentityError,由认领链结算成 blocked `binary_identity_mismatch`,不起进程。
+   */
+  /** spawn 前身份核验失败的统一结算:不起进程、blocked 叫人(09 §11「不符 ⇒ 不认领」) */
+  private finalizeBinaryIdentityFailure(run: ActiveRun, err: unknown): void {
+    this.finalizeFailure(
+      run,
+      String((err as Error).message ?? "binary_identity_mismatch").slice(0, 160),
+      "blocked",
+      "执行器二进制和登记的身份对不上,先重跑一次 Tier1 自检再继续"
+    );
+  }
+
+  private assertClaudeBinaryIdentity(): void {
+    if (this.backend.adapter !== "claude_code") return;
+    const v = verifyClaudeIdentity(this.d.cfg.saydoHome, this.d.cfg.lockedBinary);
+    if (!v.ok) throw new Tier1BinaryIdentityError(v.code, v.detail);
+  }
+
+  private spawnAgent(run: ActiveRun, prompt: string, resumeChatId?: string, sessionId?: string): AgentProcessHandle {
+    this.assertClaudeBinaryIdentity();
+    const hooked = this.provisionBackendHooks(run.worktree);
+    const env = strippedAgentEnv(process.env);
+    if (this.backend.adapter === "claude_code") Object.assign(env, claudeEnvOverrides);
+    const settingsIdx = hooked.extraArgs.indexOf("--settings");
+    const settingsJson = settingsIdx >= 0 ? hooked.extraArgs[settingsIdx + 1] : undefined;
+    return this.d.spawner.spawn({
+      binary: this.d.cfg.lockedBinary,
+      model: run.model,
+      prompt,
+      cwd: run.worktree,
+      env,
+      ...(resumeChatId ? { resumeChatId } : {}),
+      ...(sessionId ? { sessionId } : {}),
+      ...(settingsJson ? { settingsJson } : {}),
+      ...(this.backend.adapter === "claude_code" ? { maxTurns: this.d.cfg.claudeMaxTurns ?? 200 } : {})
+    });
+  }
+
+  private captureProcTail(run: ActiveRun, proc: AgentProcessHandle): void {
+    try {
+      run.stderrTail = proc.stderrTail?.() ?? run.stderrTail;
+    } catch {
+      // stderr 尾可选
+    }
+  }
+
+  private bindClaudeFirstSession(run: ActiveRun): string {
+    const sessionId = randomUUID();
+    overwriteTier1RunNativeSession(this.d.db, run.runId, sessionId, this.now().toISOString());
+    run.expectedSessionIdentity = sessionId;
+    run.isResume = false;
+    return sessionId;
+  }
+
+  private lookupQueuedDeltaResume(run: ActiveRun): { sid: string | null; reason: string } {
+    const prev = this.d.db
+      .prepare(
+        `SELECT adapter, native_session_id AS sid, cwd, native_session_confirmed AS confirmed
+         FROM tier1_runs WHERE task_id=? AND id!=? ORDER BY attempt DESC LIMIT 1`
+      )
+      .get(run.taskId, run.runId) as
+      | { adapter: string; sid: string | null; cwd: string; confirmed: number }
+      | undefined;
+    if (!prev) return { sid: null, reason: "no_previous" };
+    if (prev.adapter !== this.d.cfg.adapter) return { sid: null, reason: "adapter_mismatch" };
+    if (!prev.sid) return { sid: null, reason: "native_session_absent" };
+    if (this.canon(prev.cwd) !== this.canon(run.worktree)) return { sid: null, reason: "cwd_mismatch" };
+    if (prev.confirmed !== 1) return { sid: null, reason: "not_confirmed" };
+    return { sid: prev.sid, reason: "exact" };
+  }
+
+  private resolveSpawnSession(
+    run: ActiveRun,
+    opts: { reservedRecover: boolean; allowQueuedDelta: boolean }
+  ): { resumeChatId?: string; sessionId?: string } {
+    if (this.backend.adapter !== "claude_code") return {};
+    if (!opts.reservedRecover && opts.allowQueuedDelta) {
+      const prev = this.lookupQueuedDeltaResume(run);
+      if (prev.sid) {
+        run.expectedSessionIdentity = prev.sid;
+        run.isResume = true;
+        return { resumeChatId: prev.sid };
+      }
+      if (prev.reason !== "no_previous") {
+        this.d.audit.record({
+          actor: "daemon",
+          action: `tier1.resume_skipped_${prev.reason}`,
+          meta: {
+            runId: run.runId,
+            taskId: run.taskId,
+            reason: prev.reason,
+            expectedSessionIdentity: null,
+            isResume: false
+          }
+        });
+      }
+    }
+    return { sessionId: this.bindClaudeFirstSession(run) };
   }
 
   private buildPrompt(run: ActiveRun, isResume: boolean): string {
@@ -1246,50 +1732,136 @@ export class Tier1Executor {
     } catch {
       // 事件留痕失败不阻断执行(transcriptCursor 仍按行号推进)
     }
+    let sessionHandled = false;
     for (const ev of this.backend.parseLine(line)) {
-    if (ev.kind === "observed_model" && ev.observedModel) {
-      run.observedModel = ev.observedModel;
-      // W1.4(0.0(a) --resume 清账):system.init 同行带 session_id(chatId)——落 tier1_runs
-      // native_session_id 列(§12-7 恢复钥匙 canonical 落位,recovery/reconciler 按列判 resumable;
-      // 实测锚 e2e/poc/tier1-live-executor events.jsonl 首行)
-      try {
-        const sid = (JSON.parse(line) as { session_id?: string }).session_id;
-        if (run.expectedResumeSessionId !== null) {
-          if (sid === run.expectedResumeSessionId) {
-            run.resumeSessionConfirmed = true;
-            this.acceptNativeResume(run, sid);
-          } else {
-            run.resumeSessionError = sid
-              ? `native_session_mismatch:${sid}`
-              : "native_session_missing";
-            run.proc?.kill();
-          }
-        } else if (sid) {
-          setTier1RunNativeSession(this.d.db, run.runId, sid, this.now().toISOString());
-        }
-      } catch {
-        if (run.expectedResumeSessionId !== null) {
-          run.resumeSessionError = "native_session_invalid";
+      if (ev.kind === "init") {
+        // 09 §11:apiKeySource !== "none" 即终止。claude 的 system/init 恒带该键(fixture 2.1.220 实证),
+        // 缺失/空串/非字符串都是形状漂移,按 fail-closed 同样终止——只对 claude_code 严格,
+        // cursor 的事件流本就不产生 init。
+        const claudeStrict = this.backend.adapter === "claude_code";
+        const apiKeySourceBad = claudeStrict
+          ? ev.apiKeySource !== "none"
+          : typeof ev.apiKeySource === "string" && ev.apiKeySource !== "none";
+        if (apiKeySourceBad) {
+          run.authViolation = true;
           run.proc?.kill();
         }
+        if (ev.model) {
+          run.observedModels.add(ev.model);
+          run.observedModel = ev.model;
+        }
+        this.applySessionIdentity(run, ev.session_id, false);
+        sessionHandled = true;
+        continue;
       }
-      continue;
+      if (ev.kind === "observed_model" && ev.observedModel) {
+        run.observedModels.add(ev.observedModel);
+        if (this.backend.adapter !== "claude_code") {
+          run.observedModel = ev.observedModel;
+        }
+        // W1.4(0.0(a) --resume 清账):cursor system.init 同行带 session_id(chatId)——落 tier1_runs
+        // native_session_id 列(§12-7 恢复钥匙 canonical 落位,recovery/reconciler 按列判 resumable;
+        // 实测锚 e2e/poc/tier1-live-executor events.jsonl 首行)。claude 身份只认 init;
+        // assistant 行也带 session_id,不得当对账(否则 S2 等待期多 tool_use 会误 mismatch)。
+        if (!sessionHandled && this.backend.adapter !== "claude_code") {
+          try {
+            const sid = (JSON.parse(line) as { session_id?: string }).session_id;
+            this.applySessionIdentity(run, sid, false);
+          } catch {
+            this.applySessionIdentity(run, undefined, true);
+          }
+        }
+        continue;
+      }
+      if (ev.kind === "rate_limit") {
+        run.rateLimitEvents.push({
+          ...(ev.status !== undefined ? { status: ev.status } : {}),
+          ...(ev.resetsAt !== undefined ? { resetsAt: ev.resetsAt } : {}),
+          ...(ev.rateLimitType !== undefined ? { rateLimitType: ev.rateLimitType } : {})
+        });
+        continue;
+      }
+      if (ev.kind === "result") {
+        run.resultText = ev.text ?? "";
+        run.terminalResultReceived = true;
+        run.resultEvent = ev;
+        continue;
+      }
+      if (ev.kind === "tool_started") {
+        run.toolCalls++; // 回合熔断按 started 计(started/completed 成对,双计会虚高一倍)
+        this.d.db
+          .prepare("UPDATE tier1_runs SET budget_tool_calls=?, updated_at=? WHERE id=?")
+          .run(run.toolCalls, this.now().toISOString(), run.runId);
+        if (ev.toolUseId) run.toolUseById.set(ev.toolUseId, ev.tool);
+        if (this.backend.canaryLeft === "shell_started" && isCursorShellToolCall(line)) run.shellStarted++;
+        continue;
+      }
+      if (ev.kind === "tool_result") {
+        if (this.backend.canaryLeft === "tool_result" && ev.toolUseId) {
+          const tool = run.toolUseById.get(ev.toolUseId);
+          if (tool && CLAUDE_CLOSED_TOOLS.has(tool)) run.gatedToolResults++;
+        }
+        continue;
+      }
+      if (ev.kind === "unknown") {
+        run.unknownEventCount++;
+        this.d.audit.record({
+          actor: "daemon",
+          action: "tier1.event_parse_unknown",
+          meta: { taskId: run.taskId, runId: run.runId, count: run.unknownEventCount, line: run.eventLine }
+        });
+        continue;
+      }
     }
-    if (ev.kind === "result") {
-      run.resultText = ev.text ?? "";
-      run.terminalResultReceived = true;
-      continue;
+  }
+
+  private applySessionIdentity(run: ActiveRun, sid: string | undefined, parseFailed: boolean): void {
+    if (parseFailed) {
+      if (run.expectedSessionIdentity !== null) {
+        run.resumeSessionError = "native_session_invalid";
+        run.proc?.kill();
+      }
+      return;
     }
-    if (ev.kind === "tool_started") {
-      run.toolCalls++; // 回合熔断按 started 计(started/completed 成对,双计会虚高一倍)
-      this.d.db
-        .prepare("UPDATE tier1_runs SET budget_tool_calls=?, updated_at=? WHERE id=?")
-        .run(run.toolCalls, this.now().toISOString(), run.runId);
-      if (this.backend.canaryLeft === "shell_started" && isCursorShellToolCall(line)) run.shellStarted++;
-      continue;
-    }
-    // 执行档对 unknown/parse_error 记数不作废(评估档 §12-9 的作废语义不适用:执行档事件面宽,
-    // 安全承载在 gate+canary 而非事件解析;spike 律:吞模型切换/重连提示)
+    if (run.expectedSessionIdentity !== null) {
+      if (sid === run.expectedSessionIdentity) {
+        const first = !run.resumeSessionConfirmed;
+        run.resumeSessionConfirmed = true;
+        if (this.backend.adapter === "claude_code") {
+          confirmTier1RunNativeSession(this.d.db, run.runId, this.now().toISOString());
+          if (first && !run.isResume) {
+            this.d.audit.record({
+              actor: "daemon",
+              action: "tier1.session_identity_confirmed",
+              meta: {
+                taskId: run.taskId,
+                runId: run.runId,
+                expectedSessionIdentity: sid,
+                isResume: false
+              }
+            });
+          }
+        }
+        if (run.isResume) this.acceptNativeResume(run, sid);
+      } else {
+        run.resumeSessionError = sid ? `native_session_mismatch:${sid}` : "native_session_missing";
+        if (this.backend.adapter === "claude_code") {
+          this.d.audit.record({
+            actor: "daemon",
+            action: "tier1.session_identity_mismatch",
+            meta: {
+              taskId: run.taskId,
+              runId: run.runId,
+              expectedSessionIdentity: run.expectedSessionIdentity,
+              observed: sid ?? null,
+              isResume: run.isResume
+            }
+          });
+        }
+        run.proc?.kill();
+      }
+    } else if (sid) {
+      setTier1RunNativeSession(this.d.db, run.runId, sid, this.now().toISOString());
     }
   }
 
@@ -1342,6 +1914,17 @@ export class Tier1Executor {
           meta: { taskId: run.taskId, runId: run.runId, detail: run.abort.detail }
         });
       }
+      if (!run.abort && this.backend.canaryLeft === "tool_result" && run.gatedToolResults > run.gateSeq) {
+        run.abort = {
+          kind: "canary",
+          detail: `settle check: tool_result=${run.gatedToolResults} > gate_requests=${run.gateSeq}`
+        };
+        d.audit.record({
+          actor: "daemon",
+          action: "tier1.canary_tripped",
+          meta: { taskId: run.taskId, runId: run.runId, detail: run.abort.detail }
+        });
+      }
       if (run.abort) this.clearRestartMarker(run);
       if (run.abort?.kind === "cancel") {
         this.settleCancelledRun(run);
@@ -1359,6 +1942,63 @@ export class Tier1Executor {
       if (run.abort?.kind === "budget") {
         this.finalizeFailure(run, `budget:${run.abort.detail}`, "blocked", "预算熔断停了,要继续得你来处置");
         return;
+      }
+      if (this.backend.adapter === "claude_code" && !run.restartPending) {
+        if (run.authViolation) {
+          this.finalizeFailure(run, "subscription_auth_violation", "failed", "执行流报了非订阅登录态,这轮作废");
+          return;
+        }
+        if (run.resumeSessionError) {
+          this.finalizeFailure(
+            run,
+            run.resumeSessionError.startsWith("native_session_mismatch")
+              ? "native_session_mismatch"
+              : run.resumeSessionError,
+            "failed",
+            "原生会话身份对不上,这轮作废"
+          );
+          return;
+        }
+        this.auditClaudeCanaryReconciling(run);
+        const disp = this.claudeDisposition(run, exitCode);
+        if (disp.action === "blocked") {
+          if (disp.reason === "subscription_rate_limited") this.enqueueTier1RateLimit(run);
+          this.finalizeFailure(
+            run,
+            disp.reason,
+            "blocked",
+            disp.reason === "subscription_rate_limited"
+              ? "订阅额度到限,等重置后再跑"
+              : "Claude 登录已失效,请在终端跑 claude 并 /login"
+          );
+          return;
+        }
+        if (disp.action === "failed") {
+          this.finalizeFailure(run, disp.reason, "failed", `执行没跑完(${disp.reason})`);
+          return;
+        }
+        if (disp.action === "cancel") {
+          this.settleCancelledRun(run);
+          return;
+        }
+        if (run.expectedSessionIdentity !== null && !run.resumeSessionConfirmed) {
+          this.finalizeFailure(run, "native_session_confirmation_missing", "failed", "原生会话身份没有确认,这轮作废");
+          return;
+        }
+        if (run.observedModels.size === 0 || !run.observedModel) {
+          this.finalizeFailure(run, "observed_model_missing", "failed", "执行流里没有模型观测,这轮结果作废");
+          return;
+        }
+        const bad = [...run.observedModels].find((m) => familyFromModelName(m) !== "claude");
+        if (bad) {
+          this.finalizeFailure(
+            run,
+            `observed_model_family_mismatch:${bad}`,
+            "failed",
+            "执行模型族与配置不符,这轮结果作废"
+          );
+          return;
+        }
       }
       // B3: terminal result 必须先于 restart suspension；已有合法终局不得借 marker 跳过 settle。
       if (run.terminalResultReceived && exitCode === 0 && !run.abort) {
@@ -1410,6 +2050,9 @@ export class Tier1Executor {
         );
       }
     } finally {
+      // 评审 91 A-5 同族防御:settleCoding/settleWriting 若抛出,原来只 delete 不 resolve,
+      // 认领链同样挂住。resolveClaim 幂等(先清 claimReady 再调),正常路径已 resolve 过的不受影响。
+      this.resolveClaim(run);
       this.active.delete(run.runId);
     }
   }
@@ -1687,10 +2330,18 @@ export class Tier1Executor {
       projectionCursor: proof.transcriptCursor,
       artifactChecks: [artifactCheck]
     });
+    this.recordRunCost(run);
     d.audit.record({
       actor: "daemon",
       action: "tier1.settled_review",
-      meta: { taskId: run.taskId, runId: run.runId, attempt: run.attempt, treeSha, enqueued: enq.enqueued }
+      meta: {
+        taskId: run.taskId,
+        runId: run.runId,
+        attempt: run.attempt,
+        treeSha,
+        enqueued: enq.enqueued,
+        ...this.observedModelAuditMeta(run)
+      }
     });
   }
 
@@ -1757,14 +2408,24 @@ export class Tier1Executor {
         action: "tier1.finalize_task_transition_skipped",
         meta: { taskId: run.taskId, wanted: taskState, error: String(err).slice(0, 120) }
       });
+      // 评审 91 A-5:这条早退此前漏了 resolveClaim——任务被并发转走(用户取消等)时
+      // claimReady 永不兑现,recover barrier 与认领链一起挂住。既有潜在缺陷,
+      // 被「spawn 前身份核验失败」这条新路径变成可达,在根上补齐。
+      this.resolveClaim(run);
       this.active.delete(run.runId);
       return;
     }
     this.enqueueBlocked(run.taskId, run.packageRevision, exitEvidence, spokenReason, taskState, run);
+    if (run.agentOwnershipEstablished || run.eventLine > 0) this.recordRunCost(run);
     d.audit.record({
       actor: "daemon",
       action: taskState === "failed" ? "tier1.settled_failed" : "tier1.blocked",
-      meta: { taskId: run.taskId, runId: run.runId, exitEvidence: exitEvidence.slice(0, 160) }
+      meta: {
+        taskId: run.taskId,
+        runId: run.runId,
+        exitEvidence: exitEvidence.slice(0, 160),
+        ...this.observedModelAuditMeta(run)
+      }
     });
     this.resolveClaim(run);
     this.active.delete(run.runId);
@@ -1994,6 +2655,47 @@ export class Tier1Executor {
         });
         continue;
       }
+      if (this.d.cfg.adapter === "claude_code") {
+        const cons = checkRunAdapterConsistency(String(raw["adapter"] ?? ""), this.d.cfg.adapter);
+        if (!cons.consistent) {
+          try {
+            this.d.db
+              .prepare("UPDATE tier1_runs SET restart_pending_at=NULL, restart_reason=NULL, updated_at=? WHERE id=?")
+              .run(nowIso, runId);
+            if (state === "running" || state === "step_paused" || state === "reserved") {
+              transitionTier1Run(this.d.db, runId, "cancel_requested", nowIso);
+              transitionTier1Run(this.d.db, runId, "cancel_settled", nowIso, {
+                cancelProofJson: JSON.stringify({
+                  taskId,
+                  runId,
+                  processExited: true,
+                  worktreeLockReleased: true,
+                  lastEventId: `recovered-inconsistent:adapter_mismatch`,
+                  settledAt: nowIso
+                } satisfies Tier1CancelProof)
+              });
+            }
+            transitionTask(this.d.db, taskId, "blocked", "L", { now: nowIso });
+          } catch (err) {
+            this.d.log.error("recover adapter mismatch reap failed", { runId, error: String(err).slice(0, 160) });
+          }
+          this.enqueueBlocked(taskId, task.package_rev ?? 1, "adapter_mismatch", "执行后端已切换,这轮不能接续,需要你看一眼");
+          this.d.audit.record({
+            actor: "daemon",
+            action: "tier1.recover_reaped_inconsistent",
+            meta: {
+              runId,
+              taskId,
+              taskStatus: task.status,
+              runState: state,
+              reason: "adapter_mismatch",
+              rowAdapter: cons.rowAdapter,
+              effectiveAdapter: cons.effectiveAdapter
+            }
+          });
+          continue;
+        }
+      }
       // P0 恢复策略 = 降级"摘要+diff 注入新会话"(同 run 行续用;resume --resume <chatId> 属加分项,
       // chatId 采集待 e2e 实测事件流后接——诚实登记,不假装已恢复原会话)
       const active: ActiveRun = {
@@ -2020,6 +2722,9 @@ export class Tier1Executor {
         startedMs: Date.now(),
         approvalWaitMs: 0,
         approvalWaitingSince: null,
+        approvalWaitDepth: 0,
+        s2Pending: false,
+        unknownEventCount: 0,
         eventLine: 0,
         observedModel: null,
         resultText: "",
@@ -2030,7 +2735,7 @@ export class Tier1Executor {
         restartEpoch: 0,
         resumeRestartMarker: raw["restart_pending_at"] !== null && raw["restart_pending_at"] !== undefined,
         resumeMarkerEpoch: this.shutdownEpoch,
-        expectedResumeSessionId: null,
+        ...streamRuntimeFields(),
         resumeSessionConfirmed: false,
         resumeSessionError: null,
         agentOwnershipEstablished: false,
@@ -2075,7 +2780,7 @@ export class Tier1Executor {
     }
     // reserved:供给可能半程,重走 runAttempt 全链(幂等);running:同 run 注入新会话续跑
     if (wasReserved) {
-      await this.runAttempt(run);
+      await this.runAttempt(run, { reservedRecover: true });
       this.resolveClaim(run);
       return;
     }
@@ -2129,23 +2834,43 @@ export class Tier1Executor {
       );
       return;
     }
-    run.expectedResumeSessionId = nativeSessionId;
-    if (nativeSessionId === null) {
+    let resumeChatId: string | undefined;
+    let sessionId: string | undefined;
+    if (nativeSessionId !== null) {
+      run.expectedSessionIdentity = nativeSessionId;
+      run.isResume = true;
+      resumeChatId = nativeSessionId;
+    } else {
       this.d.audit.record({
         actor: "daemon",
         action: "tier1.recover_degraded_new_session",
-        meta: { runId: run.runId, taskId: run.taskId, attempt: run.attempt, reason: nativeKey.reason }
+        meta: {
+          runId: run.runId,
+          taskId: run.taskId,
+          attempt: run.attempt,
+          reason: nativeKey.reason,
+          expectedSessionIdentity: null,
+          isResume: false
+        }
       });
       run.nativeResumeAudited = true;
+      run.isResume = false;
+      if (this.backend.adapter === "claude_code") {
+        sessionId = this.bindClaudeFirstSession(run);
+      } else {
+        run.expectedSessionIdentity = null;
+      }
     }
-    const proc = d.spawner.spawn({
-      binary: d.cfg.lockedBinary,
-      model: run.model, // W5a 3.5:恢复链同用生效模型
-      prompt,
-      cwd: run.worktree,
-      env: strippedAgentEnv(process.env),
-      ...(nativeSessionId ? { resumeChatId: nativeSessionId } : {})
-    });
+    let proc: AgentProcessHandle;
+    try {
+      proc = this.spawnAgent(run, prompt, resumeChatId, sessionId);
+    } catch (err) {
+      if (err instanceof Tier1BinaryIdentityError) {
+        this.finalizeBinaryIdentityFailure(run, err);
+        return;
+      }
+      throw err;
+    }
     run.proc = proc;
     const eventsPath = join(this.runDir(run.runId), "events.jsonl");
     proc.onLine((line) => this.consumeEventLine(run, line, eventsPath));
@@ -2195,6 +2920,7 @@ export class Tier1Executor {
     }
     try {
       const { exitCode } = await proc.wait();
+      this.captureProcTail(run, proc);
       run.proc = null;
       run.processGroupVerifiedExited = true;
       this.clearAgentOwnership(run);
@@ -2212,6 +2938,7 @@ export class Tier1Executor {
         );
         return;
       }
+      if (await this.retryResumeNotFoundOnce(run, exitCode, eventsPath)) return;
       await this.settleAttempt(run, exitCode);
     } catch (err) {
       run.proc = null;
@@ -2335,18 +3062,25 @@ export class Tier1Executor {
     }
   }
 
-  /** 只在 durable (adapter,nativeSessionId,cwd) 与本轮 spawn 三元组规范化等值时原生 resume。 */
+  /** 只在 durable (adapter,nativeSessionId,cwd) 与本轮 spawn 三元组规范化等值时原生 resume。
+   *  claude 另要求 native_session_confirmed=1(四元组);cursor 仍三元组,不看确认位。 */
   private readNativeResumeKey(run: ActiveRun): { nativeSessionId: string | null; reason: string } {
     const row = this.d.db
-      .prepare("SELECT adapter, native_session_id AS sid, cwd FROM tier1_runs WHERE id = ?")
-      .get(run.runId) as { adapter: string; sid: string | null; cwd: string } | undefined;
+      .prepare(
+        "SELECT adapter, native_session_id AS sid, cwd, native_session_confirmed AS confirmed FROM tier1_runs WHERE id = ?"
+      )
+      .get(run.runId) as { adapter: string; sid: string | null; cwd: string; confirmed: number } | undefined;
     if (!row?.sid) return { nativeSessionId: null, reason: "native_session_absent" };
     if (row.adapter !== this.d.cfg.adapter) return { nativeSessionId: null, reason: "adapter_mismatch" };
     if (this.canon(row.cwd) !== this.canon(run.worktree)) return { nativeSessionId: null, reason: "cwd_mismatch" };
+    if (this.backend.adapter === "claude_code" && row.confirmed !== 1) {
+      return { nativeSessionId: null, reason: "not_confirmed" };
+    }
     return { nativeSessionId: row.sid, reason: "exact" };
   }
 
   private acceptNativeResume(run: ActiveRun, nativeSessionId: string): void {
+    if (!run.isResume) return;
     if (!run.agentOwnershipEstablished || !run.resumeSessionConfirmed) return;
     this.markRestartResumed(run);
     if (run.nativeResumeAudited) return;
@@ -2354,8 +3088,172 @@ export class Tier1Executor {
     this.d.audit.record({
       actor: "daemon",
       action: "tier1.recover_resume_native",
-      meta: { runId: run.runId, taskId: run.taskId, nativeSessionId }
+      meta: {
+        runId: run.runId,
+        taskId: run.taskId,
+        nativeSessionId,
+        expectedSessionIdentity: run.expectedSessionIdentity,
+        isResume: true
+      }
     });
+  }
+
+  private observedModelAuditMeta(run: ActiveRun): Record<string, unknown> {
+    let familyOk = false;
+    if (this.backend.adapter === "claude_code") {
+      familyOk =
+        run.observedModels.size > 0 && [...run.observedModels].every((m) => familyFromModelName(m) === "claude");
+    } else if (run.observedModel) {
+      const expectedFamily = familyFromModelName(run.model);
+      const observedFamily = familyFromModelName(run.observedModel);
+      familyOk = expectedFamily === null || observedFamily === null || expectedFamily === observedFamily;
+    }
+    return {
+      observedModel: run.observedModel,
+      observedModelSource: "stream",
+      observedModelExempted: false,
+      observedModelFamilyOk: familyOk
+    };
+  }
+
+  private recordRunCost(run: ActiveRun): void {
+    if (run.costRecorded) return;
+    run.costRecorded = true;
+    const usageRaw = run.resultEvent?.usage;
+    const usage =
+      usageRaw && typeof usageRaw === "object" && !Array.isArray(usageRaw)
+        ? (usageRaw as {
+            input_tokens?: number;
+            output_tokens?: number;
+            cache_read_input_tokens?: number;
+            cache_creation_input_tokens?: number;
+          })
+        : undefined;
+    try {
+      recordTier1SubscriptionRun(
+        this.d.db,
+        {
+          taskId: run.taskId,
+          runId: run.runId,
+          adapter: this.backend.adapter,
+          model: run.observedModel ?? run.model,
+          ...(usage ? { usage } : {}),
+          ...(run.resultEvent?.modelUsage !== undefined ? { modelUsage: run.resultEvent.modelUsage } : {}),
+          ...(run.resultEvent?.numTurns !== undefined ? { numTurns: run.resultEvent.numTurns } : {}),
+          ...(run.resultEvent?.totalCostUsd !== undefined
+            ? { totalCostUsdEstimate: run.resultEvent.totalCostUsd }
+            : {}),
+          usageUnavailable: usage === undefined,
+          projectId: run.projectId
+        },
+        this.now
+      );
+    } catch (err) {
+      this.d.log.error("recordTier1SubscriptionRun failed", { runId: run.runId, error: String(err).slice(0, 160) });
+    }
+  }
+
+  private claudeDisposition(run: ActiveRun, exitCode: number): ReturnType<typeof classifyClaudeRunOutcome> {
+    const disp = classifyClaudeRunOutcome(
+      run.resultEvent ?? undefined,
+      run.rateLimitEvents,
+      run.stderrTail,
+      exitCode,
+      run.abort
+    );
+    // 评审 90 B-6:与 claudeOutcome 同源的整词判定,不再各写一份裸子串正则
+    const rateReject = run.rateLimitEvents.some(
+      (e) => typeof e.status === "string" && isRateRejectStatus(e.status)
+    );
+    if (rateReject && disp.action !== "blocked") {
+      return { action: "blocked", reason: "subscription_rate_limited" };
+    }
+    return disp;
+  }
+
+  private auditClaudeCanaryReconciling(run: ActiveRun): void {
+    const denials = Array.isArray(run.resultEvent?.permissionDenials)
+      ? run.resultEvent.permissionDenials.length
+      : 0;
+    this.d.audit.record({
+      actor: "daemon",
+      action: "tier1.canary_reconciling",
+      meta: {
+        taskId: run.taskId,
+        runId: run.runId,
+        gateSeq: run.gateSeq,
+        gateDenyCount: run.gateDenyCount,
+        permissionDenials: denials,
+        reconcilingOk: denials >= run.gateDenyCount
+      }
+    });
+  }
+
+  private enqueueTier1RateLimit(run: ActiveRun): void {
+    const resetsAt = [...run.rateLimitEvents].reverse().find((e) => e.resetsAt !== undefined)?.resetsAt;
+    const resetsAtMs = resetsAt === undefined ? undefined : resetsAt < 1e12 ? resetsAt * 1000 : resetsAt;
+    const notBeforeMs = resetsAtMs !== undefined ? Math.max(0, resetsAtMs - Date.now()) : 0;
+    enqueueRateLimited(this.d.db, this.d.audit, {
+      slot: "tier1",
+      kind: "tier1_run",
+      payload: { taskId: run.taskId, runId: run.runId },
+      reason: "subscription_rate_limited",
+      notBeforeMs
+    });
+  }
+
+  /** resume_not_found:清 ownership 后新会话只重试一次。已重试或非 resume 则交给 settle。 */
+  private async retryResumeNotFoundOnce(run: ActiveRun, exitCode: number, eventsPath: string): Promise<boolean> {
+    if (this.backend.adapter !== "claude_code" || !run.isResume || run.resumeNotFoundRetryUsed) return false;
+    const disp = this.claudeDisposition(run, exitCode);
+    if (!(disp.action === "failed" && disp.reason === "resume_not_found")) return false;
+    run.resumeNotFoundRetryUsed = true;
+    this.d.audit.record({
+      actor: "daemon",
+      action: "tier1.recover_resume_failed",
+      meta: {
+        runId: run.runId,
+        taskId: run.taskId,
+        expectedSessionIdentity: run.expectedSessionIdentity,
+        isResume: true
+      }
+    });
+    this.clearAgentOwnership(run);
+    run.resultEvent = null;
+    run.terminalResultReceived = false;
+    run.rateLimitEvents = [];
+    run.observedModel = null;
+    run.observedModels = new Set();
+    run.resumeSessionConfirmed = false;
+    run.resumeSessionError = null;
+    run.gatedToolResults = 0;
+    run.toolUseById = new Map();
+    run.authViolation = false;
+    const sessionId = this.bindClaudeFirstSession(run);
+    const prompt = this.buildPrompt(run, true);
+    let proc: AgentProcessHandle;
+    try {
+      proc = this.spawnAgent(run, prompt, undefined, sessionId);
+    } catch (err) {
+      if (err instanceof Tier1BinaryIdentityError) {
+        this.finalizeBinaryIdentityFailure(run, err);
+        return true;
+      }
+      throw err;
+    }
+    run.proc = proc;
+    proc.onLine((line) => this.consumeEventLine(run, line, eventsPath));
+    await this.establishAgentOwnership(run, proc);
+    run.agentOwnershipEstablished = true;
+    this.markRestartResumed(run);
+    this.resolveClaim(run);
+    const waited = await proc.wait();
+    this.captureProcTail(run, proc);
+    run.proc = null;
+    run.processGroupVerifiedExited = true;
+    this.clearAgentOwnership(run);
+    await this.settleAttempt(run, waited.exitCode);
+    return true;
   }
 
   /** 清旧孤儿 agent 进程组(recover 前;ESRCH=已死,忽略) */

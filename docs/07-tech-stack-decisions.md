@@ -6,7 +6,7 @@
 ## 0. 选型原则
 
 1. **复用而非自建**:下游有现成实现(尤其自家 Hopper)就不重写;自建只留三块独特能力 + 控制面桥。
-2. **本地优先、可替换**:桌面执行面 = macOS **与** Windows(设计 ADR-004;机制见工程 ADR-003);云服务全部走 provider 抽象,能一行换供应商;每个云组件都要有本地/降级选项。官网在 W-Win 收口前仍可写"Windows 暂不支持",不得倒逼合同只承认 macOS。
+2. **本地优先、可替换**:桌面执行面 = macOS **与** Windows(设计 ADR-004;机制见工程 ADR-003);云服务全部走 provider 抽象,能一行换供应商;每个云组件都要有本地/降级选项。(2026-08-22:W-Win 已收口,官网口径同步翻转为「Windows/Linux 已开放,常驻安装与系统通知暂为 macOS 实现」;此前「官网在 W-Win 收口前仍可写 Windows 暂不支持」的过渡条款作废。)不得倒逼合同只承认 macOS。
 3. **license 卫生**:MIT/BSD/Apache 可直接集成;AGPL/GPL(Claude Squad、cmux)只抄机制、不引代码。
 4. **能力按运行时探测**:不按模型名/版本假设 agent 能力(steer/审批),探测失败走降级路径。
 5. **每引入一个依赖都要有明确回报**:不上编排框架全家桶、不为"以后可能用到"引库。
@@ -23,7 +23,7 @@
 | D5 | TTS | **火山豆包 seed-tts-2.0 大模型 · v3 双向流式 WebSocket**(定档)+ 本地兜底按 OS(macOS:Kokoro MLX/`say`;Windows P0:无本地则 ntfy,P1:SAPI/piper) | 定稿(2026-07-23;Windows 投影 2026-08-21 设计 ADR-004) |
 | D6 | S2S 引擎 | OpenAI Realtime,仅对话呈现层 | 分期(P2) |
 | D7 | 执行后端 | Hopper(现状 task 粒度起步) | 定稿 |
-| D8 | agent 接入 | Claude=Agent SDK(Tier 1,产品缺省);**Cursor=CLI hooks(Tier 1,dev 缺省;SDK=P1)**;Codex=经 Hopper exec(Tier 2)→ 评估 app-server | 定稿 |
+| D8 | agent 接入 | Claude=**CLI `-p` + PreToolUse hooks**(Tier 1,产品缺省;原"Agent SDK"传输 2026-08-21 supersede,W5.4 接线中);**Cursor=CLI hooks(Tier 1,dev 缺省;SDK=P1)**;Codex=经 Hopper exec(Tier 2)→ 评估 app-server | 定稿(传输形态 2026-08-21 修订) |
 | D9 | 记忆存储与检索 | Markdown 真相 + append-only 账本 + SQLite FTS5 | 待 spike(中文分词) |
 | D10 | 审批持久化 | 自建 SQLite 表,抄 LangGraph interrupt 语义 | 定稿 |
 | D11 | 通知/推送 | P0 ntfy + 桌面通知 → P1 APNs/FCM 直连 + PushKit/CallKit | 定稿 |
@@ -115,11 +115,11 @@ P0 `voiced` / `saydo up` 手动启动(开发迭代快);macOS P1 launchd 常驻 +
 
 | Agent | P0 | 演进 |
 |---|---|---|
-| Claude Code | **Agent SDK streaming**(Tier 1:canUseTool 审批 + 运行中 steer)——**不走 CLI**(Claude CLI 无 canUseTool,一手实测);**产品缺省后端** | — |
+| Claude Code | **CLI `claude -p` 子进程 + `PreToolUse` hooks**(Tier 1:hook allow/deny 裁决 S1-S3、S2 hook 内同步等审批 = canUseTool 等价物;`ask` 在 `-p` 下等同 deny,不可用作 S2 通道;hook 超时 = 落回 Claude 自身权限流,门脚本自返 deny 先于超时);**产品缺省后端**。**supersede 2026-08-21(W5.4 方案 v3.1 §1.2,Claude Code 2.1.220 实测)**:原「不走 CLI(Claude CLI 无 canUseTool,一手实测)」中"无 canUseTool 回调"仍为真,但 CLI 现有 hooks 等价承载;live steer/streaming input 仍 SDK 独有,W5.4 不做 | — |
 | Cursor | **Tier 1 dev 机缺省后端 = CLI 订阅态(2026-07-23 实测通过,`research/spikes/cursor-cli-tier1/`)**:`cursor-agent -p --force --trust [--resume <chatId>]` + 任务 worktree 内 `.cursor/hooks.json` 的 `beforeShellExecution` 钩子——无头下钩子**同步阻塞、回连 daemon 等决策、可靠拦截**(canUseTool 等价物,三测 A/B/C 全过);**零 API key、走 Cursor 订阅额度**(owner 该账号 CLI 有额度、API key 无额度)。**关键约束**:CLI 仅工具级钩子生效、**仅 `deny` 可靠**(故 `--force`+"默认 deny 批准才放行",只依赖已验证语义)、JSON **必用 JSON 解析器**(POSIX=`jq`;Windows=Node `JSON.parse`;防 fail-open)、无 live steer(→ 09 `queued_delta`/`cancel_resume`) | `@cursor/sdk`(API key,更强流式/更低延迟)= **后续优化**,脚本备于 `research/spikes/cursor-sdk-tier1/`,owner 想用 API 时切,接口同层(canUseTool 语义抽象,tier1_runs.adapter 预留) |
 | Codex | 经 Hopper 现状 `codex exec` adapter(Tier 2) | P1/P2 评估 **app-server**(`turn/steer` + 审批回调)——官方正道,待 Hopper M3b 或缝合层直连 |
 
-适配器模式借 spawner / ai-ide-cli(四方法 + 能力矩阵);Tier 1 执行器接口按 **canUseTool 语义**抽象,后端(claude_sdk / cursor_cli / 未来 cursor_sdk)可换,`tier1_runs.adapter` 字段承载;**ACP(Agent Client Protocol)持续跟进不押注**——Zed/JetBrains 共建、25+ agent,若成事实标准则适配层整体切 ACP。
+适配器模式借 spawner / ai-ide-cli(四方法 + 能力矩阵);Tier 1 执行器接口按 **canUseTool 语义**抽象,后端(claude_code(CLI,2026-08-21 起;原写 claude_sdk)/ cursor_cli / 未来 cursor_sdk)可换,`tier1_runs.adapter` 字段承载;**ACP(Agent Client Protocol)持续跟进不押注**——Zed/JetBrains 共建、25+ agent,若成事实标准则适配层整体切 ACP。
 
 ## 6. 记忆与检索
 
@@ -177,7 +177,7 @@ daemon 静态托管的单页应用(麦克风采集、任务看板、决策包/De
 | faster-whisper(Mac) | 走 CPU 不走 Metal;本地 STT 走 MLX 路径 |
 | MCP 作语音 UI 通道 | 同类项目(TalkiTo)实证结论:延迟不适合实时语音交互 |
 | 自托管全双工模型(Moshi 类) | VAD 轮替 + barge-in 已满足对话感;工程成熟度不足 |
-| Claude CLI 作需 `canUseTool` 的 Tier 1 开发档适配路径 | CLI 无 canUseTool(一手实测);开发档必须 Agent SDK;不影响下节无工具的一发一收 BYOA 槽 |
+| Claude CLI 作需 `canUseTool` 的 Tier 1 开发档适配路径 | **本行已 supersede(2026-08-21,W5.4 方案 v3.1)**:2.1.220 的 `-p` 下 `PreToolUse` hooks 可做 S1-S3 裁决(canUseTool 等价物),Claude CLI 已定为 Tier 1 产品缺省传输(D8 行);原弃选理由「CLI 无 canUseTool」的"无回调"仍为真但不再构成弃选依据;live steer 仍 SDK 独有 |
 | PWA 承载 iOS 语音 | 后台杀音频、无 VoIP push(已证伪,03 §8) |
 
 ### D18 模型供给:API 直连 + 本地 Agent CLI 订阅复用(BYOA)(T18 三轮精化)
@@ -201,7 +201,7 @@ daemon 静态托管的单页应用(麦克风采集、任务看板、决策包/De
 | 沉思档 | [ok] | [ok] T18a 正式形态 | 逐槽真实 self-test 通过才 `active`;失败不伪装成功 |
 | 廉价档 | [ok] | [ok] T18a 正式形态 | 结构化请求必须走 schema 通道并严格解析 |
 | 评估档 | [ok] | [ok] T18a 有条件武装 | 双 ack 齐备、self-test 通过且 observedModel 合同成立才 `active`;unknown 永不武装 |
-| 开发档 | —(本来就是 agent) | [ok] 已是 | Tier 1 后端可换:产品缺省 Claude Agent SDK(canUseTool)/ **dev 缺省 Cursor CLI hooks(订阅态,2026-07-23 实测)**;接口按 canUseTool 语义抽象(D8) |
+| 开发档 | —(本来就是 agent) | [ok] 已是 | Tier 1 后端可换:产品缺省 Claude Code(**CLI hooks 等价,2026-08-21 supersede**;原"Agent SDK"传输作废)/ **dev 缺省 Cursor CLI hooks(订阅态,2026-07-23 实测)**;接口按 canUseTool 语义抽象(D8) |
 
 调用方 → 槽位对照(防实施自造槽位):奠基提炼/任务卡起草/决策包/Demo 生成 → 沉思;摘要叙事/热词/事件打标 → 廉价;就绪深评 → 评估;采访/答疑/播报 → 对话;Hopper 任务卡渲染 = 确定性代码,不占槽。
 
@@ -227,7 +227,7 @@ daemon 静态托管的单页应用(麦克风采集、任务看板、决策包/De
 - **缺省配对**:thinking = `cursor_cli`(claude-fable-5-thinking-max,族=Claude)+ evaluator = `codex_cli`(gpt-5.6-luna,effort=max,族=GPT)——异族天然成立,且两档不共享同一家时窗。**互换必须成对**(thinking=codex_cli ⇔ evaluator=cursor_cli fable),否则异族校验拒启动。全 Cursor 配对(fable+luna)异族也成立,但两档共享一家时窗且供给单点,不作缺省。
 - dialog 全局绑定 CLI 时走 `dialog_cli_oneshot`,绑定 API 时仍走完整工具环;项目级 dialog override 恒拒 CLI。cheap 可走 CLI schema 通道,不得因其历史口播用途继续强制回落 API。
 - evaluator CLI 按双 ack+self-test+observedModel 合同武装;`profile="dev"` 不构成绕过。Gate 0/S3/收据/tripwire 审批安全链不放宽。
-- 开发档(Tier 1)接口按 canUseTool 语义抽象:产品缺省 Claude Agent SDK,**dev 机走 Cursor CLI hooks 已实测可等价审批(2026-07-23,`research/spikes/cursor-cli-tier1/`),无需 Claude**;唯一 Claude SDK 独有的是 live steer(cursor 用 `queued_delta`/`cancel_resume` 代偿),其 dogfood 顺延至 Claude 订阅购入(计划 v2.3①)。
+- 开发档(Tier 1)接口按 canUseTool 语义抽象:产品缺省 Claude Code CLI hooks(**2026-08-21 supersede,原"Agent SDK"传输作废**;订阅已就位,W5.4 接线中),**dev 机走 Cursor CLI hooks 已实测可等价审批(2026-07-23,`research/spikes/cursor-cli-tier1/`)**;live steer/streaming input 是 SDK 独有能力,两后端均以 `queued_delta`/`cancel_resume` 代偿,W5.4 不实现。
 
 **实现路径(T18a 对抗审裁决)**:补强 SayDo 已有 `providers/byoa/` 五层骨架(`cage/runner/parsers/consume/provider`),不搬 OctoDesk 的 Electron bridge 结构。OctoDesk 只读借鉴三项安全细节:取消链、wall+idle 双 watchdog、stderr 与 output cap。cursor 使用独立 raw NDJSON parser,识别顶层 tool_call 与未知事件;未知事件、provider 自报失败或解析失败使该次结果作废。tripwire 必须在流式读到工具事件时立即终止,不得等进程自然退出;已触发 tripwire/unknown/解析或家族失败的 attempt 不得借网络重试洗白。Claude schema 方言使用 `--output-format json --json-schema '<inline JSON>'`,从 envelope 的 `structured_output` 取值;Codex 使用临时 schema 文件,Cursor 使用 prompt 内嵌。探测不能只靠 `cursor-agent status`,必须结合真实一发一收 self-test。
 
@@ -252,7 +252,7 @@ daemon 静态托管的单页应用(麦克风采集、任务看板、决策包/De
 ## 10. P0 第一周 spike 清单(按风险排序)
 
 1. **Pipecat 打断 watermark**:能否截断"已听到的历史"、未播文本标 unheard——定 Pipecat vs LiveKit Agents(D2 的去留开关);
-2. **Claude Agent SDK 实测**:streaming input + canUseTool 阻塞审批 + steer 全链路(Tier 1 成立的前提);
+2. **Claude Agent SDK 实测**:streaming input + canUseTool 阻塞审批 + steer 全链路(Tier 1 成立的前提)——**状态注(2026-08-21)**:已改道 CLI 路径结项,`-p` + PreToolUse hooks 的 S1-S3 裁决/同步等待/超时语义均经 W5.4 方案 §1.2 十七项 spike 实证(2.1.220);streaming input 仅可行性 spike(B-6),live steer 不实现;
 3. **Hopper 对接现状**:task drop 格式、events.jsonl 消费(cursor/gap/重放幂等)、NotificationIntent 挂语音 transport;
 4. ~~ASR golden 集跑分~~ **已结项(2026-07-24,D4 定档)**:60 条种子语料火山单家定档(工程 ADR-101);第二家对比与 300–500 条真实 golden = 换 provider 门禁,非开工门;
 5. **TTS 调参(D5 已定档=豆包 seed-tts-2.0 v3,仅调参)**:分句策略下真实首包延迟、音色/speech_rate/loudness_rate 主观质量;
@@ -264,6 +264,6 @@ daemon 静态托管的单页应用(麦克风采集、任务看板、决策包/De
 
 | 阶段 | 本篇引入项 |
 |---|---|
-| P0 | D1/D16/D17(基座)· D2/D4/D5(级联语音)· D3(三档模型)· D18(thinking/cheap/evaluator CLI 一发一收、`dialog_cli_oneshot`、BYOA 三形态 UI)· D7/D8(Hopper + Claude SDK)· D9(FTS5 起步)· D10(审批表)· D11(ntfy)· D14(控制台)· D15(账本) |
+| P0 | D1/D16/D17(基座)· D2/D4/D5(级联语音)· D3(三档模型)· D18(thinking/cheap/evaluator CLI 一发一收、`dialog_cli_oneshot`、BYOA 三形态 UI)· D7/D8(Hopper + Claude 接入,传输 2026-08-21 改 CLI)· D9(FTS5 起步)· D10(审批表)· D11(ntfy)· D14(控制台)· D15(账本) |
 | P1 | D8(Cursor SDK、评估 Codex app-server)· D11(APNs/FCM 直连)· D12(Capacitor 外壳)· D13(Tailscale)· Langfuse 可选 |
 | P2 | D6(S2S 呈现层)· D9(sqlite-vec)· D13(WS 密文中继/T3)· 电话回叫(SIP 呼入)· 菜单栏壳评估 |

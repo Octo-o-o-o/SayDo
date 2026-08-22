@@ -78,6 +78,8 @@ describe("DDL v5 追赶迁移(A1)", () => {
     expect(columns(db, "tier1_runs")).toContain("budget_active_ms");
     expect(columns(db, "tier1_runs")).toContain("budget_tool_calls");
     expect(columns(db, "tier1_runs")).toContain("restart_reason");
+    // v30(W5.4-b C2b):claude 会话确认位,老库缺省 0
+    expect(columns(db, "tier1_runs")).toContain("native_session_confirmed");
     // v7(W5a 3.5):project_settings 受控表老库同样建出
     expect(db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='project_settings'").get()).toBeTruthy();
     // v8(W5a 3.7):subscription_retry_queue durable 队列老库同样建出
@@ -305,6 +307,58 @@ describe("DDL v5 追赶迁移(A1)", () => {
       "INSERT INTO readiness_assessments(id, session_id, verdict, dims_json, layer, created_at) VALUES (?,?,?,?,?,?)"
     ).run("rdy_01M1GRATE0000000000000001", SES, "not_ready", "[]", "rules", "2026-07-26T12:00:00.000Z");
     expect((db.prepare("SELECT layer FROM readiness_assessments LIMIT 1").get() as { layer: string }).layer).toBe("rules");
+    db.close();
+  });
+
+  it("v30:v4 老库升级后 native_session_confirmed 缺省 0 且既有行不损", () => {
+    const nowIso = "2026-07-25T00:00:00.000Z";
+    buildV4EraDb((raw) => {
+      raw.prepare(
+        `INSERT INTO projects(id, title, type, status, workspace_json, exec_mode_default, created_at, updated_at)
+         VALUES ('prj_01M1GRATEV30000000000000', 'v30', 'coding', 'active', ?, 'step_confirm', ?, ?)`
+      ).run(
+        JSON.stringify({
+          kind: "local_folder",
+          path: managedProjectPath("prj_01M1GRATEV30000000000000"),
+          managed: true
+        }),
+        nowIso,
+        nowIso
+      );
+      raw.prepare(
+        `INSERT INTO tasks(id, project_id, title, spec_markdown, route, status, adapter, cwd, budget_json, created_at, updated_at)
+         VALUES ('tsk_01M1GRATEV30000000000000', 'prj_01M1GRATEV30000000000000', 't', 's', 'tier1', 'queued', 'cursor', '/tmp', '{}', ?, ?)`
+      ).run(nowIso, nowIso);
+      raw.prepare(
+        `INSERT INTO tier1_runs(id, task_id, attempt, adapter, native_session_id, cwd, worktree_path, state, created_at, updated_at)
+         VALUES ('run_01M1GRATEV30000000000000', 'tsk_01M1GRATEV30000000000000', 1, 'cursor', 'chat-old', '/tmp/wt', '/tmp/wt', 'settled_review', ?, ?)`
+      ).run(nowIso, nowIso);
+    });
+    const db = openDb(dbPath);
+    const row = db
+      .prepare(
+        `SELECT id, adapter, native_session_id AS sid, cwd, state, native_session_confirmed AS confirmed
+         FROM tier1_runs WHERE id='run_01M1GRATEV30000000000000'`
+      )
+      .get() as {
+      id: string;
+      adapter: string;
+      sid: string;
+      cwd: string;
+      state: string;
+      confirmed: number;
+    };
+    expect(row).toEqual({
+      id: "run_01M1GRATEV30000000000000",
+      adapter: "cursor",
+      sid: "chat-old",
+      cwd: "/tmp/wt",
+      state: "settled_review",
+      confirmed: 0
+    });
+    expect(() =>
+      db.prepare("UPDATE tier1_runs SET native_session_confirmed=2 WHERE id='run_01M1GRATEV30000000000000'").run()
+    ).toThrow(/CHECK/i);
     db.close();
   });
 });

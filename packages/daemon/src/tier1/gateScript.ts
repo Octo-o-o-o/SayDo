@@ -13,11 +13,15 @@ import { restrictOwnerOnly } from "@saydo/platform";
 export const GATE_CURL_TIMEOUT_SEC = 110;
 
 export function buildGateScript(sockPath: string, logPath: string): string {
+  // 评审 90 B-3:路径必须走 bashSingleQuoted(claude 版已正确)。SAYDO_HOME 允许含单引号
+  // (workspace 路径校验不禁),裸拼会生成语法损坏的脚本 —— 门脚本坏掉 = 每条命令都拿不到裁决。
+  const sockLit = bashSingleQuoted(sockPath);
+  const logLit = bashSingleQuoted(logPath);
   return `#!/bin/bash
 # SayDo Tier1 审批门(daemon 生成,每次启动重写,手改无效;fail-closed 四律见 tier1/gate.ts)
 set -u
-SOCK='${sockPath}'
-LOG='${logPath}'
+SOCK=${sockLit}
+LOG=${logLit}
 input=$(cat)
 # W2 阶段0-④(Codex 20 B5):hook 输入对象校验——非 JSON 对象 / command 缺失·非 string·空串,
 # 一律不 POST 直接 deny(此前 2>/dev/null 吞错后空 command 继续上行,未达"畸形立即 deny"口径)
@@ -47,6 +51,7 @@ export interface GatePaths {
   dir: string;
   /** 当前 backend 活动入口(POSIX=gate.sh, win32=gate-cursor.mjs) */
   scriptPath: string;
+  /** claude PreToolUse 门脚本(与活动入口同目录;POSIX=gate-claude.sh, win32=gate-claude.mjs) */
   claudeScriptPath: string;
   sockPath: string;
   logPath: string;
@@ -68,12 +73,29 @@ export function gatePaths(saydoHome: string): GatePaths {
   };
 }
 
-/** 原子写脚本(临时文件 + rename;迟到评审 C 回收:防并发在途 hook exec 到半截脚本) */
+/**
+ * 原子写脚本(临时文件 + rename;迟到评审 C 回收:防并发在途 hook exec 到半截脚本)。
+ * 评审 91 C-1:win32 上 chmod 近乎无效,rename 后重走 restrictOwnerOnly——
+ * 否则漂移自愈会把一个本来 owner-only 的门脚本换成继承默认 DACL 的新文件。
+ */
 export function writeGateScriptAtomic(scriptPath: string, content: string): void {
   const tmp = `${scriptPath}.tmp`;
   writeFileSync(tmp, content);
   chmodSync(tmp, 0o755);
   renameSync(tmp, scriptPath);
+  if (process.platform === "win32") restrictOwnerOnly(scriptPath, "file");
+}
+
+/**
+ * 数据面原子写(hooks.json / gate-bind.json):0o600,不给执行位。
+ * 评审 91 C-1:win32 上 chmod 近乎无效,rename 后必须重走 restrictOwnerOnly 才有 owner-only DACL。
+ */
+export function writeDataSurfaceAtomic(path: string, content: string): void {
+  const tmp = `${path}.tmp`;
+  writeFileSync(tmp, content, { mode: 0o600 });
+  chmodSync(tmp, 0o600);
+  renameSync(tmp, path);
+  if (process.platform === "win32") restrictOwnerOnly(path, "file");
 }
 
 export function buildActiveGateScript(p: GatePaths): string {
@@ -83,17 +105,22 @@ export function buildActiveGateScript(p: GatePaths): string {
   return buildGateScript(p.sockPath, p.logPath);
 }
 
-/** 启动时供给(幂等重写;0o755 可执行) */
+/** claude 门脚本正文(与 buildActiveGateScript 对称:POSIX=bash+curl --unix-socket, win32=Node+HMAC) */
+export function buildActiveClaudeGateScript(p: GatePaths): string {
+  if (process.platform === "win32") {
+    return buildClaudeGateMjs(p.bindPath, p.secretPath, p.logPath);
+  }
+  return buildClaudeGateScript(p.sockPath, p.logPath);
+}
+
+/** 启动时供给(幂等重写;0o755 可执行)。双脚本同写:cursor 活动入口 + claude hooks 门(W5.4-b C2a drift guard)。 */
 export function ensureGateScript(saydoHome: string): GatePaths {
   const p = gatePaths(saydoHome);
   mkdirSync(p.dir, { recursive: true, mode: 0o700 });
   if (process.platform === "win32") restrictOwnerOnly(p.dir, "dir");
+  // 两个 writeGateScriptAtomic 内部已在 win32 重走 restrictOwnerOnly(评审 91 C-1),此处不再重复
   writeGateScriptAtomic(p.scriptPath, buildActiveGateScript(p));
-  if (process.platform === "win32") {
-    restrictOwnerOnly(p.scriptPath, "file");
-    writeGateScriptAtomic(p.claudeScriptPath, buildClaudeGateMjs(p.bindPath, p.secretPath, p.logPath));
-    restrictOwnerOnly(p.claudeScriptPath, "file");
-  }
+  writeGateScriptAtomic(p.claudeScriptPath, buildActiveClaudeGateScript(p));
   return p;
 }
 
@@ -114,7 +141,7 @@ function assertPositiveInt(n: number, name: string): number {
   return n;
 }
 
-/** 纯函数:生成 gate-claude.sh 正文。本批不接线 ensureGateScript。 */
+/** 纯函数:生成 gate-claude.sh 正文。启动/ensureGateScript 原子落盘,不进 worktree。 */
 export function buildClaudeGateScript(
   sockPath: string,
   logPath: string,
@@ -161,19 +188,20 @@ emit_fail() {
   exit 2
 }
 emit_nodecision() { exit 0; }
-path_outside() {
-  local path="$1" root="$2"
+# 与圈根无关的越界向量预筛(第二层 fail-closed)。
+# 评审 92 + owner 2026-08-22 裁决:**不再判「绝对路径是否在 cwd 下」**——
+# 那条需要 worktree 根,而脚本是全局单份、跨 run 复用,手里只有 hook 报的 cwd;
+# daemon 的 findRunByCwd 明确允许 cwd 落在 worktree 子目录,拿 cwd 当圈根会误拒圈内文件。
+# 圈内外由 daemon 的 fileToolToEffect(tool, path, cwd, run.worktree) 单点裁决。
+# 这里只挡「无论圈根是什么都越界」的形态:.. 分量、~ 展开、$HOME 展开。
+path_traversal() {
+  local path="$1"
+  # 按分量判,不用 *..* 裸通配(评审 92 新 C:那样会误拒 foo..bar 这类合法文件名)
   case "$path" in
-    *..*) return 0 ;;
+    */../*|*/..|../*|..) return 0 ;;
     '~'|'~/'*) return 0 ;;
     '$HOME'*|'\${HOME}'*) return 0 ;;
   esac
-  if [ "\${path#/}" != "$path" ]; then
-    case "$path" in
-      "$root"|"$root"/*) return 1 ;;
-      *) return 0 ;;
-    esac
-  fi
   return 1
 }
 post() {
@@ -203,14 +231,14 @@ case "$tool" in
   Write|Edit|NotebookEdit)
     path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.notebook_path // empty')
     if [ -z "$path" ]; then emit_fail; fi
-    if path_outside "$path" "$cwd"; then emit_deny "outside worktree"; fi
+    if path_traversal "$path"; then emit_deny "path traversal (fail-closed)"; fi
     payload=$(jq -nc --arg t "$tool" --arg p "$path" --arg w "$cwd" '{kind:"file_write",tool:$t,path:$p,cwd:$w}')
     handle_resp "$(post "$payload")"
     ;;
   Read)
     path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty')
     if [ -z "$path" ]; then emit_fail; fi
-    if path_outside "$path" "$cwd"; then emit_deny "outside worktree"; fi
+    if path_traversal "$path"; then emit_deny "path traversal (fail-closed)"; fi
     payload=$(jq -nc --arg p "$path" --arg w "$cwd" '{kind:"file_read",path:$p,cwd:$w}')
     handle_resp "$(post "$payload")"
     ;;
@@ -235,6 +263,12 @@ function postGate(bodyObj) {
     try {
       bind = JSON.parse(readFileSync(BIND_PATH, "utf8"));
     } catch {
+      resolve("");
+      return;
+    }
+    // 评审 90 B-2:JSON.parse("null")/数组/标量都是合法 JSON 但非法形状;
+    // 不先判就会在 bind.host 上抛,顶层 await 无 catch ⇒ 不出 deny JSON、退出码也不是合同要求的 2
+    if (!bind || typeof bind !== "object" || Array.isArray(bind)) {
       resolve("");
       return;
     }
@@ -302,6 +336,17 @@ ${gatePostClientSource(timeoutMs)}
 function deny(msg) {
   process.stdout.write(JSON.stringify({ permission: "deny", agent_message: msg }));
 }
+// 评审 90 B-2:任何未预期抛出都必须仍然出 deny(fail-closed),不能静默退出让 hook 落回 vendor 权限流
+function bail() {
+  try {
+    deny("SayDo gate: internal error (fail-closed)");
+  } catch {
+    // stdout 都写不出就只能靠退出码
+  }
+  process.exit(0);
+}
+process.on("uncaughtException", bail);
+process.on("unhandledRejection", bail);
 
 const raw = readFileSync(0, "utf8");
 let input;
@@ -348,7 +393,7 @@ process.exit(0);
 `;
 }
 
-/** Windows Claude PreToolUse:Bash 映射为 command;其余 kind 本批 deny */
+/** Windows Claude PreToolUse:与 POSIX `gate-claude.sh` 同分支——Bash/Write/Edit/NotebookEdit/Read 四路 + 三态响应 */
 export function buildClaudeGateMjs(
   bindPath: string,
   secretPath: string,
@@ -381,6 +426,45 @@ function emitAllow() {
   }));
   process.exit(0);
 }
+// 无裁决:空输出 exit 0,落回 Claude 自身权限流(与 POSIX emit_nodecision 等价)
+function emitNoDecision() {
+  process.exit(0);
+}
+// 评审 90 B-2:未预期抛出走合同失败出口(deny JSON + exit 2),不留静默退出的口子
+process.on("uncaughtException", () => emitFail());
+process.on("unhandledRejection", () => emitFail());
+// 与圈根无关的越界向量预筛(第二层 fail-closed),语义与 POSIX 的 path_traversal 一致。
+// 评审 92 + owner 2026-08-22 裁决:不再判「绝对路径是否在 cwd 下」(见 POSIX 侧同注)。
+// 评审 92 另点名 POSIX 的 *..* 裸通配会误拒 foo..bar 这类合法文件名——两端本次统一改为按分量判。
+function pathTraversal(p) {
+  if (typeof p !== "string" || p.length === 0) return true;
+  const BS = String.fromCharCode(92);
+  const parts = p.split("/").join(BS).split(BS);
+  if (parts.includes("..")) return true;
+  if (p.charAt(0) === "~") return true;
+  const up = p.toUpperCase();
+  if (up.indexOf("%USERPROFILE%") === 0 || up.indexOf("%HOMEPATH%") === 0) return true;
+  if (p.indexOf("$HOME") === 0 || p.indexOf("\${HOME}") === 0) return true;
+  return false;
+}
+async function decide(payload) {
+  const respRaw = await postGate(payload);
+  let resp;
+  try {
+    resp = JSON.parse(respRaw);
+  } catch {
+    emitFail();
+  }
+  if (resp && resp.permission === "allow") emitAllow();
+  if (resp && resp.permission === "no_decision") emitNoDecision();
+  if (resp && resp.permission === "deny") {
+    emitDeny(typeof resp.agent_message === "string" && resp.agent_message
+      ? resp.agent_message
+      : "SayDo gate denied (fail-closed)");
+    process.exit(0);
+  }
+  emitFail();
+}
 
 const raw = readFileSync(0, "utf8");
 if (!raw) emitFail();
@@ -395,29 +479,32 @@ const tool = input.tool_name;
 if (typeof tool !== "string" || tool.length === 0) emitFail();
 const cwd = typeof input.cwd === "string" && input.cwd ? input.cwd : process.cwd();
 logLine({ tool, cwd });
-if (tool !== "Bash") {
-  emitDeny("SayDo gate: unknown kind (fail-closed)");
-  process.exit(0);
-}
-const command = input.tool_input && typeof input.tool_input.command === "string"
-  ? input.tool_input.command
-  : "";
-if (!command) emitFail();
-const respRaw = await postGate({ kind: "command", command, cwd });
-let resp;
-try {
-  resp = JSON.parse(respRaw);
-} catch {
+const ti = input.tool_input && typeof input.tool_input === "object" ? input.tool_input : {};
+if (tool === "Bash") {
+  const command = typeof ti.command === "string" ? ti.command : "";
+  if (!command) emitFail();
+  await decide({ kind: "command", command, cwd });
+} else if (tool === "Write" || tool === "Edit" || tool === "NotebookEdit") {
+  const fp = typeof ti.file_path === "string" && ti.file_path
+    ? ti.file_path
+    : (typeof ti.notebook_path === "string" ? ti.notebook_path : "");
+  if (!fp) emitFail();
+  if (pathTraversal(fp)) {
+    emitDeny("path traversal (fail-closed)");
+    process.exit(0);
+  }
+  await decide({ kind: "file_write", tool, path: fp, cwd });
+} else if (tool === "Read") {
+  const fp = typeof ti.file_path === "string" ? ti.file_path : "";
+  if (!fp) emitFail();
+  if (pathTraversal(fp)) {
+    emitDeny("path traversal (fail-closed)");
+    process.exit(0);
+  }
+  await decide({ kind: "file_read", path: fp, cwd });
+} else {
   emitFail();
 }
-if (resp && resp.permission === "allow") emitAllow();
-if (resp && resp.permission === "deny") {
-  emitDeny(typeof resp.agent_message === "string" && resp.agent_message
-    ? resp.agent_message
-    : "SayDo gate denied (fail-closed)");
-  process.exit(0);
-}
-emitFail();
 `;
 }
 

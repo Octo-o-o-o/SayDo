@@ -82,6 +82,10 @@ export function describeEffectForSpeech(effect: EffectDescriptor, command: strin
   if (effect.kind === "push_branch") {
     return `推到 ${effect.target ?? "远端"} 分支`;
   }
+  if (effect.kind === "write_worktree" && effect.touchesSensitiveData) {
+    const base = redactForSpeech((effect.target ?? "敏感文件").replace(/\\/g, "/").split("/").pop() ?? "敏感文件").text;
+    return `要改敏感文件 ${base},批准吗`;
+  }
   return `执行:${cmd}`;
 }
 

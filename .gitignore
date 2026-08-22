@@ -46,3 +46,6 @@ saydo-tier1-executor-*
 **/.saydo-*
 **/.tmp-saydo-*
 .tmp-saydo-*
+
+# OpenClaw 会话续跑临时物(非项目内容)
+.omo/

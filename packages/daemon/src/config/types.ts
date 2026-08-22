@@ -67,10 +67,18 @@ export const configSchema = z.object({
   // Tier1 执行器(执行器批;canonical 09 §11 [tier1] 补录随收尾轻量评审——工程 additive 扩展,时序如实):
   // 版本 pin 红线承载:cursor_agent_bin 必须是锁定副本绝对路径(versions/<ver>/cursor-agent,
   // 裸名走 PATH 会随 symlink 自更新漂移);两键齐备才启用执行器(fail-closed:缺任一不认领,处方化提示)
+  // claude 四键(W5.4-b C1,09 §11 claude_code 承载段 additive;cursor 两键不动):
+  // claude_bin 绝对路径(symlink 解析到实体)/ claude_pinned_version 精确串(claude --version 首 token 比对)/
+  // model claude 专用模型键(模型键按 backend 单源;cursor 仍用 [models.dev].model)/
+  // claude_max_turns --max-turns 防失控兜底(与派发 maxTurns:80 是两把尺子)
   tier1: z
     .looseObject({
       cursor_agent_bin: z.string().optional(),
-      cursor_agent_pinned_version: z.string().optional()
+      cursor_agent_pinned_version: z.string().optional(),
+      claude_bin: z.string().optional(),
+      claude_pinned_version: z.string().optional(),
+      model: z.string().optional(),
+      claude_max_turns: z.number().int().positive().optional()
     })
     .optional(),
   // T2 薄版(W2 阶段 B;05 §4 提前批 #2;canonical 09 §11 [t2] 补录随收尾轻量评审——additive 扩展):

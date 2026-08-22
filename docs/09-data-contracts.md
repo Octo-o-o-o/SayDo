@@ -99,6 +99,14 @@ interface TranscriptTurn {
    拒绝 UNC(`\\server\share`)与 `\\?\` 扩展路径(语音面不收录)。unquoted 末尾 `/` 仅 POSIX root 保留；quoted 内容不剥标点。唯一 span 不做 lowercase，
    平台大小写/Unicode 文件名等价性以 filesystem 返回的 realpath + (`dev`,`ino`) 为准
    (Windows 上这两列承载 volume serial + NTFS file index,列名不改;设计 ADR-004)。
+   **`dev` 的重校验语义按平台分叉(2026-08-22 补注,评审 92)**:win32 的 `dev` = volume serial,
+   跨重启稳定,重校验时硬锚(不符即 `workspace_identity_changed`);**POSIX 的 `st_dev` 是挂载期标识**,
+   同一卷在重启或挂载顺序变化后会换号,故重校验**只硬锚 `(realpath, ino)`**,`dev` 漂移视为重挂载、
+   放行并以当前值刷新登记。登记列仍恒写 `(dev,ino)` 两列(DDL 触发器要求非 NULL),
+   POSIX 上 `workspace_dev` 语义降为「最近一次见到的 dev」。
+   依据:定时快照自 2026-08-07 起连续 `workspace_identity_changed` 失败,取证为生产库登记
+   `dev=16777234 / ino=765311` 而 `stat` 实测 `dev=16777231 / ino=765311`(ino 未变,目录未被替换)。
+   威胁模型不放宽:目录被真正替换必然换 inode,另有 realpath + 非 reparse point + owner-home 位置约束。
    Windows 状态根与 workspace 另须本地固定 NTFS(非 ReFS/SMB/subst/可移动盘;工程 ADR-003)。
 2. canonical path 必须是 owner home 的严格子目录，并拒绝 `/`、home 本身、SayDo 状态/发布/
    备份目录、`voice-coding.archive-*` 冷档，以及与另一非 archived、非系统托管 workspace
@@ -867,10 +875,14 @@ CREATE TABLE cost_entries(id TEXT PRIMARY KEY, ts TEXT, project_id TEXT, task_id
   source TEXT CHECK(source IN ('api','subscription')), meta_json TEXT,
   CHECK (source != 'subscription' OR (known = 0 AND amount IS NULL)));  -- 订阅行恒 known=0/amount=NULL(07 D18 纪律 3;复评 B2 机械化)
 -- meta_json 定型(M4/③-4,2026-07-25;Codex 13b 修 kind 口径:kind 是**前缀词表**——
---   `llm.<slot>`(dialog/thinking/cheap/evaluator)/ `asr.seconds` / `tts.chars` / `hopper.run`,§12 有非法 kind 反例):
+--   `llm.<slot>`(dialog/thinking/cheap/evaluator)/ `asr.seconds` / `tts.chars` / `hopper.run` / `tier1.run`(W5.4-b 前置回写 2026-08-21 新增),§12 有非法 kind 反例):
 --   kind LIKE 'llm.%' 必含 {model, input_tokens, cached_input_tokens, output_tokens[, routed_provider]}
 --   (§12 断言四键必填 + cached_input_tokens<=input_tokens;订阅行金额 NULL 但 tokens 照记——形状详 §11-5;routed_provider 见 M2 钉路由);
 --   kind='asr.seconds' 含 {seconds};kind='tts.chars' 含 {chars};kind='hopper.run' 含 {runId}。
+--   kind='tier1.run'(执行器订阅记账,每 run 一行):source='subscription'、amount NULL、known 0、**requests=1**
+--   (`num_turns` 进 meta,不冒充"已用 N 次"——07 D18 纪律 3 与 §11 规则 5 口径延伸到执行器);meta 含
+--   {modelUsage, num_turns, total_cost_usd_estimate, usage_unavailable};usage 缺失时 tokens 四键记 0 且
+--   usage_unavailable:true 并存(0 表示"不可得"不表示"零消耗",不编数);cursor 后端同步补记(只加不改)。
 --   E1 provider 抽象统一 usage 命名:OpenAI prompt_tokens_details.cached_tokens / Anthropic cache_read_input_tokens
 --   (后者另有 1.25x 写入价;cache_write_input_tokens **已启用**(W5a 2026-07-27):Anthropic
 --   cache_creation_input_tokens 经网关回带才写、不编数——meta 回带两态断言已登 §12-9)。
@@ -903,10 +915,18 @@ CREATE TABLE subscription_retry_queue(id TEXT PRIMARY KEY NOT NULL,
 CREATE INDEX srq_due ON subscription_retry_queue(state, not_before);
   -- 订阅限流 durable 排队重放(§11-5"P0.5 再议"清偿,W5a v8):重启不丢;sweep 到点按 kind 重放、
   -- 指数退避、超上限 expired;重放仍订阅额度内,不产生 source='api' 行(计费纪律不变);
-  -- 生产 enqueue/replayer 接线随 claude 订阅接入批(PLAN-2 5.4),当前空 replayers = sweep 空转零成本
+  -- 生产 enqueue/replayer 接线随 claude 订阅接入批(PLAN-2 5.4),当前空 replayers = sweep 空转零成本。
+  -- Tier1 词表(W5.4-b 前置回写 2026-08-21):执行器限流 enqueue 用 slot='tier1'、kind='tier1_run'、
+  -- not_before=rate_limit_event.resetsAt;replayer = retryTask(blocked→running)→ 认领循环按四元组规则 --resume;
+  -- 只对**明确拒绝态**动作(status 命中拒绝词表或 result 命中 isCliSubscriptionRateLimit),不静默转 api 计费
 -- Tier 1 执行域(路径一;路径二执行状态归 Hopper)——A-04 的本地 canonical
 CREATE TABLE tier1_runs(id TEXT PRIMARY KEY NOT NULL, task_id TEXT NOT NULL REFERENCES tasks(id),
   attempt INTEGER NOT NULL, adapter TEXT NOT NULL, native_session_id TEXT, cwd TEXT NOT NULL,
+  native_session_confirmed INTEGER NOT NULL DEFAULT 0 CHECK(native_session_confirmed IN (0,1)),
+    -- W5.4-b 前置回写 2026-08-21(additive):claude 首跑 uuid 先落(未确认 0),
+    -- system/init.session_id 对上才置 1;claude_code 恢复/续跑只认 confirmed=1 的钥匙(§11 claude_code 承载段;
+    -- cursor 沿既有三元组语义,不受该列约束——既有行缺省 0 不改变 cursor 行为)。
+    -- 迁移铁律机械化:实现取下一可用 schema 版本做增量迁移 + v4-era fixture 老库升级回归(HANDOFF §4;既有行回填 0)
   worktree_path TEXT NOT NULL, tree_sha TEXT, event_cursor TEXT,
   state TEXT NOT NULL, settle_proof_json TEXT, cancel_proof_json TEXT,
   decisions_json TEXT,   -- 三层摘要之 decisions 缓存(W5a v6 additive 迁移 2026-07-27;§13 explainResult level=decisions 落库,口播/上屏同源)
@@ -928,7 +948,7 @@ CREATE TABLE task_messages(id TEXT PRIMARY KEY NOT NULL, task_id TEXT NOT NULL R
 CREATE INDEX task_messages_task ON task_messages(task_id, attempt);
 ```
 
-**Tier1SettleProof**(§6.3 settle barrier 的路径一形态,替代路径二的机械判定):`{ kind:"tier1", taskId, runId, attempt, packageRevision, treeSha, tier1VerifyDigest, transcriptCursor, settledAt }`——回叫前必须齐备且 verify 独立通过。**`kind` 判别键(R-A 2026-07-26)**:`settle_proof_json` = `Tier1SettleProof | WritingSettleProof` 判别联合,按 `kind`(tier1/writing)分支解析,§12 round-trip 分别覆盖。**verify 的确定性 oracle 首选 `hopper check`**(Hopper 反馈 §4.1,零改可用):`hopper check --base <ref>|--staged --criteria - --format json` 对任意 git repo diff 跑四道确定性闸门(verification / guardrails 含 secret+forbidden 扫描 / 逐条 AC acceptance / docs),不写事件流不动工作区,退出码 0–4(4=needs_human ⇒ 映射回叫),`--criteria -` 直接喂 `DecisionPackage.acceptance[]`——比自建异族 oracle 独立性更强(纯确定性、非模型),异族深评只留给"确定性闸门测不了的语义判断";agent 未 commit 产出用 `git add -A` + `--staged`。可行性验证在计划 0.5(窄闭环 PoC 顺做)。(字段原名 `verifyEvidenceDigest` 依裁决 §4 改名:与 Hopper `evidenceDigest` 同名不同物,防跨路径混读。)**Tier1CancelProof**:`{ taskId, runId, processExited:true, worktreeLockReleased:true, lastEventId, settledAt }`——cancel_settled 前必须齐备,旧 run 晚到事件转历史、不触发当前回叫。**step_confirm 语义**(P0 owner 已定):Tier1 步序 = **同一 SDK session 内暂停**(非多 run),`step_paused` 是 session 暂停态,续跑用同 session,不产生新 run(避免重复执行)。
+**Tier1SettleProof**(§6.3 settle barrier 的路径一形态,替代路径二的机械判定):`{ kind:"tier1", taskId, runId, attempt, packageRevision, treeSha, tier1VerifyDigest, transcriptCursor, settledAt }`——回叫前必须齐备且 verify 独立通过。**`kind` 判别键(R-A 2026-07-26)**:`settle_proof_json` = `Tier1SettleProof | WritingSettleProof` 判别联合,按 `kind`(tier1/writing)分支解析,§12 round-trip 分别覆盖。**verify 的确定性 oracle 首选 `hopper check`**(Hopper 反馈 §4.1,零改可用):`hopper check --base <ref>|--staged --criteria - --format json` 对任意 git repo diff 跑四道确定性闸门(verification / guardrails 含 secret+forbidden 扫描 / 逐条 AC acceptance / docs),不写事件流不动工作区,退出码 0–4(4=needs_human ⇒ 映射回叫),`--criteria -` 直接喂 `DecisionPackage.acceptance[]`——比自建异族 oracle 独立性更强(纯确定性、非模型),异族深评只留给"确定性闸门测不了的语义判断";agent 未 commit 产出用 `git add -A` + `--staged`。可行性验证在计划 0.5(窄闭环 PoC 顺做)。(字段原名 `verifyEvidenceDigest` 依裁决 §4 改名:与 Hopper `evidenceDigest` 同名不同物,防跨路径混读。)**Tier1CancelProof**:`{ taskId, runId, processExited:true, worktreeLockReleased:true, lastEventId, settledAt }`——cancel_settled 前必须齐备,旧 run 晚到事件转历史、不触发当前回叫。**step_confirm 语义**(P0 owner 已定;deferred——P0 执行器单 attempt 拓扑不产生 step_paused,见下方实施状态注):Tier1 步序 = **同一 agent session 内暂停**(非多 run;原文"SDK session"随 2026-08-21 传输改 CLI 中性化,session 载体 = 各 backend 的 native session),`step_paused` 是 session 暂停态,续跑用同 session,不产生新 run(避免重复执行)。
 
 **tier1_runs 状态转换表(C2 执行客户端承载;此前只有状态 CHECK、无转换规则)**:
 
@@ -1022,10 +1042,19 @@ thinking = { provider = "api", via = "openrouter", model = "openai/gpt-5.6-terra
 cheap = { provider = "api", via = "openrouter", model = "google/gemini-3.1-flash-lite" }
 evaluator = { provider = "api", via = "openrouter", model = "anthropic/claude-sonnet-5" }
 [models.dev]                           # Tier 1 执行后端;transport 见 DevAgentBinding
-agent = "claude_code"                  # claude_code | cursor | codex
-model = "claude-sonnet-5"
+agent = "claude_code"                  # claude_code | cursor | codex(唯一后端选择键,不新增 [tier1].agent)
+model = "claude-sonnet-5"              # cursor 后端的模型键;claude_code 的模型键 = [tier1].model(按 backend 单源)
 # transport = "sdk"                     # cursor 专用:cli(订阅态,零 key)| sdk(CURSOR_API_KEY);缺省 sdk
 # 本机开发缺省(07 D8,已实测):agent="cursor" transport="cli"(订阅额度)+ model 见 dev 模板
+[tier1]                                # 执行器后端承载键(W5.4-b 前置回写 2026-08-21;§11 claude_code 承载段)
+# 注:本段为**目标形态示例**(staged)——运行时代码缺省仍 cursor 直到 W5.4-c 收口切模板;
+# claude 键值以开批时现机实测为准(pin 精确串来自 `claude --version`,不照抄示例)
+# cursor_agent_bin = "/…/versions/<ver>/cursor-agent"   # cursor:锁定副本绝对路径(执行器批 2026-07-25)
+# cursor_agent_pinned_version = "…"                     # cursor:精确版本串
+# claude_bin = "/opt/homebrew/…/claude.exe"             # claude:绝对路径(symlink 解析到实体)
+# claude_pinned_version = "<claude --version 实测>"      # claude:精确版本串,不符拒起(fixture 基准 = 2.1.220)
+# model = "opus"                                        # claude 专用模型(别名由 Claude 解析;自检回显实际 model)
+# claude_max_turns = 200                                # --max-turns 防失控兜底(与派发 maxTurns:80 是两把尺子)
 [providers.api.openrouter]             # 多供应商网关(一 key 通多家);端点跨家族,故不写 family
 base_url = "https://openrouter.ai/api/v1"
 api_key  = "env:OPENROUTER_API_KEY"    # 恒 env 引用,禁明文
@@ -1062,6 +1091,7 @@ as_of = "2026-07-24"                   # 单价快照日(进 Money.asOf;过期�
 # 计费单位词表(M9/①-8,2026-07-25;kind 前缀词表见 §9 cost_entries 注释):每 kind 前缀恒定 unit,
 #   estimate->actual 按 unit 计算(免 P2 引擎迁移)——
 #   llm.*=tokens(输入输出) + cached_tokens(缓存命中,另计) / asr.*=audio_min / tts.*=chars / (P2 预留)messages / wallclock_min(Grok 墙钟档)
+#   tier1.run(2026-08-21)= 订阅记账行,恒 amount NULL/known 0,无单价无 unit——不进 estimate->actual 计算,单位词表例外
 # pricing 全局专属(项目不可覆盖——防恶意仓改价编数;白名单外键项目层出现即拒,§11 规则)
 [dnd]
 window = "23:00-08:00"
@@ -1136,16 +1166,24 @@ type ModelBinding =
 
 // [models.dev] Tier 1 执行后端(≠上面五槽位;这是"驱动哪个 agent 改代码",非"调哪个模型说话")
 type DevAgentBinding =
-  | { agent: "claude_code"; model: string }                          // 产品缺省;Claude Agent SDK(canUseTool/steer)
+  | { agent: "claude_code"; model: string; transport?: "cli" }       // 产品缺省;transport="cli"(W5.4 v3.1 supersede 2026-08-21:`claude -p` 子进程 + PreToolUse hooks = canUseTool 等价物,原"Agent SDK canUseTool 回调"表述作废;live steer/streaming input 仍 SDK 独有,预留不实现)
   | { agent: "cursor"; model: string; transport?: "cli" | "sdk" }    // dev 机缺省 transport="cli"(订阅态零 key,07 D8 实测);"sdk"=CURSOR_API_KEY(后续优化)
   | { agent: "codex"; model: string };                               // Tier 2(经 Hopper codex exec)
 ```
 
 **Tier 1 审批门(canUseTool 等价物)按后端分实现,接口统一**(07 D8;`tier1_runs.adapter` 承载后端名):
-- `claude_code` ⇒ Agent SDK `canUseTool` 回调(阻塞审批 + live steer);
+- `claude_code` ⇒ **CLI `claude -p --output-format stream-json` 子进程 + `PreToolUse` hooks**(W5.4 方案 v3.1 supersede 2026-08-21,实测 Claude Code 2.1.220:hooks 经 `--settings` 内联注入(进程参数,agent 不可改)+ `--setting-sources ""` 屏蔽 worktree 配置;hook 对 Bash 与文件工具(Write/Edit/NotebookEdit/Read)统一裁决——**比 cursor 后端多出文件工具进门**;S2 = hook 内同步等 daemon 审批(`ask` 在 `-p` 下等同 deny,不可用);**律③对 `claude_code` 单列改写:vendor hook 超时 ≠ deny**(实测超时 = 非阻断、落回 Claude 自身权限流),门脚本 `gate-claude.sh`(Windows 实现 = `gate-claude.mjs`,投影见设计 ADR-004)失败路径一律**输出 deny JSON + `exit 2`**;**圈内外判定归 daemon 单点**(`fileToolToEffect(tool, path, cwd, run.worktree)`)——脚本是全局单份、跨 run 复用,只拿得到 hook 报的 cwd,而 `findRunByCwd` 允许 cwd 落在 worktree 子目录,拿 cwd 当圈根会误拒圈内文件(owner 2026-08-22 裁决「真对齐」,评审 90/91/92 A-1/B-4);脚本层只保留**与圈根无关**的越界向量预筛(`..` 分量 / `~` / `$HOME` / `%USERPROFILE%`,两端按路径分量判、不用裸通配)且 curl `--max-time` 自返先于 hook `timeout`(脚本超时前自返 deny 才是门);`--permission-mode default`(圈内写显式 allow;hook 无裁决/超时 ⇒ Claude 问 = `-p` deny,fail-closed);live steer/streaming input 不实现(steerTask 仍 `queued_delta`/`cancel_resume`);原「Agent SDK `canUseTool` 回调(阻塞审批 + live steer)」为未实施的旧设想,作废);
 - `cursor`(cli)⇒ 执行器为每个任务 worktree 写 `.cursor/hooks.json`(`beforeShellExecution` 命令钩子回连 daemon 审批通道),`cursor-agent -p --force --trust [--resume <chatId>]` 驱动。**fail-closed 四律(2026-07-23 实测约束,`research/spikes/cursor-cli-tier1/`;Windows 投影见设计 ADR-004)**:① 只依赖 `deny`(CLI 仅 deny 可靠;`--force`+"默认 deny 批准才不 deny")② 钩子 JSON **必用 JSON 解析器**(POSIX 实现 = `jq`;Windows 实现 = Node `JSON.parse`;禁止字符串拼接,畸形 fail-open)③ 钩子同步阻塞轮询 daemon 决策(超时 fail-closed=deny)④ **每条命令独立审批**——决策以 `(runId, 命令内容/序号)` 为键,一次 allow 不得长期有效(agent 一个回合可能发多条 shell,禁止第二条搭第一条便车);无 live steer ⇒ steerTask 应答 `queued_delta`/`cancel_resume`;
 - 三后端共用同一 tier1_runs 状态机与 settle/cancel proof。
 - **版本 pin 与门供给的配置承载(执行器批 2026-07-25 additive 补录,实现先行/时序如实)**:cursor cli 的锁定二进制 = `[tier1].cursor_agent_bin`(锁定副本**绝对路径**;POSIX 形如 `versions/<ver>/cursor-agent`,Windows 允许同目录 `cursor-agent.exe`——裸名走 PATH 会随 symlink/junction 自更新漂移,不满足 pin)+ `cursor_agent_pinned_version`(启动 `assertVersion` 断言,不符拒起执行器;升级走"重跑门禁仪式",禁自更新生效路径);两键齐备才启用执行器(fail-closed:缺任一不认领,queued 任务停队列 + 处方化日志)。上文律③"同步阻塞轮询 daemon 决策"的**协议 = HTTP POST `/gate` JSON**(阻塞等响应,超时+hooks `timeout` 双超时=deny;**与 spike 原型的等价性限于律③形态**——同步阻塞等决策、超时 fail-closed;律④"每条命令独立审批"是通道实现新增的能力,由 daemon 侧 (runId,seq) 决策键 + 收据单次消费承载,spike 原型的全局 DECISION 文件无消费语义、不满足律④,Codex 20 B4 勘误 2026-07-26)。**传输按 OS**(设计 ADR-004,工程 ADR-003):POSIX = unix domain socket `$SAYDO_HOME/tier1-gate.sock` + `gate.sh`(`curl --unix-socket`,无 HMAC);Windows = `127.0.0.1` 临时端口(非 G1 `47100`)+ HMAC(`X-SayDo-Gate`)+ owner-only `gate-secret`/`gate-bind.json` + `gate-cursor.mjs`/`gate-claude.mjs`(Node `JSON.parse`;禁止 Node 默认 DACL Named Pipe 与 win32 文件系统 AF_UNIX 当生产门)。gate 脚本落 `$SAYDO_HOME/tier1/`(缺省 POSIX `~/.saydo/tier1/`,Windows `%USERPROFILE%\.saydo\tier1\`)。**门完整性诚实口径(Codex 20 A1,2026-07-26;Codex 88 扩活动入口)**:gate 目录在 worktree 外,但与 agent 同 UID/SID——**"agent 不可写"在 P0 无强制保证**(cursor-agent 内置 write 工具不经 shell 门,可写任意用户可写路径);canary 计数抓得住"门被绕过/不 POST"变体,抓不住"改写活动入口后 POST 撒谎命令"的洗审批变体。P0 补偿控制:**daemon 每收 gate 请求即重读当前 backend 实际入口**(POSIX=`gate.sh`/`gate-claude.sh`;Windows=`gate-cursor.mjs`/`gate-claude.mjs`)以及 `hooks.json`/`gate-bind.json`,重算 digest,任一不符 ⇒ deny + cancel 全部活跃 run(fail-closed);hooks.json 每次 spawn 由 daemon 重供给。完整解(独立 UID/容器 + 文件写工具进门)= P1 受控执行环境,与"verify env 隔离 HOME/USERPROFILE"同族。SayDo 实现与 selected-adapter conformance 见实现仓 `e2e/evidence/tier1-conformance.md` + `executor-batch.md`。
+
+- **claude_code 后端配置承载与门合同(W5.4-b 前置回写 2026-08-21,additive;实施随 W5.4-b 接线批,回写先行——PLAN-2 通则③)**:
+  - `[tier1]` 增四键(cursor 两键不动):`claude_bin`(**绝对路径**,symlink 解析到实体文件;裸名走 PATH 不满足 pin)、`claude_pinned_version`(精确版本串,`claude --version` 首 token 比对,不符拒起)、`model`(claude 专用,缺省 `opus` 别名;cursor 的模型键仍 `[models.dev].model`,**模型键按 backend 单源**)、`claude_max_turns`(缺省 200,`--max-turns` 防失控兜底;与派发 `maxTurns: 80`(按 tool_call started 计)是两把尺子)。后端选择键唯一 = `[models.dev].agent`(不新增 `[tier1].agent`);项目级 override `dev.agent` 放开 `claude_code`,但 `dev.agent !==` 生效 adapter ⇒ 忽略 + 审计——**该 override 的承载 = `project_settings` 受控表**(daemon 受控、console 受信终端写口,§9 v7 注;**project.toml 白名单不含 dev 域**,仓库随附文件不可覆盖执行后端——两承载条款并行不矛盾,白名单枚举与规则 4"dev-only 覆盖"的历史表述差登记于 `history/DEV-VERSION-LEDGER.md` §3)。
+  - **身份核验登记** = `~/.saydo/tier1/claude-identity.json`(`{binaryPath, binaryDigest, version, testedAt, receipt}`,自检写入;启动与每次 spawn 前核验,digest 重算只在 mtime/size 变化时;不符 ⇒ `binary_identity_mismatch` 不认领)——用于 pin,**不用于 observedModel 豁免**(Tier1 `claude_code` 恒 `observedModelExempted=false`,豁免属 BYOA 侧合同——§11 observedModel 豁免规则,历史锚称"规则 2"、现 T18b 列表序为规则 3,编号漂移勘误见 `history/DEV-VERSION-LEDGER.md` §3)。
+  - **门供给双脚本**:`gate-claude.sh` 与 `gate.sh` 同目录同 drift guard(`gateScriptExpected` 扩为**两脚本 digest 集合**,任一不符 ⇒ cancel 全部活跃 run);hooks 对 claude 不落 worktree 文件(`--settings` 内联)。
+  - **门 wire 合同**:`GateWireRequest` 从 `{command,cwd}` 扩为判别联合 `legacy{command,cwd} | {kind:"command",command,cwd} | {kind:"file_write",tool,path,cwd} | {kind:"file_read",path,cwd}`——**无 `kind` 键 = command 语义**(cursor 既有 wire 零改动);file_write 决策三分支、**wire 响应值二态 allow|deny** = 圈内非敏感 ⇒ allow / 圈内敏感基名 ⇒ S2 获批后 allow(拒或超时 deny)/ **圈外或判不出 ⇒ 一律 deny(无 S2 通道)**;file_read = 圈内 `no_decision`(空输出 exit 0,Claude default 模式自动放行圈内读)、圈外 deny;文件请求的收据 command 字段填合成串 `"<tool> <abs path>"`,edit 第四动作对文件 kind 不适用。Tier1 终态审计(`tier1.settled_review`/`tier1.blocked`/`tier1.failed`)的 meta 携带 observedModel 四字段(`observedModel`/`observedModelSource:"stream"`/`observedModelExempted:false`/family 校验结论;additive,§11 规则 3 词表)。
+  - **`tier1_runs.native_session_confirmed` 列**(additive,实现配增量迁移):claude 首跑 daemon 预生成 uuid 经 `--session-id` 传入并落 `native_session_id`(未确认态 0),`system/init.session_id` 对上 ⇒ 置 1;不等 ⇒ kill + failed `native_session_mismatch`。恢复/续跑只在 `(adapter, native_session_id, cwd, confirmed=1)` 四元组等值时 `--resume`(同 cwd 为 SayDo 自家策略;**本条仅约束 `claude_code`**,cursor 沿既有三元组语义——§12-7 同口径)。
+  - **G4 env 白名单例外两键**(显式注入/覆盖,非凭据):`DISABLE_AUTOUPDATER=1`(防批中自更新改 digest)、`SHELL=/bin/sh`(防登录 shell profile 快照把 `~/.zshrc` 导出变量带进 agent Bash);`ANTHROPIC_*`/`CLAUDE_CODE_OAUTH_TOKEN` 仍恒剔除,流内 `apiKeySource !== "none"` ⇒ 立即终止 + failed `subscription_auth_violation`(HANDOFF #6 硬约束机械化)。
 
 - **T2 薄版配置承载(W2 提前批 #2,2026-07-26 additive 补录,实现先行/时序如实)**:`[t2].tailnet_hosts`(数组,**纯主机名/IP 显式白名单枚举**——进 G1 Host/Origin 白名单;**禁通配/scheme/端口**,含任一非法项 ⇒ tailnet 面整体不开(fail-closed,不丢单项)+ 审计)+ `[t2].listen`(daemon 绑定地址,缺省 `127.0.0.1`;非本机绑定时 Host/Origin/token 三道门语义不放宽)。来源面标注:请求经 tailnet 枚举主机命中 ⇒ `via="tailnet"`(手机薄版)——**S3 合并链动作(request-manual-merge/verify-merge)、`/dev/*` 注入通道、奠基 bootstrap 仅受信终端(`via="local"`)**,tailnet 来源 403 + 话术引导回桌面;S2 面(review/审批 decide/记忆候选批准)tailnet 可批(**收据口径已定(§3 对表,R-A 2026-07-26/27)**:tailnet 配对屏幕批 S2 归 push 行——`paired_device_pin` 语义 = 已配对主机 + OS 解锁,详见 §3 矩阵行注;**实现已对齐(RA-closeout 2026-07-28)**:decide via=tailnet ⇒ 收据行如实落 `push/paired_device_pin`;edit 面 tailnet 403 引导回桌面——范围 owner 已批(05 §4 提前批 #2))。capability token 不进 ntfy 深链(深链只带路由;首次配对 URL 一次性注入手机本地会话——惯例语义,非机械单次消费,URL 本体含长期 token,只在受信通道传递不进通知不落库)。
 
@@ -1209,7 +1247,7 @@ type DialogCliOneshotEnvelope = {
    `copilot_cli` ⇒ `-p --output-format json --available-tools` 空集 `--disable-builtin-mcps --no-custom-instructions --disallow-temp-dir [--model <model>]`(空 allow 白名单优先;若运行时拒空集则改 deny 全集,以负向实测为准);
    **invocation 记录(全部 BYOA/api 调用,不可变)**:生效 profile、configured_provider(配置面)、**routed_provider(聚合网关实际路由上游,M2 2026-07-25;无上游回显显式记 unknown,不留空歧义)**、argv digest、cwd、笼档、observedModel、tool 事件计数、所引证据 digest——落 audit_log,审计可证调用与声明绑定一致(复评 B7;§12-9 断言 routed_provider 落账);
    **无 resume**(依赖会话落盘,与隐私开关互斥;BYOA 调用一律无状态一发一收;2026-07-23 实测 resume 对延迟也无收益——瓶颈在每次调用的服务端 agent-loop 初始化);唯一例外:奠基/调研任务显式传只读仓 cwd(claude 侧 `--tools "Read,Glob,Grep"`);**tripwire**:笼内出现任何 tool_call 事件 ⇒ 终止调用、结果作废、记审计;
-5. 订阅调用记账:`cost_entries.source='subscription'`,`known=0`,`amount=NULL`;`meta_json` 形状(2026-07-25 Codex 13b 消解与 §9 M4 矛盾):**`kind` 以 `llm.` 为前缀的订阅行同样必含 §9 定型四键 `{model,input_tokens,cached_input_tokens,output_tokens}`(tokens 可得时;流式 CLI 不回 usage 时四键记 0 并 meta 标 `usage_unavailable:true`,不编数),另含 `{provider, plan_window?, requests, provenance?}`;`routed_provider?` 按 M2**。**`provenance` ∈ `{subscription, external_api, unknown}`**(2026-08-13):探测时按各家认证面采集(gemini oauth-personal→subscription;qwen `auth-type=openai`+key→external_api;copilot GitHub 登录→subscription;判不出→unknown),ledger 原样带上。**只有 `provenance="subscription"` 才允许「订阅内零成本」文案**;`external_api`/`unknown` 用如实文案「按该 CLI 的上游计费方式,SayDo 不代付」(文案分流在 console,daemon 端点必须把 provenance 吐给前端)。呈现"订阅额度内(已用 N 次)",**不显示 ¥0 或"未知"**,不预测剩余额度;月预算/任务 maxCost 只 SUM `source='api'` 行,订阅调用靠墙钟+回合数熔断兜底;**限流 fail-fast + 切计费收据**(复评 A5):返回 `{ok:false, code:"subscription_rate_limited", retryable:true}` → 槽位置 `waiting_confirmation` → Brain 按 10 话术**询问**(有同族 key:切按量计费或等重置;无 key:如实告知阻塞)——确认落**一次性 billing-switch 收据**(绑 sessionId+槽位+目标端点+有效期,原子单次消费),**无收据不得产生 `source='api'` 计费行**,provider 层禁止跨计费源自动降级;P0 不做自动排队重放;
+5. 订阅调用记账:`cost_entries.source='subscription'`,`known=0`,`amount=NULL`;`meta_json` 形状(2026-07-25 Codex 13b 消解与 §9 M4 矛盾):**`kind` 以 `llm.` 为前缀的订阅行同样必含 §9 定型四键 `{model,input_tokens,cached_input_tokens,output_tokens}`(tokens 可得时;流式 CLI 不回 usage 时四键记 0 并 meta 标 `usage_unavailable:true`,不编数),另含 `{provider, plan_window?, requests, provenance?}`;`routed_provider?` 按 M2**。**`provenance` ∈ `{subscription, external_api, unknown}`**(2026-08-13):探测时按各家认证面采集(gemini oauth-personal→subscription;qwen `auth-type=openai`+key→external_api;copilot GitHub 登录→subscription;判不出→unknown),ledger 原样带上。**只有 `provenance="subscription"` 才允许「订阅内零成本」文案**;`external_api`/`unknown` 用如实文案「按该 CLI 的上游计费方式,SayDo 不代付」(文案分流在 console,daemon 端点必须把 provenance 吐给前端)。呈现"订阅额度内(已用 N 次)",**不显示 ¥0 或"未知"**,不预测剩余额度;月预算/任务 maxCost 只 SUM `source='api'` 行,订阅调用靠墙钟+回合数熔断兜底;**限流 fail-fast + 切计费收据**(复评 A5):返回 `{ok:false, code:"subscription_rate_limited", retryable:true}` → 槽位置 `waiting_confirmation` → Brain 按 10 话术**询问**(有同族 key:切按量计费或等重置;无 key:如实告知阻塞)——确认落**一次性 billing-switch 收据**(绑 sessionId+槽位+目标端点+有效期,原子单次消费),**无收据不得产生 `source='api'` 计费行**,provider 层禁止跨计费源自动降级;P0 不做自动排队重放(**本句范围 = BYOA 四槽人工确认切源纪律;Tier1 执行器例外(2026-08-21 W5.4-b 前置)**:`kind='tier1_run'` 走 `subscription_retry_queue` durable 重放(§9 DDL 注),重放仍订阅额度内、不产生 api 行、billing-switch 收据纪律不变);
 6. **evaluator 深评调用律**(复评 B1):按 `(sessionId, evidenceDigest, trigger)` 去重(同证据不重评),每会话上限 `[params].evaluator_deep_review_max_per_session`(缺省 3)+ 冷却 60s;与 Tier 1 执行共享订阅时窗时并发预检(执行在跑 ⇒ 深评排队不抢)。
 
 ## 12. 契约测试清单(P0 必须全绿)
@@ -1219,10 +1257,10 @@ type DialogCliOneshotEnvelope = {
 1. **digest 确定性**:同签名域输入同 digest;**跨状态变更 digest 不变**;revision 变 digest 必变;effectPolicyVersion 变 ⇒ 旧包拒绝 dispatch(需重签);**proposed TTL(R-A 补完 2026-07-27,Codex 21 A6)**:proposed 行缺 proposed_at 被 DDL 拒 / 同项目双活跃 proposed 被唯一索引拒(含同包新 revision)/ TTL 到期后 dispatch 拒(package_expired,receipt 在期不豁免)/ expires_at·proposed_at 无独立写点(DAO 接口面断言 updatePackageExpiry 类方法不存在)/ expired 包重提 = 新 revision 非复活 / 调度器崩溃重启后到期包仍被扫到(幂等)。
 2. **预授权反例**(整包拒签/拒 dispatch):①route=hopper 且 grants 非空 ②step_confirm 包携带 grants ③effect 枚举外 ④必填约束缺任一 ⑤spokenForm ≠ 重渲染 ⑥branchPattern 命中保护分支 ⑦带 postinstall 的包 ⑧ttl 过期 grant 命中 ⑨package revision 漂移 ⑩Gate 0 未关。
 3. **收据**:单次消费;nonce 重复拒绝;S3 非 screen 拒绝(CHECK);push+S3 拒绝;**voice 裁决缺 turn_ref 拒(DDL CHECK,SOL 反例)**;超时按档终局;timeout_parked 恢复必须新收据+grant 复验;voided_by_conflict 不重试;edit 作废重签链(W5a 已实施:旧张 superseded_by_edit + 新张新 nonce/新 refDigest、编辑重估 S3 拒、修改建议单次消费);**词表外 decided_via/auth_strength 拒、screen 弱认证拒、runtime_effect 缺父包拒(§9 矩阵机械化 CHECK 反例,2026-07-24)**。
-4. **记忆**:forget_hard 传播(FTS/投影/摘要全清)+ 重放幂等收敛;否定不复活;M0 拒收第三方与 taint;expiresAt 到期不入 pack;投影可全量重放再生(含 tombstone 例外)。**快照拆表(M1,2026-07-25 Codex 13b 补)**:同 pack 内容表恒一行(幂等 upsert);每次使用各落一行 `context_snapshot_uses`(**同毫秒重复也各记**,审计计数如实);跨会话复用各记;`rebuild=1` 可回读;篡改 body_json 后 `verifyPackDigest` 失败。**成本条目(M4)**:`kind` 前缀词表(llm.*/asr.seconds/tts.chars/hopper.run,非法 kind 反例);llm.* 行四 usage 键必填 + `cached_input_tokens<=input_tokens` 断言;订阅行形状照 §11-5。
+4. **记忆**:forget_hard 传播(FTS/投影/摘要全清)+ 重放幂等收敛;否定不复活;M0 拒收第三方与 taint;expiresAt 到期不入 pack;投影可全量重放再生(含 tombstone 例外)。**快照拆表(M1,2026-07-25 Codex 13b 补)**:同 pack 内容表恒一行(幂等 upsert);每次使用各落一行 `context_snapshot_uses`(**同毫秒重复也各记**,审计计数如实);跨会话复用各记;`rebuild=1` 可回读;篡改 body_json 后 `verifyPackDigest` 失败。**成本条目(M4)**:`kind` 前缀词表(llm.*/asr.seconds/tts.chars/hopper.run/**tier1.run**(2026-08-21 增,§9 注),非法 kind 反例);llm.* 行四 usage 键必填 + `cached_input_tokens<=input_tokens` 断言;订阅行形状照 §11-5;**tier1.run 行断言**:source='subscription'、amount NULL、known 0、requests=1、meta 含 num_turns。
 5. **outbox**:同 dedupeKey 活跃唯一、历史可再入队(第二次 step_boundary/blocked 合法);**dedupe_key NOT NULL(NULL 互异绕活跃唯一索引被 DDL 拒,SOL 反例)**;settle 四项缺一不叫;DND 补叫(snoozedUntil);resolution-timeout 重升级;取消冻结活跃条目;至少一次口径(重复 ≤1)。
 6. **取消/改需求**:cancel_settled 前禁 re-drop;旧 run 晚到事件转历史不回叫;新卡新 idemKey(复用拒绝)。
-7. **崩溃恢复**:两阶段 dispatch(binding NULL 行重放);hopper_commands ≠confirmed 重放;Tier 1 按 (adapter, nativeSessionId, cwd) 恢复,失败降级"摘要+diff 注入新会话"。
+7. **崩溃恢复**:两阶段 dispatch(binding NULL 行重放);hopper_commands ≠confirmed 重放;Tier 1 恢复钥匙按 backend 分(2026-08-21 W5.4-b 前置修订):`cursor` 沿既有 (adapter, nativeSessionId, cwd) 三元组;`claude_code` 增第四条件 `native_session_confirmed=1`(四元组,§11 claude_code 承载段;既有 cursor 行为不变)——失败均降级"摘要+diff 注入新会话"。
 8. **Hopper 消费**:byte cursor 断点续读;半行保留;损坏行只报不清(corrupt 计数**上涨告警**);未知事件类型容忍;**未知 envelope 字段容忍**(裁决 §4 补强);schema_version≠1 fail-closed;drop 四种 outcome 处理;MutationResult 五状态词表处理 + **expired≠失败**(`.result.json` 对账路径用例,裁决 §2.5.3);size 回缩/首行 event_id 变化 ⇒ file_generation+1 全量重建;**RunSettled 消费**(廉价复核 evidence_digest 不符/summary 缺失 ⇒ 不 settle+告警;事件缺失走六字段对账兜底;`recovery:true` 两路径各一用例);**风险双维反例**(X3):ready∧risk-high 投影 blocked 且 bridge 拒代跑;risk=high 自动 retry 被挡;分诊 blocked 走 retry 恢复被挡;content=low ∧ effect=S2 照拒(low 非背书);**drop 前 lint 预检**:缺验收标题的卡在 `result.classification`/`execution_decision` 被拦、不 drop。**harness=`HOPPER_FAKE_SPEC` fake-runner**(Hopper 反馈 §4.2):真实 CLI 走生产路径选中 fake runner,可产任意终态/非法 JSON/触 forbidden/sleep 触超时——全闭环契约测试(drop→…→RunSettled→merge,含 cancel/timeout/blocked)对**锁定二进制**在 CI 确定性跑、零 LLM 成本。
 9. **T18b 当前配置与首跑**:recovery-only 只装配 setup 自救根，业务 DB/WS/恢复器/sweep/外呼零启动副作用；非法 project override 必须先列出受影响字段并取得快照 receipt，再按 projectIds 明确确认整行删除；API 槽 observedModel 缺失/不可解析/家族冲突与 CLI 槽 unknown/身份登记缺失/digest 漂移均优先拒绝并审计；四槽 CLI 各自真实一发一收自检，失败只标红本槽且不得 restart 晋升；dialog CLI probe 投影 oneshot 并走有序 action envelope；空 HOME 经配置重启后固定开场白真投，presented 同 session 稳定回放同一 turnId/message；TranscriptTurn.origin 在 JSONL、挂起重建和进程重启后三层保留。
 
@@ -1315,13 +1353,17 @@ confirmAndDispatch(i:{ packageId:Id; revision:number; mode:"direct_to_review"|"s
 // 运行中
 getStatus(i:{ taskId?:Id }): TaskView[] ;
 steerTask(i:{ taskId:Id; instruction:string }): { applied:"live"|"cancel_resume"|"queued_delta" };
-  // 应答语义(09 §11 后端能力):claude_sdk 流中注入=live;cursor_cli 无 live steer ⇒ queued_delta——
+  // "live" 为合同预留值:claude_code 接入(W5.4,2026-08-21 注)后仍预留——CLI `-p` 单向,
+  // live steer/streaming input 是 Agent SDK 独有能力,本阶段不实现;两后端实际应答 queued_delta/cancel_resume
+  // 应答语义(09 §11 后端能力;2026-08-21 修订:live 的载体是**未来 SDK/streaming-input 形态**,非本批 claude_code CLI):
+  // 历史句「claude_sdk 流中注入=live」指未实施的 SDK 传输设想(07 D8 已 supersede);cursor_cli 与 claude_code(CLI)均无 live steer ⇒ queued_delta——
   // 指令 durable 落 task_messages(kind='steer', attempt=下次认领号),下次 run(返工/retry/queued 认领)
   // 经 readTaskMessages 注入编译上下文(执行器批 2026-07-25;若本 run 已 settle 未消费,验收提返工时随 comments 进新 attempt,audit 有账不蒸发)
   // **实施状态注(W5a 更新 2026-07-27;前注 W2 Codex 20 B3)**:cancel_resume 档已落地——running ∧ 有活跃 run ⇒
   // run 级取消(任务保持 running)+ worktree 确定性复用 + steer 指令编入下次 run(竞态守卫:settle 前用户取消同任务 ⇒
-  // 改走 task 级结算,不永久卡 cancel_requested);非运行中仍 queued_delta;"live"仍为合同预留值(claude_sdk 接入实测后
-  // 放开,不预先谎报);route=hopper 按 capabilities steerLevel 分级诚实拒且不落 task_messages(缺键缺省 none;
+  // 改走 task 级结算,不永久卡 cancel_requested);非运行中仍 queued_delta;"live"仍为合同预留值——**2026-08-21 更新:
+  // claude_code 已定 CLI 传输(W5.4),CLI 单向、live 不随其放开;放开条件改挂「未来 SDK/streaming-input 或 native_api 形态
+  // 接入实测」,不预先谎报**;route=hopper 按 capabilities steerLevel 分级诚实拒且不落 task_messages(缺键缺省 none;
   // 判定面 hopperSteerSupport 已就位,桥出站消费随 Hopper 能力升级批接线——"能力出现"指判定值自动翻转,执行面另行接线,03 §5 同口径)
 cancelTask(i:{ taskId:Id }): { state:"cancel_requested"|"cancel_settled" };
 answerAgentQuestion(i:{ taskId:Id; questionId:Id; answer:string }): { ok:true };

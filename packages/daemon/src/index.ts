@@ -134,8 +134,11 @@ import { sweepRetryQueue } from "./providers/byoa/retryQueue.js";
 import { abortAllByoaInvocations, activeByoaInvocationCount } from "./providers/byoa/provider.js";
 import { runParkSweep } from "./live/scheduler.js";
 import { sweepExpiredProposed } from "./storage/dao/packages.js";
-import { buildActiveGateScript, ensureGateScript } from "./tier1/gateScript.js";
+import { buildActiveClaudeGateScript, buildActiveGateScript, ensureGateScript } from "./tier1/gateScript.js";
 import { parseGateWireRequest, startGateServer } from "./tier1/gateServer.js";
+import { claudeBackend } from "./tier1/backends/claude.js";
+import { cursorBackend } from "./tier1/backends/cursor.js";
+import { verifyClaudeIdentity } from "./tier1/claudeIdentity.js";
 import { RuntimeApprovalFlow } from "./tier1/approvalFlow.js";
 import { latestSessionProjectEvent } from "./projects/anchor.js";
 import { ensureProjectAnchorProducts } from "./projects/anchorRebuild.js";
@@ -145,8 +148,10 @@ import {
 } from "./projects/anchorCommit.js";
 import { compileLivePack } from "./live/pack.js";
 import { Tier1Executor, realAgentSpawner } from "./tier1/executor.js";
+import { retryTask } from "./tier1/operations.js";
 import { markDurableTier1RestartPending } from "./tier1/restartPolicy.js";
 import { tier1StartupVerdict } from "./tier1/validateConfig.js";
+import { resolveTier1Adapter } from "./tier1/resolveAdapter.js";
 import { verifiedProjectWorkspace } from "./storage/dao/projects.js";
 import { ensureManagedWorkspaceRoot, ensureStateRoot, stateRootDigest } from "./projects/workspace.js";
 import {
@@ -2427,10 +2432,12 @@ function readGate0(): { enabled: boolean; bypass: boolean } {
   return { enabled: g.enabled, bypass: g.bypass };
 }
 
+// W5.4-b C1:生效 adapter 判定收拢到 resolveTier1Adapter 单源([models.dev].agent 唯一选择键,
+// 缺省 cursor 不变);本函数保留为读盘薄包装(四处消费点零改动,行为对 cursor 恒等)。
 function readDevAdapter(): Adapter {
   try {
     const cfg = loadConfigFile(join(SAYDO_HOME, "config.toml"));
-    return (cfg.models?.dev?.agent ?? "cursor") as Adapter;
+    return resolveTier1Adapter(cfg);
   } catch {
     return "cursor";
   }
@@ -3406,9 +3413,21 @@ if (!RECOVERY_ONLY) try {
   log.error("confirm downgrade saga boot failed", { error: String(err).slice(0, 200) });
 }
 
-// W5a 3.7:订阅限流 durable 重放 sweep(09 §11-5 清偿)。replayers 按 kind 注册——
-// 生产消费面随 claude 订阅接入批(PLAN-2 5.4)登记 kind;当前空表 = sweep 空转零成本,队列机器就绪。
-const subscriptionReplayers: Record<string, Parameters<typeof sweepRetryQueue>[2][string]> = {};
+// W5a 3.7:订阅限流 durable 重放 sweep(09 §11-5 清偿)。replayers 按 kind 注册。
+// W5.4-b C2b:kind=tier1_run → retryTask(blocked→running)→ 认领循环按四元组 --resume。
+const subscriptionReplayers: Record<string, Parameters<typeof sweepRetryQueue>[2][string]> = {
+  tier1_run: async (entry) => {
+    const payload = entry.payload as { taskId?: unknown } | null;
+    const taskId = payload && typeof payload.taskId === "string" ? payload.taskId : "";
+    if (!taskId) return { ok: false, rateLimitedAgain: false, message: "missing taskId" };
+    try {
+      retryTask(db, audit, taskId, new Date().toISOString());
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, rateLimitedAgain: false, message: String(err).slice(0, 160) };
+    }
+  }
+};
 if (!RECOVERY_ONLY) scheduleRuntimeInterval(() => {
   startRuntimeJob(async () => {
     await sweepRetryQueue(db, audit, subscriptionReplayers).catch((err) => {
@@ -3532,10 +3551,23 @@ if (!RECOVERY_ONLY) scheduleRuntimeInterval(() => {
 function readTier1Startup(): ReturnType<typeof tier1StartupVerdict> {
   try {
     const cfg = loadConfigFile(join(SAYDO_HOME, "config.toml"));
+    const adapter = resolveTier1Adapter(cfg);
     return tier1StartupVerdict({
       cursorAgentBin: cfg.tier1?.cursor_agent_bin,
       pinnedVersion: cfg.tier1?.cursor_agent_pinned_version,
-      adapter: readDevAdapter()
+      adapter,
+      ...(adapter === "claude_code"
+        ? {
+            claude: {
+              bin: cfg.tier1?.claude_bin,
+              pinnedVersion: cfg.tier1?.claude_pinned_version,
+              model: cfg.tier1?.model,
+              ...(cfg.tier1?.claude_bin
+                ? { identity: verifyClaudeIdentity(SAYDO_HOME, cfg.tier1.claude_bin) }
+                : {})
+            }
+          }
+        : {})
     });
   } catch {
     return { start: false, code: "not_configured", reason: "config.toml 缺失或不可解析(首启合法;执行器不认领)" };
@@ -3544,31 +3576,44 @@ function readTier1Startup(): ReturnType<typeof tier1StartupVerdict> {
 const tier1Startup = readTier1Startup();
 if (tier1Startup.start && !RECOVERY_ONLY && !runtimeDraining) {
   const gp = ensureGateScript(SAYDO_HOME);
-    const executorCfg: {
-      saydoHome: string;
-      lockedBinary: string;
-      pinnedVersion: string;
-      model: string;
-      adapter: ReturnType<typeof readDevAdapter>;
-      gateScriptPath: string;
-      gateScriptExpected: string;
-      receiptTimeoutSec: typeof receiptTimeoutSec;
-      gateBindPath?: string;
-      gateBindExpected?: string;
-    } = {
+  const adapter = readDevAdapter();
+  const backend = adapter === "claude_code" ? claudeBackend() : cursorBackend();
+  let cfgModel = "";
+  let claudeMaxTurns: number | undefined;
+  try {
+    const cfg = loadConfigFile(join(SAYDO_HOME, "config.toml"));
+    cfgModel =
+      adapter === "claude_code" ? (cfg.tier1?.model ?? "opus") : (cfg.models?.dev?.model ?? "");
+    if (adapter === "claude_code") claudeMaxTurns = cfg.tier1?.claude_max_turns ?? 200;
+  } catch {
+    cfgModel = adapter === "claude_code" ? "opus" : "";
+  }
+  const executorCfg: {
+    saydoHome: string;
+    lockedBinary: string;
+    pinnedVersion: string;
+    model: string;
+    adapter: ReturnType<typeof readDevAdapter>;
+    gateScriptPath: string;
+    gateScriptExpected: string;
+    gateClaudeScriptPath: string;
+    gateClaudeScriptExpected: string;
+    claudeMaxTurns?: number;
+    receiptTimeoutSec: typeof receiptTimeoutSec;
+    gateBindPath?: string;
+    gateBindExpected?: string;
+  } = {
     saydoHome: SAYDO_HOME,
     lockedBinary: tier1Startup.bin,
     pinnedVersion: tier1Startup.pinned,
-    model: (() => {
-      try {
-        return loadConfigFile(join(SAYDO_HOME, "config.toml")).models?.dev?.model ?? "";
-      } catch {
-        return "";
-      }
-    })(),
-    adapter: readDevAdapter(),
+    model: cfgModel,
+    adapter,
     gateScriptPath: gp.scriptPath,
+    // A1 补偿控制基准(W2 阶段0-①):每 gate 请求重读当前 backend 活动入口与此比对,漂移 ⇒ deny+终止活跃 run
     gateScriptExpected: buildActiveGateScript(gp),
+    gateClaudeScriptPath: gp.claudeScriptPath,
+    gateClaudeScriptExpected: buildActiveClaudeGateScript(gp),
+    ...(claudeMaxTurns !== undefined ? { claudeMaxTurns } : {}),
     receiptTimeoutSec
   };
   if (process.platform === "win32") executorCfg.gateBindPath = gp.bindPath;
@@ -3578,7 +3623,8 @@ if (tier1Startup.start && !RECOVERY_ONLY && !runtimeDraining) {
     log: log.child({ mod: "tier1" }),
     callbacks: callbackEngine,
     approvals: runtimeApprovals,
-    spawner: realAgentSpawner(),
+    spawner: realAgentSpawner(backend),
+    backend,
     artifacts: artifactStore, // W4 3.2 writing:成稿落 article artifact
     cfg: executorCfg
   });
@@ -3589,7 +3635,10 @@ if (tier1Startup.start && !RECOVERY_ONLY && !runtimeDraining) {
       const listened = await listenGateHttp(SAYDO_HOME, async (json) =>
         armedExecutor.handleGateRequest(parseGateWireRequest(json))
       );
-      executorCfg.gateBindExpected = readFileSync(gp.bindPath, "utf8");
+      // 评审 90 B-1:期望值取平台层返回的可信 bind 对象,不回读刚落盘的 gate-bind.json——
+      // 回读会把「落盘后、回读前被替换」的内容当成基线(漂移基线自我投毒)。
+      // 序列化形态必须与 writeGateBindAndSecret 逐字一致(JSON.stringify + 换行)。
+      executorCfg.gateBindExpected = `${JSON.stringify(listened.bind)}\n`;
       tier1GateServer = listened.server;
     } else {
       tier1GateServer = startGateServer(gp.sockPath, (req) => armedExecutor.handleGateRequest(req));

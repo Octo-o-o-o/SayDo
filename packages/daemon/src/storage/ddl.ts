@@ -182,6 +182,7 @@ CREATE TABLE events_cursor(source TEXT PRIMARY KEY NOT NULL, byte_offset INTEGER
   last_line_digest TEXT, vault_id TEXT, file_generation INTEGER, updated_at TEXT NOT NULL);
 CREATE TABLE tier1_runs(id TEXT PRIMARY KEY NOT NULL, task_id TEXT NOT NULL REFERENCES tasks(id),
   attempt INTEGER NOT NULL, adapter TEXT NOT NULL, native_session_id TEXT, cwd TEXT NOT NULL,
+  native_session_confirmed INTEGER NOT NULL DEFAULT 0 CHECK(native_session_confirmed IN (0,1)),
   worktree_path TEXT NOT NULL, tree_sha TEXT, event_cursor TEXT,
   state TEXT NOT NULL, settle_proof_json TEXT, cancel_proof_json TEXT,
   decisions_json TEXT, restart_pending_at TEXT, restart_reason TEXT,
@@ -795,7 +796,8 @@ export const MIGRATIONS: ReadonlyArray<Migration> = [
   { version: 26, sql: DDL_V26_CONFIRMATION_LEDGER },
   { version: 27, apply: applyDdlV27ObligationProvenance },
   { version: 28, apply: applyDdlV28FocusExpectations },
-  { version: 29, apply: applyDdlV29RestartPending }
+  { version: 29, apply: applyDdlV29RestartPending },
+  { version: 30, apply: applyDdlV30NativeSessionConfirmed }
 ];
 
 // v29(D1 可分发运行时):可恢复退出使用 additive marker,不扩 tier1 run 状态机。
@@ -804,6 +806,16 @@ export function applyDdlV29RestartPending(db: DbLike): void {
   addColumnIfMissing(db, "tier1_runs", "restart_reason", "TEXT");
   addColumnIfMissing(db, "tier1_runs", "budget_active_ms", "INTEGER NOT NULL DEFAULT 0");
   addColumnIfMissing(db, "tier1_runs", "budget_tool_calls", "INTEGER NOT NULL DEFAULT 0");
+}
+
+// v30(W5.4-b C2b):claude 会话钥匙确认位。老库缺省 0,既有 cursor 三元组行为不因该列改变。
+export function applyDdlV30NativeSessionConfirmed(db: DbLike): void {
+  addColumnIfMissing(
+    db,
+    "tier1_runs",
+    "native_session_confirmed",
+    "INTEGER NOT NULL DEFAULT 0 CHECK(native_session_confirmed IN (0,1))"
+  );
 }
 
 // v27(Focus v0.4 ④b):focus_obligations.provenance 可选列——过期确认降格溯源

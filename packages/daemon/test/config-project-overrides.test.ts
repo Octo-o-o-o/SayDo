@@ -18,6 +18,7 @@ import {
   upsertProjectOverrides,
   effectiveModelBinding,
   effectiveDevModel,
+  effectiveDevModelForAdapter,
   effectiveBudget,
   validateStoredProjectOverrides,
   clearInvalidStoredProjectOverrides,
@@ -194,13 +195,57 @@ describe("同族覆盖被拒反例(02 §5.1 护栏:evaluator 异族对覆盖后�
     expect(validateStoredProjectOverrides(db, GLOBAL)).toEqual([]);
   });
 
-  it("dialog 覆盖非 api 供给拒(09 §11 规则 1 对项目覆盖同样成立);schema 外键拒;dev.agent 词表限当前后端", () => {
+  it("dialog 覆盖非 api 供给拒(09 §11 规则 1 对项目覆盖同样成立);schema 外键拒;dev.agent 放开 claude_code,codex 仍拒", () => {
     const byoa = validateProjectOverrides(GLOBAL, { models: { dialog: { provider: "codex_cli" } } });
     expect(byoa.ok).toBe(false);
     if (!byoa.ok) expect(byoa.violations.some((v) => v.code === "project_override_cli_rejected")).toBe(true);
     expect(validateProjectOverrides(GLOBAL, { evil: true }).ok).toBe(false);
-    expect(validateProjectOverrides(GLOBAL, { models: { dev: { agent: "claude_code", model: "x" } } }).ok).toBe(false);
+    expect(validateProjectOverrides(GLOBAL, { models: { dev: { agent: "claude_code", model: "x" } } }).ok).toBe(true);
+    expect(validateProjectOverrides(GLOBAL, { models: { dev: { agent: "codex", model: "x" } } }).ok).toBe(false);
     expect(validateProjectOverrides(GLOBAL, { models: { evaluator: { provider: "api", model: "gpt-5" } } }).ok).toBe(false); // evaluator 不可覆盖(schema 无此键)
+  });
+});
+
+describe("effectiveDevModelForAdapter(W5.4-b C1;09 §11:dev.agent !== 生效 adapter ⇒ 忽略 + 审计素材)", () => {
+  it("正例:override agent 与生效 adapter 匹配 ⇒ 应用 override model(cursor 现状语义不变)", () => {
+    const ov: ProjectOverrides = { models: { dev: { agent: "cursor", model: "gpt-5.6-sol" } } };
+    expect(effectiveDevModelForAdapter("fable-5-max", ov, "cursor")).toEqual({
+      model: "gpt-5.6-sol",
+      source: "project"
+    });
+  });
+
+  it("反例:override agent 与生效 adapter 不匹配 ⇒ 忽略回全局 + ignored 携带双方词值(消费方据此审计 tier1.model_override_ignored_adapter_mismatch)", () => {
+    const ov: ProjectOverrides = { models: { dev: { agent: "cursor", model: "gpt-5.6-sol" } } };
+    expect(effectiveDevModelForAdapter("opus", ov, "claude_code")).toEqual({
+      model: "opus",
+      source: "global",
+      ignored: { overrideAgent: "cursor", effectiveAdapter: "claude_code" }
+    });
+    const claudeOv: ProjectOverrides = { models: { dev: { agent: "claude_code", model: "opus" } } };
+    expect(effectiveDevModelForAdapter("gpt-5.6-sol", claudeOv, "cursor")).toEqual({
+      model: "gpt-5.6-sol",
+      source: "global",
+      ignored: { overrideAgent: "claude_code", effectiveAdapter: "cursor" }
+    });
+  });
+
+  it("无 dev override ⇒ 回全局且无 ignored(不误报审计)", () => {
+    expect(effectiveDevModelForAdapter("fable-5-max", null, "cursor")).toEqual({
+      model: "fable-5-max",
+      source: "global"
+    });
+    expect(effectiveDevModelForAdapter("opus", { budget: { maxCost: 5 } }, "claude_code")).toEqual({
+      model: "opus",
+      source: "global"
+    });
+  });
+
+  it("匹配语义与既有 effectiveDevModel 在 cursor 匹配面等价(回归锚:C2 换接线不改行为)", () => {
+    const ov: ProjectOverrides = { models: { dev: { agent: "cursor", model: "gpt-5.6-sol" } } };
+    const legacy = effectiveDevModel("fable-5-max", ov);
+    const next = effectiveDevModelForAdapter("fable-5-max", ov, "cursor");
+    expect({ model: next.model, source: next.source }).toEqual(legacy);
   });
 });
 

@@ -57,13 +57,31 @@ pipeline(Python)不引该包。Python 侧用对等函数写在 `pipeline/src/say
 ```
 POST /gate
 Content-Type: application/json
-{"cwd": string, "command"?: string, "kind"?: "command"|"file_write"|"file_read", ...}
-→ {"permission":"allow"|"deny", "agent_message"?: string}
+legacy      {"command": string, "cwd": string}                          // 无 kind 键 = command 语义
+command     {"kind":"command",    "command": string, "cwd": string}
+file_write  {"kind":"file_write", "tool": string, "path": string, "cwd": string}
+file_read   {"kind":"file_read",  "path": string, "cwd": string}
+→ {"permission":"allow"|"deny"|"no_decision", "agent_message"?: string}
 ```
 
-现网 Cursor 仍只发 `{command,cwd}`。缺 `command` 且 `kind` 不是已实现分支 ⇒ deny。
-超时、非 JSON、非 allow、HMAC 失败 ⇒ deny。决策键仍是 `(runId, seq)`。
-本批不实现 W5.4-b 的 file_write 细协议;Windows Claude 钩子把 Bash 映射为 `command`,其余 kind deny。
+现网 Cursor 仍只发 `{command,cwd}`(legacy 分支,零行为变化)。未知 `kind` ⇒ deny。
+超时、非 JSON、非法形状、HMAC 失败 ⇒ deny。决策键仍是 `(runId, seq)`。
+
+**W5.4-b 收口后的现势(2026-08-22 更新;本节此前写「二态 + 非 Bash deny」已过时)**:
+
+- 响应**三态**:`allow` / `deny` / `no_decision`。`no_decision` = 空输出 exit 0,落回 vendor 自身权限流,
+  用于 claude 的圈内 `Read`(09 §11:`--permission-mode default` 下圈内读自动放行,门不作裁决)。
+  `no_decision` **不是**放行的同义词——Cursor 侧没有该态,收到即按失败出口 deny。
+- Claude 钩子在 **POSIX 与 win32 同分支**:`Bash` → `command`;`Write`/`Edit`/`NotebookEdit` → `file_write`;
+  `Read` → `file_read`;其余工具 ⇒ 失败出口。
+- **两层分工(owner 2026-08-22 裁决「真对齐」;评审 90/91/92 A-1/B-4)**:
+  脚本层只预筛**与圈根无关**的越界向量(`..` 分量 / `~` / `$HOME` / `%USERPROFILE%`,两端按路径分量判);
+  **圈内外由 daemon 的 `fileToolToEffect(tool, path, cwd, run.worktree)` 单点裁决**。
+  脚本不再判「绝对路径是否在 cwd 下」——它是全局单份、跨 run 复用,只拿得到 hook 报的 cwd,
+  而 `findRunByCwd` 明确允许 cwd 落在 worktree 子目录,拿 cwd 当圈根是 fail-closed 过拒(会误拒圈内文件)。
+  (此前「Windows Claude 钩子把 Bash 映射为 command,其余 kind deny」是 W-Win 批的阶段状态,已由评审 90 A-1 回修。)
+- **待办(登记不掩饰)**:请求/响应类型目前在 `daemon/tier1/gateServer.ts` 与 `platform/gate.ts` 各定义一份,
+  未上收 `@saydo/contracts`,与 `AGENTS.md` 的「09 已有类型统一进 contracts」有出入——归 W5.4-c 清偿(评审 90 B-8)。
 
 **传输**:
 
@@ -189,5 +207,9 @@ quoted span 的闭合内容必须**整段**是路径(以 `/`、`~/` 或盘符绝
 ### 10.3 口径
 
 - Linux 的 birth/anchor **一律走 `/proc`**,禁止回退 `ps`/`pgrep` 当生产路径(最小镜像常无 procps)。
-- 判定"Linux 可用"必须在**最小镜像**(如 `node:*-slim`)而非 `ubuntu-latest` runner 上验证依赖面:
+- 判定"Linux **可升正式 SKU**"必须在**最小镜像**(如 `node:*-slim`)而非 `ubuntu-latest` runner 上验证依赖面:
   后者预装了 jq/curl/git/procps,会把真实缺口全部掩盖。
+  **口径边界(2026-08-22,评审 90/91 后 owner 裁决)**:本条约束的是 **SKU 判定**,不是官网措辞。
+  owner 已解除官网侧限制——官网可写「Windows / Linux 桌面服务已开放」,但必须同句写明
+  「常驻安装、系统通知等链路当前为 macOS 实现」。本条**未解除**,仍是升 SKU 的前置;
+  两者不得互相援引(详见 `docs/plan/LINUX-ALIGNMENT.md` §3 与设计 ADR-004 §2 的同源注)。

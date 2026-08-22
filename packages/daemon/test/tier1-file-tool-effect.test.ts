@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { mkdtempSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
@@ -219,5 +219,29 @@ describe("fileToolToEffect", () => {
       if (row.sensitive) expect(d.touchesSensitiveData, String(row.path)).toBe(true);
       if (row.kind === "write_worktree" && !row.sensitive) expect(d.touchesSensitiveData).toBeUndefined();
     }
+  });
+});
+
+describe("圈根与解析基分离(评审 90 B-4)", () => {
+  it("hook cwd 在 worktree 子目录时,改 worktree 根下的文件仍算圈内", () => {
+    const root = mkdtempSync(join(tmpdir(), "saydo-wt-"));
+    const sub = join(root, "sub");
+    mkdirSync(sub, { recursive: true });
+    writeFileSync(join(root, "README.md"), "x");
+    // 旧行为:cwd 既当解析基又当圈根 ⇒ /wt/README.md 相对 /wt/sub 在圈外,被误拒
+    expect(fileToolToEffect("Write", join(root, "README.md"), sub).kind).not.toBe("write_worktree");
+    // 新行为:解析基仍是 cwd,圈根显式传 worktree
+    expect(fileToolToEffect("Write", join(root, "README.md"), sub, root).kind).toBe("write_worktree");
+    expect(fileToolToEffect("Read", join(root, "README.md"), sub, root).kind).toBe("read");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("圈根之外仍然圈外(分离不放宽边界)", () => {
+    const root = mkdtempSync(join(tmpdir(), "saydo-wt-"));
+    const outside = mkdtempSync(join(tmpdir(), "saydo-out-"));
+    writeFileSync(join(outside, "a.txt"), "x");
+    expect(fileToolToEffect("Write", join(outside, "a.txt"), root, root).kind).not.toBe("write_worktree");
+    rmSync(root, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
   });
 });

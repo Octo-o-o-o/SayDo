@@ -59,9 +59,10 @@ export function writeGateBindAndSecret(saydoHome: string, bind: GateBind, secret
   restrictOwnerOnly(secretFile, "file");
 }
 
+/** 三态:allow / deny / no_decision(claude PreToolUse 无裁决,落回 vendor 权限流;W5.4-b) */
 export type GateHttpHandler = (
   json: unknown
-) => Promise<{ permission: "allow" | "deny"; agent_message?: string }>;
+) => Promise<{ permission: "allow" | "deny" | "no_decision"; agent_message?: string }>;
 
 export interface GateHttpListen {
   server: Server;

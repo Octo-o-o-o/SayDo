@@ -115,7 +115,19 @@ function outsideWrite(reason?: string): EffectDescriptor {
   return d;
 }
 
-export function fileToolToEffect(tool: string, path: unknown, cwd: string): EffectDescriptor {
+/**
+ * @param cwd          hook 报的当前目录——**只用来解析相对路径**
+ * @param worktreeRoot 圈内外判定的根;缺省回落 cwd(W5.4-a 纯函数期望不变)
+ *
+ * 评审 90 B-4:两者必须分开。`findRunByCwd` 允许 hook cwd 落在 worktree 的子目录里,
+ * 若拿 cwd 当圈根,在 `/wt/sub` 下改 `/wt/README.md` 会被误判圈外拒掉。
+ */
+export function fileToolToEffect(
+  tool: string,
+  path: unknown,
+  cwd: string,
+  worktreeRoot: string = cwd
+): EffectDescriptor {
   const isRead = tool === "Read";
   if (typeof path !== "string") {
     return isRead ? outsideRead() : { kind: "delete_data", target: "unresolvable" };
@@ -134,7 +146,7 @@ export function fileToolToEffect(tool: string, path: unknown, cwd: string): Effe
   if ("unresolvable" in resolved) {
     return isRead ? outsideRead() : { kind: "delete_data", target: "unresolvable" };
   }
-  const inside = isInsideWorktree(resolved.abs, cwd);
+  const inside = isInsideWorktree(resolved.abs, worktreeRoot);
   if (inside === "unresolvable") {
     return isRead ? outsideRead() : { kind: "delete_data", target: "unresolvable" };
   }

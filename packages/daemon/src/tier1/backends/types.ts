@@ -1,6 +1,8 @@
+import type { Adapter } from "@saydo/contracts";
 import type { GatePaths } from "../gateScript.js";
 
-export type AdapterKind = "cursor" | "claude_code";
+/** 已实现后端的有意子集(contracts adapterSchema 词表单源,09 §6.1;readback B-1 清偿:契约不分叉) */
+export type AdapterKind = Extract<Adapter, "cursor" | "claude_code">;
 
 export type Tier1Event =
   | {
@@ -21,6 +23,8 @@ export type Tier1Event =
       subtype?: string;
       isError?: boolean;
       numTurns?: number;
+      /** claude result 的 total_cost_usd(订阅态是估值;09 §9 meta 必填 total_cost_usd_estimate) */
+      totalCostUsd?: number;
       usage?: unknown;
       modelUsage?: unknown;
       permissionDenials?: unknown;
@@ -43,7 +47,11 @@ export interface Tier1BuildArgvInput {
 export interface Tier1Backend {
   readonly adapter: AdapterKind;
   buildArgv(i: Tier1BuildArgvInput): string[];
-  provisionHooks(cwd: string, gate: GatePaths): { extraArgs: string[]; filesWritten: string[] };
+  provisionHooks(
+    cwd: string,
+    gate: GatePaths,
+    hookTimeoutSec?: number
+  ): { extraArgs: string[]; filesWritten: string[] };
   parseLine(line: string): readonly Tier1Event[];
   isTerminalResult(line: string): boolean;
   finishPolicy: "kill_on_result" | "wait_exit_then_kill";

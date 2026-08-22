@@ -8,6 +8,7 @@
 > 归并回写:`[name-0813]` 2026-08-13 — `docs/store/00–05`(既白同日起草的隐私政策/文案/审核备注/备案表/软著说明)已逐项裁决归并至 **[2026-08-13-app-materials.md](2026-08-13-app-materials.md)**,六份原稿加弃用横幅冻结;融合文案已投影 metadata.json(28 字段 0 违规)。
 > 占坑回写:`[occupy-0813]` 2026-08-13 — Pages 站点 + 自定义域上线;ASC/Play/AGC 应用记录均以「说到」建好;鸿蒙发布证书已签发,叶证书指纹写入 filing-cheatsheet。
 > 备案回写:`[filing-0813]` 2026-08-13 16:44 — 腾讯云新增 App 服务已提交初审(订单号私存),状态「腾讯云审核中」。字段快照 `docs/release/2026-08-13-tencent-icp-app-filing.md`。
+> 备案通过回写:`[filing-0821]` 2026-08-21 — 管局审核通过,App 服务号 `京ICP备2025153079号-4A`;服务名「说到」,域名 `saydo.octoooo.com`,接入 IP 与主体站点同机。证据:腾讯云控制台「新增服务 - 备案成功」。
 > 审核路径回写:`[review-0813]` 2026-08-13 — DEC-9:审核夹具=家里 Mac mini,仅提审窗口在线,不成产品云;清单 `app-materials.md` §4。
 
 Previous campaign: 无(SayDo 首次)。可复用的邻产品战役:`OctoDesk/docs/plan/2026-07-21-mobile-store-submission-status.md`(千手,包名 `com.octoooo.desk`,备案号 `京ICP备2025153079号-3A`)
@@ -16,7 +17,7 @@ Previous campaign: 无(SayDo 首次)。可复用的邻产品战役:`OctoDesk/doc
 
 | Track | Store | Status (updated) | Next action | Owning session |
 |---|---|---|---|---|
-| iOS | App Store | app-record-created | 店名「说到」已占,App Store ID `6801042343`;en-US 精确 `SayDo` 仍被占,提审前定后缀。勿传 spike IPA | `[occupy-0813]` |
+| iOS | App Store | app-record-created | 店名「说到」已占,App Store ID `6801042343`;en-US 店名 `SayDo - You Say, AI Do`(2026-08-22 写入 ASC)。勿传 spike IPA | `[occupy-0813]` / `[name-0822]` |
 | Android | Google Play | package-reserved | title「说到」,包名 `com.octoooo.saydo`,Play 应用 ID `4975182458667142159`。Dashboard 未见 12 人内测门横幅(账号已有正式应用)。勿传 spike AAB | `[occupy-0813]` |
 | HarmonyOS / Android channel | AppGallery | app-id-and-release-cer | App ID `6917613548237019987`, listing `9249519184596237673`,手机-only,发布证书 `SayDo Release` 至 2029-08-13。Profile `.p7b` 未建。勿传 spike HAP | `[occupy-0813]` |
 
@@ -66,7 +67,7 @@ Pages: 项目 `saydo` → `saydo-3xb.pages.dev` + 自定义域 `saydo.octoooo.co
 
 ## 3. App Store track
 
-- Coordinates: Bundle ID 已登记 `com.octoooo.saydo` / ASC `bundleIds` id `PFS4HWS6C9` / Team `5CS6HUB4P2` / seedId `5CS6HUB4P2` / App Store ID **`6801042343`**. `[occupy-0813]` 网页创建应用:平台 iOS、店名「说到」、主语言 zh-Hans、SKU `saydo`、Full Access。创建时 ASC 提示 user access 设置未保存(个人账无实际影响)。en-US 精确店名 `SayDo` 仍被占,该本地化名称先留空。
+- Coordinates: Bundle ID 已登记 `com.octoooo.saydo` / ASC `bundleIds` id `PFS4HWS6C9` / Team `5CS6HUB4P2` / seedId `5CS6HUB4P2` / App Store ID **`6801042343`**. `[occupy-0813]` 网页创建应用:平台 iOS、店名「说到」、主语言 zh-Hans、SKU `saydo`、Full Access。创建时 ASC 提示 user access 设置未保存(个人账无实际影响)。`[name-0822]` en-US 店名已写 `SayDo - You Say, AI Do`(精确 `SayDo` 仍被占)。
 - `[setup-0813]` 2026-08-13 14:39: ASC API `POST /v1/bundleIds` 成功,platform=UNIVERSAL。随后 `POST /v1/bundleIdCapabilities` 打开 `PUSH_NOTIFICATIONS` 与 `ASSOCIATED_DOMAINS`。系统默认带了 `IN_APP_PURCHASE`(无内购计划,可留)。
 - 店名精确 `SayDo` 仍被占用,证据 `docs/release/name-occupancy.md`。中文店名「说到」已占用。
 - 加密豁免:未对二进制跑 `nm`/`strings`,不宣称 `ITSAppUsesNonExemptEncryption=false`。
@@ -87,10 +88,10 @@ Pages: 项目 `saydo` → `saydo-3xb.pages.dev` + 自定义域 `saydo.octoooo.co
 | Item | Status | Filed | Expected | Number/receipt |
 |---|---|---|---|---|
 | ICP 网站备案(主体) | 已有,属 octoooo.com / 千手 | 既有 | — | `京ICP备2025153079号` |
-| ICP App 备案(SayDo) | 已提交初审,腾讯云审核中 | 2026-08-13 16:44 | 腾讯云 1–2 工作日来电 + 管局约 1–20 工作日 | 订单号私存;新号,不是 -3A |
-| 软著 CPCC | 材料说明成文(app-materials.md §6),待生成源码 PDF+说明书 | — | 回执 ~3 wd / 证 50–75 wd(加急 7–15 wd,建议加急) | 软件全称拟「说到事务管理软件 V1.0」 |
+| ICP App 备案(SayDo) | 管局已通过,状态正常 | 2026-08-13 提交;2026-08-21 通过 | — | `京ICP备2025153079号-4A` |
+| 软著 CPCC | R11 已提交,流水号 `2026R11L2860558`,待受理 | — | 普通通道,不加急;千手 `2026R11L2548912` 未动 | 2026-08-21 签章页已传并确认提交;电子证书 |
 | AI declaration evidence | 策略已定:中国包装豆包/火山,BYOA 排除;号未写入 | — | 中国包接到真实模型后再填 | 见矩阵 §C |
-| 公安备案 | App 号下来后 30 日内 | — | — | 千手先例:全国互联网安全管理服务平台 |
+| 公安备案 | 号已下发,未做;腾讯云提示服务开通后 30 日内 | — | 约 2026-09-20 | 千手先例:全国互联网安全管理服务平台 |
 
 备案字段以快照为准,本表不另维护第二套填写清单:
 
@@ -103,7 +104,7 @@ Pages: 项目 `saydo` → `saydo-3xb.pages.dev` + 自定义域 `saydo.octoooo.co
 | # | Action | Exact steps/values | Status |
 |---|---|---|---|
 | DEC-1 | 产品载体(设计 ADR-003) | A 并入千手=本战役停止;B 独立产品=继续占坑;C 只占标识符、载体以后再定 | **已选 B 独立产品**(2026-08-13) |
-| DEC-2 | 商店唯一名 + 包内名 | 中文主名**「说到」** + 英文 SayDo;ASC en-US 店名(精确 SayDo 被占)待定后缀 | **已定**(2026-08-13) |
+| DEC-2 | 商店唯一名 + 包内名 | 中文主名**「说到」** + 英文 SayDo;ASC en-US 店名 **`SayDo - You Say, AI Do`**(owner 2026-08-22;精确 `SayDo` 仍被占,走千手「品牌 - 副标」) | **已定**(2026-08-13;en-US 后缀 2026-08-22) |
 | DEC-3 | 目标商店与地区 | App Store + Play + AGC,含中国大陆。国内安卓未选 | **已选**(2026-08-13) |
 | DEC-4 | 域名 | `saydo.octoooo.com` + `link.saydo.octoooo.com` | **已上线** 2026-08-13 |
 | DEC-5 | 中国区 AI 上游 | 中国商店包对话默认已备案国产模型;BYOA 不进中国包 | **已选**(2026-08-13) |
@@ -118,10 +119,13 @@ Pages: 项目 `saydo` → `saydo-3xb.pages.dev` + 自定义域 `saydo.octoooo.co
 | OWN-4 | 隐私政策主体名称 | 个人 汪义骁;挂网 `https://saydo.octoooo.com/privacy`,邮箱 `support@octoooo.com` | **已完成** |
 | OWN-5 | Cloudflare 给 `octoooo.com` 加 `saydo` / `link.saydo` 记录 | CNAME `saydo`→`saydo-3xb.pages.dev`;`link.saydo`→`saydo-link.pages.dev`(橙云 Auto) | **已完成** |
 | OWN-6 | 发送中文主名 | 「说到」——已用作三端包内名;备案名、软著名、AGC 中文名照此填 | **已完成**(2026-08-13) |
+| OWN-7 | 官网与 App 悬挂备案号 | 页脚挂 `京ICP备2025153079号-4A`,链到 `https://beian.miit.gov.cn/` | **官网已部署** 2026-08-21;App 关于页待上架前补 |
+| OWN-8 | 公安联网备案 | 全国互联网安全管理服务平台;腾讯云提示服务开通后 30 日内 | **APP 已重交** 2026-08-21 10:42,待大兴审核。10:06 单已撤销。功能描述=腾讯云现网备注;G4;前置许可否 |
+| OWN-9 | CPCC 申请确认签章页 | 打印 `2026R11L2860558` 签章页,本人签字后拍照/扫描交给本会话上传 | **已上传并确认提交** 2026-08-21。列表=待受理;详情=已提交材料。签章原件私存,不入仓 |
 
 ## 7. Rejections log
 
-商店轨尚未提交,故无商店拒信。ICP 订单(号私存)已交腾讯云初审,尚无驳回。
+商店轨尚未提交,故无商店拒信。ICP App 备案已于 2026-08-21 管局通过,号 `京ICP备2025153079号-4A`,无驳回。
 
 ## 8. While-waiting queue
 
@@ -134,11 +138,15 @@ Pages: 项目 `saydo` → `saydo-3xb.pages.dev` + 自定义域 `saydo.octoooo.co
 - [x] `[occupy-0813]` 隐私/条款/支持页 200;deep-link well-known JSON 200
 - [x] `[occupy-0813]` AGC 上传 CSR → 发布 `.cer` → 叶证书指纹写入 filing-cheatsheet
 - [x] `[filing-0813]` 腾讯云新增 App 服务已提交(订单号私存,腾讯云审核中)。快照 `2026-08-13-tencent-icp-app-filing.md`。下一步:接 010-5610 审核电话,再等工信部 24h 短信
-- [ ] 腾讯云来电接通 + 工信部短信核验(到了必须 24h 内)
+- [x] `[filing-0821]` 管局通过,App 服务号 `京ICP备2025153079号-4A`(说到 / `saydo.octoooo.com`)
+- [x] `[filing-0821]` OWN-7 官网中英十页 + link 域已挂 `京ICP备2025153079号-4A` 并部署 Pages;App 关于页待上架前补
+- [x] `[filing-0821]` 软著鉴别材料已生成:`artifacts/release/copyright/{source-code-60pages,user-manual}.pdf`;R11 预填避开千手「只写鸿蒙」坑
+- [x] `[filing-0821]` OWN-8 公安「说到」10:06 单已撤销;10:42 按腾讯云现网备注重交,待大兴审核(G4 / 前置许可否 / 功能描述=本地效率工具)
+- [x] `[filing-0821]` 腾讯云现网回读:说到 `-4A` 服务内容=工具(个人不能备「软件开发」);公安已按该口径对齐
 - [ ] AGC 增长登记 App Linking 域名(applinking.json 已带 App ID `6917613548237019987`,增长后台尚未登记)
 - [ ] HarmonyOS 发布 Profile `.p7b`(签名出包用,不挡备案)
 - [x] `[name-0813]` docs/store 六份旧稿归并进 app-materials.md,弃用横幅已加
-- [ ] 软著:源码前 30+后 30 页 PDF + 带截图说明书(规格见 app-materials.md §6)
+- [x] `[filing-0821]` 软著 R11 `2026R11L2860558` 签章页已传并确认提交,列表「待受理」。千手那条未动
 - [ ] 中国 SKU:对话默认豆包/火山,BYOA 打成海外 flavor
 - [x] `[review-0813]` 审核演示路径策略已定:家里 Mac mini 仅提审窗口在线,不成产品云。口径+清单 `app-materials.md` §4
 - [ ] 提审执行:打开 Mac mini + 公网可达 + 演示数据 + 配对码 + 视频(§4.4);结论出来前保持在线

@@ -1,13 +1,13 @@
 // BYOA LlmProvider:buildCageArgv → runSpawnTurn → parser → consume。
 // 每次进程调用都审计;schema 文件与临时 cwd 在 finally 清理;失败、空输出、取消均 fail-closed。
 
-import { createHash } from "node:crypto";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { isAbsolute, join } from "node:path";
+import { join } from "node:path";
 import { jcsDigest } from "@saydo/contracts";
 import type { ChatRequest, ChatResult, LlmProvider } from "../types.js";
 import type { AuditSink } from "../../obs/audit.js";
+import { sha256File, verifyBinaryIdentity, type VerifiedBinaryIdentity } from "../binaryIdentity.js";
 import { allowsVerifiedBinaryDefault, requiresIsolatedHome } from "../../config/cliProviders.js";
 import { buildCageArgv, type CageProvider, type CodexReasoning } from "./cage.js";
 import { isCliSubscriptionRateLimit } from "./billing.js";
@@ -29,14 +29,9 @@ import {
   type SpawnTurnResult
 } from "./runner.js";
 
-export interface VerifiedBinaryIdentity {
-  /** cliCapability 探测后固化的绝对路径。 */
-  path: string;
-  /** 文件内容 SHA-256(hex)。 */
-  digest: string;
-  /** 流内无 model 时使用的已登记默认模型。 */
-  defaultModel?: string;
-}
+// W5.4-b C1:VerifiedBinaryIdentity 与 verifyBinaryIdentity 提升为共享模块
+// providers/binaryIdentity.ts(Tier1 claude 登记核验同源消费);此处 re-export 保持既有导出面。
+export type { VerifiedBinaryIdentity } from "../binaryIdentity.js";
 
 export interface ByoaProviderOptions {
   provider: CageProvider;
@@ -126,30 +121,6 @@ function cursorSchemaPrompt(prompt: string, schema: Record<string, unknown>, ret
 
 function isolatedPrompt(prompt: string, reinforced = false): string {
   return `${reinforced ? BYOA_REINFORCED_NO_TOOL_PROMPT_HEADER : BYOA_NO_TOOL_PROMPT_HEADER}\n\n${prompt}`;
-}
-
-function sha256File(path: string): string {
-  return createHash("sha256").update(readFileSync(path)).digest("hex");
-}
-
-function verifyBinaryIdentity(
-  binaryPath: string | undefined,
-  identity: VerifiedBinaryIdentity | undefined,
-  familyOf: (model: string) => string | null,
-  expectedFamily: string
-): VerifiedBinaryIdentity | undefined {
-  if (!identity || !binaryPath || !isAbsolute(binaryPath) || identity.path !== binaryPath || !isAbsolute(identity.path)) {
-    return undefined;
-  }
-  try {
-    if (!statSync(identity.path).isFile()) return undefined;
-    if (!/^[a-f0-9]{64}$/.test(identity.digest) || sha256File(identity.path) !== identity.digest) return undefined;
-    const defaultFamily = identity.defaultModel ? familyOf(identity.defaultModel) : null;
-    if (defaultFamily && defaultFamily !== expectedFamily) return undefined;
-    return identity;
-  } catch {
-    return undefined;
-  }
 }
 
 function failure(code: string, message: string, retryable = false): ChatResult {

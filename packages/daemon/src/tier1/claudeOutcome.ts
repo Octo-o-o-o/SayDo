@@ -18,7 +18,36 @@ export interface RateLimitLike {
   status?: string;
 }
 
-const RATE_REJECT = /rejected|exhausted|limited|exceeded|blocked/i;
+/**
+ * 限流拒绝态判定:**按实测枚举精确匹配**,不做自然语言分词。
+ *
+ * 演进与教训(评审 90/91/92 三轮):
+ *  1. 最初裸子串 `/rejected|exhausted|limited|exceeded|blocked/` —— `unlimited` 被误判为限流;
+ *  2. 改整词切分 —— `not_limited` / `quota_not_exceeded` 仍被误判(字面语义恰好相反);
+ *  3. 加否定前缀消解 —— `not_rate_limited` 仍漏(否定词不与拒绝词相邻);
+ *  4. **现版:枚举白名单**。前三版都在给一个凭空构造的语法打补丁——
+ *     仓内唯一真实 fixture(`fixtures/claude-cli/2.1.220/rate_limit.jsonl`)的
+ *     `rate_limit_info.status` 只出现 `"allowed"`,`"rejected"` 出现在**另一个字段** `overageStatus`。
+ *     也就是说那套分词从来没有证据支撑,只会制造误判。
+ *
+ * 判定规则:归一化(去空白、转小写)后落在拒绝枚举内才算拒绝。**未知串一律不判限流**——
+ * 限流会把任务转 blocked 叫人,误判的代价是白挂;真限流另有 result 层
+ * `isCliSubscriptionRateLimit` 与 stderr 兜底,不靠这一条独木。
+ * 新 vendor 枚举出现时,**补进这张表并同批补 fixture**,不要回退成模糊匹配。
+ */
+const RATE_REJECT_STATUS = new Set([
+  "rejected",
+  "exhausted",
+  "rate_limited",
+  "quota_exceeded",
+  "blocked",
+  "limit_exceeded",
+  "usage_limit_reached"
+]);
+
+export function isRateRejectStatus(status: string): boolean {
+  return RATE_REJECT_STATUS.has(status.trim().toLowerCase());
+}
 
 export function classifyClaudeRunOutcome(
   result: ClaudeResultLike | undefined,
@@ -35,7 +64,7 @@ export function classifyClaudeRunOutcome(
     return { action: "failed", reason: "max_turns" };
   }
 
-  const rateReject = rateLimitEvents.some((e) => typeof e.status === "string" && RATE_REJECT.test(e.status));
+  const rateReject = rateLimitEvents.some((e) => typeof e.status === "string" && isRateRejectStatus(e.status));
   const auth = explainCliProcessFailure("claude_cli", { exitCode, stderrTail });
   if (isError && (rateReject || auth.code === "subscription_rate_limited")) {
     return { action: "blocked", reason: "subscription_rate_limited" };

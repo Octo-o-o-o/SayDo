@@ -283,6 +283,9 @@ describe("describeEffectForSpeech(#19 槽位;命令截断经 redactor)", () => {
       "推到 feature/x 分支"
     );
     expect(describeEffectForSpeech({ kind: "install_dependency", target: "(lockfile)" }, "pnpm install")).toContain("执行:");
+    expect(
+      describeEffectForSpeech({ kind: "write_worktree", touchesSensitiveData: true, target: ".env" }, "Write /wt/.env")
+    ).toBe("要改敏感文件 .env,批准吗");
   });
 });
 

@@ -69,8 +69,9 @@
   *EN: A voice-first chief of staff for your projects. Just talk it through — it studies your project first, keeps a four-color ledger of everything, and once it understands, it drives the AI tools already on your machine. When the run and its checks are done, it calls you back for review.*
 - [改] 按钮:主 `开始用`(→ `#start`)/ 次 `了解怎么工作`(→ `#how`)
   *EN: Get started / How it works*
-- [改] aside:`桌面服务开源免费 · 查看 GitHub` | `Windows / Linux 暂不支持、没有明确时间表` | `iOS / Android / HarmonyOS 开发中、尚未上架` | `邮件订阅进展`
-  *EN: Desktop service · free & open source · View on GitHub | Windows / Linux not supported yet; no timeline promised | iOS / Android / HarmonyOS in development, not in stores | Email for updates*
+- [改 2026-08-22] aside:`桌面服务开源免费 · 查看 GitHub` | `Windows / Linux 桌面服务已开放(常驻安装与系统通知暂为 macOS 实现)` | `iOS / Android / HarmonyOS 开发中、尚未上架` | `邮件订阅进展`
+  *EN: Desktop service · free & open source · View on GitHub | Windows / Linux desktop service now available (residency install and system notifications remain macOS-only for now) | iOS / Android / HarmonyOS in development, not in stores | Email for updates*
+  > 依据:W-Win 批已收口(Windows 10.0.26200 真机全量门禁,`e2e/evidence/windows-alignment.md`)+ Linux 经 Actions `ubuntu-latest` node/python 双 job 绿(PR #1 run `32545535527`)。常驻安装(launchd 对等的 systemd/Scheduled Task)确为未做,见 `docs/plan/LINUX-ALIGNMENT.md` P0-1 与 WINDOWS-ALIGNMENT「非本计划」。
 - [保留] 语音条示例句、四色账本四行与图例(文案已贴合产品:等你拍板 / 你欠的动作 / AI 正在办 / 等外部回音)。
 
 ## B.2 信任条
@@ -136,11 +137,11 @@
 ## B.9 开始用(`#start`,保留 `#download` 锚点)
 
 - 标题 [改]:eyebrow `开始用` / H2 `桌面开源,App 在路上`(保留)
-- 引语 [改]:`桌面服务是执行面：macOS 开源免费、现在可用；Windows 与 Linux 暂不支持、没有明确时间表。移动 App 是沟通面，开发中、尚未上架、当前无可下载版本。在你的 Mac 上跑起桌面服务就能开聊。按文档显式打开局域网访问后，可用手机浏览器扫码连接。`
-  *EN: The desktop service is the execution side: macOS is free, open source, and available now; Windows and Linux are not supported yet, with no timeline promised. The mobile apps are the communication side: in development, not listed in any store, and there is nothing to download today. After you explicitly enable LAN access as documented, you can connect with a phone browser by scanning a QR code.*
+- 引语 [改 2026-08-22]:`桌面服务是执行面：macOS 开源免费、现在可用；Windows 已完成原生适配并经真机验证，Linux 经 CI 全量验证，均可运行；常驻安装、系统通知等链路当前为 macOS 实现。移动 App 是沟通面，开发中、尚未上架、当前无可下载版本。在你的电脑上跑起桌面服务就能开聊。按文档显式打开局域网访问后，可用手机浏览器扫码连接。`
+  *EN: The desktop service is the execution side: macOS is free, open source, and available now; Windows has native support verified on real hardware, Linux passes the full CI matrix, and both run today — residency install, system notifications, and similar paths are macOS-only for now. The mobile apps are the communication side: in development, not listed in any store, and there is nothing to download today. After you explicitly enable LAN access as documented, you can connect with a phone browser by scanning a QR code.*
 - macOS 卡 [改]:`macOS 桌面服务 · 开源免费 · 现在可用` + 链接 `安装说明 →`(`/docs/#quickstart`)+ `GitHub →`
   *EN: macOS desktop service · Free & open source · Available now · Install guide → · GitHub →*
-- Windows / Linux 卡 [改]:徽章 `暂不支持` / *Not supported yet*;说明见引语「没有明确时间表 / no timeline promised」
+- Windows / Linux 卡 [改 2026-08-22]:徽章 `开源 · 现在可用` / *Open source · Available now*;能力边界见引语(常驻安装与系统通知暂为 macOS 实现)
 - iOS / Android / HarmonyOS 三卡 [改]:徽章 `开发中` / *In development*;尚未上架、当前无可下载版本。邮件按钮 `邮件订阅进展` / *Email for updates*(mailto subject 为更新通知,不是 beta access)
 
 ## B.10 FAQ
@@ -149,8 +150,8 @@
 - 五问 [改其中三问]:
   - 云服务:`不是。没有开发者运营的云端后台。重活在你自己的电脑上跑。你接入的第三方 AI 由你的电脑直接调用，开发者不经手、不可见。`
     *EN: No. There is no developer-operated cloud backend. The heavy work runs on your own computer. The third-party AI you connect is called directly by your computer — the developer never touches or sees any of it.*
-  - 需要什么前提:`在你的电脑（macOS）上运行「说到」桌面服务。按文档显式打开局域网访问后，可用手机浏览器扫码连接。`
-    *EN: Run the desktop service on your Mac. After you explicitly enable LAN access as documented, you can connect with a phone browser by scanning a QR code.*
+  - 需要什么前提 [改 2026-08-22]:`在你的电脑（macOS / Windows / Linux）上运行「说到」桌面服务（开源免费）。按文档显式打开局域网访问后，可用手机浏览器扫码连接。`
+    *EN: Run the free, open-source SayDo desktop service on your computer (macOS / Windows / Linux). After you explicitly enable LAN access as documented, you can connect with a phone browser by scanning a QR code.*
   - 数据存在哪:`对话、事项与账本保存在你自己的设备上。手机与电脑之间走你自己的局域网或你自行配置的加密组网。你自行启用的云端语音、AI 上游和推送，由你的电脑直连第三方；开发者不接收这些数据。`
     *EN: Conversations, items, and the ledger stay on your own devices. Phone and computer talk over your own LAN or an encrypted overlay you configure. Cloud voice, AI upstreams, and push that you enable yourself are called directly from your computer to those third parties; the developer does not receive that data.*
   - 「需要什么前提」末句 `语音无需额外配置,浏览器即可用` 仍成立;如要更准:`语音不用额外配置——浏览器自带的系统语音就能说;想要更准更自然可选配云端语音`
@@ -169,6 +170,7 @@
 ## B.12 页脚
 
 - [保留] 品牌句、产品列、法律列、版权行。
+- [改 2026-08-21] 版权行加 `京ICP备2025153079号-4A`，链到 `https://beian.miit.gov.cn/`。
 - [改] 资源列:`文档 · GitHub · 支持 · 常见问题` / *Docs · GitHub · Support · FAQ*
 - [改] 产品列「下载」→「开始用」/ *Download → Get started*
 

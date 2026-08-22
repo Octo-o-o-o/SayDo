@@ -6,6 +6,8 @@
 import { accessSync, constants, lstatSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute } from "node:path";
 import { hostKind, isReparsePoint } from "@saydo/platform";
+import { familyFromModelName } from "../config/family.js";
+import type { ClaudeIdentityVerdict } from "./claudeIdentity.js";
 
 export interface Tier1ConfigInput {
   cursorAgentBin: string;
@@ -95,35 +97,112 @@ export function assertExactVersion(actual: string, pinned: string): void {
 }
 
 export interface Tier1StartupInput {
-  /** [tier1] 两键(缺任一 = not_configured,与既有 fail-closed 行为一致) */
+  /** [tier1] cursor 两键(缺任一 = not_configured,与既有 fail-closed 行为一致) */
   cursorAgentBin?: string | undefined;
   pinnedVersion?: string | undefined;
   /** models.dev.agent(缺省 cursor) */
   adapter: string;
+  /** claude 分支输入(W5.4-b C1;09 §11 claude_code 承载段四键 + identity 登记核验结论) */
+  claude?:
+    | {
+        bin?: string | undefined;
+        pinnedVersion?: string | undefined;
+        model?: string | undefined;
+        /** verifyClaudeIdentity 结论(调用方注入;缺省按登记缺失 fail-closed) */
+        identity?: ClaudeIdentityVerdict | undefined;
+      }
+    | undefined;
 }
 
 export type Tier1StartupVerdict =
   | { start: true; bin: string; pinned: string }
   | { start: false; code: "not_configured" | "unsupported_adapter" | Tier1ConfigFailCode; reason: string };
 
+const CLAUDE_NOT_CONFIGURED_PRESCRIPTION =
+  '在 ~/.saydo/config.toml 的 [tier1] 段配置 claude_bin="<claude 实体绝对路径>" claude_pinned_version="<claude --version 实测>" model="<opus 等 claude 族>",并跑 POST /api/setup/test {"scope":"tier1"} 写入 claude-identity.json;queued 任务在配置齐备前不会被认领';
+
+/**
+ * claude 分支(方案 §3.9/§3.7):bin 绝对路径+存在+可执行、pinned 非空、model 解析出 claude 族
+ * (别名 opus/sonnet/haiku/fable 与 claude-* 前缀,族判定单源 familyFromModelName)、
+ * identity 登记存在且 binaryPath/digest 一致。任一不满足 ⇒ not_configured + 处方化提示(含缺的键名);
+ * spawn 前的运行时核验码(binary_identity_mismatch)归 C2 认领链,不在启动资格层。
+ */
+function claudeStartupVerdict(c: NonNullable<Tier1StartupInput["claude"]> | undefined): Tier1StartupVerdict {
+  const bin = c?.bin && c.bin.trim() !== "" ? c.bin : undefined;
+  const pinned = c?.pinnedVersion && c.pinnedVersion.trim() !== "" ? c.pinnedVersion : undefined;
+  const model = c?.model && c.model.trim() !== "" ? c.model : undefined;
+  const missing: string[] = [];
+  if (!bin) missing.push("claude_bin");
+  if (!pinned) missing.push("claude_pinned_version");
+  if (!model) missing.push("model");
+  if (!bin || !pinned || !model) {
+    return {
+      start: false,
+      code: "not_configured",
+      reason: `[tier1] 缺 ${missing.join("/")};${CLAUDE_NOT_CONFIGURED_PRESCRIPTION}`
+    };
+  }
+  if (!isAbsolute(bin)) {
+    return {
+      start: false,
+      code: "not_configured",
+      reason: `claude_bin 必须是实体文件绝对路径(裸名走 PATH 不满足 pin),得到 "${bin}";${CLAUDE_NOT_CONFIGURED_PRESCRIPTION}`
+    };
+  }
+  let st;
+  try {
+    st = statSync(bin);
+  } catch {
+    return { start: false, code: "not_configured", reason: `claude_bin 文件不存在:${bin};${CLAUDE_NOT_CONFIGURED_PRESCRIPTION}` };
+  }
+  if (!st.isFile()) {
+    return { start: false, code: "not_configured", reason: `claude_bin 不是常规文件:${bin};${CLAUDE_NOT_CONFIGURED_PRESCRIPTION}` };
+  }
+  try {
+    accessSync(bin, constants.X_OK);
+  } catch {
+    return { start: false, code: "not_configured", reason: `claude_bin 不可执行:${bin};${CLAUDE_NOT_CONFIGURED_PRESCRIPTION}` };
+  }
+  if (familyFromModelName(model) !== "claude") {
+    return {
+      start: false,
+      code: "not_configured",
+      reason: `[tier1] model="${model}" 解析不出 claude 族(接受别名 opus/sonnet/haiku/fable 或 claude-* 前缀);${CLAUDE_NOT_CONFIGURED_PRESCRIPTION}`
+    };
+  }
+  const identity = c?.identity;
+  if (!identity || !identity.ok) {
+    const detail = identity && !identity.ok ? identity.detail : "identity 登记缺失(尚未跑 scope=tier1 自检)";
+    return {
+      start: false,
+      code: "not_configured",
+      reason: `claude 身份登记未通过:${detail};${CLAUDE_NOT_CONFIGURED_PRESCRIPTION}`
+    };
+  }
+  return { start: true, bin, pinned };
+}
+
 /**
  * 启动资格集中裁决(index.ts 消费;B3:非 cursor 后端配置启动即拒——
  * 此前 agent="claude_code" 仍起 cursor 二进制:runs.adapter 记错、能力谎报,fail-closed 修复)。
+ * W5.4-b C1:先按生效 adapter 分叉再校验(方案 §3.9 顺序重排);cursor 分支输出形状不变,
+ * claude_code 走 claudeStartupVerdict,其余(codex 等)仍 unsupported_adapter。
  */
 export function tier1StartupVerdict(i: Tier1StartupInput): Tier1StartupVerdict {
+  if (i.adapter === "claude_code") return claudeStartupVerdict(i.claude);
+  if (i.adapter !== "cursor") {
+    return {
+      start: false,
+      code: "unsupported_adapter",
+      reason: `models.dev.agent="${i.adapter}" 后端执行器未实现(仅 cursor/claude_code);拒起而非起别家二进制冒充(fail-closed;codex 随后续批接入)`
+    };
+  }
   if (!i.cursorAgentBin || !i.pinnedVersion) {
     return {
       start: false,
       code: "not_configured",
       reason:
         '在 ~/.saydo/config.toml 增加 [tier1] cursor_agent_bin="<versions/<ver>/cursor-agent 绝对路径>" cursor_agent_pinned_version="<ver>";queued 任务在配置齐备前不会被认领'
-    };
-  }
-  if (i.adapter !== "cursor") {
-    return {
-      start: false,
-      code: "unsupported_adapter",
-      reason: `models.dev.agent="${i.adapter}" 后端执行器未实现(仅 cursor);拒起而非起 cursor 二进制冒充(fail-closed;claude_sdk/codex 随后续批接入)`
     };
   }
   const v = validateTier1Config({ cursorAgentBin: i.cursorAgentBin, pinnedVersion: i.pinnedVersion });

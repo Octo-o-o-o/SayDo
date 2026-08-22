@@ -61,3 +61,11 @@ owner ~/.saydo/config.toml 已改(evaluator=cursor gpt-5,解析校验 ok/devMode
    并**再次上浮 owner,不自决启用**。
 
 本决策表原文保留作历史记录;与本附则冲突处以附则(即 09 §11 规则 2)为准。
+
+## 状态更正(2026-08-21,W5.4-b 前置回写;附则第 4 条的现势刷新)
+
+附则第 4 条「当前状态:豁免休眠……身份核验链未实现……claude_cli 接入时随核验一并实施并再次上浮 owner」为 2026-07-25 时点陈述,**已过时**,现势如下(附则第 1-3 条收窄条款不变,仍以 09 §11 规则 2 为 SoT):
+
+1. **BYOA 侧核验链 + 条件豁免已随 T18 落地(2026-08-11/12)**:`verified_binary_default` 身份核验链(预登记绝对路径 + digest)已实施,豁免仅在 `{codex_cli, claude_cli}` 且流内无 model 且核验通过时按合同触发,并落 `observed_model_exempted` 标记;实测 Claude CLI 2.1.220 流内有 model(`system/init.model` + 每条 assistant),故豁免**实践不触发**。(锚点注:本 ADR 各处所引「09 §11 规则 2」为历史锚,该条款在当前 09 §11 T18b 列表中序为规则 3——编号漂移勘误统一登记 `history/DEV-VERSION-LEDGER.md` §3,历史引用不改。)
+2. **Tier1 `claude_code` 不使用该豁免**:执行器走"流内严格"(`system/init.model` ∪ `assistant.message.model` 集合族校验,缺失即 `observed_model_missing` failed),`observedModelExempted` 恒 `false`;身份核验(`claude-identity.json`)用于版本 pin,不用于豁免(09 §11 claude_code 承载段,2026-08-21)。
+3. 附则第 4 条要求的「再次上浮 owner」以 W5.4 方案 §2 D4 上浮文案承载,随 W5.4-b 批验收由 owner 确认。

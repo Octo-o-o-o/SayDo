@@ -13,7 +13,8 @@ import { insertProject } from "../src/storage/dao/projects.js";
 import { canonicalizeWorkspace, managedProjectPath } from "../src/projects/workspace.js";
 import { insertTask } from "../src/storage/dao/tasks.js";
 import { CallbackEngine } from "../src/callback/engine.js";
-import { cancelWithAutoSettle, steerTask } from "../src/tier1/operations.js";
+import { cancelWithAutoSettle, retryTask, steerTask } from "../src/tier1/operations.js";
+import { sweepRetryQueue } from "../src/providers/byoa/retryQueue.js";
 import {
   Tier1Executor,
   realAgentSpawner,
@@ -24,9 +25,13 @@ import {
   type ExecutorDeps
 } from "../src/tier1/executor.js";
 import { claudeBackend, buildClaudeHooksSettings } from "../src/tier1/backends/claude.js";
+import type { Tier1Backend } from "../src/tier1/backends/types.js";
 import { RuntimeApprovalFlow } from "../src/tier1/approvalFlow.js";
+import { insertApproval } from "../src/storage/dao/approvals.js";
 import { getProjectTasks } from "../src/api/console.js";
-import { buildActiveGateScript, ensureGateScript, gatePaths } from "../src/tier1/gateScript.js";
+import { buildActiveClaudeGateScript, buildActiveGateScript, ensureGateScript, gatePaths } from "../src/tier1/gateScript.js";
+import { writeClaudeIdentity } from "../src/tier1/claudeIdentity.js";
+import { sha256File } from "../src/providers/binaryIdentity.js";
 import type { AuditSink } from "../src/obs/audit.js";
 import type { Logger } from "../src/obs/logger.js";
 
@@ -51,16 +56,58 @@ interface FakeRun {
   linesOnKill?: string[];
   killDelayMs?: number;
   beforeExit?: (cwd: string) => void;
+  /** 保留 fixture 内 session_id,不改写成 spawn.sessionId(错配测试) */
+  preserveInitSession?: boolean;
+  stderrTail?: string;
+}
+
+function rewriteInitSessionId(line: string, sessionId: string): string {
+  try {
+    const o = JSON.parse(line) as Record<string, unknown>;
+    if (o && o["type"] === "system" && (o["subtype"] === "init" || typeof o["model"] === "string")) {
+      return JSON.stringify({ ...o, session_id: sessionId });
+    }
+  } catch {
+    // 非 JSON 行保持原样
+  }
+  return line;
 }
 
 class FakeSpawner implements AgentSpawner {
   plan: FakeRun[] = [];
-  spawned: { prompt: string; cwd: string; env: Record<string, string>; model?: string; resumeChatId?: string }[] = [];
+  spawned: {
+    prompt: string;
+    cwd: string;
+    env: Record<string, string>;
+    model?: string;
+    resumeChatId?: string;
+    settingsJson?: string;
+    sessionId?: string;
+    maxTurns?: number;
+  }[] = [];
   version(): string {
     return "1.0.0-pinned"; // W2 阶段0-②:assertVersion 改精确相等(实测 --version 输出即裸版本串)
   }
-  spawn(i: { prompt: string; cwd: string; env: Record<string, string>; model: string; resumeChatId?: string }): AgentProcessHandle {
-    this.spawned.push({ prompt: i.prompt, cwd: i.cwd, env: i.env, model: i.model, ...(i.resumeChatId ? { resumeChatId: i.resumeChatId } : {}) });
+  spawn(i: {
+    prompt: string;
+    cwd: string;
+    env: Record<string, string>;
+    model: string;
+    resumeChatId?: string;
+    settingsJson?: string;
+    sessionId?: string;
+    maxTurns?: number;
+  }): AgentProcessHandle {
+    this.spawned.push({
+      prompt: i.prompt,
+      cwd: i.cwd,
+      env: i.env,
+      model: i.model,
+      ...(i.resumeChatId ? { resumeChatId: i.resumeChatId } : {}),
+      ...(i.settingsJson ? { settingsJson: i.settingsJson } : {}),
+      ...(i.sessionId ? { sessionId: i.sessionId } : {}),
+      ...(i.maxTurns !== undefined ? { maxTurns: i.maxTurns } : {})
+    });
     const run = this.plan.shift() ?? { lines: [], exitCode: 0 };
     const cbs: ((l: string) => void)[] = [];
     let resolveExit!: (v: { exitCode: number }) => void;
@@ -74,7 +121,11 @@ class FakeSpawner implements AgentSpawner {
       };
     });
     setTimeout(() => {
-      for (const l of run.lines) for (const cb of cbs) cb(l);
+      const lines =
+        i.sessionId && !run.preserveInitSession
+          ? run.lines.map((l) => rewriteInitSessionId(l, i.sessionId!))
+          : run.lines;
+      for (const l of lines) for (const cb of cbs) cb(l);
       run.beforeExit?.(i.cwd);
       if (!run.hang) resolveExit({ exitCode: run.exitCode });
     }, 5);
@@ -86,7 +137,8 @@ class FakeSpawner implements AgentSpawner {
         if ((run.killDelayMs ?? 0) > 0) setTimeout(() => resolveExit({ exitCode: 143 }), run.killDelayMs);
         else resolveExit({ exitCode: 143 });
       },
-      wait: () => exitP
+      wait: () => exitP,
+      stderrTail: () => run.stderrTail ?? ""
     };
   }
 }
@@ -193,7 +245,26 @@ function seedQueuedTask(id: string, budget = { walltimeActiveMin: 45, maxTurns: 
   db.prepare("UPDATE tasks SET status='queued', updated_at=? WHERE id=?").run(t0, id);
 }
 
-function makeExecutor(overrides: Partial<ExecutorDeps["cfg"]> = {}, spawnerOverride?: AgentSpawner): Tier1Executor {
+// 评审 90 A-5:claude 后端每次 spawn 前核验 claude-identity.json(09 §11 承载段)。
+// 测试同生产:真写一个假 claude 二进制 + 与之匹配的登记,让核验走真实路径而不是被绕过。
+function armClaudeIdentityAt(home: string, binName = "fake-claude", body = "#!/bin/sh\nexit 0\n"): string {
+  const bin = join(home, binName);
+  writeFileSync(bin, body);
+  writeClaudeIdentity(home, {
+    binaryPath: bin,
+    binaryDigest: sha256File(bin),
+    version: "2.1.220",
+    testedAt: "2026-08-22T00:00:00.000Z",
+    receipt: { source: "test" }
+  });
+  return bin;
+}
+
+function makeExecutor(
+  overrides: Partial<ExecutorDeps["cfg"]> = {},
+  spawnerOverride?: AgentSpawner,
+  extra?: { backend?: Tier1Backend }
+): Tier1Executor {
   // A1 补偿控制(W2 阶段0-①):测试同生产——真写 gate.sh,expected 与落盘一致
   const gp = ensureGateScript(saydoHome);
   return new Tier1Executor({
@@ -203,6 +274,7 @@ function makeExecutor(overrides: Partial<ExecutorDeps["cfg"]> = {}, spawnerOverr
     callbacks,
     approvals,
     spawner: spawnerOverride ?? spawner,
+    ...(extra?.backend ? { backend: extra.backend } : {}),
     cfg: {
       saydoHome,
       lockedBinary: "/fake/versions/1.0.0-pinned/cursor-agent",
@@ -211,10 +283,41 @@ function makeExecutor(overrides: Partial<ExecutorDeps["cfg"]> = {}, spawnerOverr
       adapter: "cursor",
       gateScriptPath: gp.scriptPath,
       gateScriptExpected: buildActiveGateScript(gp),
+      gateClaudeScriptPath: gp.claudeScriptPath,
+      gateClaudeScriptExpected: buildActiveClaudeGateScript(gp),
       verifyTimeoutMs: 30_000,
       ...overrides
     }
   });
+}
+
+function seedDispatchReceipt(): void {
+  const now = "2026-07-25T12:00:00.000Z";
+  insertApproval(db, {
+    id: newId("apr"),
+    kind: "dispatch_package",
+    refDigest: PKG_DIGEST,
+    turnRef: newId("ses"),
+    riskLevel: "S2",
+    principal: "owner",
+    decidedVia: "voice",
+    authStrength: "voice_weak",
+    decision: "accept",
+    nonce: `n-${newId("apr")}`,
+    issuedAt: now,
+    expiresAt: "2099-01-01T00:00:00.000Z",
+    outcome: "consumed",
+    consumedAt: now
+  });
+}
+
+async function hangRun(taskId: string): Promise<string> {
+  seedQueuedTask(taskId);
+  spawner.plan = [{ lines: [EV.init], exitCode: 0, hang: true }];
+  executor.tick();
+  await vi.waitFor(() => expect(spawner.spawned).toHaveLength(1));
+  return (db.prepare("SELECT worktree_path FROM tier1_runs WHERE task_id=?").get(taskId) as { worktree_path: string })
+    .worktree_path;
 }
 
 async function waitTaskStatus(taskId: string, status: string): Promise<void> {
@@ -1230,4 +1333,732 @@ setInterval(() => {}, 1000);
     await expect(cursorProc.wait()).resolves.toEqual({ exitCode: 0 });
     expect(Date.now() - c0).toBeLessThan(2000);
   }, 20_000);
+
+  it("claude argv 封闭集:settings 内联且不含禁旗标", async () => {
+    const dump = join(OWNER_TEST_ROOT, "fake-claude-dump-argv.mjs");
+    const out = join(OWNER_TEST_ROOT, "claude-argv.json");
+    writeFileSync(
+      dump,
+      `#!/usr/bin/env node
+import { writeFileSync } from "node:fs";
+writeFileSync(${JSON.stringify(out)}, JSON.stringify({ argv: process.argv.slice(2) }));
+process.exit(0);
+`
+    );
+    chmodSync(dump, 0o755);
+    const settingsJson = buildClaudeHooksSettings("/tmp/gate-claude.sh", 120);
+    const proc = realAgentSpawner(claudeBackend()).spawn({
+      binary: dump,
+      model: "opus",
+      prompt: "hello-c2a",
+      cwd: OWNER_TEST_ROOT,
+      env: { PATH: process.env["PATH"] ?? "/usr/bin", ANTHROPIC_API_KEY: "should-not-pass" },
+      settingsJson,
+      maxTurns: 200,
+      sessionId: "00000000-0000-4000-8000-0000000000c2"
+    });
+    await proc.started;
+    proc.ownershipEstablished?.();
+    await proc.wait();
+    const dumped = JSON.parse(readFileSync(out, "utf8")) as { argv: string[] };
+    expect(dumped.argv).toContain("-p");
+    expect(dumped.argv[dumped.argv.indexOf("--permission-mode") + 1]).toBe("default");
+    expect(dumped.argv[dumped.argv.indexOf("--tools") + 1]).toBe("Bash,Read,Write,Edit,NotebookEdit");
+    expect(dumped.argv).toContain("--settings");
+    const settings = JSON.parse(dumped.argv[dumped.argv.indexOf("--settings") + 1]!) as {
+      hooks: { PreToolUse: unknown[] };
+    };
+    expect(settings.hooks.PreToolUse.length).toBeGreaterThan(0);
+    const joined = dumped.argv.join("\0");
+    for (const banned of [
+      "bypassPermissions",
+      "dontAsk",
+      "--dangerously-skip-permissions",
+      "--add-dir",
+      "--no-session-persistence",
+      "--bare",
+      "--fallback-model",
+      "acceptEdits"
+    ]) {
+      expect(joined.includes(banned), banned).toBe(false);
+    }
+    expect(dumped.argv.at(-1)).toBe("hello-c2a");
+  });
+});
+
+describe("C2a claude spawn env / settings / hooks.json 仅 cursor", () => {
+  it("claude env 注入两键且无 ANTHROPIC_*;settingsJson 内联;不写 .cursor/hooks.json", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2A1";
+    executor = makeExecutor({ adapter: "claude_code", model: "opus", claudeMaxTurns: 200, lockedBinary: armClaudeIdentityAt(saydoHome) }, undefined, {
+      backend: claudeBackend()
+    });
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [EV.init], exitCode: 0, hang: true }];
+    executor.tick();
+    await vi.waitFor(() => expect(spawner.spawned).toHaveLength(1));
+    const sp = spawner.spawned[0]!;
+    expect(sp.env["DISABLE_AUTOUPDATER"]).toBe("1");
+    expect(sp.env["SHELL"]).toBe("/bin/sh");
+    expect(Object.keys(sp.env).some((k) => k.startsWith("ANTHROPIC") || k === "CLAUDE_CODE_OAUTH_TOKEN")).toBe(false);
+    expect(sp.settingsJson).toBeTruthy();
+    const settings = JSON.parse(sp.settingsJson!) as { hooks: { PreToolUse: unknown[] } };
+    expect(settings.hooks.PreToolUse.length).toBeGreaterThan(0);
+    expect(sp.maxTurns).toBe(200);
+    expect(existsSync(join(sp.cwd, ".cursor", "hooks.json"))).toBe(false);
+  });
+
+  it("cursor 路径仍写 hooks.json 且 spawn 不带 settingsJson/maxTurns", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2A2";
+    const wt = await hangRun(TSK);
+    expect(existsSync(join(wt, ".cursor", "hooks.json"))).toBe(true);
+    expect(spawner.spawned[0]?.settingsJson).toBeUndefined();
+    expect(spawner.spawned[0]?.maxTurns).toBeUndefined();
+  });
+});
+
+describe("C2a consumeEventLine 吃 backend.parseLine(claude fixture)", () => {
+  const fix = join(__dirname, "fixtures/claude-cli/2.1.220");
+  function loadLine(name: string, index = 0): string {
+    return readFileSync(join(fix, name), "utf8")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0)[index]!;
+  }
+
+  it("init fixture → observedModel 落盘并可 settle", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2E1";
+    executor = makeExecutor({ adapter: "claude_code", model: "opus", lockedBinary: armClaudeIdentityAt(saydoHome) }, undefined, { backend: claudeBackend() });
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [loadLine("init.jsonl"), loadLine("result_success.jsonl")], exitCode: 0 }];
+    executor.tick();
+    await waitTaskStatus(TSK, "ready_for_review");
+  });
+
+  it("多块 tool_use 两块都计 toolCalls", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2E2";
+    executor = makeExecutor({ adapter: "claude_code", model: "opus", lockedBinary: armClaudeIdentityAt(saydoHome) }, undefined, { backend: claudeBackend() });
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [loadLine("init.jsonl"), loadLine("tool_use_multi.jsonl")], exitCode: 0, hang: true }];
+    executor.tick();
+    await vi.waitFor(() => expect(spawner.spawned).toHaveLength(1));
+    await vi.waitFor(() => {
+      const row = db.prepare("SELECT budget_tool_calls FROM tier1_runs WHERE task_id=?").get(TSK) as {
+        budget_tool_calls: number;
+      };
+      expect(row.budget_tool_calls).toBe(2);
+    });
+  });
+
+  it("result fixture 置终态;unknown 行计数进审计不作废", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2E3";
+    executor = makeExecutor({ adapter: "claude_code", model: "opus", lockedBinary: armClaudeIdentityAt(saydoHome) }, undefined, { backend: claudeBackend() });
+    seedQueuedTask(TSK);
+    spawner.plan = [
+      {
+        lines: [loadLine("init.jsonl"), "this is not json", loadLine("result_success.jsonl")],
+        exitCode: 0
+      }
+    ];
+    executor.tick();
+    await waitTaskStatus(TSK, "ready_for_review");
+    const unk = db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.event_parse_unknown'").all() as {
+      meta_json: string;
+    }[];
+    expect(unk.length).toBeGreaterThan(0);
+    expect(JSON.parse(unk[0]!.meta_json).count).toBe(1);
+  });
+});
+
+describe("C2a handleGateRequest 文件分叉 + 并发 S2 + 双脚本 drift", () => {
+  it("file_write 圈内非敏感 allow", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2G1";
+    const wt = await hangRun(TSK);
+    const r = await executor.handleGateRequest({
+      kind: "file_write",
+      tool: "Write",
+      path: join(wt, "src/a.ts"),
+      cwd: wt
+    });
+    expect(r.permission).toBe("allow");
+  });
+
+  it("file_write 圈内敏感走 S2;圈外 deny 永不 S2", async () => {
+    seedDispatchReceipt();
+    const TSK = "tsk_01EXEC0000000000000000C2G2";
+    const wt = await hangRun(TSK);
+    const pending = executor.handleGateRequest({
+      kind: "file_write",
+      tool: "Write",
+      path: join(wt, ".env"),
+      cwd: wt
+    });
+    await vi.waitFor(() => expect(approvals.pendingCount()).toBe(1));
+    const receipt = db.prepare("SELECT id FROM approvals WHERE kind='runtime_effect' AND outcome='pending'").get() as {
+      id: string;
+    };
+    expect(approvals.decide(receipt.id, "accept", { via: "screen" }).ok).toBe(true);
+    expect((await pending).permission).toBe("allow");
+    const outside = await executor.handleGateRequest({
+      kind: "file_write",
+      tool: "Write",
+      path: "/etc/passwd",
+      cwd: wt
+    });
+    expect(outside.permission).toBe("deny");
+    expect(approvals.pendingCount()).toBe(0);
+    const metas = (
+      db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.gate_decision'").all() as { meta_json: string }[]
+    ).map((r) => JSON.parse(r.meta_json) as { kind?: string; tool?: string; risk: string; permission: string });
+    expect(metas.some((m) => m.kind === "file_write" && m.tool === "Write" && m.risk === "S2")).toBe(true);
+    expect(metas.some((m) => m.kind === "file_write" && m.permission === "deny" && m.risk === "S3")).toBe(true);
+  });
+
+  it("file_read 圈内 no_decision / 圈外 deny;未知工具面 write 拒", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2G3";
+    const wt = await hangRun(TSK);
+    const inside = await executor.handleGateRequest({ kind: "file_read", path: join(wt, "README.md"), cwd: wt });
+    expect(inside.permission).toBe("no_decision");
+    const outside = await executor.handleGateRequest({ kind: "file_read", path: "/etc/hosts", cwd: wt });
+    expect(outside.permission).toBe("deny");
+    const unkTool = await executor.handleGateRequest({
+      kind: "file_write",
+      tool: "Task",
+      path: join(wt, "x.ts"),
+      cwd: wt
+    });
+    expect(unkTool.permission).toBe("deny");
+  });
+
+  it("并发 S2:第二张直接 deny 等待审批;前一张裁决后恢复", async () => {
+    seedDispatchReceipt();
+    const TSK = "tsk_01EXEC0000000000000000C2G4";
+    const wt = await hangRun(TSK);
+    const first = executor.handleGateRequest({
+      kind: "file_write",
+      tool: "Write",
+      path: join(wt, ".env"),
+      cwd: wt
+    });
+    await vi.waitFor(() => expect(approvals.pendingCount()).toBe(1));
+    const second = await executor.handleGateRequest({
+      kind: "file_write",
+      tool: "Write",
+      path: join(wt, ".npmrc"),
+      cwd: wt
+    });
+    expect(second.permission).toBe("deny");
+    expect(String(second.agent_message)).toContain("等待审批结果后再试");
+    expect(approvals.pendingCount()).toBe(1);
+    const receipt = db.prepare("SELECT id FROM approvals WHERE kind='runtime_effect' AND outcome='pending'").get() as {
+      id: string;
+    };
+    expect(approvals.decide(receipt.id, "accept", { via: "screen" }).ok).toBe(true);
+    expect((await first).permission).toBe("allow");
+    const third = executor.handleGateRequest({
+      kind: "file_write",
+      tool: "Write",
+      path: join(wt, "id_rsa"),
+      cwd: wt
+    });
+    await vi.waitFor(() => expect(approvals.pendingCount()).toBe(1));
+    const r2 = db.prepare("SELECT id FROM approvals WHERE kind='runtime_effect' AND outcome='pending'").get() as {
+      id: string;
+    };
+    expect(approvals.decide(r2.id, "reject", { via: "screen" }).ok).toBe(true);
+    expect((await third).permission).toBe("deny");
+  });
+
+  it("gate-claude.sh 漂移同样拦 + 自愈", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2G5";
+    const wt = await hangRun(TSK);
+    const gp = gatePaths(saydoHome);
+    writeFileSync(gp.claudeScriptPath, "#!/bin/bash\necho tampered\n");
+    const denied = await executor.handleGateRequest({ cwd: wt, command: "ls" });
+    expect(denied.permission).toBe("deny");
+    expect(String(denied.agent_message)).toContain("integrity");
+    await waitTaskStatus(TSK, "failed");
+    const drift = db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.gate_script_drift'").all() as {
+      meta_json: string;
+    }[];
+    expect(drift.some((r) => JSON.parse(r.meta_json).script === "gate-claude.sh")).toBe(true);
+    expect(readFileSync(gp.claudeScriptPath, "utf8")).toBe(buildActiveClaudeGateScript(gp));
+  });
+});
+
+describe("C2b session / canary / 记账 / 限流 / 恢复", () => {
+  const fix = join(__dirname, "fixtures/claude-cli/2.1.220");
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  function loadLine(name: string, index = 0): string {
+    return readFileSync(join(fix, name), "utf8")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0)[index]!;
+  }
+  function makeClaude(spawnerOverride?: AgentSpawner, cfgOverrides: Record<string, unknown> = {}): Tier1Executor {
+    const bin = armClaudeIdentityAt(saydoHome);
+    return makeExecutor(
+      { adapter: "claude_code", model: "opus", claudeMaxTurns: 200, lockedBinary: bin, ...cfgOverrides },
+      spawnerOverride,
+      { backend: claudeBackend() }
+    );
+  }
+  const rateReject = JSON.stringify({
+    type: "rate_limit_event",
+    rate_limit_info: { status: "rejected", resetsAt: 1, rateLimitType: "five_hour" }
+  });
+  const errResult = JSON.stringify({
+    type: "result",
+    subtype: "error",
+    is_error: true,
+    result: "limited"
+  });
+
+  it("认领→argv 含 --session-id→init 确认→settle + kind=tier1.run", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2B1";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [loadLine("init.jsonl"), loadLine("result_success.jsonl")], exitCode: 0 }];
+    executor.tick();
+    await waitTaskStatus(TSK, "ready_for_review");
+    const sid = spawner.spawned[0]?.sessionId;
+    expect(sid).toMatch(uuidRe);
+    expect(spawner.spawned[0]?.resumeChatId).toBeUndefined();
+    const row = db
+      .prepare("SELECT native_session_id AS sid, native_session_confirmed AS c FROM tier1_runs WHERE task_id=?")
+      .get(TSK) as { sid: string; c: number };
+    expect(row.sid).toBe(sid);
+    expect(row.c).toBe(1);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.session_identity_confirmed'").get() as { c: number })
+        .c
+    ).toBe(1);
+    const cost = db.prepare("SELECT kind, source, known, amount, meta_json FROM cost_entries WHERE task_id=?").get(TSK) as {
+      kind: string;
+      source: string;
+      known: number;
+      amount: number | null;
+      meta_json: string;
+    };
+    expect(cost).toMatchObject({ kind: "tier1.run", source: "subscription", known: 0, amount: null });
+    expect(JSON.parse(cost.meta_json).requests).toBe(1);
+    const settled = JSON.parse(
+      (db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.settled_review' ORDER BY ts DESC LIMIT 1").get() as {
+        meta_json: string;
+      }).meta_json
+    ) as Record<string, unknown>;
+    expect(settled.observedModelSource).toBe("stream");
+    expect(settled.observedModelExempted).toBe(false);
+    expect(settled.observedModelFamilyOk).toBe(true);
+  });
+
+  it("canary 不误 trip:S2 等待期多 tool_use 无 tool_result", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2B2";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [
+      { lines: [loadLine("init.jsonl"), loadLine("tool_use_multi.jsonl")], exitCode: 0, hang: true }
+    ];
+    executor.tick();
+    await vi.waitFor(() => expect(spawner.spawned).toHaveLength(1));
+    executor.tick();
+    executor.tick();
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("running");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.canary_tripped'").get() as { c: number }).c
+    ).toBe(0);
+  });
+
+  it("resume mismatch:init.session_id 不等 ⇒ failed native_session_mismatch", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2B3";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [
+      {
+        lines: [
+          JSON.stringify({
+            type: "system",
+            subtype: "init",
+            session_id: "00000000-0000-4000-8000-deadbeef0001",
+            model: "claude-sonnet-5",
+            apiKeySource: "none"
+          }),
+          loadLine("result_success.jsonl")
+        ],
+        exitCode: 0,
+        preserveInitSession: true
+      }
+    ];
+    executor.tick();
+    await waitTaskStatus(TSK, "failed");
+    expect(
+      (db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.settled_failed' ORDER BY ts DESC LIMIT 1").get() as {
+        meta_json: string;
+      }).meta_json
+    ).toContain("native_session_mismatch");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.session_identity_mismatch'").get() as { c: number })
+        .c
+    ).toBe(1);
+  });
+
+  it("rate limited ⇒ blocked + subscription.retry_enqueued + sweep 重认领", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2B4";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [
+      {
+        lines: [loadLine("init.jsonl"), rateReject, errResult],
+        exitCode: 1,
+        stderrTail: "rate_limit_error: usage limit exceeded"
+      }
+    ];
+    executor.tick();
+    await waitTaskStatus(TSK, "blocked");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='subscription.retry_enqueued'").get() as { c: number }).c
+    ).toBe(1);
+    const q = db.prepare("SELECT slot, kind, state FROM subscription_retry_queue").get() as {
+      slot: string;
+      kind: string;
+      state: string;
+    };
+    expect(q).toEqual({ slot: "tier1", kind: "tier1_run", state: "queued" });
+    expect((db.prepare("SELECT COUNT(*) AS c FROM cost_entries WHERE source='api'").get() as { c: number }).c).toBe(0);
+    const sid = (db.prepare("SELECT native_session_id AS s FROM tier1_runs WHERE task_id=? AND attempt=1").get(TSK) as { s: string })
+      .s;
+    spawner.plan = [
+      {
+        lines: [
+          JSON.stringify({
+            type: "system",
+            subtype: "init",
+            session_id: sid,
+            model: "claude-sonnet-5",
+            apiKeySource: "none"
+          }),
+          loadLine("result_success.jsonl")
+        ],
+        exitCode: 0,
+        preserveInitSession: true
+      }
+    ];
+    const replayed = await sweepRetryQueue(
+      db,
+      audit,
+      {
+        tier1_run: async (entry) => {
+          const taskId = (entry.payload as { taskId: string }).taskId;
+          retryTask(db, audit, taskId, new Date().toISOString());
+          return { ok: true };
+        }
+      },
+      () => new Date()
+    );
+    expect(replayed.replayed).toBe(1);
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("running");
+    executor.tick();
+    await waitTaskStatus(TSK, "ready_for_review");
+    expect(spawner.spawned).toHaveLength(2);
+    expect(spawner.spawned[1]?.resumeChatId).toBe(sid);
+  });
+
+  it("auth_required blocked 且不入重试队列", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2B5";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [
+      {
+        lines: [loadLine("init.jsonl"), errResult],
+        exitCode: 1,
+        stderrTail: "Login expired. Please run /login"
+      }
+    ];
+    executor.tick();
+    await waitTaskStatus(TSK, "blocked");
+    expect(
+      (db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.blocked' ORDER BY ts DESC LIMIT 1").get() as {
+        meta_json: string;
+      }).meta_json
+    ).toContain("auth_required");
+    expect((db.prepare("SELECT COUNT(*) AS c FROM subscription_retry_queue").get() as { c: number }).c).toBe(0);
+  });
+
+  it("apiKeySource !== none ⇒ failed subscription_auth_violation", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2B6";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [
+      {
+        lines: [
+          JSON.stringify({
+            type: "system",
+            subtype: "init",
+            model: "claude-sonnet-5",
+            apiKeySource: "ANTHROPIC_API_KEY",
+            tools: ["Bash"]
+          })
+        ],
+        exitCode: 0,
+        hang: true
+      }
+    ];
+    executor.tick();
+    await waitTaskStatus(TSK, "failed");
+    expect(
+      (db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.settled_failed' ORDER BY ts DESC LIMIT 1").get() as {
+        meta_json: string;
+      }).meta_json
+    ).toContain("subscription_auth_violation");
+  });
+
+  it("queued_delta 四元组已确认才 --resume", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2B7";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [loadLine("init.jsonl")], exitCode: 0, hang: true }];
+    executor.tick();
+    await vi.waitFor(() => {
+      expect(
+        (db.prepare("SELECT native_session_confirmed AS c FROM tier1_runs WHERE task_id=?").get(TSK) as { c: number }).c
+      ).toBe(1);
+    });
+    const sid = (db.prepare("SELECT native_session_id AS s FROM tier1_runs WHERE task_id=?").get(TSK) as { s: string }).s;
+    steerTask(db, audit, { taskId: TSK, instruction: "改用 fetch" }, new Date().toISOString());
+    executor.tick();
+    await vi.waitFor(() => {
+      expect(
+        (db.prepare("SELECT state FROM tier1_runs WHERE task_id=? AND attempt=1").get(TSK) as { state: string }).state
+      ).toBe("cancel_settled");
+    });
+    spawner.plan = [
+      {
+        lines: [
+          JSON.stringify({
+            type: "system",
+            subtype: "init",
+            session_id: sid,
+            model: "claude-sonnet-5",
+            apiKeySource: "none"
+          }),
+          loadLine("result_success.jsonl")
+        ],
+        exitCode: 0,
+        preserveInitSession: true
+      }
+    ];
+    executor.tick();
+    await waitTaskStatus(TSK, "ready_for_review");
+    expect(spawner.spawned[1]?.resumeChatId).toBe(sid);
+    expect(spawner.spawned[1]?.sessionId).toBeUndefined();
+  });
+
+  it("queued_delta 未确认 ⇒ 新会话并审计 resume_skipped_not_confirmed", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2B8";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [], exitCode: 0, hang: true }];
+    executor.tick();
+    await vi.waitFor(() => expect(spawner.spawned).toHaveLength(1));
+    expect(
+      (db.prepare("SELECT native_session_confirmed AS c FROM tier1_runs WHERE task_id=?").get(TSK) as { c: number }).c
+    ).toBe(0);
+    steerTask(db, audit, { taskId: TSK, instruction: "换路" }, new Date().toISOString());
+    executor.tick();
+    await vi.waitFor(() => {
+      expect(
+        (db.prepare("SELECT state FROM tier1_runs WHERE task_id=? AND attempt=1").get(TSK) as { state: string }).state
+      ).toBe("cancel_settled");
+    });
+    spawner.plan = [{ lines: [loadLine("init.jsonl"), loadLine("result_success.jsonl")], exitCode: 0 }];
+    executor.tick();
+    await waitTaskStatus(TSK, "ready_for_review");
+    expect(spawner.spawned[1]?.resumeChatId).toBeUndefined();
+    expect(spawner.spawned[1]?.sessionId).toMatch(uuidRe);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.resume_skipped_not_confirmed'").get() as {
+        c: number;
+      }).c
+    ).toBe(1);
+  });
+
+  it("resume_not_found 降级一次新会话后续跑", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2B9";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [loadLine("init.jsonl")], exitCode: 0, hang: true }];
+    executor.tick();
+    await vi.waitFor(() => {
+      expect(
+        (db.prepare("SELECT native_session_confirmed AS c FROM tier1_runs WHERE task_id=?").get(TSK) as { c: number }).c
+      ).toBe(1);
+    });
+    const sid = (db.prepare("SELECT native_session_id AS s FROM tier1_runs WHERE task_id=?").get(TSK) as { s: string }).s;
+    const spawner2 = new FakeSpawner();
+    spawner2.plan = [
+      {
+        lines: [
+          JSON.stringify({
+            type: "system",
+            subtype: "init",
+            session_id: sid,
+            model: "claude-sonnet-5",
+            apiKeySource: "none"
+          }),
+          loadLine("resume_fail.jsonl")
+        ],
+        exitCode: 1,
+        stderrTail: "No conversation found with session ID",
+        preserveInitSession: true
+      },
+      { lines: [loadLine("init.jsonl"), loadLine("result_success.jsonl")], exitCode: 0 }
+    ];
+    const executor2 = makeClaude(spawner2);
+    await executor2.recover();
+    await waitTaskStatus(TSK, "ready_for_review");
+    expect(spawner2.spawned[0]?.resumeChatId).toBe(sid);
+    expect(spawner2.spawned[1]?.resumeChatId).toBeUndefined();
+    expect(spawner2.spawned[1]?.sessionId).toMatch(uuidRe);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.recover_resume_failed'").get() as { c: number })
+        .c
+    ).toBe(1);
+  });
+
+  it("adapter mismatch ⇒ reap + 任务 blocked", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2BA";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [loadLine("init.jsonl")], exitCode: 0, hang: true }];
+    executor.tick();
+    await vi.waitFor(() => {
+      expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe(
+        "running"
+      );
+    });
+    db.prepare("UPDATE tier1_runs SET adapter='cursor' WHERE task_id=?").run(TSK);
+    const spawner2 = new FakeSpawner();
+    const executor2 = makeClaude(spawner2);
+    await executor2.recover();
+    await waitTaskStatus(TSK, "blocked");
+    expect(spawner2.spawned).toHaveLength(0);
+    expect(
+      (db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state
+    ).toBe("cancel_settled");
+    const aud = db
+      .prepare("SELECT meta_json FROM audit_log WHERE action='tier1.recover_reaped_inconsistent' ORDER BY ts DESC LIMIT 1")
+      .get() as { meta_json: string };
+    expect(aud.meta_json).toContain("adapter_mismatch");
+  });
+
+  it("评审 90 A-5:spawn 前二进制身份漂移 ⇒ blocked binary_identity_mismatch,不起进程", async () => {
+    const TSK = "tsk_01EXEC0000000000000000R9A5";
+    const bin = armClaudeIdentityAt(saydoHome, "drift-claude");
+    executor = makeExecutor(
+      { adapter: "claude_code", model: "opus", claudeMaxTurns: 200, lockedBinary: bin },
+      undefined,
+      { backend: claudeBackend() }
+    );
+    seedQueuedTask(TSK);
+    // 登记之后二进制被换掉(digest 漂移;mtime 一并变,缓存不会掩盖)
+    writeFileSync(bin, "#!/bin/sh\necho tampered\nexit 0\n");
+    spawner.plan = [{ lines: [loadLine("init.jsonl")], exitCode: 0 }];
+    executor.tick();
+    await waitTaskStatus(TSK, "blocked");
+    expect(spawner.spawned).toHaveLength(0);
+    const run = db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string };
+    expect(run.state).toBe("settled_failed");
+  });
+
+  it("评审 90 A-6:result 的 total_cost_usd 贯通到 tier1.run 的 total_cost_usd_estimate", async () => {
+    const TSK = "tsk_01EXEC0000000000000000R9A6";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [loadLine("init.jsonl"), loadLine("result_success.jsonl")], exitCode: 0 }];
+    executor.tick();
+    await waitTaskStatus(TSK, "ready_for_review");
+    const cost = db.prepare("SELECT meta_json FROM cost_entries WHERE task_id=? AND kind='tier1.run'").get(TSK) as {
+      meta_json: string;
+    };
+    const meta = JSON.parse(cost.meta_json) as { total_cost_usd_estimate?: number };
+    // fixture result_success.jsonl 带 total_cost_usd:0.0473673——合同 09 §9 要求 meta 必含该键
+    expect(meta.total_cost_usd_estimate).toBeCloseTo(0.0473673, 6);
+  });
+
+  it("评审 91:result 无 total_cost_usd ⇒ meta 不出现该键(不编数)", async () => {
+    const TSK = "tsk_01EXEC0000000000000000R9B1";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [loadLine("init.jsonl"), loadLine("result_max_turns.jsonl")], exitCode: 0 }];
+    executor.tick();
+    await waitTaskStatus(TSK, "failed");
+    const cost = db.prepare("SELECT meta_json FROM cost_entries WHERE task_id=? AND kind='tier1.run'").get(TSK) as
+      | { meta_json: string }
+      | undefined;
+    // 评审 92:此前写成 if (cost) {...},成本行完全没写也会绿——必须先断言行存在
+    expect(cost).toBeDefined();
+    const meta = JSON.parse(cost!.meta_json) as Record<string, unknown>;
+    expect("total_cost_usd_estimate" in meta).toBe(false);
+    expect(meta["num_turns"]).toBeDefined(); // 证明这确实是本次 run 的记账行
+  });
+
+  it("评审 91/92 A-5:身份漂移 + 任务被并发转走 ⇒ finalizeFailure 早退仍释放认领", async () => {
+    const TSK = "tsk_01EXEC0000000000000000R9B2";
+    const bin = armClaudeIdentityAt(saydoHome, "drift-claude-2");
+    executor = makeExecutor(
+      { adapter: "claude_code", model: "opus", claudeMaxTurns: 200, lockedBinary: bin },
+      undefined,
+      { backend: claudeBackend() }
+    );
+    seedQueuedTask(TSK);
+    // 二进制在认领前漂移 ⇒ spawn 前身份核验抛错 ⇒ finalizeFailure(blocked)
+    writeFileSync(bin, "#!/bin/sh\necho tampered\nexit 0\n");
+    spawner.plan = [{ lines: [loadLine("init.jsonl")], exitCode: 0 }];
+    executor.tick();
+    await waitTaskStatus(TSK, "blocked");
+    expect(spawner.spawned).toHaveLength(0);
+
+    // 关键断言:claim 已释放 ⇒ active 表清空,下一 tick 能正常继续(不挂 barrier)
+    const drained = db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string };
+    expect(drained.state).toBe("settled_failed");
+
+    // 再放一个健康任务:若上一轮把认领链挂住,这个任务永远不会被认领
+    const OK = "tsk_01EXEC0000000000000000R9B3";
+    armClaudeIdentityAt(saydoHome, "drift-claude-2"); // 重新登记为当前内容
+    seedQueuedTask(OK);
+    spawner.plan = [{ lines: [loadLine("init.jsonl"), loadLine("result_success.jsonl")], exitCode: 0 }];
+    executor.tick();
+    await waitTaskStatus(OK, "ready_for_review");
+    expect(spawner.spawned.length).toBeGreaterThan(0);
+  });
+
+  it("评审 90 A-4:init 缺 apiKeySource(形状漂移)在 claude 下同样终止", async () => {
+    const TSK = "tsk_01EXEC0000000000000000R9A4";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    const initNoKey = JSON.stringify({
+      type: "system",
+      subtype: "init",
+      session_id: "00000000-0000-4000-8000-000000000001",
+      model: "claude-sonnet-5",
+      tools: ["Bash"],
+      permissionMode: "default"
+    });
+    spawner.plan = [{ lines: [initNoKey], exitCode: 0 }];
+    executor.tick();
+    await waitTaskStatus(TSK, "failed");
+  });
+
+  it("cursor settle 同步补 kind=tier1.run;spawn 不带 sessionId", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2BB";
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [EV.init, EV.result], exitCode: 0 }];
+    executor.tick();
+    await waitTaskStatus(TSK, "ready_for_review");
+    expect(spawner.spawned[0]?.sessionId).toBeUndefined();
+    const cost = db.prepare("SELECT kind, source FROM cost_entries WHERE task_id=?").get(TSK) as {
+      kind: string;
+      source: string;
+    };
+    expect(cost).toEqual({ kind: "tier1.run", source: "subscription" });
+  });
 });

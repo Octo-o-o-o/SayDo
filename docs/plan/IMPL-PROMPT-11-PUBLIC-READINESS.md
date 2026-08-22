@@ -1,5 +1,6 @@
 # SayDo 公开就绪修补批(public-readiness)· 实施 Prompt(第十一轮交接)
 
+> 编号勘误(2026-08-21 事后,评审 88):本文件与 `IMPL-PROMPT-11-STATUS-ALIGNMENT.md` 撞用「第十一轮」;按时间序本批(2026-08-20 派发)保持第 11 轮,状态对齐批实为第 14 轮。原始派发正文不改,沿革登记于 `history/DEV-VERSION-LEDGER.md` §3。
 > 背景:官网 Docs 内容稿(`docs/site/2026-08-20-docs-page-content.fable.md` §C.1)核对出三处仓内与实现不符、阻碍外部用户按文档上手的问题:① `templates/` 配置模板头注与 `[models.dev]` 示例陈旧(仍写"T17 四槽均走 API、CLI 接入开发中"与 `agent = "claude_code"`,而运行时七家 CLI 已接线、执行器只认 `cursor`);② `DEPLOY-测试机部署清单.md` §4 的 CLI 产物路径写成 `dist/saydo.js`(实为 `dist/cli.mjs`);③ `just daemon install` 硬要求 `~/Library/LaunchAgents/com.saydo.pipeline.plist` 已存在,而仓内没有生成它的代码——干净新机无法常驻。本批三项全部是**非 canonical、零合同变更**的修补。
 > 性质:模板 / 文档 / launchd 常驻纯函数 + 安装命令补全。不涉 09/04/07/10/11 canonical;不碰执行器、BYOA、console 业务逻辑。
 > 纪律:两提交法(`fix(...)`/`feat(...)` → `chore(evidence)`);evidence `e2e/evidence/public-readiness.md`;零 emoji(`scripts/check-emoji.sh`);不部署常驻、不 push、不改 `~/Library/LaunchAgents` 下真实文件(安装命令只写单测与 dry-run,真机安装属 owner 检查点);施工 = 独立 clone 分支 `batch/public-readiness`;实施 = Grok 4.6 headless,评估 = 零上下文只读会话。

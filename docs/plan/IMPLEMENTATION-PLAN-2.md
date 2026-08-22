@@ -7,7 +7,7 @@
 
 ## 0. 现状锚点(2026-07-26 00:50 定稿时刻快照;开批时现状以 `HANDOFF.md` 为准)
 
-> **2026-08-21 当前(覆盖下表过期现时态):**Claude 订阅已就位；W5.4-a 纯函数层已收口；**W-Win Windows 原生对齐进行中**(合同 Codex 88 已吸收,本批独占 gate 运输);W5.4-b 生产执行主流程接线在本批收口前不改 `handleGateRequest`。不翻转官网 FAQ。Actions billing 已恢复；剩 workflow pnpm 版本冲突，修复须走公开快照仓通道。场次 1 = `failed` @ `ada7981c`，待 owner 复验；场次 2–4 = `not_run`。T2 = 组网已就绪，待手机烟测；结论只对 `ada7981c`，不得外推当前 HEAD。T19 × tailnet 合同拍板并回写 canonical + 备份恢复可用，二者都是任何升常驻动作的前置。活动树 / 常驻 runtime / release config 的当前三层坐标唯一以 `HANDOFF.md` §1「当前快照」行为准，本计划不复制第二套现时坐标。
+> **2026-08-21 当前(覆盖下表过期现时态):**Claude 订阅已就位；W5.4-a 纯函数层已收口；**W-Win Windows 原生对齐已收口**(2026-08-22,真机全量门禁 + Linux CI 双 job 绿;evidence `windows-alignment.md`),gate 运输面串行约束随之解除,W5.4-b 的 C1/C2 已在其后合入 `4d2824e`(协议仍是现网 `{cwd, command?}` 超集,可选 `kind`,未知 deny)。官网 FAQ 已按 owner 本轮授权翻转为「Windows/Linux 已开放,常驻安装与系统通知暂为 macOS 实现」。Actions billing 已恢复且 workflow pnpm 版本冲突已由 `3279c0f` 修复,公开仓两 job 已绿。场次 1 = `failed` @ `ada7981c`，待 owner 复验；场次 2–4 = `not_run`。T2 = 组网已就绪，待手机烟测；结论只对 `ada7981c`，不得外推当前 HEAD。T19 × tailnet 合同拍板并回写 canonical + 备份恢复可用，二者都是任何升常驻动作的前置。活动树 / 常驻 runtime / release config 的当前三层坐标唯一以 `HANDOFF.md` §1「当前快照」行为准，本计划不复制第二套现时坐标。
 
 | 面 | 状态 | 证据 |
 |---|---|---|
@@ -59,7 +59,7 @@ S3 卡(console 卡+认证+收据+合并链;requestManualMerge 降级路径)→ w
 | 5.1 | decisions[] 摘要层 + `open_on_screen` 打通编辑器 | 05 P1 |
 | 5.2 | edit 审批(第四动作:修改后重签)——09 §3 已有骨架(`decision:"edit"`/`superseded_by_edit`/重签句/§12-3 测试项);refDigest/revision 联动细则若超骨架 ⇒ 回 canonical 文件面(R-B 收) | 09 §3(P1) |
 | 5.3 | steer 矩阵**增量**:`queued_delta` 已 live(执行器批);本项收窄为 cancel_resume 档落地 + Hopper capabilities 握手消费(steer 能力分级)——**Hopper 桥本体已收口(P0.5-B),不重复排**;Hopper `step_confirm` 缺省仍 unsupported(04 §5.4 矩阵),Tier2 步序循环**先做轻决策**(dogfood 中 route=hopper 且需 S2 的任务出现频次)再实施 | 05 P1;03 §5;04 §5.4;`p05.md` |
-| 5.4 | **Claude Code CLI (`claude -p`) Tier1 主档接入**:订阅已就位。**5.4-a**(spike + 审批门纯函数层)已收口。**5.4-b**=生产执行主流程接线(下一项:配置、审批门、恢复、记账、自检)；**5.4-c**=live 冒烟、conformance 与 canonical 收口。CLI 方案本轮不实现 streaming input / live steer，仍使用 `queued_delta` / `cancel_resume`；BYOA `claude_cli` 的条件豁免已随 T18 落地，Tier1 `claude_code` 不使用该豁免 | 计划 0.0(b);HANDOFF #4/#6;evidence `w54a-claude-cli.md`;方案 `2026-08-19-w54-claude-cli-tier1.fable.md` |
+| 5.4 | **Claude Code CLI (`claude -p`) Tier1 主档接入**:订阅已就位。**5.4-a**(spike + 审批门纯函数层)已收口。**5.4-b**=生产执行主流程接线——**C1(配置/自检)+ C2(executor 接线)已入库 `4c4bf96`**(配置四键、`resolveTier1Adapter`、setup 自检 `scope=tier1`、`native_session_confirmed` 增量迁移、并发 S2 串行化、订阅记账 `tier1.run`、限流 enqueue/replayer、`--resume` 四元组规则);**C3(console 与话术)未做**;**5.4-c**=live 冒烟、conformance 与 canonical 收口。CLI 方案本轮不实现 streaming input / live steer，仍使用 `queued_delta` / `cancel_resume`；BYOA `claude_cli` 的条件豁免已随 T18 落地，Tier1 `claude_code` 不使用该豁免 | 计划 0.0(b);HANDOFF #4/#6;evidence `w54a-claude-cli.md`;方案 `2026-08-19-w54-claude-cli-tier1.fable.md` |
 | 5.5 | 项目级模型/预算覆盖(设置页,08 §6 路由表·项目设置行)——**承载 = daemon 受控设置表,不落 project.toml**(09 §11 白名单:项目层出现 models/providers 等禁键即拒,反例已有,不得放宽)+ `cache_write_input_tokens` 列位;成本三档预设 → §6 二次确认 | 02 §5.1;09 §9 注/§11 白名单 |
 | 5.6 | §14-A6 遗留项处置:hard-forget 独立 deletion job 表/per-store progress——canonical 自注"低价值维护负担(owner 反空壳判据)" → **§6 二次确认**(presentation 完整形态 = §14-A2/A8,**已于 P0.5-A 交付**,不在本期) | 09 §14-A6/§9 注 |
 | 5.7 | 产物库控制面(时间线/diff/子集导出);sqlite-vec → §6 二次确认(FTS5 不足有记录时) | modules/b B4/B5 |
@@ -75,7 +75,7 @@ LAN `remote-mobile` 第 0 步(处方 `docs/review/2026-08-13-mobile-shell-strate
 ### W-Win · Windows 原生对齐(2026-08-21 开;owner 当场授权)
 
 合同:[设计 ADR-004](../adr/design/ADR-004-windows-platform.md)、[工程 ADR-003](../adr/ADR-003-os-adapters.md)。任务级计划:[WINDOWS-ALIGNMENT.md](WINDOWS-ALIGNMENT.md)。
-**与 W5.4-b 串行于 gate 运输**:本批独占 `handleGateRequest` / `gate-*.mjs`;W5.4-b 暂停改该面直到本批收口。协议超集现网 `{cwd, command?}` 不变,可选 `kind`,未知 deny。
+**与 W5.4-b 串行于 gate 运输**(2026-08-22 结项;**红线实际被违反,登记不掩饰**):本批要求独占 `handleGateRequest` / `gate-*.mjs`、W5.4-b 暂停改该面直到本批收口;实际两批从 `11e3653` 并行分叉、同时改门面,合并顺序不构成「满足串行」。门面十处冲突按语义合并(裁决表 `docs/review/2026-08-22-week-crosscheck.md` §2)。协议超集现网 `{cwd, command?}` 不变,可选 `kind`,未知 deny——合并后由 `parseGateWireRequest` 判别联合承载,无 `kind` 走 legacy、未知 `kind` 抛错即 deny。**欠账三件(清完才准判 W5.4-b 收口)**:合并态门面复审、Windows 真机复跑四工具三态、真 Claude hook 冒烟。
 
 | # | 项 | 验收锚 |
 |---|---|---|

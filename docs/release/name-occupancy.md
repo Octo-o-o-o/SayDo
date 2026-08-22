@@ -12,7 +12,7 @@
 |---|---|
 | 中文主名 / 包内名 | 「说到」(owner 2026-08-13 选定;核验见 §6) |
 | App Store 中文店名「说到」 | 已占;App Store ID `6801042343`;SKU `saydo`;主语言 zh-Hans |
-| App Store 精确英文 `SayDo` | **仍被占用**(§2);en-US 本地化名称留空,提审前定后缀 |
+| App Store 精确英文 `SayDo` | **仍被占用**(§2);en-US 店名已定为 `SayDo - You Say, AI Do`(owner 2026-08-22,已写入 ASC) |
 | Apple Bundle ID `com.octoooo.saydo` | 已登记;资源 `PFS4HWS6C9`;Team `5CS6HUB4P2` |
 | Play 包名 `com.octoooo.saydo` | 已占;Play 应用 ID `4975182458667142159`;title「说到」 |
 | 鸿蒙 `bundleName` `com.octoooo.saydo` | 已创建;AGC App ID `6917613548237019987`;listing `9249519184596237673` |

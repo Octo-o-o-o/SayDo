@@ -536,3 +536,54 @@ store_transcript = false
     expect(merged.privacy.store_audio).toBe(false); // 保持全局缺省
   });
 });
+
+describe("[tier1] claude 四键(W5.4-b C1;09 §11 claude_code 承载段 additive)", () => {
+  const MIN_MODELS = `
+[models]
+profile = "default"
+dialog = "gpt-5.6-sol"
+thinking = "gpt-5.6-sol"
+cheap = "gpt-5-mini"
+evaluator = { provider = "claude_cli", model = "claude-sonnet-5" }
+`;
+
+  it("四键全 optional 且与 cursor 两键并存解析(additive,cursor 两键不动)", () => {
+    const g = cfg(`${MIN_MODELS}
+[tier1]
+cursor_agent_bin = "/x/versions/1.2.3/cursor-agent"
+cursor_agent_pinned_version = "1.2.3"
+claude_bin = "/opt/homebrew/lib/claude.exe"
+claude_pinned_version = "2.1.220"
+model = "opus"
+claude_max_turns = 200
+`);
+    expect(g.tier1?.cursor_agent_bin).toBe("/x/versions/1.2.3/cursor-agent");
+    expect(g.tier1?.cursor_agent_pinned_version).toBe("1.2.3");
+    expect(g.tier1?.claude_bin).toBe("/opt/homebrew/lib/claude.exe");
+    expect(g.tier1?.claude_pinned_version).toBe("2.1.220");
+    expect(g.tier1?.model).toBe("opus");
+    expect(g.tier1?.claude_max_turns).toBe(200);
+  });
+
+  it("[tier1] 段整段缺省与四键缺省都合法(缺省语义由 verdict/自检兜,schema 不编缺省值)", () => {
+    expect(cfg(MIN_MODELS).tier1).toBeUndefined();
+    const g = cfg(`${MIN_MODELS}
+[tier1]
+cursor_agent_bin = "/x/versions/1.2.3/cursor-agent"
+cursor_agent_pinned_version = "1.2.3"
+`);
+    expect(g.tier1?.claude_bin).toBeUndefined();
+    expect(g.tier1?.claude_max_turns).toBeUndefined();
+  });
+
+  it("claude_max_turns 非正整数拒(0 / 负数 / 小数)", () => {
+    for (const bad of ["0", "-1", "1.5"]) {
+      expect(() =>
+        cfg(`${MIN_MODELS}
+[tier1]
+claude_max_turns = ${bad}
+`)
+      ).toThrow();
+    }
+  });
+});

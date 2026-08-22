@@ -240,10 +240,37 @@ export function canonicalizeWorkspace(raw: string): WorkspaceIdentity {
   return { path, dev: String(stat.dev), ino: String(stat.ino) };
 }
 
+/**
+ * 重校验 workspace 身份。
+ *
+ * **合同(09 §规则 1)= `realpath + (dev, ino)`。本函数按平台分叉,不是全平台丢 dev。**
+ *
+ * - **win32**:`dev` 承载 volume serial number,跨重启稳定(09 §规则 1 原文点名)。
+ *   三项任一不符即 `workspace_identity_changed`,与合同逐字一致。
+ * - **POSIX**:`st_dev` 是**挂载期标识**,同一卷在重启或挂载顺序变化后会换号。硬锚它会把
+ *   「重挂载」误判成「目录被替换」。现场取证(2026-08-22,定时快照自 2026-08-07 连续失败):
+ *
+ *   ```
+ *   sqlite3 ~/.saydo/saydo.db "SELECT workspace_dev, workspace_ino FROM projects WHERE status='active'"
+ *   # -> 16777234|765311   (登记值)
+ *   stat -f "%d %i" ~/WorkSpace/OctoDesk
+ *   # -> 16777231 765311   (现值:dev 变了,ino 没变)
+ *   ```
+ *
+ *   故 POSIX 上 `dev` 漂移**不判身份变化**,返回当前 identity 供调用方刷新;`path` 或 `ino` 变仍硬拒。
+ *   威胁模型不放宽:目录被真正替换必然换 inode,且 `canonicalizeWorkspace` 已有
+ *   realpath + 非 reparse point + `assertAllowedWorkspacePath` 位置约束。
+ *
+ * 09 §规则 1 已随本改动加「POSIX dev 语义」补注(评审 92 A 级:此前只改实现未回写契约,属静默双改)。
+ */
 export function revalidateWorkspaceIdentity(expected: WorkspaceIdentity): WorkspaceIdentity {
   const current = canonicalizeWorkspace(expected.path);
-  if (current.path !== expected.path || current.dev !== expected.dev || current.ino !== expected.ino) {
+  if (current.path !== expected.path || current.ino !== expected.ino) {
     throw new WorkspacePolicyError("workspace_identity_changed", "目录在确认期间发生变化", expected.path);
+  }
+  // win32:dev = volume serial,稳定,按合同硬锚;POSIX:dev 是挂载期标识,漂移视为重挂载
+  if (process.platform === "win32" && current.dev !== expected.dev) {
+    throw new WorkspacePolicyError("workspace_identity_changed", "卷标识发生变化", expected.path);
   }
   return current;
 }

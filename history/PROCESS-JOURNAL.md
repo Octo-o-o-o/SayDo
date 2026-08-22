@@ -1,7 +1,7 @@
 # VoiceLoop 全过程档案(协作旅程记录)
 
 > 目的:供人工检查。**忠实记录从第 1 轮到现在的全过程**——每一轮你(owner)的原始输入、我的思考与行动、产出、结论/决策、版本变化。这是"过程"档案;各轮的详细产物见链接到的文档(见 `README.md` 索引)。
-> 覆盖范围:2026-07-18(初稿)~ 2026-07-22(当前),共 16 轮,主方案从 v1.0 演进到 v1.14。
+> 覆盖范围:2026-07-18 起持续追加,轮次以正文为准(下方「版本时间线(速览)」表为设计期 R1-R25 快照,不再扩充);其中设计期(07-18 ~ 07-22)共 16 轮,主方案从 v1.0 演进到 v1.14。批次级结构化索引与全量编号勘误另见 `DEV-VERSION-LEDGER.md`(2026-08-21 建立,元信息同日修正——评审 88)。
 > 说明:第三方内容(微信群某实践者的观点/产品截图)仅作本地私稿分析用,均为观点转述,不含可识别个人隐私信息。
 
 ---
@@ -35,6 +35,8 @@
 | R23 | 07-23 | 执行层拍板 → ADR-001 + 进度/操作归属设计 + Hopper 对接 prompt | ADR-001 + prompt | 你:确认四点,要对接 prompt |
 | R24 | 07-23 | 评审制度立规(AGENTS.md)+ 最近三轮 2 subagent 评审回修 | prompt v2 + 多处回修 | 你:定"每轮 2 subagent + Codex"惯例 |
 | R25 | 07-23 | 开工前补文档(09 数据契约/10 话术)+ 实施计划 + 8 评审 + 实施 prompt | docs/09/10 + 计划 + IMPL-PROMPT | 你:补文档→计划→4 评审→Codex→实施 prompt |
+
+> 速览表定格于设计期 R25(2026-08-21 注,评审 88):R26 起轮次见正文;批次级结构化索引(时代/日期/末码/evidence/轮次/评审编号)与编号勘误登记见 `DEV-VERSION-LEDGER.md`。
 
 ---
 
@@ -1707,7 +1709,211 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
 - 迟到复核新增的 A 级 1 条与 B 级 2 条已回修；其余是已关闭重复项或无需动作的任务通知。
 - 实施与检查已跑完，等 owner 验收。仍未 commit、push、部署或修改 live 配置。
 
-## R80 · Windows 对齐合同评审与 triage 回修(2026-08-21)
+## R80 · ICP App 备案通过回写(2026-08-21)
+
+### 输入
+- owner 出示腾讯云控制台「新增服务 - 备案成功」截图,要求在仓内应用发布文档登记,并说明下一步。
+
+### 行动
+1. 按 `docs/release/README.md` 阅读地图定位过程 SoT 与抄表,不回填已冻结的 `docs/store/00–05`。
+2. 将管局通过事实与 App 服务号写入状态文档、备案存根公开可述段、速查卡、`release-profile.yaml`、材料包索引与 App Store 中国区文案投影。
+
+### 产出
+- 过程 SoT:`docs/release/2026-08-13-store-submission-status.md`(`[filing-0821]`)
+- 号:`京ICP备2025153079号-4A`(说到 / `saydo.octoooo.com`)
+- 新增 owner 项:OWN-7 悬挂备案号;OWN-8 公安联网备案(约 2026-09-20 前)
+
+### 结论
+- App 备案已过,不是商店可提审。下一步先挂官网/App 号,再在 30 日内做公安备案;软著与生产壳仍是提审关键路径。未改官网 HTML、未 commit、未部署。
+
+## R81 · 腾讯云现网备案 vs 公安已交表对账(2026-08-21)
+
+### 输入
+- owner:腾讯云备案专员电话把部分业务改窄了,要求公安与腾讯云现网信息相同。
+
+### 行动
+1. 登录腾讯云「我的备案 → APP → 说到」`webId=2131277` 回读现网,对照 2026-08-13 提交快照与公安「说到」申请详情。
+2. 把现网「服务内容=工具」与收窄后的备注写入私有快照、材料索引、速查卡与状态文档 OWN-8。
+
+### 产出
+- 现网:服务内容 **工具**(提交时「软件开发」);备注改为「本地效率工具 / 桌面工具 / 语音记事和事务管理 / 不运营开发者云端用户数据」。
+- 公安身份字段已对齐(名称/包名/三平台/G4/前置许可否)。功能描述仍比现网备注宽,待 owner 决定是否撤销重交。
+
+### 结论
+- 已通过的腾讯云单不擅自变更。公安待审核单若要对齐文案,只能撤销后按现网备注重交;30 日窗口仍够。未撤销、未改腾讯云、未 commit。
+
+## R82 · 公安「说到」按腾讯云备注重交(2026-08-21)
+
+### 输入
+- owner:个人备案写「软件开发」过不去,必须组织备案,所以专员去掉了。公安可以撤销并重提交,要求按腾讯云现网改。
+
+### 行动
+1. 撤销 10:06 待审核单(确认对话框「是」;`apply/cancel` 200;列表变「已撤销」)。
+2. 新增 APP:名称说到、三平台、G4、包名 `com.octoooo.saydo`、前置许可否、功能描述=腾讯云现网备注原文;版本暂不。
+
+### 产出
+- 新单 `2026-08-21 10:42:01` 待大兴审核。详情功能描述已与腾讯云备注逐字相同。
+- 状态文档 OWN-8 / 材料索引 / 私有快照已回写。
+
+### 结论
+- 公安与腾讯云现网口径已对齐:工具,不是软件开发。未改腾讯云、未 commit。短信仍会发到备案手机。
+
+## R83 · cmdeffect-hardening 批(2026-08-19 事件;2026-08-21 补记)
+
+> 补记说明(评审 88):本节原以 R75 写就,因官网重建会话占号而随提交 `cb2fba8` 撤回(evidence §8 留欠条「待补记」);R75/R76 终由官网两轮使用。2026-08-21 补记入库时又与并行备案会话两度撞号(拟 R81 撞其 R81 腾讯云对账、顺延拟 R82 再撞其 R82 公安重交),按「先落盘者为准、后者顺延」定格 R83——本批轮次节累计三次因撞号改号,原文六段(`cb2fba8^`)未改,其后附 provenance 注消解与 evidence 末态的口径差。
+
+### 输入
+- IMPL-PROMPT-9(`docs/plan/IMPL-PROMPT-9-CMDEFFECT-HARDENING.md`) + owner 开批 `cmdeffect-hardening`。
+- 施工 clone:`/Users/wangyixiao/WorkSpace/saydo-batch-cmdeffect`,分支 `batch/cmdeffect-hardening`,开批 HEAD `15de970bea5b8c8e1f9718858ef6deaf0c60c740`。
+- 回哺源:`~/WorkSpace/dsh-approval-tiers`(施工时只读副本)。
+
+### 行动
+1. Grok 4.6 headless 实施词表加固(包装器/argv 圈外写出/包管理器三档/pathClass/git 旗标与 refspec/pipe-to-shell/sh -c/eval/续行/`>|`)。
+2. 调度方沙箱外复跑 `just ci` EXIT=0(daemon 1411 passed | 4 skipped,python 33)。
+3. 调度方自审 + 两轮零上下文对抗评审(Claude 子代理):评审 1 必修 A-1…A-5 / B-1…B-5 / C-1 / C-2;评审 2 在 466 条 0 降档、86 条新对抗无 S0/S1 逃逸后裁决「接受」,另补 A-6 / B-6–B-10 / C-3–C-5。
+4. 两轮返工均按「相对 15de970 只收紧不放宽」落地;O 级不改代码,写入待 owner 裁决。
+
+### 产出
+- 开批:`de6d68539fceeadf9022b984aa023afcce4e1358`
+- 首轮代码:`e79d1d8101be11e3bd6051841e6a37574cd38d37`
+- 首轮 evidence:`fdde42da5e27506a63e83e7ca52624b0af8c9648`
+- 评审 1 返工代码:`068e392153d4bd571ce373dceb6adfa427290059`
+- 评审 1 evidence:`74dc92401b50acd9950327e958e14621959afc64`
+- 评审 2 返工代码:`115353e48970a8ee818d4c1cfd189dd00f11a1c9`
+- 证据:`e2e/evidence/cmdeffect-hardening.md`(201 行 / 17273 bytes / SHA-256 138997e4f6e16953f0179e526a4f47d06ec12c71301f1f9b6057d2decf60d73e)
+- 测试计数:基线 daemon 1300 passed | 4 skipped → 首轮 1411 → 评审 1 后 1463 → 本批末 1483 passed | 4 skipped(+183 用例)
+
+### 结论
+- 只收紧不放宽成立:相对 `15de970` 降档扫描 240 条、降档 0。
+- 待 owner 裁决见 evidence §6(O-1 `/dev/null` 重定向、O-2 `git config --global --get`、O-3 圈内整树删除、O-4 `uv run`/`npm exec`/`pnpm dlx`/`npx`/`go run <module>`/未知动词)。
+- 未改消费点签名、未改 `computeRisk`、未部署常驻、未 push。
+
+> provenance 注(2026-08-21,评审 88;Codex 88 A 级要求):本节「产出」中的 evidence 指纹(201 行/17273 bytes)为原节写就时值;其后 O-1 经 owner 批准落地(代码 `adc2b9a`、evidence 提交 `1ee5622`),evidence 已扩至 §11,末态以文件本身为准。门禁口径演变:本节 EXIT=0 为**首轮**调度方沙箱外复跑(daemon 1411);evidence §7/§11 所记 `just ci` exit 2 为**施工沙箱内** python `uv sync` 写不了 `~/.cache/uv` 所致(node 段绿),两者语境不同、不矛盾;O-1 门禁末态 = 词表专项 223 passed / 消费点 348 passed | 3 skipped / daemon 1500 passed | 4 skipped。
+
+## R84 · 8 月批次 journal 索引补记(2026-08-04 ~ 08-20 事件;2026-08-21 补记)
+
+> 编号注:随上节同因两度顺延(原拟 R82)。
+
+### 输入
+- 评审 88 对账发现:R63(07-31)至 R64(08-11)之间的 Focus Contract 时代无任何轮次;08-12 ~ 08-15 多批与 08-20 四批无轮次索引(PLAN-2 §7-9 一行索引纪律未执行)。
+
+### 行动
+- 逐批核对 git log、evidence、评审档与 HANDOFF/PLAN-2,以一行索引补录;本节不重写叙事,详情以 evidence 与 `history/DEV-VERSION-LEDGER.md` §2(时代 V/VI/VII)为准。
+
+### 补录索引(日期 / 末码 / 记录载体 / 评审)
+- Focus Contract 时代(08-04~08-10):M1-M3 `3a0afc0`;E2 修复串至 `c00f09f`;批 0-4 `820218d`;redesign B1 `4ce320b`;v0.4 批①-④ `12d3474`;L1-L5 `4d41775`;onboarding `862d921`;画像向导 `e0bb23a`。载体 = `e2e/evidence/focus-contract-batch.md` + 根目录 HANDOFF-前端组件化/2/3/4 + docs/09 §15 回写 `9b8c7e9`。施工 = grok/子代理 + 既白验收,无 Codex 轮次。
+- M2 三端壳 spike + iOS 原生语音层(08-12):`381798d`/`2f49597`;评审 57/58/59。
+- D1 桌面地基(08-12):`b74a00b`;评审 61 双份 + 62(正文已有无编号条目,此处归位索引)。
+- voice-fix 前端/后端批(08-12):merge `6cd362d` / `a7d517c`(后者并含 M2+D1 合并);评审 63/64。
+- CLI 供给扩容(08-13):merge `aa8034e`;评审 65。向导 UX 重构 T19(08-13):`1b59da2` 段;评审 66。T19-polish(08-13):`013d84b` 段;评审 67。融合布局(08-13):`af80b26` 段;评审 68。
+- 全端 UI 标准化(08-13):`05f714c` 段;审计清单 `docs/plan/2026-08-13-ui-standardization-audit.md`。品牌朱印 + 「说到」定名(08-13~15):`ecdd1d2`/`b13b744`。上架与备案材料(08-13~15):`6194046`/`aac3d60`。
+- DeepSeek 直连 + 默认 Runner 决策(08-15):`789b76d`/`af5d0b1`;评审 72 + `docs/plan/2026-08-15-default-runner-decision.md`。站点部署源入仓(08-15):`3197fd8`。
+- public-readiness(08-20):merge `f7d7492`;evidence `e2e/evidence/public-readiness.md`;评审 78/79。**HANDOFF/PLAN-2 无状态行(缺口登记,是否回填由 owner 决定)。**
+- s1-demo-wiring(08-20):merge `1a41b45`;evidence `e2e/evidence/s1-demo-wiring.md`;评审 80。**同上,无状态行。**
+- s2-callback-channels(08-20):merge `aa2dffc`;evidence `e2e/evidence/s2-callback-channels.md`;评审 81/83。**同上,无状态行。**
+- w54a-claude-cli(08-20):merge `7fb3fa1`;evidence `e2e/evidence/w54a-claude-cli.md`;评审 82/84/85。HANDOFF §1 与 PLAN-2 有状态行。
+- Apache-2.0 开源 + 隐私脱敏三连(08-20):`354b028` + `55a224d`/`693475a`/`6365513`。
+
+### 结论
+- journal 轮次覆盖缺口清偿;上述批次的完成度口径以各自 evidence 为准,本节只做索引不改判。
+- 后续批次收口按 PLAN-2 §7-9 一行索引 + 台账 §2 追加行双轨登记,不再欠账。
+
+## R85 · 版本记录对账批:status-alignment 入库补记 + 台账建立 + Codex 88 收口(2026-08-21)
+
+### 输入
+- owner:检查全部版本记录是否有遗漏或「做了未记录」;提交 Codex 交叉评审后按建议实施;把开发版本记录(非对外版本)私有化保存为文档,并裁决更新现有文档还是归档另建。
+
+### 行动
+1. 全量对账:501+ 提交 vs journal 轮次 vs `e2e/evidence/` vs findings 01-87 vs prompts vs HANDOFF/PLAN-2。发现清单 F1-F9 + 方案 P1-P8 写入 `prompts/88-version-records-audit-review.md`,交 Codex `gpt-5.6-sol -c model_reasoning_effort=max -s read-only` 对抗评审(exit 0,约 33 分钟);其裁决「按原方案 No-Go / 修改后 Go」全盘接受,triage 13 条记于报告 §B(1 条 `f090078` 笔误不采,其余全采纳),按修订版实施。
+2. status-alignment 入库两阶段补记:R78/R79 所记「未 commit/push」为当时真相;其后 owner 授权「合并所有本地分支与 worktree 到 main 并推送」(见 `e2e/evidence/status-alignment-20260821.md` §10),收口会话落码 `1679078bdd44ef9b8034e3f926c990e39b8825a8` + 证据 `920af91b25ab04079817fe15130d4eee9f8bce4b` + merge `11e3653012584ae1ec3dde61d58938871e1d2a77`;本会话取证 = 本地 git log + `refs/remotes/origin/main` push reflog(远端直查未做,本地 tracking 证据口径)。R78 所建安全 stash 的 ref 已空(本会话 09:34 尚可见、09:48 复查已被清理,非本会话操作);`git fsck` 仍见 dangling commit `50fc6aa`(01:46 创建,message 含 safety/pre-grok),对象未彻底回收。HANDOFF §1 快照行按「最近已入库合并基线」措辞刷新。
+3. 台账建立(owner 裁决执行:不归档现有文档、另建新档):`history/DEV-VERSION-LEDGER.md`——§1 版本线速览(方案 v1.0-v1.14/docs v2.0/tag/DDL/knowledge generation 多线)+ §2 批次台账(时代 I-VII 全量回溯,含本次补录的 8 月空洞期)+ §3 编号勘误统一登记(journal 撞号缺号/findings 60 缺失与 11/19/61/71 双份/86-87 多路/prompt 双体系/IMPL-PROMPT-11 撞号)+ §4 对外版本对照;引用 SHA 逐一 `git cat-file` 核验(首验揪出 1 处笔误 `05c6d54→05f714c`)。journal 头部覆盖范围句修正、速览表加「定格于 R25」注与台账指针;`history/README.md` 登记并加追加例外。
+4. 欠账清偿:cmdeffect 轮次节恢复(R83,附 provenance 注消解 `just ci` 退出码语境差);8 月批次一行索引(R84);findings 75/76 销案登记文件(五要素:未运行事实/prompt 指纹沿革(journal 记录值 vs 当前实测值)/原始评审范围/86-87 覆盖差异与残余维度/owner 追认状态);IMPL-PROMPT-11 两份顶部事后勘误注(状态对齐批按时间序实为第 14 轮,原始派发正文不改)。
+5. 撞号处置:落盘期间并行备案会话连续插入其 R81(腾讯云对账)与 R82(公安重交),本轮三节两度顺延定格 R83/R84/R85(「先落盘者为准、后者顺延」),交叉引用(台账/HANDOFF/88 报告)同步修正。
+6. 并行会话晚到观察登记(不代收口):R80 结论「未改官网 HTML」之后工作区已见 deploy 页脚备案链接、status SoT 更新、冻结快照 `docs/release/2026-08-13-tencent-icp-app-filing.md` 被修改、`scripts/gen-copyright-docs.mjs` 与 `artifacts/release/copyright/` untracked;对账责任归该会话收口轮,「冻结文件被改」上浮 owner 知悉。
+7. 收口前复审(owner 指令,2026-08-21 上午):全量自查本轮落盘与制度/事实对应,修正 5 处——台账时代 I 评审编号错位(findings 01-04 属 R15 四路深评、05 属 R17 docs 全量、06-11 属 R24-R31,原表错移一行);台账补电话形态评审报告落位注(prompt 在 findings 子目录 15/16,报告未单独入 findings、结论并入 `research/phone-call-*.md` 方案文档)与 redesign 对抗方案档在 OctoAgent 仓注;`history/README.md` 索引补 `reviews/`、`legacy-archive/` 两行;HANDOFF 并行会话引用更新为 R80-R82 备案线;全仓西里尔字符扫描修正历史报告 `research/codex-findings/14-canonical-writeback-closeout.md` 一处俄文词混入(修为「防护面」,语言纪律;本节初稿同类混入一处已自修)。产出指纹为复审修订后终值。
+
+### 产出
+- 台账:`history/DEV-VERSION-LEDGER.md`(17678 bytes / SHA-256 `12b05e1976dbf4a4daa7d4e458b19cf26a503bc4c842af6d4111c31db156c3c4`)
+- prompt:`prompts/88-version-records-audit-review.md`(8397 / `aa6e94795d3bd0632913c2387d7fedd3d64a1b10e88b1af41ee088236e34522e`)
+- Codex 报告+triage:`research/codex-findings/88-version-records-audit-review.md`(19957 / `49492b9940d301dab04b7ef74c33ca553854428eede8de5f3325311fc018d1a9`)
+- 销案:`research/codex-findings/75-official-website-redesign.md`(2675 / `1fb293d5e68669ff09150fe184584d5d131d8232c54e36c4013d8d6d27757280`);`research/codex-findings/76-website-docs-review.md`(2703 / `a1b7b0996976108f2721204129ae4b3afe335d0ffe91bd11ae8157ebff589e3f`)
+- 修改:`history/README.md`(1726 / `fbc6efe9...361d6ef`);`docs/plan/IMPL-PROMPT-11-STATUS-ALIGNMENT.md`(17971 / `4a270d78...274ef7`);`docs/plan/IMPL-PROMPT-11-PUBLIC-READINESS.md`(13941 / `b27f39bc...b867d7`);`HANDOFF.md`(30095 / `2aa82ef0...8aa76f863b4`)
+- 日志:`logs/88-version-records-audit-review.log`(1173802 / `dcc4802264814a47f7c6651f012d2ff8cce3af2c9fd7a2f00aa819b94751ac23`,不入 Git)
+- 门禁(本节落盘前实测,复审修订后重跑同绿):`scripts/check-emoji.sh` 全仓兜底 exit 0 + 十文件显式清单 exit 0;`git diff --check` exit 0;台账全部短 SHA `git cat-file` 存在性核验通过;journal/findings 重复编号程序化统计与 §3 登记一致。journal 含本节的终版 emoji 门禁在追加后补验,结果记于收口汇报。
+
+### 结论
+- 「做了未记录」三段空洞(Focus 时代、8 月中旬、08-20 四批)与 cmdeffect/status-alignment 两笔欠账已全部以补记轮清偿;开发版本记录由台账接管批次级索引职能,journal 维持叙事真相源。
+- 上浮 owner 四件:① 过程档案公开边界(公开快照树已含 history/research/prompts,与 README「过程史在私有归档」及 MIGRATION 脱敏注冲突——allowlist 投影 vs 改承诺+广泛脱敏,Codex 88 A 级);② findings 75/76 销案追认(验收本轮即追认);③ public-readiness/s1/s2 三批是否回填 PLAN-2 状态行;④ 并行会话对冻结快照文件的修改知悉与其收口对账。
+- 本轮未 commit、未 push、未部署、未改 live 配置;工作区并行会话改动未受影响。
+
+## R86 · w54b-canonical-preface:W5.4-b 前置 canonical 回写 + 双路评审收口(2026-08-21)
+
+### 输入
+- owner:官网线另行推进不碰;其余按最标准方式往下实施,先完整思考并提交 Codex 交叉 review。
+- 排产依据:PLAN-2 §7 批生命周期 + W5.4 方案 v3.1 §5/§6(W5.4-b 开批前置 = P-1…P-5 canonical 回写 + 一致性评审 + Codex 一次)。
+
+### 行动
+1. 开批断言:HANDOFF 指针空 ⇒ 写入 `w54b-canonical-preface`;w54a evidence 在案、**readback 缺失**(搜索 docs/review 与 research 无 w54a impl-readback)——按 PLAN-2 §4 上浮 owner(独立会话补跑或书面豁免),登记于指针行,不阻塞前置回写、阻塞 W5.4-b 开批。
+2. 实测坐标(07 五处 / ADR-001 / ADR-002 / 09 各锚)后执行 P-1…P-5 回写:07 D8 行与弃选表等五处 supersede(CLI hooks = canUseTool 等价物,ask=-p 下 deny,超时落回语义);ADR-001 路径一行 addendum 2026-08-21(传输 = `claude -p` 子进程);ADR-002 文末「状态更正」节(附则④「豁免休眠」过时——T18 已落核验链与条件豁免、Tier1 恒不豁免)+ HANDOFF §2-4 尾句;09 七处(DevAgentBinding transport / 门段 claude_code 行改写含律③单列 / 新增 claude_code 配置承载与门合同 bullet(四键、identity 登记、双脚本 drift guard、GateWireRequest 判别联合、native_session_confirmed、G4 例外两键)/ kind 词表 `tier1.run` / retry queue Tier1 词表 / tier1_runs 加列 / config 示例 `[tier1]` 段 / steerTask live 预留注)。
+3. 双路评审:Codex 89(`gpt-5.6-sol` max 只读,约 55 分钟,exit 0)裁决「No-Go / 修正后 Go」,五 A(HANDOFF 指针自相矛盾 / 07 三处残留 SDK 旧口径 / 09 恢复键三-四元组冲突 / Tier1 重放规则冲突 / steerTask live 新旧注冲突)+ 十 B 全采纳当轮回修;一致性 subagent(报告 `history/reviews/2026-08-21-w54b-preface-consistency.md`)评回修前快照,三 A 与 Codex 同源已覆盖,独有两 B(「规则 2」锚点漂移、project.toml 白名单 dev 域承载区分)+ 07 缺 ask=deny 要点,均已回修;C 级备案。triage 全文 = findings 89 §B/§C。
+4. 序列判断经 Codex 确认:前置回写 → 评审 → owner 停点(含 readback 处置与工作区入库授权)→ IMPL-PROMPT-15 派发 → W5.4-b 实施,为缺省标准路径。
+5. 生成 `docs/plan/IMPL-PROMPT-15-W54B-WIRING.md`(第 15 轮交接,七件套:§0 开工断言含 canonical 锚点 grep 与 readback 处置检查 / §2 批专属红线七条 / §3 C1-C3 任务与验收锚 / §3.5 owner 决策附注四项),**待 owner 停点确认后派发**。
+6. 台账 §2 加本批行、§3 加「canonical 条款锚点」勘误子节(规则 2→3 编号漂移、dev 域两承载)。
+
+### 产出
+- canonical:`docs/09-data-contracts.md`(241645 bytes / SHA-256 `134ebfcfe00c7d38…`);`docs/07-tech-stack-decisions.md`(33674 / `8e9b90748eda161b…`);`docs/adr/design/ADR-001-execution-layer.md`(15317 / `ba087bfb3e488fb9…`);`docs/adr/ADR-002-byoa-observed-model.md`(6964 / `4e6bb7a1c53ac109…`)
+- 交接:`docs/plan/IMPL-PROMPT-15-W54B-WIRING.md`(8878 / `127fc4e322aa8da2…`)
+- 评审:`prompts/89-w54b-canonical-preface-review.md`(3644 / `071d064c59e890b0…`);`research/codex-findings/89-w54b-canonical-preface-review.md`(含 §B/§C triage);`history/reviews/2026-08-21-w54b-preface-consistency.md`(14635 / `e5aa992485cbc49f…`)
+- 日志:`logs/89-w54b-canonical-preface-review.log`(3690593 / `7c861eecf8d3f50d…`,不入 Git)
+- 门禁:emoji 全部 clean;`git diff --check` exit 0;IMPL-PROMPT-15 §0 锚点 grep 复验命中。
+
+### 结论
+- W5.4-b 的合同门内容已备齐并过双路评审(「修改后 Go」条件达成);**门的机械判定(canonical 入库)与开批还差三件 owner 动作**:① 本批与记录层/备案线一起入库(等官网线同批提交);② w54a readback 补跑或书面豁免;③ IMPL-PROMPT-15 停点确认。
+- 本轮未 commit、未 push、未部署;HANDOFF 指针保持 `w54b-canonical-preface` 待收口清除(收口点 = 入库 + owner 停点后转 `w54b-wiring`)。
+
+## R87 · 说到软著 R11 普通通道填报(2026-08-21)
+
+### 输入
+- owner:软件著作权还没申请,按普通通道申请,不加急。
+
+### 行动
+1. 续填已开的说到 R11(不动千手 `2026R11L2548912`)。软件分类=应用软件;多个著作权人=否;原创/单独开发/未发表/2026-08-12。
+2. 功能与特点按四端+本机工具口径填写;主要功能去空格凑满 500 字;不勾人工智能软件。
+3. 上传 `source-code-60pages.pdf` 与 `user-manual.pdf`;确认填报。
+
+### 产出
+- 流水号 `2026R11L2860558`;用户中心「待提交材料」。差申请确认签章页。
+- 状态文档 OWN-9、材料包、预填表已回写。
+
+### 结论
+- 表单与鉴别材料已交。签字必须 owner 本人。签完扫描后本会话可代传。未改千手、未买加急、未 commit。
+
+## R88 · 说到软著签章上传并确认提交(2026-08-21)
+
+### 输入
+- owner 交来已签字的申请确认签章页照片(流水号 `2026R11L2860558`)。
+
+### 行动
+1. 签章原件只复制到私有目录,不入仓。
+2. 用户中心「说到」行上传签章 PDF,点确认提交并确认对话框。未点千手。
+
+### 产出
+- 列表状态「待受理」,日期 2026-08-21;详情「已提交材料」、电子证书、四端运行平台。
+- 千手 `2026R11L2548912` 仍待受理。状态文档 OWN-9 / 预填表已回写。
+
+### 结论
+- 说到 R11 普通通道已交到与千手相同的排队节点。此后等受理,无我方动作。未 commit。
+
+## R89 · Windows 对齐合同评审与 triage 回修(2026-08-21;原以 R80 写就,撞号顺延)
+
+> 编号注(2026-08-22 合并时定格):本节与下节原在公开快照线 clone(`feat/windows-alignment`)独立写作,
+> 各以 R80/R81 落盘;并入内部主线时与备案/记录链 R80-R88 撞号。按并线撞号政策(改号成本低的一方顺延),
+> 备案/记录链被台账 §2 与 HANDOFF §1 多处引用、链内还自相交叉引用(R83/R84/R85 互指),改号成本高故保号;本节与下节的**标题编号**顺延为 R89/R90,
+> 正文与产出/结论逐字未改。诚实说明(评审 90 B-13):`history/README.md` 的既有政策是「为保持原始证据不重编号」,
+> 本处确实改了标题号,与该政策存在张力;沿用的是 R83 节已开的顺延先例。
+> 该张力已由 owner 2026-08-22 裁决收口:并线撞号由**改号成本低的一方顺延标题号**,已写为正式政策
+> (评审 91 B-13 校正:判据是改号成本,不是落盘先后——本次 Windows 侧 `05bc91d` 其实更早),
+> `history/README.md` 的编号政策已相应改写(正文不改、只顺延标题号并登记)。本处置即依该政策。
 
 ### 输入
 - owner:项目尚不支持 Windows;先拉 GitHub 最新,设计完整对齐方案,Codex 交叉评审,再按最完整方案实施。明确否决 WSL 当产品 SKU,否决「只做对话面、关掉 Tier1」当终局。
@@ -1734,7 +1940,7 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
 ### 结论
 - 按评审前初稿写代码会被 Codex 88 判阻断。合同已收到 triage;实施以回修后 ADR-003/004 与 09 为准。官网 FAQ 不动;未授权不 commit/push/deploy。
 
-## R81 · Windows 对齐本机收口(2026-08-22)
+## R90 · Windows 对齐本机收口(2026-08-22;原以 R81 写就,撞号顺延)
 
 ### 输入
 - owner:在本机完整测试 review,再把完整更新提交到 GitHub。
@@ -1752,3 +1958,44 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
 
 ### 结论
 - Windows P0 工程面对齐已落盘。官网 FAQ 仍为暂不支持;Actions windows-latest 与 Scheduled Task 仍是 P1。无部署。
+
+## R91 · Windows 批 macOS 回归回修 + POSIX 组长锚/cmd·bat 门/Linux 去 procps 化 + 内部主线移植(2026-08-22)
+
+### 输入
+- R90 收口后的公开快照线 `feat/windows-alignment`(`be82f98`)。
+- owner:把完整更新提交到 GitHub;Linux 也要能跑。
+
+### 行动
+1. 修 R90 遗留的四处 macOS 回归(只在 Windows 验证时漏掉),`640e982`;去掉 workflow 里与根 `packageManager` 冲突的 `pnpm/action-setup` `version` 键,`d427716`。
+2. 公开仓 PR 合入 `721385c`;Actions node+python 双 job SUCCESS(run `32545535527`)。
+3. 续批 `fix/ownership-anchor-and-cmd-escape`:补回 POSIX 组长身份锚、给 cmd/bat 参数加 fail-closed 门(`175dfe0`);wrapper 后代回收改扫 `/proc` 不再依赖 procps(`08622fe`,最小镜像 `node:22-slim` 实测改前逃逸、改后可回收);跨平台教训写回 ADR-003 并新建 `docs/plan/LINUX-ALIGNMENT.md`(`932363e`);Linux 后代回收用例改 detached 起探针(`b8818a7`);ADR-003 去 emoji 遵门禁(`4627107`)。公开仓 merge `7838479`,run `32547933533` success。
+4. 两批以 `sync/windows-alignment` / `sync/hardening-20260822` 移植进内部主线(公开线根为 `snapshot:` 提交,与 main 无共祖,不能直接 merge),末码 `5a73420` 推 origin/main。
+
+### 产出
+- 内部线:`1482510`(feat)/`05bc91d`(evidence)/`ef444cb`(回归回修)/`3279c0f`(CI)/`316f031`/`0cad56e`/`fcd2f9e`/`2cec464`/`5a73420`
+- 新文件:`docs/plan/LINUX-ALIGNMENT.md`;`packages/platform/`(`fs/gate/host/lock/open/process/win32`)
+- 证据:`e2e/evidence/windows-alignment.md`(hardening 同批追加)
+
+### 结论
+- Windows P0 与 Linux 门禁面都已成立;**常驻安装(systemd unit / Scheduled Task)、系统通知、SAPI TTS、Actions `windows-latest` 仍未做**。官网口径的翻转不在本轮,归 R92。
+
+## R92 · 全分支合并 + 一周文档 x 实施双向对账(2026-08-22)
+
+### 输入
+- owner:先 commit 所有、合并本地全部分支与 worktree;再从文档对 commit、从 commit 对文档,逐条比对实施是否合理/标准/正确,有无疏漏与不一致;可判断的直接修,判断不了的问我;全部实施后调 Codex 交叉 review;然后推 GitHub、完整部署、推三端真机包测试,通过后清理分支。
+
+### 行动
+1. 未提交工作(54 改 + 25 新)分五组入库:canonical 前置 `5036bee`、W5.4-b C1/C2 `4c4bf96`、备案软著 `479634c`、官网 `cdf49f2`、记录层 `ad8adb1`。`.omo/`(OpenClaw 会话续跑临时物)入 gitignore 不入库。
+2. main 快进 `11e3653` → `5a73420`,再合批次分支;**十处冲突全部语义合并**(裁决表见 `docs/review/2026-08-22-week-crosscheck.md` §2),合并 `4d2824e`。
+3. 合并暴露两处实现缺口并当场修:`ensureGateScript` 在 POSIX 不写 `gate-claude.sh`(新增 `buildActiveClaudeGateScript`,双脚本按平台同写);`@saydo/platform` 的 `GateHttpHandler` 只允许两态,挡住 claude PreToolUse 的 `no_decision`(放开三态)。
+4. 双向对账 F1-F16,逐条裁决对齐方向并落修:官网文案稿 / HANDOFF 指针·快照·Actions·CLI 版本 / PLAN-2 W-Win 状态与串行约束 / ADR 索引三行状态 / docs 07 过期从句 / ADR-004 约束 4 条件达成 / 台账 §2 四行补记与三行时态刷新 / 台账 §3 三处新撞号登记 / `e2e/evidence/w54b-batch.md` 补建并如实标 C3 未做。
+5. journal 撞号处置:Windows 两节(原 R80/R81)顺延 R89/R90,备案链保号。
+
+### 产出
+- 合并:`4d2824e`;对账报告:`docs/review/2026-08-22-week-crosscheck.md`
+- 证据:`e2e/evidence/w54b-batch.md`(阶段性,本批未收口)
+- 门禁:`pnpm typecheck` exit 0;`just ci` 双矩阵 exit 0(daemon 1764 passed / 5 skipped、console 264、contracts 103、cli 20/1、platform 12、pipeline ruff clean + 34 passed);本批七文件定向 157 passed
+
+### 结论
+- 所有本地分支与 worktree 已归并到 main:`feat/windows-alignment` 与 `fix/ownership-anchor-and-cmd-escape` 是公开快照线,内容经 `sync/*` 已在 main 内(`git diff` 两两为空),五个 `saydo-batch-*` clone 全 clean 且 HEAD 在 main 祖先链上。
+- **W5.4-b 未收口**(C3 未做);合并后的门面未经零上下文对抗评审,是收口前必做项。

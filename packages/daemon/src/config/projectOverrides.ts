@@ -20,8 +20,8 @@ export const projectOverridesSchema = z.strictObject({
     .strictObject({
       dialog: modelBindingSchema.optional(),
       thinking: modelBindingSchema.optional(),
-      /** 开发档(执行 agent 的 model;agent 词表限当前可用后端——claude/codex 随解锁批放开) */
-      dev: z.strictObject({ agent: z.enum(["cursor"]), model: z.string().min(1) }).optional()
+      /** 开发档(执行 agent 的 model;agent 词表=当前已接线后端 cursor/claude_code;codex 随后续批放开) */
+      dev: z.strictObject({ agent: z.enum(["cursor", "claude_code"]), model: z.string().min(1) }).optional()
     })
     .optional(),
   budget: z
@@ -205,6 +205,33 @@ export function effectiveDevModel(globalModel: string, overrides: ProjectOverrid
   const ov = overrides?.models?.dev;
   if (ov) return { model: ov.model, source: "project" };
   return { model: globalModel, source: "global" };
+}
+
+/**
+ * W5.4-b C1(09 §11 claude_code 承载段):开发档生效 model 的 adapter 匹配版。
+ * dev.agent !== 生效 adapter ⇒ 忽略该 override 回全局,返回 ignored 供消费方审计
+ * `tier1.model_override_ignored_adapter_mismatch`(覆盖不跨后端漂移:cursor 的模型名对 claude 无意义,反之亦然)。
+ * 消费点 = executor.resolveRunModel(C2 接线;schema enum 已放开 claude_code)。
+ */
+export function effectiveDevModelForAdapter(
+  globalModel: string,
+  overrides: ProjectOverrides | null,
+  effectiveAdapter: string
+): {
+  model: string;
+  source: "project" | "global";
+  ignored?: { overrideAgent: string; effectiveAdapter: string };
+} {
+  const ov = overrides?.models?.dev;
+  if (!ov) return { model: globalModel, source: "global" };
+  if (ov.agent !== effectiveAdapter) {
+    return {
+      model: globalModel,
+      source: "global",
+      ignored: { overrideAgent: ov.agent, effectiveAdapter }
+    };
+  }
+  return { model: ov.model, source: "project" };
 }
 
 /** 预算生效值(dispatch 时消费:包 cost.max 与任务三熔断预算) */

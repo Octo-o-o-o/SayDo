@@ -5,6 +5,10 @@
 import { ulid } from "ulid";
 import type { Db } from "../storage/db.js";
 import { insertCostEntry } from "../storage/dao/misc.js";
+import {
+  buildTier1SubscriptionCostEntry,
+  type Tier1SubscriptionCostInput
+} from "../tier1/claudeOutcome.js";
 
 export interface UsageContext {
   projectId?: string | undefined;
@@ -112,6 +116,30 @@ export function recordLlmUsage(
             ...(usage.subscription.provenance ? { provenance: usage.subscription.provenance } : {})
           }
         : {})
+    }
+  });
+}
+
+/** W5.4-b C2b:消费 W5.4-a 纯对象落 `kind=tier1.run` 订阅行;cursor 同步补。不产生 source='api'。 */
+export function recordTier1SubscriptionRun(
+  db: Db,
+  input: Tier1SubscriptionCostInput & { projectId?: string },
+  now: () => Date = () => new Date()
+): void {
+  const entry = buildTier1SubscriptionCostEntry(input);
+  const cacheWrite = entry.meta["cache_creation_input_tokens"];
+  insertCostEntry(db, {
+    id: ulid(),
+    ts: now().toISOString(),
+    ...(input.projectId ? { projectId: input.projectId } : {}),
+    ...(input.taskId ? { taskId: input.taskId } : {}),
+    kind: entry.kind,
+    known: entry.known,
+    source: entry.source,
+    meta: {
+      ...entry.meta,
+      requests: entry.requests,
+      ...(typeof cacheWrite === "number" ? { cache_write_input_tokens: cacheWrite } : {})
     }
   });
 }

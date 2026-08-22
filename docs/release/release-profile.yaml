@@ -3,7 +3,8 @@
 # Open owner items remaining: DEC-8 (EU DSA), OWN-2 (trademark / 个体户).
 
 product:
-  name: "SayDo"                 # English marketing name; App Store exact name occupied (name-occupancy.md)
+  name: "SayDo"                 # English marketing name
+  store_name_en: "SayDo - You Say, AI Do"  # App Store / Play / AGC en-US listing; exact SayDo occupied
   in_package_name:
     zh-CN: "说到"               # owner 2026-08-13 确认;三端 app_name/备案名/软著名/AGC 中文名统一用它;App Store cn/us 精确名 0 占用(name-occupancy.md §6)
     en-US: "SayDo"
@@ -52,7 +53,7 @@ huawei:
 
 china_compliance:
   icp_website_filing: "京ICP备2025153079号"   # existing 主体 on octoooo.com (OctoDesk). Path taken 2026-08-13: 新增 App 服务, not a new 主体.
-  icp_app_filing: "tencent-order:(private)"  # submitted 2026-08-13, 腾讯云审核中; MIIT App number not issued. 千手 is 京ICP备2025153079号-3A; SayDo will be a new -nA under the same 主体
+  icp_app_filing: "京ICP备2025153079号-4A"  # issued 2026-08-21; same 主体 as 千手 -3A. order id remains private.
   lighthouse_ip: "123.207.158.219"  # 腾讯云轻量; same IP as octoooo.com / z-report.cn website filings
   filing_provider: "Tencent Cloud"  # OctoDesk App 备案 went through 腾讯云
   software_copyright: "none"    # CPCC account (private) already exists from 千手 R11; new software name needed

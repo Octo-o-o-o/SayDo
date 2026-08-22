@@ -22,7 +22,7 @@
     })();
   </script>
   <link rel="stylesheet" href="/tokens.css" />
-  <link rel="stylesheet" href="/site.css?v=20260820f" />
+  <link rel="stylesheet" href="/site.css?v=20260821a" />
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to main content</a>
@@ -130,11 +130,11 @@
           <li><strong>Want to combine multiple model vendors / CLIs for the best results</strong>: read all of §5 (models &amp; providers), then §6 (executors).</li>
           <li><strong>Care about where your data goes and what it costs</strong>: §14 (privacy &amp; data), §15 (cost).</li>
           <li>A section title carrying <span class="badge badge-live">Available now</span> / <span class="badge badge-progress">In progress</span> / <span class="badge badge-soon">Planned</span> marks the current state of the capability it describes; sections without a badge are available now as a whole, with individual exceptions noted inline.</li>
-          <li>This document tracks the current version of the macOS desktop service; none of the mobile apps are in stores yet, so everything phone-related is written as "how you can connect today", not "download from a store" (§13).</li>
+          <li>This document tracks the current version of the desktop service (macOS is the main line; Windows has native P0 support verified on real hardware and Linux passes the full CI matrix, though residency install and system notifications are still macOS-only); none of the mobile apps are in stores yet, so everything phone-related is written as "how you can connect today", not "download from a store" (§13).</li>
         </ul>
 
         <h2 id="s1">1. What SayDo is</h2>
-        <p>SayDo is <strong>a chief of staff you can talk to out loud</strong>, running on your own Mac. You just talk things through — even think out loud while you talk. It first builds deep context on your projects and keeps every item in a ledger; once it understands and things are ready, it proposes to start work and drives the AI tools already on your computer; when execution and checks have run, it calls you back to review; only your nod makes it delivered.</p>
+        <p>SayDo is <strong>a chief of staff you can talk to out loud</strong>, running on your own computer (macOS is the main line; Windows and Linux run today). You just talk things through — even think out loud while you talk. It first builds deep context on your projects and keeps every item in a ledger; once it understands and things are ready, it proposes to start work and drives the AI tools already on your computer; when execution and checks have run, it calls you back to review; only your nod makes it delivered.</p>
         <p>Its mental model is a <strong>chief of staff</strong>: talks with you every day, understands and gets things done on its own, then reports back — not an instruction translator of "the clearer you speak, the better I do". The core competitiveness is not which model it uses, but <strong>context engineering + the human–AI collaboration workflow</strong>.</p>
         <h3>1.1 Three core promises</h3>
         <ul>
@@ -163,6 +163,7 @@
         <p>The desktop service itself is free. AI costs go directly to the vendors you choose — use your existing CLI subscriptions (zero extra cost within quota) or your own API keys on pay-as-you-go. SayDo adds no markup, never touches the money, and doesn't top up for you. Details in §15.</p>
 
         <h2 id="s2">2. Core concepts at a glance</h2>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Concept</th><th>In one sentence</th><th>Details</th></tr>
@@ -189,12 +190,14 @@
             <tr><td><strong>cap-token</strong></td><td>The console's local capability token (<code>~/.saydo/.cap-token</code>), carried in the console URL; deleting it rotates it</td><td>§4.3, §14</td></tr>
           </tbody>
         </table>
+        </div>
 
         <h2 id="s3">3. How it works</h2>
         <h3>3.1 Overall architecture: three layers</h3>
-<pre>
+<pre class="fig">
 You (speak / listen / occasionally look at the screen; sign off / approve)
-   │ voice or text (browser, phone)              callback (voice / desktop notification / phone push)
+   │ voice or text (browser, phone)
+   │ callback (voice / desktop notification / phone push)
 ┌──▽─────────────────────────────────────────────────────────────────┐
 │ Communication surface: Web console (desktop browser) / phone        │
 │   (app shell or mobile browser, LAN)                                │
@@ -225,7 +228,8 @@ You (speak / listen / occasionally look at the screen; sign off / approve)
           <li><strong>Voice sessions are short-lived; tasks are long-lived</strong> — a session is an event-driven window (suspended after 45 idle seconds or when you say "that's it for now / leave it here / wrap up", at zero cost); tasks keep executing in the background, and callbacks pull you back.</li>
           <li><strong>Every piece of state has exactly one owner</strong> — dialog-domain state belongs to the daemon, execution-domain state to the executor / backend; boundaries are connected by durable protocols (idempotency keys, event cursors, receipts), not a shared database.</li>
         </ol>
-        <p><strong>Component overview</strong> (the core components run on your Mac; third-party AI, network speech recognition, and push that you choose are exceptions governed by those providers' terms):</p>
+        <p><strong>Component overview</strong> (the core components run on your own computer; third-party AI, network speech recognition, and push that you choose are exceptions governed by those providers' terms):</p>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Component</th><th>What it is</th><th>Notes</th></tr>
@@ -239,7 +243,9 @@ You (speak / listen / occasionally look at the screen; sign off / approve)
             <tr><td>Executor</td><td>The agent that actually edits code in a worktree after sign-off (currently Cursor CLI)</td><td>Optional; conversation and ledger work without it</td></tr>
           </tbody>
         </table>
+        </div>
         <h3>3.2 One full loop: from one sentence to "come review it"</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Step</th><th>What happens</th><th>Mechanism behind it</th><th>You</th></tr>
@@ -254,6 +260,7 @@ You (speak / listen / occasionally look at the screen; sign off / approve)
             <tr><td>7 Review &amp; retain</td><td>Spoken summary (one sentence / 150-character walkthrough / the list of decisions it made itself) + evidence view (diffs, tests, decisions, unverified items); you nod → strong-authentication merge → "delivered"; knowledge and artifacts are retained</td><td>Merge = a Touch ID / passkey on-screen approval card signing a single-use receipt, or you merge in the terminal yourself (manual handoff); at session end, stable conclusions are mechanically nominated as candidates and enter M1 when you approve</td><td>review</td></tr>
           </tbody>
         </table>
+        </div>
         <h3>3.3 Interview, readiness, decision packs: why you never write a requirements doc</h3>
         <ul>
           <li><strong>Instructions are lossy compression; conversation is progressive unfolding.</strong> SayDo doesn't require you to be good at prompting: you just talk, and when it understands and is ready, it proposes to start. <strong>The spec is its output, not your input.</strong></li>
@@ -264,14 +271,15 @@ You (speak / listen / occasionally look at the screen; sign off / approve)
         </ul>
 
         <h2 id="quickstart">4. Quickstart (the normal user path)</h2>
-        <div class="docs-note"><p>Goal: one Mac, one AI CLI you're logged into (or one API key) — up and talking in about fifteen minutes.</p></div>
+        <div class="docs-note"><p>Goal: one computer (macOS main line; Windows and Linux work too), one AI CLI you're logged into (or one API key) — up and talking in about fifteen minutes.</p></div>
         <h3>4.1 Prerequisites</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Item</th><th>Requirement</th><th>Notes</th></tr>
           </thead>
           <tbody>
-            <tr><td>System</td><td>macOS (Apple Silicon or Intel)</td><td>Residency, notifications, opening the browser etc. are macOS implementations; other systems unsupported</td></tr>
+            <tr><td>System</td><td>macOS (Apple Silicon or Intel) &middot; Windows &middot; Linux</td><td>All three run the desktop service; <strong>residency install, system notifications and opening the browser are still macOS-only implementations</strong>, so Windows/Linux run it in the foreground</td></tr>
             <tr><td>Node</td><td><strong>22.x</strong> (<code>&gt;=22 &lt;23</code>)</td><td>Runtime of the desktop service and CLI; install via nvm / fnm / Homebrew</td></tr>
             <tr><td>pnpm</td><td>10.x</td><td><code>corepack enable</code> is enough</td></tr>
             <tr><td>git</td><td>any recent version</td><td>Needed for builds and task isolation (worktrees)</td></tr>
@@ -280,6 +288,7 @@ You (speak / listen / occasionally look at the screen; sign off / approve)
             <tr><td>Optional · <code>cursor-agent</code> login + <code>jq</code></td><td>Only needed to <strong>dispatch execution tasks</strong> (letting the AI actually edit code)</td><td>Its absence doesn't block conversation — sign-off just won't launch an executor (§6)</td></tr>
           </tbody>
         </table>
+        </div>
         <h3>4.2 Install</h3>
         <p>Currently distributed as source (no npm / Homebrew package yet, see §16):</p>
 <pre><code>git clone https://github.com/Octo-o-o-o/SayDo.git &amp;&amp; cd SayDo
@@ -349,6 +358,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
         <h2 id="s5">5. Models &amp; providers (required reading for advanced users)</h2>
         <p>SayDo splits model usage into <strong>five slots</strong>, each with its own supply method and model. This is the same mechanism behind both "one subscription does everything" and "combining multiple vendors for the best results".</p>
         <h3>5.1 The five slots</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Slot</th><th>Config key</th><th>What it does</th><th>What it needs</th><th>Example (repo template / wizard "one key" card)</th></tr>
@@ -361,6 +371,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
             <tr><td><strong>dev (executor)</strong></td><td><code>[models.dev]</code></td><td>Which agent edits code on dispatch, and which of its models</td><td>See §6</td><td><code>agent = "cursor"</code> (matches the repo template; the only production executor today)</td></tr>
           </tbody>
         </table>
+        </div>
         <p>Why split: dialog wants latency (you're waiting for it to speak), thinking wants quality (its output is the "contract"), cheap wants cost (high-frequency calls), evaluator wants independence (a referee from another vendor). One model for all four slots is either slow, expensive, or not independent.</p>
         <h3>5.2 Two supply methods</h3>
         <p><strong>Method A · direct API</strong> (<code>{ provider = "api", via = "&lt;endpoint name&gt;", model = "..." }</code>)</p>
@@ -372,6 +383,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
         </ul>
         <p><strong>Method B · subscription CLI (BYOA)</strong> (<code>{ provider = "&lt;x&gt;_cli", model = "..." }</code>)</p>
         <p>Use AI command-line tools <strong>already logged in</strong> on your machine as reasoning supply — zero API keys, billed to your subscription quota. Currently wired CLIs:</p>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>provider</th><th>Command</th><th>Notes</th></tr>
@@ -386,8 +398,10 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
             <tr><td><code>copilot_cli</code></td><td><code>copilot</code></td><td>Same (transport-style CLI)</td></tr>
           </tbody>
         </table>
+        </div>
         <p>(<code>kimi_cli</code> / <code>opencode_cli</code> are only "recognized" in the resource profile and <strong>cannot</strong> be used as supply — local testing showed zero-tool operation cannot be proven before execution, so for safety they are not wired.)</p>
         <p>Login is between you and the vendor: log in with each vendor's official method; SayDo only probes "installed? / logged in? / which models can it list?", and the wizard offers paste-ready fix commands when one isn't logged in (follow the wizard's hints):</p>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>CLI</th><th>Login</th></tr>
@@ -402,6 +416,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
             <tr><td><code>copilot</code></td><td><code>copilot login</code></td></tr>
           </tbody>
         </table>
+        </div>
         <p>How BYOA works and its discipline (the part you'll feel in the UI):</p>
         <ul>
           <li><strong>One shot, stateless</strong>: every call spawns a fresh CLI subprocess; sessions are never reused (resume is deliberately avoided — session persistence conflicts with privacy switches, and in testing resume gained no latency either).</li>
@@ -412,6 +427,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
         </ul>
         <h3>5.3 Three setup plans (the three cards in the first-run wizard)</h3>
         <p>The first time you enter the console you see the "resource profile wizard": it probes which CLIs are installed, which are logged in, and which keys are already in <code>.env</code>, then offers one-tap plan cards —</p>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Plan</th><th>Who it fits</th><th>How the four reasoning slots are configured</th><th>Experience</th></tr>
@@ -422,6 +438,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
             <tr><td><strong>One key for everything</strong></td><td>No CLI subscriptions</td><td>All four slots on the OpenRouter API, models assigned per slot spec</td><td>Sub-second returns; pay-as-you-go per the provider's bill</td></tr>
           </tbody>
         </table>
+        </div>
         <p>The wizard's "advanced mode" allows slot-by-slot manual configuration: each slot independently picks an API endpoint / any logged-in CLI / a specific model; both routes require all four self-checks green before the restart takes effect. Advanced combinations, for example:</p>
         <ul>
           <li>dialog on API (e.g. a low-latency model like <code>google/gemini-3.1-flash</code> on OpenRouter, family gemini) + thinking on <code>cursor_cli</code> (<code>claude-fable-5-thinking-max</code>, family claude) + cheap on <code>grok_cli</code> + evaluator on <code>codex_cli</code> (<code>reasoning = "max"</code>, family gpt) — fast dialog, strong thinking, the evaluator in a different family from both dialog and thinking, and thinking and evaluator don't share the same vendor's subscription window (the evaluator on CLI requires the two confirmations).</li>
@@ -521,6 +538,7 @@ enabled_project_types  = ["coding"]  # type capability gate; may enable ["coding
           <li>Changing requirements mid-run (steer): no backend currently supports live injection into a running task; a running task = <strong>terminate the current round and resume with the new instructions</strong> (<code>cancel_resume</code>, worktree kept), a queued / parked task = injected at its next run (<code>queued_delta</code>). It tells you honestly which case applies.</li>
         </ul>
         <h3>6.3 In progress &amp; planned</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Backend</th><th>Status</th><th>Notes</th></tr>
@@ -533,6 +551,7 @@ enabled_project_types  = ["coding"]  # type capability gate; may enable ["coding
             <tr><td><strong>Gemini CLI as executor</strong></td><td>Not planned</td><td>Gemini CLI serves reasoning slots only</td></tr>
           </tbody>
         </table>
+        </div>
 
         <h2 id="s7">7. Projects &amp; Git: how it works with your repos</h2>
         <h3>7.1 Projects &amp; workspaces</h3>
@@ -575,8 +594,9 @@ enabled_project_types  = ["coding"]  # type capability gate; may enable ["coding
         </ul>
 
         <h2 id="s8">8. Approvals &amp; safety</h2>
-        <h3>8.1 Risk graded by effect, S0–S3</h3>
+        <h3>8.1 Risk graded by effect, <span class="hnum">S0–S3</span></h3>
         <p>Voice is a weak authentication channel (anyone present can speak; recognition has an error rate), so approval power is graded by risk; <strong>grades are computed from effects, not action names</strong>: <code>effect × target (inside / outside the circle) × data sensitivity touched × identity credentials × downstream triggered (CI / deploy) × cost</code>.</p>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Level</th><th>Typical (defaults; effects can upgrade)</th><th>Approval</th></tr>
@@ -588,9 +608,11 @@ enabled_project_types  = ["coding"]  # type capability gate; may enable ["coding
             <tr><td>S3 irreversible / external impact</td><td>Merging to a protected branch, force push, deploy, spending money, deleting data, messaging the outside world</td><td><strong>An authenticated screen (Touch ID / passkey) is mandatory</strong>; voice never approves — a playback into the same microphone is not an independent authentication factor</td></tr>
           </tbody>
         </table>
+        </div>
         <p>Upgrade rules: touching <code>.env</code> / credentials / customer data ⇒ at least S2; dependencies with postinstall ⇒ at least S2 and must produce a list; push triggering preview deploys ⇒ S3; push to protected branches ⇒ S3.</p>
-        <h3>8.2 Gate 0: the master switch for whether work may start</h3>
+        <h3>8.2 <span class="hnum">Gate 0</span>: the master switch for whether work may start</h3>
         <p>Gate 0 is not a runtime command gate but <strong>six safety gates that must be closed before autonomous dispatch opens</strong>. Before every dispatch it checks <code>[gate0] enabled = true &amp;&amp; bypass = false</code>, and <strong>there is no bypass branch in the code</strong> (a corrupted config file is treated as "not closed" — dispatch is refused rather than continuing with lenient defaults):</p>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Gate</th><th>Content</th></tr>
@@ -604,6 +626,7 @@ enabled_project_types  = ["coding"]  # type capability gate; may enable ["coding
             <tr><td>G6 deletion / consent propagation</td><td>A hard-delete path for "forget this"; recording and transcripts consented separately; backups expire whole per retention</td></tr>
           </tbody>
         </table>
+        </div>
         <h3>8.3 How each shell command passes the gate</h3>
         <ul>
           <li>Physical chain: <code>.cursor/hooks.json</code> inside the worktree → the gate script supplied by the daemon and placed outside the worktree at <code>~/.saydo/tier1/</code> (same user as the agent, <strong>currently not guaranteed unwritable by the agent</strong> — the honest account) → unix socket → daemon ruling; compensating control = the script's integrity is recomputed on every gate request, and drift ⇒ all active tasks cancelled.</li>
@@ -613,6 +636,7 @@ enabled_project_types  = ["coding"]  # type capability gate; may enable ["coding
           <li>Each S2 gets one receipt, bound to the parent decision pack's digest and the sign-off round, consumed on acceptance.</li>
         </ul>
         <h3>8.4 Two execution modes</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Mode</th><th>Semantics</th><th>Status</th></tr>
@@ -622,6 +646,7 @@ enabled_project_types  = ["coding"]  # type capability gate; may enable ["coding
             <tr><td><strong>direct-to-review</strong> (colloquially "run it straight through")</td><td>Sign-off authorizes the whole pack: the decision pack declares item by item and <strong>reads aloud</strong> this task's expected S2 effect classes (with constraint parameters: which packages to install / which branch pattern to push), signed with the pack's digest; during the run, matches on the list pass automatically (a pre-authorization receipt is recorded and validity re-checked at the enforcement point), misses or upgrades are refused with feedback to the agent to take another route</td><td><span class="badge badge-progress">In progress</span> — the pre-authorization list's contract and matching logic have landed, but the voice sign-off loop isn't wired for read-aloud signing yet, so packs are always assembled as step-confirm; choosing "straight through" at sign-off is honestly answered with a redirect to the screen or to step-confirm</td></tr>
           </tbody>
         </table>
+        </div>
         <p>Invariants (no mode may touch): effect grading, S3 on-screen strong authentication, the three circuit breakers, the verify whitelist, Plan Delta re-authorization, callback priority, status-word discipline, the two keys, Gate 0. <strong>The pre-authorization scope always belongs to the decision pack — heard and signed by you; the mode is only the enabling switch for that list</strong> — otherwise "switch to full auto" would become a one-sentence privilege-escalation channel. Defaulting tight (step-confirm) hedges automation bias; "trust graduation" was explicitly rejected.</p>
         <h3>8.5 Three circuit breakers &amp; park aging</h3>
         <ul>
@@ -638,7 +663,8 @@ enabled_project_types  = ["coding"]  # type capability gate; may enable ["coding
         </ul>
 
         <h2 id="s9">9. Memory &amp; the ledger</h2>
-        <h3>9.1 Four layers of memory (M0–M3)</h3>
+        <h3>9.1 Four layers of memory (<span class="hnum">M0–M3</span>)</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Layer</th><th>Name</th><th>Storage</th><th>Lifecycle</th><th>Content</th></tr>
@@ -650,9 +676,10 @@ enabled_project_types  = ["coding"]  # type capability gate; may enable ["coding
             <tr><td>M3</td><td>Session working memory</td><td>Context window + transcript (<code>~/.saydo/sessions/&lt;id&gt;.jsonl</code>)</td><td>Single session</td><td>The last N turns, the current task</td></tr>
           </tbody>
         </table>
+        </div>
         <p><strong>Context Pack</strong> = each turn picks relevant slices from M0 + M1 + M2 plus M3's recent turns into the window (versioned; re-fetched on mismatch); retrieval uses SQLite FTS5 (trigram, BM25) to answer "what did we decide?", while code facts are always read live with <code>rg</code> and never enter the knowledge base (no staleness tax; terms shorter than 3 characters are backstopped by rg).</p>
         <p><strong>Source of truth</strong>: the memory domain's truth is the <strong>append-only memory event ledger</strong>; Markdown files and the SQLite index are rebuildable projections; source code and Git are always the final authority on code facts. <code>m1-notes.md</code> is a one-way projection — editing the file directly doesn't write back to memory; to change it, tell SayDo (P0 has no file watching).</p>
-        <h3>9.2 Grounding (Foundation) <span class="badge badge-live">Available now</span> · mechanical pipeline</h3>
+        <h3>9.2 Grounding (Foundation) <span class="badge badge-live">Available now</span> <span class="h3-note">· mechanical pipeline</span></h3>
         <p>Triggered on first contact with a project, blocking ("learning" is a first-class session state — it says what it's learning, progress, and how long remains):</p>
         <ul>
           <li>Scans the file inventory and language distribution; reads key files by whitelist (README / AGENTS.md / CLAUDE.md / package.json / pyproject.toml / justfile / Makefile / Cargo.toml / go.mod etc., 6000-character excerpt cap per file);</li>
@@ -679,6 +706,7 @@ raw evidence (untrusted) → candidate (with source / citation / trust level / e
         <h3>9.4 Focus, obligations &amp; the four-color ledger <span class="badge badge-live">Available now</span></h3>
         <p>The console's spine is the <strong>Focus</strong>: one continuously tracked item, lifecycle captured / active / dormant / closed / abandoned / archived; it can link 0..N projects or belong to none (life planning and research are fine); under it hang <strong>obligations</strong> (who owes what: owner = you / AI / external; status open / in_progress / waiting / deferred / blocked → resolved / superseded) and <strong>expectations</strong> (acceptance criteria for what "done right" looks like — changes require the AI to play back the impact and re-confirm).</p>
         <p>The <strong>four-color ledger</strong> (Today page) is not a separate table but a "whose ball is it" view computed live from the ledger:</p>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Color</th><th>Meaning</th><th>Source</th></tr>
@@ -690,6 +718,7 @@ raw evidence (untrusted) → candidate (with source / citation / trust level / e
             <tr><td>Gray · waiting externally</td><td>Ball with someone else</td><td>Open obligations owned by external parties</td></tr>
           </tbody>
         </table>
+        </div>
         <ul>
           <li>"Note this for me / jot this down / don't forget" ⇒ proposed for the ledger immediately in the same turn (a decision = decision, a to-do by attribution, something to verify = check), written via a <strong>confirmation card</strong> (your nod or a countdown); multiple items in one sentence can be confirmed on one card, all-or-nothing. If the current dialog's tool surface has no ledger tool, it degrades into the memory store first and tells you "it can be attached to the ledger once the item exists".</li>
           <li><strong>Clearing entries</strong>: obligations are resolved (done / abandoned / no longer applicable) by the AI's proposal with your confirmation; the AI marking its own obligation done must carry verifiable evidence (three checks: artifact / task / event); narrative revisions don't clear entries. Green / gray entries can be "got it"-ed away from the inbox; orange / blue cannot be acked and only disappear when the source data changes; when an entry upgrades (green → orange) it always reappears, ignoring historical acks.</li>
@@ -699,6 +728,7 @@ raw evidence (untrusted) → candidate (with source / citation / trust level / e
 
         <h2 id="s10">10. Review &amp; delivery</h2>
         <h3>10.1 Status-word discipline (hard constraint)</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Status</th><th>Meaning</th><th>What it says</th></tr>
@@ -709,13 +739,15 @@ raw evidence (untrusted) → candidate (with source / citation / trust level / e
             <tr><td><code>task.done</code></td><td>After your review + merge / archive</td><td>"This item is delivered"</td></tr>
           </tbody>
         </table>
+        </div>
         <p>Execution tasks never estimate remaining time, only report elapsed ("ran for 18 minutes"); unknown cost says "no exact figure yet", never 0.</p>
         <p>Task state machine (coding type, main trunk excerpt; there are also states like confirmed / paused_step_boundary / merge_failed / cancel_settled / superseded):</p>
-<pre>
+<pre class="fig">
 queued → running → ready_for_review → review_approved_waiting_merge → merging → task_done
               ↑            │ needs changes: new round of the same task (reuses the worktree)
               └────────────┘
-  at any stage: blocked (waiting on you: S2 timeout / question / circuit breaker / missing verify) · failed (retryable) · cancel_requested (voided, worktree kept)
+  at any stage: blocked (on you: S2 timeout / question / circuit breaker / missing verify)
+                · failed (retryable) · cancel_requested (voided, worktree kept)
 </pre>
         <h3>10.2 The evidence view</h3>
         <p>The task review surface is <strong>organized by acceptance criteria</strong>: criteria on the left, evidence on the right (diffs, test results, the list of decisions it made itself, unverified items). Discipline: agent-self-reported evidence is marked hollow to show downgrading and can be overturned; items with no bound evidence are honestly marked unknown — no fake precision; the decision list and the spoken summary are <strong>same-sourced</strong> (the persisted <code>decisions</code>), so what's spoken matches what's on screen.</p>
@@ -743,6 +775,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 
         <h2 id="s12">12. Voice</h2>
         <h3>12.1 Tiers of voice capability</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Tier</th><th>Requirement</th><th>Notes</th></tr>
@@ -754,6 +787,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
             <tr><td><strong>Phone native voice</strong></td><td>iOS / Android shell</td><td>Uses system speech recognition and synthesis; whether processing is on-device or network-based depends on app / OS settings and the vendor's implementation, and network processing is governed by that vendor's terms; no Python pipeline needed</td></tr>
           </tbody>
         </table>
+        </div>
         <h3>12.2 Capture &amp; turns</h3>
         <ul>
           <li>Three desktop triggers: <strong>click - click again</strong> (toggle) / <strong>keyboard long-press</strong> (hold space) / <strong>hands-free VAD</strong> (energy RMS + hangover state machine + a semantic "are they done?" vocabulary + an explicit "<strong>I'm done</strong>" button backstop; mixed Chinese-English speech defaults to a longer 900 ms silence threshold); noisy environments → hold to talk.</li>
@@ -775,6 +809,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
           <li><strong>Honest boundary</strong>: the LAN surface today is a dogfood-grade temporary boundary of "cleartext LAN HTTP + a long-lived capability token" — <strong>no device pairing / per-device identity / end-to-end encryption</strong>; deleting the token and restarting drops everyone. Do not expose it to untrusted networks.</li>
         </ul>
         <h3>13.2 App status</h3>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Platform</th><th>Status</th><th>Notes</th></tr>
@@ -785,9 +820,10 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
             <tr><td>HarmonyOS</td><td>Not submitted</td><td>HarmonyOS NEXT ArkTS shell; AppGallery record and release certificate ready, Profile not yet created</td></tr>
           </tbody>
         </table>
+        </div>
         <p>The shared reason none can be submitted: no production pairing / trust layer, cleartext LAN, review fixtures not executed. Before store release: device pairing (one-time ticket + Noise XX mutual authentication + manual desktop confirmation + trusted-device confirmation-free reconnect), push privacy contract (payload carries only opaque ids), call-style briefings (PushKit wake + CallKit incoming-call UI). All planned.</p>
         <h3>13.3 Design principles</h3>
-        <p>Communication is naturally mobile; execution is naturally stationary: the phone is only a communication surface (talk, watch progress, nod confirmations). The LAN phone surface cannot decide S2/S3; voice confirmation is capped at S2 under the canonical approval grammar; once supported, the paired tailnet screen is also capped at S2; merges, deletes, and other S3 actions stay on the authenticated local screen. Heavy work stays on your Mac; a phone disconnect never affects backend execution. Remote channels are read-only by default; phone DTMF (planned) only does ack / snooze / refuse — never any approval.</p>
+        <p>Communication is naturally mobile; execution is naturally stationary: the phone is only a communication surface (talk, watch progress, nod confirmations). The LAN phone surface cannot decide S2/S3; voice confirmation is capped at S2 under the canonical approval grammar; once supported, the paired tailnet screen is also capped at S2; merges, deletes, and other S3 actions stay on the authenticated local screen. Heavy work stays on your computer; a phone disconnect never affects backend execution. Remote channels are read-only by default; phone DTMF (planned) only does ack / snooze / refuse — never any approval.</p>
 
         <h2 id="s14">14. Privacy &amp; data</h2>
         <ul>
@@ -824,6 +860,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
         </ul>
 
         <h2 id="s16">16. Roadmap &amp; status</h2>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Capability</th><th>Status</th><th>Notes</th></tr>
@@ -859,11 +896,12 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
             <tr><td>Proactive check-ins / sitting in on multi-person meetings</td><td><span class="badge badge-soon">Planned</span></td><td></td></tr>
           </tbody>
         </table>
+        </div>
 
         <h2 id="s17">17. FAQ &amp; troubleshooting</h2>
         <p><strong>Is this a voice input method?</strong> No. Voice is only the entry point; behind it is the loop of understanding context, opening ledger entries, judging readiness, driving execution, and organizing review.</p>
         <p><strong>Does it upload my project to a SayDo-operated cloud runner?</strong> No. SayDo has no hosted backend carrying product data; heavy work and core persistent data stay on your computer. Third-party AI, system or browser speech recognition, and push services that you choose are called directly by your devices under those providers' terms.</p>
-        <p><strong>What are the prerequisites?</strong> macOS + Node 22 + one logged-in AI CLI (or one API key). Voice and execution are optional increments (§4).</p>
+        <p><strong>What are the prerequisites?</strong> macOS / Windows / Linux + Node 22 + one logged-in AI CLI (or one API key); residency install and system notifications are macOS-only for now. Voice and execution are optional increments (§4).</p>
         <p><strong>Can I use it without any keys?</strong> Yes: any logged-in CLI on the machine means zero-key chatting (15–25 s per turn in slow text mode); voice via browser system voice or typing.</p>
         <p><strong>How does it know "it's done"?</strong> When execution and checks have run and artifacts are on disk, it says "ready for your review" — never "done"; your nod plus strong-authentication merge makes it "delivered".</p>
         <p><strong>Can it secretly spend money?</strong> Subscription calls cost nothing and rate limits only error honestly without converting to billing; API calls have a per-task cost cap + active duration + turn count triple circuit breaker; S3 (spending / deploying / deleting data / messaging outside) requires your on-screen strong authentication.</p>
@@ -873,7 +911,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
         <p><strong>The wizard says a CLI is "recognized but cannot be used as model supply".</strong> That CLI (e.g. kimi / opencode) cannot prove zero-tool before execution, so for safety it isn't wired; switch vendors or use an API.</p>
         <p><strong>The evaluator stays unarmed.</strong> Check the reason: same family unconfirmed (tick <code>evaluator_same_family_ack</code> or change family) / CLI evaluator missing the isolation confirmation (tick <code>evaluator_isolation_ack</code>) / self-check failed / actual model family reported unknown. unarmed doesn't affect dialog — readiness deep assessment just won't arm.</p>
         <p><strong>The console opens blank / unresponsive.</strong> First <code>curl -s http://127.0.0.1:47100/health</code>; if not <code>ok:true</code>, check <code>~/.saydo/daemon.log</code> (tsx cold start takes 10–15 s); confirm the URL carries <code>?token=</code> and uses <code>localhost</code>.</p>
-        <p><strong>Windows / Linux support?</strong> Not for now — it targets macOS (residency, notifications, browser opening etc. are macOS implementations); no clear timeline, no promises.</p>
+        <p><strong>Windows / Linux support?</strong> Yes. Windows has native P0 support verified on real hardware, and Linux passes the full CI matrix (node + python); both run today. Residency install, system notifications, and similar paths are still macOS-only, to be filled in batch by batch per ADR-003/ADR-004.</p>
         <p><strong>Port conflict.</strong> <code>saydo status</code> exit code 2 = 47100 is held by another service or a daemon of another data directory; it won't auto-switch ports or kill processes — use <code>--port</code> or stop the other side.</p>
         <p><strong>Phone can't connect by QR / everything dropped.</strong> Confirm the daemon runs with <code>SAYDO_MOBILE_LAN=1</code> and the phone and computer are on the same private network; a deleted <code>.cap-token</code> rotates the token — scan again.</p>
         <p><strong>No executor started after sign-off.</strong> <code>[models.dev]</code>'s <code>agent</code> must be <code>cursor</code> (or empty — cursor is the default) with a non-empty <code>model</code>; both <code>[tier1]</code> keys (locked binary <strong>absolute path</strong>, <code>~</code> not accepted + version) present; <code>jq</code> and <code>curl</code> on PATH (hard dependencies of the gate script — without <code>jq</code> even the refusal receipt can't be produced, so everything counts as refused); <code>cursor-agent</code> logged in. Otherwise queued tasks stay in queued with prescriptive logs; dialog is unaffected.</p>
@@ -892,6 +930,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
         </ul>
 
         <h2 id="s19">19. Terminology (Chinese–English)</h2>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>中文</th><th>English</th><th>Notes</th></tr>
@@ -920,8 +959,10 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
             <tr><td>能力令牌</td><td>capability token</td><td></td></tr>
           </tbody>
         </table>
+        </div>
 
         <h2 id="appendix">Appendix · Cheat sheet</h2>
+        <div class="table-scroll">
         <table>
           <thead>
             <tr><th>Item</th><th>Value</th></tr>
@@ -942,6 +983,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
             <tr><td>Branch / directory</td><td><code>saydo/&lt;taskId&gt;</code> @ <code>&lt;repo&gt;/.saydo/worktrees/&lt;taskId&gt;</code></td></tr>
           </tbody>
         </table>
+        </div>
 
         <a class="back-top" href="#main">Back to top ↑</a>
       </article>
@@ -987,6 +1029,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
       </div>
       <div class="footer-meta">
         <span>© <span data-year>2026</span> SayDo · Developer: Yixiao Wang</span>
+        <a class="icp-beian" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">京ICP备2025153079号-4A</a>
         <span>Local-first · Open source · Privacy-first</span>
       </div>
     </div>

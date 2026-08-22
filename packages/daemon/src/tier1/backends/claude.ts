@@ -5,9 +5,22 @@ import { buildClaudeGateMjs, buildClaudeGateScript, writeGateScriptAtomic, type 
 import type { Tier1Backend, Tier1BuildArgvInput, Tier1Event } from "./types.js";
 
 export const CLAUDE_TOOLS = "Bash,Read,Write,Edit,NotebookEdit";
+export const CLAUDE_CLOSED_TOOLS = new Set(CLAUDE_TOOLS.split(","));
 export const CLAUDE_DISALLOWED = "WebFetch,WebSearch";
 export const CLAUDE_HOOK_MATCHER = "*";
 const CURL_MAX_TIME_SEC = 100;
+
+/**
+ * G4 env 白名单例外两键(09 §11;方案 D13,显式注入/覆盖,非凭据):
+ * DISABLE_AUTOUPDATER=1 防批中自更新改 digest(--setting-sources "" 使用户 autoUpdates=false 失效);
+ * SHELL=/bin/sh 防登录 shell profile 快照把 ~/.zshrc 导出变量带进 agent Bash。
+ * 恒不含 ANTHROPIC_* / CLAUDE_CODE_OAUTH_TOKEN(订阅只经 claude CLI 登录态)。
+ * consumers 归 C2 spawn 接线;本阶段只落常量。
+ */
+export const claudeEnvOverrides = Object.freeze({
+  DISABLE_AUTOUPDATER: "1",
+  SHELL: "/bin/sh"
+} as const);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -200,6 +213,8 @@ export function parseClaudeTier1Line(line: string): Tier1Event[] {
     const text = asString(parsed["result"]);
     if (subtype) res.subtype = subtype;
     if (numTurns !== undefined) res.numTurns = numTurns;
+    const totalCost = asNumber(parsed["total_cost_usd"]);
+    if (totalCost !== undefined) res.totalCostUsd = totalCost;
     if (parsed["usage"] !== undefined) res.usage = parsed["usage"];
     if (parsed["modelUsage"] !== undefined) res.modelUsage = parsed["modelUsage"];
     if (parsed["permission_denials"] !== undefined) res.permissionDenials = parsed["permission_denials"];
@@ -219,7 +234,7 @@ export function claudeBackend(): Tier1Backend {
   return {
     adapter: "claude_code",
     buildArgv: buildClaudeArgv,
-    provisionHooks(_cwd: string, gate: GatePaths) {
+    provisionHooks(_cwd: string, gate: GatePaths, hookTimeoutSec?: number) {
       mkdirSync(gate.dir, { recursive: true });
       const scriptPath = gate.claudeScriptPath;
       if (process.platform === "win32") {
@@ -227,7 +242,7 @@ export function claudeBackend(): Tier1Backend {
       } else {
         writeGateScriptAtomic(scriptPath, buildClaudeGateScript(gate.sockPath, gate.logPath));
       }
-      const settings = buildClaudeHooksSettings(scriptPath, 120);
+      const settings = buildClaudeHooksSettings(scriptPath, hookTimeoutSec ?? 120);
       return { extraArgs: ["--settings", settings], filesWritten: [scriptPath] };
     },
     parseLine: parseClaudeTier1Line,

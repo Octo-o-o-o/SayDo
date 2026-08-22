@@ -45,6 +45,11 @@
 :root {
   --brand-seal-fill: var(--seal);
   --brand-seal-wash: var(--seal-wash);
+  /* 横向滚动边缘提示阴影:随主题从文字色派生,无字面色 */
+  --scroll-hint: color-mix(in srgb, var(--text-primary) 26%, transparent);
+  /* 宽度阶梯:全站只有两级——阅读栏(聚焦连续内容)与整幅(容器 1120),
+     各区块只取其一,页面滚动时内容边缘不再来回跳 */
+  --w-read: 720px;
 }
 
 /* 夜账本:覆盖语义层(手动 dark 与跟随系统两处同构) */
@@ -146,7 +151,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   transition: background var(--duration-slow) var(--ease-out), color var(--duration-slow) var(--ease-out);
+  /* 短页面(support 等)页脚贴底 */
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
+body > main { flex: 1; }
 
 /* 英文站排版:正文走系统无衬线,标题走衬线展示面 */
 html[lang="en"] body {
@@ -155,6 +165,11 @@ html[lang="en"] body {
 html[lang="en"] h1, html[lang="en"] h2, html[lang="en"] h3, html[lang="en"] .display-font {
   font-family: "New York", ui-serif, Georgia, "Times New Roman", serif;
   letter-spacing: -0.015em;
+}
+/* 组合选择器优先级盖过了 .group-label 的 mono 组标签,补回来 */
+html[lang="en"] h3.group-label {
+  font-family: var(--font-mono);
+  letter-spacing: .14em;
 }
 
 /* 画布氛围:纸不发光,只有极弱的赭石/黛蓝渍 */
@@ -187,8 +202,13 @@ h1, h2, h3, h4 {
   color: var(--text-primary);
   margin: 0;
   letter-spacing: .01em;
+  /* 折行均衡,避免孤字;数字用齐线字形(S0/Gate 0 的 0 不似 o) */
+  text-wrap: balance;
+  font-variant-numeric: lining-figures;
 }
 p { margin: 0; }
+/* 末行孤字回吸(支持的浏览器生效,余者忽略) */
+p, li { text-wrap: pretty; }
 a { color: var(--active-ink); text-decoration: none; }
 a:hover { text-decoration: underline; text-underline-offset: 3px; }
 ul { margin: 0; padding-left: 1.25em; }
@@ -532,6 +552,7 @@ html[lang="en"] .hero-sub { font-size: var(--text-lg); max-width: 46ch; }
   font-size: var(--text-xs);
   letter-spacing: .1em;
   color: var(--text-muted);
+  text-wrap: pretty;
 }
 .strip-item svg { width: 14px; height: 14px; color: var(--brand-seal); }
 
@@ -560,11 +581,11 @@ html[lang="en"] .hero-sub { font-size: var(--text-lg); max-width: 46ch; }
 .card-body { font-size: var(--text-sm); color: var(--text-secondary); line-height: var(--leading-data); }
 
 /* ---------- 痛点 / 解法对照 ---------- */
+/* 整幅:与卡片网格同宽,不再 920 孤岛 */
 .contrast {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
-  max-width: 920px;
   margin-inline: auto;
 }
 .contrast-cell {
@@ -685,7 +706,8 @@ html[lang="en"] .hero-sub { font-size: var(--text-lg); max-width: 46ch; }
 .legend-item[data-tone="muted"] .swatch { background: var(--text-muted); }
 
 /* ---------- 工作流时间线 ---------- */
-.flow { position: relative; max-width: 660px; margin-inline: auto; }
+/* 阅读栏:聚焦型连续内容(时间线 / FAQ / 法律页)统一 720 */
+.flow { position: relative; max-width: var(--w-read); margin-inline: auto; }
 .flow::before {
   content: "";
   position: absolute;
@@ -714,8 +736,9 @@ html[lang="en"] .hero-sub { font-size: var(--text-lg); max-width: 46ch; }
   transition: border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out);
 }
 .flow-step:hover .flow-num { border-color: var(--text-muted); color: var(--text-primary); }
-.flow-step.is-active .flow-num { border-color: var(--active-ink); color: var(--active-ink); background: var(--active-ink-wash); }
-.flow-step.is-seal .flow-num { border-color: var(--brand-seal); color: var(--brand-seal); background: var(--brand-seal-wash); }
+/* 着色圆圈的 wash 是半透明色,竖线会透上来;叠一层页面实底压住 */
+.flow-step.is-active .flow-num { border-color: var(--active-ink); color: var(--active-ink); background: linear-gradient(var(--active-ink-wash), var(--active-ink-wash)) var(--bg-app); }
+.flow-step.is-seal .flow-num { border-color: var(--brand-seal); color: var(--brand-seal); background: linear-gradient(var(--brand-seal-wash), var(--brand-seal-wash)) var(--bg-app); }
 .flow-body { padding-top: 6px; }
 .flow-body h3 { font-size: var(--text-md); margin-bottom: var(--space-1); }
 .flow-body p { font-size: var(--text-sm); color: var(--text-secondary); line-height: var(--leading-data); }
@@ -726,7 +749,8 @@ html[lang="en"] .hero-sub { font-size: var(--text-lg); max-width: 46ch; }
 .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-4); }
 
 /* ---------- 产品现状 ---------- */
-.status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-4); }
+/* 四张卡:380 起保证桌面 2×2,不出现 3+1 单侧留白;min() 兜底防窄屏溢出 */
+.status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: var(--space-4); }
 .group-label {
   display: block;
   font-family: var(--font-mono);
@@ -782,12 +806,12 @@ html[lang="en"] .hero-sub { font-size: var(--text-lg); max-width: 46ch; }
 .badge-progress { background: var(--color-warning-wash); color: var(--color-warning); }
 
 /* ---------- 架构示意 ---------- */
+/* 整幅 */
 .arch {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   gap: var(--space-4);
   align-items: stretch;
-  max-width: 920px;
   margin-inline: auto;
 }
 .arch-node {
@@ -838,11 +862,11 @@ html[lang="en"] .hero-sub { font-size: var(--text-lg); max-width: 46ch; }
 .privacy-band p { color: var(--text-secondary); margin-bottom: var(--space-4); max-width: 62ch; }
 
 /* ---------- 平台下载 ---------- */
+/* 整幅 */
 .platform-groups {
   display: flex;
   flex-direction: column;
   gap: var(--space-7);
-  max-width: 980px;
   margin-inline: auto;
 }
 #start .group-label { text-align: center; }
@@ -868,7 +892,7 @@ html[lang="en"] .hero-sub { font-size: var(--text-lg); max-width: 46ch; }
 }
 a.platform:hover { text-decoration: none; transform: translateY(-2px); box-shadow: var(--shadow-card-hover); }
 .platform svg { width: 30px; height: 30px; color: var(--text-secondary); }
-.platform .name { font-size: var(--text-md); font-weight: 600; overflow-wrap: anywhere; }
+.platform .name { font-size: var(--text-md); font-weight: 600; overflow-wrap: break-word; }
 .platform .badge {
   white-space: normal;
   line-height: 1.45;
@@ -879,7 +903,8 @@ a.platform:hover { text-decoration: none; transform: translateY(-2px); box-shado
 .platform.is-open svg { color: var(--active-ink); }
 
 /* ---------- FAQ ---------- */
-.faq { display: grid; gap: var(--space-3); max-width: 780px; margin-inline: auto; }
+/* 阅读栏 */
+.faq { display: grid; gap: var(--space-3); max-width: var(--w-read); margin-inline: auto; }
 .faq-item {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -978,10 +1003,17 @@ a.platform:hover { text-decoration: none; transform: translateY(-2px); box-shado
   gap: var(--space-2) var(--space-4);
   justify-content: space-between;
 }
+.footer-meta a.icp-beian {
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.footer-meta a.icp-beian:hover { color: var(--text-primary); }
 
 /* ---------- legal 页面(privacy/terms/support) ---------- */
 .legal { padding: var(--space-7) 0 var(--space-8); }
-.legal .container { max-width: 780px; }
+/* 阅读栏 + 容器两侧 padding;与首页时间线/FAQ 同一根 720 阅读列 */
+.legal .container { max-width: calc(var(--w-read) + 2 * var(--space-5)); }
 .legal h1 { font-size: var(--text-2xl); margin-bottom: var(--space-2); }
 .legal .lede { font-size: var(--text-sm); color: var(--text-muted); margin-bottom: var(--space-5); }
 .legal h2 { font-size: var(--text-lg); margin: var(--space-6) 0 var(--space-2); }
@@ -999,9 +1031,11 @@ a.platform:hover { text-decoration: none; transform: translateY(-2px); box-shado
   padding: var(--space-2) var(--space-3);
   text-align: left;
   vertical-align: top;
-  overflow-wrap: anywhere;
+  /* 整词优先,只有放不下的长词才断 */
+  overflow-wrap: break-word;
 }
-.docs-body td code { word-break: break-all; }
+/* 首列是短标签(能力/项目),不许逐字竖排 */
+.legal th:first-child, .legal td:first-child { white-space: nowrap; }
 .legal th { background: var(--surface-ink-wash); color: var(--text-primary); font-weight: 600; }
 .legal ul { margin: var(--space-2) 0; color: var(--text-secondary); }
 
@@ -1067,15 +1101,29 @@ a.platform:hover { text-decoration: none; transform: translateY(-2px); box-shado
 
   .contrast { grid-template-columns: 1fr; }
   .cta-band { padding: var(--space-6) var(--space-4); }
-  .cta-band h2 { font-size: var(--text-xl); }
-  .cta-band::before { width: 40px; height: 40px; top: 12px; right: 14px; }
-  .cta-band::after { width: 30px; height: 30px; top: 17px; right: 19px; }
+  .cta-band h2 { font-size: var(--text-xl); padding-inline: var(--space-7); }
+  /* 印章装饰缩到角落,不再压标题字 */
+  .cta-band::before { width: 30px; height: 30px; top: 10px; right: 12px; }
+  .cta-band::after { width: 22px; height: 22px; top: 14px; right: 16px; }
+  /* CTA 按钮纵向等宽堆叠,不参差 */
+  .cta-band .hero-actions { flex-direction: column; }
+  .cta-band .hero-actions .btn { width: 100%; }
   .footer-grid { grid-template-columns: 1fr; gap: var(--space-5); }
+  .footer-col ul { gap: var(--space-1); }
   .lang-switch a { padding: 5px 9px; }
   .brand-lockup .brand-en { display: none; }
   .hero-aside { flex-direction: column; gap: var(--space-1); }
   .hero-aside .dot-sep { display: none; }
   .platforms { grid-template-columns: minmax(0, 1fr); }
+  /* 信任条:单列居中,图标贴首行不孤儿化 */
+  .strip .container { flex-direction: column; align-items: center; gap: var(--space-3); }
+  .strip-item { justify-content: center; text-align: center; align-items: flex-start; }
+  .strip-item svg { margin-top: 3px; }
+  /* 隐私卡:正文移动端占满整行 */
+  .privacy-band .pb-body { flex-basis: 100%; }
+  .privacy-band p { max-width: none; }
+  /* 状态卡:标题一行、徽章一行,位置不再随标题长度漂移 */
+  .status-card .sc-top { flex-direction: column; align-items: flex-start; gap: var(--space-2); }
   .btn {
     white-space: normal;
     height: auto;
@@ -1100,7 +1148,8 @@ a.platform:hover { text-decoration: none; transform: translateY(-2px); box-shado
 html[lang="en"] #start .section-lead { max-width: 58ch; }
 
 /* ---------- Docs 页(长文 + 粘性目录) ---------- */
-.docs-hero { padding: var(--space-7) 0 var(--space-5); }
+/* hero 与 container 同元素:只设块向 padding,保留 container 的水平内边距 */
+.docs-hero { padding-block: var(--space-7) var(--space-5); }
 .docs-hero h1 { font-size: var(--text-3xl); margin-bottom: var(--space-3); }
 .docs-hero .docs-lede { font-size: var(--text-lg); color: var(--text-secondary); max-width: 56ch; }
 
@@ -1108,7 +1157,7 @@ html[lang="en"] #start .section-lead { max-width: 58ch; }
   display: grid;
   grid-template-columns: 232px minmax(0, 1fr);
   gap: var(--space-7);
-  padding-bottom: var(--space-8);
+  padding-bottom: var(--space-6);
   min-width: 0;
 }
 .docs-toc {
@@ -1164,7 +1213,9 @@ html[lang="en"] #start .section-lead { max-width: 58ch; }
 }
 .docs-toc-mobile { display: none; }
 
-.docs-body { min-width: 0; padding-bottom: var(--space-7); overflow-x: auto; }
+/* 宽内容各有滚动容器(.table-scroll / pre),正文列不再整体 overflow,
+   避免整列成为巨型合成层(超长页截图/低端 GPU 都会出问题) */
+.docs-body { min-width: 0; padding-bottom: var(--space-5); }
 .docs-body h2 {
   font-size: var(--text-2xl);
   margin: var(--space-8) 0 var(--space-4);
@@ -1190,8 +1241,12 @@ html[lang="en"] #start .section-lead { max-width: 58ch; }
   text-align: left;
   vertical-align: top;
   color: var(--text-secondary);
-  overflow-wrap: anywhere;
+  /* 整词优先(only 超长词才断);列宽下限防窄列被压成逐字竖排 */
+  overflow-wrap: break-word;
+  min-width: 6em;
 }
+/* 首列多是短标签(步骤/槽位/层),再给一档下限避免贴边折行 */
+.docs-body th:first-child, .docs-body td:first-child { min-width: 8em; }
 .docs-body td code { word-break: break-all; }
 .docs-body th { background: var(--surface-ink-wash); color: var(--text-primary); font-weight: 600; }
 .docs-body code {
@@ -1200,7 +1255,10 @@ html[lang="en"] #start .section-lead { max-width: 58ch; }
   background: var(--surface-ink-wash);
   padding: 1px 5px;
   border-radius: var(--radius-2xs);
-  overflow-wrap: anywhere;
+  /* 标识符不拦腰断;必须跨行时 chip 底完整克隆 */
+  overflow-wrap: break-word;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 .docs-body pre {
   background: var(--surface);
@@ -1209,6 +1267,9 @@ html[lang="en"] #start .section-lead { max-width: 58ch; }
   padding: var(--space-4);
   overflow-x: auto;
   margin: var(--space-3) 0 var(--space-4);
+  /* 命令/配置类长行软换行,不再无声裁掉行尾 */
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
 .docs-body pre code {
   background: none;
@@ -1216,10 +1277,52 @@ html[lang="en"] #start .section-lead { max-width: 58ch; }
   font-size: var(--text-sm);
   line-height: 1.65;
   display: block;
+  white-space: inherit;
+  overflow-wrap: inherit;
+}
+/* ASCII 图(架构图/状态机):保持等宽对齐不换行,横向滚动 + 两侧渐隐阴影提示 */
+.docs-body pre.fig {
   white-space: pre;
   overflow-wrap: normal;
+  background-image:
+    linear-gradient(to right, var(--surface) 25%, transparent),
+    linear-gradient(to left, var(--surface) 25%, transparent),
+    radial-gradient(farthest-side at 0 50%, var(--scroll-hint), transparent),
+    radial-gradient(farthest-side at 100% 50%, var(--scroll-hint), transparent);
+  background-position: left, right, left, right;
+  background-repeat: no-repeat;
+  background-size: 28px 100%, 28px 100%, 10px 100%, 10px 100%;
+  background-attachment: local, local, scroll, scroll;
 }
+.docs-body pre.fig code { white-space: pre; overflow-wrap: normal; font-size: var(--text-xs); }
+
+/* 标题里的数字术语(S0–S3 / Gate 0 / M0–M3):展示衬线的旧式 0 似 o,换等宽字形 */
+.hnum { font-family: var(--font-mono); font-size: .86em; letter-spacing: 0; }
+
+/* 表格横向滚动容器(HTML 中 table 外包一层):窄屏保持整词,超出横滑 */
+.table-scroll {
+  overflow-x: auto;
+  margin: var(--space-3) 0 var(--space-4);
+  background-image:
+    linear-gradient(to right, var(--bg-app) 25%, transparent),
+    linear-gradient(to left, var(--bg-app) 25%, transparent),
+    radial-gradient(farthest-side at 0 50%, var(--scroll-hint), transparent),
+    radial-gradient(farthest-side at 100% 50%, var(--scroll-hint), transparent);
+  background-position: left, right, left, right;
+  background-repeat: no-repeat;
+  background-size: 28px 100%, 28px 100%, 10px 100%, 10px 100%;
+  background-attachment: local, local, scroll, scroll;
+}
+.table-scroll > table { margin: 0; }
 .docs-body h2 .badge, .docs-body h3 .badge { vertical-align: 2px; margin-left: var(--space-2); }
+/* 标题内徽章后的裸说明词(如「· 机械管道」):降格为小注,不与标题同权重 */
+.docs-body h3 .h3-note {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+}
 .docs-note {
   border-left: 3px solid var(--active-ink);
   background: var(--active-ink-wash);
@@ -1246,14 +1349,33 @@ html[lang="en"] #start .section-lead { max-width: 58ch; }
     font-weight: 500;
     color: var(--text-primary);
     list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
   }
   .docs-toc-mobile summary::-webkit-details-marker { display: none; }
+  /* 默认三角被隐藏,补一个 chevron 表明可展开 */
+  .docs-toc-mobile summary::after {
+    content: "";
+    flex: none;
+    width: 8px; height: 8px;
+    border-right: 2px solid var(--text-muted);
+    border-bottom: 2px solid var(--text-muted);
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform var(--duration-base) var(--ease-out);
+  }
+  .docs-toc-mobile[open] summary::after { transform: rotate(225deg) translateY(-2px); }
   .docs-toc-mobile nav { margin-top: var(--space-3); }
 }
 
 @media (max-width: 640px) {
-  .docs-hero { padding: var(--space-6) 0 var(--space-4); }
+  .docs-hero { padding-block: var(--space-6) var(--space-4); }
   .docs-hero h1 { font-size: var(--text-2xl); }
   .docs-body h2 { font-size: var(--text-xl); }
   .docs-body table { font-size: var(--text-xs); }
+  /* 窄屏表格给足列宽底线,超出走 .table-scroll 横滑,不再逐字竖排 */
+  .docs-body .table-scroll > table { min-width: 600px; }
+  /* ASCII 图缩小字号,尽量多入屏;剩余部分横滑 */
+  .docs-body pre.fig, .docs-body pre.fig code { font-size: 11px; }
 }
