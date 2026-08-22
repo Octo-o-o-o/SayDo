@@ -73,6 +73,26 @@ let child = null;
 let draining = false;
 function otherGroupPids() {
   if (process.platform === "win32") return [];
+  // Linux:直接扫 /proc。最小部署镜像(node:*-slim 等)常无 procps,
+  // pgrep/ps 双缺时下面的回退会返回空表 => 后代静默逃逸收口。/proc 无额外依赖。
+  if (process.platform === "linux") {
+    try {
+      const fsmod = require("node:fs");
+      const out = [];
+      for (const name of fsmod.readdirSync("/proc")) {
+        if (!/^[0-9]+$/.test(name)) continue;
+        const pid = Number(name);
+        if (pid <= 1 || pid === process.pid) continue;
+        try {
+          const stat = fsmod.readFileSync("/proc/" + name + "/stat", "utf8");
+          const close = stat.lastIndexOf(")");
+          if (close < 0) continue;
+          if (Number(stat.slice(close + 2).split(" ")[2]) === process.pid) out.push(pid);
+        } catch {}
+      }
+      return out;
+    } catch { return []; }
+  }
   try {
     // 优先 pgrep -g（不依赖 setuid ps；macOS sandbox 常禁 /bin/ps）。
     const probe = spawnSync("pgrep", ["-g", String(process.pid)], {
