@@ -126,6 +126,7 @@
 | W-Win 原生 Windows P0 对齐(公开快照线 `feat/windows-alignment`) | 08-21 ~ 08-22 | 公开线 `be82f98`→`d427716`,merge `721385c`;内部线移植 `1482510`→`3279c0f` | `windows-alignment.md` | R89/R90(原以 R80/R81 写就,撞号顺延,见 §3) | findings 88 x4(Windows 线,与记录对账同号) |
 | POSIX 组长锚 + cmd/bat fail-closed 门 + Linux 后代回收去 procps 化 | 08-22 | 公开线 `175dfe0`→`4627107`,merge `7838479`;内部线 `316f031`→`5a73420` | `windows-alignment.md`(同批追加) | R91 | 无独立评审(承 88 triage) |
 | w54b-wiring(W5.4-b C1 配置自检 + C2 executor 接线;**C3 未做,本批未收口**) | 08-21 ~ 08-22 | 代码 `4c4bf96`,merge `4d2824e` | `w54b-batch.md` | R92 | 待批末零上下文评审 |
+| 三轮评审收口 + 全量部署 + 分支清理 | 08-22 | `6d98a6e`(公开快照 `2bb9101`;常驻同 SHA) | `w54b-batch.md` §7-§9 + `2026-08-22-mobile-shells-device-build.md` | R93 | Codex 90/91/92 三轮(均 No-Go,逐条回修) |
 | 一周文档 x 实施双向对账 + 全分支合并 + 评审 90 回修 | 08-22 | `a26d5bf`(对账回修)/ `058090d`(win32 门四路)/ `3bf3d10`(门路径单源)+ 评审 90 回修批 | `docs/review/2026-08-22-week-crosscheck.md` + `w54b-batch.md` §7 | R92 | Codex 90(裁决 No-Go;A 级八条 + B 级代码项已回修) |
 | 备份 workspace 身份锚去 st_dev(部署门前置清偿) | 08-22 | `d406387`(+ HANDOFF 回写 `fb16fb8`) | 见 `docs/review/2026-08-22-week-crosscheck.md` F17 | R92 | 随评审 90/91 轮 |
 | 三端移动壳真机构建与装机 | 08-22 | `82c77e3` | `2026-08-22-mobile-shells-device-build.md` | R92 | — |

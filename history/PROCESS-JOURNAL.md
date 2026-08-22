@@ -1999,3 +1999,40 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
 ### 结论
 - 所有本地分支与 worktree 已归并到 main:`feat/windows-alignment` 与 `fix/ownership-anchor-and-cmd-escape` 是公开快照线,内容经 `sync/*` 已在 main 内(`git diff` 两两为空),五个 `saydo-batch-*` clone 全 clean 且 HEAD 在 main 祖先链上。
 - **W5.4-b 未收口**(C3 未做);合并后的门面未经零上下文对抗评审,是收口前必做项。
+
+## R93 · 三轮 Codex 交叉评审收口 + 全量部署 + 分支清理(2026-08-22)
+
+### 输入
+- R92 的合并与对账成果;owner 四项裁决(部署范围含常驻 / 官网口径照发 / 安卓现场插设备 / 软著只留私有归档)。
+- 收口期 owner 再两项裁决:门脚本圈根「现在就真对齐」并解除红线;评审轮次到此为止继续部署。
+
+### 行动
+1. 三轮 Codex 只读交叉评审(`gpt-5.6-sol` max),全部 No-Go,逐条取证后回修:
+   - 评审 90:8A/14B/2C/2O,全量回修 + 19 回归锚;
+   - 评审 91:5 修好 / 6 仍破 / **1 条我引入的退化**(`finalizeFailure` 早退漏 `resolveClaim`),二次回修;
+   - 评审 92:1 修好 / 5 仍破 / **1 条我引入的 A 级**(workspace 身份锚静默双改契约),三次回修 + 回写 09。
+2. 按 owner 裁决真对齐门脚本圈根:脚本层只留与圈根无关的越界向量,圈内外归 daemon 单点裁决;
+   两端统一按路径分量判(顺带修掉 POSIX `*..*` 误拒 `foo..bar`);09 §11 与 ADR-003 §3 同批回写。
+3. 部署:推 origin(`6d98a6e`)→ 公开快照 `2bb9101`(软著材料按裁决剔除,脚本用临时 index 裁树并断言剔除成功)
+   → Cloudflare Pages 两站 → `just daemon deploy 6d98a6e`。
+4. 复验:官网四路 200 且线上内容核验到位;`/readyz` ok、voiceReady true、两进程 loaded SHA 一致;
+   **跑 `just backup` 复验 F17 修复**——出快照 `20260822T142430Z`,manifest 含 `project_foundation`/`project_knowledge`
+   (正是此前因 `workspace_identity_changed` 取不到的两个源),距上次成功 `20260806` 的 16 天空档闭合。
+5. 三端真机:iPhone Air 与安卓平板(TB350XC)构建 + 装机成功,安卓另验 `topResumedActivity` 在前台;
+   鸿蒙设备中途掉线且 HAP 未签名,按 owner 裁决只出包不装机。
+6. 清理:五个本地分支全部核验后删除(sync/* 与 batch/* 提交可达 main;公开线两分支树与 sync/* 逐字一致
+   且已在 `public/main` 祖先链),worktree 只剩主树,五个施工 clone 全 clean 且 HEAD 在 main 祖先链。
+
+### 产出
+- 末码 `6d98a6eeec68b0cfe940c212dd80061f05288426`;公开快照 `2bb9101`;常驻 runtime 同 SHA
+- 报告 `docs/review/2026-08-22-week-crosscheck.md`;证据 `e2e/evidence/w54b-batch.md` §7-§9、
+  `e2e/evidence/2026-08-22-mobile-shells-device-build.md`;findings 90/91/92 与 prompts 90/91/92 入库
+- 门禁:`just ci` 双矩阵 exit 0;daemon **1791 passed / 5 skipped**(本轮起点 1764)
+
+### 结论
+- **W5.4-b 仍未收口**:C3(console 与话术)未做、C1 的一发一收 init 断言未做、真 Claude hook 冒烟未跑。
+  部署不改判这三条。
+- **我在三轮里犯了五个错**,全部记在 `w54b-batch.md` §9 末:引入可达退化、删预筛方向错后回滚、
+  把错误行为写进测试固化、静默双改契约、台账里写过一条不实陈述。
+- 升常驻豁免了 T19 x tailnet 与备份两条前置(owner 明示);备份那条本轮已修并现场复验,T19 仍未动。
+  本次升常驻再次前移发布锁,四场基线需 owner 重新声明。

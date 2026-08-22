@@ -147,3 +147,23 @@ git merge-base --is-ancestor 4c4bf96 5a73420; echo $?  # -> 1
    (两端按分量判 + 圈内外归 daemon 单点)。
 2. **未锁住的测试**:B-1(bind 期望值)/ B-2(顶层兜底行为)/ C-1(win32 ACL)缺行为与 ACL 回归,需 Windows 真机。
 3. **W5.4-b 仍未收口**:C3 未做 + C1 的 init 断言未做 + 评审 90 欠账三件。
+
+## 10. 部署与清理实测(本会话真实命令)
+
+| 项 | 结果 |
+|---|---|
+| 推私有归档 origin | [ok] `afd31b4..6d98a6e`(其后 `6d98a6e` 再推一次) |
+| 公开快照 | [ok] `7838479..2bb9101`;`[ok] 公开树已剔除: artifacts/release/copyright`;`git ls-tree -r public/main` 对该路径计数 = 0 |
+| 官网主站 | [ok] `wrangler pages deploy` Production/main;`https://d16c9509.saydo-3xb.pages.dev` |
+| link 落地页 | [ok] `https://0505d9ad.saydo-link.pages.dev` |
+| 生产域名 | [ok] 四路均 200(`/`、`/docs/`、`/en/`、link 站) |
+| 线上内容核验 | [ok] ICP 号在主站与 link 站各命中 1;首屏平台句与 Docs FAQ 均为本轮版本 |
+| 常驻 runtime | [ok] `just daemon deploy 6d98a6e` exit 0;`/readyz` `ok:true`、`voiceReady:true`、`sourceRevision=6d98a6e…`;daemon 与 pipeline loaded SHA 一致 |
+| **F17 备份修复现场复验** | [ok] `just backup` exit 0 出快照 `20260822T142430Z`,manifest `completed:true`,含 `project_foundation`(4558B)/ `project_knowledge`(129066B)——正是此前取不到的两个源。距上次成功 `20260806T013953Z` 的 16 天空档闭合 |
+| 局域网可达 | [ok] `http://192.168.31.132:47100/` 返回 200(localhost 走 308 归一,符合 rpId 绑定口径) |
+| 三端真机 | [ok] iPhone Air 装机;[ok] 安卓 TB350XC 装机 + `topResumedActivity` 在前台;[warn] 鸿蒙设备掉线且 HAP 未签名,按裁决只出包 |
+| 分支清理 | [ok] 五个分支删除前逐条核验:`sync/*` 与 `batch/*` 提交可达 main;公开线两分支树与 `sync/*` **逐字一致**且已在 `public/main` 祖先链。删后只剩 `main` |
+| worktree | [ok] 只剩主树;五个 `saydo-batch-*` clone 全 clean 且 HEAD 在 main 祖先链 |
+
+**部署不改判的三件**:W5.4-b 的 C3、C1 的 init 断言、真 Claude hook 冒烟仍未做;
+升常驻豁免的 T19 x tailnet 前置仍未动(备份那条已修并现场复验);本次升常驻再次前移发布锁,四场基线需 owner 重新声明。
