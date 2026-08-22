@@ -67,3 +67,46 @@ scripts:migration FIFO 在 win32 skip。
 ## 5. 评审
 
 Phase 末 code-review subagent:[Review](c550279c-445b-41a1-ae41-6c310a535131)。A 级两条已回修(Job missing=已收口;Job 句柄只 close 一次)。Important:koffi external、通知诚实失败、`dev.mjs` 直 spawn node/corepack、darwin birth 去掉 `pgrep1`/`token1` 写入,均已吸收。
+
+## 6. 跨平台交叉验证与回修(2026-08-22 补记)
+
+上文第 2 节的数字全部来自 **Windows 本机**。合入 public 仓时做了 macOS/Linux 交叉验证,
+发现本批在 macOS 上有 **40 条失败**(daemon 39 + platform 1),而同环境 `main` 基线 114 passed 全绿。
+
+> 判别方法上有一个坑值得记:第一次把对照 worktree 放在 `/private/tmp`(不在 owner home 下),
+> 基线与分支**同为 95 failed**,看起来"无回归";挪到 HOME 下重跑,基线才显出全绿、回归才暴露。
+> 环境噪声会同时压红两边,从而掩盖真实回归——对照必须在正确环境下做。
+
+### 6.1 四处 macOS 回归(`640e982` 回修)
+
+| 位置 | 问题 | 为何 Windows 不暴露 |
+|---|---|---|
+| `tier1-executor.test.ts` | `OWNER_TEST_ROOT` 由 `process.cwd()` 改 `tmpdir()`,POSIX `$TMPDIR` 不在 `$HOME` 下 ⇒ `workspace_outside_owner_home`,38 条全挂 | `%TEMP%` 恰在 `USERPROFILE` 子树内 |
+| `restart-policy.test.ts` | 后代加 `detached:true` 脱离组长进程组,A4「组长死后组内仍有存活成员」的断言前提消失 | win32 无进程组,本就该 detached |
+| `tier1-executor.test.ts` | git clean filter 夹具删了 shebang,POSIX 仍按脚本路径交 git ⇒ 被当 sh 跑必失败(同批 `fakePnpm` 为 POSIX 保留了 shebang,此处漏了) | win32 走 `"node" "filter"` |
+| `platform/test/fs.test.ts` | `assertRealDirectory` 要求 `lexical === realpath`,macOS `$TMPDIR` 经 `/var -> /private/var` 符号链接 | win32 tmpdir 无符号链接 |
+
+四处在 win32 分支上与本批原写法**逐字符等价**,Windows 侧行为不变。教训已写回 ADR-003 §8。
+
+### 6.2 后续加固(`175dfe0`、`08622fe`)
+
+- [ok] `readOwnedAgentProcessStart` 在 POSIX 补回组长 + 命令行锚(新增 `processAnchor`;
+  linux 走 `/proc`,darwin 走 `ps`)。此前统一到 birth 后,`kill(-pid)` 杀整组只剩秒级时间戳兜底。
+- [ok] `.cmd`/`.bat` 的 `shell:true` 参数加 fail-closed 门(Node 对 Windows shell 是零转义 join)。
+- [ok] wrapper 语法自检(`node --check`):wrapper 经 `node -e` 执行,语法错不会在 typecheck/lint 暴露,
+  只会让每个受管子进程静默 `process_exit`——本轮开发中实撞一次。
+- [ok] Linux wrapper 后代回收改走 `/proc`:最小镜像无 procps 时原实现返回空表 ⇒ 后代逃逸收口。
+  docker `node:22-slim` 实测:改前 `[]`、改后可回收(探针代码直接从 `runtimeChildWrapperSource()` 抽取)。
+
+### 6.3 三平台门禁
+
+| 平台 | 结果 |
+|---|---|
+| macOS | [ok] typecheck / lint / test 全绿;daemon 1680 passed / 5 skipped,platform 12 passed |
+| Linux | [ok] GitHub Actions `ubuntu-latest` node + python 全绿(本仓 CI 首次绿,见 `d427716`) |
+| Windows | [ok] typecheck / lint 绿;全量以第 2 节本机数字 + win32 分支逐字符等价性论证覆盖 |
+
+> [warn] Windows 全量未经本会话复跑:可用的 SSH 通道登录的是 `WangYixiao` 账户且**提权**,
+> 而项目在 `satan` 目录下——提权会话新建文件 owner 为 `BUILTIN\Administrators`,
+> `assertOwnedByCurrentUser` 会在 `test/setup.ts` 阶段即拒,测试套件根本进不去。
+> 这同时说明一件产品级事实:**以管理员身份运行 SayDo 会被状态根 owner 校验挡下**(设计如此)。

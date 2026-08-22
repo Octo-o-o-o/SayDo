@@ -132,6 +132,17 @@ quoted span 的闭合内容必须**整段**是路径(以 `/`、`~/` 或盘符绝
 
 - 禁止新测试硬编码 `/Users/`、`/tmp/`、`chmod 0o755` 当唯一断言。
 - 用 `os.tmpdir()` / `homedir()` / `restrictOwnerOnly`(测试注入 stub,禁止在 `packages/daemon/test/setup.ts` 对 `%TEMP%` 跑生产 ACL)。
+- 🔴 **`os.tmpdir()` 不是平台中立的**(2026-08-22 实撞,4 处回归):
+  - win32 `%TEMP%` 在 `USERPROFILE` **子树内**,POSIX `$TMPDIR` **不在** `$HOME` 下。
+    受 workspace 政策(`workspace_outside_owner_home`)约束的 fixture 根,在 win32 用 tmpdir 恰好成立、
+    在 POSIX 必挂 —— 这类 fixture 必须按平台分叉,不得只按一个平台的表现选写法。
+  - macOS `$TMPDIR` 自身经 `/var -> /private/var` 符号链接,`assertRealDirectory`
+    (要求 `lexical === realpath`)会直接拒;需要实体路径时取 `realpathSync(tmpdir())`。
+  - 反过来,`process.cwd()`(仓内)在两个平台都位于 owner home 子树内。
+- 🔴 **只在一个 OS 上跑绿不构成"通过"**:平台分支改动必须在所有目标 OS 上跑对应门禁,
+  或对未跑的 OS 给出**逐字符等价性**论证(说明该分支在此平台的求值结果与改动前一致)。
+  同理,回归对照必须在**正确的环境**下做——环境噪声(如把 worktree 放在 owner home 之外)
+  会让基线与分支同时变红,从而掩盖真实回归。
 - unix-socket 104 字节限制仅 darwin;`tier1-gate-socket.test.ts` 在 win32 `skipIf`。
 - Windows 门测:环回+HMAC + `gate-cursor.mjs`(不得测默认 DACL Named Pipe)。
 - `process.kill(-pid)` 测试用平台 `killOwnedTree`。
@@ -144,3 +155,39 @@ quoted span 的闭合内容必须**整段**是路径(以 `/`、`~/` 或盘符绝
 - `alive1:pid` / `pgrep` 当生产 birth。
 - 无身份 `taskkill /T` 当 `killOwnedTree`。
 - 为 Windows 引入 Electron。
+
+## 10. Linux(T3「手机 + 服务端」的执行端)
+
+03 §拓扑的 T3 把执行端放到服务器,Linux 因此不是"顺带支持",而是该形态的**唯一**执行端 OS。
+本节记录 2026-08-22 的实证结论与未决口径;实施清单见 `docs/plan/LINUX-ALIGNMENT.md`。
+
+### 10.1 已成立(有本会话实证)
+
+| 面 | Linux 实现 | 证据 |
+|---|---|---|
+| birth identity | `/proc/<pid>/stat` starttime(ticks)+ pid | §2 已定;`linuxBirthFromProc` |
+| 进程组锚 | `/proc/<pid>/{stat,cmdline}` 取 pgrp 与命令行 | `processAnchor`;**不依赖 procps** |
+| 进程树回收 | POSIX 进程组 + `kill(-pid)`(系统调用) | 无外部命令依赖 |
+| wrapper 后代发现 | 扫 `/proc` 的 pgrp,不用 pgrep/ps | docker `node:22-slim` 实测:改前 `[]`(逃逸)、改后可回收 |
+| 审批门 | unix socket(`sun_path` 108 字节,比 darwin 104 宽松) | CI ubuntu 跑 `tier1-gate-socket.test.ts` 绿 |
+| 全量门禁 | node + python 两 job | GitHub Actions `ubuntu-latest` 全绿 |
+| 音频设备 | **不需要**。pipeline 经 `/ws/voice` 收音频帧,ASR/TTS 走云 API | `hub_client.py`;无 LocalAudio transport |
+
+### 10.2 缺口(按对 T3 的阻断程度)
+
+1. **常驻(P0 阻断)**:`launchd/cli.ts` 的 install/start/stop/status/logs/deploy 全部绑 `launchctl` +
+   `~/Library/LaunchAgents`。Linux 需 systemd **user** unit(`systemctl --user` + `loginctl enable-linger`
+   才能在无登录会话时常驻),或显式选择 system unit。**不得**用 nohup/screen 冒充常驻。
+2. **`gate.sh` 的外部依赖(P1)**:注入给 agent 的 hook 用 `jq`(25 处)+ `curl --unix-socket` + `#!/bin/bash`。
+   docker `node:22-slim` 实测三者**全缺**。两条路:部署文档声明 apt 安装,或按 Windows 的做法把 POSIX 门
+   也改成 Node 单文件(`http.request({ socketPath })` 原生支持 unix socket,可去掉 jq/curl/bash)。后者更符合
+   §7 "bash 门禁移植为 Node 单文件"的既定方向。
+3. **`git` 缺失(P1)**:生产代码 14 处调 `git`,最小镜像不带。属部署前置,必须在文档声明。
+4. **降级面(P2,云场景可接受)**:桌面通知已诚实返回 false 并降 ntfy(云上本就该如此);
+   `openExternal` 走 `xdg-open`(无桌面时失败);编辑器探测仅 darwin;电源断言 no-op。
+
+### 10.3 口径
+
+- Linux 的 birth/anchor **一律走 `/proc`**,禁止回退 `ps`/`pgrep` 当生产路径(最小镜像常无 procps)。
+- 判定"Linux 可用"必须在**最小镜像**(如 `node:*-slim`)而非 `ubuntu-latest` runner 上验证依赖面:
+  后者预装了 jq/curl/git/procps,会把真实缺口全部掩盖。
