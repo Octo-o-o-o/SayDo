@@ -26,7 +26,7 @@ async function main(): Promise<void> {
       const token = readFileSync(join(options.home, ".cap-token"), "utf8").trim();
       await openExternal(consoleUrl(options.port, token));
     }
-    await holdAttached(probe);
+    await holdAttached(probe, options.home);
     return;
   }
   await runOwned({ ...options, paths: distributionPaths() });

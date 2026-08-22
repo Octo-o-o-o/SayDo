@@ -18,6 +18,12 @@ const nullAudit: AuditSink = { record: () => ({ id: "aud_x" }) };
 const TS = () => new Date("2026-07-24T00:00:00Z");
 const OWNER_TEST_ROOT = mkdtempSync(join(process.cwd(), ".saydo-tools-"));
 
+function editorFileUrl(editor: "cursor" | "vscode", rel: string, line?: string): string {
+  const abs = `${OWNER_TEST_ROOT.replace(/\/+$/u, "")}/${rel}`;
+  const suffix = line ? `:${line}` : "";
+  return `${editor}://file${abs.startsWith("/") ? "" : "/"}${abs}${suffix}`;
+}
+
 let db: Db;
 let tools: BrainTools;
 
@@ -188,7 +194,7 @@ describe("openOnScreen 编辑器深链(W5a 3.2;09 §13 签名不动,纯实现扩
     const tid = seedTaskWithWorkspace();
     const r = t.openOnScreen({ taskId: tid, what: "file", ref: "src/app.ts:42" });
     if (!("url" in r)) throw new Error();
-    expect(r.url).toBe(`cursor://file${OWNER_TEST_ROOT}/src/app.ts:42`);
+    expect(r.url).toBe(editorFileUrl("cursor", "src/app.ts", "42"));
     expect(opened).toEqual([r.url]);
   });
 
@@ -198,13 +204,13 @@ describe("openOnScreen 编辑器深链(W5a 3.2;09 §13 签名不动,纯实现扩
     const t1 = new BrainTools({ db, audit: nullAudit, detectEditor: () => "vscode", openUrl: (u) => opened.push(u), now: TS });
     const r1 = t1.openOnScreen({ taskId: tid, what: "file", ref: "README.md" });
     if (!("url" in r1)) throw new Error();
-    expect(r1.url).toBe(`vscode://file${OWNER_TEST_ROOT}/README.md`);
+    expect(r1.url).toBe(editorFileUrl("vscode", "README.md"));
 
     const t2 = new BrainTools({ db, audit: nullAudit, detectEditor: () => null, openUrl: (u) => opened.push(u), now: TS });
     const r2 = t2.openOnScreen({ taskId: tid, what: "file", ref: "README.md" });
     if (!("url" in r2)) throw new Error();
     expect(r2.url).toContain("/#/p/_/task/");
-    expect(opened).toEqual([`vscode://file${OWNER_TEST_ROOT}/README.md`]); // 回落不 open
+    expect(opened).toEqual([editorFileUrl("vscode", "README.md")]); // 回落不 open
   });
 
   it("路径纪律:绝对路径/../~ 越界 ref 回落 review URL(不给深链越界面);任务无工作区同回落", () => {

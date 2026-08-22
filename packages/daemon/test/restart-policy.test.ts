@@ -1,9 +1,17 @@
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  assignPidToJob,
+  closeNamedJob,
+  createNamedJob,
+  nativeSync,
+  type NamedJob
+} from "@saydo/platform";
 import type { AuditEvent, AuditSink } from "../src/obs/audit.js";
 import { openDb } from "../src/storage/db.js";
 import {
@@ -15,11 +23,17 @@ import {
 
 const spawned = new Set<number>();
 const tempDirs = new Set<string>();
+const jobs = new Set<NamedJob>();
 
 afterEach(() => {
+  for (const job of jobs) {
+    try { closeNamedJob(job); } catch { /* 已关 */ }
+  }
+  jobs.clear();
   for (const pid of spawned) {
     try {
-      process.kill(-pid, "SIGKILL");
+      if (process.platform === "win32") process.kill(pid);
+      else process.kill(-pid, "SIGKILL");
     } catch {
       // 测试目标已退出。
     }
@@ -28,6 +42,15 @@ afterEach(() => {
   for (const dir of tempDirs) rmSync(dir, { recursive: true, force: true });
   tempDirs.clear();
 });
+
+function attachJob(pid: number): NamedJob | undefined {
+  if (process.platform !== "win32") return undefined;
+  nativeSync();
+  const job = createNamedJob(`Local\\SayDoTest-${randomUUID()}`);
+  assignPidToJob(job, pid);
+  jobs.add(job);
+  return job;
+}
 
 function auditCollector(): { events: AuditEvent[]; sink: AuditSink } {
   const events: AuditEvent[] = [];
@@ -60,6 +83,7 @@ describe("Tier1 executor-disabled restart policy", () => {
     const repo = realpathSync(mkdtempSync(join(realpathSync(process.cwd()), ".saydo-restart-repo-")));
     tempDirs.add(repo);
     const db = openDb(join(home, "saydo.db"));
+    try {
     const now = "2026-08-12T00:00:00.000Z";
     const identity = statSync(repo, { bigint: true });
     db.prepare(
@@ -88,13 +112,22 @@ describe("Tier1 executor-disabled restart policy", () => {
     const childPid = child.pid;
     spawned.add(childPid);
     await once(child, "spawn");
+    const job = attachJob(childPid);
     const runDir = join(home, "tier1", "runs", "run_owned");
     mkdirSync(runDir, { recursive: true });
     const processStart = readOwnedAgentProcessStart(childPid, process.execPath);
     if (!processStart) throw new Error("无法读取测试子进程 identity");
     writeFileSync(
       join(runDir, "agent-owner.json"),
-      JSON.stringify({ version: 1, runId: "run_owned", pid: childPid, binary: process.execPath, worktree, processStart })
+      JSON.stringify({
+        version: 1,
+        runId: "run_owned",
+        pid: childPid,
+        binary: process.execPath,
+        worktree,
+        processStart,
+        ...(job ? { jobName: job.name } : {})
+      })
     );
     const audit = auditCollector();
     const childClosed = once(child, "close");
@@ -124,11 +157,20 @@ describe("Tier1 executor-disabled restart policy", () => {
     const child2Pid = child2.pid;
     spawned.add(child2Pid);
     await once(child2, "spawn");
+    const job2 = attachJob(child2Pid);
     const processStart2 = readOwnedAgentProcessStart(child2Pid, process.execPath);
     if (!processStart2) throw new Error("无法读取测试子进程2 identity");
     writeFileSync(
       join(runDir, "agent-owner.json"),
-      JSON.stringify({ version: 1, runId: "run_owned", pid: child2Pid, binary: process.execPath, worktree, processStart: processStart2 })
+      JSON.stringify({
+        version: 1,
+        runId: "run_owned",
+        pid: child2Pid,
+        binary: process.execPath,
+        worktree,
+        processStart: processStart2,
+        ...(job2 ? { jobName: job2.name } : {})
+      })
     );
     db.prepare("UPDATE tier1_runs SET native_session_id='chat-owned' WHERE id='run_owned'").run();
     const child2Closed = once(child2, "close");
@@ -147,8 +189,11 @@ describe("Tier1 executor-disabled restart policy", () => {
       [
         "-e",
         `const{spawn}=require('node:child_process');const{writeFileSync}=require('node:fs');` +
-          `const c=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});` +
-          `writeFileSync(${JSON.stringify(childPidPath)},String(c.pid));setTimeout(()=>process.exit(0),200)`
+          // POSIX:后代必须留在组长进程组内,A4 断言的前提就是"组长死后组内仍有存活成员";
+          // win32 无进程组,后代需独立于 leader 才能验"经具名 Job 回收"。
+          `const w=process.platform==='win32';` +
+          `const c=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore',detached:w});` +
+          `if(w)c.unref();writeFileSync(${JSON.stringify(childPidPath)},String(c.pid));setTimeout(()=>process.exit(0),200)`
       ],
       { detached: true, stdio: "ignore" }
     );
@@ -156,6 +201,7 @@ describe("Tier1 executor-disabled restart policy", () => {
     const leaderPid = leader.pid;
     spawned.add(leaderPid);
     await once(leader, "spawn");
+    const leaderJob = attachJob(leaderPid);
     const leaderStart = readOwnedAgentProcessStart(leaderPid, process.execPath);
     if (!leaderStart) throw new Error("无法读取组长 identity");
     const missingRunDir = join(home, "tier1", "runs", "run_missing");
@@ -168,15 +214,17 @@ describe("Tier1 executor-disabled restart policy", () => {
         pid: leaderPid,
         binary: process.execPath,
         worktree: join(home, "missing"),
-        processStart: leaderStart
+        processStart: leaderStart,
+        ...(leaderJob ? { jobName: leaderJob.name } : {})
       })
     );
     await waitUntil(() => existsSync(childPidPath));
     const descendantPid = Number(readFileSync(childPidPath, "utf8"));
     spawned.add(descendantPid);
     await once(leader, "close");
-    await expect(
-      reapOwnedTier1Agent(
+    if (process.platform === "win32") {
+      // POSIX A4(数值 PGID)在 win32 不成立:无 jobName 时 fail-closed 跳过,不得盲杀后代。
+      await reapOwnedTier1Agent(
         home,
         {
           run_id: "run_missing",
@@ -186,9 +234,24 @@ describe("Tier1 executor-disabled restart policy", () => {
           worktree_path: join(home, "missing")
         },
         audit.sink
-      )
-    ).rejects.toThrow(/alive after leader death/);
-    expect(() => process.kill(descendantPid, 0)).not.toThrow();
+      );
+      expect(() => process.kill(descendantPid, 0)).not.toThrow();
+    } else {
+      await expect(
+        reapOwnedTier1Agent(
+          home,
+          {
+            run_id: "run_missing",
+            task_id: "tsk_missing",
+            project_id: "prj_restart",
+            state: "running",
+            worktree_path: join(home, "missing")
+          },
+          audit.sink
+        )
+      ).rejects.toThrow(/alive after leader death/);
+      expect(() => process.kill(descendantPid, 0)).not.toThrow();
+    }
     spawned.delete(leaderPid);
 
     const legacy = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
@@ -215,6 +278,8 @@ describe("Tier1 executor-disabled restart policy", () => {
       )
     ).rejects.toThrow("ownership unverified");
     expect(() => process.kill(legacyPid, 0)).not.toThrow();
-    db.close();
+    } finally {
+      db.close();
+    }
   });
 });

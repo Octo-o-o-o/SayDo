@@ -20,8 +20,8 @@ import { CallbackEngine } from "../src/callback/engine.js";
 import { requestManualMerge, reviewTask, verifyAndCompleteMerge } from "../src/tier1/operations.js";
 import { Tier1Executor, realAgentSpawner } from "../src/tier1/executor.js";
 import { RuntimeApprovalFlow } from "../src/tier1/approvalFlow.js";
-import { buildGateScript, ensureGateScript } from "../src/tier1/gateScript.js";
-import { startGateServer } from "../src/tier1/gateServer.js";
+import { buildActiveGateScript, ensureGateScript } from "../src/tier1/gateScript.js";
+import { startTier1Gate } from "../src/tier1/gateServer.js";
 import { createLogger } from "../src/obs/logger.js";
 import type { Server } from "node:http";
 
@@ -92,12 +92,12 @@ describe.skipIf(!LIVE)("真 cursor-agent 端到端(SAYDO_LIVE_E2E)", () => {
           model: MODEL,
           adapter: "cursor",
           gateScriptPath: gp.scriptPath,
-          gateScriptExpected: buildGateScript(gp.sockPath, gp.logPath),
+          gateScriptExpected: buildActiveGateScript(gp),
           hooksTimeoutSec: 120,
           verifyTimeoutMs: 120_000
         }
       });
-      servers.push(startGateServer(gp.sockPath, (req) => executor.handleGateRequest(req)));
+      servers.push(await startTier1Gate(saydoHome, gp.sockPath, (req) => executor.handleGateRequest(req)));
 
       const TSK = "tsk_01VE2E0000000000000000000A";
       const t0 = new Date().toISOString();
@@ -207,13 +207,13 @@ describe.skipIf(!LIVE)("真 cursor-agent 端到端(SAYDO_LIVE_E2E)", () => {
           model: MODEL,
           adapter: "cursor",
           gateScriptPath: gp.scriptPath,
-          gateScriptExpected: buildGateScript(gp.sockPath, gp.logPath),
+          gateScriptExpected: buildActiveGateScript(gp),
           hooksTimeoutSec: 120,
           verifyTimeoutMs: 120_000,
           receiptTimeoutSec: () => 90
         }
       });
-      servers.push(startGateServer(gp.sockPath, (req) => executor.handleGateRequest(req)));
+      servers.push(await startTier1Gate(saydoHome, gp.sockPath, (req) => executor.handleGateRequest(req)));
 
       // 屏幕批准模拟:轮询 pending 的 runtime_effect 收据,一律 accept(S2 面;S3 无路径可放,gate 直拒)
       const approver = setInterval(() => {

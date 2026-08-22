@@ -3,9 +3,9 @@
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { networkInterfaces } from "node:os";
-import { execFileSync, spawn as nodeSpawn } from "node:child_process";
+import { spawn as nodeSpawn } from "node:child_process";
 import { dirname, join, resolve, sep } from "node:path";
-import { closeSync, existsSync, linkSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { randomInt, randomUUID } from "node:crypto";
 import { consoleArtifactReady, consoleDistDirectory } from "./runtimeAssets.js";
@@ -116,7 +116,7 @@ import { CallbackEngine, dndWindowEnd } from "./callback/engine.js";
 import { consoleBaseUrl, postNtfy, renderNtfyMessage } from "./callback/ntfy.js";
 import { inDndWindow } from "./recovery/reconciler.js";
 import { pickConsolePeerForTask, runCallbackSweep } from "./callback/sweep.js";
-import { notifyMacDesktop } from "./callback/desktop.js";
+import { notifyDesktop } from "./callback/desktop.js";
 import { arbitrate } from "./callback/arbitration.js";
 import { ackL0ForSession, handleOutboxAck } from "./callback/ack.js";
 import { readT2Config } from "./net/t2.js";
@@ -134,8 +134,8 @@ import { sweepRetryQueue } from "./providers/byoa/retryQueue.js";
 import { abortAllByoaInvocations, activeByoaInvocationCount } from "./providers/byoa/provider.js";
 import { runParkSweep } from "./live/scheduler.js";
 import { sweepExpiredProposed } from "./storage/dao/packages.js";
-import { buildGateScript, ensureGateScript } from "./tier1/gateScript.js";
-import { startGateServer } from "./tier1/gateServer.js";
+import { buildActiveGateScript, ensureGateScript } from "./tier1/gateScript.js";
+import { parseGateWireRequest, startGateServer } from "./tier1/gateServer.js";
 import { RuntimeApprovalFlow } from "./tier1/approvalFlow.js";
 import { latestSessionProjectEvent } from "./projects/anchor.js";
 import { ensureProjectAnchorProducts } from "./projects/anchorRebuild.js";
@@ -149,6 +149,14 @@ import { markDurableTier1RestartPending } from "./tier1/restartPolicy.js";
 import { tier1StartupVerdict } from "./tier1/validateConfig.js";
 import { verifiedProjectWorkspace } from "./storage/dao/projects.js";
 import { ensureManagedWorkspaceRoot, ensureStateRoot, stateRootDigest } from "./projects/workspace.js";
+import {
+  acquireExclusiveLink,
+  hostKind,
+  listenGateHttp,
+  nativeSync,
+  processAlive,
+  processBirth
+} from "@saydo/platform";
 import {
   assessRuntimeReadiness,
   pipelineRuntimeJoined,
@@ -196,6 +204,7 @@ import { getRecentMemory, parseRecentMemoryLimit } from "./api/recentMemory.js";
 import { configureRuntimeChildRegistry } from "./runtimeChildRegistry.js";
 import { runtimeOwnershipProof } from "./runtimeOwnership.js";
 
+if (hostKind() === "win32") nativeSync();
 const SAYDO_HOME = ensureStateRoot();
 // sessions/ 属 SAYDO_HOME 标准结构(与 projects//backups/ 并列),全新 HOME 也须先在:
 // 备份把 global_sessions 列为**必需**源(backup/snapshot.ts),目录不在则每轮定时备份直接失败
@@ -207,61 +216,21 @@ const BOOT_SUPERVISED = process.env["SAYDO_SUPERVISED"] === "1";
 const RUNTIME_INSTANCE_ID = process.env["SAYDO_RUNTIME_INSTANCE_ID"] ?? randomUUID();
 const INSTANCE_LOCK_PATH = join(SAYDO_HOME, ".daemon-supervisor.lock");
 let instanceLockFd: number | null = null;
-function processBirth(pid: number): string | null {
-  try {
-    const ps = existsSync("/bin/ps") ? "/bin/ps" : "/usr/bin/ps";
-    return execFileSync(ps, ["-o", "lstart=", "-p", String(pid)], {
-      encoding: "utf8",
-      timeout: 2_000
-    }).trim() || null;
-  } catch {
-    try {
-      const raw = execFileSync("pgrep", ["-lf", "node"], { encoding: "utf8", timeout: 2_000 });
-      const line = raw
-        .split("\n")
-        .map((item) => item.trim())
-        .find((item) => item === String(pid) || item.startsWith(`${String(pid)} `));
-      if (line) return `pgrep1:${line.slice(0, 240)}`;
-    } catch {
-      // fall through
-    }
-    try {
-      process.kill(pid, 0);
-      return `alive1:${pid}`;
-    } catch {
-      return null;
-    }
-  }
-}
-function processAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ESRCH") return false;
-    if ((err as NodeJS.ErrnoException).code === "EPERM") return true;
-    throw err;
-  }
-}
 function acquireInstanceLock(): void {
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const temporary = `${INSTANCE_LOCK_PATH}.${String(process.pid)}.${String(attempt)}.tmp`;
     try {
-      const processStart = processBirth(process.pid);
-      if (!processStart) throw new Error("saydo home lock birth identity unavailable");
-      writeFileSync(temporary, JSON.stringify({
+      const started = processBirth(process.pid);
+      if (!started) throw new Error("saydo home lock birth identity unavailable");
+      acquireExclusiveLink(INSTANCE_LOCK_PATH, JSON.stringify({
         version: 1,
         pid: process.pid,
-        processStart,
+        processStart: started,
         startedAt: STARTED_AT,
         instanceId: RUNTIME_INSTANCE_ID
-      }), { mode: 0o600 });
-      linkSync(temporary, INSTANCE_LOCK_PATH);
-      unlinkSync(temporary);
+      }));
       instanceLockFd = openSync(INSTANCE_LOCK_PATH, "r");
       return;
     } catch (err) {
-      try { unlinkSync(temporary); } catch { /* 不存在 */ }
       if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
       let ownerPid: number | null = null;
       let ownerStart: string | null = null;
@@ -1515,7 +1484,7 @@ server.on("request", (req, res) => {
                 JSON.stringify({
                   ok: false,
                   code: "s3_requires_webauthn",
-                  message: "S3 收据不走通用审批口——只能经 S3 卡 Touch ID 断言链(verifyS3Assertion)产生与消费。",
+                  message: "S3 收据不走通用审批口——只能经 S3 卡本机认证断言链(verifyS3Assertion)产生与消费。",
                   retryable: false
                 })
               );
@@ -3520,7 +3489,7 @@ if (!RECOVERY_ONLY) scheduleRuntimeInterval(() => {
           },
           desktop: {
             notify: async ({ title, body }) =>
-              notifyMacDesktop(
+              notifyDesktop(
                 (command, args, options) => nodeSpawn(command, [...args], options),
                 { title, body }
               )
@@ -3575,6 +3544,34 @@ function readTier1Startup(): ReturnType<typeof tier1StartupVerdict> {
 const tier1Startup = readTier1Startup();
 if (tier1Startup.start && !RECOVERY_ONLY && !runtimeDraining) {
   const gp = ensureGateScript(SAYDO_HOME);
+    const executorCfg: {
+      saydoHome: string;
+      lockedBinary: string;
+      pinnedVersion: string;
+      model: string;
+      adapter: ReturnType<typeof readDevAdapter>;
+      gateScriptPath: string;
+      gateScriptExpected: string;
+      receiptTimeoutSec: typeof receiptTimeoutSec;
+      gateBindPath?: string;
+      gateBindExpected?: string;
+    } = {
+    saydoHome: SAYDO_HOME,
+    lockedBinary: tier1Startup.bin,
+    pinnedVersion: tier1Startup.pinned,
+    model: (() => {
+      try {
+        return loadConfigFile(join(SAYDO_HOME, "config.toml")).models?.dev?.model ?? "";
+      } catch {
+        return "";
+      }
+    })(),
+    adapter: readDevAdapter(),
+    gateScriptPath: gp.scriptPath,
+    gateScriptExpected: buildActiveGateScript(gp),
+    receiptTimeoutSec
+  };
+  if (process.platform === "win32") executorCfg.gateBindPath = gp.bindPath;
   tier1Executor = new Tier1Executor({
     db,
     audit,
@@ -3583,28 +3580,20 @@ if (tier1Startup.start && !RECOVERY_ONLY && !runtimeDraining) {
     approvals: runtimeApprovals,
     spawner: realAgentSpawner(),
     artifacts: artifactStore, // W4 3.2 writing:成稿落 article artifact
-    cfg: {
-      saydoHome: SAYDO_HOME,
-      lockedBinary: tier1Startup.bin,
-      pinnedVersion: tier1Startup.pinned,
-      model: (() => {
-        try {
-          return loadConfigFile(join(SAYDO_HOME, "config.toml")).models?.dev?.model ?? "";
-        } catch {
-          return "";
-        }
-      })(),
-      adapter: readDevAdapter(),
-      gateScriptPath: gp.scriptPath,
-      // A1 补偿控制基准(W2 阶段0-①):每 gate 请求重读 gate.sh 与此比对,漂移 ⇒ deny+终止活跃 run
-      gateScriptExpected: buildGateScript(gp.sockPath, gp.logPath),
-      receiptTimeoutSec
-    }
+    cfg: executorCfg
   });
   try {
     tier1Executor.assertVersion(); // 启动断言(精确版本相等;漂移 = 拒起执行器,处方化)
     const armedExecutor = tier1Executor;
-    tier1GateServer = startGateServer(gp.sockPath, (req) => armedExecutor.handleGateRequest(req));
+    if (process.platform === "win32") {
+      const listened = await listenGateHttp(SAYDO_HOME, async (json) =>
+        armedExecutor.handleGateRequest(parseGateWireRequest(json))
+      );
+      executorCfg.gateBindExpected = readFileSync(gp.bindPath, "utf8");
+      tier1GateServer = listened.server;
+    } else {
+      tier1GateServer = startGateServer(gp.sockPath, (req) => armedExecutor.handleGateRequest(req));
+    }
     await tier1Executor.recover(); // §12-7:先确认旧进程组 ESRCH，再恢复非终态 run
     scheduleRuntimeInterval(() => tier1Executor?.tick(), 15_000);
     log.info("tier1 executor started", { bin: tier1Startup.bin, pinned: tier1Startup.pinned });

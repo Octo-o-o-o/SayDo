@@ -4,7 +4,7 @@
 import { execFileSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { newId, textDigest, tier1SettleProofSchema } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
@@ -26,13 +26,18 @@ import {
 import { claudeBackend, buildClaudeHooksSettings } from "../src/tier1/backends/claude.js";
 import { RuntimeApprovalFlow } from "../src/tier1/approvalFlow.js";
 import { getProjectTasks } from "../src/api/console.js";
-import { buildGateScript, ensureGateScript, gatePaths } from "../src/tier1/gateScript.js";
+import { buildActiveGateScript, ensureGateScript, gatePaths } from "../src/tier1/gateScript.js";
 import type { AuditSink } from "../src/obs/audit.js";
 import type { Logger } from "../src/obs/logger.js";
 
 const PRJ = "prj_01EXEC0000000000000000000A";
 // 必须在 owner home 子树内（workspace 政策），且沙箱可能禁写 $HOME 根目录。
-const OWNER_TEST_ROOT = mkdtempSync(join(process.cwd(), ".saydo-tier1-executor-"));
+// win32 的 %TEMP% 本身就在 USERPROFILE 子树内;POSIX 的 $TMPDIR 不在 $HOME 下,只能用仓内路径。
+const OWNER_TEST_ROOT = mkdtempSync(
+  process.platform === "win32"
+    ? join(tmpdir(), "saydo-tier1-executor-")
+    : join(process.cwd(), ".saydo-tier1-executor-")
+);
 const PKG_DIGEST = `sha256:${"a".repeat(64)}`;
 
 const fakeLog = { info() {}, warn() {}, error() {}, child() { return fakeLog; } } as unknown as Logger;
@@ -160,7 +165,11 @@ function setExternalWorkspace(projectId: string, path: string): void {
 }
 
 afterAll(() => {
-  rmSync(OWNER_TEST_ROOT, { recursive: true, force: true });
+  try {
+    rmSync(OWNER_TEST_ROOT, { recursive: true, force: true, maxRetries: 30, retryDelay: 100 });
+  } catch {
+    // Windows 偶发 EBUSY;根在 %TEMP%,不影响仓内路径
+  }
 });
 
 function seedQueuedTask(id: string, budget = { walltimeActiveMin: 45, maxTurns: 80, maxCost: 20 }): void {
@@ -201,7 +210,7 @@ function makeExecutor(overrides: Partial<ExecutorDeps["cfg"]> = {}, spawnerOverr
       model: "fable-5-max",
       adapter: "cursor",
       gateScriptPath: gp.scriptPath,
-      gateScriptExpected: buildGateScript(gp.sockPath, gp.logPath),
+      gateScriptExpected: buildActiveGateScript(gp),
       verifyTimeoutMs: 30_000,
       ...overrides
     }
@@ -919,20 +928,24 @@ describe("§12-7 Tier1 恢复:kill -9 后按 (adapter,nativeSessionId,cwd) 恢�
     const TSK = "tsk_01EXEC000000000000000000SP";
     const fixtureBin = join(saydoHome, "fixture-bin");
     mkdirSync(fixtureBin, { recursive: true });
-    const fakePnpm = join(fixtureBin, "pnpm");
-    writeFileSync(
-      fakePnpm,
-      `#!/usr/bin/env node
-const { spawn } = require("node:child_process");
+    const pnpmBody = `const { spawn } = require("node:child_process");
 const { writeFileSync } = require("node:fs");
 const { join } = require("node:path");
 writeFileSync(join(process.cwd(), "setup-parent.pid"), String(process.pid));
 const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
 writeFileSync(join(process.cwd(), "setup-child.pid"), String(child.pid));
 setInterval(() => {}, 1000);
-`
-    );
-    chmodSync(fakePnpm, 0o755);
+`;
+    writeFileSync(join(fixtureBin, "pnpm.cjs"), pnpmBody);
+    if (process.platform === "win32") {
+      writeFileSync(
+        join(fixtureBin, "pnpm.cmd"),
+        `@echo off\r\n"${process.execPath}" "${join(fixtureBin, "pnpm.cjs")}" %*\r\n`
+      );
+    } else {
+      writeFileSync(join(fixtureBin, "pnpm"), `#!/usr/bin/env node\n${pnpmBody}`);
+      chmodSync(join(fixtureBin, "pnpm"), 0o755);
+    }
     writeFileSync(
       join(repo, ".saydo", "project.toml"),
       '[[verify.entries]]\nname="test"\nsource="package_script"\nref="test"\n[setup]\ncommand="pnpm install"\n'
@@ -941,7 +954,7 @@ setInterval(() => {}, 1000);
     execFileSync("git", ["commit", "-qm", "setup fixture"], { cwd: repo });
     seedQueuedTask(TSK);
     const previousPath = process.env["PATH"];
-    process.env["PATH"] = `${fixtureBin}:${previousPath ?? ""}`;
+    process.env["PATH"] = `${fixtureBin}${delimiter}${previousPath ?? ""}`;
     try {
       const ex = makeExecutor();
       ex.tick();
@@ -969,6 +982,7 @@ setInterval(() => {}, 1000);
     const filter = join(saydoHome, "hanging-clean-filter.cjs");
     writeFileSync(
       filter,
+      // POSIX 直接把脚本路径交给 git 执行,必须保留 shebang;win32 走显式 node 调用。
       `#!/usr/bin/env node
 const { spawn } = require("node:child_process");
 const { writeFileSync } = require("node:fs");
@@ -979,9 +993,10 @@ writeFileSync(join(process.cwd(), "filter-child.pid"), String(child.pid));
 setInterval(() => {}, 1000);
 `
     );
-    chmodSync(filter, 0o755);
     writeFileSync(join(repo, ".gitattributes"), "*.hang filter=saydo-hang\n");
-    execFileSync("git", ["config", "filter.saydo-hang.clean", filter], { cwd: repo });
+    const filterCmd = process.platform === "win32" ? `"${process.execPath}" "${filter}"` : filter;
+    if (process.platform !== "win32") chmodSync(filter, 0o755);
+    execFileSync("git", ["config", "filter.saydo-hang.clean", filterCmd], { cwd: repo });
     execFileSync("git", ["config", "filter.saydo-hang.required", "true"], { cwd: repo });
     execFileSync("git", ["add", ".gitattributes"], { cwd: repo });
     execFileSync("git", ["commit", "-qm", "clean filter fixture"], { cwd: repo });
@@ -1101,7 +1116,7 @@ describe("W2 阶段0-①(Codex 20 A1):gate.sh 每请求完整性补偿控制", (
     expect(drift.length).toBeGreaterThan(0);
     expect(JSON.parse((drift[0] as { meta_json: string }).meta_json).actualDigest).toMatch(/^sha256:/);
     // 自愈:gate.sh 已重写回 daemon 期望内容(下一个 run 的门恢复完整)
-    expect(readFileSync(gp.scriptPath, "utf8")).toBe(buildGateScript(gp.sockPath, gp.logPath));
+    expect(readFileSync(gp.scriptPath, "utf8")).toBe(buildActiveGateScript(gp));
   });
 
   it("gate.sh 被删除 ⇒ 同样按漂移处置(unreadable 审计 + deny + 自愈重建)", async () => {
@@ -1120,7 +1135,7 @@ describe("W2 阶段0-①(Codex 20 A1):gate.sh 每请求完整性补偿控制", (
       meta_json: string;
     }[];
     expect(drift.some((r) => (JSON.parse(r.meta_json).actualDigest as string) === "unreadable")).toBe(true);
-    expect(readFileSync(gp.scriptPath, "utf8")).toBe(buildGateScript(gp.sockPath, gp.logPath));
+    expect(readFileSync(gp.scriptPath, "utf8")).toBe(buildActiveGateScript(gp));
     await waitTaskStatus(TSK, "failed");
   });
 });

@@ -20,7 +20,7 @@ import { requestManualMerge, reviewTask, verifyAndCompleteMerge } from "../src/t
 import { reconnectFirstLine } from "../src/callback/arbitration.js";
 import { checkStatusWords } from "../src/brain/golden.js";
 import { Tier1Executor, type AgentProcessHandle, type AgentSpawner } from "../src/tier1/executor.js";
-import { buildGateScript, ensureGateScript } from "../src/tier1/gateScript.js";
+import { buildActiveGateScript, ensureGateScript } from "../src/tier1/gateScript.js";
 import { RuntimeApprovalFlow } from "../src/tier1/approvalFlow.js";
 import type { AuditSink } from "../src/obs/audit.js";
 import type { Logger } from "../src/obs/logger.js";
@@ -96,7 +96,7 @@ function makeExecutor(spawner: AgentSpawner): Tier1Executor {
       model: "fable-5-max",
       adapter: "cursor",
       gateScriptPath: gp.scriptPath,
-      gateScriptExpected: buildGateScript(gp.sockPath, gp.logPath),
+      gateScriptExpected: buildActiveGateScript(gp),
       verifyTimeoutMs: 30_000
     }
   });

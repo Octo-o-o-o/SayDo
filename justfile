@@ -1,14 +1,8 @@
 # SayDo 工程任务入口(Phase 0 起;计划 0.1)
+# recipe 只调 node/pnpm/uv,不绑 bash shebang。
 
-# 一键起三进程:daemon / pipeline / console
 dev:
-    #!/usr/bin/env bash
-    set -u
-    trap 'kill 0' EXIT
-    pnpm --filter @saydo/daemon dev &
-    (cd pipeline && uv run python -m saydo_pipeline) &
-    pnpm --filter @saydo/console dev &
-    wait
+    node scripts/dev.mjs
 
 # CI 等效判定(本地双矩阵;Actions 不可用时以此留证)
 ci: ci-node ci-python
@@ -18,14 +12,16 @@ ci-node:
     pnpm typecheck
     pnpm lint
     pnpm test
-    bash scripts/check-emoji.sh
-    bash scripts/test-emoji-gate.sh
-    bash scripts/check-hardcoded-colors.sh
-    bash scripts/test-color-gate.sh
-    bash scripts/test-migration-tools.sh
+    node scripts/check-emoji.mjs
+    node scripts/test-emoji-gate.mjs
+    node scripts/check-hardcoded-colors.mjs
+    node scripts/test-color-gate.mjs
+    node scripts/test-migration-tools.mjs
 
 ci-python:
-    cd pipeline && uv sync --quiet && uv run python -m ruff check . && uv run python -m pytest -q
+    uv --directory pipeline sync --quiet
+    uv --directory pipeline run python -m ruff check .
+    uv --directory pipeline run python -m pytest -q
 
 # 快照备份(SQLite/JSONL/foundation/knowledge;保留期见 [params].backup_retention_days)
 backup:

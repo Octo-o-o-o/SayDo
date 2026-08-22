@@ -45,7 +45,12 @@ async function waitOk(url: string, what: string): Promise<void> {
 
 function killTree(child: ChildProcess): void {
   try {
-    if (child.pid) process.kill(-child.pid); // detached 进程组
+    if (!child.pid) {
+      child.kill();
+      return;
+    }
+    if (process.platform === "win32") child.kill("SIGKILL");
+    else process.kill(-child.pid);
   } catch {
     child.kill();
   }

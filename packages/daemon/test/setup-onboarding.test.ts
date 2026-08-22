@@ -467,7 +467,7 @@ describe("setup secret staged", () => {
     expect(pending).toContain("# comment");
     // 活动文件不动
     expect(readFileSync(join(home, ".env"), "utf8")).toContain("OPENROUTER_API_KEY=old");
-    expect(fileModeBits(join(home, ".env.pending"))).toBe(0o600);
+    if (process.platform !== "win32") expect(fileModeBits(join(home, ".env.pending"))).toBe(0o600);
     expect(audits).toHaveLength(1);
     expect(audits[0]?.action).toBe("setup.secret_staged");
     expect(audits[0]?.meta?.["name"]).toBe("OPENROUTER_API_KEY");
@@ -1105,8 +1105,8 @@ describe("setup 鉴权面(identity via)", () => {
 describe("health 形状(pid/startedAt 合同)", () => {
   it("pendingPaths 与 health 字段约定(单元锚)", () => {
     const p = pendingPaths("/tmp/x", "config.toml");
-    expect(p.pending).toBe("/tmp/x/config.toml.pending");
-    expect(p.bak).toBe("/tmp/x/config.toml.bak");
+    expect(p.pending).toBe(join("/tmp/x", "config.toml.pending"));
+    expect(p.bak).toBe(join("/tmp/x", "config.toml.bak"));
     // /health 必含字段由 index 装配;此处锁合同键名
     const healthShape = {
       ok: true,

@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { dirname, delimiter, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
@@ -18,6 +18,7 @@ const snapshot = {
     "packages/console",
     "packages/contracts",
     "packages/daemon",
+    "packages/platform",
     "package.json",
     "pnpm-lock.yaml",
     "pnpm-workspace.yaml",
@@ -91,7 +92,28 @@ const dist = join(packageRoot, "dist");
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(join(dist, "runtime"), { recursive: true });
 
-execFileSync("pnpm", ["--filter", "@saydo/console", "build"], { cwd: repoRoot, stdio: "inherit" });
+function resolvePathCmd(name) {
+  if (process.platform !== "win32") return { file: name, options: {} };
+  const pathext = (process.env.PATHEXT ?? ".EXE;.CMD;.BAT").split(";").filter(Boolean);
+  for (const dir of (process.env.PATH ?? "").split(delimiter)) {
+    if (!dir) continue;
+    for (const suffix of pathext) {
+      const candidate = join(dir, `${name}${suffix}`);
+      if (existsSync(candidate)) {
+        const ext = extname(candidate).toLowerCase();
+        return { file: candidate, options: ext === ".cmd" || ext === ".bat" ? { shell: true } : {} };
+      }
+    }
+  }
+  return { file: name, options: {} };
+}
+
+const pnpmCmd = resolvePathCmd("pnpm");
+execFileSync(pnpmCmd.file, ["--filter", "@saydo/console", "build"], {
+  cwd: repoRoot,
+  stdio: "inherit",
+  ...pnpmCmd.options
+});
 cpSync(join(repoRoot, "packages", "console", "dist"), join(dist, "console"), { recursive: true });
 
 const daemonBuild = await build({
@@ -101,7 +123,7 @@ const daemonBuild = await build({
   platform: "node",
   target: "node22",
   format: "esm",
-  external: ["better-sqlite3"],
+  external: ["better-sqlite3", "koffi"],
   metafile: true,
   banner: {
     js: 'import { createRequire as __saydoCreateRequire } from "node:module";const require=__saydoCreateRequire(import.meta.url);'
@@ -121,6 +143,7 @@ const cliBuild = await build({
   platform: "node",
   target: "node22",
   format: "esm",
+  external: ["koffi"],
   metafile: true,
   banner: { js: "#!/usr/bin/env node" },
   define: {
@@ -136,7 +159,7 @@ function assertMetafileClosure(metafile, label) {
     const absolute = resolve(input.startsWith(sep) || /^[A-Za-z]:[\\/]/.test(input) ? input : join(process.cwd(), input));
     if (!absolute.startsWith(repoRoot + sep) && absolute !== repoRoot) continue;
     if (absolute.includes(`${sep}node_modules${sep}`) || absolute.startsWith(dist + sep)) continue;
-    const rel = relative(repoRoot, absolute);
+    const rel = relative(repoRoot, absolute).split(sep).join("/");
     if (!snapshotFileSet.has(rel)) missing.push(rel);
   }
   if (missing.length > 0) {
@@ -146,6 +169,18 @@ function assertMetafileClosure(metafile, label) {
 }
 assertMetafileClosure(daemonBuild.metafile, "daemon");
 assertMetafileClosure(cliBuild.metafile, "cli");
+
+const platformBundle = await build({
+  entryPoints: [join(repoRoot, "packages", "platform", "src", "index.ts")],
+  outfile: join(repoRoot, "packages", "platform", "dist", "index.mjs"),
+  bundle: true,
+  platform: "node",
+  target: "node22",
+  format: "esm",
+  external: ["koffi"],
+  metafile: true
+});
+assertMetafileClosure(platformBundle.metafile, "platform");
 
 const finalListed = listBuildFiles();
 const { digest: finalInputDigest } = contentRevision(finalListed);

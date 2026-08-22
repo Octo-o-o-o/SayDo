@@ -145,7 +145,7 @@ export function enumerateConfigClosureKeys(commandText: string): { files: string
     const fam = RUNNER_CONFIG_FILES[base];
     if (fam) for (const f of fam) files.add(f);
     if (PATH_TOKEN_RE.test(tok) && !PATH_TOKEN_EXCLUDE_RE.test(tok) && !tok.includes("..")) {
-      files.add(normalize(tok));
+      files.add(normalize(tok).replaceAll("\\", "/"));
     }
   }
   for (const m of commandText.matchAll(PKG_SCRIPT_CALL_RE)) {
@@ -195,6 +195,18 @@ export function freezeVerify(workspace: string, templateRef: string, registry: V
     scriptDigest: textDigest(readFrozenVerifyBody(workspace, templateRef)),
     configDigests: snapshotConfigClosure(workspace, templateRef)
   };
+}
+
+/**
+ * 执行器实际 spawn 的 argv。冻结合同仍是 `pnpm run <name>`(门匹配/人话不变);
+ * 运行时加 `--ignore-workspace`,避免 worktree 落在另一 pnpm workspace 内时
+ * 误跑祖先 package.json 脚本(Windows 上会把 fixture 的 `node -e exit 0` 变成整仓 vitest)。
+ */
+export function verifyRunnerArgv(argv: readonly string[]): string[] {
+  if (argv[0] === "pnpm" && argv[1] !== "--ignore-workspace") {
+    return ["pnpm", "--ignore-workspace", ...argv.slice(1)];
+  }
+  return [...argv];
 }
 
 export type VerifyPrecheck =

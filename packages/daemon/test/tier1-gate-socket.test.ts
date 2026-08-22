@@ -33,7 +33,7 @@ afterEach(() => {
   server = null;
 });
 
-describe("gate.sh 物理链路(fail-closed 四律)", () => {
+describe.skipIf(process.platform === "win32")("gate.sh 物理链路(fail-closed 四律)", () => {
   it("daemon allow ⇒ 钩子输出 allow;请求带 command+cwd;每次请求独立到达", async () => {
     const home = mkdtempSync(join(tmpdir(), "saydo-gate-"));
     const p = ensureGateScript(home);
@@ -158,7 +158,7 @@ function hookDecision(stdout: string): string {
   return o.hookSpecificOutput?.permissionDecision ?? "";
 }
 
-describe("gate-claude.sh 物理链路(W5.4-a B2,既有 7 例不动)", () => {
+describe.skipIf(process.platform === "win32")("gate-claude.sh 物理链路(W5.4-a B2,既有 7 例不动)", () => {
   function writeClaude(home: string, curlMax = 100): string {
     const p = gatePaths(home);
     const { mkdirSync } = require("node:fs") as typeof import("node:fs");

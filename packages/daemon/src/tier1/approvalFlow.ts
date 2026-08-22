@@ -244,7 +244,7 @@ export class RuntimeApprovalFlow {
         action: "s3.generic_decide_rejected",
         meta: { receiptId, attempted: decision, actualVia: ctx.via }
       });
-      return { ok: false, reason: "S3 收据不走通用审批口(仅 S3 卡 Touch ID 断言链)" };
+      return { ok: false, reason: "S3 收据不走通用审批口(仅 S3 卡本机认证断言链)" };
     }
     // tailnet 配对屏幕批(RA-closeout 2026-07-28;09 §3 对表行/§11 T2 注):裁决来源 = 已配对主机 + OS 解锁,
     // 收据行如实落 push/paired_device_pin(此前固定 screen 属实施未对齐;S2 封顶由 §3 矩阵 CHECK 机械保证)

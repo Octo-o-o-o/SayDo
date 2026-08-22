@@ -4,7 +4,6 @@ import asyncio
 import hashlib
 import os
 import re
-import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -12,23 +11,7 @@ from pathlib import Path
 from .doubao_asr import DoubaoAsr
 from .doubao_tts import DoubaoTts
 from .hub_client import HubClient, log, pcm16_to_wav
-
-
-def saydo_state_root() -> Path:
-    """解析并验证 daemon/pipeline 共用的实体状态根。"""
-    configured = os.environ.get("SAYDO_HOME")
-    lexical = Path(configured) if configured else Path.home() / ".saydo"
-    if not lexical.is_absolute():
-        raise RuntimeError("SAYDO_HOME must be an absolute path")
-    lexical = Path(os.path.abspath(lexical))
-    if not lexical.exists() or lexical.is_symlink() or not lexical.is_dir():
-        raise RuntimeError("SAYDO_HOME must be an existing real directory")
-    resolved = lexical.resolve(strict=True)
-    if resolved != lexical:
-        raise RuntimeError("SAYDO_HOME parent path must not contain symlinks")
-    if hasattr(os, "getuid") and lexical.stat().st_uid != os.getuid():
-        raise RuntimeError("SAYDO_HOME owner mismatch")
-    return lexical
+from .platform import install_stop_signal, saydo_state_root
 
 
 def read_env_key(name: str) -> str | None:
@@ -150,8 +133,7 @@ async def main() -> None:
 
     stop = asyncio.Event()
     loop = asyncio.get_running_loop()
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, stop.set)
+    install_stop_signal(loop, stop)
 
     # 等 stop 信号或 restart 完成(run_forever 因 restart 返回)
     stop_task = asyncio.create_task(stop.wait())

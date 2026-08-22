@@ -284,6 +284,7 @@ describe("BYOA fake CLI 进程级反例", () => {
     const { provider } = makeProvider({ wallTimeoutMs: 200, idleTimeoutMs: 1000 });
     const result = await provider.chat({ messages: [{ role: "user", content: `fake:timeout:${marker}` }] });
     expect(result).toMatchObject({ ok: false, code: "timeout", retryable: true });
+    if (process.platform === "win32") return;
     expect(readFileSync(marker, "utf8")).toBe("SIGTERM");
   });
 
@@ -295,6 +296,7 @@ describe("BYOA fake CLI 进程级反例", () => {
     await waitUntil(() => existsSync(`${marker}.ready`), 1000);
     controller.abort();
     await expect(pending).resolves.toMatchObject({ ok: false, code: "cancelled" });
+    if (process.platform === "win32") return;
     expect(readFileSync(marker, "utf8")).toBe("SIGTERM");
   });
 
@@ -310,7 +312,7 @@ describe("BYOA fake CLI 进程级反例", () => {
     await expect(drain).resolves.toEqual({ aborted: 1 });
     await expect(pending).resolves.toMatchObject({ ok: false, code: "cancelled" });
     expect(activeByoaInvocationCount()).toBe(0);
-    expect(readFileSync(marker, "utf8")).toBe("SIGTERM");
+    if (process.platform !== "win32") expect(readFileSync(marker, "utf8")).toBe("SIGTERM");
   });
 
   it("CLI 直接父进程正常退出时也终止继承 pipe 与 ignore stdio 的后代", async () => {
@@ -320,14 +322,20 @@ describe("BYOA fake CLI 进程级反例", () => {
       provider.chat({ messages: [{ role: "user", content: `fake:orphan-grandchildren:${marker}` }] })
     ).resolves.toMatchObject({ ok: true, text: "children-drained" });
     await waitUntil(
-      () => existsSync(marker) && readFileSync(marker, "utf8").includes("ignore-SIGTERM"),
+      () => existsSync(marker) && (
+        process.platform === "win32"
+          ? /ignore-started:/u.test(readFileSync(marker, "utf8"))
+          : readFileSync(marker, "utf8").includes("ignore-SIGTERM")
+      ),
       3000
     );
     const evidence = readFileSync(marker, "utf8");
     expect(evidence).toContain("inherit-started");
     expect(evidence).toContain("ignore-started");
-    expect(evidence).toContain("inherit-SIGTERM");
-    expect(evidence).toContain("ignore-SIGTERM");
+    if (process.platform !== "win32") {
+      expect(evidence).toContain("inherit-SIGTERM");
+      expect(evidence).toContain("ignore-SIGTERM");
+    }
     const descendantPids = [...evidence.matchAll(/(?:inherit|ignore)-started:(\d+)/g)].map((match) => Number(match[1]));
     expect(descendantPids).toHaveLength(2);
     await waitUntil(
@@ -384,7 +392,7 @@ describe("BYOA fake CLI 进程级反例", () => {
     await expect(
       provider.chat({ messages: [{ role: "user", content: `fake:idle-after-output:${marker}` }] })
     ).resolves.toMatchObject({ ok: false, code: "timeout" });
-    expect(readFileSync(marker, "utf8")).toBe("SIGTERM");
+    if (process.platform !== "win32") expect(readFileSync(marker, "utf8")).toBe("SIGTERM");
     expect(audit.events.find((event) => event.action === "byoa.invocation")?.meta).toMatchObject({
       timedOut: true,
       timeoutKind: "idle",

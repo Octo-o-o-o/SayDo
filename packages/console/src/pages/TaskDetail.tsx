@@ -315,7 +315,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
               </p>
             ) : null}
             {settled && !isRemoteOrigin() ? (
-              // S3 组件组(11 §5.4/§5.5):主路径 = 用 Touch ID 批准合并(WebAuthn,认证 UI 由 OS 提供);
+              // S3 组件组(11 §5.4/§5.5):主路径 = 用本机认证批准合并(WebAuthn,认证 UI 由 OS 提供);
               // 未注册 passkey ⇒ 降级"去受信终端手动合并"(requestManualMerge);批准前置灰。
               <button
                 style={{
@@ -339,7 +339,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                   status !== "review_approved_waiting_merge"
                     ? "先验收通过,批准后才可合并"
                     : s3Status?.registered
-                      ? "Touch ID 系统弹窗确认后,daemon 本地合并"
+                      ? "本机认证系统弹窗确认后,daemon 本地合并"
                       : "未注册批准指纹:去受信终端人工合并(或先注册指纹)"
                 }
                 onClick={() => {
@@ -347,7 +347,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                     run(() => api.requestManualMerge(taskId));
                     return;
                   }
-                  // WebAuthn 三步(09 §3.3 签发链):挑战 -> OS Touch ID 断言 -> 收据 -> approveMerge
+                  // WebAuthn 三步(09 §3.3 签发链):挑战 -> OS 本机认证断言 -> 收据 -> approveMerge
                   if (location.hostname === "127.0.0.1") {
                     setActionMsg("S3 卡须经 http://localhost 访问(rpId 绑定);请用 localhost 打开本页。");
                     return;
@@ -366,7 +366,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                       setTimeout(() => setRefresh((n) => n + 1), 2500); // 捡 merge 执行段结果
                     } catch (e) {
                       // 失败/超时/被打断:error 提示不放行;挑战单次消费已作废,重点重签(09 §3.3)
-                      setActionMsg(`Touch ID 批准未完成:${String(e instanceof Error ? e.message : e)}`);
+                      setActionMsg(`本机认证批准未完成:${String(e instanceof Error ? e.message : e)}`);
                     } finally {
                       setS3Busy(false);
                     }
@@ -374,11 +374,11 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 }}
               >
                 {s3Status?.registered ? <Fingerprint size={16} aria-hidden /> : <ShieldAlert size={16} aria-hidden />}
-                {s3Status?.registered ? "用 Touch ID 批准合并" : "合并(去屏幕强认证)"}
+                {s3Status?.registered ? "用本机认证批准合并" : "合并(去屏幕强认证)"}
               </button>
             ) : null}
             {settled && !isRemoteOrigin() && !s3Status?.registered ? (
-              // 注册入口(一次性 bootstrap;owner 亲自在受信终端)——注册后主路径变 Touch ID
+              // 注册入口(一次性 bootstrap;owner 亲自在受信终端)——注册后主路径变本机认证
               <button
                 style={secondaryBtn}
                 data-s3-register
@@ -395,7 +395,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                       const ch = await api.s3Challenge({ action: "register" });
                       const attestation = await webauthnCreate(ch.challenge, ch.rpId);
                       await api.s3Register(ch.challengeId, attestation);
-                      setActionMsg("批准指纹已注册;现在可以用 Touch ID 批准合并了。");
+                      setActionMsg("批准指纹已注册;现在可以用本机认证批准合并了。");
                       setRefresh((n) => n + 1);
                     } catch (e) {
                       setActionMsg(`注册未完成:${String(e instanceof Error ? e.message : e)}`);

@@ -7,7 +7,7 @@
 
 ## 0. 现状锚点(2026-07-26 00:50 定稿时刻快照;开批时现状以 `HANDOFF.md` 为准)
 
-> **2026-08-21 当前(覆盖下表过期现时态):**Claude 订阅已就位；W5.4-a 纯函数层已收口；下一项为 **W5.4-b 生产执行主流程接线**。Actions billing 已恢复；剩 workflow pnpm 版本冲突，修复须走公开快照仓通道。场次 1 = `failed` @ `ada7981c`，待 owner 复验；场次 2–4 = `not_run`。T2 = 组网已就绪，待手机烟测；结论只对 `ada7981c`，不得外推当前 HEAD。T19 × tailnet 合同拍板并回写 canonical + 备份恢复可用，二者都是任何升常驻动作的前置；本批不改 canonical、不修备份、不部署。活动树 / 常驻 runtime / release config 的当前三层坐标唯一以 `HANDOFF.md` §1「当前快照」行为准，本计划不复制第二套现时坐标。
+> **2026-08-21 当前(覆盖下表过期现时态):**Claude 订阅已就位；W5.4-a 纯函数层已收口；**W-Win Windows 原生对齐进行中**(合同 Codex 88 已吸收,本批独占 gate 运输);W5.4-b 生产执行主流程接线在本批收口前不改 `handleGateRequest`。不翻转官网 FAQ。Actions billing 已恢复；剩 workflow pnpm 版本冲突，修复须走公开快照仓通道。场次 1 = `failed` @ `ada7981c`，待 owner 复验；场次 2–4 = `not_run`。T2 = 组网已就绪，待手机烟测；结论只对 `ada7981c`，不得外推当前 HEAD。T19 × tailnet 合同拍板并回写 canonical + 备份恢复可用，二者都是任何升常驻动作的前置。活动树 / 常驻 runtime / release config 的当前三层坐标唯一以 `HANDOFF.md` §1「当前快照」行为准，本计划不复制第二套现时坐标。
 
 | 面 | 状态 | 证据 |
 |---|---|---|
@@ -71,6 +71,25 @@ S3 卡(console 卡+认证+收据+合并链;requestManualMerge 降级路径)→ w
 ### remote-mobile-w0 · 8 月临时轨道(2026-08-16 已收口;插在 W5.4 之前)——**状态:已收口(代码 `addfd1965a5144223df3bfa3f7c407976664929a`)**
 
 LAN `remote-mobile` 第 0 步(处方 `docs/review/2026-08-13-mobile-shell-strategy-final.fable.md` §3;范围 `docs/review/2026-08-16-now-vs-later.md`)。完成定义=代码 + 临时 Chromium/LAN 证据,不部署常驻、不宣称真机 WKWebView 狗粮。`just ci` 双矩阵绿;定向 Playwright 6/6;canonical Codex 74 B 已吸收。下一工程批回到 **W5.4-b 生产执行主流程接线**。四场真人验收为 owner 并行轨,不进本代码批。T19 × tailnet 合同拍板并回写 canonical、以及备份恢复可用,都是任何升常驻动作的前置;本批不改 canonical、不修备份、不部署。
+
+### W-Win · Windows 原生对齐(2026-08-21 开;owner 当场授权)
+
+合同:[设计 ADR-004](../adr/design/ADR-004-windows-platform.md)、[工程 ADR-003](../adr/ADR-003-os-adapters.md)。任务级计划:[WINDOWS-ALIGNMENT.md](WINDOWS-ALIGNMENT.md)。
+**与 W5.4-b 串行于 gate 运输**:本批独占 `handleGateRequest` / `gate-*.mjs`;W5.4-b 暂停改该面直到本批收口。协议超集现网 `{cwd, command?}` 不变,可选 `kind`,未知 deny。
+
+| # | 项 | 验收锚 |
+|---|---|---|
+| Win.0 | 合同回写 02/03/04/07/09/10/11 + ADR 索引 | 形状以 09 为准;官网 FAQ 仍"暂不支持";目标面+工程对齐进行中 |
+| Win.1 | `@saydo/platform` 内核 | 身份/ACL/birth/`killOwnedTree` 单测绿;koffi 失败 fail-closed |
+| Win.2 | 工程入口去 bash 硬依赖 | PowerShell 下 Node 门禁 + `scripts/dev.mjs` |
+| Win.3 | workspace / 路径词法 / 状态根 | `C:\` 口语可登记;先拒 URI;win32 不再跳过 owner;本地固定 NTFS |
+| Win.4 | 实例锁 + supervisor + reaper | 消灭 win32 throw;`alive1`/`pgrep` 退出生产 |
+| Win.5 | 具名 Job Object + env 白名单 | verify 隔离 USERPROFILE/HOMEDRIVE/HOMEPATH/APPDATA/LOCALAPPDATA |
+| Win.6 | 环回+HMAC 审批门 + `gate-cursor.mjs`/`gate-claude.mjs` | 四律在 win32 绿;macOS gate.sh 零回归 |
+| Win.7 | pipeline 信号 + 通知 + 编辑器探测 | pipeline 在 win32 起得来 |
+| Win.8 | 本机 `just ci`/`pnpm ci:node` | 非 darwin 用例绿;skip 名单入 evidence |
+
+P1(Scheduled Task、Actions windows-latest、SAPI、官网翻转)不在本行完成定义内。
 
 ### R-B · 合同轮(本仓 canonical 文件面,重制度;1 天+评审;W5 收口后串行):规模与通道合同
 

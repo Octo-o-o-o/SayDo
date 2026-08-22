@@ -6,6 +6,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { wasHardKilled } from "./helpers/hardKill.js";
 import { openDb } from "../src/storage/db.js";
 import {
   completeDispatchBinding,
@@ -18,18 +19,15 @@ import {
 import { transitionTier1Run } from "../src/storage/dao/tasks.js";
 
 const CHILD = resolve(__dirname, "fixtures/crash-child.ts");
-const TSX = resolve(__dirname, "../node_modules/.bin/tsx");
+const TSX = resolve(__dirname, "../node_modules/tsx/dist/cli.mjs");
 
 function crashWith(scenario: string): string {
   const dbPath = join(mkdtempSync(join(tmpdir(), "saydo-crash-")), "saydo.db");
   try {
-    execFileSync(TSX, [CHILD, dbPath, scenario], { stdio: "pipe" });
+    execFileSync(process.execPath, [TSX, CHILD, dbPath, scenario], { stdio: "pipe" });
     throw new Error("child should have been SIGKILLed");
   } catch (err) {
-    // 直接被信号杀:signal=SIGKILL;tsx 内部转发时:status=137(128+9)。两者都算硬杀成功。
-    const e = err as { signal?: string | null; status?: number | null };
-    const killed = e.signal === "SIGKILL" || e.status === 137;
-    expect(killed).toBe(true);
+    expect(wasHardKilled(err)).toBe(true);
   }
   return dbPath;
 }

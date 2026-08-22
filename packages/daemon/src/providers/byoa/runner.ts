@@ -3,7 +3,7 @@
 
 import { StringDecoder } from "node:string_decoder";
 import type { CageArgv, CageProvider } from "./cage.js";
-import { runtimeProcessGroupState, spawnRuntimeChild } from "../../runtimeChildRegistry.js";
+import { runtimeProcessGroupState, signalRuntimeChildTree, spawnRuntimeChild } from "../../runtimeChildRegistry.js";
 
 export const DEFAULT_WALL_TIMEOUT_MS = 120_000;
 export const DEFAULT_IDLE_TIMEOUT_MS = 45_000;
@@ -49,7 +49,7 @@ export interface SpawnTurnResult extends SpawnAttemptResult {
 /** BYOA spawn env 白名单(09 §11-3):基础 PATH + 各 CLI 登录态目录;不透传 SayDo secrets。 */
 export function buildSpawnEnv(passEnv: Record<string, string | undefined> = {}): NodeJS.ProcessEnv {
   const base: NodeJS.ProcessEnv = {};
-  for (const k of ["PATH", "USER", "SHELL", "LANG", "LC_ALL", "TMPDIR"]) {
+  for (const k of ["PATH", "USER", "SHELL", "LANG", "LC_ALL", "TMPDIR", "TEMP", "TMP", "USERPROFILE", "USERNAME", "HOMEDRIVE", "HOMEPATH", "APPDATA", "LOCALAPPDATA", "PATHEXT", "SYSTEMROOT", "WINDIR", "COMSPEC"]) {
     if (process.env[k]) base[k] = process.env[k];
   }
   // 新家由 passEnv.HOME 覆盖为隔离目录;老家不传则沿用真实 HOME(本批不动)。
@@ -149,9 +149,9 @@ async function runSpawnAttempt(opts: SpawnTurnOptions): Promise<SpawnAttemptResu
     };
 
     const killProcessTree = (signal: NodeJS.Signals): void => {
-      if (process.platform !== "win32" && child.pid) {
+      if (child.pid) {
         try {
-          process.kill(-child.pid, signal);
+          signalRuntimeChildTree(child.pid, signal);
           return;
         } catch {
           // 进程组已退出或平台不支持负 PID，回退直接子进程。

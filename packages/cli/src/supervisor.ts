@@ -1,12 +1,13 @@
-import { execFileSync, fork, type ChildProcess } from "node:child_process";
+import { fork, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
   supervisorFrameSchema,
   type PrepareShutdownReason,
   type SupervisorFrame
 } from "@saydo/contracts";
+import { isReparsePoint, processBirth } from "@saydo/platform";
 import { CLI_PROTOCOL_VERSION } from "./buildIdentity.js";
 import { consoleUrl, openExternal } from "./open.js";
 import { probeDaemon, type DaemonProbe } from "./probe.js";
@@ -26,13 +27,39 @@ function tokenOf(home: string): string {
   return readFileSync(join(home, ".cap-token"), "utf8").trim();
 }
 
+export function cliStopPath(home: string, pid: number): string {
+  return join(home, "runtime", `cli-stop-${String(pid)}`);
+}
+
+export function consumeCliStop(home: string, pid: number): PrepareShutdownReason | undefined {
+  const path = cliStopPath(home, pid);
+  try {
+    if (!existsSync(path)) return undefined;
+    if (isReparsePoint(path) || !lstatSync(path).isFile()) return undefined;
+    const raw = readFileSync(path, "utf8").trim();
+    rmSync(path, { force: true });
+    if (raw === "cli_sigint" || raw === "app_quit" || raw === "restart" || raw === "supervisor_stop") {
+      return raw;
+    }
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
 class SignalQueue {
   private readonly queued: PrepareShutdownReason[] = [];
   private waiter: ((reason: PrepareShutdownReason) => void) | undefined;
 
-  constructor() {
+  constructor(home: string) {
     process.on("SIGINT", () => this.push("cli_sigint"));
     process.on("SIGTERM", () => this.push("supervisor_stop"));
+    mkdirSync(join(home, "runtime"), { recursive: true, mode: 0o700 });
+    const timer = setInterval(() => {
+      const reason = consumeCliStop(home, process.pid);
+      if (reason) this.push(reason);
+    }, 100);
+    timer.unref();
   }
 
   next(): Promise<PrepareShutdownReason> {
@@ -52,8 +79,11 @@ class SignalQueue {
   }
 }
 
-export async function holdAttached(probe: Extract<DaemonProbe, { kind: "attached" }>): Promise<void> {
-  const signals = new SignalQueue();
+export async function holdAttached(
+  probe: Extract<DaemonProbe, { kind: "attached" }>,
+  home: string
+): Promise<void> {
+  const signals = new SignalQueue(home);
   process.stdout.write(`${JSON.stringify({ mode: "attached", pid: probe.pid, identity: probe.identity })}\n`);
   await signals.next();
 }
@@ -103,32 +133,7 @@ function requestShutdown(child: ChildProcess, reason: PrepareShutdownReason): vo
 }
 
 function processStart(pid: number): string | null {
-  try {
-    const ps = existsSync("/bin/ps") ? "/bin/ps" : existsSync("/usr/bin/ps") ? "/usr/bin/ps" : "ps";
-    return execFileSync(ps, ["-o", "lstart=", "-p", String(pid)], {
-      encoding: "utf8",
-      timeout: 2_000
-    }).trim() || null;
-  } catch {
-    try {
-      // pgrep -lf 以 pattern 搜命令行，不能把 pid 当 pattern；用 node 再按 pid 过滤。
-      const raw = execFileSync("pgrep", ["-lf", "node"], { encoding: "utf8", timeout: 2_000 });
-      const line = raw
-        .split("\n")
-        .map((item) => item.trim())
-        .find((item) => item === String(pid) || item.startsWith(`${String(pid)} `));
-      if (line) return `pgrep1:${line.slice(0, 240)}`;
-    } catch {
-      // fall through
-    }
-    try {
-      process.kill(pid, 0);
-      // 最后回退：仅证明仍存活 + pid（配合 instanceId 防串 HOME）。
-      return `alive1:${pid}`;
-    } catch {
-      return null;
-    }
-  }
+  return processBirth(pid);
 }
 
 export function homeLockAllowsReap(home: string, generation: OwnedDaemonGeneration): boolean {
@@ -253,7 +258,7 @@ export async function runOwned(options: OwnedRunOptions): Promise<void> {
     throw new Error("distribution_incomplete:daemon 或 console 产物缺失");
   }
   mkdirSync(home, { recursive: true, mode: 0o700 });
-  const signals = new SignalQueue();
+  const signals = new SignalQueue(home);
   let pendingSignal: Promise<{ kind: "signal"; reason: PrepareShutdownReason }> = signals.next().then((reason) => ({
     kind: "signal",
     reason

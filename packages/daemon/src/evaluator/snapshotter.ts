@@ -11,7 +11,7 @@ import {
   closeSync,
   constants,
   fstatSync,
-  fsyncSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readdirSync,
@@ -22,8 +22,9 @@ import {
   rmSync,
   writeFileSync
 } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join, relative } from "node:path";
 import { newId, textDigest, type SourceRef, type SourceSnapshot } from "@saydo/contracts";
+import { fsyncFile, hostKind } from "@saydo/platform";
 import type { Db } from "../storage/db.js";
 import { insertSourceSnapshot } from "../storage/dao/sourceSnapshots.js";
 
@@ -93,7 +94,7 @@ export class Snapshotter {
 
   /** 本地文件:O_NOFOLLOW 打开(symlink 拒,ELOOP),fstat 前后校验(读中被换文件 ⇒ 捕获失败不产快照) */
   private captureLocalFile(source: SourceRef, path: string): SourceSnapshot {
-    const abs = path.startsWith("/") ? path : join(this.deps.workspace, path);
+    const abs = isAbsolute(path) ? path : join(this.deps.workspace, path);
     // 评审 B-4:workspace 边界断言(realpath 全路径解析,挡 ../ 穿越与目录级 symlink 外逃——
     // 否则被注入的 Brain 构造 ref 即可把 ~/.ssh 等吸入快照并经深评 prompt 外传)
     const rootReal = realpathSync(this.deps.workspace);
@@ -103,10 +104,16 @@ export class Snapshotter {
     } catch (err) {
       throw new Error(`capture path unresolvable: ${abs} (${String(err).slice(0, 80)})`);
     }
-    if (parentReal !== rootReal && !parentReal.startsWith(`${rootReal}/`)) {
+    const relParent = relative(rootReal, parentReal);
+    if (relParent.startsWith("..") || isAbsolute(relParent)) {
       throw new Error(`capture path escapes workspace: ${abs}`);
     }
-    const fd = openSync(abs, constants.O_RDONLY | constants.O_NOFOLLOW);
+    if (hostKind() === "win32") {
+      const st = lstatSync(abs);
+      if (st.isSymbolicLink()) throw new Error(`capture refuses symlink: ${abs}`);
+    }
+    const noFollow = typeof constants.O_NOFOLLOW === "number" ? constants.O_NOFOLLOW : 0;
+    const fd = openSync(abs, constants.O_RDONLY | noFollow);
     try {
       const before = fstatSync(fd);
       if (before.size > 4 * 1024 * 1024) throw new Error(`capture file too large: ${before.size}B (limit 4MB)`);
@@ -168,12 +175,7 @@ export class Snapshotter {
     const bodyPath = join(this.snapshotsDir(), id);
     const tmp = `${bodyPath}.tmp`;
     writeFileSync(tmp, body);
-    const fd = openSync(tmp, constants.O_RDONLY);
-    try {
-      fsyncSync(fd);
-    } finally {
-      closeSync(fd);
-    }
+    fsyncFile(tmp);
     renameSync(tmp, bodyPath);
     const snap: SourceSnapshot = {
       id,

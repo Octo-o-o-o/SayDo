@@ -4,6 +4,7 @@
 // 其余工具(assessReadiness/proposeStart/confirmAndDispatch/审批/取消…)随 Phase 3/4 注册。
 
 import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { z } from "zod";
 import { newId, taskViewSchema, type TaskView, type ToolError } from "@saydo/contracts";
 import type { Db } from "../storage/db.js";
@@ -15,6 +16,20 @@ import { verifiedProjectWorkspace } from "../storage/dao/projects.js";
 export function detectEditorDarwin(): "cursor" | "vscode" | null {
   if (existsSync("/Applications/Cursor.app")) return "cursor";
   if (existsSync("/Applications/Visual Studio Code.app")) return "vscode";
+  return null;
+}
+
+export function detectEditorWin32(): "cursor" | "vscode" | null {
+  const local = process.env["LOCALAPPDATA"];
+  if (!local) return null;
+  if (existsSync(join(local, "Programs", "cursor", "Cursor.exe"))) return "cursor";
+  if (existsSync(join(local, "Programs", "Microsoft VS Code", "Code.exe"))) return "vscode";
+  return null;
+}
+
+export function detectEditor(): "cursor" | "vscode" | null {
+  if (process.platform === "win32") return detectEditorWin32();
+  if (process.platform === "darwin") return detectEditorDarwin();
   return null;
 }
 
@@ -176,7 +191,7 @@ export class BrainTools {
 
   /** 编辑器深链构造:ref = "<workspace 相对路径>[:line]";越界/无工作区/无编辑器 => null(回落) */
   private editorDeepLink(taskId: string, ref: string): string | null {
-    const detect = this.deps.detectEditor ?? detectEditorDarwin;
+    const detect = this.deps.detectEditor ?? detectEditor;
     const editor = detect();
     if (editor === null) return null;
     const m = /^(.*?)(?::(\d+))?$/.exec(ref);

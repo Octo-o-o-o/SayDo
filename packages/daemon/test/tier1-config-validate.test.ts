@@ -43,7 +43,7 @@ describe("validateTier1Config(B2 §12-9)", () => {
     expect(v).toMatchObject({ ok: false, code: "bin_not_file" });
   });
 
-  it("反例:不可执行 ⇒ bin_not_executable", () => {
+  it.skipIf(process.platform === "win32")("反例:不可执行 ⇒ bin_not_executable", () => {
     const bin = makeLockedCopy("1.2.3", { executable: false });
     const v = validateTier1Config({ cursorAgentBin: bin, pinnedVersion: "1.2.3" });
     expect(v).toMatchObject({ ok: false, code: "bin_not_executable" });

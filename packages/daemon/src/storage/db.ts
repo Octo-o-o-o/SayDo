@@ -6,14 +6,34 @@ import { MIGRATIONS } from "./ddl.js";
 
 export type Db = Database.Database;
 
+const tracked = new Set<Db>();
+
 export function openDb(path: string): Db {
   const db = new Database(path);
+  tracked.add(db);
+  const originalClose = db.close.bind(db);
+  db.close = ((...args: Parameters<Db["close"]>) => {
+    tracked.delete(db);
+    return originalClose(...args);
+  }) as Db["close"];
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   // FULL:买断断电/OS 崩溃窗口——"先落盘后发送"的两阶段写依赖提交即持久(评审 B8;单用户本地写入量小,代价可忽略)
   db.pragma("synchronous = FULL");
   migrate(db);
   return db;
+}
+
+/** 测试收口:Windows 不能 unlink 仍打开的 SQLite。 */
+export function closeTrackedDatabases(): void {
+  for (const db of [...tracked]) {
+    try {
+      db.close();
+    } catch {
+      // 已关
+    }
+    tracked.delete(db);
+  }
 }
 
 function migrate(db: Db): void {

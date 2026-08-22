@@ -4,7 +4,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { configureRuntimeChildRegistry, execRuntimeChild, spawnRuntimeChild } from "../src/runtimeChildRegistry.js";
+import { processAlive } from "@saydo/platform";
+import { configureRuntimeChildRegistry, execRuntimeChild, signalRuntimeChildTree, spawnRuntimeChild } from "../src/runtimeChildRegistry.js";
 
 const homes = new Set<string>();
 
@@ -58,7 +59,7 @@ describe("runtime child durable ownership", () => {
   it("短命 managed command 不把 wrapper 自己的 ps 探针误认作后代", async () => {
     home();
     const startedAt = Date.now();
-    await expect(execRuntimeChild("/usr/bin/git", ["--version"])).resolves.toMatchObject({
+    await expect(execRuntimeChild(process.platform === "win32" ? "git" : "/usr/bin/git", ["--version"])).resolves.toMatchObject({
       stdout: expect.stringContaining("git version")
     });
     expect(Date.now() - startedAt).toBeLessThan(2000);
@@ -99,11 +100,11 @@ describe("runtime child durable ownership", () => {
     );
     await once(spawned.child, "spawn");
     if (!spawned.child.pid) throw new Error("wrapper 未获得 pid");
-    process.kill(-spawned.child.pid, "SIGKILL");
+    signalRuntimeChildTree(spawned.child.pid, "SIGKILL");
     await once(spawned.child, "close");
     spawned.lease.release();
     expect(existsSync(marker)).toBe(false);
-    expect(() => process.kill(-spawned.child.pid!, 0)).toThrow();
+    expect(processAlive(spawned.child.pid)).toBe(false);
   });
 
   it("目标退出后 wrapper 先回收同组孙进程再退出", async () => {
@@ -125,7 +126,7 @@ describe("runtime child durable ownership", () => {
     spawned.lease.release();
     const grandchildPid = Number(readFileSync(marker, "utf8"));
     expect(() => process.kill(grandchildPid, 0)).toThrow();
-    expect(() => process.kill(-spawned.child.pid!, 0)).toThrow();
+    expect(processAlive(spawned.child.pid!)).toBe(false);
   });
 
   it("后代 argv 伪装 ps 探针片段也不能逃逸收口", async () => {

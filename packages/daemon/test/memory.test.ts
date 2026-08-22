@@ -10,6 +10,7 @@ import { openDb, type Db } from "../src/storage/db.js";
 import { MemoryLedger, type ForgetHardStores } from "../src/memory/ledger.js";
 import { MemoryFts } from "../src/memory/fts.js";
 import { recoverMemory } from "../src/memory/recovery.js";
+import { wasHardKilled } from "./helpers/hardKill.js";
 import { classifyTrust, isImperative, MemoryPolicyError } from "../src/memory/classify.js";
 import type { AuditSink } from "../src/obs/audit.js";
 import { textDigest } from "@saydo/contracts";
@@ -208,16 +209,15 @@ describe("投影全量重放再生(含 tombstone 例外)", () => {
 
 describe("§12-4 崩溃相位重放(tombstone 后/覆写前)", () => {
   const CHILD = resolve(__dirname, "fixtures/memory-crash-child.ts");
-  const TSX = resolve(__dirname, "../node_modules/.bin/tsx");
+  const TSX = resolve(__dirname, "../node_modules/tsx/dist/cli.mjs");
 
   it("相位一(tombstone 已落)后 kill -9 => 重启重放覆写收敛", () => {
     const dbPath = join(mkdtempSync(join(tmpdir(), "saydo-memc-")), "saydo.db");
     try {
-      execFileSync(TSX, [CHILD, dbPath], { stdio: "pipe" });
+      execFileSync(process.execPath, [TSX, CHILD, dbPath], { stdio: "pipe" });
       throw new Error("child should be killed");
     } catch (err) {
-      const e = err as { signal?: string | null; status?: number | null };
-      expect(e.signal === "SIGKILL" || e.status === 137).toBe(true);
+      expect(wasHardKilled(err)).toBe(true);
     }
     // 重启:tombstone 在库,但覆写未完成(child 在覆写前自杀)——恢复例程(A-1)必须收敛,
     // 禁止手动重调 forgetHard 充当恢复(那会产生新 tombstone/generation)

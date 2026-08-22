@@ -7,12 +7,18 @@
 import { createServer, type Server } from "node:http";
 import { existsSync, unlinkSync } from "node:fs";
 import { z } from "zod";
+import { listenGateHttp } from "@saydo/platform";
 
 const gateRequestSchema = z.object({
-  command: z.string(),
-  cwd: z.string()
+  cwd: z.string(),
+  command: z.string().optional(),
+  kind: z.enum(["command", "file_write", "file_read"]).optional()
 });
 export type GateWireRequest = z.infer<typeof gateRequestSchema>;
+
+export function parseGateWireRequest(json: unknown): GateWireRequest {
+  return gateRequestSchema.parse(json);
+}
 
 export interface GateWireResponse {
   permission: "allow" | "deny";
@@ -69,4 +75,13 @@ export function startGateServer(sockPath: string, handler: GateHandler): Server 
   server.listen(sockPath);
   server.unref();
   return server;
+}
+
+/** POSIX = unix socket; win32 = 环回临时端口 + HMAC */
+export async function startTier1Gate(saydoHome: string, sockPath: string, handler: GateHandler): Promise<Server> {
+  if (process.platform === "win32") {
+    const listened = await listenGateHttp(saydoHome, async (json) => handler(parseGateWireRequest(json)));
+    return listened.server;
+  }
+  return startGateServer(sockPath, handler);
 }

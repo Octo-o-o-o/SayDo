@@ -2,7 +2,7 @@ import { createServer, type Server } from "node:http";
 import { createHash } from "node:crypto";
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { WebSocket } from "ws";
 import { describe, expect, it, vi } from "vitest";
 import { FIRST_RUN_OPENING } from "../src/api/firstRun.js";
@@ -101,6 +101,9 @@ async function listenTrap(port: number): Promise<{ server: Server; calls: () => 
     res.writeHead(200);
     res.end("ok");
   });
+  server.on("connection", (socket) => {
+    socket.on("error", () => undefined);
+  });
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
     server.listen(port, "127.0.0.1", resolve);
@@ -109,6 +112,7 @@ async function listenTrap(port: number): Promise<{ server: Server; calls: () => 
 }
 
 async function closeServer(server: Server): Promise<void> {
+  server.closeAllConnections?.();
   await new Promise<void>((resolve) => server.close(() => resolve()));
 }
 
@@ -137,23 +141,31 @@ async function expectWsRejected(url: string): Promise<void> {
   });
 }
 
-async function waitForFileText(path: string, expected: string, timeoutMs = 3000): Promise<string> {
+async function waitForFileText(path: string, expected: string, timeoutMs = 15_000): Promise<string> {
   const deadline = Date.now() + timeoutMs;
+  let last = "";
   while (Date.now() < deadline) {
-    const text = existsSync(path) ? readFileSync(path, "utf8") : "";
-    if (text.includes(expected)) return text;
+    last = existsSync(path) ? readFileSync(path, "utf8") : "";
+    if (last.includes(expected)) return last;
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
-  throw new Error(`等待进程证据超时:${expected}`);
+  throw new Error(`等待进程证据超时:${expected} got=${JSON.stringify(last).slice(0, 400)}`);
 }
 
 function installHoldingCodex(home: string): { binDir: string; binaryPath: string; marker: string } {
   const binDir = join(home, "fake-bin");
   mkdirSync(binDir, { recursive: true });
-  const binaryPath = join(binDir, "codex");
-  copyFileSync(HOLD_CODEX_FIXTURE, binaryPath);
-  chmodSync(binaryPath, 0o755);
-  return { binDir, binaryPath, marker: join(binDir, "fake-codex-hold.marker") };
+  const scriptPath = join(binDir, "codex.mjs");
+  copyFileSync(HOLD_CODEX_FIXTURE, scriptPath);
+  if (process.platform === "win32") {
+    writeFileSync(join(binDir, "codex.cmd"), `@echo off\r\n"${process.execPath}" "${scriptPath}" %*\r\n`);
+  } else {
+    const binaryPath = join(binDir, "codex");
+    copyFileSync(HOLD_CODEX_FIXTURE, binaryPath);
+    chmodSync(binaryPath, 0o755);
+    return { binDir, binaryPath, marker: join(binDir, "fake-codex-hold.marker") };
+  }
+  return { binDir, binaryPath: scriptPath, marker: join(binDir, "fake-codex-hold.marker") };
 }
 
 function cliCandidateConfig(): string {
@@ -190,7 +202,7 @@ describe("recovery-only 真实进程组合根", () => {
     const daemon = await startDaemonProcess({
       home,
       port: await reservePort(),
-      env: { OPENAI_API_KEY: "process-test-key", PATH: `${installed.binDir}:${process.env["PATH"] ?? ""}` }
+      env: { OPENAI_API_KEY: "process-test-key", PATH: `${installed.binDir}${delimiter}${process.env["PATH"] ?? ""}` }
     });
     try {
       const probe = (await (await daemon.api("/api/setup/probe")).json()) as {
@@ -205,14 +217,18 @@ describe("recovery-only 真实进程组合根", () => {
     }
   }, 15_000);
 
-  it.each(["restart", "SIGINT", "SIGTERM"] as const)("活跃 CLI self-test 下 %s 先 drain 整个进程组再退出", async (mode) => {
+  // win32:该例断言 POSIX SIGTERM 对 inherit/ignore 孙进程可捕获。Windows 进程树回收走具名 Job
+  // (emergency-reaper / runtime-child / executor setup-hang),不把 SIGTERM handler 当合同。
+  it.skipIf(process.platform === "win32").each(["restart", "SIGINT", "SIGTERM"] as const)(
+    "活跃 CLI self-test 下 %s 先 drain 整个进程组再退出",
+    async (mode) => {
     const home = realpathSync(mkdtempSync(join(tmpdir(), `saydo-recovery-drain-${mode.toLowerCase()}-`)));
     writeFileSync(join(home, "config.toml"), "[models\ninvalid =", { mode: 0o600 });
     const installed = installHoldingCodex(home);
     const daemon = await startDaemonProcess({
       home,
       port: await reservePort(),
-      env: { PATH: `${installed.binDir}:${process.env["PATH"] ?? ""}` }
+      env: { PATH: `${installed.binDir}${delimiter}${process.env["PATH"] ?? ""}` }
     });
     try {
       writeFileSync(join(home, "config.toml.pending"), cliCandidateConfig(), { mode: 0o600 });
@@ -247,6 +263,7 @@ describe("recovery-only 真实进程组合根", () => {
         headers: { "content-type": "application/json" },
         body: "{}"
       }).catch(() => null);
+      await waitForFileText(installed.marker, "started:");
       await waitForFileText(installed.marker, "inherit-started");
       await waitForFileText(installed.marker, "ignore-started");
       const before = await daemon.health();
@@ -269,12 +286,15 @@ describe("recovery-only 真实进程组合根", () => {
         await exited;
       }
       await selfTest;
-      const marker = await waitForFileText(installed.marker, "ignore-SIGTERM");
-      expect(marker).toContain("parent-SIGTERM");
-      expect(marker).toContain("inherit-SIGTERM");
-      const processPids = [...marker.matchAll(/(?:^|\n)(?:started|inherit-started|ignore-started):(\d+)/g)]
+      const startedMarker = readFileSync(installed.marker, "utf8");
+      const processPids = [...startedMarker.matchAll(/(?:^|\n)(?:started|inherit-started|ignore-started):(\d+)/g)]
         .map((match) => Number(match[1]));
       expect(processPids).toHaveLength(3);
+      if (process.platform !== "win32") {
+        const marker = await waitForFileText(installed.marker, "ignore-SIGTERM");
+        expect(marker).toContain("parent-SIGTERM");
+        expect(marker).toContain("inherit-SIGTERM");
+      }
       await vi.waitFor(() => {
         for (const pid of processPids) expect(() => process.kill(pid, 0)).toThrow();
       });

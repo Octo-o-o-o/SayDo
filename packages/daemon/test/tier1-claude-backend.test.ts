@@ -9,6 +9,7 @@ import {
   parseClaudeTier1Line
 } from "../src/tier1/backends/claude.js";
 import { explainCliProcessFailure } from "../src/providers/byoa/processFailure.js";
+import { cursorHookCommand } from "../src/tier1/adapter.js";
 import { gatePaths } from "../src/tier1/gateScript.js";
 
 const FIX = join(__dirname, "fixtures/claude-cli/2.1.220");
@@ -85,7 +86,7 @@ describe("claude hooks JSON 快照", () => {
     };
     expect(json.hooks.PreToolUse[0]?.matcher).toBe("*");
     expect(json.hooks.PreToolUse[0]?.hooks[0]?.timeout).toBe(120);
-    expect(json.hooks.PreToolUse[0]?.hooks[0]?.command).toBe("/tmp/gate-claude.sh");
+    expect(json.hooks.PreToolUse[0]?.hooks[0]?.command).toBe(cursorHookCommand("/tmp/gate-claude.sh"));
     expect(() => buildClaudeHooksSettings("/tmp/x", 110)).toThrow(/hookTimeoutSec/);
   });
 
@@ -95,13 +96,15 @@ describe("claude hooks JSON 快照", () => {
     mkdirSync(p.dir, { recursive: true });
     const out = claudeBackend().provisionHooks("/tmp/wt", p);
     expect(out.filesWritten).toHaveLength(1);
-    expect(out.filesWritten[0]).toMatch(/gate-claude\.sh$/);
+    expect(out.filesWritten[0]).toMatch(process.platform === "win32" ? /gate-claude\.mjs$/u : /gate-claude\.sh$/u);
     expect(out.filesWritten[0]?.endsWith("gate.sh")).toBe(false);
     expect(existsSync(out.filesWritten[0]!)).toBe(true);
     const settings = JSON.parse(out.extraArgs[1]!) as {
       hooks: { PreToolUse: Array<{ hooks: Array<{ command: string }> }> };
     };
-    expect(settings.hooks.PreToolUse[0]?.hooks[0]?.command).toBe(out.filesWritten[0]);
+    const cmd = settings.hooks.PreToolUse[0]?.hooks[0]?.command ?? "";
+    if (process.platform === "win32") expect(cmd).toContain("gate-claude.mjs");
+    else expect(cmd).toBe(out.filesWritten[0]);
     expect(readFileSync(out.filesWritten[0]!, "utf8")).toContain("PreToolUse");
   });
 });

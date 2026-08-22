@@ -3,8 +3,11 @@ import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, resolve, delimiter } from "node:path";
 import { fileURLToPath } from "node:url";
+import { killOwnedTree, nativeSync, processAlive as nativeProcessAlive, processBirth } from "../../platform/dist/index.mjs";
+
+if (process.platform === "win32") nativeSync();
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = resolve(packageRoot, "..", "..");
@@ -18,12 +21,40 @@ const otherRoot = join(scratch, "other-state");
 const recoveryRoot = join(scratch, "recovery-state");
 const npmCache = join(scratch, "npm-cache");
 const defaultUserHome = join(scratch, "default-user");
-const gitDir = dirname(execFileSync("/usr/bin/which", ["git"], { encoding: "utf8" }).trim());
+function resolveGitDir() {
+  const cmd = process.platform === "win32" ? "where" : "which";
+  const r = spawnSync(cmd, ["git"], { encoding: "utf8" });
+  const line = (r.stdout ?? "").split(/\r?\n/).map((s) => s.trim()).find(Boolean);
+  if (!line) throw new Error("git not found on PATH");
+  return dirname(line);
+}
+const gitDir = resolveGitDir();
 const fixtureBin = join(scratch, "fixture-bin");
+const winSysRoot = process.env["SystemRoot"] ?? "C:\\Windows";
 const nodeOnlyEnv = {
-  PATH: `${fixtureBin}:${dirname(process.execPath)}:${gitDir}`,
+  PATH: [
+    fixtureBin,
+    dirname(process.execPath),
+    gitDir,
+    ...(process.platform === "win32" ? [join(winSysRoot, "System32")] : [])
+  ].join(delimiter),
   LANG: process.env["LANG"] ?? "C.UTF-8",
-  HOME: defaultUserHome
+  HOME: defaultUserHome,
+  ...(process.platform === "win32"
+    ? {
+        USERPROFILE: defaultUserHome,
+        HOMEDRIVE: defaultUserHome.slice(0, 2),
+        HOMEPATH: defaultUserHome.slice(2) || "\\",
+        PATHEXT: process.env["PATHEXT"] ?? ".COM;.EXE;.BAT;.CMD",
+        SystemRoot: winSysRoot,
+        windir: process.env["windir"] ?? winSysRoot,
+        ComSpec: process.env["ComSpec"] ?? join(winSysRoot, "System32", "cmd.exe"),
+        TEMP: scratch,
+        TMP: scratch,
+        LOCALAPPDATA: join(defaultUserHome, "AppData", "Local"),
+        APPDATA: join(defaultUserHome, "AppData", "Roaming")
+      }
+    : {})
 };
 const activeChildren = new Set();
 const activeServers = new Set();
@@ -62,11 +93,21 @@ async function portAvailable(port) {
   }
 }
 
+function resolveNpm() {
+  if (process.platform !== "win32") return { file: "npm", prefix: [], options: {} };
+  const bundled = join(dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js");
+  if (existsSync(bundled)) {
+    return { file: process.execPath, prefix: [bundled], options: {} };
+  }
+  throw new Error(`npm-cli.js 未找到:${bundled}`);
+}
+
 function packAndInstall() {
+  const npm = resolveNpm();
   const raw = execFileSync(
-    "npm",
-    ["pack", "--ignore-scripts", "--json", "--pack-destination", scratch],
-    { cwd: packageRoot, encoding: "utf8", env: { ...process.env, npm_config_cache: npmCache } }
+    npm.file,
+    [...npm.prefix, "pack", "--ignore-scripts", "--json", "--pack-destination", scratch],
+    { cwd: packageRoot, encoding: "utf8", env: { ...process.env, npm_config_cache: npmCache }, ...npm.options }
   );
   const packed = JSON.parse(raw)[0];
   invariant(packed?.filename, "npm pack 未返回 tarball");
@@ -74,28 +115,70 @@ function packAndInstall() {
   invariant(paths.every((path) => path === "package.json" || path.startsWith("dist/")), "tarball 含源码树外文件");
   invariant(paths.includes("dist/runtime/daemon.mjs"), "tarball 缺 daemon artifact");
   invariant(paths.includes("dist/console/index.html"), "tarball 缺 console dist");
-  execFileSync("npm", ["install", "--prefix", installRoot, join(scratch, packed.filename)], {
+  execFileSync(npm.file, [...npm.prefix, "install", "--prefix", installRoot, join(scratch, packed.filename)], {
     cwd: scratch,
     stdio: "inherit",
-    env: { ...process.env, npm_config_cache: npmCache }
+    env: { ...process.env, npm_config_cache: npmCache },
+    ...npm.options
   });
+  if (process.platform === "win32") {
+    invariant(
+      existsSync(join(installRoot, "node_modules", ".bin", "saydo.cmd")),
+      "Windows 安装缺 saydo.cmd shim"
+    );
+  }
   return { filename: packed.filename, entryCount: packed.entryCount };
 }
 
-function installedCli() {
-  return join(installRoot, "node_modules", ".bin", "saydo");
+function cliInvocation() {
+  if (process.platform === "win32") {
+    return {
+      file: process.execPath,
+      prefix: [join(installRoot, "node_modules", "@saydo", "cli", "dist", "cli.mjs")]
+    };
+  }
+  return { file: join(installRoot, "node_modules", ".bin", "saydo"), prefix: [] };
+}
+
+function spawnCli(args, options) {
+  const cli = cliInvocation();
+  return spawn(cli.file, [...cli.prefix, ...args], { windowsHide: true, ...options });
 }
 
 function cliSync(args, env = nodeOnlyEnv) {
-  return spawnSync(installedCli(), args, { cwd: installRoot, env, encoding: "utf8" });
+  const cli = cliInvocation();
+  return spawnSync(cli.file, [...cli.prefix, ...args], {
+    cwd: installRoot,
+    env,
+    encoding: "utf8",
+    windowsHide: true
+  });
+}
+
+function resolvedHome(home) {
+  return home === null ? join(defaultUserHome, ".saydo") : home;
+}
+
+function cliStopFile(home, pid) {
+  return join(home, "runtime", `cli-stop-${String(pid)}`);
+}
+
+function requestGracefulStop(child, home) {
+  if (process.platform === "win32") {
+    invariant(Number.isInteger(child.pid) && child.pid > 0, "cli pid 缺失,无法写 stop 文件");
+    mkdirSync(join(home, "runtime"), { recursive: true });
+    writeFileSync(cliStopFile(home, child.pid), "cli_sigint\n");
+    return;
+  }
+  child.kill("SIGINT");
 }
 
 function start(port, home = stateRoot, env = nodeOnlyEnv, explicitPort = true) {
   const homeArgs = home === null ? [] : ["--home", home];
   const portArgs = explicitPort ? ["--port", String(port)] : [];
-  ownedHomes.add(home === null ? join(defaultUserHome, ".saydo") : home);
-  const child = spawn(
-    installedCli(),
+  const actualHome = resolvedHome(home);
+  ownedHomes.add(actualHome);
+  const child = spawnCli(
     ["up", ...homeArgs, ...portArgs, "--no-open"],
     { cwd: installRoot, env, stdio: ["ignore", "pipe", "pipe"], detached: true }
   );
@@ -107,7 +190,7 @@ function start(port, home = stateRoot, env = nodeOnlyEnv, explicitPort = true) {
   child.stdout.on("data", (chunk) => { output += chunk; });
   child.stderr.on("data", (chunk) => { output += chunk; });
   return new Promise((resolveReady, rejectReady) => {
-    const timer = setTimeout(() => rejectReady(new Error(`daemon ready 超时:\n${output.slice(-2000)}`)), 15_000);
+    const timer = setTimeout(() => rejectReady(new Error(`daemon ready 超时:\n${output.slice(-2000)}`)), process.platform === "win32" ? 30_000 : 15_000);
     const inspect = (chunk) => {
       for (const line of String(chunk).split("\n")) {
         if (!line.startsWith('{"mode":"owned"')) continue;
@@ -115,7 +198,7 @@ function start(port, home = stateRoot, env = nodeOnlyEnv, explicitPort = true) {
         child.stdout.off("data", inspect);
         const ready = JSON.parse(line);
         rememberPid(ready.pid, "daemon");
-        resolveReady({ child, ready, output: () => output });
+        resolveReady({ child, ready, output: () => output, home: actualHome });
       }
     };
     child.stdout.on("data", inspect);
@@ -128,8 +211,7 @@ function start(port, home = stateRoot, env = nodeOnlyEnv, explicitPort = true) {
 
 function startContender(port, home) {
   ownedHomes.add(home);
-  const child = spawn(
-    installedCli(),
+  const child = spawnCli(
     ["up", "--home", home, "--port", String(port), "--no-open"],
     { cwd: installRoot, env: nodeOnlyEnv, stdio: ["ignore", "pipe", "pipe"], detached: true }
   );
@@ -163,7 +245,7 @@ async function stopContender(contender) {
   if (contender.child.exitCode !== null || contender.child.signalCode !== null) return;
   await new Promise((resolveWait) => setTimeout(resolveWait, 200));
   if (contender.child.exitCode !== null || contender.child.signalCode !== null) return;
-  contender.child.kill("SIGTERM");
+  requestGracefulStop(contender.child, contender.home);
   const ended = await waitForExit(contender.child, 30_000, "concurrent contender");
   invariant(
     ended.code === 0 && ended.signal === null,
@@ -183,8 +265,8 @@ async function waitForExit(child, timeoutMs, label) {
 }
 
 async function stop(owned) {
-  owned.child.kill("SIGINT");
-  const { code, signal } = await waitForExit(owned.child, 15_000, `Ctrl+C 停止:\n${owned.output().slice(-2000)}`);
+  requestGracefulStop(owned.child, owned.home);
+  const { code, signal } = await waitForExit(owned.child, process.platform === "win32" ? 30_000 : 15_000, `Ctrl+C 停止:\n${owned.output().slice(-2000)}`);
   invariant(code === 0 && signal === null, `CLI 非优雅退出 code=${code} signal=${signal}`);
   const daemonPid = owned.ready.pid;
   try {
@@ -196,16 +278,11 @@ async function stop(owned) {
 }
 
 function processAlive(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (err) {
-    if (err?.code === "ESRCH") return false;
-    throw err;
-  }
+  return nativeProcessAlive(pid);
 }
 
 function processGroupAlive(pid) {
+  if (process.platform === "win32") return processAlive(pid);
   try {
     process.kill(-pid, 0);
     return true;
@@ -217,27 +294,7 @@ function processGroupAlive(pid) {
 }
 
 function processStart(pid) {
-  const ps = existsSync("/bin/ps") ? "/bin/ps" : "/usr/bin/ps";
-  try {
-    return execFileSync(ps, ["-o", "lstart=", "-p", String(pid)], { encoding: "utf8" }).trim() || null;
-  } catch {
-    try {
-      const raw = execFileSync("pgrep", ["-lf", "node"], { encoding: "utf8" });
-      const line = raw
-        .split("\n")
-        .map((item) => item.trim())
-        .find((item) => item === String(pid) || item.startsWith(`${String(pid)} `));
-      if (line) return `pgrep1:${line.slice(0, 240)}`;
-    } catch {
-      // fall through
-    }
-    try {
-      process.kill(pid, 0);
-      return `alive1:${pid}`;
-    } catch {
-      return null;
-    }
-  }
+  return processBirth(pid);
 }
 
 function rememberPid(pid, label) {
@@ -275,7 +332,17 @@ async function cleanupOwnedRegistry(home, allowKill) {
     } else {
       invariant(observedStart === record.processStart, `cleanup ownership identity mismatch:${record.pid}`);
     }
-    try { process.kill(-record.pid, "SIGKILL"); } catch (err) { if (err?.code !== "ESRCH") throw err; }
+    try {
+      if (process.platform === "win32") {
+        if (record.jobName) {
+          await killOwnedTree({ pid: record.pid, expectedBirth: record.processStart, jobName: record.jobName });
+        } else {
+          process.kill(record.pid, "SIGKILL");
+        }
+      } else {
+        process.kill(-record.pid, "SIGKILL");
+      }
+    } catch (err) { if (err?.code !== "ESRCH") throw err; }
     await waitUntil(() => !processGroupAlive(record.pid), `distribution registry group=${record.pid}`, 8_000);
   }
 }
@@ -300,8 +367,7 @@ async function assertPidGone(pid, label) {
 }
 
 async function attachAndRelease(port, expectedPid) {
-  const child = spawn(
-    installedCli(),
+  const child = spawnCli(
     ["up", "--home", stateRoot, "--port", String(port), "--no-open"],
     { cwd: installRoot, env: nodeOnlyEnv, stdio: ["ignore", "pipe", "pipe"] }
   );
@@ -318,8 +384,8 @@ async function attachAndRelease(port, expectedPid) {
     return JSON.parse(line).pid === expectedPid;
   }, "attached up ready");
   await new Promise((resolveWait) => setTimeout(resolveWait, 200));
-  child.kill("SIGINT");
-  const ended = await waitForExit(child, 5_000, "attached CLI");
+  requestGracefulStop(child, stateRoot);
+  const ended = await waitForExit(child, process.platform === "win32" ? 15_000 : 5_000, "attached CLI");
   invariant(
     ended.code === 0 && ended.signal === null,
     `attached CLI Ctrl+C 非零退出 code=${String(ended.code)} signal=${String(ended.signal)} output=${output.slice(-500)}`
@@ -329,9 +395,13 @@ async function attachAndRelease(port, expectedPid) {
 
 function prepareTier1Fixture() {
   mkdirSync(fixtureBin, { recursive: true });
-  const pnpmFixture = join(fixtureBin, "pnpm");
-  writeFileSync(pnpmFixture, "#!/bin/sh\nexec node -e 'process.exit(0)'\n");
-  chmodSync(pnpmFixture, 0o755);
+  if (process.platform === "win32") {
+    writeFileSync(join(fixtureBin, "pnpm.cmd"), `@echo off\r\n"${process.execPath}" -e "process.exit(0)"\r\n`);
+  } else {
+    const pnpmFixture = join(fixtureBin, "pnpm");
+    writeFileSync(pnpmFixture, "#!/bin/sh\nexec node -e 'process.exit(0)'\n");
+    chmodSync(pnpmFixture, 0o755);
+  }
   const versionDir = join(scratch, "agent", "versions", "1.0.0");
   mkdirSync(versionDir, { recursive: true });
   const agent = join(versionDir, "cursor-agent");
@@ -383,9 +453,26 @@ if (resumed) {
   return { repo };
 }
 
+function packedDep(name) {
+  const hoisted = join(installRoot, "node_modules", name);
+  const nested = join(installRoot, "node_modules", "@saydo", "cli", "node_modules", name);
+  if (existsSync(hoisted)) return hoisted;
+  if (existsSync(nested)) return nested;
+  throw new Error(`packed ${name} missing`);
+}
+
+function assertPackedNativeAddon(dbPath) {
+  invariant(existsSync(packedDep("koffi")), "packed koffi missing");
+  const modulePath = packedDep("better-sqlite3");
+  const script = `const Database=require(${JSON.stringify(modulePath)});const db=new Database(${JSON.stringify(dbPath)});db.prepare("select 1 as x").get();db.close();`;
+  const r = spawnSync(process.execPath, ["-e", script], { encoding: "utf8", windowsHide: true });
+  invariant(r.status === 0, `installed better-sqlite3 未能开库:${r.stderr || r.stdout}`);
+}
+
 function openInstalledDb() {
-  const requireFromInstall = createRequire(join(installRoot, "node_modules", "@saydo", "cli", "package.json"));
-  const Database = requireFromInstall("better-sqlite3");
+  // 分发校验进程用工作区 addon 开库。Windows 不能在当前进程加载 scratch 里的 .node 再删目录。
+  const requireFromWorkspace = createRequire(join(packageRoot, "package.json"));
+  const Database = requireFromWorkspace("better-sqlite3");
   const db = new Database(join(stateRoot, "saydo.db"));
   openDatabases.add(db);
   return db;
@@ -426,8 +513,13 @@ function seedTier1(db, repo) {
   return { taskId };
 }
 
-async function json(url, init) {
-  const response = await fetch(url, init);
+async function fetchClose(url) {
+  return fetch(url, { keepalive: false, headers: { connection: "close" } });
+}
+
+async function json(url, init = {}) {
+  const headers = { connection: "close", ...(init.headers ?? {}) };
+  const response = await fetch(url, { ...init, headers, keepalive: false });
   const body = await response.json();
   return { response, body };
 }
@@ -437,23 +529,33 @@ try {
   const packed = packAndInstall();
   mkdirSync(fixtureBin, { recursive: true });
   for (const command of ["pnpm", "tsx"]) {
-    const sentinel = join(fixtureBin, command);
-    writeFileSync(sentinel, `#!/bin/sh\necho '${command} must not be used by distribution runtime' >&2\nexit 97\n`);
-    chmodSync(sentinel, 0o755);
+    if (process.platform === "win32") {
+      writeFileSync(
+        join(fixtureBin, `${command}.cmd`),
+        `@echo off\r\necho ${command} must not be used by distribution runtime 1>&2\r\nexit /b 97\r\n`
+      );
+    } else {
+      const sentinel = join(fixtureBin, command);
+      writeFileSync(sentinel, `#!/bin/sh\necho '${command} must not be used by distribution runtime' >&2\nexit 97\n`);
+      chmodSync(sentinel, 0o755);
+    }
   }
-  const nodeShim = join(fixtureBin, "node");
-  writeFileSync(nodeShim, `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} "$@"\n`);
-  chmodSync(nodeShim, 0o755);
+  if (process.platform !== "win32") {
+    const nodeShim = join(fixtureBin, "node");
+    writeFileSync(nodeShim, `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} "$@"\n`);
+    chmodSync(nodeShim, 0o755);
+    const openFixture = join(fixtureBin, "open");
+    writeFileSync(openFixture, "#!/bin/sh\nprintf '%s' \"$1\" > \"$SAYDO_OPEN_MARKER\"\n");
+    chmodSync(openFixture, 0o755);
+  }
   const openMarker = join(scratch, "open.marker");
-  const openFixture = join(fixtureBin, "open");
-  writeFileSync(openFixture, "#!/bin/sh\nprintf '%s' \"$1\" > \"$SAYDO_OPEN_MARKER\"\n");
-  chmodSync(openFixture, 0o755);
   const port = await freePort();
   const owned = await start(port);
   const origin = `http://localhost:${port}`;
   const token = readFileSync(join(stateRoot, ".cap-token"), "utf8").trim();
   const health = await json(`${origin}/health`);
   invariant(health.response.ok && health.body.service === "saydo-daemon", "/health 未就绪");
+  assertPackedNativeAddon(join(stateRoot, "saydo.db"));
   invariant(
     /^[0-9a-f]{7,64}$/.test(health.body.identity?.sourceRevision ?? "") &&
       typeof health.body.identity?.buildId === "string" && health.body.identity.buildId.length > 0 &&
@@ -482,13 +584,13 @@ try {
       readiness.body.voice?.reason === "pipeline_absent",
     "pipeline 缺席时 readiness 未正确拆分"
   );
-  const index = await fetch(`${origin}/`);
+  const index = await fetchClose(`${origin}/`);
   const indexBody = await index.text();
   const assetPaths = [...indexBody.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map((match) => match[1]);
   const assetPath = assetPaths[0];
   invariant(index.status === 200 && assetPath, "console index 或 hash asset 引用缺失");
-  invariant((await fetch(`${origin}${assetPath}`)).status === 200, "console hash asset 非 200");
-  const assetBodies = await Promise.all(assetPaths.map(async (path) => (await fetch(`${origin}${path}`)).text()));
+  invariant((await fetchClose(`${origin}${assetPath}`)).status === 200, "console hash asset 非 200");
+  const assetBodies = await Promise.all(assetPaths.map(async (path) => (await fetchClose(`${origin}${path}`)).text()));
   invariant(assetBodies.some((body) => body.includes("文本与控制面可用,语音未启用")), "console 未明示文本可用/语音未启用");
   const headers = { "x-saydo-token": token, "content-type": "application/json" };
   const summary = await json(`${origin}/api/desktop/summary`, { headers });
@@ -650,7 +752,7 @@ try {
     recoveryOwned.ready.runtimeMode === "recovery_only" && recoveryOwned.ready.readiness.coreReady === false,
     "CLI 未持有或错误宣称 recovery-only core ready"
   );
-  invariant((await fetch(`http://localhost:${recoveryPort}/`)).status === 200, "recovery-only 自救 console 不可用");
+  invariant((await fetchClose(`http://localhost:${recoveryPort}/`)).status === 200, "recovery-only 自救 console 不可用");
   await stop(recoveryOwned);
 
   const fixture = prepareTier1Fixture();
@@ -778,7 +880,10 @@ try {
     child.kill("SIGINT");
     await waitForExit(child, 8_000, "distribution cleanup").catch(async () => {
       if (child.exitCode === null && child.pid) {
-        try { process.kill(-child.pid, "SIGKILL"); } catch { child.kill("SIGKILL"); }
+        try {
+          if (process.platform === "win32") child.kill("SIGKILL");
+          else process.kill(-child.pid, "SIGKILL");
+        } catch { child.kill("SIGKILL"); }
       }
       await waitForExit(child, 5_000, "distribution cleanup hard kill");
     });

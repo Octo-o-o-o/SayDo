@@ -3,8 +3,9 @@
 // 非 cursor 后端配置仍起 cursor 二进制。本模块收拢为单一裁决点,fail-closed:任一不满足 ⇒
 // 执行器不启动(queued 不认领),verdict 带处方化 reason 供日志与审计。
 
-import { accessSync, constants, statSync } from "node:fs";
+import { accessSync, constants, lstatSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute } from "node:path";
+import { hostKind, isReparsePoint } from "@saydo/platform";
 
 export interface Tier1ConfigInput {
   cursorAgentBin: string;
@@ -51,9 +52,27 @@ export function validateTier1Config(i: Tier1ConfigInput): Tier1Verdict {
     return { ok: false, code: "bin_not_file", reason: `cursor_agent_bin 不是常规文件:${i.cursorAgentBin}` };
   }
   try {
-    accessSync(i.cursorAgentBin, constants.X_OK);
+    if (isReparsePoint(i.cursorAgentBin) || lstatSync(i.cursorAgentBin).isSymbolicLink()) {
+      return { ok: false, code: "bin_not_file", reason: `cursor_agent_bin 是漂移链接:${i.cursorAgentBin}` };
+    }
   } catch {
-    return { ok: false, code: "bin_not_executable", reason: `cursor_agent_bin 不可执行:${i.cursorAgentBin}` };
+    return { ok: false, code: "bin_missing", reason: `cursor_agent_bin 文件不存在:${i.cursorAgentBin}` };
+  }
+  if (hostKind() === "win32") {
+    const base = basename(i.cursorAgentBin).toLowerCase();
+    if (base !== "cursor-agent.exe" && base !== "cursor-agent") {
+      return {
+        ok: false,
+        code: "bin_not_versions_layout",
+        reason: `cursor_agent_bin 基名须为 cursor-agent.exe(得到 ${basename(i.cursorAgentBin)})`
+      };
+    }
+  } else {
+    try {
+      accessSync(i.cursorAgentBin, constants.X_OK);
+    } catch {
+      return { ok: false, code: "bin_not_executable", reason: `cursor_agent_bin 不可执行:${i.cursorAgentBin}` };
+    }
   }
   const verDir = dirname(i.cursorAgentBin);
   if (basename(verDir) !== i.pinnedVersion || basename(dirname(verDir)) !== "versions") {

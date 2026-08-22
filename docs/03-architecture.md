@@ -1,7 +1,7 @@
 # 03 · 系统架构(Architecture)
 
 > 本篇给出总体架构、组件职责、执行层集成、数据存储、部署拓扑与技术选型。运行机制(记忆、就绪、审批、回叫、成本)见 [04 · 关键机制](04-key-mechanisms.md);模块级分解与接口契约见 [08 · 分模块设计](08-module-design.md);分期见 [05 · 落地与路线](05-roadmap.md)。
-> **状态分两行**:**执行层边界 = 已批准**([设计 ADR-001](adr/design/ADR-001-execution-layer.md):以 Hopper 为执行后端,复用现状、锁版本、双路径);**产品载体与部署组合 = proposed**(独立 vs 并入千手,待 owner 拍板,见 05 §2——未来设计 ADR-003 只覆盖载体,不 supersede 设计 ADR-001)。
+> **状态分三行**:**执行层边界 = 已批准**([设计 ADR-001](adr/design/ADR-001-execution-layer.md):以 Hopper 为执行后端,复用现状、锁版本、双路径);**桌面 OS 矩阵 = 已决策**([设计 ADR-004](adr/design/ADR-004-windows-platform.md):Windows 是目标正式执行面,工程对齐进行中,机制走 [工程 ADR-003](adr/ADR-003-os-adapters.md) 适配层,不变量不放宽;P0 证据收口且 owner 授权前不宣布产品已支持);**产品载体与部署组合 = proposed**(独立 vs 并入千手,待 owner 拍板,见 05 §2——未来设计 ADR-003 只覆盖载体,不 supersede 设计 ADR-001/004)。
 
 ## 1. 总体分层:语音前脑 + 控制面桥 + 执行后端
 
@@ -149,7 +149,7 @@ Brain 通过工具指挥 daemon,工具集与引擎无关:
 **手机 ↔ 桌面/服务端连接选型(已定稿,全部证据见 `../research/mobile-desktop-connectivity.md`)**:
 
 1. **T2 自桌面**:优先 **Tailscale 直连**(免自建、最省心);要"QR 配对 + LAN 直连"体验或 T3/过防火墙时,**按 OctoDesk Desktop Remote 的协议模板重实现瘦身版**——LAN WebSocket 直连优先 + 自建 WS 密文中继兜底 + Noise XX E2E(服务端只见密文)。**不用 WebRTC P2P**(OctoDesk 与 Happy 两个产线实现都刻意不用)。
-2. **配对/信任/resume/推送隐私五件套直接采用 OctoDesk 设计**(重实现、不 fork 代码):一次性票据带外分发公钥 → Noise XX 互认证 → 桌面人工确认 → 信任设备免确认重连;Ed25519 JWS 签名 resume + 单次 nonce 防重放;推送 payload 只带 opaque id + meta 白名单,token 只存 digest;私钥只在 Keychain。
+2. **配对/信任/resume/推送隐私五件套直接采用 OctoDesk 设计**(重实现、不 fork 代码):一次性票据带外分发公钥 → Noise XX 互认证 → 桌面人工确认 → 信任设备免确认重连;Ed25519 JWS 签名 resume + 单次 nonce 防重放;推送 payload 只带 opaque id + meta 白名单,token 只存 digest;私钥只在 OS 机密存储(macOS Keychain / Windows DPAPI 或 Credential Manager / 移动端 Keystore;设计 ADR-004)。
 3. **注意方向差异**:OctoDesk 的 desktop-remote 是**只读面**;SayDo 要"手机下指令、桌面执行",capability 模型须自定义为双向(保留其 fail-closed + denylist 守门测试做法)。且 OctoDesk 自己的跨设备 sync / AI 流 resume 仍是 503 stub——这块**没有现成实现**,SayDo 要自建。
 4. **记忆归属**:M1/M2 + 执行在执行端;手机只做 I/O + M3 会话缓存;M0 可云同步。
 

@@ -43,7 +43,7 @@ describe("first-run once 状态机", () => {
     ]);
     const markerPath = join(home, "first-run-onboarding.json");
     expect(JSON.parse(readFileSync(markerPath, "utf8"))).toMatchObject({ state: "presented", sessionId: "ses_first" });
-    expect(statSync(markerPath).mode & 0o777).toBe(0o600);
+    if (process.platform !== "win32") expect(statSync(markerPath).mode & 0o777).toBe(0o600);
   });
 
   it("空 HOME 资格先于内部 audit 持久化,setup 重启后仍 eligible", () => {
