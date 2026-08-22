@@ -132,14 +132,14 @@ quoted span 的闭合内容必须**整段**是路径(以 `/`、`~/` 或盘符绝
 
 - 禁止新测试硬编码 `/Users/`、`/tmp/`、`chmod 0o755` 当唯一断言。
 - 用 `os.tmpdir()` / `homedir()` / `restrictOwnerOnly`(测试注入 stub,禁止在 `packages/daemon/test/setup.ts` 对 `%TEMP%` 跑生产 ACL)。
-- 🔴 **`os.tmpdir()` 不是平台中立的**(2026-08-22 实撞,4 处回归):
+- **红线:`os.tmpdir()` 不是平台中立的**(2026-08-22 实撞,4 处回归):
   - win32 `%TEMP%` 在 `USERPROFILE` **子树内**,POSIX `$TMPDIR` **不在** `$HOME` 下。
     受 workspace 政策(`workspace_outside_owner_home`)约束的 fixture 根,在 win32 用 tmpdir 恰好成立、
     在 POSIX 必挂 —— 这类 fixture 必须按平台分叉,不得只按一个平台的表现选写法。
   - macOS `$TMPDIR` 自身经 `/var -> /private/var` 符号链接,`assertRealDirectory`
     (要求 `lexical === realpath`)会直接拒;需要实体路径时取 `realpathSync(tmpdir())`。
   - 反过来,`process.cwd()`(仓内)在两个平台都位于 owner home 子树内。
-- 🔴 **只在一个 OS 上跑绿不构成"通过"**:平台分支改动必须在所有目标 OS 上跑对应门禁,
+- **红线:只在一个 OS 上跑绿不构成"通过"**:平台分支改动必须在所有目标 OS 上跑对应门禁,
   或对未跑的 OS 给出**逐字符等价性**论证(说明该分支在此平台的求值结果与改动前一致)。
   同理,回归对照必须在**正确的环境**下做——环境噪声(如把 worktree 放在 owner home 之外)
   会让基线与分支同时变红,从而掩盖真实回归。
