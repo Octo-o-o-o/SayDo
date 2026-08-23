@@ -1,6 +1,6 @@
 {
   "name": "@saydo/cli",
-  "version": "0.1.0-rc.2",
+  "version": "0.1.0-rc.3",
   "license": "Apache-2.0",
   "description": "SayDo 可分发 Node 运行时与命令行 supervisor",
   "type": "module",
@@ -25,7 +25,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "better-sqlite3": "13.0.1",
+    "better-sqlite3": "13.0.3",
     "koffi": "3.1.6"
   },
   "devDependencies": {

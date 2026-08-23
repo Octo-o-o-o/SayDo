@@ -50,6 +50,14 @@
         "docs/review/2026-08-23-week-audit-faststart-release.md",
         "e2e/evidence/w54b-batch.md"
       ]
+    },
+    {
+      "commit": "57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e",
+      "relatedDocumentRefs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/2026-08-23-rc3-release-recovery.md"
+      ]
     }
   ]
 }

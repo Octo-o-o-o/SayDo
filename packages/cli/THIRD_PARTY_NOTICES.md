@@ -23,7 +23,7 @@ This file is generated from the production dependency closure by
 | `@noble/hashes@2.2.0` | `MIT` | https://github.com/paulmillr/noble-hashes |
 | `ansi-regex@5.0.1` | `MIT` | chalk/ansi-regex |
 | `ansi-styles@4.3.0` | `MIT` | chalk/ansi-styles |
-| `better-sqlite3@13.0.1` | `MIT` | git://github.com/WiseLibs/better-sqlite3 |
+| `better-sqlite3@13.0.3` | `MIT` | git://github.com/WiseLibs/better-sqlite3 |
 | `camelcase@5.3.1` | `MIT` | sindresorhus/camelcase |
 | `class-variance-authority@0.7.1` | `Apache-2.0` | https://github.com/joe-bell/cva.git |
 | `cliui@6.0.0` | `ISC` | http://github.com/yargs/cliui |
@@ -524,7 +524,7 @@ This file is generated from the production dependency closure by
 
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-## better-sqlite3@13.0.1
+## better-sqlite3@13.0.3
 
 ### LICENSE
 

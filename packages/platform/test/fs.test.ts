@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { assertRealDirectory, fsIdentity, restrictOwnerOnly } from "../src/fs.js";
 import { hostKind } from "../src/host.js";
-import { nativeSync } from "../src/win32.js";
+import { nativeSync, win32OwnerTightenAction } from "../src/win32.js";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -38,5 +38,16 @@ describe("restrictOwnerOnly", () => {
     restrictOwnerOnly(f, "file");
     expect(readFileSync(f, "utf8")).toBe("x");
     expect(assertRealDirectory(root)).toBeDefined();
+  });
+
+  it("Win32 owner 收紧只修复 Administrators，SYSTEM 与陌生 SID 保持拒绝", () => {
+    const current = "S-1-5-21-1000";
+    expect(win32OwnerTightenAction(current, current)).toBe("keep");
+    expect(win32OwnerTightenAction("S-1-5-32-544", current)).toBe("reassign_administrators");
+    expect(win32OwnerTightenAction("S-1-5-18", current)).toBe("reject_system");
+    expect(win32OwnerTightenAction("S-1-5-21-2000", current)).toBe("reject_foreign");
+    expect(win32OwnerTightenAction("S-1-5-18", "S-1-5-18")).toBe("reject_system");
+    expect(win32OwnerTightenAction("S-1-5-32-544", "S-1-5-18")).toBe("reject_system");
+    expect(win32OwnerTightenAction("S-1-5-32-544", "S-1-5-32-544")).toBe("reject_foreign");
   });
 });

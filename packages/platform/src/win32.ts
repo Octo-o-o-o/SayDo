@@ -18,18 +18,23 @@ interface KoffiLib {
   func: (sig: string) => (...args: never[]) => unknown;
 }
 
+interface KoffiDecode {
+  (value: unknown, type: unknown): unknown;
+  string16: (ptr: unknown) => string;
+}
+
 interface Koffi {
   load: (name: string) => KoffiLib;
   struct: (name: string, def: Record<string, string>) => unknown;
-  decode: (value: unknown, type: unknown) => { Sid?: unknown };
+  decode: KoffiDecode;
 }
 
 interface Native {
   koffi: Koffi;
   TOKEN_USER: unknown;
-  GetProcessTimes: (h: unknown, c: object, e: object, k: object, u: object) => boolean;
-  OpenProcess: (access: number, inherit: boolean, pid: number) => unknown;
-  CloseHandle: (h: unknown) => boolean;
+  GetProcessTimes: (h: unknown, c: object, e: object, k: object, u: object) => number;
+  OpenProcess: (access: number, inherit: number, pid: number) => unknown;
+  CloseHandle: (h: unknown) => number;
   GetFileAttributesW: (path: string) => number;
   GetDriveTypeW: (root: string) => number;
   GetVolumeInformationW: (
@@ -41,24 +46,24 @@ interface Native {
     flags: Buffer,
     fsName: Buffer,
     fsNameSize: number
-  ) => boolean;
+  ) => number;
   QueryDosDeviceW: (name: string, buf: Buffer, size: number) => number;
   CreateJobObjectW: (attr: unknown, name: string) => unknown;
-  SetInformationJobObject: (job: unknown, cls: number, info: Buffer, len: number) => boolean;
-  AssignProcessToJobObject: (job: unknown, proc: unknown) => boolean;
-  OpenJobObjectW: (access: number, inherit: boolean, name: string) => unknown;
-  TerminateJobObject: (job: unknown, code: number) => boolean;
+  SetInformationJobObject: (job: unknown, cls: number, info: Buffer, len: number) => number;
+  AssignProcessToJobObject: (job: unknown, proc: unknown) => number;
+  OpenJobObjectW: (access: number, inherit: number, name: string) => unknown;
+  TerminateJobObject: (job: unknown, code: number) => number;
   GetLastError: () => number;
   GetCurrentProcess: () => unknown;
-  OpenProcessToken: (proc: unknown, access: number, token: unknown[]) => boolean;
+  OpenProcessToken: (proc: unknown, access: number, token: unknown[]) => number;
   GetTokenInformation: (
     token: unknown,
     cls: number,
     buf: Buffer,
     len: number,
     needed: number[]
-  ) => boolean;
-  ConvertSidToStringSidW: (sid: unknown, out: unknown[]) => boolean;
+  ) => number;
+  ConvertSidToStringSidW: (sid: unknown, out: unknown[]) => number;
   LocalFree: (h: unknown) => unknown;
   GetNamedSecurityInfoW: (
     path: string,
@@ -84,20 +89,25 @@ interface Native {
     rev: number,
     sd: unknown[],
     size: number[]
-  ) => boolean;
+  ) => number;
   ConvertSecurityDescriptorToStringSecurityDescriptorW: (
     sd: unknown,
     rev: number,
     info: number,
     sddl: unknown[],
     size: number[]
-  ) => boolean;
+  ) => number;
   GetSecurityDescriptorDacl: (
     sd: unknown,
-    present: boolean[],
+    present: number[],
     dacl: unknown[],
-    defaulted: boolean[]
-  ) => boolean;
+    defaulted: number[]
+  ) => number;
+  GetSecurityDescriptorOwner: (
+    sd: unknown,
+    owner: unknown[],
+    defaulted: number[]
+  ) => number;
 }
 
 const PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
@@ -162,37 +172,37 @@ function bindNow(): Native {
     koffi,
     TOKEN_USER,
     GetProcessTimes: kernel32.func(
-      "bool __stdcall GetProcessTimes(void *, _Out_ FILETIME *, _Out_ FILETIME *, _Out_ FILETIME *, _Out_ FILETIME *)"
+      "int32 __stdcall GetProcessTimes(void *, _Out_ FILETIME *, _Out_ FILETIME *, _Out_ FILETIME *, _Out_ FILETIME *)"
     ) as Native["GetProcessTimes"],
-    OpenProcess: kernel32.func("void * __stdcall OpenProcess(uint32, bool, uint32)") as Native["OpenProcess"],
-    CloseHandle: kernel32.func("bool __stdcall CloseHandle(void *)") as Native["CloseHandle"],
+    OpenProcess: kernel32.func("void * __stdcall OpenProcess(uint32, int32, uint32)") as Native["OpenProcess"],
+    CloseHandle: kernel32.func("int32 __stdcall CloseHandle(void *)") as Native["CloseHandle"],
     GetFileAttributesW: kernel32.func("uint32 __stdcall GetFileAttributesW(str16)") as Native["GetFileAttributesW"],
     GetDriveTypeW: kernel32.func("uint32 __stdcall GetDriveTypeW(str16)") as Native["GetDriveTypeW"],
     GetVolumeInformationW: kernel32.func(
-      "bool __stdcall GetVolumeInformationW(str16, _Out_ uint16 *, uint32, _Out_ uint32 *, _Out_ uint32 *, _Out_ uint32 *, _Out_ uint16 *, uint32)"
+      "int32 __stdcall GetVolumeInformationW(str16, _Out_ uint16 *, uint32, _Out_ uint32 *, _Out_ uint32 *, _Out_ uint32 *, _Out_ uint16 *, uint32)"
     ) as Native["GetVolumeInformationW"],
     QueryDosDeviceW: kernel32.func(
       "uint32 __stdcall QueryDosDeviceW(str16, _Out_ uint16 *, uint32)"
     ) as Native["QueryDosDeviceW"],
     CreateJobObjectW: kernel32.func("void * __stdcall CreateJobObjectW(void *, str16)") as Native["CreateJobObjectW"],
     SetInformationJobObject: kernel32.func(
-      "bool __stdcall SetInformationJobObject(void *, uint32, uint8 *, uint32)"
+      "int32 __stdcall SetInformationJobObject(void *, uint32, uint8 *, uint32)"
     ) as Native["SetInformationJobObject"],
     AssignProcessToJobObject: kernel32.func(
-      "bool __stdcall AssignProcessToJobObject(void *, void *)"
+      "int32 __stdcall AssignProcessToJobObject(void *, void *)"
     ) as Native["AssignProcessToJobObject"],
-    OpenJobObjectW: kernel32.func("void * __stdcall OpenJobObjectW(uint32, bool, str16)") as Native["OpenJobObjectW"],
-    TerminateJobObject: kernel32.func("bool __stdcall TerminateJobObject(void *, uint32)") as Native["TerminateJobObject"],
+    OpenJobObjectW: kernel32.func("void * __stdcall OpenJobObjectW(uint32, int32, str16)") as Native["OpenJobObjectW"],
+    TerminateJobObject: kernel32.func("int32 __stdcall TerminateJobObject(void *, uint32)") as Native["TerminateJobObject"],
     GetLastError: kernel32.func("uint32 __stdcall GetLastError()") as () => number,
     GetCurrentProcess: kernel32.func("void * __stdcall GetCurrentProcess()") as Native["GetCurrentProcess"],
     OpenProcessToken: advapi32.func(
-      "bool __stdcall OpenProcessToken(void *, uint32, _Out_ void **)"
+      "int32 __stdcall OpenProcessToken(void *, uint32, _Out_ void **)"
     ) as Native["OpenProcessToken"],
     GetTokenInformation: advapi32.func(
-      "bool __stdcall GetTokenInformation(void *, uint32, void *, uint32, _Out_ uint32 *)"
+      "int32 __stdcall GetTokenInformation(void *, uint32, void *, uint32, _Out_ uint32 *)"
     ) as Native["GetTokenInformation"],
     ConvertSidToStringSidW: advapi32.func(
-      "bool __stdcall ConvertSidToStringSidW(void *, _Out_ str16 *)"
+      "int32 __stdcall ConvertSidToStringSidW(void *, _Out_ void **)"
     ) as Native["ConvertSidToStringSidW"],
     LocalFree: kernel32.func("void * __stdcall LocalFree(void *)") as Native["LocalFree"],
     GetNamedSecurityInfoW: advapi32.func(
@@ -202,14 +212,17 @@ function bindNow(): Native {
       "uint32 __stdcall SetNamedSecurityInfoW(str16, int, uint32, void *, void *, void *, void *)"
     ) as Native["SetNamedSecurityInfoW"],
     ConvertStringSecurityDescriptorToSecurityDescriptorW: advapi32.func(
-      "bool __stdcall ConvertStringSecurityDescriptorToSecurityDescriptorW(str16, uint32, _Out_ void **, _Out_ uint32 *)"
+      "int32 __stdcall ConvertStringSecurityDescriptorToSecurityDescriptorW(str16, uint32, _Out_ void **, _Out_ uint32 *)"
     ) as Native["ConvertStringSecurityDescriptorToSecurityDescriptorW"],
     ConvertSecurityDescriptorToStringSecurityDescriptorW: advapi32.func(
-      "bool __stdcall ConvertSecurityDescriptorToStringSecurityDescriptorW(void *, uint32, uint32, _Out_ str16 *, _Out_ uint32 *)"
+      "int32 __stdcall ConvertSecurityDescriptorToStringSecurityDescriptorW(void *, uint32, uint32, _Out_ void **, _Out_ uint32 *)"
     ) as Native["ConvertSecurityDescriptorToStringSecurityDescriptorW"],
     GetSecurityDescriptorDacl: advapi32.func(
-      "bool __stdcall GetSecurityDescriptorDacl(void *, _Out_ bool *, _Out_ void **, _Out_ bool *)"
-    ) as Native["GetSecurityDescriptorDacl"]
+      "int32 __stdcall GetSecurityDescriptorDacl(void *, _Out_ int32 *, _Out_ void **, _Out_ int32 *)"
+    ) as Native["GetSecurityDescriptorDacl"],
+    GetSecurityDescriptorOwner: advapi32.func(
+      "int32 __stdcall GetSecurityDescriptorOwner(void *, _Out_ void **, _Out_ int32 *)"
+    ) as Native["GetSecurityDescriptorOwner"]
   };
 }
 
@@ -222,10 +235,16 @@ function utf16z(buf: Buffer): string {
 
 function sidToString(n: Native, sid: unknown): string {
   const out: unknown[] = [null];
-  if (!n.ConvertSidToStringSidW(sid, out) || typeof out[0] !== "string") {
+  if (!n.ConvertSidToStringSidW(sid, out) || out[0] == null) {
     throw new PlatformNativeError("ConvertSidToStringSidW failed");
   }
-  return out[0];
+  try {
+    const text = n.koffi.decode.string16(out[0]);
+    if (typeof text !== "string") throw new PlatformNativeError("ConvertSidToStringSidW decode failed");
+    return text;
+  } finally {
+    n.LocalFree(out[0]);
+  }
 }
 
 export function currentUserSid(): string {
@@ -244,7 +263,7 @@ export function currentUserSid(): string {
     if (!n.GetTokenInformation(token[0], TokenUser, buf, buf.length, needed2)) {
       throw new PlatformNativeError("GetTokenInformation failed");
     }
-    const decoded = n.koffi.decode(buf, n.TOKEN_USER);
+    const decoded = n.koffi.decode(buf, n.TOKEN_USER) as { Sid?: unknown };
     if (decoded.Sid == null) throw new PlatformNativeError("TOKEN_USER.Sid missing");
     return sidToString(n, decoded.Sid);
   } finally {
@@ -332,35 +351,57 @@ export function ownerSidOf(absPath: string): string {
 }
 
 const FORBIDDEN_TRUSTEES = /(?:WD|BU|AU|WG|BG|BA|S-1-1-0|S-1-5-32-545|S-1-5-11|S-1-5-32-544)/u;
+const ADMINISTRATORS_SID = "S-1-5-32-544";
+const SYSTEM_SID = "S-1-5-18";
+
+export type Win32OwnerTightenAction = "keep" | "reassign_administrators" | "reject_system" | "reject_foreign";
+
+export function win32OwnerTightenAction(owner: string, current: string): Win32OwnerTightenAction {
+  if (owner === SYSTEM_SID || current === SYSTEM_SID) return "reject_system";
+  if (current === ADMINISTRATORS_SID) return "reject_foreign";
+  if (owner === current) return "keep";
+  if (owner === ADMINISTRATORS_SID) return "reassign_administrators";
+  return "reject_foreign";
+}
 
 export function restrictOwnerOnlyWin32(absPath: string, kind: "file" | "dir"): void {
   const n = nativeSync();
   const sid = currentUserSid();
   const owner = ownerSidOf(absPath);
-  if (owner === "S-1-5-32-544" || owner === "S-1-5-18") {
-    throw new PlatformNativeError("Administrators/SYSTEM owner is not an available state root");
+  const ownerAction = win32OwnerTightenAction(owner, sid);
+  if (ownerAction === "reject_system") {
+    throw new PlatformNativeError("SYSTEM owner is not an available state root");
   }
-  if (owner !== sid) {
+  if (ownerAction === "reject_foreign") {
     throw new PlatformNativeError(`owner SID mismatch before ACL tighten:${owner}`);
   }
-  const sddl = kind === "dir" ? `D:P(A;OICI;FA;;;${sid})` : `D:P(A;;FRFW;;;${sid})`;
+  // 管理员 token 的默认 owner 可能是内置 Administrators。仍不接受该组作为最终 owner；
+  // 在同一次 native 写入中改归当前用户 SID，并收紧为 protected owner-only DACL。
+  const sddl = kind === "dir" ? `O:${sid}D:P(A;OICI;FA;;;${sid})` : `O:${sid}D:P(A;;FRFW;;;${sid})`;
   const sd: unknown[] = [null];
   const size = [0];
   if (!n.ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl, SDDL_REVISION_1, sd, size) || sd[0] == null) {
     throw new PlatformNativeError("ConvertStringSecurityDescriptorToSecurityDescriptorW failed");
   }
   try {
-    const present = [false];
+    const targetOwner: unknown[] = [null];
+    const ownerDefaulted = [0];
+    if (!n.GetSecurityDescriptorOwner(sd[0], targetOwner, ownerDefaulted) || targetOwner[0] == null) {
+      throw new PlatformNativeError("GetSecurityDescriptorOwner failed");
+    }
+    const present = [0];
     const dacl: unknown[] = [null];
-    const defaulted = [false];
+    const defaulted = [0];
     if (!n.GetSecurityDescriptorDacl(sd[0], present, dacl, defaulted) || !present[0] || dacl[0] == null) {
       throw new PlatformNativeError("GetSecurityDescriptorDacl failed");
     }
     const rc = n.SetNamedSecurityInfoW(
       absPath,
       SE_FILE_OBJECT,
-      DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
-      null,
+      DACL_SECURITY_INFORMATION |
+        PROTECTED_DACL_SECURITY_INFORMATION |
+        (ownerAction === "reassign_administrators" ? OWNER_SECURITY_INFORMATION : 0),
+      ownerAction === "reassign_administrators" ? targetOwner[0] : null,
       null,
       dacl[0],
       null
@@ -388,6 +429,9 @@ export function restrictOwnerOnlyWin32(absPath: string, kind: "file" | "dir"): v
     throw new PlatformNativeError(`ACL readback failed:${String(readRc)}`);
   }
   try {
+    if (verifyOwner[0] == null || sidToString(n, verifyOwner[0]) !== sid) {
+      throw new PlatformNativeError("ACL readback owner SID mismatch");
+    }
     const sddlOut: unknown[] = [null];
     const sddlSize = [0];
     if (
@@ -398,16 +442,21 @@ export function restrictOwnerOnlyWin32(absPath: string, kind: "file" | "dir"): v
         sddlOut,
         sddlSize
       ) ||
-      typeof sddlOut[0] !== "string"
+      sddlOut[0] == null
     ) {
       throw new PlatformNativeError("ACL SDDL readback failed");
     }
-    const text = sddlOut[0];
-    if (!text.includes(sid)) throw new PlatformNativeError("ACL readback missing owner SID");
-    if (FORBIDDEN_TRUSTEES.test(text.replaceAll(sid, ""))) {
-      throw new PlatformNativeError("ACL readback contains world/users ACE");
+    try {
+      const text = n.koffi.decode.string16(sddlOut[0]);
+      if (typeof text !== "string") throw new PlatformNativeError("ACL SDDL readback decode failed");
+      if (!text.includes(sid)) throw new PlatformNativeError("ACL readback missing owner SID");
+      if (FORBIDDEN_TRUSTEES.test(text.replaceAll(sid, ""))) {
+        throw new PlatformNativeError("ACL readback contains world/users ACE");
+      }
+      if (!/D:P/u.test(text)) throw new PlatformNativeError("ACL readback is not protected");
+    } finally {
+      n.LocalFree(sddlOut[0]);
     }
-    if (!/D:P/u.test(text)) throw new PlatformNativeError("ACL readback is not protected");
   } finally {
     n.LocalFree(verifySd[0]);
   }
@@ -415,7 +464,7 @@ export function restrictOwnerOnlyWin32(absPath: string, kind: "file" | "dir"): v
 
 export function processBirthWin32(pid: number): string | null {
   const n = nativeSync();
-  const h = n.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+  const h = n.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
   if (isNullHandle(h)) return null;
   try {
     const creation = { dwLowDateTime: 0, dwHighDateTime: 0 };
@@ -458,7 +507,7 @@ export function createNamedJobWin32(name: string): Win32Job {
 export function assignPidToJobWin32(job: Win32Job, pid: number): void {
   const n = nativeSync();
   const access = PROCESS_SET_QUOTA | PROCESS_TERMINATE | PROCESS_QUERY_LIMITED_INFORMATION;
-  const proc = n.OpenProcess(access, false, pid);
+  const proc = n.OpenProcess(access, 0, pid);
   if (isNullHandle(proc)) throw new PlatformNativeError(`OpenProcess for job assign failed:${String(pid)}`);
   try {
     if (!n.AssignProcessToJobObject(job.handle, proc)) {
@@ -472,7 +521,7 @@ export function assignPidToJobWin32(job: Win32Job, pid: number): void {
 export function terminateNamedJobWin32(name: string): "terminated" | "missing" {
   const n = nativeSync();
   const access = JOB_OBJECT_TERMINATE | JOB_OBJECT_QUERY | JOB_OBJECT_ASSIGN_PROCESS | JOB_OBJECT_SET_ATTRIBUTES;
-  const handle = n.OpenJobObjectW(access, false, name);
+  const handle = n.OpenJobObjectW(access, 0, name);
   if (isNullHandle(handle)) {
     const err = Number(n.GetLastError());
     if (err === ERROR_FILE_NOT_FOUND || err === ERROR_NOT_FOUND) return "missing";

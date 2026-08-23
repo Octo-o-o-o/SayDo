@@ -15,7 +15,7 @@
   "dependencies": {
     "@saydo/contracts": "workspace:*",
     "@saydo/platform": "workspace:*",
-    "better-sqlite3": "^13.0.1",
+    "better-sqlite3": "^13.0.3",
     "smol-toml": "^1.7.0",
     "ulid": "^3.0.1",
     "ws": "^8.21.1",

@@ -1642,6 +1642,19 @@ export class Tier1Executor {
     };
     child.once("exit", (code, signal) => finishAfterDrain(code ?? (signal ? 143 : 1)));
     child.once("error", () => finishAfterDrain(127));
+    // 终止期 stdout 读端 ECONNRESET 不得变成 unhandled；其它 stream error 记日志并令命令失败。
+    child.stdout?.on("error", (err: NodeJS.ErrnoException) => {
+      const terminating = finishRequested || settled || escalationTimer !== undefined;
+      if (err.code === "ECONNRESET" && terminating) return;
+      this.d.log.error("managed command stdout error", {
+        taskId: run.taskId,
+        runId: run.runId,
+        argv0: argv[0] ?? "",
+        code: err.code ?? "unknown",
+        error: String(err.message).slice(0, 160)
+      });
+      if (!terminating) finishAfterDrain(1);
+    });
     const handle: AgentProcessHandle = {
       pid: child.pid ?? -1,
       started,

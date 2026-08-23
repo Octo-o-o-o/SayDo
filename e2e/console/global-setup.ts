@@ -5,14 +5,16 @@
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { networkInterfaces } from "node:os";
+import { networkInterfaces, tmpdir } from "node:os";
 
 const PORT = 47188;
 const FIRST_RUN_PORT = 47189;
 const VITE_PORT = 47120;
 const ROOT = join(import.meta.dirname, "..", "..");
-const HOME = join(ROOT, "e2e", "console", ".pw-home");
-const FIRST_RUN_HOME = join(ROOT, "e2e", "console", ".pw-first-run-home");
+const TEST_STATE_PARENT =
+  process.platform === "darwin" ? "/private/tmp" : process.platform === "linux" ? "/tmp" : tmpdir();
+const HOME = join(TEST_STATE_PARENT, `saydo-playwright-home-${PORT}`);
+const FIRST_RUN_HOME = join(TEST_STATE_PARENT, `saydo-playwright-home-${FIRST_RUN_PORT}`);
 const RUNTIME = join(ROOT, "e2e", "console", ".runtime.json");
 
 function privateLanAddress(): string {

@@ -2068,3 +2068,50 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
 ### 结论
 - 本地实现与内部账本已达到发布候选；不可变 tag/Release、公开 Actions、Mac/Windows fixed URL、
   Pages、常驻 runtime 与移动真机仍属于后续发布阶段,本节不提前宣称完成。
+
+## R95 · rc.2 首次门红灯补救与 rc.3 候选冻结(2026-08-23)
+
+### 输入
+- rc.2 公开 tag 已创建并按发布纪律不得移动；CI run `32616479767` 与 release run `32616480151` 首次运行失败，
+  未创建 GitHub Release。Windows 红灯为 `better-sqlite3` 被 pnpm 冗余触发本机编译；Linux 红灯为
+  恢复夹具事件时序与终止期 stdout `ECONNRESET` 泄漏。
+- owner 要求继续，且旧失败 tag/Actions 必须保留，修复后用新候选走完整首次运行发布链。
+
+### 行动
+1. `better-sqlite3` 升至 `13.0.3`；pnpm 改为 `allowBuilds`，只拒绝该包的冗余构建，显式放行
+   `esbuild`/`koffi`。Linux 四个竞态反例改等 durable 事件行，executor 只收口终止期
+   `ECONNRESET`，其它 stdout error 继续 fail-closed。
+2. Windows `.cmd` 改为外层引号 + verbatim arguments；管理员默认 Administrators owner 在同次
+   native 写入改归当前 SID，SYSTEM/陌生 SID 继续拒绝；verifier 等 PID、exit、stdio close 后再有限
+   重试 EBUSY，agent inventory 夹具使用标准 npm Node shim。
+3. 实体 Windows 以干净 Git index 归档从空目录安装并跑 SQLite、platform、完整 CLI distribution；
+   Mac 重跑完整分发、`just ci` 与 36 项 Playwright。首轮实施提交为 `23c2251`；两路零上下文复审
+   随后发现证据边界、标签口径与 Win32 SYSTEM/ABI/内存释放问题，回修提交为
+   `08b761010ec0e98b53d7a80d248dfe3acd0b855c`。最终截图复核又发现暗色主题竞态和本机路径泄露，
+   以 `57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e` 固定匿名测试状态根及可判定主题重载；审计生成器
+   改以该最终 SHA 重生 schema 2/6 bundle。
+4. Grok 首轮实施日志 `1921653` bytes、SHA-256
+   `5171a10f76afb21611b9dfdfea9d6fd525f01e4d10e05504dedcc6bdd0393764`，终态 `end_turn`；
+   ACL 追加尝试在零文件改动时因循环输出终止，exit 130，日志 `702824` bytes、SHA-256
+   `71ab7a68a124dc88f1ca695612e0bae596dc19362b3a3d8acc8fadcc3f000a16`。外部 Codex 仍以 108/112
+   两次无 final 的真实记录收口，不第三次重试、不伪写通过。
+5. 发布独立复审发现 `HANDOFF.md` 两条现行门禁仍误指 rc.2，且审计报告一处
+   简写成“不可移动”。登记 F105，未来门禁改指 rc.3，rc.2 历史失败 tag 则按发布
+   纪律保持不移动、不重跑，不再写成平台强制的技术事实。
+
+### 产出
+- Mac：`just ci` exit 0；daemon 1883 passed/5 skipped、platform 13、pipeline 34；Playwright
+  36 passed（2.7 分钟，亮暗截图主题属性逐页断言）；CLI distribution exit 0，Node `v22.23.1`，
+  rc.3 tarball 17 个成员。
+- Windows：最终评审回修源码归档 `39215979` bytes、SHA-256
+  `d6854bb4e47fe6debea072bce07db1033261b9c2c30458b660c80d944a3189cf`；Node `v22.22.0`、
+  pnpm `10.33.1`；install、SQLite、platform 13 tests 与完整 distribution 四阶段 exit 0。
+- 发布物候选：`1146345` bytes、SHA-256
+  `a0f4e7da0166574b1cfda7792efdd8679a41a704a4b336a2e99beeb70a7f5314`、17 个成员，
+  `sourceRevision=baf15c4f1391a5ab2bde63d59b0dd0d12c15301ae201a59bb13140cf06dcfbff`；详细证据为
+  `e2e/evidence/2026-08-23-rc3-release-recovery.md`。
+
+### 结论
+- rc.2 保持失败证据；rc.3 运行时与发布两路最终独立复审均为 Go，无 actionable P0/P1/P2。
+  新的 tag、首次 Actions、Release、
+  fixed URL、官网、常驻 runtime 和移动真机结果仍须在真实完成后另行回写。

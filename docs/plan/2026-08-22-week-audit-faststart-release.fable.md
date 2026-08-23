@@ -15,8 +15,10 @@
    macOS、Windows、Linux 用户在不克隆源码的前提下用一条相同命令启动 daemon + console。
 5. npm registry 发布不在本轮自动执行；待 owner 后续手动发布。移动壳仍是开发通道评估壳，
    本轮真机安装不得改写为已上架或生产配对完成。
-6. `v0.1.0` 仍受四场真人验收门约束。本轮只能发布新的不可移动预发布标签
-   `v0.1.0-rc.2`，不得把预发布写成正式首发。
+6. `v0.1.0` 仍受四场真人验收门约束。本轮只发布不可移动预发布标签，
+   不得把预发布写成正式首发。`v0.1.0-rc.2` 的首次托管门因 Windows native
+   依赖安装与 Linux 恢复夹具竞态失败，标签保留为失败证据且不得移动或重跑；
+   修复后使用新的 `v0.1.0-rc.3` 候选重新走完整首次运行发布链。
 
 ## 2. 冻结基线
 
@@ -106,8 +108,30 @@ pnpm exec playwright test e2e/console --grep "Tier1|observed model|本机认证"
 pnpm --filter @saydo/cli verify:distribution
 node scripts/build-release-artifacts.mjs --write
 node scripts/build-release-artifacts.mjs --check
-node scripts/post-release-gate.mjs --check-candidate v0.1.0-rc.2
+node scripts/post-release-gate.mjs --check-candidate v0.1.0-rc.3
 ```
+
+### C1. rc.2 首次运行红灯补救
+
+- Windows 安装红灯必须升级到已声明 `gypfile=false`、且内置 `win32-x64` / `win32-arm64`
+  预构建的 `better-sqlite3` 版本，并在 pnpm build allowlist 中只拒绝该包的冗余隐式
+  `node-gyp rebuild`；`esbuild`、`koffi` 等必要脚本继续显式放行。不得靠忽略所有安装脚本、
+  安装额外 Visual Studio 或重跑失败 workflow 绕过。实体 Windows 从空目录执行
+  `pnpm install --frozen-lockfile` 与 CLI 分发验证，证明无需本机 C++ 工具链。Windows `.cmd`
+  入口必须按 `cmd.exe /d /s /c` 的外层引号合同传入，并启用 verbatim arguments；源码分发门
+  与发布后固定 URL 门使用同一合同，防止 Node 二次转义引号后把真实 shim 当成字面量路径。管理员
+  token 新建对象若默认 owner 为内置 Administrators，owner-only 收紧必须在同一次 native 写入中改归
+  当前用户 SID；SYSTEM 与陌生 SID 仍拒绝，readback 仍要求当前 SID + protected DACL 且无禁用 trustee。
+  分发门只在所有登记 PID 已退出、wrapper 已 `exit` 且继承管道的本地读端主动关闭并收到 `close` 后，
+  才可对 Windows 的短暂 `EBUSY` 做有限删除重试；最终残留仍红灯，不能用阻塞重试掩盖尚未释放的句柄。
+  Windows agent inventory 夹具也必须使用生产侧可证明的标准 npm Node shim，禁止为门禁手写受信 `.cmd`。
+- Linux 恢复测试不得依赖 5ms fake timer 的调度先后。凡后续断言以已消费 agent 事件和成本行
+  为前提，必须先等待对应 `events.jsonl` 的 durable 行数；受监管命令 stdout 管道在终止时的
+  `ECONNRESET` 必须被显式收口，不能作为 Vitest 未处理异常泄漏到后续用例。
+- 新候选发布前，三个原失败反例连续运行、daemon 全套、`just ci`、Mac 分发、实体 Windows
+  干净安装与分发均须通过；新标签只能在新的实施提交和证据提交进入 internal/public main 后创建。
+- `v0.1.0-rc.2` 的 Actions run `32616479767` / `32616480151` 与失败日志必须写入最终报告；
+  `v0.1.0-rc.3` 的 post-release gate 只接受绑定新 tag SHA、`run_attempt=1` 的成功 workflow。
 
 ### D. 平台与真机验证
 
@@ -134,7 +158,7 @@ node scripts/post-release-gate.mjs --check-candidate v0.1.0-rc.2
 - 本地 `just ci`、分发验收、站点视觉截图、隐私探针、公开快照树差异与 emoji 门禁全部绿后，
   才按仓库两提交法入库并推送。
 - 发布顺序固定且不得交换：① clean 的最终 internal SHA 推到 `origin/main`；② 从同一 SHA 的 clean
-  clone 生成公开快照，并把 `public/main` 与不可移动 `v0.1.0-rc.2` 在一次 atomic push 中发布；
+  clone 生成公开快照，并把 `public/main` 与不可移动 `v0.1.0-rc.3` 在一次 atomic push 中发布；
   ③ 等待 tag workflow 的 snapshot、Node/Python、fresh-origin Playwright、三平台 distribution、
   Release 以 pending/unavailable 态创建及三平台 exec/global 固定 URL smoke 全绿；任一 smoke 红则
   workflow 保留不可变 tag/asset、显式标记 Release unavailable，官网继续保持“发布候选”文案；六项

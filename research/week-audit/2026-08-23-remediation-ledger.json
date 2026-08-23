@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "purpose": "补充主账本冻结点后的全部回修提交，并给 implementation-only 提交建立可机械复验的双向文档边",
   "base": "3fccf4a704ad9a5d8e013baaefb67c66a5737cba",
-  "rangeEnd": "3e74a5a6a4e5c187688c157309989737bf9af947",
+  "rangeEnd": "57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e",
   "counts": {
-    "commits": 18,
-    "changedPaths": 177,
-    "documents": 52,
-    "implementationOnlyCommits": 7
+    "commits": 23,
+    "changedPaths": 183,
+    "documents": 56,
+    "implementationOnlyCommits": 8
   },
   "commits": [
     {
@@ -936,47 +936,267 @@
         "docs/review/2026-08-23-week-audit-faststart-release.md",
         "e2e/evidence/w54b-batch.md"
       ]
+    },
+    {
+      "sha": "81760a4497778fbb9c16b249908cb852ce4c1e89",
+      "committedAt": "2026-08-23T11:17:39+08:00",
+      "subject": "chore(evidence): 回写最终运行时复审回修",
+      "tree": "58fab6a6d38322acb10923c3584b3f62dda6ef24",
+      "paths": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md",
+        "HANDOFF.md",
+        "research/week-audit/2026-08-23-remediation-cross-links.json"
+      ],
+      "docs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md",
+        "HANDOFF.md",
+        "research/week-audit/2026-08-23-remediation-cross-links.json"
+      ],
+      "implementation": [],
+      "tests": [],
+      "category": "document_only",
+      "relatedDocumentRefs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md",
+        "HANDOFF.md",
+        "research/week-audit/2026-08-23-remediation-cross-links.json"
+      ]
+    },
+    {
+      "sha": "9199d36127e9b4fd924bd6c2bae9be053231520e",
+      "committedAt": "2026-08-23T11:46:45+08:00",
+      "subject": "chore(evidence): 冻结最终账本与差量复审",
+      "tree": "64f27b45a2f2a9629ee5c6dfa7998ad165b7fee0",
+      "paths": [
+        "docs/review/2026-08-22-week-audit-ledger.md",
+        "docs/review/2026-08-23-remediation-ledger.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md",
+        "HANDOFF.md",
+        "history/PROCESS-JOURNAL.md",
+        "history/reviews/2026-08-23-final-freeze-delta-review.md",
+        "research/week-audit/2026-08-22-bundle-integrity.json",
+        "research/week-audit/2026-08-22-ledger.json",
+        "research/week-audit/2026-08-23-publication-manifest.json",
+        "research/week-audit/2026-08-23-remediation-ledger.json",
+        "scripts/week-audit.mjs"
+      ],
+      "docs": [
+        "docs/review/2026-08-22-week-audit-ledger.md",
+        "docs/review/2026-08-23-remediation-ledger.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md",
+        "HANDOFF.md",
+        "history/PROCESS-JOURNAL.md",
+        "history/reviews/2026-08-23-final-freeze-delta-review.md",
+        "research/week-audit/2026-08-22-bundle-integrity.json",
+        "research/week-audit/2026-08-22-ledger.json",
+        "research/week-audit/2026-08-23-publication-manifest.json",
+        "research/week-audit/2026-08-23-remediation-ledger.json"
+      ],
+      "implementation": [
+        "scripts/week-audit.mjs"
+      ],
+      "tests": [],
+      "category": "paired",
+      "relatedDocumentRefs": [
+        "docs/review/2026-08-22-week-audit-ledger.md",
+        "docs/review/2026-08-23-remediation-ledger.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md",
+        "HANDOFF.md",
+        "history/PROCESS-JOURNAL.md",
+        "history/reviews/2026-08-23-final-freeze-delta-review.md",
+        "research/week-audit/2026-08-22-bundle-integrity.json",
+        "research/week-audit/2026-08-22-ledger.json",
+        "research/week-audit/2026-08-23-publication-manifest.json",
+        "research/week-audit/2026-08-23-remediation-ledger.json"
+      ]
+    },
+    {
+      "sha": "23c2251496ae5772cff7be6e20162934ecbae3ff",
+      "committedAt": "2026-08-23T13:08:05+08:00",
+      "subject": "fix(release): 修复跨平台首发红灯并升级 rc3",
+      "tree": "851ed92e3aa03ee52d505e34643da3b6ca259c7a",
+      "paths": [
+        ".github/workflows/release.yml",
+        "deploy/saydo-octoooo-com/docs/index.html",
+        "deploy/saydo-octoooo-com/en/docs/index.html",
+        "deploy/saydo-octoooo-com/en/index.html",
+        "deploy/saydo-octoooo-com/index.html",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/release/v0.1.0-rc.3.md",
+        "docs/site/2026-08-20-docs-page-content.fable.md",
+        "docs/site/2026-08-20-homepage-structure-copy.fable.md",
+        "HANDOFF.md",
+        "package.json",
+        "packages/cli/package.json",
+        "packages/cli/README.md",
+        "packages/cli/scripts/verify-distribution.mjs",
+        "packages/cli/THIRD_PARTY_NOTICES.md",
+        "packages/daemon/package.json",
+        "packages/daemon/src/tier1/executor.ts",
+        "packages/daemon/test/tier1-executor.test.ts",
+        "packages/platform/src/win32.ts",
+        "packages/platform/test/fs.test.ts",
+        "pnpm-lock.yaml",
+        "README.md",
+        "scripts/post-release-gate.mjs",
+        "scripts/run-release-verifier-windows.ps1",
+        "scripts/test-release-physical-evidence.mjs",
+        "scripts/verify-release-url.mjs",
+        "scripts/week-audit.mjs"
+      ],
+      "docs": [
+        "deploy/saydo-octoooo-com/docs/index.html",
+        "deploy/saydo-octoooo-com/en/docs/index.html",
+        "deploy/saydo-octoooo-com/en/index.html",
+        "deploy/saydo-octoooo-com/index.html",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/release/v0.1.0-rc.3.md",
+        "docs/site/2026-08-20-docs-page-content.fable.md",
+        "docs/site/2026-08-20-homepage-structure-copy.fable.md",
+        "HANDOFF.md",
+        "packages/cli/README.md",
+        "packages/cli/THIRD_PARTY_NOTICES.md",
+        "README.md"
+      ],
+      "implementation": [
+        ".github/workflows/release.yml",
+        "package.json",
+        "packages/cli/package.json",
+        "packages/cli/scripts/verify-distribution.mjs",
+        "packages/daemon/package.json",
+        "packages/daemon/src/tier1/executor.ts",
+        "packages/platform/src/win32.ts",
+        "pnpm-lock.yaml",
+        "scripts/post-release-gate.mjs",
+        "scripts/run-release-verifier-windows.ps1",
+        "scripts/verify-release-url.mjs",
+        "scripts/week-audit.mjs"
+      ],
+      "tests": [
+        "packages/daemon/test/tier1-executor.test.ts",
+        "packages/platform/test/fs.test.ts",
+        "scripts/test-release-physical-evidence.mjs"
+      ],
+      "category": "paired",
+      "relatedDocumentRefs": [
+        "deploy/saydo-octoooo-com/docs/index.html",
+        "deploy/saydo-octoooo-com/en/docs/index.html",
+        "deploy/saydo-octoooo-com/en/index.html",
+        "deploy/saydo-octoooo-com/index.html",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/release/v0.1.0-rc.3.md",
+        "docs/site/2026-08-20-docs-page-content.fable.md",
+        "docs/site/2026-08-20-homepage-structure-copy.fable.md",
+        "HANDOFF.md",
+        "packages/cli/README.md",
+        "packages/cli/THIRD_PARTY_NOTICES.md",
+        "README.md"
+      ]
+    },
+    {
+      "sha": "08b761010ec0e98b53d7a80d248dfe3acd0b855c",
+      "committedAt": "2026-08-23T13:33:00+08:00",
+      "subject": "fix(platform): 修正 Windows ACL 身份与 ABI 边界",
+      "tree": "9c9caec00660cc63dd6648d7dbaee80ddb63082e",
+      "paths": [
+        "docs/release/v0.1.0-rc.3.md",
+        "packages/platform/src/win32.ts",
+        "packages/platform/test/fs.test.ts",
+        "scripts/publish-public-snapshot.sh"
+      ],
+      "docs": [
+        "docs/release/v0.1.0-rc.3.md"
+      ],
+      "implementation": [
+        "packages/platform/src/win32.ts",
+        "scripts/publish-public-snapshot.sh"
+      ],
+      "tests": [
+        "packages/platform/test/fs.test.ts"
+      ],
+      "category": "paired",
+      "relatedDocumentRefs": [
+        "docs/release/v0.1.0-rc.3.md"
+      ]
+    },
+    {
+      "sha": "57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e",
+      "committedAt": "2026-08-23T13:51:27+08:00",
+      "subject": "fix(test): 稳定亮暗截图并移除本机路径泄露",
+      "tree": "b4ac71b907ce8658c5fb416d16e8c9bcd96f4927",
+      "paths": [
+        "e2e/console/console.spec.ts",
+        "e2e/console/global-setup.ts"
+      ],
+      "docs": [],
+      "implementation": [],
+      "tests": [
+        "e2e/console/console.spec.ts",
+        "e2e/console/global-setup.ts"
+      ],
+      "category": "implementation_only",
+      "relatedDocumentRefs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/2026-08-23-rc3-release-recovery.md"
+      ]
     }
   ],
   "documents": [
     {
       "path": "deploy/saydo-octoooo-com/docs/index.html",
       "commits": [
-        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ],
       "relatedImplementationCommits": [
-        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ]
     },
     {
       "path": "deploy/saydo-octoooo-com/en/docs/index.html",
       "commits": [
-        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ],
       "relatedImplementationCommits": [
-        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ]
     },
     {
       "path": "deploy/saydo-octoooo-com/en/index.html",
       "commits": [
         "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
-        "8048268f13d2d812778bfcc162f155803a4b2f57"
+        "8048268f13d2d812778bfcc162f155803a4b2f57",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ],
       "relatedImplementationCommits": [
         "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
-        "8048268f13d2d812778bfcc162f155803a4b2f57"
+        "8048268f13d2d812778bfcc162f155803a4b2f57",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ]
     },
     {
       "path": "deploy/saydo-octoooo-com/index.html",
       "commits": [
         "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
-        "8048268f13d2d812778bfcc162f155803a4b2f57"
+        "8048268f13d2d812778bfcc162f155803a4b2f57",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ],
       "relatedImplementationCommits": [
         "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
-        "8048268f13d2d812778bfcc162f155803a4b2f57"
+        "8048268f13d2d812778bfcc162f155803a4b2f57",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ]
     },
     {
@@ -1118,7 +1338,9 @@
         "4f04c0309db9c014556927e9213e42c0e2edf1c2",
         "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
         "8048268f13d2d812778bfcc162f155803a4b2f57",
-        "8d0027f1dcb9a271fcfe5a2ab2370385de1d318d"
+        "8d0027f1dcb9a271fcfe5a2ab2370385de1d318d",
+        "81760a4497778fbb9c16b249908cb852ce4c1e89",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ],
       "relatedImplementationCommits": [
         "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
@@ -1129,7 +1351,9 @@
         "3f8be936de412be267c8318fc259aff4e185efb1",
         "8d0027f1dcb9a271fcfe5a2ab2370385de1d318d",
         "877c87543b98a47d12b21ed4c4f9c89ddcd47616",
-        "3e74a5a6a4e5c187688c157309989737bf9af947"
+        "3e74a5a6a4e5c187688c157309989737bf9af947",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff",
+        "57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e"
       ]
     },
     {
@@ -1153,23 +1377,38 @@
       ]
     },
     {
-      "path": "docs/review/2026-08-22-week-audit-ledger.md",
+      "path": "docs/release/v0.1.0-rc.3.md",
       "commits": [
-        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11"
+        "23c2251496ae5772cff7be6e20162934ecbae3ff",
+        "08b761010ec0e98b53d7a80d248dfe3acd0b855c"
       ],
       "relatedImplementationCommits": [
-        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11"
+        "23c2251496ae5772cff7be6e20162934ecbae3ff",
+        "08b761010ec0e98b53d7a80d248dfe3acd0b855c"
+      ]
+    },
+    {
+      "path": "docs/review/2026-08-22-week-audit-ledger.md",
+      "commits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
+      ],
+      "relatedImplementationCommits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
       ]
     },
     {
       "path": "docs/review/2026-08-23-remediation-ledger.md",
       "commits": [
         "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
-        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
       ],
       "relatedImplementationCommits": [
         "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
-        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
       ]
     },
     {
@@ -1180,7 +1419,9 @@
         "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
         "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
         "1987b540f0fc6deb99a3cfaea3a8ccfcd47029bd",
-        "8d0027f1dcb9a271fcfe5a2ab2370385de1d318d"
+        "8d0027f1dcb9a271fcfe5a2ab2370385de1d318d",
+        "81760a4497778fbb9c16b249908cb852ce4c1e89",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
       ],
       "relatedImplementationCommits": [
         "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
@@ -1192,29 +1433,42 @@
         "1987b540f0fc6deb99a3cfaea3a8ccfcd47029bd",
         "8d0027f1dcb9a271fcfe5a2ab2370385de1d318d",
         "877c87543b98a47d12b21ed4c4f9c89ddcd47616",
-        "3e74a5a6a4e5c187688c157309989737bf9af947"
+        "3e74a5a6a4e5c187688c157309989737bf9af947",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e",
+        "57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e"
       ]
     },
     {
       "path": "docs/site/2026-08-20-docs-page-content.fable.md",
       "commits": [
         "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
-        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ],
       "relatedImplementationCommits": [
         "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
-        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ]
     },
     {
       "path": "docs/site/2026-08-20-homepage-structure-copy.fable.md",
       "commits": [
         "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
-        "8048268f13d2d812778bfcc162f155803a4b2f57"
+        "8048268f13d2d812778bfcc162f155803a4b2f57",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ],
       "relatedImplementationCommits": [
         "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
-        "8048268f13d2d812778bfcc162f155803a4b2f57"
+        "8048268f13d2d812778bfcc162f155803a4b2f57",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
+      ]
+    },
+    {
+      "path": "e2e/evidence/2026-08-23-rc3-release-recovery.md",
+      "commits": [],
+      "relatedImplementationCommits": [
+        "57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e"
       ]
     },
     {
@@ -1222,7 +1476,9 @@
       "commits": [
         "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
         "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
-        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+        "81760a4497778fbb9c16b249908cb852ce4c1e89",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
       ],
       "relatedImplementationCommits": [
         "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
@@ -1231,16 +1487,40 @@
         "3f8be936de412be267c8318fc259aff4e185efb1",
         "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
         "877c87543b98a47d12b21ed4c4f9c89ddcd47616",
-        "3e74a5a6a4e5c187688c157309989737bf9af947"
+        "3e74a5a6a4e5c187688c157309989737bf9af947",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
       ]
     },
     {
       "path": "HANDOFF.md",
       "commits": [
-        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
+        "81760a4497778fbb9c16b249908cb852ce4c1e89",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ],
       "relatedImplementationCommits": [
-        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
+      ]
+    },
+    {
+      "path": "history/PROCESS-JOURNAL.md",
+      "commits": [
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
+      ],
+      "relatedImplementationCommits": [
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
+      ]
+    },
+    {
+      "path": "history/reviews/2026-08-23-final-freeze-delta-review.md",
+      "commits": [
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
+      ],
+      "relatedImplementationCommits": [
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
       ]
     },
     {
@@ -1255,19 +1535,23 @@
     {
       "path": "packages/cli/README.md",
       "commits": [
-        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ],
       "relatedImplementationCommits": [
-        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ]
     },
     {
       "path": "packages/cli/THIRD_PARTY_NOTICES.md",
       "commits": [
-        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ],
       "relatedImplementationCommits": [
-        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ]
     },
     {
@@ -1345,10 +1629,12 @@
     {
       "path": "README.md",
       "commits": [
-        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ],
       "relatedImplementationCommits": [
-        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "23c2251496ae5772cff7be6e20162934ecbae3ff"
       ]
     },
     {
@@ -1400,22 +1686,26 @@
       "path": "research/week-audit/2026-08-22-bundle-integrity.json",
       "commits": [
         "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
-        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
       ],
       "relatedImplementationCommits": [
         "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
-        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
       ]
     },
     {
       "path": "research/week-audit/2026-08-22-ledger.json",
       "commits": [
         "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
-        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
       ],
       "relatedImplementationCommits": [
         "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
-        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
       ]
     },
     {
@@ -1442,18 +1732,21 @@
       "path": "research/week-audit/2026-08-23-publication-manifest.json",
       "commits": [
         "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
-        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
       ],
       "relatedImplementationCommits": [
         "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
-        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
       ]
     },
     {
       "path": "research/week-audit/2026-08-23-remediation-cross-links.json",
       "commits": [
         "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
-        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+        "81760a4497778fbb9c16b249908cb852ce4c1e89"
       ],
       "relatedImplementationCommits": [
         "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
@@ -1464,11 +1757,13 @@
       "path": "research/week-audit/2026-08-23-remediation-ledger.json",
       "commits": [
         "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
-        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
       ],
       "relatedImplementationCommits": [
         "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
-        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+        "9199d36127e9b4fd924bd6c2bae9be053231520e"
       ]
     },
     {

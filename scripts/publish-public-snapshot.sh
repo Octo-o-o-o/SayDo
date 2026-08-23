@@ -171,7 +171,7 @@ msg="$(printf 'snapshot: %s from internal %s\n\npublic-tree: %s\nfilter-version:
 if [ -n "$prev" ]; then new="$(git commit-tree "$tree" -p "$prev" -m "$msg")"; else new="$(git commit-tree "$tree" -m "$msg")"; fi
 if [ -n "$PUBLIC_TAG" ]; then
   git push --atomic "$PUBLIC_REMOTE" "$new:refs/heads/main" "$new:refs/tags/$PUBLIC_TAG"
-  echo "[ok] 已原子推送公开快照与不可移动标签 $new -> $PUBLIC_REMOTE/main + $PUBLIC_TAG"
+  echo "[ok] 已原子推送公开快照与约定不得移动标签 $new -> $PUBLIC_REMOTE/main + $PUBLIC_TAG"
 else
   git push "$PUBLIC_REMOTE" "$new:refs/heads/main"
   echo "[ok] 已推快照 $new -> $PUBLIC_REMOTE/main"

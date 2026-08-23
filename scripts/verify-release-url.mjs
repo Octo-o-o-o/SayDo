@@ -37,6 +37,7 @@ const verifierSha256 = createHash("sha256").update(readFileSync(fileURLToPath(im
 mkdirSync(userHome, { recursive: true });
 let child;
 let attachedChild;
+const closedProcesses = new WeakSet();
 let releaseIdentity;
 
 const invariant = (value, message) => {
@@ -132,7 +133,12 @@ function invocation(args) {
   const shim = shimPath();
   if (process.platform !== "win32") return { file: shim, args };
   const comSpec = process.env["ComSpec"] ?? join(process.env["SystemRoot"] ?? "C:\\Windows", "System32", "cmd.exe");
-  return { file: comSpec, args: ["/d", "/s", "/c", [shim, ...args].map(cmdQuote).join(" ")] };
+  const command = `"${[shim, ...args].map(cmdQuote).join(" ")}"`;
+  return {
+    file: comSpec,
+    args: ["/d", "/s", "/c", command],
+    options: { windowsVerbatimArguments: true }
+  };
 }
 
 function isolatedEnv() {
@@ -210,6 +216,30 @@ async function waitForExit(proc, timeoutMs = 30_000) {
   });
 }
 
+function trackProcess(proc) {
+  proc.once("close", () => closedProcesses.add(proc));
+  return proc;
+}
+
+async function waitForClose(proc, timeoutMs = 10_000) {
+  if (!proc || closedProcesses.has(proc)) return;
+  await new Promise((resolveClose, rejectClose) => {
+    const timer = setTimeout(() => {
+      proc.off("close", onClose);
+      rejectClose(new Error("saydo CLI stdio close 超时"));
+    }, timeoutMs);
+    const onClose = () => {
+      clearTimeout(timer);
+      resolveClose();
+    };
+    proc.once("close", onClose);
+  });
+}
+
+function closeProcessStdio(proc) {
+  for (const stream of proc?.stdio ?? []) stream?.destroy?.();
+}
+
 function alive(pid) {
   try {
     process.kill(pid, 0);
@@ -250,13 +280,14 @@ try {
   }
   const port = await freePort();
   const cli = invocation(["up", "--home", saydoHome, "--port", String(port), "--no-open"]);
-  child = spawn(cli.file, cli.args, {
+  child = trackProcess(spawn(cli.file, cli.args, {
     cwd: scratch,
     env: isolatedEnv(),
     stdio: ["ignore", "pipe", "pipe"],
-    detached: true,
-    windowsHide: true
-  });
+    detached: process.platform !== "win32",
+    windowsHide: true,
+    ...cli.options
+  }));
   let output = "";
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
@@ -282,7 +313,8 @@ try {
   const statusRaw = execFileSync(statusCli.file, statusCli.args, {
     cwd: scratch,
     env: isolatedEnv(),
-    encoding: "utf8"
+    encoding: "utf8",
+    ...statusCli.options
   });
   const status = JSON.parse(statusRaw);
   invariant(status.kind === "attached" && status.pid === ready.pid, "真实安装入口 status 未 attach 到同一 daemon");
@@ -294,13 +326,14 @@ try {
   );
 
   const attachCli = invocation(["up", "--home", saydoHome, "--port", String(port), "--no-open"]);
-  attachedChild = spawn(attachCli.file, attachCli.args, {
+  attachedChild = trackProcess(spawn(attachCli.file, attachCli.args, {
     cwd: scratch,
     env: isolatedEnv(),
     stdio: ["ignore", "pipe", "pipe"],
-    detached: true,
-    windowsHide: true
-  });
+    detached: process.platform !== "win32",
+    windowsHide: true,
+    ...attachCli.options
+  }));
   let attachOutput = "";
   attachedChild.stdout.setEncoding("utf8");
   attachedChild.stderr.setEncoding("utf8");
@@ -373,5 +406,12 @@ try {
   process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);
 } finally {
   emergencyStop();
+  await Promise.all(
+    [child, attachedChild].filter(Boolean).map(async (proc) => {
+      await waitForExit(proc, 10_000);
+      closeProcessStdio(proc);
+      await waitForClose(proc);
+    })
+  );
   rmSync(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
 }

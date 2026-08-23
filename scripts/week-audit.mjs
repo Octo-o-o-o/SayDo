@@ -6,7 +6,7 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, writeFile
 import { dirname, resolve } from "node:path";
 
 const repo = resolve(import.meta.dirname, "..");
-const remediationEnd = "3e74a5a6a4e5c187688c157309989737bf9af947"; // 最终实施冻结 SHA；后续证据载体提交因自引用排除。
+const remediationEnd = "57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e"; // 最终实施冻结 SHA；后续证据载体提交因自引用排除。
 const config = {
   cutoff: "2026-08-15T00:00:00+08:00",
   refsFrozenAt: "2026-08-22T22:30:44+08:00",
@@ -408,7 +408,7 @@ if (mode === "--check-bundle") {
     remediationCommits: remediation.commits
   });
   if (integrity.historyDigest !== sha256Text(historyMaterial)) throw new Error("账本历史物化摘要不一致");
-  if (integrity.expectedPublication?.tag !== "v0.1.0-rc.2") throw new Error("账本 bundle 缺预发布 tag 外部锚");
+  if (integrity.expectedPublication?.tag !== "v0.1.0-rc.3") throw new Error("账本 bundle 缺预发布 tag 外部锚");
   if (
     remediation.schemaVersion !== 1 ||
     remediation.base !== ledger.generatedFrom.rangeEnd ||
@@ -1089,7 +1089,7 @@ const integrityContent =
           ),
           expectedPublication: {
             repository: "Octo-o-o-o/SayDo",
-            tag: "v0.1.0-rc.2",
+            tag: "v0.1.0-rc.3",
             rule: "GitHub tag workflow 对本 bundle 运行 --check-bundle 后构成外部不可移动锚"
           },
           files: {

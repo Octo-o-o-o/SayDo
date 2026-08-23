@@ -364,6 +364,22 @@ async function waitTaskStatus(taskId: string, status: string): Promise<void> {
   );
 }
 
+/** FakeSpawner 在 spawn 后 5ms 才写事件；后续断言依赖 durable 行时必须等 jsonl，不能只等 run=running。 */
+async function waitRunEventLines(taskId: string, minLines: number): Promise<void> {
+  await vi.waitFor(
+    () => {
+      const row = db.prepare("SELECT id FROM tier1_runs WHERE task_id=?").get(taskId) as { id: string } | undefined;
+      expect(row?.id).toEqual(expect.any(String));
+      const eventsPath = join(saydoHome, "tier1", "runs", row!.id, "events.jsonl");
+      expect(existsSync(eventsPath)).toBe(true);
+      const text = readFileSync(eventsPath, "utf8");
+      const n = text === "" ? 0 : text.split("\n").filter((line) => line.length > 0).length;
+      expect(n).toBeGreaterThanOrEqual(minLines);
+    },
+    { timeout: 15_000, interval: 50 }
+  );
+}
+
 beforeEach(() => {
   saydoHome = mkdtempSync(join(tmpdir(), "saydo-home-"));
   db = openDb(join(saydoHome, "saydo.db"));
@@ -1653,6 +1669,7 @@ describe("§12-7 Tier1 恢复:kill -9 后按 (adapter,nativeSessionId,cwd) 恢�
     await vi.waitFor(() =>
       expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe("running")
     );
+    await waitRunEventLines(TSK, 1);
     const stats = await ex.prepareShutdown("restart");
     expect(stats.recoverableTier1).toBe(0);
     const row = db
@@ -1722,6 +1739,7 @@ describe("§12-7 Tier1 恢复:kill -9 后按 (adapter,nativeSessionId,cwd) 恢�
     await vi.waitFor(() =>
       expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe("running")
     );
+    await waitRunEventLines(TSK, 1);
 
     const preparing = ex.prepareShutdown("restart");
     await vi.waitFor(() => {
@@ -3260,6 +3278,7 @@ describe("C2b session / canary / 记账 / 限流 / 恢复", () => {
         "running"
       );
     });
+    await waitRunEventLines(TSK, 1);
     db.exec(`CREATE TRIGGER callback_outbox_adapter_mismatch_injected_failure
       BEFORE INSERT ON callback_outbox
       WHEN NEW.trigger = 'blocked' BEGIN
@@ -3356,6 +3375,7 @@ describe("C2b session / canary / 记账 / 限流 / 恢复", () => {
         "running"
       );
     });
+    await waitRunEventLines(TSK, 1);
     const worktree = (db.prepare("SELECT worktree_path FROM tier1_runs WHERE task_id=?").get(TSK) as { worktree_path: string })
       .worktree_path;
     rmSync(join(worktree, ".git"), { recursive: true, force: true });

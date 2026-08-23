@@ -6,7 +6,7 @@
     "refsFrozenAt": "2026-08-22T22:30:44+08:00",
     "base": "8a8247a347238b6bf6ad649f1162f1934540eafd",
     "rangeEnd": "3fccf4a704ad9a5d8e013baaefb67c66a5737cba",
-    "remediationEnd": "3e74a5a6a4e5c187688c157309989737bf9af947",
+    "remediationEnd": "57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e",
     "markdownOutput": "docs/review/2026-08-22-week-audit-ledger.md",
     "jsonOutput": "research/week-audit/2026-08-22-ledger.json",
     "semanticOutput": "research/week-audit/2026-08-22-semantic-review.json",
@@ -30,26 +30,26 @@
     "documentOnlyCommits": 48,
     "implementationOnlyCommits": 38
   },
-  "historyDigest": "b6aa0a6312f8b32fa407ece347fb15ab93a7b01a198d3e096eef41d7ae3bf423",
+  "historyDigest": "7638adc4299abde14794256d66abae58a9448fd8522745c7d88011bf46054ffd",
   "expectedPublication": {
     "repository": "Octo-o-o-o/SayDo",
-    "tag": "v0.1.0-rc.2",
+    "tag": "v0.1.0-rc.3",
     "rule": "GitHub tag workflow 对本 bundle 运行 --check-bundle 后构成外部不可移动锚"
   },
   "files": {
     "docs/review/2026-08-22-week-audit-ledger.md": "e22c8df627a9bc25a030aeef033e28d411735d0c79201482fb02306e4b7f5427",
-    "research/week-audit/2026-08-22-ledger.json": "2659e3ef2ee3b68d2c19051e3c0630a2d6c8bba1e5aebf55ffd08ea7b0a94439",
+    "research/week-audit/2026-08-22-ledger.json": "5de8d931b710ae17b2c58c76393a31f74b2ebbd752448181344e6948e4f2576c",
     "research/week-audit/2026-08-22-semantic-review.json": "5d36908b34bf04813f30f275ac0710a70649b1b1ec9c3c66a70ba5dc5af7c925",
     "research/week-audit/2026-08-22-ref-manifest.json": "46fc3c9b4b5ac02a9a862ace714d721c9434583fc055f8f5246b58bd7cf0f70d",
-    "research/week-audit/2026-08-23-publication-manifest.json": "314d1a80c0d05963c9af293d6fd9776f01b8cf4ba573f4910d67729572881263",
+    "research/week-audit/2026-08-23-publication-manifest.json": "1f9eabc6dcbd87c39ac0c7b01b25dc6cef63ce1bbe27301222c77e0545a11718",
     "research/week-audit/2026-08-23-review-finding-anchor.json": "03c6ef06fb8f3834e311b06874a869c4e232b4b8f3842f95ef54d6ce388ef378",
-    "research/week-audit/2026-08-23-remediation-cross-links.json": "2af99a714dfab21e2c4c124f00a642c8e4409350b06af3ed65c92b5ba4fd5f99",
-    "research/week-audit/2026-08-23-remediation-ledger.json": "c29d348b9d762347a9c910b13740025e2bf3f76d2db092b80b8b85f498144f40",
-    "docs/review/2026-08-23-remediation-ledger.md": "d8b017c518786c401589951c81ba689fe6f8bb4d8866e032a4dfcf4ec095f11d"
+    "research/week-audit/2026-08-23-remediation-cross-links.json": "5f0580bc8ae3128733b2689e790abc5e7f1ffc7fb76803b72a0bf0ff7520a7af",
+    "research/week-audit/2026-08-23-remediation-ledger.json": "9337dda47a3ebeaf3ed593e69fc0b12787a96afe0ce25844a048e949070f9513",
+    "docs/review/2026-08-23-remediation-ledger.md": "bb56ea6dd038c4217834c070be39a59d1de51ebe68790e53c5e8ef9029966b47"
   },
   "workingTreeSnapshot": {
     "schemaVersion": 2,
-    "implementationBoundary": "3e74a5a6a4e5c187688c157309989737bf9af947",
+    "implementationBoundary": "57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e",
     "exclusionRule": "七个账本生成物由 files digest/全树 manifest 单独闭环，避免自引用；其余 staged/unstaged/untracked 文件逐个冻结内容",
     "entries": [
       {
@@ -59,28 +59,8 @@
         ],
         "kind": "file",
         "mode": 420,
-        "bytes": 38630,
-        "sha256": "f19f9152b5c311ec30c5d78dae878a153c935209c3075080afd877082c9acca6"
-      },
-      {
-        "path": "e2e/evidence/w54b-batch.md",
-        "states": [
-          "unstaged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 26643,
-        "sha256": "be59b3302b7e374310130c2a8933ef398ba4a7a032b7bad8caf80cec3103e66e"
-      },
-      {
-        "path": "HANDOFF.md",
-        "states": [
-          "unstaged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 33677,
-        "sha256": "4dc8ec3baabe2ec94d1d54c8494f832596fe42af399ffd08fb3fc2bafd7c4a66"
+        "bytes": 44064,
+        "sha256": "21adfe45afc715002bf530de38da5740b3a5ecbe93d01206377129c613deba35"
       },
       {
         "path": "history/PROCESS-JOURNAL.md",
@@ -89,28 +69,8 @@
         ],
         "kind": "file",
         "mode": 420,
-        "bytes": 299702,
-        "sha256": "b5d86ff8c7e7f9cb72a8c7c92fda227d94991bf60d4589ba9d60f61798d553bf"
-      },
-      {
-        "path": "history/reviews/2026-08-23-final-freeze-delta-review.md",
-        "states": [
-          "untracked"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 2128,
-        "sha256": "c29bdebcf06e5a4ef6fdd6d0f52f62760d89cfef619de7b4985de84820360f61"
-      },
-      {
-        "path": "scripts/week-audit.mjs",
-        "states": [
-          "unstaged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 56703,
-        "sha256": "12c61ed804b40d0af2ef0bd5bb5d36db21bbabbda7d4b476e03965bb81d8ae51"
+        "bytes": 303224,
+        "sha256": "42931b7976f52877b5e7dc2290a679883adb70c2489aee1d0c9dae76bd33909e"
       }
     ]
   }

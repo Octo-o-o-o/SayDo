@@ -117,16 +117,13 @@ test("11 路由全部渲染 + fixture 一致 + 截图基线(亮暗)", async ({ p
   for (const p of PAGES) {
     await open(page, p.hash);
     await expect(page.locator(p.probe)).toBeVisible({ timeout: 10_000 });
-    // 截图基线:亮
-    await page.emulateMedia({ colorScheme: "light" });
-    await page.evaluate(() => document.documentElement.setAttribute("data-theme", "light"));
-    await page.waitForTimeout(150);
-    await page.screenshot({ path: join(ROOT, "e2e", "screenshots", "light", `${p.name}.png`), fullPage: true });
-    // 暗
-    await page.evaluate(() => document.documentElement.setAttribute("data-theme", "dark"));
-    await page.waitForTimeout(150);
-    await page.screenshot({ path: join(ROOT, "e2e", "screenshots", "dark", `${p.name}.png`), fullPage: true });
-    await page.evaluate(() => document.documentElement.removeAttribute("data-theme"));
+    for (const theme of ["light", "dark"] as const) {
+      await page.evaluate((value) => localStorage.setItem("saydo.theme", value), theme);
+      await page.reload({ waitUntil: "networkidle" });
+      await expect(page.locator(p.probe)).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      await page.screenshot({ path: join(ROOT, "e2e", "screenshots", theme, `${p.name}.png`), fullPage: true });
+    }
   }
 });
 

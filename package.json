@@ -22,10 +22,10 @@
     "wrangler": "4.112.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "better-sqlite3",
-      "esbuild",
-      "koffi"
-    ]
+    "allowBuilds": {
+      "better-sqlite3": false,
+      "esbuild": true,
+      "koffi": true
+    }
   }
 }

@@ -59,6 +59,7 @@ const nodeOnlyEnv = {
     : {})
 };
 const activeChildren = new Set();
+const closedChildren = new WeakSet();
 const activeServers = new Set();
 const openDatabases = new Set();
 const observedPids = new Map();
@@ -176,13 +177,23 @@ function windowsCmdQuote(value) {
   return `"${String(value).replaceAll('"', '""')}"`;
 }
 
+function writeWindowsNpmNodeShim(dir, name, source) {
+  invariant(/^[a-z][a-z0-9-]*$/u.test(name), `Windows fixture shim 名非法:${name}`);
+  writeFileSync(join(dir, `${name}.mjs`), source);
+  writeFileSync(
+    join(dir, `${name}.cmd`),
+    `@ECHO off\r\nGOTO start\r\n:find_dp0\r\nSET dp0=%~dp0\r\nEXIT /b\r\n:start\r\nSETLOCAL\r\nCALL :find_dp0\r\n\r\nIF EXIST "%dp0%\\node.exe" (\r\n  SET "_prog=%dp0%\\node.exe"\r\n) ELSE (\r\n  SET "_prog=node"\r\n)\r\n\r\nendLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & set PATHEXT=%PATHEXT:;.JS;=;% & "%_prog%"  "%dp0%\\${name}.mjs" %*\r\n`
+  );
+}
+
 function cliInvocation(args) {
   if (process.platform === "win32") {
     const shim = join(installRoot, "node_modules", ".bin", "saydo.cmd");
-    const command = [shim, ...args].map(windowsCmdQuote).join(" ");
+    const command = `"${[shim, ...args].map(windowsCmdQuote).join(" ")}"`;
     return {
       file: nodeOnlyEnv.ComSpec,
-      args: ["/d", "/s", "/c", command]
+      args: ["/d", "/s", "/c", command],
+      options: { windowsVerbatimArguments: true }
     };
   }
   return { file: join(installRoot, "node_modules", ".bin", "saydo"), args };
@@ -190,7 +201,16 @@ function cliInvocation(args) {
 
 function spawnCli(args, options) {
   const cli = cliInvocation(args);
-  return spawn(cli.file, cli.args, { windowsHide: true, ...options });
+  return spawn(cli.file, cli.args, { windowsHide: true, ...cli.options, ...options });
+}
+
+function trackChild(child) {
+  activeChildren.add(child);
+  child.once("close", () => {
+    closedChildren.add(child);
+    activeChildren.delete(child);
+  });
+  return child;
 }
 
 function cliSync(args, env = nodeOnlyEnv) {
@@ -199,7 +219,8 @@ function cliSync(args, env = nodeOnlyEnv) {
     cwd: installRoot,
     env,
     encoding: "utf8",
-    windowsHide: true
+    windowsHide: true,
+    ...cli.options
   });
 }
 
@@ -233,10 +254,9 @@ function start(port, home = stateRoot, env = nodeOnlyEnv, explicitPort = true, l
   ownedHomes.add(actualHome);
   const child = spawnCli(
     ["up", ...homeArgs, ...portArgs, "--no-open"],
-    { cwd: installRoot, env, stdio: ["ignore", "pipe", "pipe"], detached: true }
+    { cwd: installRoot, env, stdio: ["ignore", "pipe", "pipe"], detached: process.platform !== "win32" }
   );
-  activeChildren.add(child);
-  child.once("exit", () => activeChildren.delete(child));
+  trackChild(child);
   let output = "";
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
@@ -269,10 +289,9 @@ function startContender(port, home) {
   ownedHomes.add(home);
   const child = spawnCli(
     ["up", "--home", home, "--port", String(port), "--no-open"],
-    { cwd: installRoot, env: nodeOnlyEnv, stdio: ["ignore", "pipe", "pipe"], detached: true }
+    { cwd: installRoot, env: nodeOnlyEnv, stdio: ["ignore", "pipe", "pipe"], detached: process.platform !== "win32" }
   );
-  activeChildren.add(child);
-  child.once("exit", () => activeChildren.delete(child));
+  trackChild(child);
   let output = "";
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
@@ -318,6 +337,25 @@ async function waitForExit(child, timeoutMs, label) {
       resolveExit({ code, signal });
     });
   });
+}
+
+async function waitForClose(child, timeoutMs, label) {
+  if (closedChildren.has(child)) return;
+  await new Promise((resolveClose, rejectClose) => {
+    const timer = setTimeout(() => {
+      child.off("close", onClose);
+      rejectClose(new Error(`${label} close 超时`));
+    }, timeoutMs);
+    const onClose = () => {
+      clearTimeout(timer);
+      resolveClose();
+    };
+    child.once("close", onClose);
+  });
+}
+
+function closeChildStdio(child) {
+  for (const stream of child.stdio ?? []) stream?.destroy?.();
 }
 
 async function stop(owned) {
@@ -427,8 +465,7 @@ async function attachAndRelease(port, expectedPid) {
     ["up", "--home", stateRoot, "--port", String(port), "--no-open"],
     { cwd: installRoot, env: nodeOnlyEnv, stdio: ["ignore", "pipe", "pipe"] }
   );
-  activeChildren.add(child);
-  child.once("exit", () => activeChildren.delete(child));
+  trackChild(child);
   let output = "";
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
@@ -455,7 +492,7 @@ async function attachAndRelease(port, expectedPid) {
 function prepareTier1Fixture() {
   mkdirSync(fixtureBin, { recursive: true });
   if (process.platform === "win32") {
-    writeFileSync(join(fixtureBin, "pnpm.cmd"), `@echo off\r\n"${process.execPath}" -e "process.exit(0)"\r\n`);
+    writeWindowsNpmNodeShim(fixtureBin, "pnpm", "process.exit(0);\n");
   } else {
     const pnpmFixture = join(fixtureBin, "pnpm");
     writeFileSync(pnpmFixture, "#!/bin/sh\nexec node -e 'process.exit(0)'\n");
@@ -630,9 +667,10 @@ try {
     }
   }
   if (process.platform === "win32") {
-    writeFileSync(
-      join(fixtureBin, "codex.cmd"),
-      "@echo off\r\nif \"%~1\"==\"--version\" (echo codex-cli 0.0.0-fixture& exit /b 0)\r\nif \"%~1\"==\"login\" (echo Logged in using ChatGPT& exit /b 0)\r\nexit /b 0\r\n"
+    writeWindowsNpmNodeShim(
+      fixtureBin,
+      "codex",
+      'if(process.argv.includes("--version")){process.stdout.write("codex-cli 0.0.0-fixture\\n");process.exit(0)}if(process.argv.includes("login")){process.stdout.write("Logged in using ChatGPT\\n");process.exit(0)}process.exit(0)\n'
     );
   } else {
     const codexFixture = join(fixtureBin, "codex");
@@ -1007,17 +1045,22 @@ try {
     }
   };
   await Promise.allSettled([...activeChildren].map((child) => settle("child", async () => {
-    if (child.exitCode !== null || child.signalCode !== null) return;
-    child.kill("SIGINT");
-    await waitForExit(child, 8_000, "distribution cleanup").catch(async () => {
-      if (child.exitCode === null && child.pid) {
-        try {
-          if (process.platform === "win32") child.kill("SIGKILL");
-          else process.kill(-child.pid, "SIGKILL");
-        } catch { child.kill("SIGKILL"); }
-      }
-      await waitForExit(child, 5_000, "distribution cleanup hard kill");
-    });
+    if (child.exitCode === null && child.signalCode === null) {
+      child.kill("SIGINT");
+      await waitForExit(child, 8_000, "distribution cleanup").catch(async () => {
+        if (child.exitCode === null && child.pid) {
+          try {
+            if (process.platform === "win32") child.kill("SIGKILL");
+            else process.kill(-child.pid, "SIGKILL");
+          } catch { child.kill("SIGKILL"); }
+        }
+        await waitForExit(child, 5_000, "distribution cleanup hard kill");
+      });
+    }
+    // exit 早于 stdio close；后代可能继承 wrapper 的管道句柄。确认进程退出后主动关闭本地读端，
+    // 再等待 close；Windows 在 close 前仍会锁住 .cmd/.node 所在安装树。
+    closeChildStdio(child);
+    await waitForClose(child, 8_000, "distribution cleanup");
   })));
   await Promise.allSettled([...activeServers].map((server) => settle("server", async () => {
     server.closeAllConnections?.();
@@ -1039,9 +1082,18 @@ try {
     await cleanupOwnedRegistry(home, resultSummary === undefined);
   })));
   const stillAlive = [...observedPids.keys()].filter((pid) => processAlive(pid));
+  const installPrefix = `${installRoot.toLowerCase()}\\`;
+  const loadedFromInstall = (process.report.getReport().sharedObjects ?? [])
+    .filter((path) => path.toLowerCase().startsWith(installPrefix))
+    .map((path) => path.slice(installRoot.length + 1));
+  if (loadedFromInstall.length > 0) {
+    cleanupErrors.push(new Error(`installed native objects loaded in verifier:${loadedFromInstall.join(",")}`));
+  }
   if (stillAlive.length === 0) {
     try {
-      rmSync(scratch, { recursive: true, force: true });
+      // Windows 在进程退出后仍可能短暂持有 .cmd/.node 句柄；只在 PID 全灭后有限重试 EBUSY，
+      // 最终仍删不掉则保持红灯，不能把残留安装树当成成功清理。
+      rmSync(scratch, { recursive: true, force: true, maxRetries: 30, retryDelay: 100 });
     } catch (err) {
       cleanupErrors.push(new Error(`scratch:${String(err instanceof Error ? err.message : err).slice(0, 200)}`));
     }
