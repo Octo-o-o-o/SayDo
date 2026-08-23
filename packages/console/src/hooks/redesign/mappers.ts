@@ -418,8 +418,9 @@ export interface TaskDetailPayload {
   approvals?: Record<string, unknown>[];
   costs?: Record<string, unknown>[];
   decisions?: Record<string, unknown>[];
+  acceptanceChecks?: Array<{ criterion: string; source: string; status: string; evidenceRef?: string }>;
   writingProof?: {
-    acceptanceChecks?: Array<{ criterion: string; source: string; status: string }>;
+    acceptanceChecks?: Array<{ criterion: string; source: string; status: string; evidenceRef?: string }>;
   } | null;
 }
 
@@ -480,29 +481,38 @@ function mapTaskViewFromDetail(task: Record<string, unknown>, focusId: string): 
 export function mapReviewContext(data: TaskDetailPayload, focusId = ""): ReviewTaskContext {
   const task = data.task ?? {};
   const pkg = data.package;
-  const status = String(task["status"] ?? "");
-  const settled = status === "ready_for_review" || status === "review_approved_waiting_merge";
-  const isFailed = status === "failed";
   const writingProof = data.writingProof ?? null;
   const isWriting = String(task["project_type"] ?? "") === "writing" && writingProof !== null;
 
-  const acceptanceRaw = (pkg?.["acceptance"] as Array<{ text?: string; criterion?: string }> | undefined) ?? [];
-  const writingChecks = writingProof?.acceptanceChecks ?? [];
-  const checkByCriterion = new Map(writingChecks.map((c) => [c.criterion, c]));
+  const acceptanceRaw = (pkg?.["acceptance"] as Array<string | { text?: string; criterion?: string }> | undefined) ?? [];
+  const checks = data.acceptanceChecks ?? [];
+  const checksByCriterion = new Map<string, typeof checks>();
+  for (const check of checks) {
+    const rows = checksByCriterion.get(check.criterion) ?? [];
+    rows.push(check);
+    checksByCriterion.set(check.criterion, rows);
+  }
 
   const acceptance: AcceptanceItem[] = acceptanceRaw.map((a) => {
-    const criterion = a.text ?? a.criterion ?? JSON.stringify(a);
-    const wc = checkByCriterion.get(criterion);
+    const criterion = typeof a === "string" ? a : a.text ?? a.criterion ?? JSON.stringify(a);
+    const matches = checksByCriterion.get(criterion) ?? [];
+    const check = matches.length === 1 ? matches[0] : undefined;
     let source: AcceptanceSource = "verify";
-    if (wc?.source === "manual") source = "manual";
-    else if (wc?.source === "agent_claim") source = "agent_claim";
+    if (check?.source === "manual") source = "manual";
+    else if (check?.source === "agent_claim") source = "agent_claim";
     else if (isWriting) source = "manual";
 
     let statusAc: AcceptanceStatus = "unknown";
-    if (wc?.status === "pass" || wc?.status === "fail" || wc?.status === "unknown") {
-      statusAc = wc.status;
-    } else if (settled) statusAc = "pass";
-    else if (isFailed) statusAc = "fail";
+    const legalSource = check?.source === "verify" || check?.source === "agent_claim" || check?.source === "manual";
+    if (check?.status === "unknown" && legalSource) statusAc = "unknown";
+    else if (
+      (check?.status === "pass" || check?.status === "fail") &&
+      legalSource &&
+      typeof check.evidenceRef === "string" &&
+      check.evidenceRef.trim() !== ""
+    ) {
+      statusAc = check.status;
+    }
 
     return { criterion, status: statusAc, source };
   });

@@ -282,4 +282,79 @@ describe("Tier1 executor-disabled restart policy", () => {
       db.close();
     }
   });
+
+  it("已有 finalize_pending 的 run 仍 reap 进程组，但不得再写 restart marker", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-restart-pending-"));
+    tempDirs.add(home);
+    const worktree = join(home, "worktree");
+    mkdirSync(join(worktree, ".git"), { recursive: true });
+    const repo = realpathSync(mkdtempSync(join(realpathSync(process.cwd()), ".saydo-restart-repo-")));
+    tempDirs.add(repo);
+    const db = openDb(join(home, "saydo.db"));
+    try {
+      const now = "2026-08-23T00:00:00.000Z";
+      const identity = statSync(repo, { bigint: true });
+      db.prepare(
+        `INSERT INTO projects(id,title,type,status,workspace_json,canonical_workspace_path,workspace_dev,workspace_ino,exec_mode_default,created_at,updated_at)
+         VALUES ('prj_restart','p','coding','active',?,?,?,?, 'step_confirm',?,?)`
+      ).run(JSON.stringify({ kind: "local_folder", path: repo, managed: false }), repo, String(identity.dev), String(identity.ino), now, now);
+      db.prepare(
+        `INSERT INTO tasks(id,project_id,title,spec_markdown,route,status,adapter,budget_json,created_at,updated_at)
+         VALUES ('tsk_pending','prj_restart','t','# t','tier1','running','cursor','{}',?,?)`
+      ).run(now, now);
+      db.prepare(
+        `INSERT INTO tier1_runs(id,task_id,attempt,adapter,cwd,worktree_path,state,native_session_id,finalize_pending_json,created_at,updated_at)
+         VALUES ('run_pending','tsk_pending',1,'cursor',?,?,'running','chat-pending',?, ?,?)`
+      ).run(
+        worktree,
+        worktree,
+        JSON.stringify({ kind: "review", recordedAt: now, eventLine: 2, observedModel: "fable-5-max", observedModels: ["fable-5-max"] }),
+        now,
+        now
+      );
+      const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+        detached: true,
+        stdio: "ignore"
+      });
+      if (!child.pid) throw new Error("测试子进程未获得 pid");
+      const childPid = child.pid;
+      spawned.add(childPid);
+      await once(child, "spawn");
+      const job = attachJob(childPid);
+      const runDir = join(home, "tier1", "runs", "run_pending");
+      mkdirSync(runDir, { recursive: true });
+      const processStart = readOwnedAgentProcessStart(childPid, process.execPath);
+      if (!processStart) throw new Error("无法读取测试子进程 identity");
+      writeFileSync(
+        join(runDir, "agent-owner.json"),
+        JSON.stringify({
+          version: 1,
+          runId: "run_pending",
+          pid: childPid,
+          binary: process.execPath,
+          worktree,
+          processStart,
+          ...(job ? { jobName: job.name } : {})
+        })
+      );
+      const audit = auditCollector();
+      const childClosed = once(child, "close");
+      await expect(markDurableTier1RestartPending(db, audit.sink, home, "executor_disabled", now)).resolves.toMatchObject({
+        recoverableTier1: 0
+      });
+      await childClosed;
+      spawned.delete(childPid);
+      expect(() => process.kill(childPid, 0)).toThrow();
+      expect(
+        db.prepare("SELECT restart_pending_at, finalize_pending_json FROM tier1_runs WHERE id='run_pending'").get()
+      ).toMatchObject({
+        restart_pending_at: null,
+        finalize_pending_json: expect.any(String)
+      });
+      expect(audit.events.some((event) => event.action === "tier1.orphan_agent_reaped")).toBe(true);
+      expect(audit.events.some((event) => event.action === "tier1.restart_pending")).toBe(false);
+    } finally {
+      db.close();
+    }
+  });
 });

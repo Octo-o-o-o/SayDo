@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "reviewer": "Codex root",
+  "reviewedAt": "2026-08-23T04:31:00+08:00",
+  "scope": {
+    "mainCommits": 115,
+    "documents": 219,
+    "projection": "commit:{sha,findingIds};document:{path,findingIds}",
+    "emptyCommitFindingLinks": 92,
+    "emptyDocumentFindingLinks": 209
+  },
+  "projectionSha256": "bc884f257cb5fa59518c56a4e655b81f599de634c318a421a4c2a33c7dad74e2",
+  "findingIds": ["F18", "F19", "F20", "F21", "F22", "F23", "F24", "F25", "F26", "F27", "F28"],
+  "commitFindingLinks": [
+    {"sha": "789b76d27c94e3e368a8661eeb402d8c7c1ab0d0", "findingIds": ["F20", "F26"]},
+    {"sha": "addfd1965a5144223df3bfa3f7c407976664929a", "findingIds": ["F20", "F26"]},
+    {"sha": "bc2ac871ee97c7e74c38e19b2b90a98fb55f61b4", "findingIds": ["F28"]},
+    {"sha": "354b0284f099db882df65e4b974bdd1b0629966e", "findingIds": ["F22"]},
+    {"sha": "33c5cf134f08942457f9bc7f5589eeef88c0fbce", "findingIds": ["F22"]},
+    {"sha": "63600c62ac762aca4cecbc38391b8298a73d9c32", "findingIds": ["F21"]},
+    {"sha": "f104563a4a90720740f2b8ed316a4d4c3e0cbb97", "findingIds": ["F22"]},
+    {"sha": "93eb8148ab695186a49a6f54f1f36e0e974fbf44", "findingIds": ["F21"]},
+    {"sha": "d2d7a310160e77baaf497a1961a1b01d41455368", "findingIds": ["F21"]},
+    {"sha": "aa2dffcdaa37fefab6dc205af3fd1cf91c3ba7d5", "findingIds": ["F21"]},
+    {"sha": "55a224dd1db991573b64dbb848f1b240c83e6b0d", "findingIds": ["F21", "F22"]},
+    {"sha": "088b8f0cc176bc2be9cf09235a640301dd35cb55", "findingIds": ["F22"]},
+    {"sha": "1679078bdd44ef9b8034e3f926c990e39b8825a8", "findingIds": ["F22", "F28"]},
+    {"sha": "11e3653012584ae1ec3dde61d58938871e1d2a77", "findingIds": ["F22", "F28"]},
+    {"sha": "14825101493df76cdf6d56e95d48d3fd63e5fb20", "findingIds": ["F20", "F21", "F26", "F28"]},
+    {"sha": "cdf49f22828e06c7e97d1b844c26441ce1f3fc9d", "findingIds": ["F22"]},
+    {"sha": "4d2824ef896e5ace49cb8f86e48b3c7a64bf7602", "findingIds": ["F22"]},
+    {"sha": "a26d5bf050e87c3a2de4973ef86d899e706be4b6", "findingIds": ["F19", "F20", "F22", "F28"]},
+    {"sha": "1d6680c243e399cf775c34f1843e8a3fa8405c65", "findingIds": ["F19", "F20", "F22", "F28"]},
+    {"sha": "92d5b552ef02bc116d7e5cf85faf843f2b111ed9", "findingIds": ["F19", "F20", "F28"]},
+    {"sha": "afd31b4a850a43d47b2155164944faf43f9f3dd3", "findingIds": ["F19", "F20", "F21", "F28"]},
+    {"sha": "a971519e9af22aa207e48387f1ceb5464b4a1442", "findingIds": ["F19", "F20", "F28"]},
+    {"sha": "6d98a6eeec68b0cfe940c212dd80061f05288426", "findingIds": ["F19", "F20", "F28"]}
+  ],
+  "documentFindingLinks": [
+    {"path": "docs/03-architecture.md", "findingIds": ["F21"]},
+    {"path": "docs/04-key-mechanisms.md", "findingIds": ["F21"]},
+    {"path": "docs/06-references.md", "findingIds": ["F21"]},
+    {"path": "docs/10-voice-ux-spec.md", "findingIds": ["F20"]},
+    {"path": "docs/11-ui-spec.md", "findingIds": ["F20", "F26"]},
+    {"path": "docs/plan/IMPLEMENTATION-PLAN-2.md", "findingIds": ["F28"]},
+    {"path": "docs/site/2026-08-20-docs-page-content.fable.md", "findingIds": ["F22"]},
+    {"path": "docs/site/2026-08-20-homepage-structure-copy.fable.md", "findingIds": ["F22"]},
+    {"path": "e2e/evidence/w54b-batch.md", "findingIds": ["F19", "F20", "F28"]},
+    {"path": "README.md", "findingIds": ["F22"]}
+  ],
+  "manualBasis": "docs/review/2026-08-23-week-audit-faststart-release.md §3–§5",
+  "note": "只冻结人工报告 finding 与 SHA/path 的非空链接及 334 键完整投影；空 findingIds 不表示人工判定正确。旧 decision/claim/rationale 均按机械污染删除。refiner 只能读取和精确比对本文件。"
+}

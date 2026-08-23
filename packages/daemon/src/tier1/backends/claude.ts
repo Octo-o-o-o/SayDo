@@ -206,11 +206,13 @@ export function parseClaudeTier1Line(line: string): Tier1Event[] {
       kind: "result",
       isError: parsed["is_error"] === true
     };
+    const sessionId = asString(parsed["session_id"]);
     const subtype = asString(parsed["subtype"]);
     const numTurns = asNumber(parsed["num_turns"]);
     const stop = asString(parsed["stop_reason"]);
     const terminal = asString(parsed["terminal_reason"]);
     const text = asString(parsed["result"]);
+    if (sessionId) res.session_id = sessionId;
     if (subtype) res.subtype = subtype;
     if (numTurns !== undefined) res.numTurns = numTurns;
     const totalCost = asNumber(parsed["total_cost_usd"]);

@@ -1,10 +1,10 @@
 // W5.4-b C1:claude 身份登记承载(方案 D12)+ verifyBinaryIdentity 共享提升。
 // - 登记读/写/核验:临时 SAYDO_HOME,缺失/损坏/形状不符全回 null(fail-closed 不抛);
 // - 核验谱:ok / identity_missing / binary_path_mismatch / digest_mismatch / binary_unreadable;
-// - digest 重算仅在 mtime/size 变化时(D12:256MB 单文件;注入 hashFile 计数断言);
+// - Tier1 每次核验都重算 digest，同尺寸同 mtime 替换也 fail-closed；
 // - 共享 verifyBinaryIdentity 行为与原 byoa 私有实现等价(通过回 identity,不通过回 undefined)。
 
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, realpathSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -30,13 +30,28 @@ function makeBin(home: string, content = "#!/bin/bash\necho claude\n"): string {
 
 function record(bin: string, over: Partial<ClaudeIdentityRecord> = {}): ClaudeIdentityRecord {
   return {
-    binaryPath: bin,
+    binaryPath: realpathSync(bin),
     binaryDigest: sha256File(bin),
     version: "2.1.220",
     testedAt: "2026-08-21T00:00:00.000Z",
     receipt: { source: "test" },
     ...over
   };
+}
+
+function makeCurrentCmdShim(home: string): { shim: string; target: string } {
+  const binDir = join(home, "bin");
+  const targetDir = join(home, "node_modules", "@anthropic-ai", "claude-code");
+  mkdirSync(binDir, { recursive: true });
+  mkdirSync(targetDir, { recursive: true });
+  const target = join(targetDir, "cli.js");
+  const shim = join(binDir, "claude.cmd");
+  writeFileSync(target, "process.exit(0);\n");
+  writeFileSync(
+    shim,
+    '@ECHO off\r\nGOTO start\r\n:find_dp0\r\nSET dp0=%~dp0\r\nEXIT /b\r\n:start\r\nSETLOCAL\r\nCALL :find_dp0\r\n\r\nIF EXIST "%dp0%\\node.exe" (\r\n  SET "_prog=%dp0%\\node.exe"\r\n) ELSE (\r\n  SET "_prog=node"\r\n)\r\n\r\nendLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & set PATHEXT=%PATHEXT:;.JS;=;% & "%_prog%"  "%dp0%\\..\\node_modules\\@anthropic-ai\\claude-code\\cli.js" %*\r\n'
+  );
+  return { shim, target: realpathSync(target) };
 }
 
 describe("claude-identity.json 读/写(D12 承载;路径经 SAYDO_HOME 解析)", () => {
@@ -66,14 +81,25 @@ describe("claude-identity.json 读/写(D12 承载;路径经 SAYDO_HOME 解析)",
   });
 });
 
-describe("verifyClaudeIdentity(登记核验谱;digest 对照走共享缓存)", () => {
+describe("verifyClaudeIdentity(登记核验谱;Tier1 每次重哈希)", () => {
   it("正例:登记与实际文件一致 ⇒ ok + record 回传", () => {
     const home = makeHome();
     const bin = makeBin(home);
     writeClaudeIdentity(home, record(bin));
     const v = verifyClaudeIdentity(home, bin);
     expect(v.ok).toBe(true);
-    if (v.ok) expect(v.record.binaryPath).toBe(bin);
+    if (v.ok) expect(v.record.binaryPath).toBe(realpathSync(bin));
+  });
+
+  it.skipIf(process.platform === "win32")("配置为 symlink 时按实体路径核验登记", () => {
+    const home = makeHome();
+    const bin = makeBin(home);
+    const alias = join(home, "claude-current");
+    symlinkSync(bin, alias, "file");
+    writeClaudeIdentity(home, record(realpathSync(bin)));
+    const v = verifyClaudeIdentity(home, alias);
+    expect(v.ok).toBe(true);
+    if (v.ok) expect(v.record.binaryPath).toBe(realpathSync(bin));
   });
 
   it("登记缺失 ⇒ identity_missing + 自检处方", () => {
@@ -109,7 +135,7 @@ describe("verifyClaudeIdentity(登记核验谱;digest 对照走共享缓存)", (
     expect(verifyClaudeIdentity(home, bin)).toMatchObject({ ok: false, code: "binary_unreadable" });
   });
 
-  it("digest 重算仅在 mtime/size 变化时(D12;hashFile 注入计数)", () => {
+  it("每次 Tier1 核验都重算 wrapper digest", () => {
     const home = makeHome();
     const bin = makeBin(home);
     writeClaudeIdentity(home, record(bin));
@@ -121,11 +147,44 @@ describe("verifyClaudeIdentity(登记核验谱;digest 对照走共享缓存)", (
     expect(verifyClaudeIdentity(home, bin, { hashFile }).ok).toBe(true);
     expect(calls).toBe(1);
     expect(verifyClaudeIdentity(home, bin, { hashFile }).ok).toBe(true);
-    expect(calls).toBe(1); // mtime/size 未变 ⇒ 缓存命中不重哈希
+    expect(calls).toBe(2);
     const future = new Date(Date.now() + 10_000);
     utimesSync(bin, future, future);
     expect(verifyClaudeIdentity(home, bin, { hashFile }).ok).toBe(true);
-    expect(calls).toBe(2); // mtime 变 ⇒ 重哈希
+    expect(calls).toBe(3);
+  });
+
+  it("同尺寸内容替换并恢复原 mtime 仍拒绝", () => {
+    const home = makeHome();
+    const bin = makeBin(home);
+    writeClaudeIdentity(home, record(bin));
+    expect(verifyClaudeIdentity(home, bin).ok).toBe(true);
+    const before = statSync(bin);
+    writeFileSync(bin, "#!/bin/bash\necho pwned!\n");
+    utimesSync(bin, before.atime, before.mtime);
+    expect(statSync(bin).size).toBe(before.size);
+    expect(verifyClaudeIdentity(home, bin)).toMatchObject({ ok: false, code: "digest_mismatch" });
+  });
+
+  it("win32 npm shim 同时钉住 .cmd 与最终 JS；旧登记和 JS 漂移均拒绝", () => {
+    const home = makeHome();
+    const { shim, target } = makeCurrentCmdShim(home);
+    writeClaudeIdentity(home, record(shim));
+    expect(verifyClaudeIdentity(home, shim, { platform: "win32" })).toMatchObject({
+      ok: false,
+      code: "runtime_target_missing"
+    });
+
+    writeClaudeIdentity(
+      home,
+      record(shim, { runtimeTargetPath: target, runtimeTargetDigest: sha256File(target) })
+    );
+    expect(verifyClaudeIdentity(home, shim, { platform: "win32" }).ok).toBe(true);
+    writeFileSync(target, "process.exit(1); // changed\n");
+    expect(verifyClaudeIdentity(home, shim, { platform: "win32" })).toMatchObject({
+      ok: false,
+      code: "runtime_target_digest_mismatch"
+    });
   });
 });
 

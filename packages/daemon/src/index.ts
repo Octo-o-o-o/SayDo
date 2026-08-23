@@ -2094,16 +2094,42 @@ function routeConsoleApi(u: URL, via?: "local" | "tailnet" | "mobile_lan"): unkn
 function safeConfigView(): unknown {
   try {
     const cfg = loadConfigFile(join(SAYDO_HOME, "config.toml"));
+    const adapter = resolveTier1Adapter(cfg);
+    const reset = db
+      .prepare(
+        `SELECT not_before FROM subscription_retry_queue
+         WHERE slot='tier1' AND state='queued'
+         ORDER BY not_before DESC LIMIT 1`
+      )
+      .get() as { not_before: string } | undefined;
     return {
       models: cfg.models ?? {},
       budget: cfg.budget ?? {},
       dnd: cfg.dnd ?? {},
       voice: cfg.voice ?? {},
       params: { ...PARAM_DEFAULTS, ...(cfg.params ?? {}) },
-      gate0: cfg.gate0 ?? { enabled: true, bypass: false }
+      gate0: cfg.gate0 ?? { enabled: true, bypass: false },
+      tier1: {
+        adapter,
+        model: adapter === "claude_code" ? (cfg.tier1?.model ?? "opus") : (cfg.models?.dev?.model ?? null),
+        pinnedVersion:
+          adapter === "claude_code"
+            ? (cfg.tier1?.claude_pinned_version ?? null)
+            : (cfg.tier1?.cursor_agent_pinned_version ?? null),
+        maxTurns: adapter === "claude_code" ? (cfg.tier1?.claude_max_turns ?? 200) : null,
+        nextRateLimitResetAt: reset?.not_before ?? null
+      }
     };
   } catch {
-    return { models: {}, budget: {}, dnd: {}, voice: {}, params: PARAM_DEFAULTS, gate0: { enabled: true, bypass: false } };
+    return {
+      models: {},
+      budget: {},
+      dnd: {},
+      voice: {},
+      params: PARAM_DEFAULTS,
+      gate0: { enabled: true, bypass: false },
+      tier1: null
+    };
   }
 }
 

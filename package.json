@@ -11,14 +11,15 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "eslint packages",
     "test": "pnpm -r --if-present test",
-    "ci:node": "pnpm typecheck && pnpm lint && pnpm test && node scripts/check-emoji.mjs && node scripts/test-emoji-gate.mjs && node scripts/check-hardcoded-colors.mjs && node scripts/test-color-gate.mjs && node scripts/test-migration-tools.mjs && pnpm --filter @saydo/cli verify:distribution"
+    "ci:node": "pnpm typecheck && pnpm lint && pnpm test && node scripts/check-emoji.mjs && node scripts/test-emoji-gate.mjs && node scripts/check-hardcoded-colors.mjs && node scripts/test-color-gate.mjs && node scripts/test-migration-tools.mjs && node scripts/test-release-physical-evidence.mjs && pnpm --filter @saydo/cli verify:distribution"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@playwright/test": "^1.61.1",
     "eslint": "^9.32.0",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.39.0"
+    "typescript-eslint": "^8.39.0",
+    "wrangler": "4.112.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

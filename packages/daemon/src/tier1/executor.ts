@@ -15,11 +15,12 @@ import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline";
-import { basename, join, sep } from "node:path";
+import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   newId,
   textDigest,
   tier1SettleProofSchema,
+  verifyPackageDigest,
   writingSettleProofSchema,
   writingSettleStructuralViolations,
   type AcceptanceCheck,
@@ -45,6 +46,7 @@ import {
   type Tier1RunRow
 } from "../storage/dao/tasks.js";
 import { readTaskMessages, settleCancel } from "./operations.js";
+import { getPackage } from "../storage/dao/packages.js";
 import { decideCommand, type GateDecision } from "./gate.js";
 import { commandToEffect, matchesFrozenVerify } from "./cmdEffect.js";
 import { fileToolToEffect, resolveFileToolPath } from "./fileToolEffect.js";
@@ -64,7 +66,7 @@ import { effectiveDevModelForAdapter, getProjectOverrides } from "../config/proj
 import { assertExactVersion } from "./validateConfig.js";
 import { gatePaths, writeDataSurfaceAtomic, writeGateScriptAtomic, type GatePaths } from "./gateScript.js";
 import { cursorBackend, isCursorShellToolCall } from "./backends/cursor.js";
-import { CLAUDE_CLOSED_TOOLS, claudeEnvOverrides } from "./backends/claude.js";
+import { CLAUDE_CLOSED_TOOLS, claudeBackend, claudeEnvOverrides } from "./backends/claude.js";
 import type { Tier1Backend, Tier1Event } from "./backends/types.js";
 import { classifyClaudeRunOutcome, isRateRejectStatus } from "./claudeOutcome.js";
 import { recordTier1SubscriptionRun } from "../cost/ledger.js";
@@ -76,6 +78,8 @@ import type { RuntimeApprovalFlow } from "./approvalFlow.js";
 import type { GateWireRequest, GateWireResponse } from "./gateServer.js";
 import { hostKind, processBirth } from "@saydo/platform";
 import { verifiedProjectWorkspace } from "../storage/dao/projects.js";
+import { strippedAgentEnv } from "./agentEnv.js";
+export { AGENT_ENV_ALLOWLIST, strippedAgentEnv } from "./agentEnv.js";
 import {
   RESTART_RECOVERABLE_STATES,
   readOwnedAgentProcessStart,
@@ -83,9 +87,11 @@ import {
   isTier1RestartRecoverable,
   tier1RecoveryPrerequisite,
   type AgentOwnershipRecord,
+  type OrphanAgentReapOutcome,
   type RestartCandidate
 } from "./restartPolicy.js";
 import { classifyActiveWork } from "./activeWorkClassifier.js";
+import { readRegularWritingFile, readWritingTreeBlob } from "./writingArtifact.js";
 import {
   ProcessGroupLifecycleError,
   asProcessGroupLifecycleError,
@@ -140,41 +146,6 @@ export interface AgentSpawner {
     sessionId?: string;
     maxTurns?: number;
   }): AgentProcessHandle;
-}
-
-/** 凭据剥离 env 白名单(G4:agent 环境不带任何 key/token;登录态走 HOME 下 cursor 自身存储) */
-export const AGENT_ENV_ALLOWLIST = [
-  "PATH",
-  "HOME",
-  "USER",
-  "LOGNAME",
-  "SHELL",
-  "LANG",
-  "LC_ALL",
-  "LC_CTYPE",
-  "TERM",
-  "TMPDIR",
-  "TEMP",
-  "TMP",
-  "USERPROFILE",
-  "USERNAME",
-  "HOMEDRIVE",
-  "HOMEPATH",
-  "APPDATA",
-  "LOCALAPPDATA",
-  "PATHEXT",
-  "SYSTEMROOT",
-  "WINDIR",
-  "COMSPEC"
-] as const;
-
-export function strippedAgentEnv(source: NodeJS.ProcessEnv): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const k of AGENT_ENV_ALLOWLIST) {
-    const v = source[k];
-    if (v !== undefined) out[k] = v;
-  }
-  return out;
 }
 
 /**
@@ -409,7 +380,137 @@ export interface ExecutorDeps {
   now?: () => Date;
 }
 
+interface FailureFinalizationIntent {
+  kind: "failure";
+  exitEvidence: string;
+  taskState: "failed" | "blocked";
+  spokenReason?: string;
+  recordedAt: string;
+  eventLine: number;
+  observedModel?: string;
+  observedModels?: string[];
+  resultEvent?: Extract<Tier1Event, { kind: "result" }>;
+}
+
+interface ReviewFinalizationIntent {
+  kind: "review";
+  recordedAt: string;
+  eventLine: number;
+  observedModel: string;
+  observedModels: string[];
+  /** 成功终态的原始 result；新 marker 必写，旧 marker 恢复时从 eventLine 以内的 durable event 补回。 */
+  resultEvent?: Extract<Tier1Event, { kind: "result" }>;
+  /** writing settle 在产物落库前先固定引用，终态事务重试只复用同一份 article。 */
+  writingArtifact?: {
+    articleArtifactId: string;
+    articleVersion: number;
+    articlePath: string;
+    articleDigest: string;
+    treeSha: string;
+  };
+}
+
+type PendingFinalizationIntent = FailureFinalizationIntent | ReviewFinalizationIntent;
+
+function parsePendingFinalization(raw: unknown): PendingFinalizationIntent | null {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw !== "string" || raw.length === 0) throw new Error("finalize_pending_json must be a non-empty JSON string");
+  const value = JSON.parse(raw) as Record<string, unknown>;
+  if (typeof value !== "object" || value === null) {
+    throw new Error("invalid finalize_pending_json");
+  }
+  const validCommon =
+    typeof value["recordedAt"] === "string" &&
+    value["recordedAt"].length > 0 &&
+    (value["eventLine"] === undefined ||
+      (typeof value["eventLine"] === "number" && Number.isSafeInteger(value["eventLine"]) && value["eventLine"] >= 0));
+  if (!validCommon) throw new Error("invalid finalize_pending_json");
+  if (value["kind"] === "review") {
+    if (
+      typeof value["observedModel"] !== "string" ||
+      value["observedModel"].length === 0 ||
+      !Array.isArray(value["observedModels"]) ||
+      value["observedModels"].some((model) => typeof model !== "string" || model.length === 0) ||
+      (value["resultEvent"] !== undefined &&
+        (typeof value["resultEvent"] !== "object" || value["resultEvent"] === null ||
+          (value["resultEvent"] as Record<string, unknown>)["kind"] !== "result")) ||
+      (value["writingArtifact"] !== undefined &&
+        (typeof value["writingArtifact"] !== "object" || value["writingArtifact"] === null ||
+          typeof (value["writingArtifact"] as Record<string, unknown>)["articleArtifactId"] !== "string" ||
+          !Number.isSafeInteger((value["writingArtifact"] as Record<string, unknown>)["articleVersion"]) ||
+          (value["writingArtifact"] as Record<string, unknown>)["articleVersion"] !== 1 ||
+          typeof (value["writingArtifact"] as Record<string, unknown>)["articlePath"] !== "string" ||
+          typeof (value["writingArtifact"] as Record<string, unknown>)["articleDigest"] !== "string" ||
+          typeof (value["writingArtifact"] as Record<string, unknown>)["treeSha"] !== "string"))
+    ) {
+      throw new Error("invalid finalize_pending_json");
+    }
+    return {
+      kind: "review",
+      recordedAt: value["recordedAt"] as string,
+      eventLine: (value["eventLine"] as number | undefined) ?? 0,
+      observedModel: value["observedModel"],
+      observedModels: [...new Set(value["observedModels"] as string[])],
+      ...(value["resultEvent"] !== undefined
+        ? { resultEvent: value["resultEvent"] as Extract<Tier1Event, { kind: "result" }> }
+        : {}),
+      ...(value["writingArtifact"] !== undefined
+        ? {
+            writingArtifact: value["writingArtifact"] as NonNullable<ReviewFinalizationIntent["writingArtifact"]>
+          }
+        : {})
+    };
+  }
+  // kind 缺失是 v5 旧 failure marker；恢复时按 failure 兼容读取。
+  if (
+    value["kind"] !== undefined &&
+    value["kind"] !== "failure"
+  ) {
+    throw new Error("invalid finalize_pending_json");
+  }
+  if (
+    typeof value["exitEvidence"] !== "string" ||
+    value["exitEvidence"].length === 0 ||
+    (value["taskState"] !== "failed" && value["taskState"] !== "blocked") ||
+    (value["spokenReason"] !== undefined && typeof value["spokenReason"] !== "string") ||
+    (value["observedModel"] !== undefined && typeof value["observedModel"] !== "string") ||
+    (value["observedModels"] !== undefined &&
+      (!Array.isArray(value["observedModels"]) ||
+        value["observedModels"].some((model) => typeof model !== "string" || model.length === 0))) ||
+    (value["resultEvent"] !== undefined &&
+      (typeof value["resultEvent"] !== "object" || value["resultEvent"] === null ||
+        (value["resultEvent"] as Record<string, unknown>)["kind"] !== "result"))
+  ) {
+    throw new Error("invalid finalize_pending_json");
+  }
+  return {
+    kind: "failure",
+    exitEvidence: value["exitEvidence"],
+    taskState: value["taskState"],
+    recordedAt: value["recordedAt"] as string,
+    eventLine: (value["eventLine"] as number | undefined) ?? 0,
+    ...(value["observedModel"] !== undefined ? { observedModel: value["observedModel"] as string } : {}),
+    ...(value["observedModels"] !== undefined
+      ? { observedModels: [...new Set(value["observedModels"] as string[])] }
+      : {}),
+    ...(value["resultEvent"] !== undefined
+      ? { resultEvent: value["resultEvent"] as Extract<Tier1Event, { kind: "result" }> }
+      : {}),
+    ...(value["spokenReason"] !== undefined ? { spokenReason: value["spokenReason"] } : {})
+  };
+}
+
+function eventLineFromCursor(raw: unknown): number {
+  if (typeof raw !== "string") return 0;
+  const matched = raw.match(/:line:(\d+)$/);
+  if (!matched) return 0;
+  const line = Number(matched[1]);
+  return Number.isSafeInteger(line) ? line : 0;
+}
+
 interface ActiveRun {
+  /** 本 run 创建时的 durable adapter；恢复漂移收口不得把旧 usage 记到新后端名下。 */
+  adapter: "cursor" | "claude_code";
   runId: string;
   taskId: string;
   projectId: string;
@@ -447,6 +548,8 @@ interface ActiveRun {
   s2Pending: boolean;
   /** unknown/parse_error 行计数(进审计,执行档不作废) */
   unknownEventCount: number;
+  /** events.jsonl 追加失败即停 agent；只允许已成功持久化的行推进 cursor/状态机。 */
+  eventPersistenceError: string | null;
   eventLine: number;
   observedModel: string | null;
   resultText: string;
@@ -474,7 +577,6 @@ interface ActiveRun {
   stderrTail: string;
   authViolation: boolean;
   resumeNotFoundRetryUsed: boolean;
-  costRecorded: boolean;
   agentOwnershipEstablished: boolean;
   nativeResumeAudited: boolean;
   /** 进程组已明确 ESRCH；未验证前禁止写 processExited proof。 */
@@ -488,6 +590,8 @@ interface ActiveRun {
   abort: { kind: "canary" | "budget" | "cancel" | "steer_resume"; detail: string } | null;
   /** 本 run 的 .cursor/hooks.json;provision 后才设,digest 补偿用 */
   hooksJsonPath: string | null;
+  /** 终态事务写失败后的 durable 重试意图镜像;存在时保留 active 且拒绝新认领。 */
+  pendingFinalization?: PendingFinalizationIntent;
 }
 
 function streamRuntimeFields(): Pick<
@@ -503,7 +607,7 @@ function streamRuntimeFields(): Pick<
   | "stderrTail"
   | "authViolation"
   | "resumeNotFoundRetryUsed"
-  | "costRecorded"
+  | "eventPersistenceError"
 > {
   return {
     expectedSessionIdentity: null,
@@ -517,7 +621,7 @@ function streamRuntimeFields(): Pick<
     stderrTail: "",
     authViolation: false,
     resumeNotFoundRetryUsed: false,
-    costRecorded: false
+    eventPersistenceError: null
   };
 }
 
@@ -532,6 +636,29 @@ export class Tier1BinaryIdentityError extends Error {
   }
 }
 
+/** 成本行是终态事务的一部分；写失败保留原 review/failure marker，等待同一 run 幂等重试。 */
+class Tier1CostLedgerError extends Error {
+  constructor(
+    readonly runId: string,
+    cause: unknown
+  ) {
+    super(`tier1 cost ledger write failed:${runId}:${String(cause).slice(0, 120)}`);
+    this.name = "Tier1CostLedgerError";
+  }
+}
+
+/** review settle 的原子终态事务失败；marker 保持 review，下一 tick 原样重试。 */
+class Tier1ReviewTransactionError extends Error {
+  constructor(
+    readonly runId: string,
+    readonly stage: "cost" | "terminal",
+    cause: unknown
+  ) {
+    super(`tier1 review transaction failed:${runId}:${String(cause).slice(0, 120)}`);
+    this.name = "Tier1ReviewTransactionError";
+  }
+}
+
 const ACTIVE_RUN_STATES = "('reserved','running','step_paused','cancel_requested')";
 
 export class Tier1Executor {
@@ -539,6 +666,7 @@ export class Tier1Executor {
   private readonly backend: Tier1Backend;
   private readonly now: () => Date;
   private readonly active = new Map<string, ActiveRun>(); // runId -> ActiveRun
+  private readonly reviewSettlements = new Map<string, Promise<void>>();
   private versionAsserted = false;
   private acceptingWork = true;
   /** 每次 prepareShutdown 递增；写入 marker 与 markRestartResumed 代际守卫。 */
@@ -703,16 +831,40 @@ export class Tier1Executor {
       });
       return { permission: "deny", agent_message: "SayDo gate: no active run matches this worktree (fail-closed)" };
     }
-    if (run.abort) {
-      return { permission: "deny", agent_message: `SayDo gate: run is terminating (${run.abort.kind})` };
-    }
-    if (run.restartPending) {
-      return { permission: "deny", agent_message: "SayDo gate: daemon is preparing to restart" };
+    if (this.effectEligibilityDenial(run) !== null) {
+      return { permission: "deny", agent_message: "SayDo gate: durable run state no longer permits effects" };
     }
     if ("kind" in req && req.kind === "file_write") return this.handleFileWriteGate(run, req);
     if ("kind" in req && req.kind === "file_read") return this.handleFileReadGate(run, req);
     const command = "command" in req ? req.command : "";
     return this.handleCommandGate(run, command, "kind" in req && req.kind === "command" ? "command" : undefined);
+  }
+
+  /** 每次 effect 放行前都现读 durable 状态；异步审批返回后必须再次调用，不能复用等待前快照。 */
+  private effectEligibilityDenial(run: ActiveRun): string | null {
+    const task = this.d.db.prepare("SELECT status FROM tasks WHERE id=?").get(run.taskId) as { status: string } | undefined;
+    const durable = this.d.db
+      .prepare("SELECT state, finalize_pending_json, restart_pending_at FROM tier1_runs WHERE id=?")
+      .get(run.runId) as
+      | { state: string; finalize_pending_json: string | null; restart_pending_at: string | null }
+      | undefined;
+    let reason: string | null = null;
+    if (!task || !durable) reason = "durable_target_missing";
+    else if (task.status === "cancel_requested" || task.status === "cancel_settled") {
+      run.abort = { kind: "cancel", detail: "durable cancel observed by gate" };
+      reason = `task_${task.status}`;
+    } else if (durable.state === "cancel_requested") {
+      run.abort = { kind: "steer_resume", detail: "durable steer observed by gate" };
+      reason = "run_cancel_requested";
+    } else if (task.status !== "running") reason = `task_${task.status}`;
+    else if (!["reserved", "running", "step_paused"].includes(durable.state)) reason = `run_${durable.state}`;
+    else if (durable.finalize_pending_json !== null || run.pendingFinalization) reason = "finalization_pending";
+    else if (durable.restart_pending_at !== null || run.restartPending) {
+      run.restartPending = true;
+      reason = "restart_pending";
+    } else if (run.abort) reason = `abort_${run.abort.kind}`;
+    if (reason !== null) run.proc?.kill();
+    return reason;
   }
 
   private beginApprovalWait(run: ActiveRun): void {
@@ -813,6 +965,26 @@ export class Tier1Executor {
       if (risk === "S2") run.s2Pending = false;
       this.endApprovalWait(run);
     }
+    const revoked = decision.permission === "allow" ? this.effectEligibilityDenial(run) : null;
+    if (revoked !== null) {
+      run.gateDenyCount++;
+      this.d.audit.record({
+        actor: "daemon",
+        action: "tier1.gate_decision",
+        meta: {
+          taskId: run.taskId,
+          runId: run.runId,
+          seq,
+          risk: decision.risk,
+          permission: "deny",
+          effectKind: effect.kind,
+          commandDigest: textDigest(command),
+          reason: `approval_revoked:${revoked}`,
+          ...(wireKind ? { kind: wireKind } : {})
+        }
+      });
+      return { permission: "deny", agent_message: "SayDo gate: approval expired because the durable run state changed" };
+    }
     this.d.audit.record({
       actor: "daemon",
       action: "tier1.gate_decision",
@@ -905,6 +1077,27 @@ export class Tier1Executor {
       if (risk === "S2") run.s2Pending = false;
       this.endApprovalWait(run);
     }
+    const revoked = decision.permission === "allow" ? this.effectEligibilityDenial(run) : null;
+    if (revoked !== null) {
+      run.gateDenyCount++;
+      this.d.audit.record({
+        actor: "daemon",
+        action: "tier1.gate_decision",
+        meta: {
+          taskId: run.taskId,
+          runId: run.runId,
+          seq,
+          risk: decision.risk,
+          permission: "deny",
+          effectKind: effect.kind,
+          commandDigest: textDigest(command),
+          reason: `approval_revoked:${revoked}`,
+          kind: "file_write",
+          tool: req.tool
+        }
+      });
+      return { permission: "deny", agent_message: "SayDo gate: approval expired because the durable run state changed" };
+    }
     this.d.audit.record({
       actor: "daemon",
       action: "tier1.gate_decision",
@@ -994,18 +1187,36 @@ export class Tier1Executor {
   tick(): void {
     try {
       this.reapCancellations();
+      this.retryPendingFinalizations();
       this.checkCanaries();
       this.enforceBudgets();
-      if (this.acceptingWork) this.claimNext();
+      if (this.acceptingWork && !this.hasPendingFinalization()) this.claimNext();
     } catch (err) {
       this.d.log.error("tier1 executor tick failed", { error: String(err).slice(0, 200) });
+    }
+  }
+
+  private hasPendingFinalization(): boolean {
+    return [...this.active.values()].some((run) => run.pendingFinalization !== undefined);
+  }
+
+  private retryPendingFinalizations(): void {
+    for (const run of [...this.active.values()]) {
+      const pending = run.pendingFinalization;
+      if (!pending || run.proc) continue;
+      if (this.settleCancellationPriority(run)) continue;
+      if (pending.kind === "review") {
+        void this.settlePendingReview(run);
+      } else {
+        this.finalizeFailure(run, pending.exitEvidence, pending.taskState, pending.spokenReason);
+      }
     }
   }
 
   /** canary 巡检(门完整性):shell started 计数 > gate 请求计数,连续两 tick 存在 ⇒ 门被绕过,立即终止 */
   private checkCanaries(): void {
     for (const run of this.active.values()) {
-      if (run.abort || run.restartPending) continue;
+      if (run.abort || run.restartPending || run.pendingFinalization) continue;
       if (this.backend.canaryLeft !== "shell_started") {
         if (run.gatedToolResults > run.gateSeq) {
           if (run.canarySuspect) {
@@ -1045,17 +1256,19 @@ export class Tier1Executor {
    *  (运行中改需求):同样杀进程,但结算走 run 级(任务保持 running,认领循环带新指令重起)。 */
   private reapCancellations(): void {
     for (const run of this.active.values()) {
-      if (run.abort || run.restartPending) continue;
+      if (run.restartPending) continue;
       const row = this.d.db.prepare("SELECT status FROM tasks WHERE id=?").get(run.taskId) as { status: string } | undefined;
-      if (row?.status === "cancel_requested") {
-        run.abort = { kind: "cancel", detail: "user cancel" };
-        run.proc?.kill();
+      if (row?.status === "cancel_requested" || row?.status === "cancel_settled" || run.abort?.kind === "cancel") {
+        run.abort = { kind: "cancel", detail: row?.status === "cancel_settled" ? "recover settled cancel" : "user cancel" };
+        if (run.proc) run.proc.kill();
+        else this.settleCancelledRun(run);
         continue;
       }
       const runRow = this.d.db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(run.runId) as { state: string } | undefined;
       if (runRow?.state === "cancel_requested") {
         run.abort = { kind: "steer_resume", detail: "steer cancel_resume" };
-        run.proc?.kill();
+        if (run.proc) run.proc.kill();
+        else this.settleSteerResumeRun(run);
       }
     }
   }
@@ -1099,7 +1312,7 @@ export class Tier1Executor {
   /** 三熔断(04 §5.4 不变量,任何档位不放宽):活跃墙钟(审批期停表)/ 回合 / 成本 */
   private enforceBudgets(): void {
     for (const run of this.active.values()) {
-      if (run.abort || run.restartPending) continue;
+      if (run.abort || run.restartPending || run.pendingFinalization) continue;
       this.refreshBudgetAbort(run);
     }
   }
@@ -1166,13 +1379,40 @@ export class Tier1Executor {
     if (!repoPath || !existsSync(join(repoPath, ".git"))) {
       // 项目无可执行工作区:认领即 blocked 叫人(不产生 run——无从供给 worktree)
       try {
-        if (row.status === "queued") transitionTask(this.d.db, row.id, "running", "L", { now: nowIso });
-        transitionTask(this.d.db, row.id, "blocked", "L", { now: this.now().toISOString() });
+        const tx = this.d.db.transaction(() => {
+          if (row.status === "queued") transitionTask(this.d.db, row.id, "running", "L", { now: nowIso });
+          transitionTask(this.d.db, row.id, "blocked", "L", { now: nowIso });
+          const enq = this.enqueueBlocked(
+            row.id,
+            row.package_rev ?? 1,
+            "no-workspace:unavailable",
+            "项目没配可执行的 git 工作区"
+          );
+          this.d.audit.record({
+            actor: "daemon",
+            action: "tier1.blocked",
+            meta: {
+              taskId: row.id,
+              projectId: row.project_id,
+              exitEvidence: "no-workspace:unavailable",
+              enqueued: enq.enqueued
+            }
+          });
+        });
+        tx();
       } catch (err) {
         this.d.log.error("claim degrade to blocked failed", { taskId: row.id, error: String(err).slice(0, 160) });
+        try {
+          this.d.audit.record({
+            actor: "daemon",
+            action: "tier1.claim_block_transaction_failed",
+            meta: { taskId: row.id, projectId: row.project_id, error: String(err).slice(0, 120) }
+          });
+        } catch {
+          // 审计存储自身不可写时只留日志,不得再次改变任务状态。
+        }
         return;
       }
-      this.enqueueBlocked(row.id, row.package_rev ?? 1, "no-workspace:unavailable", "项目没配可执行的 git 工作区");
       return;
     }
 
@@ -1218,6 +1458,7 @@ export class Tier1Executor {
     });
 
     const active: ActiveRun = {
+      adapter: this.backend.adapter,
       runId,
       taskId: row.id,
       projectId: row.project_id,
@@ -1510,6 +1751,7 @@ export class Tier1Executor {
       this.settleCancelledRun(run);
       return;
     }
+    if (this.settleCancellationPriority(run)) return;
     if (run.restartPending) return;
 
     // 5) spawn(prompt = 任务卡 + task_messages 消费口 + 执行约定)
@@ -1517,6 +1759,7 @@ export class Tier1Executor {
     const keys = this.resolveSpawnSession(run, { reservedRecover: opts.reservedRecover === true, allowQueuedDelta: opts.reservedRecover !== true });
     let proc: AgentProcessHandle;
     try {
+      this.discardUnqualifiedTerminalResult(run);
       proc = this.spawnAgent(run, prompt, keys.resumeChatId, keys.sessionId);
     } catch (err) {
       if (err instanceof Tier1BinaryIdentityError) {
@@ -1537,8 +1780,11 @@ export class Tier1Executor {
       this.captureProcTail(run, proc);
       run.proc = null;
       run.processGroupVerifiedExited = true;
-      this.clearAgentOwnership(run);
-      await this.settleAttempt(run, exitCode);
+      try {
+        await this.settleAttempt(run, exitCode);
+      } finally {
+        this.clearAgentOwnershipAfterDurable(run);
+      }
     } catch (err) {
       run.proc = null;
       if (isProcessGroupLifecycleError(err)) {
@@ -1705,11 +1951,12 @@ export class Tier1Executor {
       const diffStat = this.safeGit(run.worktree, ["diff", "--stat", "HEAD"]).slice(0, 2000);
       parts.push("", "## 恢复上下文(上次会话中断)", "工作区已有改动摘要:", "```", diffStat || "(无改动)", "```", "从当前状态继续,不要重做已完成的部分。");
     }
+    const protectedAgentDirectory = this.backend.adapter === "claude_code" ? ".claude/" : ".cursor/";
     parts.push(
       "",
       "## 执行约定",
       "- 只在当前工作目录内改动;不要 git push;改动不需要你合并——完成后系统会独立跑验证并交人验收。",
-      "- 不要改动 .cursor/ 目录、验证脚本(package.json scripts / justfile 中已登记的验证项)。",
+      `- 不要改动 ${protectedAgentDirectory} 目录、验证脚本(package.json scripts / justfile 中已登记的验证项)。`,
       "- 结束时用一段话总结:做了什么、改了哪些文件、有什么没做。"
     );
     // W4 3.2 writing:成稿落盘约定(barrier ① 断言该路径存在于提交树 + 非空)
@@ -1726,12 +1973,30 @@ export class Tier1Executor {
   }
 
   private consumeEventLine(run: ActiveRun, line: string, eventsPath: string): void {
-    run.eventLine++;
+    if (run.eventPersistenceError !== null) return;
     try {
       appendFileSync(eventsPath, line + "\n");
-    } catch {
-      // 事件留痕失败不阻断执行(transcriptCursor 仍按行号推进)
+    } catch (err) {
+      run.eventPersistenceError = String(err).slice(0, 160);
+      this.d.log.error("tier1 event persistence failed", {
+        taskId: run.taskId,
+        runId: run.runId,
+        eventLine: run.eventLine + 1,
+        error: run.eventPersistenceError
+      });
+      try {
+        this.d.audit.record({
+          actor: "daemon",
+          action: "tier1.event_persistence_failed",
+          meta: { taskId: run.taskId, runId: run.runId, nextEventLine: run.eventLine + 1 }
+        });
+      } catch {
+        // 事件文件与审计库同时不可写时仍以进程终止 fail-closed，不伪造 cursor。
+      }
+      run.proc?.kill();
+      return;
     }
+    run.eventLine++;
     let sessionHandled = false;
     for (const ev of this.backend.parseLine(line)) {
       if (ev.kind === "init") {
@@ -1891,15 +2156,6 @@ export class Tier1Executor {
     }
   }
 
-  private clearRestartMarker(run: ActiveRun): void {
-    if (!run.restartPending && !run.resumeRestartMarker) return;
-    this.d.db
-      .prepare("UPDATE tier1_runs SET restart_pending_at=NULL, restart_reason=NULL, updated_at=? WHERE id=?")
-      .run(this.now().toISOString(), run.runId);
-    run.restartPending = false;
-    run.resumeRestartMarker = false;
-  }
-
   private async settleAttempt(run: ActiveRun, exitCode: number): Promise<void> {
     const d = this.d;
     try {
@@ -1925,13 +2181,21 @@ export class Tier1Executor {
           meta: { taskId: run.taskId, runId: run.runId, detail: run.abort.detail }
         });
       }
-      if (run.abort) this.clearRestartMarker(run);
       if (run.abort?.kind === "cancel") {
         this.settleCancelledRun(run);
         return;
       }
       if (run.abort?.kind === "steer_resume") {
         this.settleSteerResumeRun(run);
+        return;
+      }
+      if (run.eventPersistenceError !== null) {
+        this.finalizeFailure(
+          run,
+          `event_persistence_failed:${run.eventPersistenceError}`,
+          "failed",
+          "执行事件无法可靠留痕,这轮作废"
+        );
         return;
       }
       if (run.abort?.kind === "canary") {
@@ -2001,9 +2265,7 @@ export class Tier1Executor {
         }
       }
       // B3: terminal result 必须先于 restart suspension；已有合法终局不得借 marker 跳过 settle。
-      if (run.terminalResultReceived && exitCode === 0 && !run.abort) {
-        this.clearRestartMarker(run);
-      } else if (run.restartPending) {
+      if (!(run.terminalResultReceived && exitCode === 0 && !run.abort) && run.restartPending) {
         this.checkpointBudget(run);
         d.audit.record({
           actor: "daemon",
@@ -2032,29 +2294,96 @@ export class Tier1Executor {
         this.finalizeFailure(run, `observed_model_family_mismatch:${run.observedModel}`, "failed", "执行模型族与配置不符,这轮结果作废");
         return;
       }
-
-      // 09 §6.1a:按 project.type 白名单分叉——coding 走 verify gate;writing 走内容评审 gate(verify 可空);
-      // 其余(读不到/pending/无执行合同类型)⇒ fail-closed blocked,不按 coding 兜底(owner 裁决 (a) 案 2026-07-28;
-      // 正常派发链 typeGate 已拦 pending 与未启用类型,此为防御纵深)
-      const projectType = this.projectTypeOf(run.projectId);
-      if (projectType === "writing") {
-        await this.settleWriting(run);
-      } else if (projectType === "coding") {
-        await this.settleCoding(run);
-      } else {
-        this.finalizeFailure(
-          run,
-          `project_type_unexecutable:${projectType ?? "missing"}`,
-          "blocked",
-          "这个项目的类型没有执行合同(或类型读不到),需要你在屏幕上看一眼项目状态"
-        );
+      const requested: ReviewFinalizationIntent = {
+        kind: "review",
+        recordedAt: this.now().toISOString(),
+        eventLine: run.eventLine,
+        observedModel: run.observedModel,
+        observedModels: [...run.observedModels],
+        resultEvent: run.resultEvent!
+      };
+      run.pendingFinalization = requested;
+      const durable = this.ensurePendingFinalization(run, requested);
+      run.pendingFinalization = durable;
+      if (durable.kind === "failure") {
+        this.finalizeFailure(run, durable.exitEvidence, durable.taskState, durable.spokenReason);
+        return;
       }
+      // review intent 与 restart marker 的清除在同一写入中完成；此后崩溃恢复只重跑 verify/settle，绝不 spawn agent。
+      run.restartPending = false;
+      run.resumeRestartMarker = false;
+      await this.settlePendingReview(run);
     } finally {
       // 评审 91 A-5 同族防御:settleCoding/settleWriting 若抛出,原来只 delete 不 resolve,
       // 认领链同样挂住。resolveClaim 幂等(先清 claimReady 再调),正常路径已 resolve 过的不受影响。
       this.resolveClaim(run);
-      this.active.delete(run.runId);
+      const state = (this.d.db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(run.runId) as { state: string } | undefined)?.state;
+      if (!state || !["reserved", "running", "step_paused", "cancel_requested"].includes(state)) this.active.delete(run.runId);
     }
+  }
+
+  /** 已观察到合法成功终态后的唯一恢复路径：只做 verify/snapshot/settle，不再运行 agent。 */
+  private settlePendingReview(run: ActiveRun): Promise<void> {
+    const inFlight = this.reviewSettlements.get(run.runId);
+    if (inFlight) return inFlight;
+    const settlement = (async () => {
+      try {
+        const pending = run.pendingFinalization;
+        if (!pending || pending.kind !== "review") throw new Error(`review finalize intent missing:${run.runId}`);
+        if (this.reviewSettlementInterrupted(run)) return;
+        if (!run.resultEvent) {
+          this.finalizeFailure(
+            run,
+            "review_result_event_missing",
+            "blocked",
+            "成功终态的原始结果事件无法恢复,不能伪造用量或交付证明"
+          );
+          return;
+        }
+        // 09 §6.1a:按 project.type 白名单分叉——coding 走 verify gate;writing 走内容评审 gate(verify 可空)。
+        const projectType = this.projectTypeOf(run.projectId);
+        if (projectType === "writing") {
+          await this.settleWriting(run);
+        } else if (projectType === "coding") {
+          await this.settleCoding(run);
+        } else {
+          this.finalizeFailure(
+            run,
+            `project_type_unexecutable:${projectType ?? "missing"}`,
+            "blocked",
+            "这个项目的类型没有执行合同(或类型读不到),需要你在屏幕上看一眼项目状态"
+          );
+        }
+      } catch (err) {
+        this.d.log.error("tier1 review settlement failed", { runId: run.runId, error: String(err).slice(0, 200) });
+        if (this.settleCancellationPriority(run)) return;
+        try {
+          this.d.audit.record({
+            actor: "daemon",
+            action: "tier1.finalize_transaction_failed",
+            meta: {
+              taskId: run.taskId,
+              runId: run.runId,
+              wanted: "ready_for_review",
+              stage: err instanceof Tier1ReviewTransactionError ? err.stage : "settlement"
+            }
+          });
+        } catch {
+          // 审计存储也不可用时，durable review marker 仍保留并阻断新认领。
+        }
+        return;
+      } finally {
+        this.resolveClaim(run);
+        const state = (this.d.db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(run.runId) as { state: string } | undefined)?.state;
+        if (!state || !["reserved", "running", "step_paused", "cancel_requested"].includes(state)) {
+          this.active.delete(run.runId);
+        }
+      }
+    })().finally(() => {
+      if (this.reviewSettlements.get(run.runId) === settlement) this.reviewSettlements.delete(run.runId);
+    });
+    this.reviewSettlements.set(run.runId, settlement);
+    return settlement;
   }
 
   /** writing 成稿路径安全读取(恢复链;project.toml 坏回缺省不炸) */
@@ -2074,6 +2403,7 @@ export class Tier1Executor {
 
   /** coding settle(verify gate;09 §6.1 既有链) */
   private async settleCoding(run: ActiveRun): Promise<void> {
+    if (this.reviewSettlementInterrupted(run)) return;
     // verify(G3):无登记 = 不可 settle(fail-closed 叫人);冻结重校不符 = Plan Delta
     if (run.frozen.length === 0) {
       this.finalizeFailure(run, "no_verify_registered", "blocked", "这个仓没登记验证命令(.saydo/project.toml [[verify.entries]]),我不能替你判定完成——补登记后重试");
@@ -2081,6 +2411,7 @@ export class Tier1Executor {
     }
     const verifyResults: { templateRef: string; exitCode: number; stdoutTail: string }[] = [];
     for (const frozen of run.frozen) {
+      if (this.reviewSettlementInterrupted(run)) return;
       const pre = precheckVerify(run.worktree, frozen);
       if (!pre.ok) {
         if (pre.kind === "content_drift") {
@@ -2092,7 +2423,7 @@ export class Tier1Executor {
         return;
       }
       const vr = await this.execVerify(run, verifyRunnerArgv(pre.argv));
-      if (run.restartPending) return;
+      if (this.reviewSettlementInterrupted(run)) return;
       verifyResults.push({ templateRef: frozen.templateRef, ...vr });
       if (vr.exitCode !== 0) {
         writeFileSync(join(this.runDir(run.runId), "verify.json"), JSON.stringify(verifyResults, null, 2));
@@ -2100,26 +2431,42 @@ export class Tier1Executor {
         return;
       }
     }
+    if (this.reviewSettlementInterrupted(run)) return;
     const verifyPayload = JSON.stringify(verifyResults, null, 2);
     writeFileSync(join(this.runDir(run.runId), "verify.json"), verifyPayload);
 
     const snap = await this.snapshotTree(run);
-    if (run.restartPending) return;
+    if (this.reviewSettlementInterrupted(run)) return;
     if (!snap.ok) return;
     const treeSha = snap.treeSha;
 
     const nowIso = this.now().toISOString();
+    const body = this.packageBodyOf(run);
+    if (!body) {
+      this.finalizeFailure(run, "package_body_unavailable", "blocked", "读不到决策包正文,无法逐条对账验收标准");
+      return;
+    }
+    // verify 模板与 acceptance 目前没有显式一一绑定合同。即使所有冻结 verify 都通过，
+    // 也不能把每条 criterion 伪投影成 pass；先固化为 manual/unknown，交给验收者逐条判断。
+    const acceptanceChecks: AcceptanceCheck[] = body.acceptance.map((criterion) => ({
+      criterion,
+      status: "unknown",
+      source: "manual"
+    }));
     const proof: Tier1SettleProof = tier1SettleProofSchema.parse({
+      kind: "tier1",
       taskId: run.taskId,
       runId: run.runId,
       attempt: run.attempt,
       packageRevision: run.packageRevision,
       treeSha,
       tier1VerifyDigest: textDigest(verifyPayload),
+      acceptanceChecks,
       transcriptCursor: `events:${run.runId}:line:${run.eventLine}`,
       settledAt: nowIso
     } satisfies Tier1SettleProof);
 
+    if (this.reviewSettlementInterrupted(run)) return;
     this.commitSettle(run, treeSha, proof, `verify:${textDigest(verifyPayload)}`);
   }
 
@@ -2130,6 +2477,7 @@ export class Tier1Executor {
    */
   private async settleWriting(run: ActiveRun): Promise<void> {
     const d = this.d;
+    if (this.reviewSettlementInterrupted(run)) return;
     if (!d.artifacts) {
       this.finalizeFailure(run, "artifact_store_unavailable", "blocked", "产物库未接线,writing 成稿无法落库(实施配置问题)");
       return;
@@ -2137,6 +2485,7 @@ export class Tier1Executor {
     // verify 可空:配了才跑(内容型 lint;source="verify" 验收项据此);无登记 = 内容评审 gate,不阻塞
     const verifyResults: { templateRef: string; exitCode: number; stdoutTail: string }[] = [];
     for (const frozen of run.frozen) {
+      if (this.reviewSettlementInterrupted(run)) return;
       const pre = precheckVerify(run.worktree, frozen);
       if (!pre.ok) {
         if (pre.kind === "content_drift") {
@@ -2147,9 +2496,10 @@ export class Tier1Executor {
         return;
       }
       const vr = await this.execVerify(run, verifyRunnerArgv(pre.argv));
-      if (run.restartPending) return;
+      if (this.reviewSettlementInterrupted(run)) return;
       verifyResults.push({ templateRef: frozen.templateRef, ...vr });
     }
+    if (this.reviewSettlementInterrupted(run)) return;
     if (verifyResults.length > 0) writeFileSync(join(this.runDir(run.runId), "verify.json"), JSON.stringify(verifyResults, null, 2));
     // 内容 lint fail ⇒ 不 settle(09 §6.1a barrier ③ 后半句;w4-readback B-3 回修):
     // 与 coding verify 红同构走 failed(settled_failed + trigger=failed 回叫,retryTask 重派发链修稿再来);
@@ -2165,46 +2515,60 @@ export class Tier1Executor {
       return;
     }
 
-    // 成稿对账 ①(daemon IO 面):worktree 现读文章文件存在 + 非空
-    const articleAbs = join(run.worktree, run.articlePath);
-    if (!existsSync(articleAbs)) {
-      this.finalizeFailure(run, `article_missing:${run.articlePath}`, "blocked", `没找到成稿文件(${run.articlePath})——agent 没写出来或路径不对`);
+    if (this.reviewSettlementInterrupted(run)) return;
+    // 成稿对账 ①(daemon IO 面):worktree 路径必须是圈内常规文件；内容以后续 prospective tree blob 为权威。
+    const articleAbs = resolve(run.worktree, run.articlePath);
+    const articleRel = relative(run.worktree, articleAbs);
+    if (articleRel === "" || articleRel === ".." || articleRel.startsWith(`..${sep}`) || isAbsolute(articleRel)) {
+      this.finalizeFailure(run, `article_path_outside_worktree:${run.articlePath}`, "blocked", "成稿路径越出了任务工作区,已拒绝读取");
       return;
     }
-    const articleBytes = readFileSync(articleAbs, "utf8");
-    if (articleBytes.trim() === "") {
-      this.finalizeFailure(run, "article_empty", "blocked", "成稿是空的,不能判定完成");
+    try {
+      readRegularWritingFile(articleAbs, "worktree 成稿");
+    } catch (err) {
+      this.finalizeFailure(
+        run,
+        `article_invalid:${String(err).slice(0, 100)}`,
+        "blocked",
+        `成稿文件缺失、不是常规文件或不是规范 UTF-8(${run.articlePath})`
+      );
       return;
     }
-    const articleDigest = textDigest(articleBytes);
 
     const snap = await this.snapshotTree(run);
-    if (run.restartPending) return;
+    if (this.reviewSettlementInterrupted(run)) return;
     if (!snap.ok) return;
     const treeSha = snap.treeSha;
 
-    // ① 续:该路径存在于 treeSha 树内；也走可中断进程组，避免子进程挂死 daemon。
+    // ① 续:artifact 必须从不可变 tree 的常规 blob 原始字节生成，不能信 snapshot 前的 worktree 字符串。
+    let treeArticle: ReturnType<typeof readWritingTreeBlob>;
     try {
-      const inTree = await this.runManagedCommand(run, ["git", "cat-file", "-e", `${treeSha}:${run.articlePath}`], {
-        cwd: run.worktree,
-        timeoutMs: 30_000
-      });
-      if (run.restartPending) return;
-      if (inTree.exitCode !== 0) {
-        this.finalizeFailure(run, `article_not_in_tree:${run.articlePath}`, "blocked", "成稿文件不在提交树内(可能被 .gitignore 挡)");
-        return;
-      }
+      if (this.reviewSettlementInterrupted(run)) return;
+      treeArticle = readWritingTreeBlob(run.worktree, treeSha, run.articlePath);
     } catch (err) {
-      if (run.restartPending) throw err;
-      this.finalizeFailure(run, `ls_tree_failed:${String(err).slice(0, 80)}`, "failed", "读提交树失败");
+      this.finalizeFailure(run, `article_tree_invalid:${String(err).slice(0, 100)}`, "blocked", "提交树里的成稿不是可批准的常规 UTF-8 文件");
       return;
     }
+    if (treeArticle.text.trim() === "") {
+      this.finalizeFailure(run, "article_empty", "blocked", "成稿是空的,不能判定完成");
+      return;
+    }
+    const articleDigest = treeArticle.digest;
 
-    // 落 article artifact(barrier ① 要求"articleArtifactId/version 行存在")
-    const article = d.artifacts.write({
+    // 先固定 durable 引用，再 exact-replay 落 article；终态事务重试不制造新 artifact/version。
+    if (this.reviewSettlementInterrupted(run)) return;
+    const articleIntent = this.ensureWritingArtifactIntent(run, {
+      articlePath: run.articlePath,
+      articleDigest,
+      treeSha
+    });
+    if (this.reviewSettlementInterrupted(run)) return;
+    const article = d.artifacts.writeOnce({
+      artifactId: articleIntent.articleArtifactId,
+      version: 1,
       projectId: run.projectId,
       type: "article",
-      content: articleBytes,
+      content: treeArticle.text,
       tags: ["writing-article", `task:${run.taskId}`],
       source: "agent_output"
     });
@@ -2235,6 +2599,7 @@ export class Tier1Executor {
       treeSha,
       articleArtifactId: article.id,
       articleVersion: article.version,
+      articlePath: run.articlePath,
       articleDigest,
       sectionCoverage,
       acceptanceChecks,
@@ -2253,24 +2618,26 @@ export class Tier1Executor {
       return;
     }
 
+    if (this.reviewSettlementInterrupted(run)) return;
     this.commitSettle(run, treeSha, proof, `article:${articleDigest}`);
   }
 
   /** 快照树(prospectiveTree;排除 .cursor——审批钩子是 daemon 注入物,不属交付内容) */
   private async snapshotTree(run: ActiveRun): Promise<{ ok: true; treeSha: string } | { ok: false }> {
     try {
+      if (this.reviewSettlementInterrupted(run)) return { ok: false };
       const add = await this.runManagedCommand(run, ["git", "add", "-A", "--", ".", ":(exclude).cursor"], {
         cwd: run.worktree,
         timeoutMs: 120_000
       });
-      if (run.restartPending) return { ok: false };
+      if (this.reviewSettlementInterrupted(run)) return { ok: false };
       if (add.exitCode !== 0) throw new Error(`git add exit ${add.exitCode}`);
       const writeTree = await this.runManagedCommand(run, ["git", "write-tree"], {
         cwd: run.worktree,
         timeoutMs: 30_000,
         captureStdout: true
       });
-      if (run.restartPending) return { ok: false };
+      if (this.reviewSettlementInterrupted(run)) return { ok: false };
       const treeSha = writeTree.stdoutTail.trim();
       if (writeTree.exitCode !== 0 || !/^[0-9a-f]{40,64}$/.test(treeSha)) {
         throw new Error(`git write-tree exit ${writeTree.exitCode}`);
@@ -2286,12 +2653,14 @@ export class Tier1Executor {
   /** 决策包正文(plan/acceptance;settle barrier 对账源) */
   private packageBodyOf(run: ActiveRun): { plan: { seq: number; owner: "ai" | "human" }[]; acceptance: string[] } | null {
     const row = this.d.db
-      .prepare("SELECT body_json FROM decision_packages WHERE digest=? LIMIT 1")
-      .get(run.packageDigest) as { body_json: string } | undefined;
+      .prepare("SELECT project_id, package_id, package_rev, package_digest FROM tasks WHERE id=?")
+      .get(run.taskId) as { project_id: string; package_id: string; package_rev: number; package_digest: string } | undefined;
     if (!row) return null;
     try {
-      const body = JSON.parse(row.body_json) as { plan?: { seq: number; owner: "ai" | "human" }[]; acceptance?: string[] };
-      return { plan: body.plan ?? [], acceptance: body.acceptance ?? [] };
+      if (row.project_id !== run.projectId || row.package_rev !== run.packageRevision || row.package_digest !== run.packageDigest) return null;
+      const pkg = getPackage(this.d.db, row.package_id, row.package_rev);
+      if (!pkg || pkg.projectId !== row.project_id || pkg.digest !== row.package_digest || verifyPackageDigest(pkg) !== null) return null;
+      return { plan: pkg.plan, acceptance: pkg.acceptance };
     } catch {
       return null;
     }
@@ -2301,48 +2670,97 @@ export class Tier1Executor {
   private commitSettle(run: ActiveRun, treeSha: string, proof: Tier1SettleProof | WritingSettleProof, artifactCheck: string): void {
     const d = this.d;
     const nowIso = this.now().toISOString();
-    transitionTier1Run(d.db, run.runId, "settled_review", nowIso, {
-      treeSha,
-      eventCursor: proof.transcriptCursor,
-      settleProofJson: JSON.stringify(proof)
-    });
-    transitionTask(d.db, run.taskId, "ready_for_review", "L", { now: nowIso });
     // 回叫 settleProof 走 Tier1SettleProof 形(callback 契约现形);writing proof 用最小形投影
     const callbackProof: Tier1SettleProof =
       "kind" in proof && proof.kind === "writing"
         ? {
+            kind: "tier1",
             taskId: proof.taskId,
             runId: proof.runId,
             attempt: proof.attempt,
             packageRevision: proof.packageRevision,
             treeSha: proof.treeSha,
             tier1VerifyDigest: proof.articleDigest,
+            acceptanceChecks: proof.acceptanceChecks,
             transcriptCursor: proof.transcriptCursor,
             settledAt: proof.settledAt
           }
         : (proof as Tier1SettleProof);
-    const enq = d.callbacks.enqueue({
-      taskId: run.taskId,
-      trigger: "ready_for_review",
-      packageRevision: run.packageRevision,
-      occurrenceKey: String(run.attempt),
-      settleProof: callbackProof,
-      projectionCursor: proof.transcriptCursor,
-      artifactChecks: [artifactCheck]
-    });
-    this.recordRunCost(run);
-    d.audit.record({
-      actor: "daemon",
-      action: "tier1.settled_review",
-      meta: {
-        taskId: run.taskId,
-        runId: run.runId,
-        attempt: run.attempt,
-        treeSha,
-        enqueued: enq.enqueued,
-        ...this.observedModelAuditMeta(run)
+    // §6.3 settle barrier:run proof、task 状态、durable outbox、终态审计同一事务；
+    // 任一写入失败整体回滚，外层 crash handler 再结算仍为 running 的 run/task。
+    const tx = d.db.transaction(() => {
+      const markerRow = d.db
+        .prepare("SELECT finalize_pending_json FROM tier1_runs WHERE id=?")
+        .get(run.runId) as { finalize_pending_json: string | null } | undefined;
+      const marker = parsePendingFinalization(markerRow?.finalize_pending_json);
+      if (!marker || marker.kind !== "review") {
+        throw new Error("review finalize intent missing or changed");
       }
+      const inMemory = run.pendingFinalization;
+      if (
+        !inMemory ||
+        inMemory.kind !== "review" ||
+        marker.recordedAt !== inMemory.recordedAt ||
+        marker.eventLine !== inMemory.eventLine ||
+        marker.observedModel !== inMemory.observedModel ||
+        JSON.stringify(marker.observedModels) !== JSON.stringify(inMemory.observedModels) ||
+        JSON.stringify(marker.resultEvent ?? null) !== JSON.stringify(inMemory.resultEvent ?? null) ||
+        JSON.stringify(marker.writingArtifact ?? null) !== JSON.stringify(inMemory.writingArtifact ?? null)
+      ) {
+        throw new Error("review finalize intent changed concurrently");
+      }
+      transitionTier1Run(d.db, run.runId, "settled_review", nowIso, {
+        treeSha,
+        eventCursor: proof.transcriptCursor,
+        settleProofJson: JSON.stringify(proof)
+      });
+      transitionTask(d.db, run.taskId, "ready_for_review", "L", { now: nowIso });
+      const enq = d.callbacks.enqueue({
+        taskId: run.taskId,
+        trigger: "ready_for_review",
+        packageRevision: run.packageRevision,
+        occurrenceKey: String(run.attempt),
+        settleProof: callbackProof,
+        projectionCursor: proof.transcriptCursor,
+        artifactChecks: [artifactCheck]
+      });
+      if (enq.entryId === "") {
+        throw new Error(`ready_for_review 回叫未持久化:${enq.reason ?? "unknown"}`);
+      }
+      d.audit.record({
+        actor: "daemon",
+        action: "tier1.settled_review",
+        meta: {
+          taskId: run.taskId,
+          runId: run.runId,
+          attempt: run.attempt,
+          treeSha,
+          enqueued: enq.enqueued,
+          ...this.observedModelAuditMeta(run)
+        }
+      });
+      this.recordRunCost(run);
+      const cleared = d.db
+        .prepare(
+          `UPDATE tier1_runs
+           SET finalize_pending_json=NULL, restart_pending_at=NULL, restart_reason=NULL, updated_at=?
+           WHERE id=? AND finalize_pending_json IS NOT NULL`
+        )
+        .run(nowIso, run.runId);
+      if (cleared.changes !== 1) throw new Error("review finalize marker clear race");
     });
+    try {
+      tx();
+    } catch (err) {
+      throw new Tier1ReviewTransactionError(
+        run.runId,
+        err instanceof Tier1CostLedgerError ? "cost" : "terminal",
+        err
+      );
+    }
+    delete run.pendingFinalization;
+    run.restartPending = false;
+    run.resumeRestartMarker = false;
   }
 
   private async execVerify(run: ActiveRun, argv: string[]): Promise<{ exitCode: number; stdoutTail: string }> {
@@ -2362,71 +2780,299 @@ export class Tier1Executor {
     }
   }
 
-  /** 失败/阻塞收尾:run settled_failed + task failed/blocked + 最小 proof 回叫(09 §9;缺一不叫) */
+  /** 用户取消/steer 与失败收口竞态时,显式用户动作优先；进程未退出只发终止信号，退出后再落 proof。 */
+  private settleCancellationPriority(run: ActiveRun): boolean {
+    const task = this.d.db.prepare("SELECT status FROM tasks WHERE id=?").get(run.taskId) as { status: string } | undefined;
+    const runRow = this.d.db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(run.runId) as { state: string } | undefined;
+    if (task?.status === "cancel_requested" || task?.status === "cancel_settled") {
+      run.abort = { kind: "cancel", detail: "user cancel superseded pending finalization" };
+      if (run.proc) run.proc.kill();
+      else this.settleCancelledRun(run);
+      return true;
+    }
+    if (task?.status === "running" && runRow?.state === "cancel_requested") {
+      run.abort = { kind: "steer_resume", detail: "steer superseded pending finalization" };
+      if (run.proc) run.proc.kill();
+      else this.settleSteerResumeRun(run);
+      return true;
+    }
+    return false;
+  }
+
+  /** review intent 只允许在 durable cancel/steer/restart 均未出现时继续产生 verify/snapshot/artifact 副作用。 */
+  private reviewSettlementInterrupted(run: ActiveRun): boolean {
+    if (this.settleCancellationPriority(run)) return true;
+    const row = this.d.db
+      .prepare("SELECT restart_pending_at FROM tier1_runs WHERE id=?")
+      .get(run.runId) as { restart_pending_at: string | null } | undefined;
+    if (run.restartPending || row?.restart_pending_at) {
+      run.restartPending = true;
+      run.proc?.kill();
+      return true;
+    }
+    return false;
+  }
+
+  /** marker 先于终态事务独立持久化；review 可被后续 verify/snapshot 的真实失败原子替换。 */
+  private ensurePendingFinalization(run: ActiveRun, requested: PendingFinalizationIntent): PendingFinalizationIntent {
+    const existingRow = this.d.db
+      .prepare("SELECT state, finalize_pending_json FROM tier1_runs WHERE id=?")
+      .get(run.runId) as { state: string; finalize_pending_json: string | null } | undefined;
+    if (!existingRow) throw new Error(`tier1 run not found:${run.runId}`);
+    const existing = parsePendingFinalization(existingRow.finalize_pending_json);
+    if (existing) {
+      if (requested.kind === "failure" && existing.kind === "review") {
+        const replaced = this.d.db
+          .prepare(
+            `UPDATE tier1_runs SET finalize_pending_json=?, updated_at=?
+             WHERE id=? AND finalize_pending_json=? AND state IN ('reserved','running','step_paused')`
+          )
+          .run(JSON.stringify(requested), requested.recordedAt, run.runId, existingRow.finalize_pending_json);
+        if (replaced.changes === 1) return requested;
+      } else {
+        if (existing.kind === "review") {
+          this.d.db
+            .prepare("UPDATE tier1_runs SET restart_pending_at=NULL, restart_reason=NULL, updated_at=? WHERE id=?")
+            .run(existing.recordedAt, run.runId);
+        }
+        return existing;
+      }
+    }
+    const written = this.d.db
+      .prepare(
+        requested.kind === "review"
+          ? `UPDATE tier1_runs
+             SET finalize_pending_json=?, restart_pending_at=NULL, restart_reason=NULL, updated_at=?
+             WHERE id=? AND finalize_pending_json IS NULL AND state IN ('reserved','running','step_paused')`
+          : `UPDATE tier1_runs SET finalize_pending_json=?, updated_at=?
+             WHERE id=? AND finalize_pending_json IS NULL AND state IN ('reserved','running','step_paused')`
+      )
+      .run(JSON.stringify(requested), requested.recordedAt, run.runId);
+    if (written.changes === 1) return requested;
+    const raced = this.d.db
+      .prepare("SELECT finalize_pending_json FROM tier1_runs WHERE id=?")
+      .get(run.runId) as { finalize_pending_json: string | null } | undefined;
+    const durable = parsePendingFinalization(raced?.finalize_pending_json);
+    if (durable) {
+      if (requested.kind === "failure" && durable.kind === "review") {
+        const replaced = this.d.db
+          .prepare(
+            `UPDATE tier1_runs SET finalize_pending_json=?, updated_at=?
+             WHERE id=? AND finalize_pending_json=? AND state IN ('reserved','running','step_paused')`
+          )
+          .run(JSON.stringify(requested), requested.recordedAt, run.runId, raced?.finalize_pending_json);
+        if (replaced.changes === 1) return requested;
+      } else {
+        return durable;
+      }
+    }
+    throw new Error(`finalize marker race:${run.runId}`);
+  }
+
+  /** writing 产物引用先写进 durable review marker；重试必须复用同一 id/version。 */
+  private ensureWritingArtifactIntent(
+    run: ActiveRun,
+    expected: Omit<NonNullable<ReviewFinalizationIntent["writingArtifact"]>, "articleArtifactId" | "articleVersion">
+  ): NonNullable<ReviewFinalizationIntent["writingArtifact"]> {
+    const row = this.d.db
+      .prepare("SELECT finalize_pending_json FROM tier1_runs WHERE id=?")
+      .get(run.runId) as { finalize_pending_json: string | null } | undefined;
+    const marker = parsePendingFinalization(row?.finalize_pending_json);
+    if (!marker || marker.kind !== "review") throw new Error(`writing review marker missing:${run.runId}`);
+    if (marker.writingArtifact) {
+      if (
+        marker.writingArtifact.articlePath !== expected.articlePath ||
+        marker.writingArtifact.articleDigest !== expected.articleDigest ||
+        marker.writingArtifact.treeSha !== expected.treeSha
+      ) {
+        throw new Error(`writing artifact intent drift:${run.runId}`);
+      }
+      run.pendingFinalization = marker;
+      return marker.writingArtifact;
+    }
+    const writingArtifact: NonNullable<ReviewFinalizationIntent["writingArtifact"]> = {
+      articleArtifactId: newId("art"),
+      articleVersion: 1,
+      ...expected
+    };
+    const updatedMarker: ReviewFinalizationIntent = { ...marker, writingArtifact };
+    const updated = this.d.db
+      .prepare("UPDATE tier1_runs SET finalize_pending_json=?, updated_at=? WHERE id=? AND finalize_pending_json=?")
+      .run(JSON.stringify(updatedMarker), this.now().toISOString(), run.runId, row?.finalize_pending_json);
+    if (updated.changes === 1) {
+      run.pendingFinalization = updatedMarker;
+      return writingArtifact;
+    }
+    const raced = parsePendingFinalization(
+      (this.d.db.prepare("SELECT finalize_pending_json FROM tier1_runs WHERE id=?").get(run.runId) as
+        | { finalize_pending_json: string | null }
+        | undefined)?.finalize_pending_json
+    );
+    if (
+      raced?.kind === "review" &&
+      raced.writingArtifact?.articlePath === expected.articlePath &&
+      raced.writingArtifact.articleDigest === expected.articleDigest &&
+      raced.writingArtifact.treeSha === expected.treeSha
+    ) {
+      run.pendingFinalization = raced;
+      return raced.writingArtifact;
+    }
+    throw new Error(`writing artifact intent race:${run.runId}`);
+  }
+
+  /** 失败/阻塞收尾:durable intent -> run settled_failed + task failed/blocked + 最小 proof 回叫(09 §9;缺一不叫) */
   private finalizeFailure(run: ActiveRun, exitEvidence: string, taskState: "failed" | "blocked", spokenReason?: string): void {
     const d = this.d;
     const nowIso = this.now().toISOString();
-    this.clearRestartMarker(run);
-    try {
-      const cur = (d.db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(run.runId) as { state: string } | undefined)?.state;
-      if (cur === "reserved") {
-        // reserved 无 -> settled_failed 直边:经取消链落终态(供给失败/起动前异常)
-        // A1: 未验证 ESRCH 时 processExited 不得写 true；有 owner 未 ESRCH 则污染 lifecycle。
-        if (run.agentOwnershipEstablished && !run.processGroupVerifiedExited) {
-          this.contaminateLifecycle(
-            new ProcessGroupLifecycleError(`reserved finalize without ESRCH:${run.runId}`)
-          );
-          this.resolveClaim(run);
-          return;
-        }
-        // Tier1CancelProof.processExited 合同为字面 true；仅在无 owner 或已 ESRCH 时写 proof。
-        transitionTier1Run(d.db, run.runId, "cancel_requested", nowIso);
-        transitionTier1Run(d.db, run.runId, "cancel_settled", nowIso, {
-          cancelProofJson: JSON.stringify({
-            taskId: run.taskId,
-            runId: run.runId,
-            processExited: true,
-            worktreeLockReleased: true,
-            lastEventId: `pre-start:${exitEvidence.slice(0, 60)}`,
-            settledAt: nowIso
-          } satisfies Tier1CancelProof)
-        });
-      } else if (cur === "running" || cur === "step_paused") {
-        transitionTier1Run(d.db, run.runId, "settled_failed", nowIso, {
-          eventCursor: `events:${run.runId}:line:${run.eventLine}`
-        });
-      }
-    } catch (err) {
-      d.log.error("finalizeFailure run transition failed", { runId: run.runId, error: String(err).slice(0, 160) });
-    }
-    try {
-      transitionTask(d.db, run.taskId, taskState, "L", { now: nowIso });
-    } catch (err) {
-      // 任务已被并发转走(如用户取消):如实留审计,不强写
-      d.audit.record({
-        actor: "daemon",
-        action: "tier1.finalize_task_transition_skipped",
-        meta: { taskId: run.taskId, wanted: taskState, error: String(err).slice(0, 120) }
-      });
-      // 评审 91 A-5:这条早退此前漏了 resolveClaim——任务被并发转走(用户取消等)时
-      // claimReady 永不兑现,recover barrier 与认领链一起挂住。既有潜在缺陷,
-      // 被「spawn 前身份核验失败」这条新路径变成可达,在根上补齐。
+    const currentState = (d.db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(run.runId) as
+      | { state: string }
+      | undefined)?.state;
+    // agent owner 存在却未证实 ESRCH 时不得先写任何终态；否则 daemon 在提交后崩溃会遗留仍可产生副作用的孤儿进程。
+    if (run.agentOwnershipEstablished && !run.processGroupVerifiedExited) {
+      this.contaminateLifecycle(new ProcessGroupLifecycleError(`${currentState ?? "missing"} finalize without ESRCH:${run.runId}`));
       this.resolveClaim(run);
-      this.active.delete(run.runId);
       return;
     }
-    this.enqueueBlocked(run.taskId, run.packageRevision, exitEvidence, spokenReason, taskState, run);
-    if (run.agentOwnershipEstablished || run.eventLine > 0) this.recordRunCost(run);
-    d.audit.record({
-      actor: "daemon",
-      action: taskState === "failed" ? "tier1.settled_failed" : "tier1.blocked",
-      meta: {
-        taskId: run.taskId,
-        runId: run.runId,
-        exitEvidence: exitEvidence.slice(0, 160),
-        ...this.observedModelAuditMeta(run)
+
+    if (this.settleCancellationPriority(run)) return;
+    let intent: FailureFinalizationIntent = run.pendingFinalization?.kind === "failure" ? run.pendingFinalization : {
+      kind: "failure",
+      exitEvidence,
+      taskState,
+      recordedAt: nowIso,
+      eventLine: run.eventLine,
+      ...(run.observedModel ? { observedModel: run.observedModel } : {}),
+      ...(run.observedModels.size > 0 ? { observedModels: [...run.observedModels] } : {}),
+      ...(run.resultEvent ? { resultEvent: run.resultEvent } : {}),
+      ...(spokenReason !== undefined ? { spokenReason } : {})
+    };
+    run.pendingFinalization = intent;
+    try {
+      const durable = this.ensurePendingFinalization(run, intent);
+      if (durable.kind !== "failure") throw new Error("failure finalize intent was not persisted");
+      intent = durable;
+      run.pendingFinalization = durable;
+    } catch (err) {
+      if (this.settleCancellationPriority(run)) return;
+      d.log.error("finalizeFailure marker write failed", { runId: run.runId, error: String(err).slice(0, 160) });
+      try {
+        d.audit.record({
+          actor: "daemon",
+          action: "tier1.finalize_transaction_failed",
+          meta: { taskId: run.taskId, runId: run.runId, wanted: intent.taskState, stage: "marker", error: String(err).slice(0, 120) }
+        });
+      } catch {
+        // DB/audit 均不可写时保留内存闩并拒绝新认领；不得伪造已持久化。
       }
-    });
+      this.resolveClaim(run);
+      return;
+    }
+
+    const clearRestartMarker = run.restartPending || run.resumeRestartMarker;
+    try {
+      const tx = d.db.transaction(() => {
+        const curRun = d.db
+          .prepare("SELECT state, finalize_pending_json FROM tier1_runs WHERE id=?")
+          .get(run.runId) as { state: string; finalize_pending_json: string | null } | undefined;
+        const curTask = d.db.prepare("SELECT status FROM tasks WHERE id=?").get(run.taskId) as { status: string } | undefined;
+        if (!curRun || !curTask) throw new Error("finalize target missing");
+        if (curTask.status !== "running") throw new Error(`finalize task left running:${curTask.status}`);
+        if (!(["reserved", "running", "step_paused"] as const).includes(curRun.state as never)) {
+          throw new Error(`finalize run left failure chain:${curRun.state}`);
+        }
+        const durable = parsePendingFinalization(curRun.finalize_pending_json);
+        if (
+          !durable ||
+          durable.kind !== "failure" ||
+          durable.exitEvidence !== intent.exitEvidence ||
+          durable.taskState !== intent.taskState ||
+          durable.spokenReason !== intent.spokenReason ||
+          durable.recordedAt !== intent.recordedAt ||
+          durable.eventLine !== intent.eventLine ||
+          durable.observedModel !== intent.observedModel ||
+          JSON.stringify(durable.observedModels ?? []) !== JSON.stringify(intent.observedModels ?? []) ||
+          JSON.stringify(durable.resultEvent ?? null) !== JSON.stringify(intent.resultEvent ?? null)
+        ) {
+          throw new Error("finalize intent changed concurrently");
+        }
+        if (clearRestartMarker) {
+          d.db
+            .prepare("UPDATE tier1_runs SET restart_pending_at=NULL, restart_reason=NULL, updated_at=? WHERE id=?")
+            .run(nowIso, run.runId);
+        }
+        const cur = curRun.state;
+        if (cur === "reserved") {
+          // reserved 无 -> settled_failed 直边:经取消链落终态(供给失败/起动前异常)
+          transitionTier1Run(d.db, run.runId, "cancel_requested", nowIso);
+          transitionTier1Run(d.db, run.runId, "cancel_settled", nowIso, {
+            cancelProofJson: JSON.stringify({
+              taskId: run.taskId,
+              runId: run.runId,
+              processExited: true,
+              worktreeLockReleased: true,
+              lastEventId: `pre-start:${exitEvidence.slice(0, 60)}`,
+              settledAt: nowIso
+            } satisfies Tier1CancelProof)
+          });
+        } else if (cur === "running" || cur === "step_paused") {
+          transitionTier1Run(d.db, run.runId, "settled_failed", nowIso, {
+            eventCursor: `events:${run.runId}:line:${run.eventLine}`
+          });
+        }
+        transitionTask(d.db, run.taskId, intent.taskState, "L", { now: nowIso });
+        const enq = this.enqueueBlocked(
+          run.taskId,
+          run.packageRevision,
+          intent.exitEvidence,
+          intent.spokenReason,
+          intent.taskState,
+          run
+        );
+        d.audit.record({
+          actor: "daemon",
+          action: intent.taskState === "failed" ? "tier1.failed" : "tier1.blocked",
+          meta: {
+            taskId: run.taskId,
+            runId: run.runId,
+            exitEvidence: intent.exitEvidence.slice(0, 160),
+            enqueued: enq.enqueued,
+            ...this.observedModelAuditMeta(run)
+          }
+        });
+        // 没有任何持久化事件的 pre-start 失败不冒充一次订阅调用；其余终态与记账同事务。
+        if (run.eventLine > 0) this.recordRunCost(run);
+        const cleared = d.db
+          .prepare("UPDATE tier1_runs SET finalize_pending_json=NULL, updated_at=? WHERE id=? AND finalize_pending_json IS NOT NULL")
+          .run(nowIso, run.runId);
+        if (cleared.changes !== 1) throw new Error("finalize marker clear race");
+      });
+      tx();
+    } catch (err) {
+      if (this.settleCancellationPriority(run)) return;
+      d.log.error("finalizeFailure transaction failed", { runId: run.runId, error: String(err).slice(0, 160) });
+      try {
+        d.audit.record({
+          actor: "daemon",
+          action: "tier1.finalize_transaction_failed",
+          meta: {
+            taskId: run.taskId,
+            runId: run.runId,
+            wanted: intent.taskState,
+            stage: "terminal",
+            error: String(err).slice(0, 120)
+          }
+        });
+      } catch {
+        // 审计存储自身不可写时只留日志,不得用半提交状态补偿。
+      }
+      this.resolveClaim(run);
+      return;
+    }
+    delete run.pendingFinalization;
+    if (clearRestartMarker) {
+      run.restartPending = false;
+      run.resumeRestartMarker = false;
+    }
     this.resolveClaim(run);
     this.active.delete(run.runId);
   }
@@ -2438,8 +3084,8 @@ export class Tier1Executor {
     _spokenReason?: string,
     trigger: "failed" | "blocked" = "blocked",
     run?: ActiveRun
-  ): void {
-    this.d.callbacks.enqueue({
+  ): { entryId: string; enqueued: boolean; reason?: string } {
+    const result = this.d.callbacks.enqueue({
       taskId,
       trigger,
       packageRevision,
@@ -2451,6 +3097,10 @@ export class Tier1Executor {
       projectionCursor: `local:${this.now().toISOString()}`,
       artifactChecks: []
     });
+    if (!result.enqueued && result.reason !== "dedupe active-unique") {
+      throw new Error(`blocked/failed callback enqueue rejected:${result.reason ?? "unknown"}`);
+    }
+    return result;
   }
 
   /** 用户取消链收尾:进程已退,Tier1CancelProof -> cancel_settled(operations.settleCancel 单源) */
@@ -2472,10 +3122,17 @@ export class Tier1Executor {
       settledAt: nowIso
     };
     try {
-      settleCancel(this.d.db, this.d.audit, proof, nowIso);
+      const tx = this.d.db.transaction(() => {
+        settleCancel(this.d.db, this.d.audit, proof, nowIso);
+        if (run.eventLine > 0) this.recordRunCost(run);
+      });
+      tx();
     } catch (err) {
       this.d.log.error("settleCancel failed", { runId: run.runId, error: String(err).slice(0, 160) });
+      this.resolveClaim(run);
+      return;
     }
+    delete run.pendingFinalization;
     this.resolveClaim(run);
     this.active.delete(run.runId);
   }
@@ -2512,15 +3169,34 @@ export class Tier1Executor {
       settledAt: nowIso
     };
     try {
-      transitionTier1Run(this.d.db, run.runId, "cancel_settled", nowIso, { cancelProofJson: JSON.stringify(proof) });
-      this.d.audit.record({
-        actor: "daemon",
-        action: "tier1.steer_resume_settled",
-        meta: { taskId: run.taskId, runId: run.runId, attempt: run.attempt, lastEventId: proof.lastEventId }
+      const tx = this.d.db.transaction(() => {
+        const currentTask = this.d.db.prepare("SELECT status FROM tasks WHERE id=?").get(run.taskId) as { status: string } | undefined;
+        if (currentTask?.status !== "running") throw new Error(`steer task left running:${currentTask?.status ?? "missing"}`);
+        transitionTier1Run(this.d.db, run.runId, "cancel_settled", nowIso, { cancelProofJson: JSON.stringify(proof) });
+        this.d.db
+          .prepare(
+            "UPDATE tier1_runs SET finalize_pending_json=NULL, restart_pending_at=NULL, restart_reason=NULL, updated_at=? WHERE id=?"
+          )
+          .run(nowIso, run.runId);
+        this.d.audit.record({
+          actor: "daemon",
+          action: "tier1.steer_resume_settled",
+          meta: { taskId: run.taskId, runId: run.runId, attempt: run.attempt, lastEventId: proof.lastEventId }
+        });
+        if (run.eventLine > 0) this.recordRunCost(run);
       });
+      tx();
     } catch (err) {
+      const latestTask = (this.d.db.prepare("SELECT status FROM tasks WHERE id=?").get(run.taskId) as { status: string } | undefined)?.status;
+      if (latestTask === "cancel_requested") {
+        this.settleCancelledRun(run);
+        return;
+      }
       this.d.log.error("settleSteerResume failed", { runId: run.runId, error: String(err).slice(0, 160) });
+      this.resolveClaim(run);
+      return;
     }
+    delete run.pendingFinalization;
     this.resolveClaim(run);
     this.active.delete(run.runId);
   }
@@ -2528,19 +3204,25 @@ export class Tier1Executor {
   // ---------- §12-7 恢复(daemon 重启:按 (adapter,nativeSessionId,cwd) 恢复或降级新会话) ----------
 
   async recover(): Promise<void> {
-    const rows = this.d.db
+    let rows = this.d.db
       .prepare(`SELECT * FROM tier1_runs WHERE state IN ${ACTIVE_RUN_STATES}`)
       .all() as Record<string, unknown>[];
     // 两阶段恢复：先对全部 durable 行完成 ownership 回收与 JSON/工作区预检；任何一行
     // fail-closed 时都尚未 spawn，避免后行异常把前行新进程杀成 failed。
+    const reapOutcomes = new Map<string, OrphanAgentReapOutcome>();
     for (const raw of rows) {
       try {
-        await this.killOrphanAgent(raw["id"] as string);
+        const runId = raw["id"] as string;
+        reapOutcomes.set(runId, await this.killOrphanAgent(runId));
       } catch (err) {
         // 旧组未 ESRCH：污染 lifecycle 并阻断 ready（A1/A3）。
         throw this.contaminateLifecycle(err);
       }
     }
+    // reap 可能等待数秒；期间 cancel/steer 会改 durable 状态。之后必须重读，旧快照不得决定 spawn。
+    rows = this.d.db
+      .prepare(`SELECT * FROM tier1_runs WHERE state IN ${ACTIVE_RUN_STATES}`)
+      .all() as Record<string, unknown>[];
 
     type RecoverTask = {
       id: string;
@@ -2560,6 +3242,7 @@ export class Tier1Executor {
       task: RecoverTask | undefined;
       repoPath: string | null;
       budget: ActiveRun["budget"] | null;
+      pendingFinalization: PendingFinalizationIntent | null;
     };
     const preflight: RecoverPreflight[] = [];
     for (const raw of rows) {
@@ -2572,9 +3255,72 @@ export class Tier1Executor {
            FROM tasks t LEFT JOIN projects p ON p.id=t.project_id WHERE t.id=?`
         )
         .get(taskId) as RecoverTask | undefined;
+      let pendingFinalization = parsePendingFinalization(raw["finalize_pending_json"]);
+      const nowIso = this.now().toISOString();
+      const recordedAdapter =
+        raw["adapter"] === "claude_code" ? "claude_code" : raw["adapter"] === "cursor" ? "cursor" : null;
+      const recoveryBackend =
+        recordedAdapter === "claude_code" ? claudeBackend() : recordedAdapter === "cursor" ? cursorBackend() : this.backend;
+      if (!pendingFinalization && state !== "cancel_requested" && task?.status === "running") {
+        const snapshot = this.durableEventSnapshot(runId, raw["event_cursor"], undefined, recoveryBackend);
+        const consistency = checkRunAdapterConsistency(String(raw["adapter"] ?? ""), this.backend.adapter);
+        if (!consistency.consistent) {
+          const intent = this.failureIntentFromSnapshot(snapshot, {
+            exitEvidence: `adapter_mismatch:${consistency.rowAdapter}->${consistency.effectiveAdapter}`,
+            taskState: "blocked",
+            spokenReason: "执行后端已切换,这轮不能接续,需要你看一眼",
+            recordedAt: nowIso
+          });
+          if (!this.tryPersistFailureIntent(runId, raw, intent)) {
+            throw new Error(`adapter mismatch marker race:${runId}`);
+          }
+          pendingFinalization = intent;
+        } else if (snapshot.resultEvent && !(reapOutcomes.get(runId) === "already_exited" && raw["restart_pending_at"] === null)) {
+          const intent = this.failureIntentFromSnapshot(snapshot, {
+            exitEvidence: "stale_terminal_result_without_finalization",
+            taskState: "failed",
+            spokenReason: "上一轮结果没有可靠收口,这轮不能接着跑,需要你看一眼",
+            recordedAt: nowIso
+          });
+          if (!this.tryPersistFailureIntent(runId, raw, intent)) {
+            pendingFinalization = parsePendingFinalization(raw["finalize_pending_json"]);
+            if (!pendingFinalization) throw new Error(`stale result marker race:${runId}`);
+          } else {
+            pendingFinalization = intent;
+            this.d.audit.record({
+              actor: "daemon",
+              action: "tier1.recover_stale_terminal_result",
+              meta: { taskId, runId, eventLine: snapshot.eventLine }
+            });
+          }
+        } else if (reapOutcomes.get(runId) === "already_exited" && raw["restart_pending_at"] === null) {
+          const intent = this.failureIntentFromSnapshot(snapshot, {
+            exitEvidence: "daemon_crash_after_agent_exit",
+            taskState: "failed",
+            recordedAt: nowIso
+          });
+          if (this.tryPersistFailureIntent(runId, raw, intent)) {
+            pendingFinalization = intent;
+            this.d.audit.record({
+              actor: "daemon",
+              action: "tier1.recover_agent_exited_unsettled",
+              meta: { taskId, runId, eventLine: snapshot.eventLine }
+            });
+          }
+        }
+      }
+      if (pendingFinalization && raw["restart_pending_at"]) {
+        this.clearRestartMarkerForFinalization(runId, nowIso);
+        raw["restart_pending_at"] = null;
+        raw["restart_reason"] = null;
+      }
       let repoPath: string | null = null;
       let budget: ActiveRun["budget"] | null = null;
-      if (state !== "cancel_requested" && task) {
+      if ((pendingFinalization || state === "cancel_requested") && task) {
+        // 旧进程组已在第一阶段确认 ESRCH；收口路径不依赖工作区仍存在，也绝不重新 spawn。
+        repoPath = String(raw["cwd"] ?? raw["worktree_path"] ?? "");
+        budget = JSON.parse(task.budget_json) as ActiveRun["budget"];
+      } else if (task) {
         repoPath = tier1RecoveryPrerequisite(this.d.db, {
           run_id: runId,
           task_id: taskId,
@@ -2586,45 +3332,51 @@ export class Tier1Executor {
           budget = JSON.parse(task.budget_json) as ActiveRun["budget"];
         }
       }
-      preflight.push({ raw, runId, taskId, state, task, repoPath, budget });
+      preflight.push({ raw, runId, taskId, state, task, repoPath, budget, pendingFinalization });
     }
 
-    const runnable: Array<{ active: ActiveRun; wasReserved: boolean }> = [];
+    const runnable: Array<{ active: ActiveRun; wasReserved: boolean; settleOnly: boolean }> = [];
     for (const item of preflight) {
-      const { raw, runId, taskId, state, task, repoPath, budget } = item;
+      const { raw, runId, taskId, state, task, repoPath, budget, pendingFinalization: preflightPending } = item;
+      let pendingFinalization = preflightPending;
       const nowIso = this.now().toISOString();
-      if (state === "cancel_requested") {
-        // 取消中重启:进程必死,补 proof 结算
-        const proof: Tier1CancelProof = {
-          taskId,
+      const recordedAdapter = raw["adapter"] === "claude_code" ? "claude_code" : raw["adapter"] === "cursor" ? "cursor" : null;
+      const recoveryBackend = recordedAdapter === "claude_code" ? claudeBackend() : recordedAdapter === "cursor" ? cursorBackend() : this.backend;
+      if (pendingFinalization?.kind === "review" && !pendingFinalization.resultEvent) {
+        const rawMarker = raw["finalize_pending_json"] as string;
+        const snapshot = this.durableEventSnapshot(
           runId,
-          processExited: true,
-          worktreeLockReleased: true,
-          lastEventId: (raw["event_cursor"] as string | null) ?? "recovered:unknown",
-          settledAt: nowIso
-        };
-        const taskRow = this.d.db.prepare("SELECT status FROM tasks WHERE id=?").get(taskId) as { status: string } | undefined;
-        try {
-          this.d.db
-            .prepare("UPDATE tier1_runs SET restart_pending_at=NULL, restart_reason=NULL, updated_at=? WHERE id=?")
-            .run(nowIso, runId);
-          if (taskRow?.status === "cancel_requested") {
-            settleCancel(this.d.db, this.d.audit, proof, nowIso);
-          } else {
-            // W5a 3.4:steer cancel_resume 中重启(任务仍 running)——run 级结算,任务留给认领循环
-            transitionTier1Run(this.d.db, runId, "cancel_settled", nowIso, { cancelProofJson: JSON.stringify(proof) });
-            this.d.audit.record({
-              actor: "daemon",
-              action: "tier1.steer_resume_settled",
-              meta: { taskId, runId, recovered: true }
-            });
-          }
-        } catch (err) {
-          this.d.log.error("recover cancel settle failed", { runId, error: String(err).slice(0, 160) });
+          raw["event_cursor"],
+          pendingFinalization.eventLine > 0 ? pendingFinalization.eventLine : undefined,
+          recoveryBackend
+        );
+        if (snapshot.resultEvent) {
+          const repaired: ReviewFinalizationIntent = {
+            ...pendingFinalization,
+            eventLine: pendingFinalization.eventLine > 0 ? pendingFinalization.eventLine : snapshot.eventLine,
+            resultEvent: snapshot.resultEvent
+          };
+          const updated = this.d.db
+            .prepare("UPDATE tier1_runs SET finalize_pending_json=?, updated_at=? WHERE id=? AND finalize_pending_json=?")
+            .run(JSON.stringify(repaired), nowIso, runId, rawMarker);
+          if (updated.changes !== 1) throw new Error(`review result recovery race:${runId}`);
+          raw["finalize_pending_json"] = JSON.stringify(repaired);
+          pendingFinalization = repaired;
         }
-        continue;
       }
-      if (!task || task.status !== "running" || !repoPath || !budget) {
+      const recoverySnapshot = this.durableEventSnapshot(
+        runId,
+        raw["event_cursor"],
+        pendingFinalization ? pendingFinalization.eventLine : undefined,
+        recoveryBackend
+      );
+      const settlesAfterRecovery =
+        !!task &&
+        !!repoPath &&
+        !!budget &&
+        (pendingFinalization !== null || state === "cancel_requested") &&
+        (task.status === "running" || task.status === "cancel_requested" || task.status === "cancel_settled");
+      if (!settlesAfterRecovery && (!task || task.status !== "running" || !repoPath || !budget)) {
         // code-review B2:活跃 run 但 task 非 running(数据不一致)——不能 continue 泄漏
         // (每次重启重新捞到、无谓拉起、状态永不收敛)。清旧孤儿 + run 落终态(经取消链,
         // 不动已终结的 task)。task 缺失/无 workspace 同样终结 run。
@@ -2634,6 +3386,8 @@ export class Tier1Executor {
             .run(nowIso, runId);
           if (state === "running" || state === "step_paused" || state === "reserved") {
             transitionTier1Run(this.d.db, runId, "cancel_requested", nowIso);
+          }
+          if (state === "running" || state === "step_paused" || state === "reserved" || state === "cancel_requested") {
             transitionTier1Run(this.d.db, runId, "cancel_settled", nowIso, {
               cancelProofJson: JSON.stringify({
                 taskId,
@@ -2644,6 +3398,11 @@ export class Tier1Executor {
                 settledAt: nowIso
               } satisfies Tier1CancelProof)
             });
+            this.d.db
+              .prepare(
+                "UPDATE tier1_runs SET finalize_pending_json=NULL, restart_pending_at=NULL, restart_reason=NULL, updated_at=? WHERE id=?"
+              )
+              .run(nowIso, runId);
           }
         } catch (err) {
           this.d.log.error("recover reap inconsistent run failed", { runId, error: String(err).slice(0, 160) });
@@ -2655,50 +3414,10 @@ export class Tier1Executor {
         });
         continue;
       }
-      if (this.d.cfg.adapter === "claude_code") {
-        const cons = checkRunAdapterConsistency(String(raw["adapter"] ?? ""), this.d.cfg.adapter);
-        if (!cons.consistent) {
-          try {
-            this.d.db
-              .prepare("UPDATE tier1_runs SET restart_pending_at=NULL, restart_reason=NULL, updated_at=? WHERE id=?")
-              .run(nowIso, runId);
-            if (state === "running" || state === "step_paused" || state === "reserved") {
-              transitionTier1Run(this.d.db, runId, "cancel_requested", nowIso);
-              transitionTier1Run(this.d.db, runId, "cancel_settled", nowIso, {
-                cancelProofJson: JSON.stringify({
-                  taskId,
-                  runId,
-                  processExited: true,
-                  worktreeLockReleased: true,
-                  lastEventId: `recovered-inconsistent:adapter_mismatch`,
-                  settledAt: nowIso
-                } satisfies Tier1CancelProof)
-              });
-            }
-            transitionTask(this.d.db, taskId, "blocked", "L", { now: nowIso });
-          } catch (err) {
-            this.d.log.error("recover adapter mismatch reap failed", { runId, error: String(err).slice(0, 160) });
-          }
-          this.enqueueBlocked(taskId, task.package_rev ?? 1, "adapter_mismatch", "执行后端已切换,这轮不能接续,需要你看一眼");
-          this.d.audit.record({
-            actor: "daemon",
-            action: "tier1.recover_reaped_inconsistent",
-            meta: {
-              runId,
-              taskId,
-              taskStatus: task.status,
-              runState: state,
-              reason: "adapter_mismatch",
-              rowAdapter: cons.rowAdapter,
-              effectiveAdapter: cons.effectiveAdapter
-            }
-          });
-          continue;
-        }
-      }
       // P0 恢复策略 = 降级"摘要+diff 注入新会话"(同 run 行续用;resume --resume <chatId> 属加分项,
       // chatId 采集待 e2e 实测事件流后接——诚实登记,不假装已恢复原会话)
       const active: ActiveRun = {
+        adapter: recordedAdapter ?? this.backend.adapter,
         runId,
         taskId,
         projectId: task.project_id,
@@ -2710,7 +3429,7 @@ export class Tier1Executor {
         packageRevision: task.package_rev ?? 1,
         dispatchTurnRef: this.lookupDispatchTurnRef(task.package_digest),
         budget,
-        frozen: this.loadFrozen(runId),
+        frozen: pendingFinalization?.kind === "review" ? this.loadFrozen(runId) : settlesAfterRecovery ? [] : this.loadFrozen(runId),
         registry: { packageScripts: [], justfileTasks: [] },
         articlePath: this.safeArticlePath(repoPath),
         protectedBranches: this.d.cfg.protectedBranches ?? [],
@@ -2725,10 +3444,15 @@ export class Tier1Executor {
         approvalWaitDepth: 0,
         s2Pending: false,
         unknownEventCount: 0,
-        eventLine: 0,
-        observedModel: null,
+        eventLine: Math.max(pendingFinalization?.eventLine ?? 0, recoverySnapshot.eventLine),
+        observedModel: pendingFinalization?.observedModel ?? recoverySnapshot.observedModel,
         resultText: "",
-        terminalResultReceived: false,
+        terminalResultReceived: Boolean(
+          settlesAfterRecovery &&
+            (pendingFinalization?.kind === "review" ||
+              pendingFinalization?.resultEvent !== undefined ||
+              recoverySnapshot.resultEvent !== null)
+        ),
         proc: null,
         completion: null,
         restartPending: false,
@@ -2738,24 +3462,49 @@ export class Tier1Executor {
         ...streamRuntimeFields(),
         resumeSessionConfirmed: false,
         resumeSessionError: null,
-        agentOwnershipEstablished: false,
+        agentOwnershipEstablished: settlesAfterRecovery && state !== "reserved",
         nativeResumeAudited: false,
-        processGroupVerifiedExited: false,
+        processGroupVerifiedExited: settlesAfterRecovery,
         claimReady: null,
         claimPromise: null,
-        abort: null,
+        abort:
+          state === "cancel_requested" || task.status === "cancel_requested" || task.status === "cancel_settled"
+            ? { kind: task.status === "running" ? "steer_resume" : "cancel", detail: "durable recovery settlement" }
+            : null,
         model: this.resolveRunModel(task.project_id, runId),
-        hooksJsonPath: null
+        hooksJsonPath: null,
+        ...(pendingFinalization ? { pendingFinalization } : {})
       };
+      active.observedModels = new Set(
+        pendingFinalization
+          ? pendingFinalization.kind === "review"
+            ? pendingFinalization.observedModels
+            : pendingFinalization.observedModels ?? recoverySnapshot.observedModels
+          : recoverySnapshot.observedModels
+      );
+      active.resultEvent = settlesAfterRecovery
+        ? (pendingFinalization?.resultEvent ?? recoverySnapshot.resultEvent)
+        : null;
       let resolveClaim!: () => void;
       active.claimPromise = new Promise<void>((resolve) => { resolveClaim = resolve; });
       active.claimReady = resolveClaim;
-      runnable.push({ active, wasReserved: state === "reserved" });
+      runnable.push({ active, wasReserved: state === "reserved", settleOnly: settlesAfterRecovery });
     }
 
     for (const { active } of runnable) this.active.set(active.runId, active);
-    for (const { active, wasReserved } of runnable) {
+    for (const { active, wasReserved, settleOnly } of runnable) {
       const { runId } = active;
+      if (settleOnly) {
+        if (active.abort?.kind === "cancel") this.settleCancelledRun(active);
+        else if (active.abort?.kind === "steer_resume") this.settleSteerResumeRun(active);
+        else if (active.pendingFinalization?.kind === "failure") {
+          const pending = active.pendingFinalization;
+          this.finalizeFailure(active, pending.exitEvidence, pending.taskState, pending.spokenReason);
+        } else if (active.pendingFinalization?.kind === "review") {
+          await this.settlePendingReview(active);
+        }
+        continue;
+      }
       active.completion = this.recoverAttempt(active, wasReserved).catch((err) => {
         this.d.log.error("tier1 recover crashed", { runId, error: String(err).slice(0, 200) });
         this.resolveClaim(active);
@@ -2818,6 +3567,7 @@ export class Tier1Executor {
       this.resolveClaim(run);
       return;
     }
+    if (this.settleCancellationPriority(run)) return;
     const prompt = this.buildPrompt(run, true);
     // W1.4(0.0(a) 清账):有恢复钥匙走 --resume <chatId> 精确恢复原会话(§12-7 (adapter,
     // nativeSessionId,cwd));无钥匙降级"摘要+diff 注入新会话"(旧行为)。resume prompt 仍带
@@ -2863,6 +3613,7 @@ export class Tier1Executor {
     }
     let proc: AgentProcessHandle;
     try {
+      this.discardUnqualifiedTerminalResult(run);
       proc = this.spawnAgent(run, prompt, resumeChatId, sessionId);
     } catch (err) {
       if (err instanceof Tier1BinaryIdentityError) {
@@ -2900,12 +3651,6 @@ export class Tier1Executor {
       } else if (run.abort) {
         this.resolveClaim(run);
       } else {
-        this.finalizeFailure(
-          run,
-          run.resumeSessionError ?? "native_session_confirmation_missing",
-          "failed",
-          "恢复进程没有确认原生会话身份,这轮结果作废"
-        );
         try { proc.kill(); } catch { /* wait 收口 */ }
         try {
           await proc.wait();
@@ -2914,7 +3659,13 @@ export class Tier1Executor {
           if (isProcessGroupLifecycleError(err)) throw this.contaminateLifecycle(err);
         }
         run.proc = null;
-        this.clearAgentOwnership(run);
+        this.finalizeFailure(
+          run,
+          run.resumeSessionError ?? "native_session_confirmation_missing",
+          "failed",
+          "恢复进程没有确认原生会话身份,这轮结果作废"
+        );
+        this.clearAgentOwnershipAfterDurable(run);
         return;
       }
     }
@@ -2923,10 +3674,13 @@ export class Tier1Executor {
       this.captureProcTail(run, proc);
       run.proc = null;
       run.processGroupVerifiedExited = true;
-      this.clearAgentOwnership(run);
       // A2: wait 返回后再次优先处理新 suspension / abort，再看 session。
       if (run.restartPending || run.abort) {
-        await this.settleAttempt(run, exitCode);
+        try {
+          await this.settleAttempt(run, exitCode);
+        } finally {
+          this.clearAgentOwnershipAfterDurable(run);
+        }
         return;
       }
       if (nativeSessionId !== null && !run.resumeSessionConfirmed) {
@@ -2936,10 +3690,15 @@ export class Tier1Executor {
           "failed",
           "恢复进程没有确认原生会话身份,这轮结果作废"
         );
+        this.clearAgentOwnershipAfterDurable(run);
         return;
       }
       if (await this.retryResumeNotFoundOnce(run, exitCode, eventsPath)) return;
-      await this.settleAttempt(run, exitCode);
+      try {
+        await this.settleAttempt(run, exitCode);
+      } finally {
+        this.clearAgentOwnershipAfterDurable(run);
+      }
     } catch (err) {
       run.proc = null;
       if (isProcessGroupLifecycleError(err)) throw this.contaminateLifecycle(err);
@@ -2959,6 +3718,23 @@ export class Tier1Executor {
     const runDir = this.runDir(run.runId);
     rmSync(join(runDir, "agent.pid"), { force: true });
     rmSync(join(runDir, "agent-owner.json"), { force: true });
+  }
+
+  /** ownership 只能在 marker/restart/终态至少一个已 durable 后清除，避免退出后崩溃被恢复为二次 spawn。 */
+  private clearAgentOwnershipAfterDurable(run: ActiveRun): void {
+    const row = this.d.db
+      .prepare("SELECT state, finalize_pending_json, restart_pending_at FROM tier1_runs WHERE id=?")
+      .get(run.runId) as
+      | { state: string; finalize_pending_json: string | null; restart_pending_at: string | null }
+      | undefined;
+    if (
+      !row ||
+      !["reserved", "running", "step_paused", "cancel_requested"].includes(row.state) ||
+      row.finalize_pending_json !== null ||
+      row.restart_pending_at !== null
+    ) {
+      this.clearAgentOwnership(run);
+    }
   }
 
   private markRestartResumed(run: ActiveRun): void {
@@ -3013,7 +3789,11 @@ export class Tier1Executor {
     try {
       writeFileSync(join(runDir, "agent.pid"), String(proc.pid), { mode: 0o600 });
       await proc.started;
-      if (proc.ownershipRequired !== true) return;
+      if (proc.ownershipRequired !== true) {
+        // 注入式测试/内存 spawner 没有可由 OS 复核的进程身份，不能把占位 PID 留成 durable 假锚。
+        rmSync(join(runDir, "agent.pid"), { force: true });
+        return;
+      }
       const deadline = Date.now() + 2_000;
       let processStart: string | null = null;
       while (processStart === null && Date.now() < deadline) {
@@ -3100,7 +3880,7 @@ export class Tier1Executor {
 
   private observedModelAuditMeta(run: ActiveRun): Record<string, unknown> {
     let familyOk = false;
-    if (this.backend.adapter === "claude_code") {
+    if (run.adapter === "claude_code") {
       familyOk =
         run.observedModels.size > 0 && [...run.observedModels].every((m) => familyFromModelName(m) === "claude");
     } else if (run.observedModel) {
@@ -3117,8 +3897,6 @@ export class Tier1Executor {
   }
 
   private recordRunCost(run: ActiveRun): void {
-    if (run.costRecorded) return;
-    run.costRecorded = true;
     const usageRaw = run.resultEvent?.usage;
     const usage =
       usageRaw && typeof usageRaw === "object" && !Array.isArray(usageRaw)
@@ -3135,7 +3913,7 @@ export class Tier1Executor {
         {
           taskId: run.taskId,
           runId: run.runId,
-          adapter: this.backend.adapter,
+          adapter: run.adapter,
           model: run.observedModel ?? run.model,
           ...(usage ? { usage } : {}),
           ...(run.resultEvent?.modelUsage !== undefined ? { modelUsage: run.resultEvent.modelUsage } : {}),
@@ -3149,7 +3927,7 @@ export class Tier1Executor {
         this.now
       );
     } catch (err) {
-      this.d.log.error("recordTier1SubscriptionRun failed", { runId: run.runId, error: String(err).slice(0, 160) });
+      throw new Tier1CostLedgerError(run.runId, err);
     }
   }
 
@@ -3251,13 +4029,63 @@ export class Tier1Executor {
     this.captureProcTail(run, proc);
     run.proc = null;
     run.processGroupVerifiedExited = true;
-    this.clearAgentOwnership(run);
-    await this.settleAttempt(run, waited.exitCode);
+    try {
+      await this.settleAttempt(run, waited.exitCode);
+    } finally {
+      this.clearAgentOwnershipAfterDurable(run);
+    }
     return true;
   }
 
   /** 清旧孤儿 agent 进程组(recover 前;ESRCH=已死,忽略) */
-  private async killOrphanAgent(runId: string): Promise<void> {
+  private durableEventSnapshot(
+    runId: string,
+    eventCursor: unknown,
+    maxEventLine?: number,
+    parserBackend: Tier1Backend = this.backend
+  ): {
+    eventLine: number;
+    observedModel: string | null;
+    observedModels: string[];
+    resultEvent: Extract<Tier1Event, { kind: "result" }> | null;
+  } {
+    let eventFileLine = 0;
+    let observedModel: string | null = null;
+    const observedModels = new Set<string>();
+    let resultEvent: Extract<Tier1Event, { kind: "result" }> | null = null;
+    try {
+      const text = readFileSync(join(this.runDir(runId), "events.jsonl"), "utf8");
+      const lines = text === "" ? [] : text.split("\n").filter((line) => line.length > 0);
+      const selected = maxEventLine === undefined ? lines : lines.slice(0, maxEventLine);
+      eventFileLine = selected.length;
+      for (const line of selected) {
+        for (const event of parserBackend.parseLine(line)) {
+          if (event.kind === "init" && event.model) {
+            observedModels.add(event.model);
+            observedModel = event.model;
+          } else if (event.kind === "observed_model" && event.observedModel) {
+            observedModels.add(event.observedModel);
+            if (parserBackend.adapter !== "claude_code") observedModel = event.observedModel;
+          } else if (event.kind === "result") {
+            resultEvent = event;
+          }
+        }
+      }
+    } catch {
+      // 无事件文件时只能使用已经落库的 cursor；两者都没有即诚实记 0。
+    }
+    return {
+      eventLine:
+        maxEventLine === undefined
+          ? Math.max(eventFileLine, eventLineFromCursor(eventCursor))
+          : Math.min(maxEventLine, Math.max(eventFileLine, eventLineFromCursor(eventCursor))),
+      observedModel,
+      observedModels: [...observedModels],
+      resultEvent
+    };
+  }
+
+  private async killOrphanAgent(runId: string): Promise<OrphanAgentReapOutcome> {
     const row = this.d.db
       .prepare(
         `SELECT tier1_runs.task_id, tier1_runs.worktree_path, tier1_runs.state, tasks.project_id
@@ -3266,8 +4094,8 @@ export class Tier1Executor {
       .get(runId) as
       | { task_id: string; worktree_path: string; state: string; project_id: string }
       | undefined;
-    if (!row) return;
-    await reapOwnedTier1Agent(
+    if (!row) return "absent";
+    return reapOwnedTier1Agent(
       this.d.cfg.saydoHome,
       {
         run_id: runId,
@@ -3278,6 +4106,63 @@ export class Tier1Executor {
       },
       this.d.audit
     );
+  }
+
+  /** 已有 durable finalization 时清 restart marker，避免 settle-only 被 restart 永久打断。 */
+  private clearRestartMarkerForFinalization(runId: string, nowIso: string): void {
+    this.d.db
+      .prepare(
+        `UPDATE tier1_runs SET restart_pending_at=NULL, restart_reason=NULL, updated_at=?
+         WHERE id=? AND finalize_pending_json IS NOT NULL`
+      )
+      .run(nowIso, runId);
+  }
+
+  private tryPersistFailureIntent(
+    runId: string,
+    raw: Record<string, unknown>,
+    intent: FailureFinalizationIntent
+  ): boolean {
+    const written = this.d.db
+      .prepare(
+        `UPDATE tier1_runs SET finalize_pending_json=?, updated_at=?
+         WHERE id=? AND finalize_pending_json IS NULL AND state IN ('reserved','running','step_paused')
+           AND EXISTS (SELECT 1 FROM tasks WHERE tasks.id=tier1_runs.task_id AND tasks.status='running')`
+      )
+      .run(JSON.stringify(intent), intent.recordedAt, runId);
+    if (written.changes !== 1) return false;
+    raw["finalize_pending_json"] = JSON.stringify(intent);
+    return true;
+  }
+
+  private failureIntentFromSnapshot(
+    snapshot: ReturnType<Tier1Executor["durableEventSnapshot"]>,
+    fields: {
+      exitEvidence: string;
+      taskState: "failed" | "blocked";
+      spokenReason?: string;
+      recordedAt: string;
+    }
+  ): FailureFinalizationIntent {
+    return {
+      kind: "failure",
+      exitEvidence: fields.exitEvidence,
+      taskState: fields.taskState,
+      recordedAt: fields.recordedAt,
+      eventLine: snapshot.eventLine,
+      ...(fields.spokenReason !== undefined ? { spokenReason: fields.spokenReason } : {}),
+      ...(snapshot.observedModel ? { observedModel: snapshot.observedModel } : {}),
+      ...(snapshot.observedModels.length > 0 ? { observedModels: snapshot.observedModels } : {}),
+      ...(snapshot.resultEvent ? { resultEvent: snapshot.resultEvent } : {})
+    };
+  }
+
+  /** spawn 前切断旧进程终态，避免新进程借旧 result/usage 进入 review。 */
+  private discardUnqualifiedTerminalResult(run: ActiveRun): void {
+    if (run.pendingFinalization) return;
+    run.resultEvent = null;
+    run.terminalResultReceived = false;
+    run.resultText = "";
   }
 
   /**
@@ -3304,17 +4189,31 @@ export class Tier1Executor {
         this.refreshTerminalAbort(run);
         this.refreshBudgetAbort(run);
         if (run.abort) continue;
+        const durable = this.d.db
+          .prepare(
+            `SELECT r.state AS state, t.status AS task_status, r.native_session_id AS native_session_id,
+                    r.finalize_pending_json AS finalize_pending_json
+             FROM tier1_runs r JOIN tasks t ON t.id=r.task_id WHERE r.id=?`
+          )
+          .get(run.runId) as
+          | {
+              state: string;
+              task_status: string;
+              native_session_id: string | null;
+              finalize_pending_json: string | null;
+            }
+          | undefined;
+        if (run.pendingFinalization || durable?.finalize_pending_json) {
+          // 已有 durable finalization：只中断 verify/snapshot/agent，不得再写 restart marker。
+          run.restartPending = true;
+          run.restartEpoch = Math.max(run.restartEpoch, epoch);
+          continue;
+        }
         if (run.restartPending) {
           run.restartEpoch = Math.max(run.restartEpoch, epoch);
           marked.add(run.runId);
           continue;
         }
-        const durable = this.d.db
-          .prepare(
-            `SELECT r.state AS state, t.status AS task_status, r.native_session_id AS native_session_id
-             FROM tier1_runs r JOIN tasks t ON t.id=r.task_id WHERE r.id=?`
-          )
-          .get(run.runId) as { state: string; task_status: string; native_session_id: string | null } | undefined;
         const candidate: RestartCandidate | null = durable?.task_status === "running"
           ? {
               run_id: run.runId,
@@ -3333,6 +4232,7 @@ export class Tier1Executor {
             `UPDATE tier1_runs
              SET restart_pending_at=?, restart_reason=?, updated_at=?
              WHERE id=? AND state IN ${RESTART_RECOVERABLE_STATES}
+               AND finalize_pending_json IS NULL
                AND EXISTS (
                  SELECT 1 FROM tasks
                  WHERE tasks.id=tier1_runs.task_id AND tasks.status='running'
@@ -3389,6 +4289,16 @@ export class Tier1Executor {
       }
     }
     if (this.lifecycleContaminated) throw this.lifecycleContaminated;
+    const clearedAt = this.now().toISOString();
+    for (const run of draining) {
+      const row = this.d.db
+        .prepare("SELECT finalize_pending_json FROM tier1_runs WHERE id=?")
+        .get(run.runId) as { finalize_pending_json: string | null } | undefined;
+      if (!row?.finalize_pending_json) continue;
+      this.clearRestartMarkerForFinalization(run.runId, clearedAt);
+      run.restartPending = false;
+      run.resumeRestartMarker = false;
+    }
     const classified = classifyActiveWork(this.d.db, 0, {
       isAborted: (runId) => Boolean(this.active.get(runId)?.abort),
       requireNativeForGracefulRunning: true

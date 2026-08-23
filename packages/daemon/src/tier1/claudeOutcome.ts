@@ -136,7 +136,8 @@ export function buildTier1SubscriptionCostEntry(input: Tier1SubscriptionCostInpu
       cached_input_tokens: cacheRead,
       cache_creation_input_tokens: cacheWrite,
       ...(input.modelUsage !== undefined ? { modelUsage: input.modelUsage } : {}),
-      ...(input.numTurns !== undefined ? { num_turns: input.numTurns } : {}),
+      num_turns: input.numTurns ?? 0,
+      ...(input.numTurns === undefined ? { turns_unavailable: true } : {}),
       ...(input.totalCostUsdEstimate !== undefined
         ? { total_cost_usd_estimate: input.totalCostUsdEstimate }
         : {}),

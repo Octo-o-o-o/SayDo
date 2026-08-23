@@ -1,11 +1,11 @@
 // W5.4-b C1:setup 自检 scope=tier1 骨架(方案 §3.9;09 §11 claude_code 承载段)。
 // 按生效 adapter 分叉:claude_code 跑 版本比对 / auth status / hook 链物理自检 / identity 登记写入;
 // cursor 投影 tier1StartupVerdict 结论;codex unsupported。
-// 检查项全部经可注入 probe 接口(单测 fake 全覆盖,不真调 claude);live 走查归 W5.4-c。
-// 一发一收 system/init 断言(apiKeySource=="none" 等)**不在 C1 骨架内**,随 live 自检归 W5.4-c。
+// 检查项全部经可注入 probe 接口(单测 fake 全覆盖,不真调 claude);完整 live 走查归 W5.4-c。
+// 一发一收 system/init 物理断言随本自检执行,只验证身份与零工具面,不替代 live conformance。
 //
 // 两条分层纪律(评审 90 A-2 回修):
-// 1. **identity 只由二进制类检查把门**(binary/version/auth)。hook 链是 daemon 自身运行态,
+// 1. **identity 只由二进制类检查把门**(binary/version/auth/init)。hook 链是 daemon 自身运行态,
 //    不是 claude 二进制的身份属性;若让它把门,干净的 claude-only 安装会死锁——
 //    启动资格要 identity(validateConfig)→ gate 只在启动资格通过后才起(index.ts)→
 //    自检要 gate 可达才写 identity,首份 identity 永远生不出来。
@@ -14,25 +14,53 @@
 //    hook 链红不写 identity 之外的判定,但会让整体 status=fail 并给出处方。
 
 import { execFile } from "node:child_process";
-import { accessSync, constants, readFileSync, statSync } from "node:fs";
-import { isAbsolute } from "node:path";
+import { accessSync, constants, mkdtempSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { isAbsolute, join } from "node:path";
 import { createConnection } from "node:net";
 import { promisify } from "node:util";
 import type { SaydoConfig } from "../config/types.js";
 import { classifyAuthOutput } from "../config/cliCapability.js";
+import { familyFromModelName } from "../config/family.js";
 import { sha256File } from "../providers/binaryIdentity.js";
+import { strippedAgentEnv } from "./agentEnv.js";
+import { claudeEnvOverrides, parseClaudeTier1Line } from "./backends/claude.js";
 import { resolveTier1Adapter } from "./resolveAdapter.js";
 import { tier1StartupVerdict } from "./validateConfig.js";
 import { gatePaths } from "./gateScript.js";
-import { writeClaudeIdentity, type ClaudeIdentityRecord } from "./claudeIdentity.js";
+import { claudeIdentityPath, writeClaudeIdentity, type ClaudeIdentityRecord } from "./claudeIdentity.js";
+import { execRuntimeChild, runtimeInvocationIdentityTarget } from "../runtimeChildRegistry.js";
 
 const execFileAsync = promisify(execFile);
+const selfTestTails = new Map<string, Promise<void>>();
+
+async function serializeSelfTest<T>(key: string, run: () => Promise<T>): Promise<T> {
+  const previous = selfTestTails.get(key) ?? Promise.resolve();
+  let release = (): void => {};
+  const tail = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  selfTestTails.set(key, tail);
+  await previous;
+  try {
+    return await run();
+  } finally {
+    release();
+    if (selfTestTails.get(key) === tail) selfTestTails.delete(key);
+  }
+}
 
 export interface Tier1SelfTestProbes {
   /** claude --version(probe 只跑命令回原始输出;首 token 比对在自检逻辑里) */
   claudeVersion(bin: string, signal?: AbortSignal): Promise<{ ok: boolean; output?: string; error?: string }>;
   /** claude auth status(回原始输出;loggedIn 判定在自检逻辑里) */
   claudeAuthStatus(bin: string, signal?: AbortSignal): Promise<{ ok: boolean; output?: string; error?: string }>;
+  /** claude -p 零工具一发一收;回原始 NDJSON,字段判定在自检逻辑里 */
+  claudeInit(
+    bin: string,
+    model: string,
+    signal?: AbortSignal
+  ): Promise<{ ok: boolean; output?: string; error?: string }>;
   /** hook 链物理依赖:jq / curl 可用(仅 POSIX) */
   commandAvailable(cmd: "jq" | "curl", signal?: AbortSignal): Promise<boolean>;
   /** gate socket 可达(daemon 审批服务在监听;仅 POSIX) */
@@ -52,6 +80,7 @@ export type Tier1SelfTestCheckName =
   | "binary"
   | "version"
   | "auth"
+  | "init"
   | "hook_jq"
   | "hook_curl"
   | "hook_socket"
@@ -88,10 +117,10 @@ export function defaultTier1Probes(): Tier1SelfTestProbes {
   return {
     async claudeVersion(bin, signal) {
       try {
-        const r = await execFileAsync(bin, ["--version"], {
+        const r = await execRuntimeChild(bin, ["--version"], {
           timeout: 10_000,
-          encoding: "utf8",
           maxBuffer: 64 * 1024,
+          env: claudeInitProbeEnv(process.env),
           ...(signal ? { signal } : {})
         });
         return { ok: true, output: r.stdout.trim() };
@@ -101,15 +130,35 @@ export function defaultTier1Probes(): Tier1SelfTestProbes {
     },
     async claudeAuthStatus(bin, signal) {
       try {
-        const r = await execFileAsync(bin, ["auth", "status"], {
+        const r = await execRuntimeChild(bin, ["auth", "status"], {
           timeout: 10_000,
-          encoding: "utf8",
           maxBuffer: 64 * 1024,
+          env: claudeInitProbeEnv(process.env),
           ...(signal ? { signal } : {})
         });
         return { ok: true, output: r.stdout.trim() };
       } catch (err) {
         return { ok: false, error: String(err instanceof Error ? err.message : err).slice(0, 160) };
+      }
+    },
+    async claudeInit(bin, model, signal) {
+      const cwd = mkdtempSync(join(tmpdir(), "saydo-claude-init-"));
+      try {
+        const r = await execRuntimeChild(bin, claudeInitProbeArgv(model), {
+          cwd,
+          timeout: 30_000,
+          maxBuffer: 1024 * 1024,
+          env: claudeInitProbeEnv(process.env),
+          ...(signal ? { signal } : {})
+        });
+        return { ok: true, output: r.stdout.trim() };
+      } catch {
+        return {
+          ok: false,
+          error: "claude init 探针启动失败、超时或非零退出;请确认 CLI 登录态与订阅窗口后重试"
+        };
+      } finally {
+        rmSync(cwd, { recursive: true, force: true });
       }
     },
     async commandAvailable(cmd, signal) {
@@ -169,6 +218,32 @@ export function defaultTier1Probes(): Tier1SelfTestProbes {
   };
 }
 
+export function claudeInitProbeArgv(model: string): string[] {
+  return [
+    "-p",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--model",
+    model,
+    "--permission-mode",
+    "default",
+    "--tools",
+    "",
+    "--setting-sources",
+    "",
+    "--strict-mcp-config",
+    "--no-session-persistence",
+    "--max-turns",
+    "1",
+    "只回复 OK,不要使用工具。"
+  ];
+}
+
+export function claudeInitProbeEnv(source: NodeJS.ProcessEnv): Record<string, string> {
+  return { ...strippedAgentEnv(source), ...claudeEnvOverrides };
+}
+
 /** claude --version 输出首 token(实测形态 "2.1.220 (Claude Code)";合同:首 token 比对) */
 export function claudeVersionFirstToken(output: string): string {
   return output.trim().split(/\s+/)[0] ?? "";
@@ -182,42 +257,64 @@ export interface Tier1SelfTestInput {
   signal?: AbortSignal;
 }
 
-function claudeBinaryCheck(bin: string | undefined): Tier1SelfTestCheck {
+function resolveClaudeBinary(bin: string | undefined): { check: Tier1SelfTestCheck; path?: string } {
   if (!bin || bin.trim() === "") {
     return {
-      name: "binary",
-      status: "fail",
-      error: '[tier1] 缺 claude_bin;配置 claude_bin="<claude 实体绝对路径>" 后重试'
+      check: {
+        name: "binary",
+        status: "fail",
+        error: '[tier1] 缺 claude_bin;配置 claude_bin="<claude 实体绝对路径>" 后重试'
+      }
     };
   }
   if (!isAbsolute(bin)) {
-    return { name: "binary", status: "fail", error: `claude_bin 必须是绝对路径(pin 红线),得到 "${bin}"` };
+    return {
+      check: { name: "binary", status: "fail", error: `claude_bin 必须是绝对路径(pin 红线),得到 "${bin}"` }
+    };
+  }
+  let resolved: string;
+  try {
+    resolved = realpathSync(bin);
+    if (!statSync(resolved).isFile()) {
+      return { check: { name: "binary", status: "fail", error: `claude_bin 不是常规文件:${resolved}` } };
+    }
+  } catch {
+    return { check: { name: "binary", status: "fail", error: `claude_bin 文件不存在:${bin}` } };
   }
   try {
-    if (!statSync(bin).isFile()) return { name: "binary", status: "fail", error: `claude_bin 不是常规文件:${bin}` };
+    accessSync(resolved, constants.X_OK);
   } catch {
-    return { name: "binary", status: "fail", error: `claude_bin 文件不存在:${bin}` };
+    return { check: { name: "binary", status: "fail", error: `claude_bin 不可执行:${resolved}` } };
   }
-  try {
-    accessSync(bin, constants.X_OK);
-  } catch {
-    return { name: "binary", status: "fail", error: `claude_bin 不可执行:${bin}` };
-  }
-  return { name: "binary", status: "ok" };
+  return {
+    check: {
+      name: "binary",
+      status: "ok",
+      ...(resolved !== bin ? { detail: `已解析到实体文件:${resolved}` } : {})
+    },
+    path: resolved
+  };
 }
 
 async function claudeSelfTest(input: Tier1SelfTestInput): Promise<Tier1SelfTestReport> {
   const checks: Tier1SelfTestCheck[] = [];
   const tier1 = input.cfg?.tier1;
-  const bin = tier1?.claude_bin;
+  const configuredBin = tier1?.claude_bin;
   const pinned = tier1?.claude_pinned_version;
+  const model = tier1?.model;
 
-  const binaryCheck = claudeBinaryCheck(bin);
+  const binary = resolveClaudeBinary(configuredBin);
+  const binaryCheck = binary.check;
+  const bin = binary.path;
   checks.push(binaryCheck);
 
   let versionToken = "";
   if (binaryCheck.status !== "ok" || !bin) {
-    checks.push({ name: "version", status: "skipped" }, { name: "auth", status: "skipped" });
+    checks.push(
+      { name: "version", status: "skipped" },
+      { name: "auth", status: "skipped" },
+      { name: "init", status: "skipped" }
+    );
   } else {
     const ver = await input.probes.claudeVersion(bin, input.signal);
     if (!ver.ok || !ver.output) {
@@ -253,6 +350,20 @@ async function claudeSelfTest(input: Tier1SelfTestInput): Promise<Tier1SelfTestR
         status: "fail",
         error: "claude 未登录:请在终端跑 claude 并 /login(订阅只经 CLI 登录态,不配 ANTHROPIC_API_KEY)"
       });
+    }
+
+    const preInitOk = checks.every((check) => check.status === "ok");
+    if (!preInitOk) {
+      checks.push({ name: "init", status: "skipped", detail: "binary/version/auth 未全过,不消耗订阅探针" });
+    } else if (!model || model.trim() === "") {
+      checks.push({
+        name: "init",
+        status: "fail",
+        error: '[tier1] 缺 model;配置 [tier1].model="opus|sonnet|haiku|claude-*" 后重试'
+      });
+    } else {
+      const probe = await input.probes.claudeInit(bin, model, input.signal);
+      checks.push(validateClaudeInitProbe(probe, pinned as string));
     }
   }
 
@@ -306,6 +417,12 @@ async function claudeSelfTest(input: Tier1SelfTestInput): Promise<Tier1SelfTestR
         binaryDigest: sha256File(bin),
         version: versionToken,
         testedAt: (input.now?.() ?? new Date()).toISOString(),
+        ...(() => {
+          const runtimeTargetPath = runtimeInvocationIdentityTarget(bin);
+          return runtimeTargetPath
+            ? { runtimeTargetPath, runtimeTargetDigest: sha256File(runtimeTargetPath) }
+            : {};
+        })(),
         receipt: {
           source: "setup_self_test_tier1",
           checks: Object.fromEntries(checks.map((c) => [c.name, c.status]))
@@ -325,7 +442,7 @@ async function claudeSelfTest(input: Tier1SelfTestInput): Promise<Tier1SelfTestR
     checks.push({
       name: "identity",
       status: "skipped",
-      detail: "二进制类检查(binary/version/auth)未全过,不写登记(fail-closed);hook 链状态不参与本判定"
+      detail: "二进制类检查(binary/version/auth/init)未全过,不写登记(fail-closed);hook 链状态不参与本判定"
     });
   }
 
@@ -348,10 +465,95 @@ async function claudeSelfTest(input: Tier1SelfTestInput): Promise<Tier1SelfTestR
   };
 }
 
+function validateClaudeInitProbe(
+  probe: { ok: boolean; output?: string; error?: string },
+  pinned: string
+): Tier1SelfTestCheck {
+  if (!probe.ok || !probe.output) {
+    return { name: "init", status: "fail", error: probe.error ?? "claude init 探针无输出;请重试自检" };
+  }
+
+  const events = probe.output
+    .split(/\r?\n/u)
+    .flatMap((line) => parseClaudeTier1Line(line));
+  if (events.some((event) => event.kind === "unknown")) {
+    return { name: "init", status: "fail", error: "claude init 探针包含未知或损坏事件;请升级或重新登记 CLI" };
+  }
+  const meaningful = events.filter((event) => event.kind !== "ignore");
+  const inits = meaningful.filter((event) => event.kind === "init");
+  const first = inits[0];
+  if (!first || meaningful[0] !== first) {
+    return { name: "init", status: "fail", error: "claude init 探针未以 system/init 起始;请升级或重新登记 CLI" };
+  }
+  if (inits.length !== 1) {
+    return { name: "init", status: "fail", error: "claude init 探针必须且只能包含一个 system/init;拒绝登记异常事件流" };
+  }
+  if (first.apiKeySource !== "none") {
+    return {
+      name: "init",
+      status: "fail",
+      error: "claude init 检出 API key 来源;移除 ANTHROPIC_* / CLAUDE_CODE_OAUTH_TOKEN 后重试"
+    };
+  }
+  if (first.claudeCodeVersion !== pinned) {
+    return { name: "init", status: "fail", error: "claude init 版本与 pinned 不符;重跑版本登记后重试" };
+  }
+  if (first.permissionMode !== "default") {
+    return { name: "init", status: "fail", error: "claude init 权限模式不是 default;检查 CLI 参数后重试" };
+  }
+  if (!Array.isArray(first.tools) || first.tools.length !== 0) {
+    return { name: "init", status: "fail", error: "claude init 零工具面未成立;升级 CLI 或检查启动参数后重试" };
+  }
+  if (!first.model || familyFromModelName(first.model) !== "claude") {
+    return { name: "init", status: "fail", error: "claude init 回显模型不属于 Claude 族;检查 [tier1].model 后重试" };
+  }
+  if (
+    meaningful.some(
+      (event) =>
+        event.kind === "tool_started" ||
+        event.kind === "tool_result" ||
+        (event.kind === "observed_model" && familyFromModelName(event.observedModel) !== "claude")
+    )
+  ) {
+    return { name: "init", status: "fail", error: "claude init 一发一收出现工具调用或异族模型事件;拒绝写入身份登记" };
+  }
+  const results = meaningful.filter((event) => event.kind === "result");
+  const terminal = results[0];
+  if (
+    results.length !== 1 ||
+    !terminal ||
+    terminal.kind !== "result" ||
+    meaningful.at(-1) !== terminal ||
+    !first.session_id ||
+    terminal.session_id !== first.session_id ||
+    terminal.isError !== false ||
+    terminal.subtype !== "success" ||
+    terminal.numTurns !== 1 ||
+    terminal.stopReason !== "end_turn" ||
+    terminal.terminalReason !== "completed" ||
+    terminal.text?.trim() !== "OK" ||
+    !Array.isArray(terminal.permissionDenials) ||
+    terminal.permissionDenials.length !== 0
+  ) {
+    return {
+      name: "init",
+      status: "fail",
+      error: "claude init 未收到同 session、位于事件流末尾、零拒绝、单回合且回复 OK 的唯一成功 result 终态;拒绝把异常或截断流登记为可用"
+    };
+  }
+  return {
+    name: "init",
+    status: "ok",
+    detail: `Claude Code ${first.claudeCodeVersion};observedModel=${first.model};tools=0;result=success;turns=1`
+  };
+}
+
 /** scope=tier1 自检入口(runSetupTest 消费;按生效 adapter 分叉) */
 export async function runTier1SelfTest(input: Tier1SelfTestInput): Promise<Tier1SelfTestReport> {
   const adapter = resolveTier1Adapter(input.cfg);
-  if (adapter === "claude_code") return claudeSelfTest(input);
+  if (adapter === "claude_code") {
+    return serializeSelfTest(claudeIdentityPath(input.saydoHome), () => claudeSelfTest(input));
+  }
   if (adapter === "cursor") {
     const verdict = tier1StartupVerdict({
       cursorAgentBin: input.cfg?.tier1?.cursor_agent_bin,

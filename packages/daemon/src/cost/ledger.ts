@@ -126,22 +126,57 @@ export function recordTier1SubscriptionRun(
   input: Tier1SubscriptionCostInput & { projectId?: string },
   now: () => Date = () => new Date()
 ): void {
+  if (!input.runId) throw new Error("tier1.run 订阅记账必须绑定 runId");
   const entry = buildTier1SubscriptionCostEntry(input);
   const cacheWrite = entry.meta["cache_creation_input_tokens"];
-  insertCostEntry(db, {
-    id: ulid(),
-    ts: now().toISOString(),
-    ...(input.projectId ? { projectId: input.projectId } : {}),
-    ...(input.taskId ? { taskId: input.taskId } : {}),
-    kind: entry.kind,
-    known: entry.known,
-    source: entry.source,
-    meta: {
-      ...entry.meta,
-      requests: entry.requests,
-      ...(typeof cacheWrite === "number" ? { cache_write_input_tokens: cacheWrite } : {})
-    }
+  const id = `tier1.run:${input.runId}`;
+  const projectId = input.projectId ?? null;
+  const taskId = input.taskId ?? null;
+  const metaJson = JSON.stringify({
+    ...entry.meta,
+    requests: entry.requests,
+    ...(typeof cacheWrite === "number" ? { cache_write_input_tokens: cacheWrite } : {})
   });
+  const inserted = db
+    .prepare(
+      `INSERT OR IGNORE INTO cost_entries(
+         id, ts, project_id, task_id, session_id, kind, amount, currency, known, source, meta_json
+       ) VALUES (?, ?, ?, ?, NULL, 'tier1.run', NULL, NULL, 0, 'subscription', ?)`
+    )
+    .run(id, now().toISOString(), projectId, taskId, metaJson);
+  if (inserted.changes === 1) return;
+  const existing = db
+    .prepare(
+      `SELECT project_id, task_id, session_id, kind, amount, currency, known, source, meta_json
+       FROM cost_entries WHERE id=?`
+    )
+    .get(id) as
+    | {
+        project_id: string | null;
+        task_id: string | null;
+        session_id: string | null;
+        kind: string;
+        amount: number | null;
+        currency: string | null;
+        known: number;
+        source: string;
+        meta_json: string | null;
+      }
+    | undefined;
+  if (
+    !existing ||
+    existing.project_id !== projectId ||
+    existing.task_id !== taskId ||
+    existing.session_id !== null ||
+    existing.kind !== "tier1.run" ||
+    existing.amount !== null ||
+    existing.currency !== null ||
+    existing.known !== 0 ||
+    existing.source !== "subscription" ||
+    existing.meta_json !== metaJson
+  ) {
+    throw new Error(`tier1.run 记账幂等键冲突:${input.runId}`);
+  }
 }
 
 export function recordTtsChars(db: Db, sessionId: string, chars: number, now: () => Date = () => new Date()): void {

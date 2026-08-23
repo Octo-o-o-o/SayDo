@@ -5,6 +5,7 @@
 // 话术纪律(10 §1 状态词):ready_for_review = "执行和检查都跑完了,等你验收";绝不说"完成"。
 // 发布形态 = ntfy JSON POST(HTTP header 仅 ASCII,中文标题必须走 JSON body)。
 
+import { renderTier1BlockedReason } from "@saydo/contracts";
 import type { Db } from "../storage/db.js";
 import { redactText } from "../voice/redactor.js";
 
@@ -25,6 +26,17 @@ export interface OutboxRowForNotify {
   id: string;
   task_id: string;
   trigger: string;
+  settle_json?: string;
+}
+
+function blockedBody(entry: OutboxRowForNotify): string | null {
+  if (!entry.settle_json) return null;
+  try {
+    const parsed = JSON.parse(entry.settle_json) as { minimalProof?: { exitEvidence?: unknown } };
+    return renderTier1BlockedReason(parsed.minimalProof?.exitEvidence);
+  } catch {
+    return null;
+  }
 }
 
 /** 深链基址:tailnet 首个枚举主机(手机可达)> 本机回落 */
@@ -52,9 +64,9 @@ export function renderNtfyMessage(
     case "ready_for_review":
       return { title: `SayDo:${title}`, body: "执行和检查都跑完了,等你验收。", click, priority: 3 };
     case "blocked":
-      return { title: `SayDo:${title}`, body: "任务卡住了,需要你处理。", click, priority: 4 };
+      return { title: `SayDo:${title}`, body: blockedBody(entry) ?? "任务卡住了,需要你处理。", click, priority: 4 };
     case "failed":
-      return { title: `SayDo:${title}`, body: "这一轮失败了,要不要看一眼。", click, priority: 4 };
+      return { title: `SayDo:${title}`, body: blockedBody(entry) ?? "这一轮失败了,要不要看一眼。", click, priority: 4 };
     default:
       return { title: `SayDo:${title}`, body: `任务状态更新(${entry.trigger})。`, click, priority: 3 };
   }

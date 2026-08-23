@@ -1,8 +1,8 @@
 // 二进制身份核验共享模块(W5.4-b C1;方案 D12/§3.7)。
 // 从 providers/byoa/provider.ts 提升:BYOA 四槽与 Tier1 claude 登记共用同一核验语义,
 // 行为对 byoa 原调用点不变(verifyBinaryIdentity 签名与判定结论保持)。
-// digest 重算仅在 mtime/size 变化时(D12:claude 单文件 256MB 级,每次 spawn 前全量重哈希不可接受;
-// "内容变但 mtime+size 均不变"的病理场景是方案明确接受的取舍)。
+// BYOA 缺省仍按 mtime/size 缓存；Tier1 claude 在每次 spawn 前显式 forceRehash，安全门不接受
+// “内容替换但 mtime/size 保持”的身份绕过。
 
 import { createHash } from "node:crypto";
 import { readFileSync, statSync, type Stats } from "node:fs";
@@ -24,6 +24,7 @@ export function sha256File(path: string): string {
 /** 测试注入位:替换实际哈希实现以断言"mtime/size 未变不重算"。 */
 export interface BinaryIdentityCheckOptions {
   hashFile?: (path: string) => string;
+  forceRehash?: boolean;
 }
 
 const digestCache = new Map<string, { mtimeMs: number; size: number; digest: string }>();
@@ -31,7 +32,7 @@ const digestCache = new Map<string, { mtimeMs: number; size: number; digest: str
 /** mtime/size 未变时命中缓存,变化才重哈希(缓存 key = 路径)。 */
 export function sha256FileCached(path: string, st: Stats, opts?: BinaryIdentityCheckOptions): string {
   const hit = digestCache.get(path);
-  if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return hit.digest;
+  if (!opts?.forceRehash && hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return hit.digest;
   const digest = (opts?.hashFile ?? sha256File)(path);
   digestCache.set(path, { mtimeMs: st.mtimeMs, size: st.size, digest });
   return digest;

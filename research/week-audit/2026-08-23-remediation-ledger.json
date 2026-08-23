@@ -1,0 +1,1484 @@
+{
+  "schemaVersion": 1,
+  "purpose": "补充主账本冻结点后的全部回修提交，并给 implementation-only 提交建立可机械复验的双向文档边",
+  "base": "3fccf4a704ad9a5d8e013baaefb67c66a5737cba",
+  "rangeEnd": "3e74a5a6a4e5c187688c157309989737bf9af947",
+  "counts": {
+    "commits": 18,
+    "changedPaths": 177,
+    "documents": 52,
+    "implementationOnlyCommits": 7
+  },
+  "commits": [
+    {
+      "sha": "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+      "committedAt": "2026-08-23T04:45:04+08:00",
+      "subject": "feat(release): 收口周审计修复与快速启动",
+      "tree": "e6c834961f83535ba3a773577fc302646a7ed524",
+      "paths": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/release.yml",
+        ".gitignore",
+        "deploy/saydo-octoooo-com/docs/index.html",
+        "deploy/saydo-octoooo-com/en/docs/index.html",
+        "deploy/saydo-octoooo-com/en/index.html",
+        "deploy/saydo-octoooo-com/index.html",
+        "deploy/saydo-octoooo-com/site.css",
+        "docs/03-architecture.md",
+        "docs/04-key-mechanisms.md",
+        "docs/05-roadmap.md",
+        "docs/06-references.md",
+        "docs/07-tech-stack-decisions.md",
+        "docs/09-data-contracts.md",
+        "docs/10-voice-ux-spec.md",
+        "docs/11-ui-spec.md",
+        "docs/adr/ADR-002-byoa-observed-model.md",
+        "docs/adr/design/ADR-004-windows-platform.md",
+        "docs/modules/c-control-bridge.md",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/plan/IMPLEMENTATION-PLAN-2.md",
+        "docs/release/v0.1.0-rc.2.md",
+        "docs/site/2026-08-20-docs-page-content.fable.md",
+        "docs/site/2026-08-20-homepage-structure-copy.fable.md",
+        "e2e/audit-check.mjs",
+        "e2e/console/console.spec.ts",
+        "e2e/console/global-setup.ts",
+        "NOTICE",
+        "package.json",
+        "packages/cli/LICENSE",
+        "packages/cli/NOTICE",
+        "packages/cli/package.json",
+        "packages/cli/README.md",
+        "packages/cli/scripts/build.mjs",
+        "packages/cli/scripts/verify-distribution.mjs",
+        "packages/cli/src/supervisor.ts",
+        "packages/cli/THIRD_PARTY_NOTICES.md",
+        "packages/console/src/components/redesign/Modals.tsx",
+        "packages/console/src/components/redesign/ReviewPanel.fixture.ts",
+        "packages/console/src/components/redesign/TaskCard.fixture.ts",
+        "packages/console/src/components/ui.tsx",
+        "packages/console/src/lib/setupApi.test.ts",
+        "packages/console/src/lib/setupApi.ts",
+        "packages/console/src/pages/DevComponents.tsx",
+        "packages/console/src/pages/GlobalSettings.test.tsx",
+        "packages/console/src/pages/GlobalSettings.tsx",
+        "packages/console/src/pages/redesign/ReviewPage.fixture.ts",
+        "packages/console/src/pages/TaskDetail.test.tsx",
+        "packages/console/src/pages/TaskDetail.tsx",
+        "packages/contracts/src/index.ts",
+        "packages/contracts/src/tier1Presentation.ts",
+        "packages/contracts/src/types/task.ts",
+        "packages/contracts/src/types/tools.ts",
+        "packages/contracts/test/acceptance-check.test.ts",
+        "packages/contracts/test/tier1-presentation.test.ts",
+        "packages/daemon/src/api/console.ts",
+        "packages/daemon/src/api/fixture.ts",
+        "packages/daemon/src/api/setup.ts",
+        "packages/daemon/src/brain/golden.ts",
+        "packages/daemon/src/callback/engine.ts",
+        "packages/daemon/src/callback/ntfy.ts",
+        "packages/daemon/src/callback/sweep.ts",
+        "packages/daemon/src/config/cliCapability.ts",
+        "packages/daemon/src/config/executable.ts",
+        "packages/daemon/src/index.ts",
+        "packages/daemon/src/storage/dao/packages.ts",
+        "packages/daemon/src/tier1/agentEnv.ts",
+        "packages/daemon/src/tier1/approvalFlow.ts",
+        "packages/daemon/src/tier1/backends/claude.ts",
+        "packages/daemon/src/tier1/backends/types.ts",
+        "packages/daemon/src/tier1/claudeIdentity.ts",
+        "packages/daemon/src/tier1/executor.ts",
+        "packages/daemon/src/tier1/operations.ts",
+        "packages/daemon/src/tier1/s3Tools.ts",
+        "packages/daemon/src/tier1/selfTest.ts",
+        "packages/daemon/src/tier1/validateConfig.ts",
+        "packages/daemon/test/callback-ack.test.ts",
+        "packages/daemon/test/callback-sweep.test.ts",
+        "packages/daemon/test/callback.test.ts",
+        "packages/daemon/test/console-api.test.ts",
+        "packages/daemon/test/executable.test.ts",
+        "packages/daemon/test/helpers/daemonProcess.ts",
+        "packages/daemon/test/storage-roundtrip.test.ts",
+        "packages/daemon/test/story-acceptance.test.ts",
+        "packages/daemon/test/tier1-approval-live.test.ts",
+        "packages/daemon/test/tier1-claude-identity.test.ts",
+        "packages/daemon/test/tier1-config-validate.test.ts",
+        "packages/daemon/test/tier1-executor.test.ts",
+        "packages/daemon/test/tier1-operations.test.ts",
+        "packages/daemon/test/tier1-self-test.test.ts",
+        "packages/daemon/test/tier1-story-e2e.test.ts",
+        "packages/daemon/test/writing-narrow.test.ts",
+        "pnpm-lock.yaml",
+        "README.md",
+        "scripts/build-release-artifacts.mjs",
+        "scripts/check-doc-links.mjs",
+        "scripts/post-release-gate.mjs",
+        "scripts/publish-public-snapshot.sh",
+        "scripts/refine-week-audit-evidence.mjs",
+        "scripts/third-party-notices.mjs",
+        "scripts/verify-release-url.mjs",
+        "scripts/week-audit.mjs",
+        "templates/saydo.config.dev.example.toml",
+        "templates/saydo.config.example.toml"
+      ],
+      "docs": [
+        "deploy/saydo-octoooo-com/docs/index.html",
+        "deploy/saydo-octoooo-com/en/docs/index.html",
+        "deploy/saydo-octoooo-com/en/index.html",
+        "deploy/saydo-octoooo-com/index.html",
+        "deploy/saydo-octoooo-com/site.css",
+        "docs/03-architecture.md",
+        "docs/04-key-mechanisms.md",
+        "docs/05-roadmap.md",
+        "docs/06-references.md",
+        "docs/07-tech-stack-decisions.md",
+        "docs/09-data-contracts.md",
+        "docs/10-voice-ux-spec.md",
+        "docs/11-ui-spec.md",
+        "docs/adr/ADR-002-byoa-observed-model.md",
+        "docs/adr/design/ADR-004-windows-platform.md",
+        "docs/modules/c-control-bridge.md",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/plan/IMPLEMENTATION-PLAN-2.md",
+        "docs/release/v0.1.0-rc.2.md",
+        "docs/site/2026-08-20-docs-page-content.fable.md",
+        "docs/site/2026-08-20-homepage-structure-copy.fable.md",
+        "NOTICE",
+        "packages/cli/README.md",
+        "packages/cli/THIRD_PARTY_NOTICES.md",
+        "README.md"
+      ],
+      "implementation": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/release.yml",
+        ".gitignore",
+        "package.json",
+        "packages/cli/LICENSE",
+        "packages/cli/NOTICE",
+        "packages/cli/package.json",
+        "packages/cli/scripts/build.mjs",
+        "packages/cli/scripts/verify-distribution.mjs",
+        "packages/cli/src/supervisor.ts",
+        "packages/console/src/components/redesign/Modals.tsx",
+        "packages/console/src/components/redesign/ReviewPanel.fixture.ts",
+        "packages/console/src/components/redesign/TaskCard.fixture.ts",
+        "packages/console/src/components/ui.tsx",
+        "packages/console/src/lib/setupApi.ts",
+        "packages/console/src/pages/DevComponents.tsx",
+        "packages/console/src/pages/GlobalSettings.tsx",
+        "packages/console/src/pages/redesign/ReviewPage.fixture.ts",
+        "packages/console/src/pages/TaskDetail.tsx",
+        "packages/contracts/src/index.ts",
+        "packages/contracts/src/tier1Presentation.ts",
+        "packages/contracts/src/types/task.ts",
+        "packages/contracts/src/types/tools.ts",
+        "packages/daemon/src/api/console.ts",
+        "packages/daemon/src/api/fixture.ts",
+        "packages/daemon/src/api/setup.ts",
+        "packages/daemon/src/brain/golden.ts",
+        "packages/daemon/src/callback/engine.ts",
+        "packages/daemon/src/callback/ntfy.ts",
+        "packages/daemon/src/callback/sweep.ts",
+        "packages/daemon/src/config/cliCapability.ts",
+        "packages/daemon/src/config/executable.ts",
+        "packages/daemon/src/index.ts",
+        "packages/daemon/src/storage/dao/packages.ts",
+        "packages/daemon/src/tier1/agentEnv.ts",
+        "packages/daemon/src/tier1/approvalFlow.ts",
+        "packages/daemon/src/tier1/backends/claude.ts",
+        "packages/daemon/src/tier1/backends/types.ts",
+        "packages/daemon/src/tier1/claudeIdentity.ts",
+        "packages/daemon/src/tier1/executor.ts",
+        "packages/daemon/src/tier1/operations.ts",
+        "packages/daemon/src/tier1/s3Tools.ts",
+        "packages/daemon/src/tier1/selfTest.ts",
+        "packages/daemon/src/tier1/validateConfig.ts",
+        "pnpm-lock.yaml",
+        "scripts/build-release-artifacts.mjs",
+        "scripts/check-doc-links.mjs",
+        "scripts/post-release-gate.mjs",
+        "scripts/publish-public-snapshot.sh",
+        "scripts/refine-week-audit-evidence.mjs",
+        "scripts/third-party-notices.mjs",
+        "scripts/verify-release-url.mjs",
+        "scripts/week-audit.mjs",
+        "templates/saydo.config.dev.example.toml",
+        "templates/saydo.config.example.toml"
+      ],
+      "tests": [
+        "e2e/audit-check.mjs",
+        "e2e/console/console.spec.ts",
+        "e2e/console/global-setup.ts",
+        "packages/console/src/lib/setupApi.test.ts",
+        "packages/console/src/pages/GlobalSettings.test.tsx",
+        "packages/console/src/pages/TaskDetail.test.tsx",
+        "packages/contracts/test/acceptance-check.test.ts",
+        "packages/contracts/test/tier1-presentation.test.ts",
+        "packages/daemon/test/callback-ack.test.ts",
+        "packages/daemon/test/callback-sweep.test.ts",
+        "packages/daemon/test/callback.test.ts",
+        "packages/daemon/test/console-api.test.ts",
+        "packages/daemon/test/executable.test.ts",
+        "packages/daemon/test/helpers/daemonProcess.ts",
+        "packages/daemon/test/storage-roundtrip.test.ts",
+        "packages/daemon/test/story-acceptance.test.ts",
+        "packages/daemon/test/tier1-approval-live.test.ts",
+        "packages/daemon/test/tier1-claude-identity.test.ts",
+        "packages/daemon/test/tier1-config-validate.test.ts",
+        "packages/daemon/test/tier1-executor.test.ts",
+        "packages/daemon/test/tier1-operations.test.ts",
+        "packages/daemon/test/tier1-self-test.test.ts",
+        "packages/daemon/test/tier1-story-e2e.test.ts",
+        "packages/daemon/test/writing-narrow.test.ts"
+      ],
+      "category": "paired",
+      "relatedDocumentRefs": [
+        "deploy/saydo-octoooo-com/docs/index.html",
+        "deploy/saydo-octoooo-com/en/docs/index.html",
+        "deploy/saydo-octoooo-com/en/index.html",
+        "deploy/saydo-octoooo-com/index.html",
+        "deploy/saydo-octoooo-com/site.css",
+        "docs/03-architecture.md",
+        "docs/04-key-mechanisms.md",
+        "docs/05-roadmap.md",
+        "docs/06-references.md",
+        "docs/07-tech-stack-decisions.md",
+        "docs/09-data-contracts.md",
+        "docs/10-voice-ux-spec.md",
+        "docs/11-ui-spec.md",
+        "docs/adr/ADR-002-byoa-observed-model.md",
+        "docs/adr/design/ADR-004-windows-platform.md",
+        "docs/modules/c-control-bridge.md",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/plan/IMPLEMENTATION-PLAN-2.md",
+        "docs/release/v0.1.0-rc.2.md",
+        "docs/site/2026-08-20-docs-page-content.fable.md",
+        "docs/site/2026-08-20-homepage-structure-copy.fable.md",
+        "NOTICE",
+        "packages/cli/README.md",
+        "packages/cli/THIRD_PARTY_NOTICES.md",
+        "README.md"
+      ]
+    },
+    {
+      "sha": "611285efa346ad87e38a1579f95f62de795eadee",
+      "committedAt": "2026-08-23T05:17:50+08:00",
+      "subject": "fix(daemon): 原子化失败终态收口",
+      "tree": "e48b4117f7619546e9c39b25dcd8be21bda09dff",
+      "paths": [
+        "docs/09-data-contracts.md",
+        "packages/daemon/src/tier1/executor.ts",
+        "packages/daemon/test/tier1-executor.test.ts"
+      ],
+      "docs": [
+        "docs/09-data-contracts.md"
+      ],
+      "implementation": [
+        "packages/daemon/src/tier1/executor.ts"
+      ],
+      "tests": [
+        "packages/daemon/test/tier1-executor.test.ts"
+      ],
+      "category": "paired",
+      "relatedDocumentRefs": [
+        "docs/09-data-contracts.md"
+      ]
+    },
+    {
+      "sha": "6a7623c58a12a9ed333cb7078bc71d242294e2d1",
+      "committedAt": "2026-08-23T05:21:23+08:00",
+      "subject": "fix(daemon): 重试未落盘终态事务",
+      "tree": "1e74dc8d5be56c9b3a5ac5b5fd8541f2b34f50b9",
+      "paths": [
+        "docs/09-data-contracts.md",
+        "packages/daemon/src/tier1/executor.ts",
+        "packages/daemon/test/tier1-executor.test.ts"
+      ],
+      "docs": [
+        "docs/09-data-contracts.md"
+      ],
+      "implementation": [
+        "packages/daemon/src/tier1/executor.ts"
+      ],
+      "tests": [
+        "packages/daemon/test/tier1-executor.test.ts"
+      ],
+      "category": "paired",
+      "relatedDocumentRefs": [
+        "docs/09-data-contracts.md"
+      ]
+    },
+    {
+      "sha": "52bef91582ebe7cfba39190b04256b6a7176c665",
+      "committedAt": "2026-08-23T05:38:29+08:00",
+      "subject": "fix(daemon): 持久化失败终态收口意图",
+      "tree": "96435b9068d85eb262bdf1e3ae4baf1f751d4636",
+      "paths": [
+        "docs/09-data-contracts.md",
+        "packages/daemon/src/storage/ddl.ts",
+        "packages/daemon/src/tier1/executor.ts",
+        "packages/daemon/src/tier1/operations.ts",
+        "packages/daemon/test/storage-migration-v5.test.ts",
+        "packages/daemon/test/tier1-executor.test.ts"
+      ],
+      "docs": [
+        "docs/09-data-contracts.md"
+      ],
+      "implementation": [
+        "packages/daemon/src/storage/ddl.ts",
+        "packages/daemon/src/tier1/executor.ts",
+        "packages/daemon/src/tier1/operations.ts"
+      ],
+      "tests": [
+        "packages/daemon/test/storage-migration-v5.test.ts",
+        "packages/daemon/test/tier1-executor.test.ts"
+      ],
+      "category": "paired",
+      "relatedDocumentRefs": [
+        "docs/09-data-contracts.md"
+      ]
+    },
+    {
+      "sha": "a24eb7029fdd7def6f55b91e70e6c8bafa7e6309",
+      "committedAt": "2026-08-23T05:42:31+08:00",
+      "subject": "test(daemon): 加固终态竞态回归夹具",
+      "tree": "ea81feaf6b5e15b77eedbab5af00cc49ca9009ee",
+      "paths": [
+        "packages/daemon/test/tier1-executor.test.ts",
+        "packages/daemon/test/tier1-operations.test.ts"
+      ],
+      "docs": [],
+      "implementation": [],
+      "tests": [
+        "packages/daemon/test/tier1-executor.test.ts",
+        "packages/daemon/test/tier1-operations.test.ts"
+      ],
+      "category": "implementation_only",
+      "relatedDocumentRefs": [
+        "docs/09-data-contracts.md"
+      ]
+    },
+    {
+      "sha": "c4c72e53d82d78605d90f009e9e737dbdf872085",
+      "committedAt": "2026-08-23T05:44:54+08:00",
+      "subject": "fix(daemon): 终态提交前确认进程退出",
+      "tree": "eaaffde58bc586faa9e1a81ea080e4579a345f37",
+      "paths": [
+        "packages/daemon/src/tier1/executor.ts"
+      ],
+      "docs": [],
+      "implementation": [
+        "packages/daemon/src/tier1/executor.ts"
+      ],
+      "tests": [],
+      "category": "implementation_only",
+      "relatedDocumentRefs": [
+        "docs/09-data-contracts.md"
+      ]
+    },
+    {
+      "sha": "4f04c0309db9c014556927e9213e42c0e2edf1c2",
+      "committedAt": "2026-08-23T06:37:10+08:00",
+      "subject": "fix(release): 补齐终态原子性与跨平台启动",
+      "tree": "f0fe113d1a58c3bde2db13622fc6668d87cb1a16",
+      "paths": [
+        ".github/workflows/release.yml",
+        "docs/09-data-contracts.md",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "packages/console/src/hooks/redesign/mappers.test.ts",
+        "packages/console/src/hooks/redesign/mappers.ts",
+        "packages/contracts/src/types/task.ts",
+        "packages/daemon/src/api/console.ts",
+        "packages/daemon/src/runtimeChildRegistry.ts",
+        "packages/daemon/src/tier1/executor.ts",
+        "packages/daemon/src/tier1/operations.ts",
+        "packages/daemon/src/tier1/projectConfig.ts",
+        "packages/daemon/src/tier1/restartPolicy.ts",
+        "packages/daemon/test/ownership-anchor.test.ts",
+        "packages/daemon/test/tier1-executor.test.ts",
+        "packages/daemon/test/tier1-operations.test.ts",
+        "packages/daemon/test/writing-narrow.test.ts",
+        "scripts/publish-public-snapshot.sh",
+        "scripts/week-audit.mjs"
+      ],
+      "docs": [
+        "docs/09-data-contracts.md",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md"
+      ],
+      "implementation": [
+        ".github/workflows/release.yml",
+        "packages/console/src/hooks/redesign/mappers.ts",
+        "packages/contracts/src/types/task.ts",
+        "packages/daemon/src/api/console.ts",
+        "packages/daemon/src/runtimeChildRegistry.ts",
+        "packages/daemon/src/tier1/executor.ts",
+        "packages/daemon/src/tier1/operations.ts",
+        "packages/daemon/src/tier1/projectConfig.ts",
+        "packages/daemon/src/tier1/restartPolicy.ts",
+        "scripts/publish-public-snapshot.sh",
+        "scripts/week-audit.mjs"
+      ],
+      "tests": [
+        "packages/console/src/hooks/redesign/mappers.test.ts",
+        "packages/daemon/test/ownership-anchor.test.ts",
+        "packages/daemon/test/tier1-executor.test.ts",
+        "packages/daemon/test/tier1-operations.test.ts",
+        "packages/daemon/test/writing-narrow.test.ts"
+      ],
+      "category": "paired",
+      "relatedDocumentRefs": [
+        "docs/09-data-contracts.md",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md"
+      ]
+    },
+    {
+      "sha": "bb9d28735598693f03345630eb4dc256862d5c29",
+      "committedAt": "2026-08-23T06:40:24+08:00",
+      "subject": "fix(daemon): 对齐 npm shim lint 规则",
+      "tree": "82945ba1e1da7319eb096b6920a2cc90e391bc55",
+      "paths": [
+        "packages/daemon/src/runtimeChildRegistry.ts"
+      ],
+      "docs": [],
+      "implementation": [
+        "packages/daemon/src/runtimeChildRegistry.ts"
+      ],
+      "tests": [],
+      "category": "implementation_only",
+      "relatedDocumentRefs": [
+        "docs/09-data-contracts.md"
+      ]
+    },
+    {
+      "sha": "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
+      "committedAt": "2026-08-23T08:40:17+08:00",
+      "subject": "fix(release): 完成周审计回修与发布冻结",
+      "tree": "867476da546013312b297e4fc71a030669758699",
+      "paths": [
+        ".github/workflows/release.yml",
+        "docs/09-data-contracts.md",
+        "docs/plan/2026-08-19-w54-claude-cli-tier1.fable.md",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "docs/site/2026-08-20-docs-page-content.fable.md",
+        "e2e/evidence/w54b-batch.md",
+        "e2e/screenshots/dark/approvals.png",
+        "e2e/screenshots/dark/artifacts.png",
+        "e2e/screenshots/dark/chat.png",
+        "e2e/screenshots/dark/cost.png",
+        "e2e/screenshots/dark/dashboard.png",
+        "e2e/screenshots/dark/memory.png",
+        "e2e/screenshots/dark/notify.png",
+        "e2e/screenshots/dark/psettings.png",
+        "e2e/screenshots/dark/settings.png",
+        "e2e/screenshots/dark/task-detail.png",
+        "e2e/screenshots/dark/tasks.png",
+        "e2e/screenshots/light/approvals.png",
+        "e2e/screenshots/light/artifacts.png",
+        "e2e/screenshots/light/chat.png",
+        "e2e/screenshots/light/cost.png",
+        "e2e/screenshots/light/dashboard.png",
+        "e2e/screenshots/light/memory.png",
+        "e2e/screenshots/light/notify.png",
+        "e2e/screenshots/light/psettings.png",
+        "e2e/screenshots/light/settings.png",
+        "e2e/screenshots/light/task-detail.png",
+        "e2e/screenshots/light/tasks.png",
+        "HANDOFF.md",
+        "packages/daemon/src/api/console.ts",
+        "packages/daemon/src/artifacts/store.ts",
+        "packages/daemon/src/config/executable.ts",
+        "packages/daemon/src/config/project.ts",
+        "packages/daemon/src/cost/ledger.ts",
+        "packages/daemon/src/providers/binaryIdentity.ts",
+        "packages/daemon/src/runtimeChildRegistry.ts",
+        "packages/daemon/src/tier1/claudeIdentity.ts",
+        "packages/daemon/src/tier1/claudeOutcome.ts",
+        "packages/daemon/src/tier1/executor.ts",
+        "packages/daemon/src/tier1/operations.ts",
+        "packages/daemon/src/tier1/restartPolicy.ts",
+        "packages/daemon/src/tier1/selfTest.ts",
+        "packages/daemon/src/tier1/writingArtifact.ts",
+        "packages/daemon/test/config-project.test.ts",
+        "packages/daemon/test/executable.test.ts",
+        "packages/daemon/test/ownership-anchor.test.ts",
+        "packages/daemon/test/tier1-claude-identity.test.ts",
+        "packages/daemon/test/tier1-cost-ledger.test.ts",
+        "packages/daemon/test/tier1-executor.test.ts",
+        "packages/daemon/test/writing-narrow.test.ts",
+        "prompts/102-week-audit-faststart-final-adversarial-review.md",
+        "prompts/108-week-audit-faststart-final-code-review.md",
+        "prompts/112-week-audit-faststart-freeze-adversarial-review.md",
+        "prompts/93-w54b-c1-c3-closeout-grok.md",
+        "prompts/93a-w54b-c1-init-probe-grok.md",
+        "prompts/93a7-w54b-c1-init-probe-implement-command.md",
+        "prompts/94-week-audit-faststart-adversarial-review.md",
+        "prompts/96-week-audit-faststart-closeout-review.md",
+        "research/codex-findings/102-week-audit-faststart-final-adversarial-review.md",
+        "research/codex-findings/108-week-audit-faststart-final-code-review.md",
+        "research/codex-findings/112-week-audit-faststart-freeze-adversarial-review.md",
+        "research/codex-findings/94-week-audit-faststart-adversarial-review.md",
+        "research/codex-findings/96-week-audit-faststart-closeout-review.md",
+        "research/week-audit/2026-08-23-remediation-cross-links.json",
+        "scripts/post-release-gate.mjs",
+        "scripts/publish-public-snapshot.sh",
+        "scripts/verify-release-url.mjs",
+        "scripts/week-audit.mjs"
+      ],
+      "docs": [
+        "docs/09-data-contracts.md",
+        "docs/plan/2026-08-19-w54-claude-cli-tier1.fable.md",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "docs/site/2026-08-20-docs-page-content.fable.md",
+        "e2e/evidence/w54b-batch.md",
+        "HANDOFF.md",
+        "prompts/102-week-audit-faststart-final-adversarial-review.md",
+        "prompts/108-week-audit-faststart-final-code-review.md",
+        "prompts/112-week-audit-faststart-freeze-adversarial-review.md",
+        "prompts/93-w54b-c1-c3-closeout-grok.md",
+        "prompts/93a-w54b-c1-init-probe-grok.md",
+        "prompts/93a7-w54b-c1-init-probe-implement-command.md",
+        "prompts/94-week-audit-faststart-adversarial-review.md",
+        "prompts/96-week-audit-faststart-closeout-review.md",
+        "research/codex-findings/102-week-audit-faststart-final-adversarial-review.md",
+        "research/codex-findings/108-week-audit-faststart-final-code-review.md",
+        "research/codex-findings/112-week-audit-faststart-freeze-adversarial-review.md",
+        "research/codex-findings/94-week-audit-faststart-adversarial-review.md",
+        "research/codex-findings/96-week-audit-faststart-closeout-review.md",
+        "research/week-audit/2026-08-23-remediation-cross-links.json"
+      ],
+      "implementation": [
+        ".github/workflows/release.yml",
+        "packages/daemon/src/api/console.ts",
+        "packages/daemon/src/artifacts/store.ts",
+        "packages/daemon/src/config/executable.ts",
+        "packages/daemon/src/config/project.ts",
+        "packages/daemon/src/cost/ledger.ts",
+        "packages/daemon/src/providers/binaryIdentity.ts",
+        "packages/daemon/src/runtimeChildRegistry.ts",
+        "packages/daemon/src/tier1/claudeIdentity.ts",
+        "packages/daemon/src/tier1/claudeOutcome.ts",
+        "packages/daemon/src/tier1/executor.ts",
+        "packages/daemon/src/tier1/operations.ts",
+        "packages/daemon/src/tier1/restartPolicy.ts",
+        "packages/daemon/src/tier1/selfTest.ts",
+        "packages/daemon/src/tier1/writingArtifact.ts",
+        "scripts/post-release-gate.mjs",
+        "scripts/publish-public-snapshot.sh",
+        "scripts/verify-release-url.mjs",
+        "scripts/week-audit.mjs"
+      ],
+      "tests": [
+        "e2e/screenshots/dark/approvals.png",
+        "e2e/screenshots/dark/artifacts.png",
+        "e2e/screenshots/dark/chat.png",
+        "e2e/screenshots/dark/cost.png",
+        "e2e/screenshots/dark/dashboard.png",
+        "e2e/screenshots/dark/memory.png",
+        "e2e/screenshots/dark/notify.png",
+        "e2e/screenshots/dark/psettings.png",
+        "e2e/screenshots/dark/settings.png",
+        "e2e/screenshots/dark/task-detail.png",
+        "e2e/screenshots/dark/tasks.png",
+        "e2e/screenshots/light/approvals.png",
+        "e2e/screenshots/light/artifacts.png",
+        "e2e/screenshots/light/chat.png",
+        "e2e/screenshots/light/cost.png",
+        "e2e/screenshots/light/dashboard.png",
+        "e2e/screenshots/light/memory.png",
+        "e2e/screenshots/light/notify.png",
+        "e2e/screenshots/light/psettings.png",
+        "e2e/screenshots/light/settings.png",
+        "e2e/screenshots/light/task-detail.png",
+        "e2e/screenshots/light/tasks.png",
+        "packages/daemon/test/config-project.test.ts",
+        "packages/daemon/test/executable.test.ts",
+        "packages/daemon/test/ownership-anchor.test.ts",
+        "packages/daemon/test/tier1-claude-identity.test.ts",
+        "packages/daemon/test/tier1-cost-ledger.test.ts",
+        "packages/daemon/test/tier1-executor.test.ts",
+        "packages/daemon/test/writing-narrow.test.ts"
+      ],
+      "category": "paired",
+      "relatedDocumentRefs": [
+        "docs/09-data-contracts.md",
+        "docs/plan/2026-08-19-w54-claude-cli-tier1.fable.md",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "docs/site/2026-08-20-docs-page-content.fable.md",
+        "e2e/evidence/w54b-batch.md",
+        "HANDOFF.md",
+        "prompts/102-week-audit-faststart-final-adversarial-review.md",
+        "prompts/108-week-audit-faststart-final-code-review.md",
+        "prompts/112-week-audit-faststart-freeze-adversarial-review.md",
+        "prompts/93-w54b-c1-c3-closeout-grok.md",
+        "prompts/93a-w54b-c1-init-probe-grok.md",
+        "prompts/93a7-w54b-c1-init-probe-implement-command.md",
+        "prompts/94-week-audit-faststart-adversarial-review.md",
+        "prompts/96-week-audit-faststart-closeout-review.md",
+        "research/codex-findings/102-week-audit-faststart-final-adversarial-review.md",
+        "research/codex-findings/108-week-audit-faststart-final-code-review.md",
+        "research/codex-findings/112-week-audit-faststart-freeze-adversarial-review.md",
+        "research/codex-findings/94-week-audit-faststart-adversarial-review.md",
+        "research/codex-findings/96-week-audit-faststart-closeout-review.md",
+        "research/week-audit/2026-08-23-remediation-cross-links.json"
+      ]
+    },
+    {
+      "sha": "8048268f13d2d812778bfcc162f155803a4b2f57",
+      "committedAt": "2026-08-23T10:11:17+08:00",
+      "subject": "fix(release): 收紧恢复一致性与实体发布门",
+      "tree": "1da05d1ddfc09f1be329d6b8459d979227dc7c91",
+      "paths": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/release.yml",
+        "deploy/saydo-octoooo-com/en/index.html",
+        "deploy/saydo-octoooo-com/index.html",
+        "deploy/saydo-octoooo-com/site.css",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/release/v0.1.0-rc.2.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "docs/site/2026-08-20-homepage-structure-copy.fable.md",
+        "justfile",
+        "package.json",
+        "packages/daemon/src/providers/byoa/parsers.ts",
+        "packages/daemon/src/tier1/backends/cursor.ts",
+        "packages/daemon/src/tier1/executor.ts",
+        "packages/daemon/test/tier1-cursor-backend.test.ts",
+        "packages/daemon/test/tier1-executor.test.ts",
+        "scripts/post-release-gate.mjs",
+        "scripts/release-physical-evidence.mjs",
+        "scripts/test-release-physical-evidence.mjs",
+        "scripts/verify-release-url.mjs"
+      ],
+      "docs": [
+        "deploy/saydo-octoooo-com/en/index.html",
+        "deploy/saydo-octoooo-com/index.html",
+        "deploy/saydo-octoooo-com/site.css",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/release/v0.1.0-rc.2.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "docs/site/2026-08-20-homepage-structure-copy.fable.md"
+      ],
+      "implementation": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/release.yml",
+        "justfile",
+        "package.json",
+        "packages/daemon/src/providers/byoa/parsers.ts",
+        "packages/daemon/src/tier1/backends/cursor.ts",
+        "packages/daemon/src/tier1/executor.ts",
+        "scripts/post-release-gate.mjs",
+        "scripts/release-physical-evidence.mjs",
+        "scripts/verify-release-url.mjs"
+      ],
+      "tests": [
+        "packages/daemon/test/tier1-cursor-backend.test.ts",
+        "packages/daemon/test/tier1-executor.test.ts",
+        "scripts/test-release-physical-evidence.mjs"
+      ],
+      "category": "paired",
+      "relatedDocumentRefs": [
+        "deploy/saydo-octoooo-com/en/index.html",
+        "deploy/saydo-octoooo-com/index.html",
+        "deploy/saydo-octoooo-com/site.css",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/release/v0.1.0-rc.2.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "docs/site/2026-08-20-homepage-structure-copy.fable.md"
+      ]
+    },
+    {
+      "sha": "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+      "committedAt": "2026-08-23T10:15:09+08:00",
+      "subject": "chore(evidence): 冻结最终周审计与发布候选",
+      "tree": "38c1457ddb0c2c1a3c9e71268568e41f45658c2b",
+      "paths": [
+        "docs/review/2026-08-22-week-audit-ledger.md",
+        "docs/review/2026-08-23-remediation-ledger.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md",
+        "research/week-audit/2026-08-22-bundle-integrity.json",
+        "research/week-audit/2026-08-22-ledger.json",
+        "research/week-audit/2026-08-22-ref-manifest.json",
+        "research/week-audit/2026-08-22-semantic-review.json",
+        "research/week-audit/2026-08-23-publication-manifest.json",
+        "research/week-audit/2026-08-23-remediation-ledger.json",
+        "research/week-audit/2026-08-23-review-finding-anchor.json",
+        "scripts/week-audit.mjs"
+      ],
+      "docs": [
+        "docs/review/2026-08-22-week-audit-ledger.md",
+        "docs/review/2026-08-23-remediation-ledger.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md",
+        "research/week-audit/2026-08-22-bundle-integrity.json",
+        "research/week-audit/2026-08-22-ledger.json",
+        "research/week-audit/2026-08-22-ref-manifest.json",
+        "research/week-audit/2026-08-22-semantic-review.json",
+        "research/week-audit/2026-08-23-publication-manifest.json",
+        "research/week-audit/2026-08-23-remediation-ledger.json",
+        "research/week-audit/2026-08-23-review-finding-anchor.json"
+      ],
+      "implementation": [
+        "scripts/week-audit.mjs"
+      ],
+      "tests": [],
+      "category": "paired",
+      "relatedDocumentRefs": [
+        "docs/review/2026-08-22-week-audit-ledger.md",
+        "docs/review/2026-08-23-remediation-ledger.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md",
+        "research/week-audit/2026-08-22-bundle-integrity.json",
+        "research/week-audit/2026-08-22-ledger.json",
+        "research/week-audit/2026-08-22-ref-manifest.json",
+        "research/week-audit/2026-08-22-semantic-review.json",
+        "research/week-audit/2026-08-23-publication-manifest.json",
+        "research/week-audit/2026-08-23-remediation-ledger.json",
+        "research/week-audit/2026-08-23-review-finding-anchor.json"
+      ]
+    },
+    {
+      "sha": "e9bfb269eaf37e3b95e2a13b97cd726f03027d07",
+      "committedAt": "2026-08-23T10:18:17+08:00",
+      "subject": "fix(release): 修复固定链接验证器启动门",
+      "tree": "e3e4cc5e2e1e792c407bdff5dc133365232c426b",
+      "paths": [
+        "scripts/test-release-physical-evidence.mjs",
+        "scripts/verify-release-url.mjs"
+      ],
+      "docs": [],
+      "implementation": [
+        "scripts/verify-release-url.mjs"
+      ],
+      "tests": [
+        "scripts/test-release-physical-evidence.mjs"
+      ],
+      "category": "implementation_only",
+      "relatedDocumentRefs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md"
+      ]
+    },
+    {
+      "sha": "3f8be936de412be267c8318fc259aff4e185efb1",
+      "committedAt": "2026-08-23T10:21:53+08:00",
+      "subject": "test(daemon): 稳定重启终态并发门禁",
+      "tree": "8a2d8ceeb635082231fc835272aa9d73b6fc0b4f",
+      "paths": [
+        "packages/daemon/test/tier1-executor.test.ts"
+      ],
+      "docs": [],
+      "implementation": [],
+      "tests": [
+        "packages/daemon/test/tier1-executor.test.ts"
+      ],
+      "category": "implementation_only",
+      "relatedDocumentRefs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md"
+      ]
+    },
+    {
+      "sha": "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+      "committedAt": "2026-08-23T10:27:41+08:00",
+      "subject": "chore(evidence): 更新最终发布阻断回修证据",
+      "tree": "a77a90f2d667cf06a4fb36291e47b427fdeb0a8c",
+      "paths": [
+        "docs/review/2026-08-23-remediation-ledger.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md",
+        "research/week-audit/2026-08-22-bundle-integrity.json",
+        "research/week-audit/2026-08-22-ledger.json",
+        "research/week-audit/2026-08-23-publication-manifest.json",
+        "research/week-audit/2026-08-23-remediation-cross-links.json",
+        "research/week-audit/2026-08-23-remediation-ledger.json",
+        "scripts/week-audit.mjs"
+      ],
+      "docs": [
+        "docs/review/2026-08-23-remediation-ledger.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md",
+        "research/week-audit/2026-08-22-bundle-integrity.json",
+        "research/week-audit/2026-08-22-ledger.json",
+        "research/week-audit/2026-08-23-publication-manifest.json",
+        "research/week-audit/2026-08-23-remediation-cross-links.json",
+        "research/week-audit/2026-08-23-remediation-ledger.json"
+      ],
+      "implementation": [
+        "scripts/week-audit.mjs"
+      ],
+      "tests": [],
+      "category": "paired",
+      "relatedDocumentRefs": [
+        "docs/review/2026-08-23-remediation-ledger.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md",
+        "research/week-audit/2026-08-22-bundle-integrity.json",
+        "research/week-audit/2026-08-22-ledger.json",
+        "research/week-audit/2026-08-23-publication-manifest.json",
+        "research/week-audit/2026-08-23-remediation-cross-links.json",
+        "research/week-audit/2026-08-23-remediation-ledger.json"
+      ]
+    },
+    {
+      "sha": "1987b540f0fc6deb99a3cfaea3a8ccfcd47029bd",
+      "committedAt": "2026-08-23T10:34:21+08:00",
+      "subject": "fix(audit): 移除证据提交自引用",
+      "tree": "e88a8d9dccae0aa900fe70c9fa24d85018f382ef",
+      "paths": [
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "scripts/week-audit.mjs"
+      ],
+      "docs": [
+        "docs/review/2026-08-23-week-audit-faststart-release.md"
+      ],
+      "implementation": [
+        "scripts/week-audit.mjs"
+      ],
+      "tests": [],
+      "category": "paired",
+      "relatedDocumentRefs": [
+        "docs/review/2026-08-23-week-audit-faststart-release.md"
+      ]
+    },
+    {
+      "sha": "8d0027f1dcb9a271fcfe5a2ab2370385de1d318d",
+      "committedAt": "2026-08-23T10:59:27+08:00",
+      "subject": "fix(release): 收紧实体门与发布证据边界",
+      "tree": "d749e82ca7b4fd9b75617dec9787a2038286c23a",
+      "paths": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/release.yml",
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "research/week-audit/2026-08-22-ref-manifest.json",
+        "scripts/post-release-gate.mjs",
+        "scripts/publish-public-snapshot.sh",
+        "scripts/release-physical-evidence.mjs",
+        "scripts/run-release-verifier-windows.ps1",
+        "scripts/test-release-physical-evidence.mjs",
+        "scripts/verify-release-url.mjs",
+        "scripts/week-audit.mjs"
+      ],
+      "docs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "research/week-audit/2026-08-22-ref-manifest.json"
+      ],
+      "implementation": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/release.yml",
+        "scripts/post-release-gate.mjs",
+        "scripts/publish-public-snapshot.sh",
+        "scripts/release-physical-evidence.mjs",
+        "scripts/run-release-verifier-windows.ps1",
+        "scripts/verify-release-url.mjs",
+        "scripts/week-audit.mjs"
+      ],
+      "tests": [
+        "scripts/test-release-physical-evidence.mjs"
+      ],
+      "category": "paired",
+      "relatedDocumentRefs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "research/week-audit/2026-08-22-ref-manifest.json"
+      ]
+    },
+    {
+      "sha": "877c87543b98a47d12b21ed4c4f9c89ddcd47616",
+      "committedAt": "2026-08-23T11:12:00+08:00",
+      "subject": "fix(daemon): 收紧重启恢复终局边界",
+      "tree": "ff4b1d6cd681de6d7b0b414d999470282fdb7b30",
+      "paths": [
+        "packages/daemon/src/tier1/executor.ts",
+        "packages/daemon/src/tier1/restartPolicy.ts",
+        "packages/daemon/test/restart-policy.test.ts",
+        "packages/daemon/test/tier1-executor.test.ts"
+      ],
+      "docs": [],
+      "implementation": [
+        "packages/daemon/src/tier1/executor.ts",
+        "packages/daemon/src/tier1/restartPolicy.ts"
+      ],
+      "tests": [
+        "packages/daemon/test/restart-policy.test.ts",
+        "packages/daemon/test/tier1-executor.test.ts"
+      ],
+      "category": "implementation_only",
+      "relatedDocumentRefs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md"
+      ]
+    },
+    {
+      "sha": "3e74a5a6a4e5c187688c157309989737bf9af947",
+      "committedAt": "2026-08-23T11:14:58+08:00",
+      "subject": "test(daemon): 修正重启终局回归断言",
+      "tree": "732ba8cdc129d5a4d9455cab8155d250183a585b",
+      "paths": [
+        "packages/daemon/test/tier1-executor.test.ts"
+      ],
+      "docs": [],
+      "implementation": [],
+      "tests": [
+        "packages/daemon/test/tier1-executor.test.ts"
+      ],
+      "category": "implementation_only",
+      "relatedDocumentRefs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md"
+      ]
+    }
+  ],
+  "documents": [
+    {
+      "path": "deploy/saydo-octoooo-com/docs/index.html",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/en/docs/index.html",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/en/index.html",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "8048268f13d2d812778bfcc162f155803a4b2f57"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "8048268f13d2d812778bfcc162f155803a4b2f57"
+      ]
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/index.html",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "8048268f13d2d812778bfcc162f155803a4b2f57"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "8048268f13d2d812778bfcc162f155803a4b2f57"
+      ]
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/site.css",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "8048268f13d2d812778bfcc162f155803a4b2f57"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "8048268f13d2d812778bfcc162f155803a4b2f57"
+      ]
+    },
+    {
+      "path": "docs/03-architecture.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "docs/04-key-mechanisms.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "docs/05-roadmap.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "docs/06-references.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "docs/07-tech-stack-decisions.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "docs/09-data-contracts.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "611285efa346ad87e38a1579f95f62de795eadee",
+        "6a7623c58a12a9ed333cb7078bc71d242294e2d1",
+        "52bef91582ebe7cfba39190b04256b6a7176c665",
+        "4f04c0309db9c014556927e9213e42c0e2edf1c2",
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "611285efa346ad87e38a1579f95f62de795eadee",
+        "6a7623c58a12a9ed333cb7078bc71d242294e2d1",
+        "52bef91582ebe7cfba39190b04256b6a7176c665",
+        "a24eb7029fdd7def6f55b91e70e6c8bafa7e6309",
+        "c4c72e53d82d78605d90f009e9e737dbdf872085",
+        "4f04c0309db9c014556927e9213e42c0e2edf1c2",
+        "bb9d28735598693f03345630eb4dc256862d5c29",
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "docs/10-voice-ux-spec.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "docs/11-ui-spec.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "docs/adr/ADR-002-byoa-observed-model.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "docs/adr/design/ADR-004-windows-platform.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "docs/modules/c-control-bridge.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "docs/plan/2026-08-19-w54-claude-cli-tier1.fable.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "4f04c0309db9c014556927e9213e42c0e2edf1c2",
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
+        "8048268f13d2d812778bfcc162f155803a4b2f57",
+        "8d0027f1dcb9a271fcfe5a2ab2370385de1d318d"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "4f04c0309db9c014556927e9213e42c0e2edf1c2",
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
+        "8048268f13d2d812778bfcc162f155803a4b2f57",
+        "e9bfb269eaf37e3b95e2a13b97cd726f03027d07",
+        "3f8be936de412be267c8318fc259aff4e185efb1",
+        "8d0027f1dcb9a271fcfe5a2ab2370385de1d318d",
+        "877c87543b98a47d12b21ed4c4f9c89ddcd47616",
+        "3e74a5a6a4e5c187688c157309989737bf9af947"
+      ]
+    },
+    {
+      "path": "docs/plan/IMPLEMENTATION-PLAN-2.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "docs/release/v0.1.0-rc.2.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "8048268f13d2d812778bfcc162f155803a4b2f57"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "8048268f13d2d812778bfcc162f155803a4b2f57"
+      ]
+    },
+    {
+      "path": "docs/review/2026-08-22-week-audit-ledger.md",
+      "commits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11"
+      ],
+      "relatedImplementationCommits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11"
+      ]
+    },
+    {
+      "path": "docs/review/2026-08-23-remediation-ledger.md",
+      "commits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+      ],
+      "relatedImplementationCommits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+      ]
+    },
+    {
+      "path": "docs/review/2026-08-23-week-audit-faststart-release.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
+        "8048268f13d2d812778bfcc162f155803a4b2f57",
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+        "1987b540f0fc6deb99a3cfaea3a8ccfcd47029bd",
+        "8d0027f1dcb9a271fcfe5a2ab2370385de1d318d"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
+        "8048268f13d2d812778bfcc162f155803a4b2f57",
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "e9bfb269eaf37e3b95e2a13b97cd726f03027d07",
+        "3f8be936de412be267c8318fc259aff4e185efb1",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+        "1987b540f0fc6deb99a3cfaea3a8ccfcd47029bd",
+        "8d0027f1dcb9a271fcfe5a2ab2370385de1d318d",
+        "877c87543b98a47d12b21ed4c4f9c89ddcd47616",
+        "3e74a5a6a4e5c187688c157309989737bf9af947"
+      ]
+    },
+    {
+      "path": "docs/site/2026-08-20-docs-page-content.fable.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "docs/site/2026-08-20-homepage-structure-copy.fable.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "8048268f13d2d812778bfcc162f155803a4b2f57"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda",
+        "8048268f13d2d812778bfcc162f155803a4b2f57"
+      ]
+    },
+    {
+      "path": "e2e/evidence/w54b-batch.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "e9bfb269eaf37e3b95e2a13b97cd726f03027d07",
+        "3f8be936de412be267c8318fc259aff4e185efb1",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4",
+        "877c87543b98a47d12b21ed4c4f9c89ddcd47616",
+        "3e74a5a6a4e5c187688c157309989737bf9af947"
+      ]
+    },
+    {
+      "path": "HANDOFF.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "NOTICE",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "packages/cli/README.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "packages/cli/THIRD_PARTY_NOTICES.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "prompts/102-week-audit-faststart-final-adversarial-review.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "prompts/108-week-audit-faststart-final-code-review.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "prompts/112-week-audit-faststart-freeze-adversarial-review.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "prompts/93-w54b-c1-c3-closeout-grok.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "prompts/93a-w54b-c1-init-probe-grok.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "prompts/93a7-w54b-c1-init-probe-implement-command.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "prompts/94-week-audit-faststart-adversarial-review.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "prompts/96-week-audit-faststart-closeout-review.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "README.md",
+      "commits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ],
+      "relatedImplementationCommits": [
+        "a15b5dea02dc7d8da438c86f5d3cdf89da8eeeda"
+      ]
+    },
+    {
+      "path": "research/codex-findings/102-week-audit-faststart-final-adversarial-review.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "research/codex-findings/108-week-audit-faststart-final-code-review.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "research/codex-findings/112-week-audit-faststart-freeze-adversarial-review.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "research/codex-findings/94-week-audit-faststart-adversarial-review.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "research/codex-findings/96-week-audit-faststart-closeout-review.md",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd"
+      ]
+    },
+    {
+      "path": "research/week-audit/2026-08-22-bundle-integrity.json",
+      "commits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+      ],
+      "relatedImplementationCommits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+      ]
+    },
+    {
+      "path": "research/week-audit/2026-08-22-ledger.json",
+      "commits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+      ],
+      "relatedImplementationCommits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+      ]
+    },
+    {
+      "path": "research/week-audit/2026-08-22-ref-manifest.json",
+      "commits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "8d0027f1dcb9a271fcfe5a2ab2370385de1d318d"
+      ],
+      "relatedImplementationCommits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "8d0027f1dcb9a271fcfe5a2ab2370385de1d318d"
+      ]
+    },
+    {
+      "path": "research/week-audit/2026-08-22-semantic-review.json",
+      "commits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11"
+      ],
+      "relatedImplementationCommits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11"
+      ]
+    },
+    {
+      "path": "research/week-audit/2026-08-23-publication-manifest.json",
+      "commits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+      ],
+      "relatedImplementationCommits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+      ]
+    },
+    {
+      "path": "research/week-audit/2026-08-23-remediation-cross-links.json",
+      "commits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+      ],
+      "relatedImplementationCommits": [
+        "174ab48895aa1e4a6c6b42b9c74187f20efc3cfd",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+      ]
+    },
+    {
+      "path": "research/week-audit/2026-08-23-remediation-ledger.json",
+      "commits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+      ],
+      "relatedImplementationCommits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11",
+        "cdaa5eddd1cc5b29ee6d4d04e48e9b99266d84a4"
+      ]
+    },
+    {
+      "path": "research/week-audit/2026-08-23-review-finding-anchor.json",
+      "commits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11"
+      ],
+      "relatedImplementationCommits": [
+        "e95fe2a7e5a888ba89a0baadcc5f964d787b0f11"
+      ]
+    }
+  ]
+}

@@ -114,6 +114,45 @@ describe("TS <-> DDL round-trip", () => {
     expect(getPackage(db, pkg.id, 1)?.status).toBe("expired");
   });
 
+  it("decision_packages 身份列与正文 id/revision/projectId 分叉时回读 fail-closed", () => {
+    const body: Omit<DecisionPackage, "digest"> = {
+      id: newId("pkg"),
+      revision: 1,
+      projectId: newId("prj"),
+      outcomePreview: "预览",
+      inScope: ["a"],
+      outOfScope: [],
+      assumptions: [],
+      acceptance: ["可验证标准"],
+      plan: [{ seq: 1, step: "做事", owner: "ai" }],
+      cost: { expected: { known: false }, p95: { known: false }, max: 10, currency: "CNY" },
+      risks: [],
+      mode: "step_confirm",
+      preauthorizedEffects: [],
+      effectPolicyVersion: "e2-v1",
+      status: "draft",
+      createdAt: TS0
+    };
+    const pkg: DecisionPackage = { ...body, digest: computePackageDigest(body) };
+    insertPackage(db, pkg);
+    const stored = JSON.parse(
+      (db.prepare("SELECT body_json FROM decision_packages WHERE id=?").get(pkg.id) as { body_json: string }).body_json
+    ) as Record<string, unknown>;
+    db.prepare("UPDATE decision_packages SET body_json=? WHERE id=? AND revision=1").run(
+      JSON.stringify({ ...stored, id: newId("pkg") }),
+      pkg.id
+    );
+    expect(() => getPackage(db, pkg.id, 1)).toThrow(/package id identity mismatch/);
+    db.prepare("UPDATE decision_packages SET body_json=? WHERE id=? AND revision=1").run(
+      JSON.stringify({ ...stored, revision: 2 }),
+      pkg.id
+    );
+    expect(() => getPackage(db, pkg.id, 1)).toThrow(/package revision identity mismatch/);
+    db.prepare("UPDATE decision_packages SET body_json=? WHERE id=? AND revision=1").run(JSON.stringify(stored), pkg.id);
+    db.prepare("UPDATE decision_packages SET project_id=? WHERE id=? AND revision=1").run(newId("prj"), pkg.id);
+    expect(() => getPackage(db, pkg.id, 1)).toThrow(/project identity mismatch/);
+  });
+
   it("approvals(voice+turnRef)", () => {
     const r: ApprovalReceipt = {
       id: newId("apr"),

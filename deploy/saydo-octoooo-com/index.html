@@ -272,7 +272,7 @@
           <div class="card" data-reveal data-reveal-delay="2">
             <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></div>
             <h3 class="card-title">AI 真的在干活</h3>
-            <p class="card-body">接上你电脑上已登录的 AI——Codex、Claude Code、Cursor、Gemini CLI、Grok 等替它对话、思考、评估；动手改代码由 Cursor Agent 承担，Claude Code 执行器在建。已订阅哪家用哪家，无需额外付费。</p>
+            <p class="card-body">接上你电脑上已登录的 AI——Codex、Claude Code、Cursor、Gemini CLI、Grok 等替它对话、思考、评估；动手改代码当前稳定路径是 Cursor Agent，Claude Code 已接入生产主流程、正在做最终真机收口。已订阅哪家用哪家，无需额外付费。</p>
           </div>
           <div class="card" data-reveal>
             <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
@@ -308,8 +308,8 @@
             <p>对话、思考与评估走你本机已登录的 Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot，或任一 OpenAI 兼容 API。动手改代码的执行器，当前为 Cursor Agent。</p>
           </div>
           <div class="status-card" data-reveal data-reveal-delay="1">
-            <div class="sc-top"><h3>Claude Code 执行器</h3><span class="badge badge-progress">进行中</span></div>
-            <p>以 Claude 订阅登录态在隔离 worktree 中改代码，审批门同样 fail-closed。官方 CLI 能力实测与审批门判定逻辑已验证，尚未接入生产执行链。</p>
+            <div class="sc-top"><h3>Claude Code 执行器</h3><span class="badge badge-progress">收口中</span></div>
+            <p>生产执行主流程、审批门、恢复、记账、自检与控制台已经接线；最终真实端到端 conformance 尚未收口，因此暂不替代 Cursor 稳定路径。</p>
           </div>
           <div class="status-card" data-reveal data-reveal-delay="2">
             <div class="sc-top"><h3>项目记忆与四色账本</h3><span class="badge badge-live">现在可用</span></div>
@@ -376,7 +376,15 @@
         <div class="section-head is-center" data-reveal>
           <span class="eyebrow">开始使用</span>
           <h2 class="section-title">桌面开源，App 在路上</h2>
-          <p class="section-lead">桌面服务是执行面：macOS 开源免费、现在可用；Windows 已完成原生适配并经真机验证，Linux 经 CI 全量验证，均可运行；常驻安装、系统通知等链路当前为 macOS 实现。移动 App 是沟通面，开发中、尚未上架、当前无可下载版本。在你的电脑上跑起桌面服务就能开聊：不需要申请任何 API key——电脑上有任意一家已登录的 AI 命令行工具即可。按文档显式打开局域网访问后，可用手机浏览器扫码连接。</p>
+          <p class="section-lead">桌面服务是执行面：macOS 开源免费、现在可用；Windows 已完成原生适配并经真机验证，Linux 经 CI 全量验证，均可运行；常驻安装、系统通知等链路当前为 macOS 实现。移动 App 是沟通面，开发中、尚未上架、当前无可下载版本。在你的电脑上跑起桌面服务就能开聊；选择 SayDo 已支持且通过自检的登录态 AI CLI 时，无需另申请 API key，不支持的 CLI 会被明确拒绝。按文档显式打开局域网访问后，可用手机浏览器扫码连接。</p>
+        </div>
+        <div class="quick-run" data-reveal>
+          <strong>一次运行 daemon + Web 控制台</strong>
+          <code>npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz -- saydo up</code>
+          <strong>常用安装</strong>
+          <code>npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz</code>
+          <code>saydo up</code>
+          <p>需要 Node.js 22；无需克隆源码。这是 v0.1.0-rc.2 发布候选固定 URL，仅在 GitHub Release 页面出现且发布检查全绿后可用；语音 pipeline 与系统常驻安装不包含在内。</p>
         </div>
         <div class="platform-groups" data-reveal>
           <div class="platform-group">
@@ -391,15 +399,17 @@
                   <a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub →</a>
                 </span>
               </div>
-              <div class="platform">
+              <div class="platform is-open">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>
                 <span class="name">Windows</span>
                 <span class="badge badge-live">开源 · 现在可用</span>
+                <span class="platform-links"><a href="/docs/#quickstart">安装说明 →</a></span>
               </div>
-              <div class="platform">
+              <div class="platform is-open">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
                 <span class="name">Linux</span>
                 <span class="badge badge-live">开源 · 现在可用</span>
+                <span class="platform-links"><a href="/docs/#quickstart">安装说明 →</a></span>
               </div>
             </div>
           </div>
@@ -465,7 +475,7 @@
           </details>
           <details class="faq-item">
             <summary>它会替我 push 或开 PR 吗？<span class="chev"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
-            <div class="answer">不会。它只在你项目里的独立 worktree 和 saydo/&lt;任务&gt; 分支上改代码；合并到你的分支要你 Touch ID 确认或自己动手；推送远端、开 PR 永远是你之后自己做的事。</div>
+            <div class="answer">不会。它只在你项目里的独立 worktree 和 saydo/&lt;任务&gt; 分支上改代码；合并到你的分支要你用本机认证确认或自己动手；推送远端、开 PR 永远是你之后自己做的事。</div>
           </details>
         </div>
       </div>

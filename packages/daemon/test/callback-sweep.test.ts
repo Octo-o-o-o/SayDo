@@ -20,12 +20,14 @@ const SES = "ses_01AAAAAAAAAAAAAAAAAAAAAAAA";
 const SES2 = "ses_01BBBBBBBBBBBBBBBBBBBBBBBB";
 
 const proof = (taskId: string): Tier1SettleProof => ({
+  kind: "tier1",
   taskId,
   runId: "run-1",
   attempt: 1,
   packageRevision: 1,
   treeSha: "abc123",
   tier1VerifyDigest: "sha256:" + "1".repeat(64),
+  acceptanceChecks: [],
   transcriptCursor: "c-100",
   settledAt: "2026-07-25T00:00:00.000Z"
 });
@@ -57,7 +59,7 @@ function seedTask(id: string, title: string): void {
   ).run(id, PRJ, title, t0, t0);
 }
 
-function enqueue(taskId: string, trigger: OutboxTrigger, occurrenceKey: string): string {
+function enqueue(taskId: string, trigger: OutboxTrigger, occurrenceKey: string, exitEvidence?: string): string {
   const r =
     trigger === "ready_for_review"
       ? engine.enqueue({
@@ -74,7 +76,9 @@ function enqueue(taskId: string, trigger: OutboxTrigger, occurrenceKey: string):
           trigger,
           packageRevision: 1,
           occurrenceKey,
-          minimalProof: { questionId: `q-${occurrenceKey}`, transcriptCursor: "cur-x" },
+          minimalProof: exitEvidence
+            ? { exitEvidence, transcriptCursor: "cur-x" }
+            : { questionId: `q-${occurrenceKey}`, transcriptCursor: "cur-x" },
           projectionCursor: "c",
           artifactChecks: []
         });
@@ -197,6 +201,21 @@ describe("L0 语音选路", () => {
     expect(entry?.state).toBe("notified");
     expect(entry?.escalationLevel).toBe(0);
     expect(auditEvents.some((e) => e.action === "callback.voice_sent")).toBe(true);
+  });
+
+  it("Tier1 已登记阻塞原因在语音与 L1 通知共用同一人话", async () => {
+    enqueue(TSK, "blocked", "rate-limit", "subscription_rate_limited:5h");
+    const voice = harness({ peer: SES, ttsHealthy: true, voiceBusy: false });
+    await sweep(voice);
+    expect(voice.sayCalls[0]?.text).toContain("订阅额度到上限,已停住等待窗口重置");
+    expect(voice.sayCalls[0]?.text).not.toContain("subscription_rate_limited");
+
+    nowMs += 1_000;
+    enqueue(TSK, "blocked", "auth", "auth_required:expired");
+    const l1 = harness({ peer: null });
+    await sweep(l1);
+    expect(l1.desktopCalls.some((call) => call.body === "Claude 登录已失效,请重新登录后重试")).toBe(true);
+    expect(l1.ntfyCalls.some((call) => call.body === "Claude 登录已失效,请重新登录后重试")).toBe(true);
   });
 
   it("无 peer ⇒ 直接 L1 两通道", async () => {

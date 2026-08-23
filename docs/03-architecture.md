@@ -105,15 +105,15 @@ Brain 通过工具指挥 daemon,工具集与引擎无关:
 
 | 能力 | Claude Code | Codex | Cursor |
 |---|---|---|---|
-| 无头执行 / 事件流 | `claude -p` + stream-json | `codex exec --json` | `@cursor/sdk` `run.stream()` |
-| 运行中注入(steer) | [ok] SDK streaming input | [ok] app-server `turn/steer`(exec 不行) | [fail] (cancel 后重发) |
-| 运行中交互审批 | [ok] SDK `canUseTool`(**Claude CLI 路径不可用**,一手实测) | [fail] exec 退化为 never;app-server 有审批回调 | [ok] **CLI hooks**(`beforeShellExecution` deny-only + `--force`,2026-07-23 实测通过;仅 shell 通道,非 shell 出口不可拦——见 07 D8) |
+| 无头执行 / 事件流 | `claude -p` + stream-json | `codex exec --json` | `cursor-agent -p` + stream-json |
+| 运行中注入(steer) | [fail] CLI 单向;SDK streaming input 有原语但当前未采用 | [ok] app-server `turn/steer`(exec 不行) | [fail] (cancel 后重发) |
+| 运行中交互审批 | [ok] **CLI `PreToolUse` hooks**(Bash + 文件工具统一裁决,S2 在 hook 内同步等待;2026-08-21 实测) | [fail] exec 退化为 never;app-server 有审批回调 | [ok] **CLI hooks**(`beforeShellExecution` deny-only + `--force`,2026-07-23 实测通过;仅 shell 通道,非 shell 出口不可拦——见 07 D8) |
 | 跨进程恢复 | [ok] `--resume`(会话按 cwd 哈希存,跨目录失败需自建映射) | [ok] `codex exec resume` / `thread/resume` | [ok] `Agent.resume()` |
 | OS 级沙箱 | [fail] (策略级) | [ok] 内置(Seatbelt/Landlock) | 本地无 |
 
 **两级集成,不假装通用**:
 
-- **Tier 1(交互式审批)**:① Claude Agent SDK streaming——运行中动态审批(越权阻塞→叫人→口头允许/拒绝→原地继续)、流式 steer(**产品缺省**);② **Cursor CLI hooks 变体(dev 机缺省,2026-07-23 实证)**——`beforeShellExecution` 钩子阻塞回连 daemon 审批(deny-only,fail-closed),**无 live steer**(降级 queued_delta/cancel_resume),仅 shell 通道可拦(07 D8);
+- **Tier 1(交互式审批)**:① **Claude Code CLI `PreToolUse` hooks**——Bash 与文件工具统一回连 daemon 裁决,S2 在 hook 内同步等待,fail-closed;生产主流程已接线,最终 live conformance 收口中;② **Cursor CLI hooks(dev 机与当前稳定缺省,2026-07-23 实证)**——`beforeShellExecution` 钩子阻塞回连 daemon 审批(deny-only,fail-closed),仅 shell 通道可拦。两者都**无 live steer**(降级 `queued_delta`/`cancel_resume`,07 D8);
 - **Tier 2(预授权 + 事后恢复)**:Codex(经 Hopper `codex exec`)——运行前权限配足,改需求走 `kill_and_resume`(退出后带新指令续接,续接模板强制先 `git status` 自查)。
 
 三种恢复语义严格区分:`answer_permission`(进程不退出)/ `kill_and_resume`(退出续接)/ `cancel`(放弃,worktree 保留)。能力**按运行时探测**,不按模型名假设——例如 Codex 官方已支持 `turn/steer`,但若执行后端(Hopper 现状 runner 是 `codex exec` 一次性 adapter)未接入,实际仍是 kill_and_resume 降级,Brain 会如实提醒。(机械承载 = Hopper capabilities 握手 `steerLevel`,缺键缺省 none;steerTask 对 route=hopper 按分级诚实拒且不落 task_messages——runtime 档判定值自动翻转但 steerTask 仍如实拒,桥出站消费随能力升级批接线——W5a 2026-07-27 实施,09 §13 同口径。)执行模式两档(直达验收/逐步确认)在两个 Tier 上的映射见 04 §5.4——Tier 1 差异落在审批回调策略;Tier 2 的逐步确认 = 步序循环(每步一个 dispatch,步末确认续跑)。
@@ -167,7 +167,7 @@ Brain 通过工具指挥 daemon,工具集与引擎无关:
 
 | 层 | 选型 | 理由 |
 |---|---|---|
-| daemon | **TypeScript / Node 22+** | Claude Agent SDK 与 `@cursor/sdk` 都是 TS 一等公民;与 Hopper 同栈 |
+| daemon | **TypeScript / Node 22+** | 两个 Tier 1 CLI 后端、控制台与 Hopper 桥均可复用同一 TS/Node 进程与协议栈 |
 | 语音底座 | **Pipecat**(BSD-2,Python,独立语音进程)+ Silero VAD;**状态:暂定,待打断语义 spike**(Codex 技术报告倾向 LiveKit Agents,07 D2 记录了反向裁决理由与切换条件) | 级联集成最全,一行换 STT/TTS 供应商;经 WS 与 TS daemon 通信 |
 | STT / TTS | 云(gpt-4o-transcribe / 火山等)或本地(MLX Whisper / Kokoro) | 可替换 Provider,本地兜底 |
 | Brain / 摘要器 | 文本旗舰模型 / 廉价快速文本模型;**供给双后端:API 直连(支持三方 base_url 命名端点)或 本地订阅 CLI(BYOA:codex exec / claude -p / cursor-agent -p,07 D18)**——沉思/评估档推荐走用户已有订阅,省 key 省 token 计费 | 对话与摘要分开计费;对话档**恒 API**(BYOA 已实测判死:每轮 13–23s,07 D18 结案表) |

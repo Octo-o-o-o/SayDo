@@ -17,16 +17,20 @@ evaluator_isolation_ack   = true
 [models.dev]
 # Tier 1 执行 agent:dev 机缺省 = Cursor CLI 订阅态(2026-07-23 实测通过,research/spikes/cursor-cli-tier1/)——
 #   零 API key、走你的 Cursor 订阅额度;审批门经 worktree .cursor/hooks.json 的 beforeShellExecution 钩子(deny 可靠拦截)。
-#   运行时当前只认 cursor;claude_code / codex 配了会被拒起执行器,对话不受影响;Claude Code 执行器接入中。
+#   claude_code 已接生产主流程、最终 live conformance 收口中;codex 尚未实现并会 fail-closed 拒起,对话不受影响。
 agent     = "cursor"
 transport = "cli"                       # cli=订阅态零 key(缺省) | sdk=CURSOR_API_KEY(后续要更低延迟/更强流式时切)
 model     = "claude-fable-5-thinking-max"
 
-# 两键齐备才启用执行器;不接受 `~`(必须是锁定副本绝对路径 versions/<ver>/cursor-agent)。
-# 占位真值会走 bin_missing(每次启动打 error);缺两键才是 not_configured。上手保持注释,换成真实路径再打开。
+# 选择 cursor 时两键齐备才启用执行器;不接受 `~`(必须是锁定副本绝对路径 versions/<ver>/cursor-agent)。
+# 选择 claude_code 时须配置 claude 三键并运行 Tier1 自检写入身份登记;model 使用 [tier1].model。
+# 占位真值会走 bin_missing(每次启动打 error);缺键才是 not_configured。上手保持注释,换成真实值再打开。
 # [tier1]
 # cursor_agent_bin            = "/absolute/path/to/versions/<ver>/cursor-agent"
 # cursor_agent_pinned_version = "<cursor-agent --version 输出>"
+# claude_bin                  = "/absolute/path/to/claude"
+# claude_pinned_version       = "<claude --version 首 token>"
+# model                       = "opus"
 
 # ---- 三方 API 端点 ----
 [providers.api.openrouter]              # 一个 key 打通多家(OpenAI billing 有问题时的替代)

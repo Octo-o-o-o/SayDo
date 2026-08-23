@@ -40,12 +40,22 @@ export const decisionSchema = z.strictObject({
 export type Decision = z.infer<typeof decisionSchema>;
 
 /** AcceptanceCheck(§13 A3 结果合同):逐条验收标准对账,绑不上诚实标 unknown */
-export const acceptanceCheckSchema = z.strictObject({
-  criterion: z.string().min(1),
-  status: z.enum(["pass", "fail", "unknown"]),
-  evidenceRef: z.string().optional(),
-  source: z.enum(["verify", "agent_claim", "manual"])
-});
+export const acceptanceCheckSchema = z
+  .strictObject({
+    criterion: z.string().min(1),
+    status: z.enum(["pass", "fail", "unknown"]),
+    evidenceRef: z.string().trim().min(1).optional(),
+    source: z.enum(["verify", "agent_claim", "manual"])
+  })
+  .superRefine((check, ctx) => {
+    if (check.status !== "unknown" && !check.evidenceRef) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["evidenceRef"],
+        message: "AcceptanceCheck pass/fail 必须绑定非空 evidenceRef；无证据只能标 unknown"
+      });
+    }
+  });
 export type AcceptanceCheck = z.infer<typeof acceptanceCheckSchema>;
 
 export const readinessVerdictSchema = z.enum(["ready", "gap_knowledge", "gap_requirement", "gap_critical"]);

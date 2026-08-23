@@ -24,6 +24,9 @@ test.beforeAll(() => {
 });
 
 async function open(page: Page, hash: string): Promise<void> {
+  // 应用内页面用例显式复现用户点过「先随便看看」后的 durable 选择;
+  // 首启专项用例不用本 helper,继续在 fresh origin 穿真正向导门。
+  await page.addInitScript(() => localStorage.setItem("saydo.setup.peeked", "1"));
   await page.goto(`/?token=${token}#${hash}`);
   await page.waitForLoadState("networkidle");
 }
@@ -31,8 +34,9 @@ async function open(page: Page, hash: string): Promise<void> {
 async function connectTestPipeline(): Promise<WebSocket> {
   const health = (await fetch(`http://127.0.0.1:${PORT}/health`).then((response) => response.json())) as {
     identity?: { sourceRevision: string; buildId: string; protocolVersion: string };
+    stateRootDigest?: string;
   };
-  if (!health.identity) throw new Error("test pipeline hello needs daemon identity");
+  if (!health.identity || !health.stateRootDigest) throw new Error("test pipeline hello needs daemon identity");
   const ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws/voice?token=${token}`);
   await new Promise<void>((resolve, reject) => {
     ws.addEventListener("open", () => resolve(), { once: true });
@@ -49,12 +53,27 @@ async function connectTestPipeline(): Promise<WebSocket> {
   });
   ws.send(JSON.stringify({ v: 1, role: "pipeline", identity: health.identity }));
   await ack;
-  return ws;
+  ws.send(JSON.stringify({
+    t: "pipeline.health",
+    asr: "ok",
+    tts: "ok",
+    identity: health.identity,
+    stateRootDigest: health.stateRootDigest
+  }));
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const ready = (await fetch(`http://127.0.0.1:${PORT}/readyz`).then((response) => response.json())) as {
+      voiceReady?: boolean;
+    };
+    if (ready.voiceReady === true) return ws;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  ws.close();
+  throw new Error("test pipeline did not become voice-ready");
 }
 
 // 11 页路由表(08 §6)
 const PAGES: { name: string; hash: string; probe: string }[] = [
-  { name: "dashboard", hash: "/", probe: "[data-page=dashboard]" },
+  { name: "dashboard", hash: "/dashboard", probe: "[data-page=dashboard]" },
   { name: "chat", hash: `/p/${PRJ}/chat`, probe: "[data-page=chat]" },
   { name: "tasks", hash: `/p/${PRJ}/tasks`, probe: "[data-page=tasks]" },
   { name: "task-detail", hash: `/p/${PRJ}/task/${TSK_READY}`, probe: "[data-page=task-detail]" },
@@ -73,7 +92,7 @@ test("G1:无 token 打开 API 被拒(fail-closed)", async () => {
 });
 
 // C7 Focus 只读页(≥2 条:列表渲染 + 详情渲染)
-const FOC = "foc_01F1XT0RE0FOCUS00000000001";
+const FOC = "foc_01F1XT0RE0F0CVS00000000001";
 
 test("Focus 列表渲染(lifecycle/revision/未结义务)", async ({ page }) => {
   await open(page, "/focuses");
@@ -82,13 +101,15 @@ test("Focus 列表渲染(lifecycle/revision/未结义务)", async ({ page }) => 
   await expect(page.locator(`[data-focus-id="${FOC}"]`)).toContainText("未结义务");
 });
 
-test("Focus 详情义务清单渲染(kind/owner/status/nextStep)", async ({ page }) => {
+test("Focus 详情正式页渲染(方向/球权/安排)", async ({ page }) => {
   await open(page, `/focus/${FOC}`);
-  await expect(page.locator("[data-page=focus-detail]")).toBeVisible({ timeout: 10_000 });
-  await expect(page.locator("[data-focus-title]")).toContainText("整理 D2 观察表素材");
-  await expect(page.locator("[data-obligation-list]")).toContainText("整理观察表行");
-  await expect(page.locator("[data-obligation-list]")).toContainText("owner=human");
-  await expect(page.locator("[data-obligation-list]")).toContainText("打开表格核对");
+  await expect(page.locator("[data-page=redesign-focus]")).toBeVisible({ timeout: 10_000 });
+  const state = page.locator(`[data-focus-statecard="${FOC}"]`);
+  await expect(state).toContainText("整理 D2 观察表素材");
+  await expect(state).toContainText("整理素材");
+  await expect(state).toContainText("你 1 件");
+  await expect(page.locator("[data-focus-rail]")).toContainText("整理观察表行");
+  await expect(page.locator("[data-focus-rail]")).toContainText("需要你");
 });
 
 test("11 路由全部渲染 + fixture 一致 + 截图基线(亮暗)", async ({ page }) => {
@@ -110,7 +131,7 @@ test("11 路由全部渲染 + fixture 一致 + 截图基线(亮暗)", async ({ p
 });
 
 test("fixture 一致:Dashboard 聚合条与状态词(等你验收/StatusChip 单源)", async ({ page }) => {
-  await open(page, "/");
+  await open(page, "/dashboard");
   await expect(page.locator("[data-pending-list]")).toContainText("报表导出 CSV");
   await expect(page.locator("[data-status=ready_for_review]").first()).toContainText("等你验收");
   await expect(page.locator("[data-project-grid]")).toContainText("报表系统");
@@ -126,6 +147,20 @@ test("任务详情:AC 三条 + S3 合并按钮是屏幕强认证样式(语音永
   await open(page, `/p/${PRJ}/task/${TSK_READY}`);
   await expect(page.locator("[data-acceptance-list] li")).toHaveCount(3);
   await expect(page.locator("[data-s3-merge]")).toContainText("去屏幕强认证");
+  await expect(page.locator("[data-observed-model]")).toContainText("cursor-grok-4.6-high-fast");
+});
+
+test("W5.4-b C3 设置页展示 Tier1 六项且未测试不伪造登录与额度", async ({ page }) => {
+  await open(page, "/settings");
+  const card = page.locator("[data-tier1-settings]");
+  await expect(card).toBeVisible();
+  await expect(card).toContainText("后端");
+  await expect(card).toContainText("模型");
+  await expect(card).toContainText("版本");
+  await expect(card.locator("[data-tier1-login]")).toContainText("未测试");
+  await expect(card.locator("[data-tier1-self-test]")).toContainText("未测试");
+  await expect(card.locator("[data-tier1-window]")).toContainText("没有已知限流记录");
+  await expect(card).not.toContainText("额度充足");
 });
 
 test("W5a 3.7 紧凑模式(11 §3):顶栏切换 -> data-density=compact + 持久;再切回舒适", async ({ page }) => {
@@ -150,6 +185,7 @@ test("切项目/切导航不断会话(VoiceProvider 恒一次挂载)", async ({ 
   await open(page, `/p/${PRJ}/chat`);
   await page.locator("[data-nav='/cost']").click();
   await expect(page.locator("[data-page=cost]")).toBeVisible();
+  await page.locator("[data-legacy-toggle]").click();
   await page.locator(`[data-nav='/p/${PRJ}/tasks']`).click();
   await expect(page.locator("[data-page=tasks]")).toBeVisible();
   const mounts = await page.evaluate(() => (window as unknown as { __saydoVoiceMounts?: number }).__saydoVoiceMounts);
@@ -299,6 +335,20 @@ test("M1 浏览器真实断网后 WS 重连恢复 online，草稿始终可编辑
   await expect(page.locator(".m-composer input")).toHaveValue("断网时保留这段草稿");
 });
 
+test("桌面 fresh origin 通过真实逃生口进入，并在整页重载后保持选择", async ({ page }) => {
+  await page.goto(
+    `http://localhost:${runtime.firstRunPort}/?token=${runtime.firstRunToken}#/dashboard`
+  );
+  const peek = page.locator('[data-action="peek-anyway"]');
+  await expect(peek).toBeVisible({ timeout: 10_000 });
+  await peek.click();
+  await expect(page.locator("[data-page=dashboard]")).toBeVisible({ timeout: 10_000 });
+  expect(await page.evaluate(() => localStorage.getItem("saydo.setup.peeked"))).toBe("1");
+  await page.reload();
+  await expect(page.locator("[data-page=dashboard]")).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('[data-action="peek-anyway"]')).toHaveCount(0);
+});
+
 test("first-run presented 回放在 Chat 卸载、重挂与整页重载后仍可呈现", async ({ page }) => {
   let queries = 0;
   await page.route("**/api/setup/first-run/query", async (route) => {
@@ -318,7 +368,6 @@ test("first-run presented 回放在 Chat 卸载、重挂与整页重载后仍可
 
   await open(page, "/chat-new");
   await expect(page.locator("[data-transcript]")).toContainText("固定首跑开场白");
-  await page.locator("[data-action=peek-anyway]").click();
   await page.locator("[data-nav='/today']").click();
   await expect(page.locator("[data-page=today]")).toBeVisible();
   await page.locator("[data-side-action=chat-new]").click();
@@ -336,7 +385,8 @@ test("审批中心:每卡带项目/任务上下文;终局卡置灰(单次消费�
 
 test("vite dev 入口(47120):同源 proxy 下 API 数据可达(任务⑤ api.ts 端口判定回归)", async ({ page }) => {
   // 旧 bug:api.ts 写死判定 5173(实际 47120),dev 页 API/WS 全打错源;修后恒同源 + vite proxy 转发
-  await page.goto(`http://127.0.0.1:47120/?token=${token}#/`);
+  await page.addInitScript(() => localStorage.setItem("saydo.setup.peeked", "1"));
+  await page.goto(`http://127.0.0.1:47120/?token=${token}#/dashboard`);
   await expect(page.locator("[data-page=dashboard]")).toBeVisible({ timeout: 15_000 });
   await expect(page.locator("[data-project-grid]")).toContainText("报表系统"); // 数据真来自 daemon(47188)
   await expect(page.locator("[data-pending-list]")).toContainText("报表导出 CSV");
@@ -355,8 +405,9 @@ test("任务详情操作行(任务②写口):approve -> 待合并;S3 合并按�
 // ---------- W4 3.1 S3 卡(09 §3.3;11 §5.4/§5.5)——渲染条件/置灰/降级/归一重定向 ----------
 
 test("W4 S3 卡:127.0.0.1 页面 308 归一到 localhost(rpId 绑定的部署约束)", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("saydo.setup.peeked", "1"));
   await page.goto(`http://127.0.0.1:47188/?token=${token}#/`);
-  await expect(page.locator("[data-page=dashboard]")).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator("[data-page=today]")).toBeVisible({ timeout: 10_000 });
   expect(new URL(page.url()).hostname).toBe("localhost"); // daemon 308 归一
 });
 
@@ -366,7 +417,7 @@ test("W4 S3 卡:未注册 passkey 降级(manual-fallback 模式 + 注册入口 +
   await expect(page.locator("[data-s3-merge]")).toHaveAttribute("data-s3-mode", "manual-fallback");
   await expect(page.locator("[data-s3-merge]")).toContainText("去屏幕强认证");
   await expect(page.locator("[data-s3-register]")).toBeVisible();
-  await expect(page.locator("[data-s3-register]")).toContainText("注册批准指纹");
+  await expect(page.locator("[data-s3-register]")).toContainText("注册本机认证凭据");
   // 诚实注脚(09 §3.3 同步凭据条款 ②,11 §5.4 逐字)
   await expect(page.locator("[data-s3-honesty-note]")).toContainText("批准动作本身只能在这台电脑完成");
 });
@@ -410,42 +461,57 @@ test("W4 3.9 输入区:待命三态入口(点击说话 + 打字 + 模式切换)+
 });
 
 test("W4 3.9 输入区:点击说话 -> 录音中(电平/计时/取消)-> 取消回待命", async ({ page }) => {
-  await open(page, `/p/${PRJ}/chat`);
-  await page.locator("[data-mic-toggle]").click();
-  const region = page.locator("[data-input-region]");
-  await expect(region).toHaveAttribute("data-input-state", "recording");
-  await expect(page.locator("[data-rec-timer]")).toBeVisible(); // 计时
-  await expect(page.locator("[data-rec-level]")).toBeVisible(); // 电平/波形反馈
-  await expect(page.locator("[data-rec-cancel]")).toBeVisible(); // 可取消
-  await page.locator("[data-rec-cancel]").click();
-  await expect(region).toHaveAttribute("data-input-state", "idle");
+  const pipeline = await connectTestPipeline();
+  try {
+    await open(page, `/p/${PRJ}/chat`);
+    await page.locator("[data-mic-toggle]").click();
+    const region = page.locator("[data-input-region]");
+    await expect(region).toHaveAttribute("data-input-state", "recording");
+    await expect(page.locator("[data-rec-timer]")).toBeVisible(); // 计时
+    await expect(page.locator("[data-rec-level]")).toBeVisible(); // 电平/波形反馈
+    await expect(page.locator("[data-rec-cancel]")).toBeVisible(); // 可取消
+    await page.locator("[data-rec-cancel]").click();
+    await expect(region).toHaveAttribute("data-input-state", "idle");
+  } finally {
+    pipeline.close();
+  }
 });
 
 test("双动作 A·直接发送:录音 -> 发送 -> 对话流语音气泡占位(转写中…)+ 输入区回待命", async ({ page }) => {
-  await open(page, `/p/${PRJ}/chat`);
-  await page.locator("[data-mic-toggle]").click();
-  await expect(page.locator("[data-input-region]")).toHaveAttribute("data-input-state", "recording");
-  await expect(page.locator("[data-rec-send]")).toBeVisible();
-  await expect(page.locator("[data-rec-edit]")).toBeVisible(); // 结束时二选一(11 §5.10 双动作)
-  await page.locator("[data-rec-send]").click();
-  // 已发出语义先行:对话流立刻出现语音占位气泡(转写在途),输入区回待命
-  await expect(page.locator("[data-input-region]")).toHaveAttribute("data-input-state", "idle");
-  await expect(page.locator('[data-voice-turn="transcribing"]')).toBeVisible();
-  await expect(page.locator('[data-voice-turn="transcribing"]')).toContainText("转写中");
+  const pipeline = await connectTestPipeline();
+  try {
+    await open(page, `/p/${PRJ}/chat`);
+    await page.locator("[data-mic-toggle]").click();
+    await expect(page.locator("[data-input-region]")).toHaveAttribute("data-input-state", "recording");
+    await expect(page.locator("[data-rec-send]")).toBeVisible();
+    await expect(page.locator("[data-rec-edit]")).toBeVisible(); // 结束时二选一(11 §5.10 双动作)
+    await page.locator("[data-rec-send]").click();
+    // 已发出语义先行:对话流立刻出现语音占位气泡(转写在途),输入区回待命
+    await expect(page.locator("[data-input-region]")).toHaveAttribute("data-input-state", "idle");
+    await expect(page.locator('[data-voice-turn="transcribing"]')).toBeVisible();
+    await expect(page.locator('[data-voice-turn="transcribing"]')).toContainText("转写中");
+  } finally {
+    pipeline.close();
+  }
 });
 
 test("双动作 B·转写编辑:录音 -> 转文字 -> 转写中反馈(绝不静默)-> 可打字", async ({ page }) => {
-  await open(page, `/p/${PRJ}/chat`);
-  await page.locator("[data-mic-toggle]").click();
-  await expect(page.locator("[data-input-region]")).toHaveAttribute("data-input-state", "recording");
-  await page.locator("[data-rec-edit]").click();
-  // 转写中态:显式等待反馈(dogfood 问题①根修——没有任何静默等待)
-  await expect(page.locator("[data-input-region]")).toHaveAttribute("data-input-state", "transcribing");
-  await expect(page.locator("[data-transcribing-hint]")).toContainText("转写中");
-  const ta = page.locator("[data-confirm-transcript]");
-  await expect(ta).toBeVisible(); // 转写中可先打字(后到转写不覆盖)
-  await ta.fill("手打的文本");
-  await expect(ta).toHaveValue("手打的文本");
+  const pipeline = await connectTestPipeline();
+  try {
+    await open(page, `/p/${PRJ}/chat`);
+    await page.locator("[data-mic-toggle]").click();
+    await expect(page.locator("[data-input-region]")).toHaveAttribute("data-input-state", "recording");
+    await page.locator("[data-rec-edit]").click();
+    // 转写中态:显式等待反馈(dogfood 问题①根修——没有任何静默等待)
+    await expect(page.locator("[data-input-region]")).toHaveAttribute("data-input-state", "transcribing");
+    await expect(page.locator("[data-transcribing-hint]")).toContainText("转写中");
+    const ta = page.locator("[data-confirm-transcript]");
+    await expect(ta).toBeVisible(); // 转写中可先打字(后到转写不覆盖)
+    await ta.fill("手打的文本");
+    await expect(ta).toHaveValue("手打的文本");
+  } finally {
+    pipeline.close();
+  }
 });
 
 // ---------- W5a 3.6 产物库控制面(modules/b B4 P1;验收 = 三交互用例) ----------

@@ -52,6 +52,8 @@ source = "package_script"
 ref = "test"
 [setup]
 command = "pnpm install --prefer-offline"
+[writing]
+article_path = "article.md"
 [budget]
 monthly = 300
 [params]
@@ -96,7 +98,7 @@ cursor_agent_bin = "/evil/agent"
     // 合法域不受连坐
     expect(p.projectType).toBe("coding");
     // 白名单常量与 09 §11 头注一致
-    expect([...PROJECT_ALLOWED_TOP_KEYS]).toEqual(["project", "git", "verify", "setup", "budget", "dnd", "params"]);
+    expect([...PROJECT_ALLOWED_TOP_KEYS]).toEqual(["project", "git", "verify", "setup", "writing", "budget", "dnd", "params"]);
   });
 
   it("反例:params.backup_retention_days 项目层覆盖被剥(全局专属,防击穿 09 §4 备份保留)", () => {

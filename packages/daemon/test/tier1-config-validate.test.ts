@@ -4,7 +4,7 @@
 // W5.4-b C1:verdict 先按生效 adapter 分叉;claude_code 走 claude 分支(四键+族+identity,
 // 任一不满足 ⇒ not_configured + 处方化键名);codex 维持 unsupported_adapter。
 
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -237,7 +237,7 @@ describe("tier1StartupVerdict claude 分支(W5.4-b C1;方案 §3.9/§3.7,09 §11
         adapter: "claude_code",
         claude: { bin, pinnedVersion: PINNED, model, identity: identityOk(bin) }
       });
-      expect(v).toEqual({ start: true, bin, pinned: PINNED });
+      expect(v).toEqual({ start: true, bin: realpathSync(bin), pinned: PINNED });
     }
   });
 
@@ -274,7 +274,18 @@ describe("tier1StartupVerdict claude 分支(W5.4-b C1;方案 §3.9/§3.7,09 §11
       adapter: "claude_code",
       claude: { bin, pinnedVersion: PINNED, model: "opus", identity: identityOk(bin) }
     });
-    expect(v).toEqual({ start: true, bin, pinned: PINNED });
+    expect(v).toEqual({ start: true, bin: realpathSync(bin), pinned: PINNED });
+  });
+
+  it.skipIf(process.platform === "win32")("claude 配置 symlink 解析到实体后启动", () => {
+    const bin = makeClaudeBin();
+    const alias = `${bin}-current`;
+    symlinkSync(bin, alias, "file");
+    const v = tier1StartupVerdict({
+      adapter: "claude_code",
+      claude: { bin: alias, pinnedVersion: PINNED, model: "opus", identity: identityOk(realpathSync(bin)) }
+    });
+    expect(v).toEqual({ start: true, bin: realpathSync(bin), pinned: PINNED });
   });
 
   it("分叉纪律:claude 分支不消费 cursor 两键,cursor 分支不消费 claude 键", () => {
@@ -288,7 +299,7 @@ describe("tier1StartupVerdict claude 分支(W5.4-b C1;方案 §3.9/§3.7,09 §11
         adapter: "claude_code",
         claude: { bin: claudeBin, pinnedVersion: PINNED, model: "opus", identity: identityOk(claudeBin) }
       })
-    ).toEqual({ start: true, bin: claudeBin, pinned: PINNED });
+    ).toEqual({ start: true, bin: realpathSync(claudeBin), pinned: PINNED });
     // cursor 生效:claude 键齐备也不影响 cursor 分支裁决(形状不变)
     expect(
       tier1StartupVerdict({

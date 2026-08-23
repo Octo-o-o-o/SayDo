@@ -344,12 +344,12 @@
 
 - 恒定结构:效果描述(spokenForm 同文,10 #39)→ 项目/任务上下文(必带,04 §5.2)→ 约束参数表(mono)→ digest 尾码(mono,faint)→ 操作行。
 - S2:accept/ignore 双按钮;S3:单一"去屏幕确认"入口 + 强认证流程(样式独立:error 描边卡 + `shield-alert`);**语音 UI 永不渲染 S3 批准按钮**。**edit 第四动作已实施(W5a 2026-07-27,09 §3 骨架)**:"修改后批准"按钮仅 S2 ∧ 有 pending_command 时渲染——旧张 superseded_by_edit + 新张重签(新 nonce/新 refDigest),编辑后命令风险重估 S3 ⇒ 拒(不开 S3 预批面);S3 卡不适用 edit。
-- **S3 卡 WebAuthn 交互(R-A 2026-07-26;09 §3.3;设计 ADR-004)**:S3 卡按钮文案"用本机认证批准"(`fingerprint` 图标;macOS 系统弹窗仍可能显示 Touch ID,Windows 显示 Windows Hello),点击触发浏览器原生 `navigator.credentials.get`(platform authenticator)——**认证 UI 由 OS 提供,SayDo 不自绘密码框**;成功→daemon 校验断言签 S3 收据→动作执行,失败→error toast 不放行。**仅本机受信终端渲染**:tailnet/远程来源(`via="tailnet"`)一律不渲染 S3 卡,置"请回桌面完成"引导(09 §3.3 红线;W2 已 403)。未注册 passkey ⇒ 卡降级为"去受信终端手动合并"(requestManualMerge 降级路径)。按钮下诚实注脚(同步凭据条款,09 §3.3):"本机生物或 PIN 凭据可能经系统账号同步到你的其他设备;批准动作本身只能在这台电脑完成。"
+- **S3 卡 WebAuthn 交互(R-A 2026-07-26;09 §3.3;设计 ADR-004)**:S3 卡按钮文案"用本机认证批准"(`fingerprint` 图标;macOS 系统弹窗仍可能显示 Touch ID,Windows 显示 Windows Hello),点击触发浏览器原生 `navigator.credentials.get`(platform authenticator)——**认证 UI 由 OS 提供,SayDo 不自绘密码框**;成功→daemon 校验断言签 S3 收据→动作执行,失败→error toast 不放行。**仅本机受信终端渲染**:tailnet/远程来源(`via="tailnet"`)一律不渲染 S3 卡,置"请回桌面完成"引导(09 §3.3 红线;W2 已 403)。未注册 passkey ⇒ 卡降级为"去受信终端手动合并"(requestManualMerge 降级路径)。按钮下诚实注脚(同步凭据条款,09 §3.3):"用于本机认证的 passkey 可能经系统账号同步到你的其他设备;批准动作本身只能在这台电脑完成。"
 - 超时/被打断即置灰并标注终局(timeout_rejected 等),不可再点(收据单次消费的视觉表达)。
 
 ### 5.5 review 证据视图(任务详情主体)
 
-- 按 `DecisionPackage.acceptance[]` 分组:每条 AC 一行 `AcceptanceCheck`(pass=`check`/fail=`x`/unknown=`circle-dashed`+"未验证",禁伪精确)。**decisions 区已实施(W5a 2026-07-27)**:证据视图内 decisions 列表(每条=决策+理由+可推翻,≤5 条)读 `tier1_runs.decisions_json`——与语音口播同一落库份(09 §13 生产语义注)。
+- 按 `DecisionPackage.acceptance[]` 分组:每条 AC 一行 `AcceptanceCheck`(pass=`check`/fail=`x`/unknown=`circle-dashed`+"未验证",禁伪精确)。逐条状态只读 settle proof / 人工裁决的显式证据;`ready_for_review`、`failed` 等任务终态不得批量投影成 pass/fail。旧 proof、重复/缺失 criterion、或 pass/fail 缺非空 `evidenceRef` 一律显示 unknown。**decisions 区已实施(W5a 2026-07-27)**:证据视图内 decisions 列表(每条=决策+理由+可推翻,≤5 条)读 `tier1_runs.decisions_json`——与语音口播同一落库份(09 §13 生产语义注)。
 - 路径二任务:证据主体 = 嵌 Hopper trust-report(自包含单文件,09/设计 ADR-001)。**嵌入合同(Codex 复审 A2/A4)**:`RunSettled.summary_path` 指向 `.md`——校验其在受信 vault 内(防越界路径)后**受控映射到同 basename 的 `.html`**(post-run 同时生成),文件缺失/扩展名异常按证据缺失处理;**展示层做确定性字符转换**(Hopper 报告内含 emoji,渲染前按映射表替换为 Lucide 图标/文本标记 + DOM 字符门禁),**原始文件原样留存、不改变证据 digest**——转换只发生在呈现层。
 - 操作行:验收通过(次按钮)/ 提修改(次按钮,文案"这轮不作废")/ **作废这轮**(危险描边,带二次确认对话框——§5.1 危险确认纪律;走取消链,10 #34)/ 合并(S3 组件;**批准前置灰**,§5.4 终局置灰同款)/ **我已合并,核验**(次按钮,归 S3 组件组)。零外部跳转(diff/日志深链仅工程排障入口,collapsed)。**writing 任务(R-A 补完 2026-07-27,Codex 21 A5)**:manual 验收项未逐条裁决前"验收通过"置灰(writingSettleBarrier ④,09 §6.1a);AcceptanceCheck 行提供逐条 pass/fail 勾选,勾选结果即 approve 载荷的一部分——settled ≠ 全绿,禁默认 pass 投影。
 - **合并按钮语义(R-A 2026-07-26;S3 卡兑现后收窄;设计 ADR-004)**:`review_approved_waiting_merge` 态下——**主路径 = "用本机认证批准合并"**(S3 卡,§5.4;过卡→daemon 本地 rebase+verify+合并,09 §3.3);**"我已合并,核验"降级为次要入口**(仅未注册 passkey / owner 选人工时用,触发 MergeProof watcher 对账外部合并)。coding 与 writing(content_done 态)同构此操作行;writing 的"合并"= 文章稿并回主分支(02 §5.0)。
@@ -393,6 +393,8 @@ readiness/Context Pack 双闸已追平；两项重建失败只暂停 Brain/tool�
 ### 5.8 表单与设置
 
 shadcn 原样(Input/Select/Switch/Tabs);设置页每项带一句 muted 说明;危险区(删除项目/hard-forget)单独分组 + error 描边。五槽位模型配置用表格而非五张卡。
+
+**Tier1 开发执行器卡(W5.4-b)**:`GlobalSettings` 在五槽位配置之外单列一张「开发执行器」卡,展示生效 adapter、模型、pin 版本、登录态、自检结论与五小时窗重置时间。五小时窗没有 durable 限流记录时写「没有已知限流记录」,不得写“额度充足”;登录态与实测版本只来自 `POST /api/setup/test {scope:"tier1"}` 的物理探针,未跑时写「未测试」,不得从配置推断。自检红显示首条处方;identity 新写入时明确提示重启后才会武装。任务详情的每次 Tier1 run 同行展示 adapter + `observedModel`;后者只读不可变审计证据,缺证据写「未观测」,不得拿配置模型代填。
 
 向导的视觉与交互合同见 §5.8a。槽状态必须消费 probe 的 `mode/effective/reason/fallbackTo`,不得从配置形状推导;cheap 回落时固定显示"实际走对话档模型计费"。若 recovery violation 指向失效 project override,门禁须提供明确的"清除失效覆盖"动作,说明项目随后继承全局配置,不得让用户只能手改 SQLite。完成流在发起 restart 前先把目标 hash 置为 `#/chat-new`,使协调重载保留导航意图;live self-test 通过后必须刷新 setup 判定:新 probe 已武装则 `SetupBootstrapBoundary` 就地翻到应用并挂载 `AppContent`;仍未武装则整页进入已写入的 `#/chat-new`,由 `SetupProvider` 重新 probe。不得停留在启动前的向导快照上等人手刷新。
 
@@ -574,7 +576,7 @@ P0 提供:亮/暗/跟随系统 + 免打扰。**不提供**:自定义主题色、
   符号/装饰区(勾/叉/警告/星形之流);**纯文本箭头与数学符号(U+2190–U+21FF 的 `→`/`↔` 等)不在禁区**——技术文档与注释的 `A→B`、`taskId↔runId` 是合法写法。文本 lockfile 同样扫描，不作为二进制豁免。2026-07-29 单仓迁移后适用于 SayDo 全仓;迁入历史文本已做确定性文本标记转换，原始字节保留在冻结冷档。门禁自测含 literal、文本 lockfile、entity、HTML script escape 与错误路径共 11 项。
 - 组件新增流程:先查 shadcn/Radix 有无现成 → 有则收进 `components/ui/` 定制 token → 无则自建并回写本篇 §5。
 - 视觉回归:Phase 5 起 Playwright 截图基线(亮暗各 11 页),token 改动必须重录基线。
-  - **2026-08-13 实测:该基线当前录不出来(既有红,与本批无关)**。T19 首启向导门(§5.8a `SetupBootstrapBoundary`)落地后,`e2e/console` 的测试 daemon 是未配置状态,`open()` 又不 peek,于是每条用例拿到的都是「先把对话模型配好」向导页而非应用页——`npx playwright test` 现为 29 failed / 3 passed。已在 `main` 的干净 worktree 上跑同一条用例复现同样失败,确认是向导门与 e2e 装配的既有不匹配,不是 token 批引入。**修法归 T19 工作线**(让 global-setup 把测试 HOME 配成 dialog 已武装,或让 `open()` 过门),修好之前 token 改动的视觉证据以「针对性截图」代替(本批留证见 `docs/plan/2026-08-13-ui-standardization-audit.md` §11)。
+  - **2026-08-23 复验:历史红灯已解除。**`open()` 显式复现用户选择「先随便看看」,Fresh HOME 的首启专项仍穿真实向导;路由断言按正式 Today / Focus IA 对齐,云语音交互用带身份与 HOME digest 的测试 pipeline,停靠 fixture 不再使用会随墙钟过期的日期。`pnpm exec playwright test e2e/console` 实测 **35 passed**,亮暗各 11 页截图成功重录。2026-08-13 的 29 failed / 3 passed 是历史装配缺口,不得再当现势。
 
 ## 13. 与其他文档的关系
 

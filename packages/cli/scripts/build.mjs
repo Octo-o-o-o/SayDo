@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, delimiter, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
@@ -8,6 +8,12 @@ import { build } from "esbuild";
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = resolve(packageRoot, "..", "..");
 const pkg = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
+
+for (const legalFile of ["LICENSE", "NOTICE"]) {
+  const packageCopy = readFileSync(join(packageRoot, legalFile));
+  const canonicalCopy = readFileSync(join(repoRoot, legalFile));
+  if (!packageCopy.equals(canonicalCopy)) throw new Error(`${legalFile} 与仓库根副本不一致`);
+}
 
 // B1: 单一不可变 snapshot 同时派生协议、版本与 digest。
 const snapshot = {
@@ -188,3 +194,19 @@ if (finalInputDigest !== inputDigest) {
   rmSync(dist, { recursive: true, force: true });
   throw new Error(`build inputs changed during build:${inputDigest.slice(0, 12)}→${finalInputDigest.slice(0, 12)}`);
 }
+
+writeFileSync(
+  join(dist, "build-metadata.json"),
+  `${JSON.stringify(
+    {
+      schemaVersion: 1,
+      package: snapshot.packageJson.name,
+      version: snapshot.packageJson.version,
+      sourceRevision,
+      buildId,
+      protocolVersion
+    },
+    null,
+    2
+  )}\n`
+);

@@ -153,7 +153,7 @@
         <h3>1.4 当前状态一句话</h3>
         <ul>
           <li><strong>macOS 桌面服务</strong>(守护进程 daemon + Web 控制台 + 可选语音管线):现在可用,开源免费(见 §18 开源与参与)。</li>
-          <li><strong>驱动你已有的 AI</strong>:推理槽位可用 Claude Code / Codex / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI 的<strong>订阅登录态</strong>或任意 OpenAI 兼容 API(§5);<strong>执行器(真正改代码的 agent)当前为 Cursor CLI</strong>,Claude Code 执行器进行中,Codex 执行路线规划中(§6)。</li>
+          <li><strong>驱动你已有的 AI</strong>:推理槽位可用 Claude Code / Codex / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI 的<strong>订阅登录态</strong>或任意 OpenAI 兼容 API(§5);<strong>稳定执行器路径当前为 Cursor CLI</strong>,Claude Code 已接入生产主流程、最终 live conformance 收口中,Codex 执行路线规划中(§6)。</li>
           <li><strong>项目记忆与四色账本</strong>:现在可用。</li>
           <li><strong>iOS / Android / HarmonyOS App</strong>:工程壳存在,均未提审上架;手机当前可经局域网用 App 壳或手机浏览器连接桌面服务(§13)。</li>
           <li><strong>来电式语音汇报</strong>:规划中。</li>
@@ -244,7 +244,7 @@
             <tr><td>4 你拍板</td><td>说「就这样」/「开始」;执行模式当前按「逐步确认」(「一口气跑完」档的语音念读签署进行中,§8.4)</td><td>两把钥匙:「证据够了」≠「有权的人批准了这个包+范围+预算+有效期」;派发收据 digest 绑定、单次消费;Gate 0 未关拒派发</td><td>拍板</td></tr>
             <tr><td>5 后台执行</td><td>在独立 git worktree 里跑,主工作区不被碰;每条 shell 命令过审批门;预算 / 活跃时长 / 回合三熔断;你可以走开,语音会话挂起</td><td>命令按效果分级 S0–S3;S0/S1 自动放行,S2 上浮要你确认(45 秒无应答即拒),S3 拒绝并要求屏幕强认证</td><td>可以走开</td></tr>
             <tr><td>6 办完叫你</td><td>执行和检查都跑完、产物落盘确认 → 它主动叫你:「执行和检查都跑完了,等你验收」</td><td>settle 对账后才回叫(runner 退出不等于完成);优先级 blocked &gt; failed &gt; 待审批 &gt; 待验收 &gt; 进度(默认不叫);投递按升级链:你在控制台且语音就绪 ⇒ 在线语音开口叫你(第一句就是回叫原因,30 秒没应答再升级)→ macOS 桌面通知 + ntfy 手机推送;免打扰窗口内只发一条低打扰推送、过后补叫(§11)</td><td>被叫回来</td></tr>
-            <tr><td>7 验收沉淀</td><td>口播摘要(一句话 / 150 字走读 / 它自己做的决策清单)+ 证据视图(diff、测试、决策、未验证项);你点头 → 过强认证合并 → 「交付了」;知识与产物留存</td><td>合并 = Touch ID / passkey 屏幕审批卡签单次收据,或你自己去终端合并(人工交接);会话末机械提名稳定结论为候选,你批准后进 M1</td><td>验收</td></tr>
+            <tr><td>7 验收沉淀</td><td>口播摘要(一句话 / 150 字走读 / 它自己做的决策清单)+ 证据视图(diff、测试、决策、未验证项);你点头 → 过强认证合并 → 「交付了」;知识与产物留存</td><td>合并 = 本机 WebAuthn 审批卡(例如 macOS Touch ID/设备密码、Windows Hello 或 Linux passkey/安全密钥)签单次收据,或你自己去终端合并(人工交接);会话末机械提名稳定结论为候选,你批准后进 M1</td><td>验收</td></tr>
           </tbody>
         </table>
         </div>
@@ -266,36 +266,39 @@
             <tr><th>项</th><th>要求</th><th>说明</th></tr>
           </thead>
           <tbody>
-            <tr><td>系统</td><td>macOS(Apple Silicon / Intel 均可)· Windows · Linux</td><td>三端都能跑桌面服务;<strong>常驻安装、系统通知、打开浏览器等链路当前仍是 macOS 实现</strong>,Windows/Linux 需前台运行</td></tr>
+            <tr><td>系统</td><td>macOS(Apple Silicon / Intel 均可)· Windows · Linux</td><td>三端都能跑桌面服务;<strong>常驻安装与系统通知当前仍是 macOS 实现</strong>,Windows/Linux 需前台运行</td></tr>
             <tr><td>Node</td><td><strong>22.x</strong>(<code>&gt;=22 &lt;23</code>)</td><td>桌面服务与 CLI 的运行时;用 nvm / fnm / Homebrew 装</td></tr>
-            <tr><td>pnpm</td><td>10.x</td><td><code>corepack enable</code> 即可</td></tr>
-            <tr><td>git</td><td>任意新版</td><td>构建与任务隔离(worktree)都要</td></tr>
+            <tr><td>可选 · pnpm</td><td>10.x</td><td>只有源码开发需要;Release 包不需要</td></tr>
+            <tr><td>可选 · git</td><td>任意新版</td><td>只有让执行器修改代码、创建隔离 worktree 时需要;只使用账本与控制台不需要</td></tr>
             <tr><td>一个 AI 供给</td><td>二选一:① 本机已登录任一已接线 CLI(Codex / Claude Code / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI);② 一个 OpenAI 兼容 API key(OpenRouter / OpenAI / Anthropic / DeepSeek)</td><td>只聊天、立账、调研不需要 key(走 CLI 订阅);见 §5.3</td></tr>
             <tr><td>可选 · Python 3.11+ 与 <code>uv</code></td><td>只有<strong>桌面浏览器云端语音</strong>(火山豆包 ASR/TTS)才需要</td><td>不配也能说话:浏览器系统语音兜底(§12)</td></tr>
-            <tr><td>可选 · <code>cursor-agent</code> 登录态 + <code>jq</code></td><td>只有<strong>派发执行任务</strong>(让 AI 真改代码)才需要</td><td>没有不阻断对话,只是拍板后不会起执行器(§6)</td></tr>
+            <tr><td>可选 · 一个执行器登录态</td><td><code>cursor-agent</code>(当前稳定缺省)或 Claude Code(生产主流程已接线、最终 live conformance 收口中)</td><td>只有<strong>派发执行任务</strong>才需要;Codex 执行器尚未实现并会 fail-closed 拒起,不影响对话(§6)</td></tr>
           </tbody>
         </table>
         </div>
         <h3>4.2 安装</h3>
-        <p>目前以源码形式分发(尚无 npm / Homebrew 包,见 §16):</p>
-        <pre><code>git clone https://github.com/Octo-o-o-o/SayDo.git &amp;&amp; cd SayDo
-pnpm install &amp;&amp; pnpm -r build      # build 必须:daemon 托管的控制台页来自 packages/console/dist</code></pre>
-        <h3>4.3 启动桌面服务</h3>
-        <p>两种等价方式,任选其一(同一个数据目录 <code>~/.saydo</code> 同时只允许一个实例):</p>
-        <pre><code># 方式一:直接起 daemon(开发形态;在仓库根目录执行)
-mkdir -p ~/.saydo
-(cd packages/daemon &amp;&amp; SAYDO_HOME=$HOME/.saydo nohup ./node_modules/.bin/tsx src/index.ts &gt;&gt; ~/.saydo/daemon.log 2&gt;&amp;1 &amp;)
+        <p><strong>推荐 · 不克隆源码:</strong>下面是 v0.1.0-rc.2 的发布候选固定 URL;仅当 GitHub Release 页面已经出现且发布检查全绿后才可用。尚未发布到 npm registry 或 Homebrew。</p>
+        <pre><code># 一次运行:下载到 npm 缓存后直接启动
+npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz -- saydo up
 
-# 方式二:用 saydo 命令行(可分发形态;先构建一次)
-pnpm --filter @saydo/cli build
-node packages/cli/dist/cli.mjs up        # 前台持有 daemon,Ctrl+C 优雅退出并可续接任务
-node packages/cli/dist/cli.mjs status    # 探活:0=已连上 / 1=端口空闲 / 2=端口冲突
-node packages/cli/dist/cli.mjs open      # 打开控制台</code></pre>
+# 常用安装:安装一次,以后直接用 saydo
+npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz
+saydo up</code></pre>
+        <div class="docs-note"><p>该包只包含 daemon + Web 控制台,支持 macOS / Windows / Linux。语音 pipeline、macOS launchd 常驻和修改源码不在包内;Windows/Linux 当前以前台方式运行。远程终端加 <code>--no-open</code>。</p></div>
+        <p><strong>源码开发:</strong></p>
+        <pre><code>git clone https://github.com/Octo-o-o-o/SayDo.git &amp;&amp; cd SayDo
+pnpm install &amp;&amp; pnpm -r build</code></pre>
+        <h3>4.3 启动桌面服务</h3>
+        <p>上一步的一次运行命令已经启动服务;全局安装后可使用:</p>
+        <pre><code>saydo up        # 前台持有 daemon,Ctrl+C 优雅退出并可续接任务
+saydo status    # 探活:0=已连上 / 1=端口空闲 / 2=端口冲突
+saydo open      # 打开控制台</code></pre>
+        <p>源码开发形态使用 <code>pnpm --filter @saydo/cli build</code> 后运行 <code>node packages/cli/dist/cli.mjs up</code>。同一个数据目录 <code>~/.saydo</code> 同时只允许一个实例。</p>
         <ul>
           <li>缺省端口 <strong>47100</strong>(直起 daemon 用环境变量 <code>SAYDO_DAEMON_PORT</code> 覆盖;<code>saydo</code> 命令行只认 <code>--port</code>);缺省只监听本机回环地址。<code>saydo up</code> 缺省会自动打开浏览器,<code>--no-open</code> 可关。</li>
           <li>数据目录缺省 <code>~/.saydo</code>(<code>--home</code> 或 <code>SAYDO_HOME</code> 覆盖)。首次启动会自动生成:<code>config.toml</code>(占位模板)、<code>.cap-token</code>(控制台令牌)、<code>saydo.db</code>、<code>sessions/</code>、<code>logs/</code>、<code>projects/</code> 等。</li>
           <li>健康探针:<code>curl -s http://127.0.0.1:47100/health</code>(<code>ok:true</code> 即起来了;tsx 冷启动约 10–15 秒)。</li>
-          <li>进控制台:<code>open "http://localhost:47100/?token=$(cat ~/.saydo/.cap-token)"</code>(<code>saydo open</code> 做的就是这件事)。注意用 <strong>localhost</strong>:为了 Touch ID 合并卡的 WebAuthn 绑定,<code>127.0.0.1</code> 的页面请求会被重定向到 <code>localhost</code>。令牌首次注入后存在浏览器本地,之后的链接不必再带。</li>
+          <li>进控制台使用 <code>saydo open</code>。它在 macOS 调 <code>open</code>、Windows 调系统浏览器、Linux 调 <code>xdg-open</code>;无图形环境用 <code>--no-open</code>。注意使用 <strong>localhost</strong>:为了屏幕强认证的 WebAuthn 绑定,<code>127.0.0.1</code> 的页面请求会被重定向到 <code>localhost</code>。</li>
         </ul>
         <h3>4.4 首次使用:资源画像向导</h3>
         <p>进门先看到<strong>资源画像</strong>:它清点这台机器能用的模型来源(装了哪些 CLI、哪些已登录、<code>.env</code> 里有哪些 key),然后给出方案卡(§5.3 三种)。典型零 key 流程:</p>
@@ -352,7 +355,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
             <tr><td><strong>沉思档</strong></td><td><code>[models].thinking</code></td><td>任务卡起草、决策包 / 计划生成、奠基提炼(轻量小样为机械渲染,不占模型)</td><td>深推理,异步不阻塞对话</td><td>API(OpenRouter,<code>openai/gpt-5.6-terra-pro</code>)</td></tr>
             <tr><td><strong>廉价档</strong></td><td><code>[models].cheap</code></td><td>摘要叙事、热词抽取、事件打标等高频结构化调用</td><td>便宜、快</td><td>API(OpenRouter,<code>google/gemini-3.1-flash-lite</code>)</td></tr>
             <tr><td><strong>评估档</strong></td><td><code>[models].evaluator</code></td><td>独立判「够不够开始」(就绪深评)</td><td><strong>与对话/沉思不同家族</strong>(§5.4)</td><td>API(OpenRouter,<code>anthropic/claude-sonnet-5</code>)</td></tr>
-            <tr><td><strong>开发档(执行器)</strong></td><td><code>[models.dev]</code></td><td>派发任务时驱动哪个 agent 改代码、用它的哪个模型</td><td>见 §6</td><td><code>agent = "cursor"</code>(与仓库模板一致;当前唯一生产执行器)</td></tr>
+            <tr><td><strong>开发档(执行器)</strong></td><td><code>[models.dev]</code></td><td>派发任务时驱动哪个 agent 改代码、用它的哪个模型</td><td>见 §6</td><td><code>agent = "cursor"</code>(与仓库模板一致;当前稳定缺省);<code>claude_code</code> 生产主流程已接线、live conformance 收口中</td></tr>
           </tbody>
         </table>
         </div>
@@ -509,14 +512,14 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         <h3>6.1 两套词表,别混</h3>
         <ul>
           <li><strong>推理槽的 CLI 供给</strong>(§5.2)= 让 Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot 的 CLI <strong>替 Brain 说话、想事、评估</strong>——它们只做一发一收的文本推理,不碰你的仓库。</li>
-          <li><strong>执行器(开发档,<code>[models.dev]</code>)</strong>= 拍板后<strong>在 worktree 里真的改代码、跑命令的 agent</strong>。词表 <code>claude_code | cursor | codex</code>,但<strong>当前只有 <code>cursor</code> 有生产实现</strong>;配成别的会被 daemon 拒起执行器(fail-closed,不会偷偷拿 Cursor 二进制冒充),对话不受影响。</li>
+          <li><strong>执行器(开发档,<code>[models.dev]</code>)</strong>= 拍板后<strong>在 worktree 里真的改代码、跑命令的 agent</strong>。词表 <code>claude_code | cursor | codex</code>;<code>cursor</code> 是当前稳定缺省,<code>claude_code</code> 的生产主流程已接线但最终 live conformance 仍在收口,<code>codex</code> 尚未实施。只有尚未支持或配置不完整的分支会被 daemon 拒起(fail-closed,不会偷偷拿另一种二进制冒充),对话不受影响。</li>
         </ul>
         <h3>6.2 当前可用:Cursor CLI 执行器 <span class="badge badge-live">现在可用</span></h3>
         <ul>
           <li>驱动方式:<code>cursor-agent -p --force --trust --output-format stream-json --model &lt;model&gt; [--resume &lt;chatId&gt;] &lt;prompt&gt;</code>,在任务 worktree 里跑;模型填 <code>cursor-agent</code> 当前可列出的任一模型名(已实测过 Grok 4.6 与 Composer 2.5;Claude 系亦可),事件流上报的实际模型家族与配置不符即该轮作废。</li>
           <li>审批门:执行器为每个 worktree 写 <code>.cursor/hooks.json</code>,<code>beforeShellExecution</code> 钩子<strong>同步阻塞</strong>回连 daemon 的本机 unix socket;daemon 按命令<strong>效果</strong>分级裁决(§8.1/§8.3);钩子超时、JSON 畸形、socket 不通一律 = 拒绝;事件流里出现 shell 调用却没有对应门请求 ⇒ 判定门被绕过,立即终止任务(canary)。</li>
           <li>版本钉死:<code>[tier1].cursor_agent_bin</code> 必须是锁定副本的<strong>绝对路径</strong>(<code>…/versions/&lt;ver&gt;/cursor-agent</code>)+ <code>cursor_agent_pinned_version</code> 精确相等;两键齐备才启用执行器——防 <code>cursor-agent</code> 自更新后行为漂移。升级 = 改两键 + 重跑门禁。</li>
-          <li>凭据剥离:agent 进程环境只带 <code>PATH/HOME/USER/LOGNAME/SHELL/LANG/LC_ALL/LC_CTYPE/TERM/TMPDIR</code> 十个变量,不带任何 API key / token;它的登录态在它自己的 HOME 存储里。</li>
+          <li>凭据剥离:agent 进程只继承固定平台白名单:POSIX 核心为 <code>PATH/HOME/USER/LOGNAME/SHELL/LANG/LC_ALL/LC_CTYPE/TERM/TMPDIR</code>;Windows 按需另带 <code>TEMP/TMP/USERPROFILE/USERNAME/HOMEDRIVE/HOMEPATH/APPDATA/LOCALAPPDATA/PATHEXT/SYSTEMROOT/WINDIR/COMSPEC</code>。白名单不含任何 API key / token;执行器登录态仍在它自己的 HOME 存储里。</li>
           <li>诚实边界:Cursor 后端只有 shell 通道过门,内建的文件读写 / 联网工具不经钩子——所以它的网络出口能力表如实标 <code>egress = uncontrolled</code>,隔离靠「独立 worktree + 凭据剥离 + 命令门」,<strong>不是沙箱</strong>;不信任的任务请用逐步确认档并盯紧 S2。</li>
           <li>中途改需求(steer):当前没有任何后端支持运行中即时注入;运行中的任务 = <strong>终止本轮再带新指令续跑</strong>(<code>cancel_resume</code>,worktree 保留),排队 / 停靠中的任务 = 下次运行时注入(<code>queued_delta</code>)。它会如实告诉你是哪一种。</li>
         </ul>
@@ -527,9 +530,9 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><th>后端</th><th>状态</th><th>说明</th></tr>
           </thead>
           <tbody>
-            <tr><td><strong>Claude Code 执行器</strong>(<code>agent = "claude_code"</code>)</td><td><span class="badge badge-progress">进行中</span></td><td>方案已定:以官方 <code>claude -p --output-format stream-json</code> 子进程为传输,用 Claude Code 的 <code>PreToolUse</code> hooks 做 S1–S3 裁决(文件工具也能进门,比 Cursor 多一层),钩子由命令行注入而非 worktree 内文件;订阅只经 <code>claude</code> 登录态消费、零 API key;不启用 bypass 权限、不做 live steer。第一批官方 CLI 能力实测 + 审批门纯函数层已收口；生产执行主流程接线是下一步</td></tr>
+            <tr><td><strong>Claude Code 执行器</strong>(<code>agent = "claude_code"</code>)</td><td><span class="badge badge-progress">收口中</span></td><td>以官方 <code>claude -p --output-format stream-json</code> 子进程为传输,用 <code>PreToolUse</code> hooks 做 S1–S3 裁决;订阅只经 <code>claude</code> 登录态消费、零 API key,不启用 bypass 权限、不做 live steer。配置、生产执行主流程、审批门、恢复、记账、自检、设置页与任务详情已经接线;最终真实端到端 conformance 尚未收口,当前稳定缺省仍为 Cursor</td></tr>
             <tr><td><strong>Codex 执行器</strong></td><td><span class="badge badge-soon">规划中</span></td><td>设计上经 Hopper 批式路线(见下);当前 <code>agent = "codex"</code> 会被拒起</td></tr>
-            <tr><td><strong>Hopper 批式路线</strong>(重任务 drop 进独立的 Hopper 任务系统:worktree / 事件溯源 / 崩溃恢复 / 预算 / 验收闸门)</td><td><strong>合同已定,生产绑定休眠</strong></td><td>daemon 主流程不启动它;锁定版本副本与专用 vault 的约定写在配置模板里但当前不被消费;Hopper 路线的合并恒为人工交接,不经 Touch ID 卡。对用户来说今天它不是可用功能</td></tr>
+            <tr><td><strong>Hopper 批式路线</strong>(重任务 drop 进独立的 Hopper 任务系统:worktree / 事件溯源 / 崩溃恢复 / 预算 / 验收闸门)</td><td><strong>合同已定,生产绑定休眠</strong></td><td>daemon 主流程不启动它;锁定版本副本与专用 vault 的约定写在配置模板里但当前不被消费;Hopper 路线的合并恒为人工交接,不经本机认证卡。对用户来说今天它不是可用功能</td></tr>
             <tr><td><strong>provider-neutral 原生执行器</strong>(任意 OpenAI 兼容后端)</td><td><span class="badge badge-soon">规划中</span></td><td>2026-08 决策推荐的方向(替代「拿 DeepSeek Harness 当默认 runner」——后者因审批缺省放行、钩子故障不阻断等与 fail-closed 红线冲突被否决)</td></tr>
             <tr><td><strong>Gemini CLI 作执行器</strong></td><td>无此计划</td><td>Gemini CLI 仅作推理槽供给</td></tr>
           </tbody>
@@ -560,7 +563,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
           <li>你在验收面三选一:<strong>通过</strong>(记录批准的 <code>treeSha</code>,进入「等合并」)/ <strong>要改</strong>(同任务新一轮,复用 worktree,意见进下次 prompt)/ <strong>作废</strong>(取消本轮)。</li>
           <li>合并两条路,都是「人触发」:
             <ul>
-              <li><strong>Touch ID / passkey 审批卡</strong>(Tier1 缺省):屏幕上完成一次 WebAuthn 强认证,签一张绑定 任务 / 轮次 / 决策包版本 / 预期树 的单次收据;daemon 凭收据执行:复核 worktree 现树 == 收据树(漂移拒)→ 隔离环境再跑一遍冻结 verify(不过 ⇒ <code>merge_failed</code> 转人工)→ 断言主仓未动(<code>merge-base == HEAD</code>)且主仓已跟踪文件干净(有未提交改动 ⇒ 转人工)→ <code>git commit-tree</code> + <strong><code>git merge --ff-only</code></strong> 到主仓当前分支(只快进、不改写历史;提交信息形如 <code>saydo: merge &lt;taskId&gt; (S3 approved)</code>)→ 再断言 HEAD 树 → 「交付了」。首次使用要先在本机「注册批准指纹」(一次性)。</li>
+              <li><strong>本机认证 / passkey 审批卡</strong>(Tier1 缺省):屏幕上完成一次 WebAuthn 强认证(由系统提供,例如 macOS Touch ID/设备密码、Windows Hello 或 Linux passkey/安全密钥),签一张绑定 任务 / 轮次 / 决策包版本 / 预期树 的单次收据;daemon 凭收据执行:复核 worktree 现树 == 收据树(漂移拒)→ 隔离环境再跑一遍冻结 verify(不过 ⇒ <code>merge_failed</code> 转人工)→ 断言主仓未动(<code>merge-base == HEAD</code>)且主仓已跟踪文件干净(有未提交改动 ⇒ 转人工)→ <code>git commit-tree</code> + <strong><code>git merge --ff-only</code></strong> 到主仓当前分支(只快进、不改写历史;提交信息形如 <code>saydo: merge &lt;taskId&gt; (S3 approved)</code>)→ 再断言 HEAD 树 → 「交付了」。首次使用要先在本机「注册本机批准凭据」(一次性)。</li>
               <li><strong>人工合并交接</strong>(没注册 passkey、或你想自己来):它给你一个交接入口,你在终端自己 merge;之后点「核验」,daemon <strong>现读</strong>主仓 <code>HEAD</code> 的树与批准时落库的 <code>treeSha</code> 对账,一致才推进到「交付了」,不一致拒绝并留痕(防「已回滚却显示完成」)。</li>
             </ul>
           </li>
@@ -588,7 +591,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td>S0 读</td><td>读代码、只读命令</td><td>自动放行</td></tr>
             <tr><td>S1 写(worktree 内)</td><td>改代码、跑登记的 verify、本地 commit</td><td>自动放行</td></tr>
             <tr><td>S2 出圈但可逆</td><td>装依赖、push 到 feature 分支、未识别的命令</td><td>逐步确认档:屏幕 / 语音确认(缺省 45 秒窗,超时即拒);直达验收档:命中念读签署的预授权清单则放行(当前未在语音链启用,见 §8.4)</td></tr>
-            <tr><td>S3 不可逆 / 外部影响</td><td>合并到保护分支、force push、部署、花钱、删数据、对外发消息</td><td><strong>必须已认证屏幕(Touch ID / passkey)</strong>;语音绝不放行——同一麦克风的复述不构成独立认证因子</td></tr>
+            <tr><td>S3 不可逆 / 外部影响</td><td>合并到保护分支、force push、部署、花钱、删数据、对外发消息</td><td><strong>必须在本机屏幕完成 WebAuthn 认证</strong>(平台可用方式如 Touch ID/设备密码、Windows Hello、passkey/安全密钥);语音绝不放行——同一麦克风的复述不构成独立认证因子</td></tr>
           </tbody>
         </table>
         </div>
@@ -845,7 +848,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><th>能力</th><th>状态</th><th>备注</th></tr>
           </thead>
           <tbody>
-            <tr><td>桌面服务(daemon + 控制台)· macOS / Windows / Linux</td><td><span class="badge badge-live">现在可用</span></td><td>源码分发;npm / Homebrew 包与桌面 App 壳规划中。常驻安装(launchd)与系统通知目前只有 macOS 实现</td></tr>
+            <tr><td>桌面服务(daemon + 控制台)· macOS / Windows / Linux</td><td><span class="badge badge-live">现在可用</span></td><td>源码形态已经可运行;v0.1.0-rc.2 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效。npm registry / Homebrew 与桌面 App 壳仍规划中;常驻安装(launchd)与系统通知目前只有 macOS 实现</td></tr>
             <tr><td>四推理槽 API 供给(OpenAI 兼容 / OpenRouter)</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
             <tr><td>四推理槽 CLI 订阅供给(Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot)</td><td><span class="badge badge-live">现在可用</span></td><td>对话档走 CLI 为慢速文本模式</td></tr>
             <tr><td>首跑资源画像向导(三种方案卡 + 高级逐槽)</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
@@ -854,7 +857,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td>类型就绪清单 + 规则层 + 异族深评 + 复述确认绑定</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
             <tr><td>决策包(预览 / 计划 / 成本 / 风险 / 验收标准 / 轻量小样)</td><td><span class="badge badge-live">现在可用</span></td><td>小样与计划同源机械渲染;控制台「看小样」+ 本机同轮上屏</td></tr>
             <tr><td>Cursor CLI 执行器 + worktree 隔离 + 命令效果门 + 三熔断 + verify 冻结</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
-            <tr><td>验收证据视图 + 三层口播 + Touch ID 合并卡 + 人工合并核验</td><td><span class="badge badge-live">现在可用</span></td><td>Touch ID 卡真人过卡待 owner 触点</td></tr>
+            <tr><td>验收证据视图 + 三层口播 + 本机认证合并卡 + 人工合并核验</td><td><span class="badge badge-live">现在可用</span></td><td>本机认证卡真人过卡待 owner 触点</td></tr>
             <tr><td>逐步确认档</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
             <tr><td>直达验收档(预授权清单念读签署)</td><td><span class="badge badge-progress">进行中</span></td><td>合同与匹配逻辑已落,语音拍板环未接</td></tr>
             <tr><td>回叫升级链:在线语音回叫 → macOS 桌面通知 + ntfy 手机推送;免打扰;应答(ack)</td><td><span class="badge badge-live">现在可用</span></td><td>语音回叫需控制台在线 + 语音管线健康;30 秒未应答升级;输出仲裁同批落地</td></tr>
@@ -864,7 +867,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td>research / marketing / planning / general 执行合同</td><td><span class="badge badge-soon">规划中</span></td><td>上游采访 / 立账 / 调研可用</td></tr>
             <tr><td>局域网手机面(浏览器 / 壳)</td><td><span class="badge badge-live">现在可用</span>(dogfood 边界)</td><td>无配对 / 无 E2E</td></tr>
             <tr><td>tailnet 薄版</td><td><span class="badge badge-progress">进行中</span></td><td>Tailscale / MagicDNS 底座已就绪；当前 HEAD 的 setup probe 仍拒绝 tailnet 配置，尚不能作为受支持入口</td></tr>
-            <tr><td>Claude Code 执行器</td><td><span class="badge badge-progress">进行中</span></td><td>第一批官方 CLI 能力实测 + 审批门纯函数层已收口；生产执行主流程接线是下一步</td></tr>
+            <tr><td>Claude Code 执行器</td><td><span class="badge badge-progress">收口中</span></td><td>生产执行主流程、审批门、恢复、记账、自检与控制台已接线;最终 live conformance 尚未收口</td></tr>
             <tr><td>Codex 执行器 / Hopper 批式路线</td><td><span class="badge badge-soon">规划中</span> / 休眠</td><td></td></tr>
             <tr><td>provider-neutral 原生执行器</td><td><span class="badge badge-soon">规划中</span></td><td></td></tr>
             <tr><td>设备配对 / E2E 加密 / 推送隐私合同</td><td><span class="badge badge-soon">规划中</span></td><td></td></tr>
@@ -884,7 +887,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         <p><strong>不配任何 key 能用吗?</strong> 能:本机有任一已登录 CLI 即可零 key 开聊(对话每轮 15–25 秒的慢速文本模式);语音走浏览器系统语音或打字。</p>
         <p><strong>它怎么知道「办完了」?</strong> 执行和检查都跑完、产物落盘,它说「等你验收」——不说「做完了」;你点头、过强认证合并,才是「交付了」。</p>
         <p><strong>它会不会偷偷花钱?</strong> 订阅调用不产生费用、撞限流只会如实报错不会转计费;API 调用有每任务成本封顶 + 活跃时长 + 回合三熔断;S3(花钱 / 部署 / 删数据 / 对外发消息)必须你在屏幕上强认证。</p>
-        <p><strong>它会 push 到 GitHub 或开 PR 吗?</strong> 不会。它在 <code>saydo/&lt;taskId&gt;</code> 分支的 worktree 里改代码;合并到你当前分支要你 Touch ID 或自己 merge;push / PR 是你之后自己做的。</p>
+        <p><strong>它会 push 到 GitHub 或开 PR 吗?</strong> 不会。它在 <code>saydo/&lt;taskId&gt;</code> 分支的 worktree 里改代码;合并到你当前分支要你用本机认证确认或自己 merge;push / PR 是你之后自己做的。</p>
         <p><strong>对话每轮要等十几二十秒,是卡了吗?</strong> 不是。对话档走 CLI 订阅就是慢速文本模式(15–25 秒);界面有慢速徽标;桌面端单次 CLI 调用 120 秒上限后明确报错(手机页 90 秒提示重发)。想要秒级对话给对话档配一个 API key(§5.3 方案二)。</p>
         <p><strong>界面说「仅恢复模式 / recovery-only」。</strong> 活动配置非法(TOML 坏了、参数越界、项目覆盖冲突等):daemon 不退,只留健康探针、控制台静态页与设置自救写口;对话、派发、合并、恢复任务全停。去设置页按提示重建安全配置或清理非法项目覆盖,再重启。</p>
         <p><strong>向导说某个 CLI「可识别,暂不能当模型供给」。</strong> 该 CLI(如 kimi / opencode)无法在执行前可证零工具,出于安全不接线;换一家或用 API。</p>
@@ -893,7 +896,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         <p><strong>支持 Windows / Linux 吗?</strong> 支持。Windows 已完成原生 P0 适配并经真机全量验证,Linux 经 CI(node + python)全量验证,均可运行;常驻安装、系统通知等链路当前仍为 macOS 实现,后续按 ADR-003/ADR-004 逐批补齐。</p>
         <p><strong>端口冲突。</strong> <code>saydo status</code> 退出码 2 = 47100 被别的服务或另一个数据目录的 daemon 占着;不会自动换端口或杀进程,用 <code>--port</code> 换或停掉对方。</p>
         <p><strong>手机扫码连不上 / 全部掉线。</strong> 确认 daemon 带 <code>SAYDO_MOBILE_LAN=1</code>、手机与电脑同一私网;删过 <code>.cap-token</code> 会轮换令牌,重新扫码。</p>
-        <p><strong>拍板后没有起执行器。</strong> <code>[models.dev]</code> 的 <code>agent</code> 须为 <code>cursor</code>(或留空,缺省即 cursor)且 <code>model</code> 非空;<code>[tier1]</code> 两键(锁定二进制<strong>绝对路径</strong>,不接受 <code>~</code> + 版本)齐备;<code>jq</code> 与 <code>curl</code> 在 PATH(gate 脚本硬依赖,缺 <code>jq</code> 时连拒绝回执都产不出,一律视为拒绝);<code>cursor-agent</code> 已登录。否则队列里的任务停在 queued 并给处方化日志,对话不受影响。</p>
+        <p><strong>拍板后没有起执行器。</strong> 按 <code>[models.dev].agent</code> 分支检查:<code>cursor</code>(或留空,缺省即 cursor)须有非空 <code>[models.dev].model</code>、<code>[tier1].cursor_agent_bin</code> 锁定副本<strong>绝对路径</strong>与精确版本,并已登录;POSIX 门还要求 <code>jq</code> 与 <code>curl</code> 在 PATH。<code>claude_code</code> 须有 <code>[tier1].claude_bin</code> 实体<strong>绝对路径</strong>、<code>claude_pinned_version</code>、Claude 族 <code>model</code>,登录后跑 Tier1 自检写入身份登记。<code>codex</code> 执行器尚未实现,会明确 fail-closed 拒起。任一分支不满足时任务停在 queued 并给处方化日志,对话不受影响。</p>
         <p><strong>任务停在 blocked。</strong> 看原因:S2 等你确认超时 / 没有登记 verify / project.toml 坏了 / 工作区或 <code>.git</code> 不见了 / agent 提问 / 熔断触发。解了在任务页「重试 / 回答」。</p>
         <p><strong>worktree 越来越多。</strong> 设计上不自动删(便于捡回);自己 <code>git worktree remove &lt;repo&gt;/.saydo/worktrees/&lt;taskId&gt;</code> 清理。</p>
         <p><strong>常驻(launchd)装不上。</strong> <code>just daemon install</code> 需要 <code>uv</code> 才能一并装语音管线常驻;报「未找到 uv」时按提示用 <code>just daemon install --without-pipeline</code> 只装 daemon(云端语音不可用,系统语音与文本照常),或先装 <code>uv</code> 再重跑(§4.8)。</p>

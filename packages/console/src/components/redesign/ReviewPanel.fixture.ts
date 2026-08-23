@@ -56,7 +56,7 @@ export const reviewWriting: ReviewTaskContext = {
 };
 
 export const reviewS3: ReviewTaskContext = {
-  task: makeTask({ id: "rv3", title: "样式实现首版合并", viewStatus: "review_approved_waiting_merge", riskLevel: "S3", elapsedMin: 26, spent: { known: true, value: 8.8 }, lastEvent: "你已验收,等你 Touch ID 批准合并" }),
+  task: makeTask({ id: "rv3", title: "样式实现首版合并", viewStatus: "review_approved_waiting_merge", riskLevel: "S3", elapsedMin: 26, spent: { known: true, value: 8.8 }, lastEvent: "你已验收,等你用本机认证批准合并" }),
   packageRefText: "所属:给 SayDo 重做前端 · 决策包 pkg_01J9… r1",
   acceptance: [
     { criterion: "today 页四色收件箱渲染与 /api/attention 一致", status: "pass", source: "verify",

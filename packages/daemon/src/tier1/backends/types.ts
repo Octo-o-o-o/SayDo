@@ -20,6 +20,7 @@ export type Tier1Event =
   | { kind: "rate_limit"; status?: string; resetsAt?: number; rateLimitType?: string }
   | {
       kind: "result";
+      session_id?: string;
       subtype?: string;
       isError?: boolean;
       numTurns?: number;

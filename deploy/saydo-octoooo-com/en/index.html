@@ -272,7 +272,7 @@
           <div class="card" data-reveal data-reveal-delay="2">
             <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></div>
             <h3 class="card-title">Real AI, doing real work</h3>
-            <p class="card-body">It plugs into the AI already signed in on your machine — Codex, Claude Code, Cursor, Gemini CLI, Grok and more for thinking and evaluation; hands-on code changes run through Cursor Agent today, with a Claude Code executor in progress. Whichever you subscribe to, it uses. No extra fees.</p>
+            <p class="card-body">It plugs into the AI already signed in on your machine — Codex, Claude Code, Cursor, Gemini CLI, Grok and more for thinking and evaluation. Cursor Agent is the stable code-editing path today; Claude Code is wired into production and undergoing final live closure. Whichever you subscribe to, it uses. No extra fees.</p>
           </div>
           <div class="card" data-reveal>
             <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
@@ -308,8 +308,8 @@
             <p>Conversation, reasoning, and evaluation run on the Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot sessions already signed in on your machine, or any OpenAI-compatible API. The executor that edits code is Cursor Agent today.</p>
           </div>
           <div class="status-card" data-reveal data-reveal-delay="1">
-            <div class="sc-top"><h3>Claude Code executor</h3><span class="badge badge-progress">In progress</span></div>
-            <p>Drive Claude Code from your Claude subscription in an isolated worktree, behind the same fail-closed approval gate. Capabilities and the gate decision logic have been verified against the official CLI; it is not yet wired into the production execution path.</p>
+            <div class="sc-top"><h3>Claude Code executor</h3><span class="badge badge-progress">Closing out</span></div>
+            <p>The production execution path, approval gate, recovery, accounting, self-test, and console are wired. Final live end-to-end conformance remains open, so Cursor stays the stable default path for now.</p>
           </div>
           <div class="status-card" data-reveal data-reveal-delay="2">
             <div class="sc-top"><h3>Memory and the four-color ledger</h3><span class="badge badge-live">Available now</span></div>
@@ -376,7 +376,15 @@
         <div class="section-head is-center" data-reveal>
           <span class="eyebrow">GET STARTED</span>
           <h2 class="section-title">Open-source desktop, apps on the way</h2>
-          <p class="section-lead">The desktop service is the execution side: macOS is free, open source, and available now; Windows has native support verified on real hardware, Linux passes the full CI matrix, and both run today — residency install, system notifications, and similar paths are macOS-only for now. The mobile apps are the communication side: in development, not listed in any store, and there is nothing to download today. Run the desktop service on your computer and start talking: no API keys to apply for — any signed-in AI command-line tool on your computer is enough. After you explicitly enable LAN access as documented, you can connect with a phone browser by scanning a QR code.</p>
+          <p class="section-lead">The desktop service is the execution side: the source form runs on macOS, Windows, and Linux today, while residency installation and system notifications remain macOS-only. Mobile apps are in development and are not available in any store. Run the desktop service and choose a signed-in AI CLI that SayDo supports and has passed through self-test; this needs no separate API key, and unsupported CLIs are rejected explicitly. After you enable LAN access as documented, a phone browser can connect by QR code.</p>
+        </div>
+        <div class="quick-run" data-reveal>
+          <strong>Run the daemon + Web console once</strong>
+          <code>npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz -- saydo up</code>
+          <strong>Install for regular use</strong>
+          <code>npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz</code>
+          <code>saydo up</code>
+          <p>Requires Node.js 22; no source checkout. This is the candidate fixed URL for v0.1.0-rc.2 and works only after the GitHub Release page appears and all release checks are green; it does not include the voice pipeline or service installation.</p>
         </div>
         <div class="platform-groups" data-reveal>
           <div class="platform-group">
@@ -391,15 +399,17 @@
                   <a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub →</a>
                 </span>
               </div>
-              <div class="platform">
+              <div class="platform is-open">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>
                 <span class="name">Windows</span>
                 <span class="badge badge-live">Open source · Available now</span>
+                <span class="platform-links"><a href="/en/docs/#quickstart">Install guide →</a></span>
               </div>
-              <div class="platform">
+              <div class="platform is-open">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
                 <span class="name">Linux</span>
                 <span class="badge badge-live">Open source · Available now</span>
+                <span class="platform-links"><a href="/en/docs/#quickstart">Install guide →</a></span>
               </div>
             </div>
           </div>
@@ -465,7 +475,7 @@
           </details>
           <details class="faq-item">
             <summary>Will it push or open PRs for me?<span class="chev"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
-            <div class="answer">No. It only edits code in an isolated worktree on a saydo/&lt;task&gt; branch inside your project; merging into your branch takes your Touch ID or your own hands, and pushing or opening a PR is always something you do afterwards.</div>
+            <div class="answer">No. It only edits code in an isolated worktree on a saydo/&lt;task&gt; branch inside your project; merging into your branch takes local device authentication or your own hands, and pushing or opening a PR is always something you do afterwards.</div>
           </details>
         </div>
       </div>

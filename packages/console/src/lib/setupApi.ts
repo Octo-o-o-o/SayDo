@@ -185,6 +185,22 @@ export type SetupTestSlot = {
 
 export type SetupTestResult = Record<string, SetupTestSlot>;
 
+export type Tier1SelfTestCheck = {
+  name: string;
+  status: "ok" | "fail" | "skipped";
+  error?: string;
+  detail?: string;
+};
+
+export type Tier1SelfTestReport = {
+  adapter: string;
+  status: "ok" | "fail" | "unsupported";
+  checks: Tier1SelfTestCheck[];
+  identityWritten: boolean;
+  restartRequiredToArm?: boolean;
+  prescription?: string;
+};
+
 export type HealthSnapshot = {
   ok: boolean;
   pid?: number;
@@ -370,6 +386,37 @@ export function parseSetupTestResult(raw: unknown): SetupTestResult {
     out[k] = slot;
   }
   return out;
+}
+
+export function parseTier1SelfTestReport(raw: unknown): Tier1SelfTestReport {
+  const payload = asRecord(raw);
+  const report = asRecord(payload["tier1"]);
+  const statusRaw = asString(report["status"]);
+  const status = statusRaw === "ok" || statusRaw === "fail" || statusRaw === "unsupported" ? statusRaw : "fail";
+  const checks = Array.isArray(report["checks"])
+    ? report["checks"].flatMap((value): Tier1SelfTestCheck[] => {
+        const check = asRecord(value);
+        const name = asString(check["name"]);
+        const checkStatus = asString(check["status"]);
+        if (!name || (checkStatus !== "ok" && checkStatus !== "fail" && checkStatus !== "skipped")) return [];
+        return [
+          {
+            name,
+            status: checkStatus,
+            ...(asString(check["error"]) ? { error: asString(check["error"]) as string } : {}),
+            ...(asString(check["detail"]) ? { detail: asString(check["detail"]) as string } : {})
+          }
+        ];
+      })
+    : [];
+  return {
+    adapter: asString(report["adapter"]) ?? "unknown",
+    status,
+    checks,
+    identityWritten: asBool(report["identityWritten"]),
+    ...(asBool(report["restartRequiredToArm"]) ? { restartRequiredToArm: true } : {}),
+    ...(asString(report["prescription"]) ? { prescription: asString(report["prescription"]) as string } : {})
+  };
 }
 
 export function parseHealth(raw: unknown): HealthSnapshot {
@@ -645,6 +692,19 @@ export async function postSetupTest(body: { scope?: "plan" | "voice" } = {}): Pr
     throw new Error(msg);
   }
   return parseSetupTestResult(payload);
+}
+
+export async function postTier1SetupTest(): Promise<Tier1SelfTestReport> {
+  const { res, body: payload } = await setupFetch("/api/setup/test", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-saydo-token": capToken() },
+    body: JSON.stringify({ scope: "tier1" })
+  });
+  if (!res.ok) {
+    const msg = asString(payload["message"]) ?? `${res.status} /api/setup/test`;
+    throw new Error(msg);
+  }
+  return parseTier1SelfTestReport(payload);
 }
 
 /** POST restart → 202;不要求 JSON ok */

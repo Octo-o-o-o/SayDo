@@ -80,6 +80,8 @@ describe("DDL v5 追赶迁移(A1)", () => {
     expect(columns(db, "tier1_runs")).toContain("restart_reason");
     // v30(W5.4-b C2b):claude 会话确认位,老库缺省 0
     expect(columns(db, "tier1_runs")).toContain("native_session_confirmed");
+    // v31:失败终态收口意图跨 daemon 重启保留
+    expect(columns(db, "tier1_runs")).toContain("finalize_pending_json");
     // v7(W5a 3.5):project_settings 受控表老库同样建出
     expect(db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='project_settings'").get()).toBeTruthy();
     // v8(W5a 3.7):subscription_retry_queue durable 队列老库同样建出

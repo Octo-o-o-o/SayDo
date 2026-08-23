@@ -15,14 +15,14 @@
 ## C2 · 执行客户端(ExecutionClient)
 
 - **职责**:两形态一接口——**C2-Tier1**(P0):SDK/CLI 薄执行器,canUseTool 语义审批门;**C2-Hopper**(P0.5):drop/run/cancel/review/merge/retry 经官方 CLI。**不做**:执行逻辑本身(agent/Hopper 的)、审批裁决(C5)。
-- **接口面(Tier1)**:`DevAgentBinding`(09 §11:agent=claude_code|cursor|codex、transport=sdk|cli)、`tier1_runs` 表 + 转换规则(09 §9)、steer 应答 `queued_delta/cancel_resume`(09 §13);适配器矩阵 07 D8(claude_sdk=产品缺省 canUseTool+live steer;cursor_cli=dev 缺省 hooks 审批门、无 live steer;codex=Tier2 经 Hopper)。
+- **接口面(Tier1)**:`DevAgentBinding`(09 §11:agent=claude_code|cursor|codex、transport=sdk|cli,其中 claude_code 现行为 cli)、`tier1_runs` 表 + 转换规则(09 §9)、steer 应答 `queued_delta/cancel_resume`(09 §13);适配器矩阵 07 D8(claude_code=CLI `PreToolUse` hooks,生产主流程已接线、live conformance 收口中;cursor=CLI hooks 当前稳定缺省;两者均无 live steer;codex=Tier2 经 Hopper)。
 - **接口面(Hopper)**:`HopperCommand`(09 §6.2:op 词表/idemKey/先 intent 后 confirmed)、`--req-id`/`--expect-*`/`--origin`(baseline.2)、**retry 闸门**(高风险不自动 retry、分诊 blocked 恢复走 re-drop→unblock,09 §6.2)、capabilities 握手第一调用(09 §11 [hopper])。
 - **设计要点(Tier1 安全,4.1 全量)**:① cursor 审批门 = 每任务 worktree `.cursor/hooks.json` `beforeShellExecution` 阻塞回连 daemon socket,**fail-closed 四律**(只依赖 deny/jq 构造 JSON/超时=deny/每条命令独立审批);② 审批门完整性:gate 在 agent 不可写目录、**tool_call 无 hook 回调 canary ⇒ 立即 cancel**、`cursor-agent` 版本 pin;③ worktree 供给:setup 缺省 `--ignore-scripts`、凭据剥离(G4)、verify **内容冻结**(dispatch 冻结 argv+脚本 digest,执行前重校,不符 fail-closed,G3);④ daemon HTTP/WS 身份:capability token + Host/Origin 白名单(G1 网络半边);⑤ 恢复钥匙 =(adapter, nativeSessionId, cwd),失败降级"摘要+diff 注入新会话"。
 - **设计要点(Hopper)**:提交串行 ≤1 in-flight、间隔 ≥200ms、撞 scheduler.lock 退避 ≥5s;MutationResult 五状态,`expired ≠ 失败`(对账 `.result.json`);merge 是独立命令,S3 收据绑 merge 动作本身(设计 ADR-001)。
 - **依赖**:C5(审批)、C1(卡)、E2(风险)、C7(恢复);Tier1 依赖所选 adapter 登录态(Phase -1 A⑤)。
 - **失效与恢复**:hopper_commands ≠confirmed 重放(idemKey);tier1_runs 崩溃重放基元(0.3);cancel 语义三分(answer_permission / kill_and_resume / cancel,03 §5)。
 - **验证归属**:§12-6(取消/改需求,Tier1 子集属 P0)、§12-7(崩溃恢复)、§12-10(route×adapter 判别 + 安全反例:canary/digest 冻结/DNS-rebinding)、4.0(**脚本级预检**)、4.1(全链 conformance 报告 + deny 拦截/阻塞放行 e2e——4.0/4.1 分工见计划,Codex 复审 B19 同步)。
-- **分期与开放项**:C2-Tier1=P0;C2-Hopper=P0.5-B。开放:claude_sdk 四能力验证顺延至订阅购入(v2.3①);cursor_sdk(API key)后续优化。
+- **分期与开放项**:C2-Tier1=P0;C2-Hopper=P0.5-B。开放:Claude Code 最终 live conformance 与模板缺省切换归 W5.4-c;cursor_sdk(API key)后续优化。
 
 ## C3 · 事件消费器(EventConsumer)
 

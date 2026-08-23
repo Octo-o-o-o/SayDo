@@ -18,6 +18,12 @@ export interface ParsedEvent {
   text?: string;
   toolName?: string;
   observedModel?: string;
+  usage?: {
+    input_tokens: number;
+    output_tokens: number;
+    cache_read_input_tokens: number;
+    cache_creation_input_tokens: number;
+  };
   raw?: string;
 }
 
@@ -136,9 +142,30 @@ export function parseCursorLine(line: string): ParsedEvent {
     if (structured === undefined && obj["result"] !== undefined && typeof obj["result"] !== "string") {
       return { kind: "parse_error", raw: line };
     }
+    const rawUsage = obj["usage"];
+    let usage: ParsedEvent["usage"];
+    if (rawUsage !== undefined) {
+      if (!isRecord(rawUsage)) return { kind: "parse_error", raw: line };
+      const values = [
+        rawUsage["inputTokens"],
+        rawUsage["outputTokens"],
+        rawUsage["cacheReadTokens"],
+        rawUsage["cacheWriteTokens"]
+      ];
+      if (values.some((value) => !Number.isSafeInteger(value) || (value as number) < 0)) {
+        return { kind: "parse_error", raw: line };
+      }
+      usage = {
+        input_tokens: values[0] as number,
+        output_tokens: values[1] as number,
+        cache_read_input_tokens: values[2] as number,
+        cache_creation_input_tokens: values[3] as number
+      };
+    }
     return {
       kind: "result",
       text: structured !== undefined ? JSON.stringify(structured) : (obj["result"] as string | undefined) ?? "",
+      ...(usage ? { usage } : {}),
       raw: line
     };
   }

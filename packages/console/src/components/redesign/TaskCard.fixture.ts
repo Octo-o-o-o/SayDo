@@ -10,7 +10,7 @@ export const taskCardFixtures: { name: string; task: TaskView }[] = [
   { name: "blocked · 需要你(行内回答)", task: makeTask({ id: "t05", title: "发布会讲稿大纲 v2", viewStatus: "blocked", riskLevel: "S0", lastEvent: "受众定位两种理解都能走,需要你拍板" }) },
   { name: "waiting_confirmation · 等你拍板(计费切换)", task: makeTask({ id: "t06", title: "长文扩写(计费切换)", viewStatus: "waiting_confirmation", riskLevel: "S2", elapsedMin: 7, spent: { known: false }, lastEvent: "订阅额度用完了,切到 API 计费要你拍板" }) },
   { name: "ready_for_review · 等你验收(全站最高优先级)", task: makeTask({ id: "t07", title: "月度跑批脚本", viewStatus: "ready_for_review", attempt: 2, elapsedMin: 23, spent: { known: true, value: 11.4 }, lastEvent: "verify 三条全过,树已冻结" }) },
-  { name: "review_approved_waiting_merge · 已批准·待合并(S3)", task: makeTask({ id: "t08", title: "样式实现首版合并", viewStatus: "review_approved_waiting_merge", riskLevel: "S3", elapsedMin: 26, spent: { known: true, value: 8.8 }, lastEvent: "你已验收,等你 Touch ID 批准合并" }) },
+  { name: "review_approved_waiting_merge · 已批准·待合并(S3)", task: makeTask({ id: "t08", title: "样式实现首版合并", viewStatus: "review_approved_waiting_merge", riskLevel: "S3", elapsedMin: 26, spent: { known: true, value: 8.8 }, lastEvent: "你已验收,等你用本机认证批准合并" }) },
   { name: "merging · 合并中", task: makeTask({ id: "t09", title: "模板目录整理合并", viewStatus: "merging", riskLevel: "S3", elapsedMin: 2, spent: { known: true, value: 1.1 }, lastEvent: "合并进行中" }) },
   { name: "merge_failed · 合并冲突/失败", task: makeTask({ id: "t10", title: "讲稿配图脚本", viewStatus: "merge_failed", elapsedMin: 14, spent: { known: true, value: 4.0 }, lastEvent: "和你手改的同一段冲突了" }) },
   { name: "task_done · 已交付", task: makeTask({ id: "t11", title: "报表模板目录整理", viewStatus: "task_done", elapsedMin: 9, spent: { known: true, value: 3.1 }, lastEvent: "已交付并合并" }) },

@@ -38,6 +38,9 @@ export * from "./readiness.js";
 // 可分发运行时身份/readiness/supervisor IPC(09 §16)
 export * from "./runtime.js";
 
+// Tier1 阻塞原因上屏/口播单源(10 §3.4)
+export * from "./tier1Presentation.js";
+
 // 0.2b:renderSpoken + EffectGrant fail-closed + dispatch 校验
 export * from "./effects.js";
 

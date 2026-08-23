@@ -2036,3 +2036,35 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
   把错误行为写进测试固化、静默双改契约、台账里写过一条不实陈述。
 - 升常驻豁免了 T19 x tailnet 与备份两条前置(owner 明示);备份那条本轮已修并现场复验,T19 仍未动。
   本次升常驻再次前移发布锁,四场基线需 owner 重新声明。
+
+## R94 · 最近一周双向审计、快速启动与最终冻结复审(2026-08-23)
+
+### 输入
+- owner 要求找出最近一周全部文档和提交,双向逐项对账并直接修复；完成后交叉 review、推 GitHub、
+  发布部署,并为 macOS/Windows/Linux 设计无源码快速启动和做 Mac/Windows 实机验证。
+
+### 行动
+1. 以 2026-08-15 00:00 +0800 为下界建立提交、文档与已记录 ref 宇宙双向账本；机械层覆盖
+   main 115 个提交、已记录 ref 宇宙 131 个、额外 16 个、434 个路径与 219 份文档型资产。
+2. 发布最终复审发现 F89–F94,运行时最终复审发现 F95–F97；发布门、SSH wrapper、私有探针、
+   CI 权限、Release readback、restart/finalization、adapter mismatch 与旧 result 串代均已回修。
+3. Grok 实施会话在隔离施工 worktree 落下运行时修复,但 sandbox 无权写父仓 worktree admin 且测试夹具
+   不能写 owner home；按非配额失败规则没有换通道。原始 streaming log 4761389 bytes、SHA-256
+   `5f04e317243b44cddfaaf28505e0ba2fa672d0773c022ea6342ea2af9a7c0308`,没有 final message；改动移入
+   owner home 后由本会话独立验证。
+4. 两路零上下文差量复审:运行时三条均 `CONFIRMED_FIXED` 并判 Go；发布面确认 F89–F94,唯一 P1 是
+   audit bundle 仍停在旧实施边界。实施边界随后固定为 `3e74a5a`,证据载体排除,全量 schema 2/6 重生。
+5. 外部 Codex 108 与全新 session 112 均未产出 final；按两次卡死上限停止,不伪造通过结论。
+
+### 产出
+- 运行时代码:`877c875`;测试修正:`3e74a5a`;复审证据载体:`81760a4`。
+- `just ci`:exit 0；contracts 111、platform 12、console 278、CLI 20 passed/1 skipped、daemon
+  1883 passed/5 skipped、pipeline 34 passed。
+- 分发验收 exit 0；Playwright 36 passed；发行物两次构建一致,1145989 bytes、SHA-256
+  `aa03450c20d080aa893350d66f3b1e2e0b46329204f5990d77b1019c0593ff93`、17 个成员。
+- 内部完整树 `node scripts/week-audit.mjs --check` 退出 0；公开过滤树 `--check-bundle` 留待证据
+  提交后在不含私有软著材料的树上复验。
+
+### 结论
+- 本地实现与内部账本已达到发布候选；不可变 tag/Release、公开 Actions、Mac/Windows fixed URL、
+  Pages、常驻 runtime 与移动真机仍属于后续发布阶段,本节不提前宣称完成。

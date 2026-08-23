@@ -74,12 +74,18 @@ export const tier1RunStateSchema = z.enum([
 export type Tier1RunState = z.infer<typeof tier1RunStateSchema>;
 
 export const tier1SettleProofSchema = z.strictObject({
+  kind: z.literal("tier1").default("tier1"),
   taskId: idSchema,
   runId: z.string().min(1),
   attempt: z.number().int().positive(),
   packageRevision: z.number().int().positive(),
   treeSha: z.string().min(1),
   tier1VerifyDigest: digestSchema,
+  /**
+   * coding 验收逐条证据。旧版落库 proof 没有本字段，解析时回落为空数组；
+   * 消费方必须据 DecisionPackage.acceptance 补成 unknown，不能据 task 终态推成 pass。
+   */
+  acceptanceChecks: z.array(acceptanceCheckSchema).default([]),
   transcriptCursor: z.string().min(1),
   settledAt: tsSchema
 });
@@ -99,6 +105,7 @@ export const writingSettleProofSchema = z.strictObject({
   treeSha: z.string().min(1), // worktree 树对象(合并链复用)
   articleArtifactId: idSchema, // 成稿产物(§8 Artifact type="article")
   articleVersion: z.number().int().positive(),
+  articlePath: z.string().min(1).optional(), // 新写必带；旧 proof 缺失时消费者仅兼容为 article.md，不能改写旧 digest
   articleDigest: digestSchema, // 文章正文 sha256
   sectionCoverage: z.array(z.strictObject({ outlineSectionId: z.string().min(1), status: z.enum(["drafted", "empty"]) })),
   acceptanceChecks: z.array(acceptanceCheckSchema),
@@ -110,6 +117,22 @@ export type WritingSettleProof = z.infer<typeof writingSettleProofSchema>;
 /** writing settle proof 判别(settle_proof_json 落同列;reviewTask/merge 按 kind 分叉) */
 export function isWritingSettleProof(p: unknown): p is WritingSettleProof {
   return typeof p === "object" && p !== null && (p as { kind?: unknown }).kind === "writing";
+}
+
+/** AcceptanceCheck 与 DecisionPackage.acceptance 的双向 exact-set 对账(两侧都禁重复)。 */
+export function acceptanceExactSetViolations(
+  checks: readonly Pick<AcceptanceCheck, "criterion">[],
+  acceptance: readonly string[]
+): string[] {
+  const violations: string[] = [];
+  const expected = new Set(acceptance);
+  const got = checks.map((check) => check.criterion);
+  const actual = new Set(got);
+  if (acceptance.length !== expected.size) violations.push("DecisionPackage.acceptance 有重复项");
+  if (got.length !== actual.size) violations.push("acceptanceChecks 有重复项");
+  for (const criterion of actual) if (!expected.has(criterion)) violations.push(`幽灵验收项:${criterion}`);
+  for (const criterion of expected) if (!actual.has(criterion)) violations.push(`漏验收项:${criterion}`);
+  return violations;
 }
 
 /**
@@ -139,13 +162,11 @@ export function writingSettleStructuralViolations(
     }
   }
   // ③ 验收对账
-  const expectedAc = new Set(ctx.acceptance);
-  const gotAc = proof.acceptanceChecks.map((c) => c.criterion);
-  const gotAcSet = new Set(gotAc);
-  if (gotAc.length !== gotAcSet.size) violations.push("acceptanceChecks 有重复项");
-  for (const c of gotAcSet) if (!expectedAc.has(c)) violations.push(`幽灵验收项:${c}`);
-  for (const c of expectedAc) if (!gotAcSet.has(c)) violations.push(`漏验收项:${c}`);
+  violations.push(...acceptanceExactSetViolations(proof.acceptanceChecks, ctx.acceptance));
   for (const c of proof.acceptanceChecks) {
+    if (c.status !== "unknown" && !c.evidenceRef?.trim()) {
+      violations.push(`pass/fail 验收项须绑非空 evidenceRef:${c.criterion}`);
+    }
     if (c.source === "verify" && (!c.evidenceRef || c.status !== "pass")) {
       violations.push(`verify 验收项须绑 evidenceRef 且 pass:${c.criterion}`);
     }

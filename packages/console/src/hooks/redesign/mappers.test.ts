@@ -7,6 +7,7 @@ import {
   deriveExpectations,
   localizeSegmentTs,
   mapActivationSessions,
+  mapReviewContext,
   mapTranscriptLines,
   markLiveSegments,
   mergeTimelineAsc,
@@ -173,6 +174,43 @@ describe("mapTranscriptLines", () => {
       ]
     });
     expect(lines).toEqual(["你: 你好", "AI: 在"]);
+  });
+});
+
+describe("mapReviewContext 验收证据", () => {
+  const base = {
+    task: { id: "tsk_1", title: "验收", status: "ready_for_review", project_type: "coding" },
+    package: { acceptance: ["可启动", "人工走查", "缺证据", "重复项"] },
+    runs: []
+  };
+
+  it("只消费逐条 AcceptanceCheck；任务终态不批量伪造 pass/fail", () => {
+    const mapped = mapReviewContext({
+      ...base,
+      acceptanceChecks: [
+        { criterion: "可启动", status: "pass", source: "verify", evidenceRef: "verify:1" },
+        { criterion: "人工走查", status: "unknown", source: "manual" },
+        { criterion: "缺证据", status: "pass", source: "verify" },
+        { criterion: "重复项", status: "pass", source: "verify", evidenceRef: "verify:a" },
+        { criterion: "重复项", status: "fail", source: "manual", evidenceRef: "audit:b" }
+      ]
+    });
+    expect(mapped.acceptance).toEqual([
+      { criterion: "可启动", status: "pass", source: "verify" },
+      { criterion: "人工走查", status: "unknown", source: "manual" },
+      { criterion: "缺证据", status: "unknown", source: "verify" },
+      { criterion: "重复项", status: "unknown", source: "verify" }
+    ]);
+  });
+
+  it("failed 且没有逐条证据时仍全部 unknown，string criterion 不加引号", () => {
+    const mapped = mapReviewContext({ ...base, task: { ...base.task, status: "failed" }, acceptanceChecks: [] });
+    expect(mapped.acceptance.map((item) => [item.criterion, item.status])).toEqual([
+      ["可启动", "unknown"],
+      ["人工走查", "unknown"],
+      ["缺证据", "unknown"],
+      ["重复项", "unknown"]
+    ]);
   });
 });
 

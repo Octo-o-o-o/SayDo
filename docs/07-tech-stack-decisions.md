@@ -23,7 +23,7 @@
 | D5 | TTS | **火山豆包 seed-tts-2.0 大模型 · v3 双向流式 WebSocket**(定档)+ 本地兜底按 OS(macOS:Kokoro MLX/`say`;Windows P0:无本地则 ntfy,P1:SAPI/piper) | 定稿(2026-07-23;Windows 投影 2026-08-21 设计 ADR-004) |
 | D6 | S2S 引擎 | OpenAI Realtime,仅对话呈现层 | 分期(P2) |
 | D7 | 执行后端 | Hopper(现状 task 粒度起步) | 定稿 |
-| D8 | agent 接入 | Claude=**CLI `-p` + PreToolUse hooks**(Tier 1,产品缺省;原"Agent SDK"传输 2026-08-21 supersede,W5.4 接线中);**Cursor=CLI hooks(Tier 1,dev 缺省;SDK=P1)**;Codex=经 Hopper exec(Tier 2)→ 评估 app-server | 定稿(传输形态 2026-08-21 修订) |
+| D8 | agent 接入 | Claude=**CLI `-p` + PreToolUse hooks**(Tier 1,产品目标缺省;原"Agent SDK"传输 2026-08-21 supersede,生产主流程已接线、live conformance 收口中);**Cursor=CLI hooks(Tier 1,当前稳定/dev 缺省;SDK=P1)**;Codex=经 Hopper exec(Tier 2)→ 评估 app-server | 定稿(传输形态 2026-08-21 修订) |
 | D9 | 记忆存储与检索 | Markdown 真相 + append-only 账本 + SQLite FTS5 | 待 spike(中文分词) |
 | D10 | 审批持久化 | 自建 SQLite 表,抄 LangGraph interrupt 语义 | 定稿 |
 | D11 | 通知/推送 | P0 ntfy + 桌面通知 → P1 APNs/FCM 直连 + PushKit/CallKit | 定稿 |
@@ -40,7 +40,7 @@
 ### D1 daemon:TypeScript / Node 22+(定稿)
 
 - **候选**:TS/Node · Python · Go/Rust。
-- **理由**:Claude Agent SDK 与 `@cursor/sdk` 都是 TS 一等公民;执行后端 Hopper 同为 TS/Node≥22(同栈缝合成本最低);WS/HTTP 生态成熟。Python 的优势集中在语音生态,用 D2 的独立进程解决,不为此把 daemon 换语言。Go/Rust 无 SDK 优势,纯性能在本场景不是瓶颈。
+- **理由(历史选型依据)**:Claude Agent SDK 与 `@cursor/sdk` 都是 TS 一等公民;执行后端 Hopper 同为 TS/Node≥22(同栈缝合成本最低);WS/HTTP 生态成熟。**2026-08-21 传输 supersede 后,现行 Claude 走 CLI hooks,本条只解释 daemon 仍选 TypeScript 的原始依据,不声明 SDK 已接线。**Python 的优势集中在语音生态,用 D2 的独立进程解决,不为此把 daemon 换语言。Go/Rust 的纯性能在本场景不是瓶颈。
 
 ### D16 存储:SQLite + JSONL + Markdown(定稿)
 
@@ -53,6 +53,17 @@
 P0 `voiced` / `saydo up` 手动启动(开发迭代快);macOS P1 launchd 常驻 + 开机自启;Windows P0 同 CLI supervisor,P1 当前用户 Scheduled Task(设计 ADR-004,不模拟 plist);P2 才考虑菜单栏原生壳(届时评估 Swift menubar vs Tauri,不用 Electron——一个常驻语音 daemon 不需要 300MB 的壳)。
 
 **状态(W2 提前批 #1 已实施,2026-07-26)**:macOS launchd 常驻落地(`com.saydo.daemon` plist:RunAtLoad 重登录自起 + KeepAlive.SuccessfulExit=false 崩溃自启;`just daemon <install|…|deploy>` 命令面);**运行时/开发树分离**(场次① C2):常驻从 `~/.saydo/runtime` 独立树跑收口 SHA(`just daemon deploy`),开发树改码/测试不打断在场语音会话。菜单栏仍 P2。Windows 常驻安装器属 W-Win P1,不在 W2 范围。
+
+**无源码分发决策(2026-08-23)**:预发布先以不可移动 GitHub Release 的版本化 npm tarball 为
+唯一字节源,同时提供一次运行(`npm exec --package=<固定 URL>`)与全局安装两种入口。这样三平台
+共用一份包、Node 22 负责平台选择,native external(`better-sqlite3`、`koffi`)仍能走 npm 的成熟
+安装闭包；Release 同附 SHA-256、npm SHA-512 integrity、条目数和源码构建身份,发布后再在三个
+系统从空 cache/home 真安装。npm registry 是同一包的后续便捷别名,由 owner 手动发布后才能写
+`npx @saydo/cli@<version>`。Homebrew/Scoop/winget 当前只会重复包装 Node 与同一 tarball、增加撤回
+和签名维护面,留到常驻安装器成形后再做；Docker 会隔开本机仓库、登录态 CLI、审批 hooks 与
+localhost 控制台,不适合作为默认桌面入口；原生 `.dmg/.msi/.deb` 则等菜单栏/常驻服务和代码签名
+一起设计。rc.2 包只含 daemon + Web 控制台,Windows/Linux 前台运行；语音 pipeline 与系统常驻
+不在该包内。
 
 ## 3. 语音链路
 
@@ -227,7 +238,7 @@ daemon 静态托管的单页应用(麦克风采集、任务看板、决策包/De
 - **缺省配对**:thinking = `cursor_cli`(claude-fable-5-thinking-max,族=Claude)+ evaluator = `codex_cli`(gpt-5.6-luna,effort=max,族=GPT)——异族天然成立,且两档不共享同一家时窗。**互换必须成对**(thinking=codex_cli ⇔ evaluator=cursor_cli fable),否则异族校验拒启动。全 Cursor 配对(fable+luna)异族也成立,但两档共享一家时窗且供给单点,不作缺省。
 - dialog 全局绑定 CLI 时走 `dialog_cli_oneshot`,绑定 API 时仍走完整工具环;项目级 dialog override 恒拒 CLI。cheap 可走 CLI schema 通道,不得因其历史口播用途继续强制回落 API。
 - evaluator CLI 按双 ack+self-test+observedModel 合同武装;`profile="dev"` 不构成绕过。Gate 0/S3/收据/tripwire 审批安全链不放宽。
-- 开发档(Tier 1)接口按 canUseTool 语义抽象:产品缺省 Claude Code CLI hooks(**2026-08-21 supersede,原"Agent SDK"传输作废**;订阅已就位,W5.4 接线中),**dev 机走 Cursor CLI hooks 已实测可等价审批(2026-07-23,`research/spikes/cursor-cli-tier1/`)**;live steer/streaming input 是 SDK 独有能力,两后端均以 `queued_delta`/`cancel_resume` 代偿,W5.4 不实现。
+- 开发档(Tier 1)接口按 canUseTool 语义抽象:产品目标缺省 Claude Code CLI hooks(**2026-08-21 supersede,原"Agent SDK"传输作废**;生产主流程已接线、最终 live conformance 收口中),**当前稳定/dev 缺省 Cursor CLI hooks 已实测可等价审批(2026-07-23,`research/spikes/cursor-cli-tier1/`)**;live steer/streaming input 是 SDK 独有能力,两后端均以 `queued_delta`/`cancel_resume` 代偿,W5.4 不实现。
 
 **实现路径(T18a 对抗审裁决)**:补强 SayDo 已有 `providers/byoa/` 五层骨架(`cage/runner/parsers/consume/provider`),不搬 OctoDesk 的 Electron bridge 结构。OctoDesk 只读借鉴三项安全细节:取消链、wall+idle 双 watchdog、stderr 与 output cap。cursor 使用独立 raw NDJSON parser,识别顶层 tool_call 与未知事件;未知事件、provider 自报失败或解析失败使该次结果作废。tripwire 必须在流式读到工具事件时立即终止,不得等进程自然退出;已触发 tripwire/unknown/解析或家族失败的 attempt 不得借网络重试洗白。Claude schema 方言使用 `--output-format json --json-schema '<inline JSON>'`,从 envelope 的 `structured_output` 取值;Codex 使用临时 schema 文件,Cursor 使用 prompt 内嵌。探测不能只靠 `cursor-agent status`,必须结合真实一发一收 self-test。
 
@@ -245,7 +256,7 @@ daemon 静态托管的单页应用(麦克风采集、任务看板、决策包/De
 
 下列订阅额度与记账行为随 T18a 三槽 CLI 生效:
 3. **额度诚实**:订阅调用记账 `cost_entries.source='subscription'`、`amount=NULL`、`meta_json={provider, plan_window?, requests}`,**显示"订阅额度内(已用 N 次)"**,不显示 ¥0 / "未知" / 剩余额度预测;`[budget].monthly` 与任务 maxCost 只约束 api 计费部分,订阅调用靠墙钟 + 回合数熔断兜底。**限流 = 停下询问,绝不静默转计费,且确认必须有可执行收据**(复评 A5 采纳):触发订阅限流(周/5h 时窗)→ 调用返回 `subscription_rate_limited`(可重试),该槽位进入 `waiting_confirmation`;Brain 按 10 话术问用户"切按量计费(有 key 时)还是等重置",确认落一张**一次性 billing-switch 收据**(绑 sessionId+槽位+目标端点+有效期,单次消费)——**无收据不得产生任何 `source='api'` 计费行**,E1 通用重试/降级禁止跨计费源。限流分类只读取非零退出 stderr 错误块或供应商明确失败 envelope,先按整个错误块/envelope 排除 auth/oauth/login/unauthorized/proxy/disk/filesystem/storage 语境,不得把分散在不同字段/行的普通错误或成功正文误报为订阅额度。P0 不做自动排队重放(P0.5 再议 durable 排队)。**同订阅争用**:当前缺省下 evaluator(codex_cli)与实施期 Codex 评审共享 ChatGPT 时窗,thinking(cursor_cli)占 Cursor 时窗;若按上文成对互换,争用关系随之互换。Phase -1 A② 的额度实测含"执行+评估并发"场景。
-4. **ToS 观察项**(不阻塞):订阅授权范围以各家现行条款为准,owner 已确认接受;若条款收紧,一行配置切回 api。Claude Agent SDK 用订阅登录态的额度口径,仍按计划 Phase -1 实测确认。
+4. **ToS 观察项**(不阻塞):订阅授权范围以各家现行条款为准,owner 已确认接受;若条款收紧,一行配置切回 api。Claude Code CLI `-p` 使用本机订阅登录态,额度与限流按真实事件记账,不自动切 API 计费。
 
 **刻意不做**:CLI 不进入语音实时环或完整多轮工具环;不自建订阅额度预测;acp 常驻供给与 resume 暂不做(cursor_cli 无头一发一收不是 acp)。
 

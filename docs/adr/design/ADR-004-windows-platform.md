@@ -73,7 +73,7 @@
 - 实例锁、进程树回收、emergency reaper 闭环(今日 win32 直接 throw 必须消灭)。
 - workspace 登记/重校验/路径词法(含 `C:\` 口语)。
 - cap-token / 锁文件 owner-only ACL。
-- Tier1 审批门(Windows 环回+HMAC + `gate-cursor.mjs`/`gate-claude.mjs`)与 cursor-agent.exe 命令钩子可走通 fail-closed 四律;Claude PreToolUse 物理链同期冻结(未知 `kind` deny,不拼接 W5.4-b 未收口协议)。
+- Tier1 审批门(Windows 环回+HMAC + `gate-cursor.mjs`/`gate-claude.mjs`)与 cursor-agent.exe 命令钩子可走通 fail-closed 四律;Claude PreToolUse 物理链在本 ADR 批次冻结(未知 `kind` deny,当时不提前拼接尚未收口的 W5.4-b 协议)。W5.4-b 后续已于 2026-08-23 收口 C1/C2/C3,真 Claude hook 全链验证仍归 W5.4-c。
 - 深链打开复用已有 `packages/cli/src/open.ts` win32 分支;编辑器探测读 `%LOCALAPPDATA%`。
 - S3 卡走 Windows Hello;无 Hello 时既有 requestManualMerge 降级。
 - 单测:非 darwin 专有用例在 win32 绿;darwin 专有 skip 并在测试名标明。

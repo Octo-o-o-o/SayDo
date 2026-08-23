@@ -124,7 +124,7 @@ export function issueS3Challenge(
     if (parsed.action === "register") {
       // bootstrap 一次性:仅当无 active 凭据才可签发注册挑战(换凭据 = 显式 revoke 后重走)
       if (getActiveCredential(deps.db)) {
-        throw new S3ToolError("credential_exists", "已有活跃批准指纹;换凭据须先显式撤销旧凭据再重新注册");
+        throw new S3ToolError("credential_exists", "已有活跃本机认证凭据;换凭据须先显式撤销旧凭据再重新注册");
       }
       // 可审计 owner intent 强制非空(RA-closeout,Codex 22 A2 残余):console 会话优先;
       // 无会话上下文时 daemon 生成一次性 bootstrap intent 并落审计行(§9 CHECK 双重承载)
@@ -208,7 +208,7 @@ export function registerWebauthn(
   if (ch.consumedAt) throw new S3ToolError("challenge_consumed", "挑战已消费(单次;重新发起注册)");
   if (ch.expiresAt <= nowIso) throw new S3ToolError("challenge_expired", "挑战已过期(120s 窗;重新发起注册)");
   if (getActiveCredential(deps.db)) {
-    throw new S3ToolError("credential_exists", "已有活跃批准指纹(bootstrap 一次性)");
+    throw new S3ToolError("credential_exists", "已有活跃本机认证凭据(bootstrap 一次性)");
   }
   let payload: z.infer<typeof attestationPayloadSchema>;
   try {
@@ -263,7 +263,7 @@ export function registerWebauthn(
   });
   tx();
   // TOFU 首注册窗口缓解 + 同步凭据诚实条款 ②(不宣称"密钥永不离开本机")
-  deps.say?.("已在此设备注册批准指纹。批准指纹可能经 iCloud 同步到你的其他设备;批准动作本身只能在这台电脑完成。");
+  deps.say?.("已在此设备注册本机认证凭据。用于本机认证的 passkey 可能经系统账号同步到你的其他设备;批准动作本身只能在这台电脑完成。");
   return { credentialId: verdict.credentialId };
 }
 
@@ -306,7 +306,7 @@ export function verifyS3Assertion(
   if (ch.expiresAt <= nowIso) return fail("challenge_expired", "挑战已过期(120s 窗;重新发起)");
 
   const cred = getActiveCredential(deps.db);
-  if (!cred) return fail("no_credential", "无活跃批准指纹(先注册,或走人工合并降级)");
+  if (!cred) return fail("no_credential", "无活跃本机认证凭据(先注册,或走人工合并降级)");
 
   let payload: z.infer<typeof assertionPayloadSchema>;
   try {
@@ -366,7 +366,7 @@ export function verifyS3Assertion(
     principal: "owner",
     decidedVia: "screen",
     authStrength: "os_biometric",
-    decision: "accept", // Touch ID 批准即裁决;outcome=pending 等 approveMerge 单次消费
+    decision: "accept", // 本机认证批准即裁决;outcome=pending 等 approveMerge 单次消费
     nonce: randomBytes(16).toString("base64url"),
     issuedAt: nowIso,
     expiresAt: new Date(now.getTime() + S3_CHALLENGE_TTL_MS).toISOString(),

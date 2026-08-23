@@ -1,6 +1,8 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
+import { createConnection } from "node:net";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve, delimiter } from "node:path";
@@ -67,6 +69,29 @@ function invariant(value, message) {
   if (!value) throw new Error(message);
 }
 
+function jcsSerialize(value) {
+  if (value === null) return "null";
+  if (typeof value === "boolean") return String(value);
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new Error("JCS: non-finite number not allowed");
+    return JSON.stringify(value);
+  }
+  if (typeof value === "string") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((item) => jcsSerialize(item === undefined ? null : item)).join(",")}]`;
+  if (typeof value === "object") {
+    return `{${Object.keys(value)
+      .filter((key) => value[key] !== undefined)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${jcsSerialize(value[key])}`)
+      .join(",")}}`;
+  }
+  throw new Error(`JCS: unsupported type ${typeof value}`);
+}
+
+function jcsDigest(value) {
+  return `sha256:${createHash("sha256").update(jcsSerialize(value), "utf8").digest("hex")}`;
+}
+
 async function freePort() {
   const server = createServer();
   await new Promise((resolveListen, rejectListen) => {
@@ -79,6 +104,18 @@ async function freePort() {
 }
 
 async function portAvailable(port) {
+  const listening = await new Promise((resolveListening) => {
+    const socket = createConnection({ host: "127.0.0.1", port });
+    const done = (value) => {
+      socket.removeAllListeners();
+      socket.destroy();
+      resolveListening(value);
+    };
+    socket.setTimeout(500, () => done(false));
+    socket.once("connect", () => done(true));
+    socket.once("error", () => done(false));
+  });
+  if (listening) return false;
   const server = createServer();
   try {
     await new Promise((resolveListen, rejectListen) => {
@@ -112,7 +149,12 @@ function packAndInstall() {
   const packed = JSON.parse(raw)[0];
   invariant(packed?.filename, "npm pack 未返回 tarball");
   const paths = packed.files.map((file) => file.path);
-  invariant(paths.every((path) => path === "package.json" || path.startsWith("dist/")), "tarball 含源码树外文件");
+  const packageDocs = new Set(["LICENSE", "NOTICE", "README.md", "THIRD_PARTY_NOTICES.md", "package.json"]);
+  invariant(
+    paths.every((path) => packageDocs.has(path) || path.startsWith("dist/")),
+    "tarball 含运行产物与包文档之外的文件"
+  );
+  for (const path of packageDocs) invariant(paths.includes(path), `tarball 缺 ${path}`);
   invariant(paths.includes("dist/runtime/daemon.mjs"), "tarball 缺 daemon artifact");
   invariant(paths.includes("dist/console/index.html"), "tarball 缺 console dist");
   execFileSync(npm.file, [...npm.prefix, "install", "--prefix", installRoot, join(scratch, packed.filename)], {
@@ -130,24 +172,30 @@ function packAndInstall() {
   return { filename: packed.filename, entryCount: packed.entryCount };
 }
 
-function cliInvocation() {
+function windowsCmdQuote(value) {
+  return `"${String(value).replaceAll('"', '""')}"`;
+}
+
+function cliInvocation(args) {
   if (process.platform === "win32") {
+    const shim = join(installRoot, "node_modules", ".bin", "saydo.cmd");
+    const command = [shim, ...args].map(windowsCmdQuote).join(" ");
     return {
-      file: process.execPath,
-      prefix: [join(installRoot, "node_modules", "@saydo", "cli", "dist", "cli.mjs")]
+      file: nodeOnlyEnv.ComSpec,
+      args: ["/d", "/s", "/c", command]
     };
   }
-  return { file: join(installRoot, "node_modules", ".bin", "saydo"), prefix: [] };
+  return { file: join(installRoot, "node_modules", ".bin", "saydo"), args };
 }
 
 function spawnCli(args, options) {
-  const cli = cliInvocation();
-  return spawn(cli.file, [...cli.prefix, ...args], { windowsHide: true, ...options });
+  const cli = cliInvocation(args);
+  return spawn(cli.file, cli.args, { windowsHide: true, ...options });
 }
 
 function cliSync(args, env = nodeOnlyEnv) {
-  const cli = cliInvocation();
-  return spawnSync(cli.file, [...cli.prefix, ...args], {
+  const cli = cliInvocation(args);
+  return spawnSync(cli.file, cli.args, {
     cwd: installRoot,
     env,
     encoding: "utf8",
@@ -163,17 +211,22 @@ function cliStopFile(home, pid) {
   return join(home, "runtime", `cli-stop-${String(pid)}`);
 }
 
-function requestGracefulStop(child, home) {
+function requestGracefulStop(child, home, supervisorPid) {
   if (process.platform === "win32") {
-    invariant(Number.isInteger(child.pid) && child.pid > 0, "cli pid 缺失,无法写 stop 文件");
+    invariant(Number.isInteger(supervisorPid) && supervisorPid > 0, "supervisor pid 缺失,无法写 stop 文件");
     mkdirSync(join(home, "runtime"), { recursive: true });
-    writeFileSync(cliStopFile(home, child.pid), "cli_sigint\n");
+    writeFileSync(cliStopFile(home, supervisorPid), "cli_sigint\n");
     return;
   }
   child.kill("SIGINT");
 }
 
-function start(port, home = stateRoot, env = nodeOnlyEnv, explicitPort = true) {
+function supervisorPidFromOutput(output) {
+  const line = output.split("\n").find((item) => item.startsWith('{"mode":"'));
+  return line ? JSON.parse(line).supervisorPid : undefined;
+}
+
+function start(port, home = stateRoot, env = nodeOnlyEnv, explicitPort = true, label = "unnamed") {
   const homeArgs = home === null ? [] : ["--home", home];
   const portArgs = explicitPort ? ["--port", String(port)] : [];
   const actualHome = resolvedHome(home);
@@ -190,7 +243,10 @@ function start(port, home = stateRoot, env = nodeOnlyEnv, explicitPort = true) {
   child.stdout.on("data", (chunk) => { output += chunk; });
   child.stderr.on("data", (chunk) => { output += chunk; });
   return new Promise((resolveReady, rejectReady) => {
-    const timer = setTimeout(() => rejectReady(new Error(`daemon ready 超时:\n${output.slice(-2000)}`)), process.platform === "win32" ? 30_000 : 15_000);
+    const timer = setTimeout(
+      () => rejectReady(new Error(`${label}:daemon ready 超时:\n${output.slice(-2000)}`)),
+      process.platform === "win32" ? 30_000 : 15_000
+    );
     const inspect = (chunk) => {
       for (const line of String(chunk).split("\n")) {
         if (!line.startsWith('{"mode":"owned"')) continue;
@@ -204,7 +260,7 @@ function start(port, home = stateRoot, env = nodeOnlyEnv, explicitPort = true) {
     child.stdout.on("data", inspect);
     child.once("exit", (code, signal) => {
       clearTimeout(timer);
-      rejectReady(new Error(`daemon ready 前退出 code=${code} signal=${signal}:\n${output.slice(-2000)}`));
+      rejectReady(new Error(`${label}:daemon ready 前退出 code=${code} signal=${signal}:\n${output.slice(-2000)}`));
     });
   });
 }
@@ -245,7 +301,7 @@ async function stopContender(contender) {
   if (contender.child.exitCode !== null || contender.child.signalCode !== null) return;
   await new Promise((resolveWait) => setTimeout(resolveWait, 200));
   if (contender.child.exitCode !== null || contender.child.signalCode !== null) return;
-  requestGracefulStop(contender.child, contender.home);
+  requestGracefulStop(contender.child, contender.home, supervisorPidFromOutput(contender.output()));
   const ended = await waitForExit(contender.child, 30_000, "concurrent contender");
   invariant(
     ended.code === 0 && ended.signal === null,
@@ -265,7 +321,7 @@ async function waitForExit(child, timeoutMs, label) {
 }
 
 async function stop(owned) {
-  requestGracefulStop(owned.child, owned.home);
+  requestGracefulStop(owned.child, owned.home, owned.ready.supervisorPid);
   const { code, signal } = await waitForExit(owned.child, process.platform === "win32" ? 30_000 : 15_000, `Ctrl+C 停止:\n${owned.output().slice(-2000)}`);
   invariant(code === 0 && signal === null, `CLI 非优雅退出 code=${code} signal=${signal}`);
   const daemonPid = owned.ready.pid;
@@ -378,13 +434,16 @@ async function attachAndRelease(port, expectedPid) {
   child.stderr.setEncoding("utf8");
   child.stdout.on("data", (chunk) => { output += chunk; });
   child.stderr.on("data", (chunk) => { output += chunk; });
+  let attachedSupervisorPid;
   await waitUntil(() => {
     const line = output.split("\n").find((item) => item.startsWith('{"mode":"attached"'));
     if (!line) return false;
-    return JSON.parse(line).pid === expectedPid;
+    const frame = JSON.parse(line);
+    attachedSupervisorPid = frame.supervisorPid;
+    return frame.pid === expectedPid;
   }, "attached up ready");
   await new Promise((resolveWait) => setTimeout(resolveWait, 200));
-  requestGracefulStop(child, stateRoot);
+  requestGracefulStop(child, stateRoot, attachedSupervisorPid);
   const ended = await waitForExit(child, process.platform === "win32" ? 15_000 : 5_000, "attached CLI");
   invariant(
     ended.code === 0 && ended.signal === null,
@@ -462,11 +521,11 @@ function packedDep(name) {
 }
 
 function assertPackedNativeAddon(dbPath) {
-  invariant(existsSync(packedDep("koffi")), "packed koffi missing");
-  const modulePath = packedDep("better-sqlite3");
-  const script = `const Database=require(${JSON.stringify(modulePath)});const db=new Database(${JSON.stringify(dbPath)});db.prepare("select 1 as x").get();db.close();`;
+  const koffiPath = packedDep("koffi");
+  const sqlitePath = packedDep("better-sqlite3");
+  const script = `const koffi=require(${JSON.stringify(koffiPath)});if(typeof koffi.load!=="function")process.exit(2);const Database=require(${JSON.stringify(sqlitePath)});const db=new Database(${JSON.stringify(dbPath)});db.prepare("select 1 as x").get();db.close();`;
   const r = spawnSync(process.execPath, ["-e", script], { encoding: "utf8", windowsHide: true });
-  invariant(r.status === 0, `installed better-sqlite3 未能开库:${r.stderr || r.stdout}`);
+  invariant(r.status === 0, `installed koffi/better-sqlite3 原生闭包未能加载:${r.stderr || r.stdout}`);
 }
 
 function openInstalledDb() {
@@ -483,6 +542,24 @@ function seedTier1(db, repo) {
   const identity = statSync(repo, { bigint: true });
   const projectId = `prj_01${"A".repeat(24)}`;
   const taskId = `tsk_01${"B".repeat(24)}`;
+  const packageId = `pkg_01${"C".repeat(24)}`;
+  const packageBody = {
+    id: packageId,
+    revision: 1,
+    projectId,
+    outcomePreview: "D1 lifecycle settles after restart",
+    inScope: ["restart recovery"],
+    outOfScope: [],
+    assumptions: [],
+    acceptance: ["恢复后进入待验收态"],
+    plan: [{ seq: 1, step: "恢复既有原生会话", owner: "ai" }],
+    cost: { expected: { known: false }, p95: { known: false }, max: 20, currency: "CNY" },
+    risks: [],
+    mode: "step_confirm",
+    preauthorizedEffects: [],
+    effectPolicyVersion: "distribution-fixture-v1"
+  };
+  const packageDigest = jcsDigest(packageBody);
   db.prepare(
     `INSERT INTO projects(id,title,type,status,workspace_json,canonical_workspace_path,workspace_dev,workspace_ino,exec_mode_default,created_at,updated_at)
      VALUES (?,?,'coding','active',?,?,?,?,'step_confirm',?,?)`
@@ -496,14 +573,26 @@ function seedTier1(db, repo) {
     now,
     now
   );
+  // 恢复验收必须能从 durable DecisionPackage 逐条重建 AcceptanceCheck；
+  // fixture 不能只造 task 外键形状而省略生产 dispatch 的决策包正文。
+  db.prepare(
+    `INSERT INTO decision_packages(id,revision,digest,project_id,body_json,status,created_at)
+     VALUES (?,1,?,?,?,'approved',?)`
+  ).run(
+    packageId,
+    packageDigest,
+    projectId,
+    JSON.stringify(packageBody),
+    now
+  );
   db.prepare(
     `INSERT INTO tasks(id,project_id,package_id,package_rev,package_digest,title,spec_markdown,route,status,adapter,budget_json,created_at,updated_at)
      VALUES (?,?,?,1,?,?,?,'tier1','queued','cursor',?,?,?)`
   ).run(
     taskId,
     projectId,
-    `pkg_01${"C".repeat(24)}`,
-    `sha256:${"a".repeat(64)}`,
+    packageId,
+    packageDigest,
     "D1 lifecycle task",
     "# D1 lifecycle task",
     JSON.stringify({ walltimeActiveMin: 45, maxTurns: 80, maxCost: 20 }),
@@ -540,6 +629,19 @@ try {
       chmodSync(sentinel, 0o755);
     }
   }
+  if (process.platform === "win32") {
+    writeFileSync(
+      join(fixtureBin, "codex.cmd"),
+      "@echo off\r\nif \"%~1\"==\"--version\" (echo codex-cli 0.0.0-fixture& exit /b 0)\r\nif \"%~1\"==\"login\" (echo Logged in using ChatGPT& exit /b 0)\r\nexit /b 0\r\n"
+    );
+  } else {
+    const codexFixture = join(fixtureBin, "codex");
+    writeFileSync(
+      codexFixture,
+      "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then echo 'codex-cli 0.0.0-fixture'; exit 0; fi\nif [ \"$1\" = \"login\" ]; then echo 'Logged in using ChatGPT'; exit 0; fi\nexit 0\n"
+    );
+    chmodSync(codexFixture, 0o755);
+  }
   if (process.platform !== "win32") {
     const nodeShim = join(fixtureBin, "node");
     writeFileSync(nodeShim, `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} "$@"\n`);
@@ -550,7 +652,7 @@ try {
   }
   const openMarker = join(scratch, "open.marker");
   const port = await freePort();
-  const owned = await start(port);
+  const owned = await start(port, stateRoot, nodeOnlyEnv, true, "initial");
   const origin = `http://localhost:${port}`;
   const token = readFileSync(join(stateRoot, ".cap-token"), "utf8").trim();
   const health = await json(`${origin}/health`);
@@ -595,6 +697,19 @@ try {
   const headers = { "x-saydo-token": token, "content-type": "application/json" };
   const summary = await json(`${origin}/api/desktop/summary`, { headers });
   invariant(summary.response.ok && summary.body.version === 1, "desktop summary v1 受保护探针失败");
+  const setupProbe = await json(`${origin}/api/setup/probe`, { headers });
+  const setupCodex = setupProbe.body.clis?.find((item) => item.name === "codex");
+  invariant(
+    setupProbe.response.ok && setupCodex?.found === true,
+    `生产首启 probe 未从隔离 PATH 发现 codex fixture:${JSON.stringify(setupCodex ?? setupProbe.body).slice(0, 1200)}`
+  );
+  const inventory = await json(`${origin}/api/setup/cli-capability`, { headers });
+  const inventoryCodex = inventory.body.clis?.find((item) => item.name === "codex");
+  invariant(
+    inventory.response.ok && inventory.body.ok === true && inventoryCodex?.found === true &&
+      inventoryCodex.version?.includes("0.0.0-fixture"),
+    `生产 agent inventory 未从隔离 PATH 发现并执行 codex fixture:${JSON.stringify(inventoryCodex ?? inventory.body).slice(0, 1200)}`
+  );
   const opened = cliSync(["open", "--home", stateRoot, "--port", String(port)], {
     ...nodeOnlyEnv,
     SAYDO_OPEN_MARKER: openMarker
@@ -656,7 +771,7 @@ try {
   activeServers.delete(unknown);
   await stop(owned);
 
-  const restarted = await start(port);
+  const restarted = await start(port, stateRoot, nodeOnlyEnv, true, "restart-readback");
   const restartedHealth = await json(`${origin}/health`);
   invariant(
     JSON.stringify(restarted.ready.identity) === JSON.stringify(health.body.identity) &&
@@ -707,7 +822,7 @@ try {
   await stopContender(differentOwnerIndex === 0 ? differentRaceA : differentRaceB);
 
   const defaultPort = await freePort();
-  const defaultOwned = await start(defaultPort, null);
+  const defaultOwned = await start(defaultPort, null, nodeOnlyEnv, true, "default-home");
   const defaultHome = join(defaultUserHome, ".saydo");
   invariant(existsSync(join(defaultHome, "saydo.db")), "空 SAYDO_HOME 未回退并在 ~/.saydo 建库");
   const defaultToken = readFileSync(join(defaultHome, ".cap-token"), "utf8").trim();
@@ -718,7 +833,13 @@ try {
   });
   invariant(defaultCreated.response.ok && defaultCreated.body.id, "默认 HOME 写账失败");
   await stop(defaultOwned);
-  const defaultRestarted = await start(defaultPort, null, { ...nodeOnlyEnv, SAYDO_HOME: "" });
+  const defaultRestarted = await start(
+    defaultPort,
+    null,
+    { ...nodeOnlyEnv, SAYDO_HOME: "" },
+    true,
+    "default-home-restart"
+  );
   const defaultReadback = await json(`http://localhost:${defaultPort}/api/focuses`, {
     headers: { "x-saydo-token": defaultToken }
   });
@@ -731,7 +852,7 @@ try {
   const fixedDefaultHome = join(scratch, "fixed-default-home");
   let fixedDefaultPortEvidence;
   if (await portAvailable(47100)) {
-    const fixedDefault = await start(47100, fixedDefaultHome, nodeOnlyEnv, false);
+    const fixedDefault = await start(47100, fixedDefaultHome, nodeOnlyEnv, false, "fixed-port-47100");
     invariant(fixedDefault.ready.port === 47100, "裸 saydo up 未使用固定 47100");
     await stop(fixedDefault);
     fixedDefaultPortEvidence = "owned_on_47100";
@@ -747,7 +868,7 @@ try {
   mkdirSync(recoveryRoot, { recursive: true });
   writeFileSync(join(recoveryRoot, "config.toml"), "[models\ninvalid=true\n");
   const recoveryPort = await freePort();
-  const recoveryOwned = await start(recoveryPort, recoveryRoot);
+  const recoveryOwned = await start(recoveryPort, recoveryRoot, nodeOnlyEnv, true, "recovery-only");
   invariant(
     recoveryOwned.ready.runtimeMode === "recovery_only" && recoveryOwned.ready.readiness.coreReady === false,
     "CLI 未持有或错误宣称 recovery-only core ready"
@@ -756,7 +877,7 @@ try {
   await stop(recoveryOwned);
 
   const fixture = prepareTier1Fixture();
-  const lifecycle = await start(port);
+  const lifecycle = await start(port, stateRoot, nodeOnlyEnv, true, "tier1-lifecycle");
   const lifecycleDb = openInstalledDb();
   const { taskId } = seedTier1(lifecycleDb, fixture.repo);
   let running;
@@ -803,7 +924,7 @@ try {
   );
   await assertPidGone(parentPid, "Tier1 agent");
   await assertPidGone(childPid, "Tier1 agent child");
-  const lifecycleRestarted = await start(port);
+  const lifecycleRestarted = await start(port, stateRoot, nodeOnlyEnv, true, "tier1-lifecycle-restart");
   try {
     await waitUntil(() =>
       lifecycleDb.prepare("SELECT status FROM tasks WHERE id=?").get(taskId)?.status === "ready_for_review",
@@ -815,7 +936,7 @@ try {
     throw new Error(`${String(err)} task=${JSON.stringify(task)} run=${JSON.stringify(run)} audits=${JSON.stringify(audits)} daemon=${lifecycleRestarted.output().slice(-2500)}`);
   }
   const resumedRun = lifecycleDb
-    .prepare("SELECT id, state, restart_pending_at, restart_reason, native_session_id FROM tier1_runs WHERE task_id=?")
+    .prepare("SELECT id, state, restart_pending_at, restart_reason, native_session_id, settle_proof_json FROM tier1_runs WHERE task_id=?")
     .get(taskId);
   invariant(
     resumedRun.state === "settled_review" && resumedRun.restart_pending_at === null && resumedRun.restart_reason === null,
@@ -827,9 +948,15 @@ try {
     lifecycleDb.prepare("SELECT COUNT(*) AS c FROM tier1_runs WHERE task_id=?").get(taskId).c === 1,
     "恢复路径错误新建了额外 run"
   );
+  const resumedProof = JSON.parse(resumedRun.settle_proof_json ?? "null");
+  invariant(
+    JSON.stringify(resumedProof?.acceptanceChecks) ===
+      JSON.stringify([{ criterion: "恢复后进入待验收态", status: "unknown", source: "manual" }]),
+    `恢复路径未从 canonical DecisionPackage 逐条重建 AcceptanceCheck:${JSON.stringify(resumedProof?.acceptanceChecks)}`
+  );
   invariant(
     lifecycleDb.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.restart_resumed'").get().c === 1 &&
-      lifecycleDb.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.settled_failed'").get().c === 0,
+      lifecycleDb.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.failed'").get().c === 0,
     "Tier1 重启审计或失败口径不符"
   );
   const resumedPidPath = join(running.worktree_path, "agent-resumed.pid");
@@ -861,7 +988,11 @@ try {
       defaultPort: fixedDefaultPortEvidence,
       port
     },
-    cli: { open: "same-origin-url" },
+    cli: {
+      open: "same-origin-url",
+      installedEntrypoint: process.platform === "win32" ? "saydo.cmd" : "saydo",
+      onboardingInventory: "codex_fixture_found"
+    },
     lifecycle: { taskId, prepareShutdown: "restart_pending", resumed: "settled_review" },
     orphanCheck: "daemon_agent_and_descendant_exited"
   };

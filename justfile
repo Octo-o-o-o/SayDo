@@ -17,6 +17,7 @@ ci-node:
     node scripts/check-hardcoded-colors.mjs
     node scripts/test-color-gate.mjs
     node scripts/test-migration-tools.mjs
+    node scripts/test-release-physical-evidence.mjs
 
 ci-python:
     uv --directory pipeline sync --quiet

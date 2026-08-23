@@ -27,12 +27,14 @@ const B1K = "tsk_01F1XT0RE0TSKB1K0000000000";
 const NOW = "2026-07-25T12:00:00.000Z";
 
 const proof = (taskId: string): Tier1SettleProof => ({
+  kind: "tier1",
   taskId,
   runId: "run-1",
   attempt: 1,
   packageRevision: 1,
   treeSha: "abc123",
   tier1VerifyDigest: "sha256:" + "1".repeat(64),
+  acceptanceChecks: [],
   transcriptCursor: "c-100",
   settledAt: "2026-07-25T00:00:00.000Z"
 });

@@ -17,6 +17,7 @@ export interface RestartCandidate {
   project_id: string;
   state: string;
   worktree_path: string;
+  finalize_pending_json?: string | null;
 }
 
 export interface AgentOwnershipRecord {
@@ -32,11 +33,14 @@ export interface AgentOwnershipRecord {
   jobName?: string;
 }
 
+export type OrphanAgentReapOutcome = "absent" | "already_exited" | "reaped";
+
 function drainCandidates(db: Db): RestartCandidate[] {
   return db.prepare(
     `SELECT tier1_runs.id AS run_id, tier1_runs.task_id AS task_id,
             tasks.project_id AS project_id, tier1_runs.state AS state,
-            tier1_runs.worktree_path AS worktree_path
+            tier1_runs.worktree_path AS worktree_path,
+            tier1_runs.finalize_pending_json AS finalize_pending_json
      FROM tier1_runs JOIN tasks ON tasks.id=tier1_runs.task_id
      WHERE tier1_runs.state IN ${DRAINABLE_TIER1_STATES}`
   ).all() as RestartCandidate[];
@@ -189,9 +193,14 @@ export async function reapOwnedTier1Agent(
   saydoHome: string,
   row: RestartCandidate,
   audit: AuditSink
-): Promise<void> {
+): Promise<OrphanAgentReapOutcome> {
+  const ownerPath = join(saydoHome, "tier1", "runs", row.run_id, "agent-owner.json");
+  const hadDurableOwner = existsSync(ownerPath);
+  // 兼容旧版只落 agent.pid 的 run：即使进程已在 daemon 崩溃前快速退出，pid 文件本身
+  // 仍是“本 run 曾启动过 agent”的 durable tombstone，恢复时不得误判为 absent 再 spawn。
+  const hadLegacyPid = legacyPid(saydoHome, row) !== null;
   const record = verifiedOwnedAgent(saydoHome, row, audit);
-  if (!record) return;
+  if (!record) return hadDurableOwner || hadLegacyPid ? "already_exited" : "absent";
   try {
     if (hostKind() === "win32") {
       if (!record.jobName) throw new Error(`tier1 agent job name missing:${row.run_id}`);
@@ -208,6 +217,7 @@ export async function reapOwnedTier1Agent(
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
   audit.record({ actor: "daemon", action: "tier1.orphan_agent_reaped", meta: { runId: row.run_id, pid: record.pid } });
+  return "reaped";
 }
 
 /** 执行器未武装时仍按同一 durable predicate 标记，并清理已验证 ownership 的旧 agent。 */
@@ -225,6 +235,8 @@ export async function markDurableTier1RestartPending(
       return false;
     }
     if (!isTier1RestartRecoverable(db, row)) return false;
+    // 已有 durable finalization intent 的 run 只收口、禁止再挂 restart marker。
+    if (row.finalize_pending_json) return false;
     // B3: graceful prior-running 仅 exact native key 可恢复；reserved 可无钥匙重走供给。
     if (row.state !== "reserved") {
       const sid = (db.prepare("SELECT native_session_id AS s FROM tier1_runs WHERE id=?").get(row.run_id) as { s: string | null } | undefined)?.s;
@@ -236,7 +248,7 @@ export async function markDurableTier1RestartPending(
     for (const row of rows) {
       db.prepare(
         `UPDATE tier1_runs SET restart_pending_at=?, restart_reason=?, updated_at=?
-         WHERE id=? AND state IN ${RESTART_RECOVERABLE_STATES}`
+         WHERE id=? AND state IN ${RESTART_RECOVERABLE_STATES} AND finalize_pending_json IS NULL`
       ).run(nowIso, reason.slice(0, 80), nowIso, row.run_id);
       audit.record({
         actor: "daemon",

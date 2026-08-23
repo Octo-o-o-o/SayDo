@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "purpose": "固定最近一周审计所使用的已记录 ref 宇宙；后续重建只从这些不可变 tip 遍历，不再枚举当前 refs 或按名称追随移动分支",
+  "coverageClaim": "recorded_ref_universe_only",
+  "capturedAt": "2026-08-23T03:32:27+08:00",
+  "commitTimeCutoff": "2026-08-22T22:30:44+08:00",
+  "captureNote": "本清单在本轮首次独立复审指出动态 refs 缺口后持久化；tip 是该时点逐 ref 实际读取值，所得集合与此前账本 131 个提交逐 SHA 相等。它不冒充 2026-08-22 当时已经存在的文件，也不能排除冻结时存在、随后删除或强制移动且未留下本地记录的 ref。",
+  "refs": [
+    {
+      "ref": "refs/heads/codex/week-audit-faststart-20260822",
+      "tip": "3fccf4a704ad9a5d8e013baaefb67c66a5737cba"
+    },
+    {
+      "ref": "refs/heads/main",
+      "tip": "3fccf4a704ad9a5d8e013baaefb67c66a5737cba"
+    },
+    {
+      "ref": "refs/remotes/origin/main",
+      "tip": "3fccf4a704ad9a5d8e013baaefb67c66a5737cba"
+    },
+    {
+      "ref": "refs/remotes/public/HEAD",
+      "tip": "57cc94b39b78663ad36f0b8db5023a75aed197fb"
+    },
+    {
+      "ref": "refs/remotes/public/feat/windows-alignment",
+      "tip": "d427716c06688cae11aade8decd593928b0ef300"
+    },
+    {
+      "ref": "refs/remotes/public/fix/ownership-anchor-and-cmd-escape",
+      "tip": "4627107f4630b99a1a4a2015db60b50b8667cd41"
+    },
+    {
+      "ref": "refs/remotes/public/main",
+      "tip": "57cc94b39b78663ad36f0b8db5023a75aed197fb"
+    }
+  ]
+}

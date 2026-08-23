@@ -9,6 +9,7 @@ import { z } from "zod";
 import { execRuntimeChild } from "../runtimeChildRegistry.js";
 import { isWiredCliProvider, modelBindingSchema, namedApiProviderSchema, type ModelBinding } from "@saydo/contracts";
 import { cliNameForProvider } from "../config/cliProviders.js";
+import { resolveExecutable } from "../config/executable.js";
 import {
   isSecretName,
   mergeEnvText,
@@ -338,8 +339,7 @@ export async function probeCliOnce(
   signal?: AbortSignal
 ): Promise<{ found: boolean; version?: string; path?: string }> {
   try {
-    const which = await execFileAsync("which", [bin], { timeout: timeoutMs, encoding: "utf8", ...(signal ? { signal } : {}) });
-    const path = which.stdout.trim().split("\n")[0]?.trim();
+    const path = await resolveExecutable(bin);
     if (!path) return { found: false };
     try {
       const ver = await execFileAsync(path, ["--version"], {
@@ -910,8 +910,7 @@ function redactCliError(s: string): string {
 async function defaultCliTest(bin: string, signal?: AbortSignal): Promise<SlotTestResult> {
   const t0 = Date.now();
   try {
-    const which = await execFileAsync("which", [bin], { timeout: 3000, encoding: "utf8", ...(signal ? { signal } : {}) });
-    const path = which.stdout.trim().split("\n")[0]?.trim();
+    const path = await resolveExecutable(bin);
     if (!path) return { status: "fail", error: `未找到 ${bin}`, latencyMs: Date.now() - t0 };
     await execFileAsync(path, ["--version"], { timeout: 3000, encoding: "utf8", maxBuffer: 64 * 1024, ...(signal ? { signal } : {}) });
     // 登录态可测则测(不可测标 untested 不伪造)

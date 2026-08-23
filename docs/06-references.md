@@ -32,7 +32,7 @@
 
 ### Coding Agent 接口
 
-6. **Claude Code**:`claude -p --output-format stream-json`;Agent SDK streaming input mode 支持运行中注入、`interrupt()`、`canUseTool` 审批回调、`--resume`/fork;**CLI 路径上 `canUseTool`/`--permission-prompt-tool` 实际不可用**(OctoDesk ExternalAgentBridge 一手实测),CLI 只能 `--permission-mode`/`--allowedTools` + 审计;会话文件按 cwd 哈希存,跨目录 resume 会失败。
+6. **Claude Code**:`claude -p --output-format stream-json`;Agent SDK streaming input mode 支持运行中注入、`interrupt()` 与 `canUseTool` 回调,但现行 SayDo 后端不采用 SDK。**2026-08-21 supersede 旧结论**:CLI 仍不暴露 `canUseTool` 回调,但 Claude Code 2.1.220 的 `PreToolUse` hooks 可对 Bash 与文件工具做 allow/deny,并在 hook 内同步等待 S2 审批,形成等价审批门;CLI 单向且无 live steer。`--resume` 会话按 cwd 约束,跨目录失败。
 7. **Codex CLI**:`codex exec --json`(JSONL 事件流)、`--output-schema`、`codex exec resume`;exec 非交互下审批退化为 never、运行中无法注入;**app-server 协议支持 `turn/steer`(带 expectedTurnId)/ `turn/interrupt` / `thread/resume|fork` 与审批回调**——"Codex 不能 steer"的说法已过时,但执行后端是否接入需运行时探测;内置 OS 沙箱(Seatbelt/Landlock)。
 8. **Cursor**:`@cursor/sdk`(TS)/ `cursor-sdk`(Python)公测;`Agent.prompt/create+send/resume`、`run.stream()/cancel()`;headless 官方路径为预授权,无审批事件流;本地与云(`bc-` 前缀)双运行时。
 
@@ -83,7 +83,7 @@
 |---|---|
 | M0–M3 | 记忆四层:用户档案 / 项目知识底座 / 累积产物 / 会话工作记忆(04 §1;旧文献写作 L0–L3) |
 | SourceSnapshot / VerifiedExcerpt / ClaimSourceVerification | 源快照与引证验证三合同(09 §4.1,2026-07-24):daemon 快照器捕获不可变源快照;摘录供 evaluator 语义判断(数据不是指令);claim 级验证三维独立(integrity 字节一致 / freshness 时效 / critical-support 资格)——服务 04 §2.2-5 critical claim 回读抽查 |
-| S3 卡 / WebAuthn platform authenticator | S3 屏幕强认证的生产形态(R-A 2026-07-26,09 §3.3):Touch ID/passkey 过挑战-断言仪式签单次消费 `S3MergeReceipt`(判别型,generic screen 收据不构成),daemon 本地校验;仅本机受信终端(assertS3LocalAndBound 四断言);requestManualMerge 为无 passkey 降级路径 |
+| S3 卡 / WebAuthn platform authenticator | S3 屏幕强认证的生产形态(R-A 2026-07-26,09 §3.3):本机认证(例如 macOS Touch ID/设备密码、Windows Hello 或 Linux passkey/安全密钥)过挑战-断言仪式签单次消费 `S3MergeReceipt`(判别型,generic screen 收据不构成),daemon 本地校验;仅本机受信终端(assertS3LocalAndBound 四断言);requestManualMerge 为无 passkey 降级路径 |
 | WritingSettleProof / writingSettleBarrier | writing 窄版的 settle 证明与门(09 §6.1a,R-A 2026-07-26/27):proof 按 kind 判别(与 Tier1SettleProof 并列);barrier 五断言(成稿对账/节 exact-set/验收对账/人评终局在 approve/原子性),缺一不 settle |
 | content_done / coding_done | explainResult·摘要判别联合的完成态两值(09 §13/10 §5):writing 成稿用 content_done 话术分支,coding 用 coding_done——完成态按类型判别,不共用句式 |
 | readinessSkeleton | 就绪骨架 contracts 单源纯函数(09 §13,R-A 2026-07-26/27):从 02 §5 类型清单机械派生 claims(初值 unknown),会话绑定装配/assessReadiness/proposeStart 复用;空账本恒 gap_critical(fail-closed);covered 命中项 = verified(A3-armed:covered = 现役 confirmed 绑定 key 集,candidate 不计) |
@@ -102,7 +102,7 @@
 | 直达验收 / 逐步确认 | 执行模式两档:拍板即授权整包(预授权清单)/ 每个出圈动作与步骤边界确认(04 §5.4;S3 门槛与档位无关) |
 | taint / provenance | 记忆条目的污染标记 / 来源链(04 §1.4) |
 | M3a/M3b/M3c/M3d/WS4 | Hopper 里程碑(以其 SCHEMA-FREEZE-M3A 为准):M3a=平台 schema(已冻结)/ **M3b=command/executor + decision enforcement** / **M3c=usage 记账** / M3d=workflow / **WS4=Console·decision·notification 面**(除 M3a 外均未实现;能力按运行时握手判断,不按里程碑名) |
-| Tier 1 / Tier 2 | agent 集成两级按**审批回调能力**分:Tier 1=交互式审批(Claude Agent SDK canUseTool;**Cursor CLI hooks 亦 Tier 1,dev 缺省,2026-07-23 实测**)/ Tier 2=预授权 + kill_and_resume(Codex 经 Hopper exec)(03 §5、07 D8) |
+| Tier 1 / Tier 2 | agent 集成两级按**执行中审批能力**分:Tier 1=交互式审批(Claude Code CLI `PreToolUse` hooks;Cursor CLI `beforeShellExecution` hooks,当前稳定缺省)/ Tier 2=预授权 + kill_and_resume(Codex 经 Hopper exec)(03 §5、07 D8) |
 | 封闭肯定词表 | S2 语音确认的机械文法:整句=(语气引导)*(肯定词)+(语气尾)*,否定任意子串 reject、疑问句 unmatched(10 §2.5;sauc 无 confidence 的 P0 防线,2026-07-25) |
 | 话术变体三档 | 锁定(逐字)/ 结构锁定表层可变 / 自由池轮换——防"照抄源"成逐字 IVR 又防授权类被自由发挥(10 §1,M6) |
 | segment(stable/topical) | Context Pack 切片段位,按 tier 恒定:M0/M1=稳定前缀段、M2/M3=易变段后置(09 §5 规则⑥,M7) |

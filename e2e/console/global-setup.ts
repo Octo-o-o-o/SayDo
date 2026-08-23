@@ -69,7 +69,14 @@ export default async function globalSetup(): Promise<() => void> {
     execFileSync("pnpm", ["--filter", "@saydo/console", "build"], { cwd: ROOT, stdio: "ignore" });
     daemon = spawn("pnpm", ["--filter", "@saydo/daemon", "start"], {
       cwd: ROOT,
-      env: { ...process.env, SAYDO_HOME: HOME, SAYDO_DAEMON_PORT: String(PORT), SAYDO_MOBILE_LAN: "1" },
+      env: {
+        ...process.env,
+        SAYDO_HOME: HOME,
+        SAYDO_DAEMON_PORT: String(PORT),
+        SAYDO_MOBILE_LAN: "1",
+        VOLC_APP_ID: "e2e",
+        VOLC_ACCESS_TOKEN: "e2e"
+      },
       stdio: "ignore",
       detached: true
     });

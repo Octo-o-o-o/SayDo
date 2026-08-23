@@ -13,6 +13,25 @@
 - 当前唯一排产源:[IMPLEMENTATION-PLAN-2.md](docs/plan/IMPLEMENTATION-PLAN-2.md)
 - 工程约定:[AGENTS.md](AGENTS.md)
 
+## 快速运行
+
+普通用户无需克隆源码。下面是 v0.1.0-rc.2 的发布候选固定 URL；仅当
+[GitHub Release 页面](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.2)
+已经出现且发布检查全绿后，命令才可用：
+
+```bash
+npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz -- saydo up
+```
+
+常用安装：
+
+```bash
+npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz
+saydo up
+```
+
+该包支持 macOS、Windows 与 Linux，启动 daemon + Web 控制台；Windows/Linux 当前以前台方式运行。语音 pipeline、macOS launchd 常驻和源码开发仍走下方开发安装。远程终端可加 `--no-open`，按 `Ctrl+C` 优雅停止。
+
 ## 开发
 
 ```bash

@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   computePackageDigest,
+  newId,
   type DecisionPackage,
   type MergeProof,
   type TaskCard,
@@ -19,6 +20,7 @@ import {
   steerApplied,
   steerTask,
   requestCancel,
+  cancelWithAutoSettle,
   settleCancel,
   isLateEventHistory,
   reviewTask,
@@ -77,6 +79,8 @@ function mkPkg(): DecisionPackage {
 
 function seedTask(status: TaskCard["status"]): void {
   const pkg = mkPkg();
+  const existing = db.prepare("SELECT 1 FROM decision_packages WHERE id=? AND revision=?").get(pkg.id, pkg.revision);
+  if (!existing) insertPackage(db, pkg);
   const task: TaskCard = {
     id: TASK,
     projectId: PRJ,
@@ -93,7 +97,7 @@ function seedTask(status: TaskCard["status"]): void {
   if (status !== "confirmed") db.prepare("UPDATE tasks SET status=? WHERE id=?").run(status, TASK);
 }
 
-function seedRun(attempt: number, state: Tier1RunRow["state"], treeSha = "tree-good"): void {
+function seedRun(attempt: number, state: Tier1RunRow["state"], treeSha = "tree-good"): string {
   const run: Tier1RunRow = {
     id: `run_01AAAAAAAAAAAAAAAAAAAAAAA${attempt}`,
     taskId: TASK,
@@ -114,6 +118,7 @@ function seedRun(attempt: number, state: Tier1RunRow["state"], treeSha = "tree-g
             packageRevision: 1,
             treeSha,
             tier1VerifyDigest: `sha256:${"e".repeat(64)}`,
+            acceptanceChecks: [{ criterion: "Excel 能打开", status: "unknown", source: "manual" }],
             transcriptCursor: "cursor-1",
             settledAt: NOW
           })
@@ -123,6 +128,7 @@ function seedRun(attempt: number, state: Tier1RunRow["state"], treeSha = "tree-g
     updatedAt: NOW
   };
   insertTier1Run(db, run);
+  return run.id;
 }
 
 beforeEach(() => {
@@ -157,6 +163,22 @@ describe("steerTask 三态", () => {
     expect((db.prepare("SELECT COUNT(*) AS c FROM tier1_runs WHERE state='cancel_requested'").get() as { c: number }).c).toBe(0);
   });
 
+  it("steer 请求审计失败时 run 与指令整体回滚", () => {
+    seedTask("running");
+    const runId = seedRun(1, "running");
+    const rejectingAudit: AuditSink = {
+      record: () => {
+        throw new Error("injected steer request audit failure");
+      }
+    };
+
+    expect(() => steerTask(db, rejectingAudit, { taskId: TASK, instruction: "换实现路径" }, NOW)).toThrow(
+      /injected steer request audit failure/
+    );
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(runId) as { state: string }).state).toBe("running");
+    expect((db.prepare("SELECT COUNT(*) AS c FROM task_messages WHERE task_id=?").get(TASK) as { c: number }).c).toBe(0);
+  });
+
   it("W5a 3.4:route=hopper ⇒ 按 capabilities steer 分级诚实拒(none;不落 task_messages——桥不消费,排队即谎报)", () => {
     seedTask("running");
     db.prepare("UPDATE tasks SET route='hopper', adapter=NULL, package_id=NULL, package_rev=NULL WHERE id=?").run(TASK);
@@ -170,15 +192,40 @@ describe("steerTask 三态", () => {
 });
 
 describe("Tier1 取消全链", () => {
+  it("无活跃 run 的自动取消在终态审计失败时整链回滚", () => {
+    seedTask("queued");
+    const rejectingSettleAudit: AuditSink = {
+      record: (event) => {
+        if (event.action === "task.cancel_settled") throw new Error("injected no-run settle audit failure");
+        return { id: "aud_request" };
+      }
+    };
+
+    expect(() => cancelWithAutoSettle(db, rejectingSettleAudit, TASK, NOW)).toThrow(/injected no-run settle audit failure/);
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TASK) as { status: string }).status).toBe("queued");
+  });
+
   it("cancelProof 齐备才 settled;晚到事件转历史不回叫", () => {
     seedTask("running");
-    seedRun(1, "running");
+    const runId = seedRun(1, "running");
     expect(requestCancel(db, nullAudit, TASK, NOW).state).toBe("cancel_requested");
 
-    const incomplete = { taskId: TASK, runId: "run-1", processExited: true, worktreeLockReleased: false, lastEventId: "e-9", settledAt: NOW } as unknown as Tier1CancelProof;
+    const incomplete = { taskId: TASK, runId, processExited: true, worktreeLockReleased: false, lastEventId: "e-9", settledAt: NOW } as unknown as Tier1CancelProof;
     expect(() => settleCancel(db, nullAudit, incomplete, NOW)).toThrow(/incomplete/);
 
-    const proof: Tier1CancelProof = { taskId: TASK, runId: "run-1", processExited: true, worktreeLockReleased: true, lastEventId: "e-9", settledAt: NOW };
+    const wrongRunProof: Tier1CancelProof = {
+      taskId: TASK,
+      runId: "run_01WRONG0000000000000000000",
+      processExited: true,
+      worktreeLockReleased: true,
+      lastEventId: "e-9",
+      settledAt: NOW
+    };
+    expect(() => settleCancel(db, nullAudit, wrongRunProof, NOW)).toThrow(/run not found/);
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TASK) as { status: string }).status).toBe("cancel_requested");
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(runId) as { state: string }).state).toBe("cancel_requested");
+
+    const proof: Tier1CancelProof = { taskId: TASK, runId, processExited: true, worktreeLockReleased: true, lastEventId: "e-9", settledAt: NOW };
     expect(settleCancel(db, nullAudit, proof, NOW).state).toBe("cancel_settled");
     const t = db.prepare("SELECT status FROM tasks WHERE id=?").get(TASK) as { status: string };
     expect(t.status).toBe("cancel_settled");
@@ -190,6 +237,92 @@ describe("Tier1 取消全链", () => {
     expect(isLateEventHistory("e-9", "e-10")).toBe(false);
     expect(isLateEventHistory("e-10", "e-9")).toBe(true);
     expect(isLateEventHistory("e-9", "f-1")).toBe(false); // 新事件
+  });
+
+  it("取消审计失败时 task/run/marker 整体回滚，重试后原子结算", () => {
+    seedTask("running");
+    const runId = seedRun(1, "running");
+    requestCancel(db, nullAudit, TASK, NOW);
+    db.prepare(
+      "UPDATE tier1_runs SET finalize_pending_json=?, restart_pending_at=?, restart_reason=? WHERE id=?"
+    ).run(
+      JSON.stringify({ exitEvidence: "agent_exit:2", taskState: "failed", recordedAt: NOW, eventLine: 7 }),
+      NOW,
+      "restart",
+      runId
+    );
+    const proof: Tier1CancelProof = {
+      taskId: TASK,
+      runId,
+      processExited: true,
+      worktreeLockReleased: true,
+      lastEventId: `events:${runId}:line:7`,
+      settledAt: NOW
+    };
+    const rejectingAudit: AuditSink = {
+      record: () => {
+        throw new Error("injected cancel audit failure");
+      }
+    };
+
+    expect(() => settleCancel(db, rejectingAudit, proof, NOW)).toThrow(/injected cancel audit failure/);
+    expect(
+      db.prepare(
+        "SELECT state, finalize_pending_json, restart_pending_at FROM tier1_runs WHERE id=?"
+      ).get(runId)
+    ).toMatchObject({ state: "cancel_requested", restart_pending_at: NOW });
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TASK) as { status: string }).status).toBe("cancel_requested");
+
+    expect(settleCancel(db, nullAudit, proof, NOW)).toEqual({ state: "cancel_settled" });
+    expect(
+      db.prepare(
+        "SELECT state, finalize_pending_json, restart_pending_at FROM tier1_runs WHERE id=?"
+      ).get(runId)
+    ).toEqual({ state: "cancel_settled", finalize_pending_json: null, restart_pending_at: null });
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TASK) as { status: string }).status).toBe("cancel_settled");
+  });
+
+  it("取消请求审计失败时 task/run/outbox 整体回滚", () => {
+    seedTask("running");
+    const runId = seedRun(1, "running");
+    const rejectingAudit: AuditSink = {
+      record: () => {
+        throw new Error("injected cancel request audit failure");
+      }
+    };
+
+    expect(() => requestCancel(db, rejectingAudit, TASK, NOW)).toThrow(/injected cancel request audit failure/);
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TASK) as { status: string }).status).toBe("running");
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(runId) as { state: string }).state).toBe("running");
+  });
+
+  it("task 已 cancel_settled 时仍校验并补齐指定 run，不接受错误 runId", () => {
+    seedTask("running");
+    const runId = seedRun(1, "running");
+    requestCancel(db, nullAudit, TASK, NOW);
+    db.prepare("UPDATE tasks SET status='cancel_settled' WHERE id=?").run(TASK);
+    const proof: Tier1CancelProof = {
+      taskId: TASK,
+      runId,
+      processExited: true,
+      worktreeLockReleased: true,
+      lastEventId: `events:${runId}:line:3`,
+      settledAt: NOW
+    };
+
+    expect(() => settleCancel(db, nullAudit, { ...proof, runId: "run_01WRONG0000000000000000000" }, NOW)).toThrow(
+      /run not found/
+    );
+    const events: string[] = [];
+    const capturingAudit: AuditSink = {
+      record: (event) => {
+        events.push(event.action);
+        return { id: "aud_recover" };
+      }
+    };
+    expect(settleCancel(db, capturingAudit, proof, NOW)).toEqual({ state: "cancel_settled" });
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(runId) as { state: string }).state).toBe("cancel_settled");
+    expect(events).toEqual(["tier1.cancel_recovered"]);
   });
 
   it("非活跃态不可取消", () => {
@@ -225,6 +358,7 @@ describe("reviewTask 三态 + expectedAttempt", () => {
         packageRevision: 1,
         treeSha: "tree-good",
         tier1VerifyDigest: `sha256:${"e".repeat(64)}`,
+        acceptanceChecks: [{ criterion: "Excel 能打开", status: "unknown", source: "manual" }],
         transcriptCursor: "cursor-1",
         settledAt: NOW
       })
@@ -242,6 +376,42 @@ describe("reviewTask 三态 + expectedAttempt", () => {
     expect(ev?.meta?.["evidenceDigest"]).toBe(`sha256:${"e".repeat(64)}`);
   });
 
+  it("coding approve 重新读取 durable DecisionPackage，缺包或 proof 验收集合漂移都拒批", () => {
+    seedTask("ready_for_review");
+    seedRun(1, "settled_review");
+    db.prepare("UPDATE tier1_runs SET settle_proof_json=json_remove(settle_proof_json, '$.acceptanceChecks') WHERE task_id=?").run(TASK);
+    expect(() => reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1 }, NOW)).toThrow(/exact-set/);
+    db.prepare("DELETE FROM decision_packages WHERE id=? AND revision=1").run(mkPkg().id);
+    expect(() => reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1 }, NOW)).toThrow(/决策包/);
+  });
+
+  it("coding approve 重算 DecisionPackage digest，正文被篡改即使存量 digest 未变也拒批", () => {
+    seedTask("ready_for_review");
+    seedRun(1, "settled_review");
+    db.prepare("UPDATE decision_packages SET body_json=json_set(body_json, '$.outcomePreview', '被篡改') WHERE id=? AND revision=1").run(
+      mkPkg().id
+    );
+    expect(() => reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1 }, NOW)).toThrow(/决策包/);
+  });
+
+  it("coding approve 拒绝跨项目 DecisionPackage，即使包与 digest 均自洽", () => {
+    seedTask("ready_for_review");
+    seedRun(1, "settled_review");
+    const otherProject = newId("prj");
+    insertProject(db, {
+      id: otherProject,
+      title: "另一项目",
+      type: "coding",
+      status: "active",
+      workspace: { kind: "local_folder", path: managedProjectPath(otherProject), managed: true },
+      executionModeDefault: "step_confirm",
+      createdAt: NOW,
+      updatedAt: NOW
+    });
+    db.prepare("UPDATE tasks SET project_id=? WHERE id=?").run(otherProject, TASK);
+    expect(() => reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1 }, NOW)).toThrow(/决策包/);
+  });
+
   it("request_changes:同 task 新 attempt,这轮不作废(回 running)", () => {
     seedTask("ready_for_review");
     seedRun(1, "settled_review");
@@ -256,6 +426,25 @@ describe("reviewTask 三态 + expectedAttempt", () => {
     expect(reviewTask(db, nullAudit, { taskId: TASK, verdict: "reject", expectedAttempt: 1 }, NOW).state).toBe("cancel_requested");
     const t = db.prepare("SELECT status, cancel_reason FROM tasks WHERE id=?").get(TASK) as { status: string; cancel_reason: string };
     expect(t).toMatchObject({ status: "cancel_requested", cancel_reason: "user_cancel" });
+  });
+
+  it("reject 审计失败时 task/run 整体回滚", () => {
+    seedTask("ready_for_review");
+    const runId = seedRun(1, "running");
+    const rejectingAudit: AuditSink = {
+      record: (event) => {
+        if (event.action === "task.reject") throw new Error("injected reject audit failure");
+        return { id: "aud_other" };
+      }
+    };
+
+    expect(() => reviewTask(db, rejectingAudit, { taskId: TASK, verdict: "reject", expectedAttempt: 1 }, NOW)).toThrow(
+      /injected reject audit failure/
+    );
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TASK) as { status: string }).status).toBe(
+      "ready_for_review"
+    );
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(runId) as { state: string }).state).toBe("running");
   });
 
   it("审计纪律:comments 只落 digest 不落原文(impl-readback C2;E3 纪律 + v2 不可变触发器使原文永不可清)", () => {

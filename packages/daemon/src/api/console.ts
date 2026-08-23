@@ -6,11 +6,18 @@
 
 import {
   OPEN_SET,
+  acceptanceExactSetViolations,
+  jcsDigest,
   mobileFocusDetailSchema,
   mobileFocusListItemSchema,
+  tier1TerminalAuditActionSchema,
+  tier1SettleProofSchema,
+  writingSettleProofSchema,
+  type AcceptanceCheck,
   type Artifact,
   type MobileFocusDetail,
-  type MobileFocusListItem
+  type MobileFocusListItem,
+  type Tier1TerminalAuditAction
 } from "@saydo/contracts";
 import type { Db } from "../storage/db.js";
 import { MemoryLedger } from "../memory/ledger.js";
@@ -145,19 +152,129 @@ export function getTaskDetail(db: Db, taskId: string): Record<string, unknown> |
   const pkg = db
     .prepare("SELECT body_json FROM decision_packages WHERE id = ? AND revision = ?")
     .get(task["package_id"], task["package_rev"]) as { body_json: string } | undefined;
+  const packageBody = pkg ? (JSON.parse(pkg.body_json) as { acceptance?: unknown }) : null;
+  const packageAcceptance = Array.isArray(packageBody?.acceptance)
+    ? packageBody.acceptance.flatMap((criterion) => {
+        if (typeof criterion === "string" && criterion !== "") return [criterion];
+        if (typeof criterion !== "object" || criterion === null) return [];
+        const legacy = criterion as { text?: unknown; criterion?: unknown };
+        const text = typeof legacy.text === "string" ? legacy.text : legacy.criterion;
+        return typeof text === "string" && text !== "" ? [text] : [];
+      })
+    : [];
   const runs = db
     .prepare(
       `SELECT id, attempt, adapter, state, worktree_path, cwd, tree_sha, decisions_json, settle_proof_json, created_at, updated_at
        FROM tier1_runs WHERE task_id = ? ORDER BY attempt`
     )
     .all(taskId) as Record<string, unknown>[];
+  const runEvidence = new Map<
+    string,
+    { action: Tier1TerminalAuditAction; observedModel?: string; exitEvidence?: string }[]
+  >();
+  const evidenceRows = db
+    .prepare(
+      `SELECT action, meta_json FROM audit_log
+       WHERE action IN ('tier1.settled_review','tier1.failed','tier1.blocked')
+         AND json_valid(meta_json)
+         AND json_extract(meta_json, '$.taskId') = ?
+       ORDER BY ts, id`
+    )
+    .all(taskId) as { action: unknown; meta_json: string }[];
+  for (const row of evidenceRows) {
+    try {
+      const action = tier1TerminalAuditActionSchema.parse(row.action);
+      const meta = JSON.parse(row.meta_json) as Record<string, unknown>;
+      const runId = typeof meta["runId"] === "string" ? meta["runId"] : null;
+      if (!runId) continue;
+      const evidence: {
+        action: Tier1TerminalAuditAction;
+        observedModel?: string;
+        exitEvidence?: string;
+      } = { action };
+      if (typeof meta["observedModel"] === "string" && meta["observedModel"] !== "") {
+        evidence.observedModel = meta["observedModel"];
+      }
+      if (typeof meta["exitEvidence"] === "string" && meta["exitEvidence"] !== "") {
+        evidence.exitEvidence = meta["exitEvidence"];
+      }
+      const entries = runEvidence.get(runId) ?? [];
+      entries.push(evidence);
+      runEvidence.set(runId, entries);
+    } catch {
+      // 审计坏行不影响任务详情其余证据;该 run 如实显示“未观测”。
+    }
+  }
+  const runsWithEvidence = runs.map((run) => {
+    const entries = runEvidence.get(String(run["id"])) ?? [];
+    const state = String(run["state"]);
+    const evidence = entries.length === 1 ? entries[0] : undefined;
+    const stateMatches =
+      evidence !== undefined &&
+      ((state === "settled_review" && evidence.action === "tier1.settled_review") ||
+        (state === "settled_failed" && (evidence.action === "tier1.failed" || evidence.action === "tier1.blocked")));
+    const conflict = entries.length > 0 && (!evidence || !stateMatches);
+    const validEvidence = stateMatches ? evidence : undefined;
+    return {
+      ...run,
+      observed_model: validEvidence?.observedModel ?? null,
+      exit_evidence: validEvidence?.exitEvidence ?? null,
+      terminal_audit_action: validEvidence?.action ?? null,
+      evidence_conflict: conflict
+    };
+  });
   // W4 3.2 writing:最新 attempt 的 WritingSettleProof(逐条裁决 UI 用;11 §5.5 settled ≠ 全绿)
   let writingProof: unknown = null;
+  let acceptanceChecks: AcceptanceCheck[] = packageAcceptance.map((criterion) => ({
+    criterion,
+    status: "unknown",
+    source: "manual"
+  }));
   const latestProofJson = runs.length > 0 ? (runs[runs.length - 1]?.["settle_proof_json"] as string | null) : null;
   if (latestProofJson) {
     try {
       const p = JSON.parse(latestProofJson) as { kind?: string };
-      if (p.kind === "writing") writingProof = p;
+      if (p.kind === "writing") {
+        const parsed = writingSettleProofSchema.parse(p);
+        writingProof = parsed;
+        acceptanceChecks = parsed.acceptanceChecks;
+        const review = db
+          .prepare(
+            `SELECT id, actor, meta_json FROM audit_log
+             WHERE action='task.review_approve'
+               AND json_valid(meta_json)
+               AND json_extract(meta_json, '$.taskId')=?
+             ORDER BY ts DESC, id DESC LIMIT 1`
+          )
+          .get(taskId) as { id: string; actor: string; meta_json: string } | undefined;
+        const approvalStillEffective = ["review_approved_waiting_merge", "merging", "task_done"].includes(
+          String(task["status"])
+        );
+        if (approvalStillEffective && review?.actor === "owner") {
+          const meta = JSON.parse(review.meta_json) as Record<string, unknown>;
+          const manualCount = parsed.acceptanceChecks.filter((check) => check.source === "manual").length;
+          const exactCoverage = acceptanceExactSetViolations(parsed.acceptanceChecks, packageAcceptance).length === 0;
+          if (
+            exactCoverage &&
+            meta["kind"] === "writing" &&
+            meta["evidenceDigest"] === jcsDigest(parsed) &&
+            meta["prospectiveTreeSha"] === parsed.treeSha &&
+            meta["attempt"] === parsed.attempt &&
+            meta["acceptancePassed"] === manualCount
+          ) {
+            acceptanceChecks = parsed.acceptanceChecks.map((check) =>
+              check.source === "manual"
+                ? { ...check, status: "pass", evidenceRef: `audit:${review.id}` }
+                : check
+            );
+          }
+        }
+      } else {
+        const parsed = tier1SettleProofSchema.parse(p);
+        const exactCoverage = acceptanceExactSetViolations(parsed.acceptanceChecks, packageAcceptance).length === 0;
+        // 旧 proof 缺字段或集合漂移时只可信 DecisionPackage 的 criterion，状态全部 unknown。
+        if (exactCoverage) acceptanceChecks = parsed.acceptanceChecks;
+      }
     } catch {
       writingProof = null;
     }
@@ -183,11 +300,12 @@ export function getTaskDetail(db: Db, taskId: string): Record<string, unknown> |
     .all(taskId);
   return {
     task: { ...task, viewStatus: deriveViewStatus(String(task["status"]), (task["parked_deadline"] as string | null) ?? null) },
-    package: pkg ? (JSON.parse(pkg.body_json) as unknown) : null,
-    runs,
+    package: packageBody,
+    runs: runsWithEvidence,
     approvals,
     costs,
     decisions,
+    acceptanceChecks,
     writingProof // null = 非 writing;否则含 sectionCoverage/acceptanceChecks 供逐条裁决 UI
   };
 }

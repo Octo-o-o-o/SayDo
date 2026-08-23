@@ -1,18 +1,22 @@
 // 共享 UI 原语(11 §3 卡片即单位/§5.9 空态;禁写死色值,全走 token)。
 
 import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
-export function PaperCard({ children, strong, className }: { children: ReactNode; strong?: boolean; className?: string }) {
+type PaperCardProps = ComponentPropsWithoutRef<"div"> & { strong?: boolean };
+
+export function PaperCard({ children, strong, className, style, ...props }: PaperCardProps) {
   return (
     <div
+      {...props}
       className={className}
       style={{
         background: strong ? "var(--surface-raised)" : "var(--surface)",
         border: "1px solid var(--line)",
         borderRadius: "var(--radius-md)",
         boxShadow: "var(--shadow-card)",
-        padding: "var(--space-4)"
+        padding: "var(--space-4)",
+        ...style
       }}
     >
       {children}

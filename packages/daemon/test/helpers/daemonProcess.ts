@@ -43,7 +43,8 @@ export interface DaemonProcess {
 
 async function waitForHealth(port: number, predicate: (health: { pid: number }) => boolean = () => true) {
   let lastError: unknown;
-  for (let attempt = 0; attempt < 160; attempt++) {
+  // 全套件并行时 tsx 冷启动会接近文档给出的 10–15 秒；探针窗口覆盖该受支持上界。
+  for (let attempt = 0; attempt < 300; attempt++) {
     try {
       const response = await fetch(`http://127.0.0.1:${port}/health`, {
         keepalive: false,

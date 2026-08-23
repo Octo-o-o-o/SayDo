@@ -91,4 +91,28 @@ describe("cursor backend seam(B1-a 快照,行为对齐抽取前)", () => {
     expect(cursorIsTerminalResult(err)).toBe(true);
     expect(cursorParseLine(err).kind).toBe("unknown");
   });
+
+  it("真实 Cursor result usage 严格归一化为记账字段", () => {
+    const result = readFileSync(join(import.meta.dirname, "fixtures", "cursor-full-stream.ndjson"), "utf8")
+      .trim()
+      .split("\n")
+      .at(-1)!;
+    expect(cursorParseLine(result)).toMatchObject({
+      kind: "result",
+      usage: {
+        input_tokens: 12_234,
+        output_tokens: 101,
+        cache_read_input_tokens: 5_888,
+        cache_creation_input_tokens: 0
+      }
+    });
+    expect(
+      cursorParseLine(JSON.stringify({
+        type: "result",
+        subtype: "success",
+        result: "done",
+        usage: { inputTokens: 1, outputTokens: -1, cacheReadTokens: 0, cacheWriteTokens: 0 }
+      })).kind
+    ).toBe("unknown");
+  });
 });

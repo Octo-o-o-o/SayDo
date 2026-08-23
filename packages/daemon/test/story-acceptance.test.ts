@@ -80,6 +80,7 @@ describe("5.4 故事一 x3 稳定复现", () => {
         packageRevision: 1,
         treeSha: `tree-r${round}`,
         tier1VerifyDigest: `sha256:${String(round).repeat(64).slice(0, 64)}`,
+        acceptanceChecks: pkg.acceptance.map((criterion) => ({ criterion, status: "unknown", source: "manual" })),
         transcriptCursor: "cursor-1",
         settledAt: NOW
       });

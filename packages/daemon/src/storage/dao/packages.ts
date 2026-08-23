@@ -36,8 +36,20 @@ export function getPackage(db: Db, id: string, revision: number): DecisionPackag
     .get(id, revision) as Record<string, unknown> | undefined;
   if (!row) return null;
   const body = JSON.parse(row["body_json"] as string) as Record<string, unknown>;
+  if (body["id"] !== row["id"]) {
+    throw new Error(`package id identity mismatch: ${id} rev ${revision}`);
+  }
+  if (body["revision"] !== row["revision"]) {
+    throw new Error(`package revision identity mismatch: ${id} rev ${revision}`);
+  }
+  if (body["projectId"] !== row["project_id"]) {
+    throw new Error(`package project identity mismatch: ${id} rev ${revision}`);
+  }
   return decisionPackageSchema.parse({
     ...body,
+    id: row["id"],
+    revision: row["revision"],
+    projectId: row["project_id"],
     digest: row["digest"],
     status: row["status"],
     ...(row["expires_at"] ? { expiresAt: row["expires_at"] } : {}),

@@ -57,7 +57,7 @@
 ### 1.4 当前状态一句话
 
 - **macOS 桌面服务**(守护进程 daemon + Web 控制台 + 可选语音管线):现在可用,开源免费(见 §18 开源与参与)。
-- **驱动你已有的 AI**:推理槽位可用 Claude Code / Codex / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI 的**订阅登录态**或任意 OpenAI 兼容 API(§5);**执行器(真正改代码的 agent)当前为 Cursor CLI**,Claude Code 执行器进行中,Codex 执行路线规划中(§6)。
+- **驱动你已有的 AI**:推理槽位可用 Claude Code / Codex / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI 的**订阅登录态**或任意 OpenAI 兼容 API(§5);**稳定执行器路径当前为 Cursor CLI**,Claude Code 已接入生产主流程、最终 live conformance 收口中,Codex 执行路线规划中(§6)。
 - **项目记忆与四色账本**:现在可用。
 - **iOS / Android / HarmonyOS App**:工程壳存在,均未提审上架;手机当前可经局域网用 App 壳或手机浏览器连接桌面服务(§13)。
 - **来电式语音汇报**:规划中。
@@ -140,7 +140,7 @@
 | 4 你拍板 | 说「就这样」/「开始」;执行模式当前按「逐步确认」(「一口气跑完」档的语音念读签署进行中,§8.4) | 两把钥匙:「证据够了」≠「有权的人批准了这个包+范围+预算+有效期」;派发收据 digest 绑定、单次消费;Gate 0 未关拒派发 | 拍板 |
 | 5 后台执行 | 在独立 git worktree 里跑,主工作区不被碰;每条 shell 命令过审批门;预算 / 活跃时长 / 回合三熔断;你可以走开,语音会话挂起 | 命令按效果分级 S0–S3;S0/S1 自动放行,S2 上浮要你确认(45 秒无应答即拒),S3 拒绝并要求屏幕强认证 | 可以走开 |
 | 6 办完叫你 | 执行和检查都跑完、产物落盘确认 → 它主动叫你:「执行和检查都跑完了,等你验收」 | settle 对账后才回叫(runner 退出不等于完成);优先级 blocked > failed > 待审批 > 待验收 > 进度(默认不叫);投递按升级链:你在控制台且语音就绪 ⇒ 在线语音开口叫你(第一句就是回叫原因,30 秒没应答再升级)→ macOS 桌面通知 + ntfy 手机推送;免打扰窗口内只发一条低打扰推送、过后补叫(§11) | 被叫回来 |
-| 7 验收沉淀 | 口播摘要(一句话 / 150 字走读 / 它自己做的决策清单)+ 证据视图(diff、测试、决策、未验证项);你点头 → 过强认证合并 → 「交付了」;知识与产物留存 | 合并 = Touch ID / passkey 屏幕审批卡签单次收据,或你自己去终端合并(人工交接);会话末机械提名稳定结论为候选,你批准后进 M1 | 验收 |
+| 7 验收沉淀 | 口播摘要(一句话 / 150 字走读 / 它自己做的决策清单)+ 证据视图(diff、测试、决策、未验证项);你点头 → 过强认证合并 → 「交付了」;知识与产物留存 | 合并 = 本机 WebAuthn 审批卡(例如 macOS Touch ID/设备密码、Windows Hello 或 Linux passkey/安全密钥)签单次收据,或你自己去终端合并(人工交接);会话末机械提名稳定结论为候选,你批准后进 M1 | 验收 |
 
 ### 3.3 采访、就绪与决策包:为什么不用你写需求文档
 
@@ -158,43 +158,52 @@
 
 | 项 | 要求 | 说明 |
 |---|---|---|
-| 系统 | macOS(Apple Silicon / Intel 均可)· Windows · Linux | 三端都能跑桌面服务;**常驻安装、系统通知、打开浏览器等链路当前仍是 macOS 实现**,Windows/Linux 需前台运行 |
+| 系统 | macOS(Apple Silicon / Intel 均可)· Windows · Linux | 三端都能跑桌面服务;**常驻安装与系统通知当前仍是 macOS 实现**,Windows/Linux 需前台运行 |
 | Node | **22.x**(`>=22 <23`) | 桌面服务与 CLI 的运行时;用 nvm / fnm / Homebrew 装 |
-| pnpm | 10.x | `corepack enable` 即可 |
-| git | 任意新版 | 构建与任务隔离(worktree)都要 |
+| 可选 · pnpm | 10.x | 只有源码开发需要;Release 包不需要 |
+| 可选 · git | 任意新版 | 只有让执行器修改代码、创建隔离 worktree 时需要;只使用账本与控制台不需要 |
 | 一个 AI 供给 | 二选一:① 本机已登录任一已接线 CLI(Codex / Claude Code / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI);② 一个 OpenAI 兼容 API key(OpenRouter / OpenAI / Anthropic / DeepSeek) | 只聊天、立账、调研不需要 key(走 CLI 订阅);见 §5.3 |
 | 可选 · Python 3.11+ 与 `uv` | 只有**桌面浏览器云端语音**(火山豆包 ASR/TTS)才需要 | 不配也能说话:浏览器系统语音兜底(§12) |
-| 可选 · `cursor-agent` 登录态 + `jq` | 只有**派发执行任务**(让 AI 真改代码)才需要 | 没有不阻断对话,只是拍板后不会起执行器(§6) |
+| 可选 · 一个执行器登录态 | `cursor-agent`(当前稳定缺省)或 Claude Code(生产主流程已接线、最终 live conformance 收口中) | 只有**派发执行任务**才需要;Codex 执行器尚未实现并会 fail-closed 拒起,不影响对话(§6) |
 
 ### 4.2 安装
 
-目前以源码形式分发(尚无 npm / Homebrew 包,见 §16):
+**推荐 · 不克隆源码:**下面是 v0.1.0-rc.2 的发布候选固定 URL;仅当 GitHub Release 页面已经出现且发布检查全绿后才可用。尚未发布到 npm registry 或 Homebrew。
+
+```bash
+# 一次运行:下载到 npm 缓存后直接启动
+npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz -- saydo up
+
+# 常用安装:安装一次,以后直接用 saydo
+npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz
+saydo up
+```
+
+该包只包含 daemon + Web 控制台,支持 macOS / Windows / Linux。语音 pipeline、macOS launchd 常驻和修改源码不在包内;Windows/Linux 当前以前台方式运行。远程终端加 `--no-open`。
+
+**源码开发:**
 
 ```bash
 git clone https://github.com/Octo-o-o-o/SayDo.git && cd SayDo
-pnpm install && pnpm -r build      # build 必须:daemon 托管的控制台页来自 packages/console/dist
+pnpm install && pnpm -r build
 ```
 
 ### 4.3 启动桌面服务
 
-两种等价方式,任选其一(同一个数据目录 `~/.saydo` 同时只允许一个实例):
+上一步的一次运行命令已经启动服务;全局安装后可使用:
 
 ```bash
-# 方式一:直接起 daemon(开发形态;在仓库根目录执行)
-mkdir -p ~/.saydo
-(cd packages/daemon && SAYDO_HOME=$HOME/.saydo nohup ./node_modules/.bin/tsx src/index.ts >> ~/.saydo/daemon.log 2>&1 &)
-
-# 方式二:用 saydo 命令行(可分发形态;先构建一次)
-pnpm --filter @saydo/cli build
-node packages/cli/dist/cli.mjs up        # 前台持有 daemon,Ctrl+C 优雅退出并可续接任务
-node packages/cli/dist/cli.mjs status    # 探活:0=已连上 / 1=端口空闲 / 2=端口冲突
-node packages/cli/dist/cli.mjs open      # 打开控制台
+saydo up        # 前台持有 daemon,Ctrl+C 优雅退出并可续接任务
+saydo status    # 探活:0=已连上 / 1=端口空闲 / 2=端口冲突
+saydo open      # 打开控制台
 ```
+
+源码开发形态使用 `pnpm --filter @saydo/cli build` 后运行 `node packages/cli/dist/cli.mjs up`。同一个数据目录 `~/.saydo` 同时只允许一个实例。
 
 - 缺省端口 **47100**(直起 daemon 用环境变量 `SAYDO_DAEMON_PORT` 覆盖;`saydo` 命令行只认 `--port`);缺省只监听本机回环地址。`saydo up` 缺省会自动打开浏览器,`--no-open` 可关。
 - 数据目录缺省 `~/.saydo`(`--home` 或 `SAYDO_HOME` 覆盖)。首次启动会自动生成:`config.toml`(占位模板)、`.cap-token`(控制台令牌)、`saydo.db`、`sessions/`、`logs/`、`projects/` 等。
 - 健康探针:`curl -s http://127.0.0.1:47100/health`(`ok:true` 即起来了;tsx 冷启动约 10–15 秒)。
-- 进控制台:`open "http://localhost:47100/?token=$(cat ~/.saydo/.cap-token)"`(`saydo open` 做的就是这件事)。注意用 **localhost**:为了 Touch ID 合并卡的 WebAuthn 绑定,`127.0.0.1` 的页面请求会被重定向到 `localhost`。令牌首次注入后存在浏览器本地,之后的链接不必再带。
+- 进控制台使用 `saydo open`。它在 macOS 调 `open`、Windows 调系统浏览器、Linux 调 `xdg-open`;无图形环境用 `--no-open`。注意使用 **localhost**:为了屏幕强认证的 WebAuthn 绑定,`127.0.0.1` 的页面请求会被重定向到 `localhost`。
 
 ### 4.4 首次使用:资源画像向导
 
@@ -258,7 +267,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
 | **沉思档** | `[models].thinking` | 任务卡起草、决策包 / 计划生成、奠基提炼(轻量小样为机械渲染,不占模型) | 深推理,异步不阻塞对话 | API(OpenRouter,`openai/gpt-5.6-terra-pro`) |
 | **廉价档** | `[models].cheap` | 摘要叙事、热词抽取、事件打标等高频结构化调用 | 便宜、快 | API(OpenRouter,`google/gemini-3.1-flash-lite`) |
 | **评估档** | `[models].evaluator` | 独立判「够不够开始」(就绪深评) | **与对话/沉思不同家族**(§5.4) | API(OpenRouter,`anthropic/claude-sonnet-5`) |
-| **开发档(执行器)** | `[models.dev]` | 派发任务时驱动哪个 agent 改代码、用它的哪个模型 | 见 §6 | `agent = "cursor"`(与仓库模板一致;当前唯一生产执行器) |
+| **开发档(执行器)** | `[models.dev]` | 派发任务时驱动哪个 agent 改代码、用它的哪个模型 | 见 §6 | `agent = "cursor"`(与仓库模板一致;当前稳定缺省);`claude_code` 生产主流程已接线、live conformance 收口中 |
 
 为什么分档:对话档要的是延迟(你在等它出声),沉思档要的是质量(产出是「合同」),廉价档要的是成本(高频调用),评估档要的是独立性(换一家模型做裁判)。一个模型通吃四档要么慢、要么贵、要么不独立。
 
@@ -404,21 +413,21 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
 
 `.env` 常用键:`OPENROUTER_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `DEEPSEEK_API_KEY`(按你建的端点填)、`DOUBAO_TTS_API_KEY` + `VOLC_APP_ID` + `VOLC_ACCESS_TOKEN`(桌面浏览器语音用,§12)、`NTFY_TOPIC` + `NTFY_SERVER`(手机推送,§11)。
 
-项目层可覆盖的键白名单见 §7.1(`<workspace>/.saydo/project.toml`):只允许 `[project]/[git]/[verify]/[setup]` 与 budget / dnd / params 子集;**models / providers / gate0 / hopper / privacy / voice 出现在项目层一律拒绝**——仓库随附文件是不可信输入,不能把你的 key 引到别人的端点。
+项目层可覆盖的键白名单见 §7.1(`<workspace>/.saydo/project.toml`):只允许 `[project]/[git]/[verify]/[setup]/[writing]` 与 budget / dnd / params 子集;**models / providers / gate0 / hopper / privacy / voice 出现在项目层一律拒绝**——仓库随附文件是不可信输入,不能把你的 key 引到别人的端点。
 
 ## 6. 执行器(开发档):谁来真的改代码
 
 ### 6.1 两套词表,别混
 
 - **推理槽的 CLI 供给**(§5.2)= 让 Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot 的 CLI **替 Brain 说话、想事、评估**——它们只做一发一收的文本推理,不碰你的仓库。
-- **执行器(开发档,`[models.dev]`)**= 拍板后**在 worktree 里真的改代码、跑命令的 agent**。词表 `claude_code | cursor | codex`,但**当前只有 `cursor` 有生产实现**;配成别的会被 daemon 拒起执行器(fail-closed,不会偷偷拿 Cursor 二进制冒充),对话不受影响。
+- **执行器(开发档,`[models.dev]`)**= 拍板后**在 worktree 里真的改代码、跑命令的 agent**。词表 `claude_code | cursor | codex`;`cursor` 是当前稳定缺省,`claude_code` 的生产主流程已接线但最终 live conformance 仍在收口,`codex` 尚未实施。只有尚未支持或配置不完整的分支会被 daemon 拒起(fail-closed,不会偷偷拿另一种二进制冒充),对话不受影响。
 
 ### 6.2 当前可用:Cursor CLI 执行器 [现在可用]
 
 - 驱动方式:`cursor-agent -p --force --trust --output-format stream-json --model <model> [--resume <chatId>] <prompt>`,在任务 worktree 里跑;模型填 `cursor-agent` 当前可列出的任一模型名(已实测过 Grok 4.6 与 Composer 2.5;Claude 系亦可),事件流上报的实际模型家族与配置不符即该轮作废。
 - 审批门:执行器为每个 worktree 写 `.cursor/hooks.json`,`beforeShellExecution` 钩子**同步阻塞**回连 daemon 的本机 unix socket;daemon 按命令**效果**分级裁决(§8.1/§8.3);钩子超时、JSON 畸形、socket 不通一律 = 拒绝;事件流里出现 shell 调用却没有对应门请求 ⇒ 判定门被绕过,立即终止任务(canary)。
 - 版本钉死:`[tier1].cursor_agent_bin` 必须是锁定副本的**绝对路径**(`…/versions/<ver>/cursor-agent`)+ `cursor_agent_pinned_version` 精确相等;两键齐备才启用执行器——防 `cursor-agent` 自更新后行为漂移。升级 = 改两键 + 重跑门禁。
-- 凭据剥离:agent 进程环境只带 `PATH/HOME/USER/LOGNAME/SHELL/LANG/LC_ALL/LC_CTYPE/TERM/TMPDIR` 十个变量,不带任何 API key / token;它的登录态在它自己的 HOME 存储里。
+- 凭据剥离:agent 进程只继承固定平台白名单:POSIX 核心为 `PATH/HOME/USER/LOGNAME/SHELL/LANG/LC_ALL/LC_CTYPE/TERM/TMPDIR`;Windows 按需另带 `TEMP/TMP/USERPROFILE/USERNAME/HOMEDRIVE/HOMEPATH/APPDATA/LOCALAPPDATA/PATHEXT/SYSTEMROOT/WINDIR/COMSPEC`。白名单不含任何 API key / token;执行器登录态仍在它自己的 HOME 存储里。
 - 诚实边界:Cursor 后端只有 shell 通道过门,内建的文件读写 / 联网工具不经钩子——所以它的网络出口能力表如实标 `egress = uncontrolled`,隔离靠「独立 worktree + 凭据剥离 + 命令门」,**不是沙箱**;不信任的任务请用逐步确认档并盯紧 S2。
 - 中途改需求(steer):当前没有任何后端支持运行中即时注入;运行中的任务 = **终止本轮再带新指令续跑**(`cancel_resume`,worktree 保留),排队 / 停靠中的任务 = 下次运行时注入(`queued_delta`)。它会如实告诉你是哪一种。
 
@@ -426,9 +435,9 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
 
 | 后端 | 状态 | 说明 |
 |---|---|---|
-| **Claude Code 执行器**(`agent = "claude_code"`) | **进行中** | 方案已定:以官方 `claude -p --output-format stream-json` 子进程为传输,用 Claude Code 的 `PreToolUse` hooks 做 S1–S3 裁决(文件工具也能进门,比 Cursor 多一层),钩子由命令行注入而非 worktree 内文件;订阅只经 `claude` 登录态消费、零 API key;不启用 bypass 权限、不做 live steer。第一批官方 CLI 能力实测 + 审批门纯函数层已收口；生产执行主流程接线是下一步 |
+| **Claude Code 执行器**(`agent = "claude_code"`) | **收口中** | 以官方 `claude -p --output-format stream-json` 子进程为传输,用 `PreToolUse` hooks 做 S1–S3 裁决;订阅只经 `claude` 登录态消费、零 API key,不启用 bypass 权限、不做 live steer。配置、生产执行主流程、审批门、恢复、记账、自检、设置页与任务详情已经接线;最终真实端到端 conformance 尚未收口,当前稳定缺省仍为 Cursor |
 | **Codex 执行器** | **规划中** | 设计上经 Hopper 批式路线(见下);当前 `agent = "codex"` 会被拒起 |
-| **Hopper 批式路线**(重任务 drop 进独立的 Hopper 任务系统:worktree / 事件溯源 / 崩溃恢复 / 预算 / 验收闸门) | **合同已定,生产绑定休眠** | daemon 主流程不启动它;锁定版本副本与专用 vault 的约定写在配置模板里但当前不被消费;Hopper 路线的合并恒为人工交接,不经 Touch ID 卡。对用户来说今天它不是可用功能 |
+| **Hopper 批式路线**(重任务 drop 进独立的 Hopper 任务系统:worktree / 事件溯源 / 崩溃恢复 / 预算 / 验收闸门) | **合同已定,生产绑定休眠** | daemon 主流程不启动它;锁定版本副本与专用 vault 的约定写在配置模板里但当前不被消费;Hopper 路线的合并恒为人工交接,不经本机认证卡。对用户来说今天它不是可用功能 |
 | **provider-neutral 原生执行器**(任意 OpenAI 兼容后端) | **规划中** | 2026-08 决策推荐的方向(替代「拿 DeepSeek Harness 当默认 runner」——后者因审批缺省放行、钩子故障不阻断等与 fail-closed 红线冲突被否决) |
 | **Gemini CLI 作执行器** | 无此计划 | Gemini CLI 仅作推理槽供给 |
 
@@ -456,7 +465,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
 1. 执行跑完 → **daemon(不是 agent)**对 worktree 拍树快照(`git add -A` 排除 `.cursor/` 后 `write-tree` 得到 `treeSha`)→ 在 worktree 里**重跑冻结的验收命令**(§7.4)→ 产 settle 证明(任务 / 轮次 / 决策包版本 / treeSha / verify digest / 转写游标)→ 任务进入 **`ready_for_review`** → 回叫你。之后任何漂移都会被发现。
 2. 你在验收面三选一:**通过**(记录批准的 `treeSha`,进入「等合并」)/ **要改**(同任务新一轮,复用 worktree,意见进下次 prompt)/ **作废**(取消本轮)。
 3. 合并两条路,都是「人触发」:
-   - **Touch ID / passkey 审批卡**(Tier1 缺省):屏幕上完成一次 WebAuthn 强认证,签一张绑定 任务 / 轮次 / 决策包版本 / 预期树 的单次收据;daemon 凭收据执行:复核 worktree 现树 == 收据树(漂移拒)→ 隔离环境再跑一遍冻结 verify(不过 ⇒ `merge_failed` 转人工)→ 断言主仓未动(`merge-base == HEAD`)且主仓已跟踪文件干净(有未提交改动 ⇒ 转人工)→ `git commit-tree` + **`git merge --ff-only`** 到主仓当前分支(只快进、不改写历史;提交信息形如 `saydo: merge <taskId> (S3 approved)`)→ 再断言 HEAD 树 → 「交付了」。首次使用要先在本机「注册批准指纹」(一次性)。
+   - **本机认证 / passkey 审批卡**(Tier1 缺省):屏幕上完成一次 WebAuthn 强认证(由系统提供,例如 macOS Touch ID/设备密码、Windows Hello 或 Linux passkey/安全密钥),签一张绑定 任务 / 轮次 / 决策包版本 / 预期树 的单次收据;daemon 凭收据执行:复核 worktree 现树 == 收据树(漂移拒)→ 隔离环境再跑一遍冻结 verify(不过 ⇒ `merge_failed` 转人工)→ 断言主仓未动(`merge-base == HEAD`)且主仓已跟踪文件干净(有未提交改动 ⇒ 转人工)→ `git commit-tree` + **`git merge --ff-only`** 到主仓当前分支(只快进、不改写历史;提交信息形如 `saydo: merge <taskId> (S3 approved)`)→ 再断言 HEAD 树 → 「交付了」。首次使用要先在本机「注册本机批准凭据」(一次性)。
    - **人工合并交接**(没注册 passkey、或你想自己来):它给你一个交接入口,你在终端自己 merge;之后点「核验」,daemon **现读**主仓 `HEAD` 的树与批准时落库的 `treeSha` 对账,一致才推进到「交付了」,不一致拒绝并留痕(防「已回滚却显示完成」)。
 4. **它不 push、不开 PR**:全部实现里没有推送远端或创建 Pull Request 的路径;agent 若自己敲 `git push`,按 S2(feature 分支)/ S3(保护分支或 force)上浮或拒。推远端、开 PR 是你验收合并后自己做的事。
 5. 语音面**永不渲染**合并按钮;局域网 / tailnet 手机面调用合并动作会被拒并审计。
@@ -480,7 +489,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
 | S0 读 | 读代码、只读命令 | 自动放行 |
 | S1 写(worktree 内) | 改代码、跑登记的 verify、本地 commit | 自动放行 |
 | S2 出圈但可逆 | 装依赖、push 到 feature 分支、未识别的命令 | 逐步确认档:屏幕 / 语音确认(缺省 45 秒窗,超时即拒);直达验收档:命中念读签署的预授权清单则放行(当前未在语音链启用,见 §8.4) |
-| S3 不可逆 / 外部影响 | 合并到保护分支、force push、部署、花钱、删数据、对外发消息 | **必须已认证屏幕(Touch ID / passkey)**;语音绝不放行——同一麦克风的复述不构成独立认证因子 |
+| S3 不可逆 / 外部影响 | 合并到保护分支、force push、部署、花钱、删数据、对外发消息 | **必须在本机屏幕完成 WebAuthn 认证**(平台可用方式如 Touch ID/设备密码、Windows Hello、passkey/安全密钥);语音绝不放行——同一麦克风的复述不构成独立认证因子 |
 
 升级规则:触及 `.env` / 凭据 / 客户数据 ⇒ 至少 S2;依赖带 postinstall ⇒ 至少 S2 且必须出清单;push 触发预览部署 ⇒ S3;push 到保护分支 ⇒ S3。
 
@@ -713,7 +722,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 
 | 能力 | 状态 | 备注 |
 |---|---|---|
-| 桌面服务(daemon + 控制台)· macOS / Windows / Linux | 现在可用 | 源码分发;npm / Homebrew 包与桌面 App 壳规划中。常驻安装(launchd)与系统通知目前只有 macOS 实现 |
+| 桌面服务(daemon + 控制台)· macOS / Windows / Linux | 现在可用 | 源码形态已经可运行;v0.1.0-rc.2 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效。npm registry / Homebrew 与桌面 App 壳仍规划中;常驻安装(launchd)与系统通知目前只有 macOS 实现 |
 | 四推理槽 API 供给(OpenAI 兼容 / OpenRouter) | 现在可用 | |
 | 四推理槽 CLI 订阅供给(Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot) | 现在可用 | 对话档走 CLI 为慢速文本模式 |
 | 首跑资源画像向导(三种方案卡 + 高级逐槽) | 现在可用 | |
@@ -722,7 +731,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 | 类型就绪清单 + 规则层 + 异族深评 + 复述确认绑定 | 现在可用 | |
 | 决策包(预览 / 计划 / 成本 / 风险 / 验收标准 / 轻量小样) | 现在可用 | 小样与计划同源机械渲染;控制台「看小样」+ 本机同轮上屏 |
 | Cursor CLI 执行器 + worktree 隔离 + 命令效果门 + 三熔断 + verify 冻结 | 现在可用 | |
-| 验收证据视图 + 三层口播 + Touch ID 合并卡 + 人工合并核验 | 现在可用 | Touch ID 卡真人过卡待 owner 触点 |
+| 验收证据视图 + 三层口播 + 本机认证合并卡 + 人工合并核验 | 现在可用 | 本机认证卡真人过卡待 owner 触点 |
 | 逐步确认档 | 现在可用 | |
 | 直达验收档(预授权清单念读签署) | 进行中 | 合同与匹配逻辑已落,语音拍板环未接 |
 | 回叫升级链:在线语音回叫 → macOS 桌面通知 + ntfy 手机推送;免打扰;应答(ack) | 现在可用 | 语音回叫需控制台在线 + 语音管线健康;30 秒未应答升级;输出仲裁同批落地 |
@@ -732,7 +741,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 | research / marketing / planning / general 执行合同 | 规划中 | 上游采访 / 立账 / 调研可用 |
 | 局域网手机面(浏览器 / 壳) | 现在可用(dogfood 边界) | 无配对 / 无 E2E |
 | tailnet 薄版 | 进行中 | Tailscale / MagicDNS 底座已就绪；当前 HEAD 的 setup probe 仍拒绝 tailnet 配置，尚不能作为受支持入口 |
-| Claude Code 执行器 | 进行中 | 第一批官方 CLI 能力实测 + 审批门纯函数层已收口；生产执行主流程接线是下一步 |
+| Claude Code 执行器 | 收口中 | 生产执行主流程、审批门、恢复、记账、自检与控制台已接线;最终 live conformance 尚未收口 |
 | Codex 执行器 / Hopper 批式路线 | 规划中 / 休眠 | |
 | provider-neutral 原生执行器 | 规划中 | |
 | 设备配对 / E2E 加密 / 推送隐私合同 | 规划中 | |
@@ -756,7 +765,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 
 **它会不会偷偷花钱?** 订阅调用不产生费用、撞限流只会如实报错不会转计费;API 调用有每任务成本封顶 + 活跃时长 + 回合三熔断;S3(花钱 / 部署 / 删数据 / 对外发消息)必须你在屏幕上强认证。
 
-**它会 push 到 GitHub 或开 PR 吗?** 不会。它在 `saydo/<taskId>` 分支的 worktree 里改代码;合并到你当前分支要你 Touch ID 或自己 merge;push / PR 是你之后自己做的。
+**它会 push 到 GitHub 或开 PR 吗?** 不会。它在 `saydo/<taskId>` 分支的 worktree 里改代码;合并到你当前分支要你用本机认证确认或自己 merge;push / PR 是你之后自己做的。
 
 **对话每轮要等十几二十秒,是卡了吗?** 不是。对话档走 CLI 订阅就是慢速文本模式(15–25 秒);界面有慢速徽标;桌面端单次 CLI 调用 120 秒上限后明确报错(手机页 90 秒提示重发)。想要秒级对话给对话档配一个 API key(§5.3 方案二)。
 
@@ -774,7 +783,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 
 **手机扫码连不上 / 全部掉线。** 确认 daemon 带 `SAYDO_MOBILE_LAN=1`、手机与电脑同一私网;删过 `.cap-token` 会轮换令牌,重新扫码。
 
-**拍板后没有起执行器。** `[models.dev]` 的 `agent` 须为 `cursor`(或留空,缺省即 cursor)且 `model` 非空;`[tier1]` 两键(锁定二进制**绝对路径**,不接受 `~` + 版本)齐备;`jq` 与 `curl` 在 PATH(gate 脚本硬依赖,缺 `jq` 时连拒绝回执都产不出,一律视为拒绝);`cursor-agent` 已登录。否则队列里的任务停在 queued 并给处方化日志,对话不受影响。
+**拍板后没有起执行器。** 按 `[models.dev].agent` 分支检查:`cursor`(或留空,缺省即 cursor)须有非空 `[models.dev].model`、`[tier1].cursor_agent_bin` 锁定副本**绝对路径**与精确版本,并已登录;POSIX 门还要求 `jq` 与 `curl` 在 PATH。`claude_code` 须有 `[tier1].claude_bin` 实体**绝对路径**、`claude_pinned_version`、Claude 族 `model`,登录后跑 Tier1 自检写入身份登记。`codex` 执行器尚未实现,会明确 fail-closed 拒起。任一分支不满足时任务停在 queued 并给处方化日志,对话不受影响。
 
 **任务停在 blocked。** 看原因:S2 等你确认超时 / 没有登记 verify / project.toml 坏了 / 工作区或 `.git` 不见了 / agent 提问 / 熔断触发。解了在任务页「重试 / 回答」。
 
@@ -844,7 +853,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 
 1. **已解除(2026-08-20)**:LICENSE = Apache-2.0 已落;隐私项按选项 C 处置后仓库已公开——`github.com/Octo-o-o-o/SayDo` 为干净快照仓(逐提交过程史在私有归档 `SayDo-archive`),处置记录见 `docs/plan/2026-08-20-repo-public-readiness.fable.md` §3.1。「开源免费 · 前往 GitHub」口径成立;Docs §18 无需改动。
 2. **Hopper 仓(`github.com/Octo-o-o-o/Hopper`)可见性与许可证未核实**;B §18 只说「同作者独立仓」,未给 URL。若要给链接先确认公开。
-3. **官网「驱动你已有的 AI:Claude Code、Codex、Cursor、Gemini CLI 等已登录的 AI 工具直接接入 · 现在可用」**:对**推理槽**成立(7 家 CLI 已接线),对**执行器**只有 Cursor 成立;Claude Code 执行器是 08-19 入库的方案 v2,Codex 执行路线规划中,Gemini CLI 无执行计划。建议官网拆成两句(对话 / 思考用你已登录的 X/Y/Z;当前执行由 Cursor Agent 承担,Claude Code 执行后端尚未接入生产执行链)。Docs B §1.4 / §5 / §6 已拆清。**2026-08-21 更新**:第一批官方 CLI 能力实测 + 审批门纯函数层已收口；生产执行主流程接线是下一步。不得把生产接线写成在途。
+3. **官网「驱动你已有的 AI:Claude Code、Codex、Cursor、Gemini CLI 等已登录的 AI 工具直接接入 · 现在可用」**:对**推理槽**成立(7 家 CLI 已接线);执行器层须继续拆写。**2026-08-22 更新**:Cursor 是当前稳定缺省;Claude Code 的配置、生产执行主流程、审批门、恢复、记账、自检与控制台已经接线,最终 live conformance 尚未收口;Codex 执行路线规划中,Gemini CLI 无执行计划。官网已按此写成「生产接线已落地、最终收口中」,不得再写「尚未接线」或提前写成稳定可用。
 4. **已解除(2026-08-20)**:S1 批落地 Demo 小样(决策包同轮机械渲染 + 控制台「看小样」+ 本机同轮上屏);S2 批落地回叫升级链(在线语音回叫 → macOS 桌面通知 + ntfy;免打扰只推不响;「知道了」/开口即应答)。官网七步第 3 / 6 步可按原意保留,措辞见首页稿 B.3(2026-08-20 更新版);Docs B §3.2 / §11 / §16 已同步。
 5. **官网「先深度研究透、沉淀成持久知识底座」**:当前奠基是确定性机械管道(清单 + 关键文件摘录 + 四份文档 + AGENTS.md 指针),LLM 深研档未做。Docs B §1.1 / §9.2 已如实标注;官网「先吃透,再办事」的措辞尚可,但「深度研究」四字偏重,建议改「先读透项目」一类。
 6. **官网 FAQ「语音无需额外配置,浏览器即可用」**:成立(2026-08-13 起 VOLC 未配时回退浏览器 `SpeechRecognition` / `speechSynthesis`),但质量一般;Docs B §12 写成三档(打字 / 浏览器系统语音 / 云端级联)。官网可不改。
@@ -938,4 +947,3 @@ v1 **没有**而 v2 新增的整节:§0 阅读指南、§3.3 采访 / 就绪原�
 - 零 emoji 门禁:`scripts/check-emoji.sh` 对本稿与首页稿均 clean。
 - 未做:英文整页翻译(A §6 留待实施);Codex 对抗评审(按 AGENTS.md 评审制度应补一次 `codex exec -m gpt-5.6-sol`,本轮未跑,建议随 Docs 页实施时一并做)。
 - 2026-08-20 午前复核(第二轮):S1(Demo 小样)、S2(回叫升级链)、public-readiness(模板 / DEPLOY / launchd)、W5.4-a(Claude 执行器第一批)相继收口并入 main,仓库按选项 C 公开;本稿 B §3.2 / §4.8 / §6.3 / §11 / §16 / §18 / 附录 与 C.1(3/4/9/10/11)/ C.4 已同步为收口后事实;首页稿 B.1 / B.3 / B.6 / C 表同步。
-

@@ -227,9 +227,9 @@ export const SESSION1_GOLDEN: GoldenCase[] = [
 export const W4_GOLDEN: GoldenCase[] = [
   {
     id: "w4-20p1",
-    scene: "#20 S3 导航·P1 卡片版(绝不语音放行;导航到屏幕 Touch ID)",
-    utterance: "这一步是把文章并到发布分支,语音里批不了。确认卡在屏幕上,点一下 Touch ID。我念一下将发生什么:把这版稿子合进 main。",
-    mustContain: ["语音里批不了", "点一下 Touch ID", "我念一下将发生什么"],
+    scene: "#20 S3 导航·P1 卡片版(绝不语音放行;导航到屏幕本机认证)",
+    utterance: "这一步是把文章并到发布分支,语音里批不了。确认卡在屏幕上,用本机认证批准。我念一下将发生什么:把这版稿子合进 main。",
+    mustContain: ["语音里批不了", "用本机认证批准", "我念一下将发生什么"],
     mustNotContain: ["做完了", "已合并"]
   },
   {

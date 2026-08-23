@@ -9,6 +9,7 @@ import {
   parseHealth,
   parseSetupProbe,
   parseSetupTestResult,
+  parseTier1SelfTestReport,
   postClearInvalidProjectOverrides,
   saveDialogApiConfig,
   SetupApiError,
@@ -582,6 +583,35 @@ describe("保存 → restart_required 提示(mock fetch)", () => {
 });
 
 describe("自检渲染三态", () => {
+  it("parseTier1SelfTestReport 保留登录/版本/处方且不接收畸形检查项", () => {
+    expect(
+      parseTier1SelfTestReport({
+        tier1: {
+          adapter: "claude_code",
+          status: "ok",
+          identityWritten: true,
+          restartRequiredToArm: true,
+          prescription: "重启后武装",
+          checks: [
+            { name: "version", status: "ok", detail: "2.1.220 (Claude Code)" },
+            { name: "auth", status: "ok" },
+            { name: "bad", status: "maybe" }
+          ]
+        }
+      })
+    ).toEqual({
+      adapter: "claude_code",
+      status: "ok",
+      identityWritten: true,
+      restartRequiredToArm: true,
+      prescription: "重启后武装",
+      checks: [
+        { name: "version", status: "ok", detail: "2.1.220 (Claude Code)" },
+        { name: "auth", status: "ok" }
+      ]
+    });
+  });
+
   it("parseSetupTestResult:ok/fail/untested + 兼容布尔", () => {
     const r = parseSetupTestResult({
       ok: true,

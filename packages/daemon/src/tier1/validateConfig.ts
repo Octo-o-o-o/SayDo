@@ -3,7 +3,7 @@
 // 非 cursor 后端配置仍起 cursor 二进制。本模块收拢为单一裁决点,fail-closed:任一不满足 ⇒
 // 执行器不启动(queued 不认领),verdict 带处方化 reason 供日志与审计。
 
-import { accessSync, constants, lstatSync, statSync } from "node:fs";
+import { accessSync, constants, lstatSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute } from "node:path";
 import { hostKind, isReparsePoint } from "@saydo/platform";
 import { familyFromModelName } from "../config/family.js";
@@ -149,9 +149,11 @@ function claudeStartupVerdict(c: NonNullable<Tier1StartupInput["claude"]> | unde
       reason: `claude_bin 必须是实体文件绝对路径(裸名走 PATH 不满足 pin),得到 "${bin}";${CLAUDE_NOT_CONFIGURED_PRESCRIPTION}`
     };
   }
+  let resolvedBin: string;
   let st;
   try {
-    st = statSync(bin);
+    resolvedBin = realpathSync(bin);
+    st = statSync(resolvedBin);
   } catch {
     return { start: false, code: "not_configured", reason: `claude_bin 文件不存在:${bin};${CLAUDE_NOT_CONFIGURED_PRESCRIPTION}` };
   }
@@ -159,9 +161,13 @@ function claudeStartupVerdict(c: NonNullable<Tier1StartupInput["claude"]> | unde
     return { start: false, code: "not_configured", reason: `claude_bin 不是常规文件:${bin};${CLAUDE_NOT_CONFIGURED_PRESCRIPTION}` };
   }
   try {
-    accessSync(bin, constants.X_OK);
+    accessSync(resolvedBin, constants.X_OK);
   } catch {
-    return { start: false, code: "not_configured", reason: `claude_bin 不可执行:${bin};${CLAUDE_NOT_CONFIGURED_PRESCRIPTION}` };
+    return {
+      start: false,
+      code: "not_configured",
+      reason: `claude_bin 不可执行:${resolvedBin};${CLAUDE_NOT_CONFIGURED_PRESCRIPTION}`
+    };
   }
   if (familyFromModelName(model) !== "claude") {
     return {
@@ -179,7 +185,7 @@ function claudeStartupVerdict(c: NonNullable<Tier1StartupInput["claude"]> | unde
       reason: `claude 身份登记未通过:${detail};${CLAUDE_NOT_CONFIGURED_PRESCRIPTION}`
     };
   }
-  return { start: true, bin, pinned };
+  return { start: true, bin: resolvedBin, pinned };
 }
 
 /**

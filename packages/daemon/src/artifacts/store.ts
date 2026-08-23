@@ -88,6 +88,56 @@ export class ArtifactStore {
     return artifact;
   }
 
+  /**
+   * 终态屏障用 exact-replay 写入：固定 id/version 已存在时只做全字段与内容复验，绝不创建新版本。
+   * 这样 DB/outbox/audit 任一后续写失败后，同一 run 的重试仍只引用同一份产物。
+   */
+  writeOnce(input: {
+    artifactId: string;
+    version: 1;
+    projectId: string;
+    type: ArtifactType;
+    content: string;
+    tags?: string[];
+    source: SourceRef["kind"];
+  }): Artifact {
+    const expectedTags = input.tags ?? [];
+    const existing = getArtifact(this.db, input.artifactId, input.version);
+    if (existing) {
+      const loaded = this.read(input.artifactId, input.version);
+      if (
+        existing.projectId !== input.projectId ||
+        existing.type !== input.type ||
+        existing.digest !== textDigest(input.content) ||
+        existing.source !== input.source ||
+        JSON.stringify(existing.tags) !== JSON.stringify(expectedTags) ||
+        loaded.content !== input.content
+      ) {
+        throw new Error(`artifact exact replay mismatch: ${input.artifactId} v${input.version}`);
+      }
+      return existing;
+    }
+    if (latestArtifactVersion(this.db, input.artifactId) !== 0) {
+      throw new Error(`artifact exact replay version conflict: ${input.artifactId} v${input.version}`);
+    }
+    mkdirSync(this.dir, { recursive: true });
+    const path = join(this.dir, `${input.artifactId}-v${input.version}${extensionForType(input.type)}`);
+    writeFileSync(path, input.content);
+    const artifact: Artifact = {
+      id: input.artifactId,
+      projectId: input.projectId,
+      version: input.version,
+      type: input.type,
+      path,
+      digest: textDigest(input.content),
+      tags: expectedTags,
+      source: input.source,
+      createdAt: this.now().toISOString()
+    };
+    insertArtifact(this.db, artifact);
+    return artifact;
+  }
+
   /** 读取(digest 重校;不符 ⇒ 报损坏,不静默返回坏数据)。maxBytes 在入内存前 stat 拦截。 */
   read(id: string, version: number, opts?: { maxBytes?: number }): { artifact: Artifact; content: string } {
     const artifact = getArtifact(this.db, id, version);

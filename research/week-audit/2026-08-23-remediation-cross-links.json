@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "links": [
+    {
+      "commit": "a24eb7029fdd7def6f55b91e70e6c8bafa7e6309",
+      "relatedDocumentRefs": [
+        "docs/09-data-contracts.md"
+      ]
+    },
+    {
+      "commit": "c4c72e53d82d78605d90f009e9e737dbdf872085",
+      "relatedDocumentRefs": [
+        "docs/09-data-contracts.md"
+      ]
+    },
+    {
+      "commit": "bb9d28735598693f03345630eb4dc256862d5c29",
+      "relatedDocumentRefs": [
+        "docs/09-data-contracts.md"
+      ]
+    },
+    {
+      "commit": "e9bfb269eaf37e3b95e2a13b97cd726f03027d07",
+      "relatedDocumentRefs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md"
+      ]
+    },
+    {
+      "commit": "3f8be936de412be267c8318fc259aff4e185efb1",
+      "relatedDocumentRefs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md"
+      ]
+    },
+    {
+      "commit": "877c87543b98a47d12b21ed4c4f9c89ddcd47616",
+      "relatedDocumentRefs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md"
+      ]
+    },
+    {
+      "commit": "3e74a5a6a4e5c187688c157309989737bf9af947",
+      "relatedDocumentRefs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/w54b-batch.md"
+      ]
+    }
+  ]
+}

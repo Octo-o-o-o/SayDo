@@ -2,7 +2,7 @@
 // 独立 schema,禁复用全局 configSchema 或其 partial 变体(types.ts 防踩注记:全局 schema 的
 // privacy.prefault 会把键注入解析结果,白名单裁决会恒误报 rejectedKeys)。
 // project.toml 是"仓库随附的不可信输入"(09 §11 白名单头注):
-// - 顶层仅允许 [project]/[git]/[verify]/[setup] 自有域 + 覆盖全局 budget/dnd/params;
+// - 顶层仅允许 [project]/[git]/[verify]/[setup]/[writing] 自有域 + 覆盖全局 budget/dnd/params;
 // - models/providers/gate0/hopper/privacy/voice/pricing/tier1 等白名单外键出现一律拒收
 //   (拒键不拒文件:合法域照常生效,拒收留痕由调用方审计——防克隆仓静默把 key 引到攻击者端点);
 // - [git].protected 是减法敏感键:消费按 contracts effectiveProtectedBranches 并集公式,
@@ -19,7 +19,7 @@ import { mergeConfig } from "./load.js";
 import type { SaydoConfig } from "./types.js";
 
 /** 项目层顶层白名单(09 §11:自有域 + 可覆盖全局域;此外一切键出现即拒收) */
-export const PROJECT_ALLOWED_TOP_KEYS = ["project", "git", "verify", "setup", "budget", "dnd", "params"] as const;
+export const PROJECT_ALLOWED_TOP_KEYS = ["project", "git", "verify", "setup", "writing", "budget", "dnd", "params"] as const;
 
 // 域内部 looseObject:additive 前向兼容(域内新键不炸);顶层白名单裁决在 loadProjectConfig 手工做
 // (strictObject 抛错无法"拒键不拒文件"并收集 rejectedKeys)。

@@ -8,7 +8,7 @@
 //   且强制 --ignore-scripts(G4:lifecycle/postinstall 属供应链执行面);其余形态拒(处方化,owner 手动跑)。
 
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join, win32 } from "node:path";
 import { parse as parseToml } from "smol-toml";
 import { z } from "zod";
 import type { VerifyRegistry } from "../policy/engine.js";
@@ -44,6 +44,18 @@ export interface ProjectExecConfig {
   writingArticlePath: string;
 }
 
+/** writing 成稿路径是 git tree path：两种平台分隔符都按目录边界解释，任何绝对/穿越/空段均拒。 */
+export function normalizeWritingArticlePath(raw: string): string {
+  if (raw === "" || raw.includes("\0") || isAbsolute(raw) || win32.isAbsolute(raw) || /^[A-Za-z]:/u.test(raw)) {
+    throw new Error(`writing.article_path 必须是 worktree 内相对路径:${raw.slice(0, 80)}`);
+  }
+  const segments = raw.split(/[\\/]/u);
+  if (segments.some((segment) => segment === "" || segment === "." || segment === "..")) {
+    throw new Error(`writing.article_path 含空段或路径穿越:${raw.slice(0, 80)}`);
+  }
+  return segments.join("/");
+}
+
 /** setup 白名单:仅包管理器 install 形态;强制 --ignore-scripts(已含则不重复) */
 export function sanitizeSetupCommand(command: string): { argv: string[] } | { rejected: string } {
   const parts = command.trim().split(/\s+/);
@@ -73,8 +85,7 @@ export function readProjectExecConfig(repoPath: string): ProjectExecConfig {
   const justfileTasks = entries.filter((e) => e.source === "justfile").map((e) => e.ref);
   const verifyRefs = entries.map((e) => `${e.source}:${e.ref}`);
   const articlePathRaw = (parsed.writing as { article_path?: string } | undefined)?.article_path ?? "article.md";
-  // 路径消毒:相对、无 .. 穿越(worktree 内)
-  const writingArticlePath = articlePathRaw.replace(/^\/+/, "").split("/").filter((s) => s !== "..").join("/") || "article.md";
+  const writingArticlePath = normalizeWritingArticlePath(articlePathRaw);
   const out: ProjectExecConfig = {
     registry: { packageScripts, justfileTasks },
     verifyRefs,

@@ -5,8 +5,9 @@
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { textDigest } from "@saydo/contracts";
+import { computePackageDigest, textDigest, type DecisionPackage } from "@saydo/contracts";
 import type { Db } from "../storage/db.js";
+import { insertPackage } from "../storage/dao/packages.js";
 import { managedProjectPath } from "../projects/workspace.js";
 
 const T0 = "2026-07-25T02:00:00.000Z";
@@ -37,20 +38,30 @@ export function seedConsoleFixture(db: Db, opts: { artifactsDir?: string } = {})
       })
     );
 
-    // 决策包(带验收标准,任务详情证据视图用)
-    const pkgBody = JSON.stringify({
-      goal: "报表页支持导出 CSV",
-      acceptance: [
-        { text: "导出按钮出现在报表页工具栏" },
-        { text: "导出的 CSV 与页面数据一致(含表头)" },
-        { text: "verify: pnpm test 全绿", verify: { templateRef: "package_script:test" } }
-      ],
-      boundaries: ["不动认证模块", "不升级依赖"]
-    });
-    db.prepare(
-      `INSERT INTO decision_packages(id, revision, digest, project_id, body_json, status, created_at)
-       VALUES ('pkg_01F1XT0RE0A000000000000000', 1, 'sha256:${"a".repeat(64)}', 'prj_01F1XT0RE0A000000000000000', '${pkgBody.replace(/'/g, "''")}', 'approved', '${T0}')`
-    ).run();
+    // 决策包(严格 canonical 正文 + 真 digest；任务详情与 review approve 共用同一 durable 事实)
+    const packageUnsigned = {
+      id: "pkg_01F1XT0RE0A000000000000000",
+      revision: 1,
+      projectId: "prj_01F1XT0RE0A000000000000000",
+      outcomePreview: "报表页支持导出 CSV",
+      inScope: ["导出"],
+      outOfScope: ["认证", "依赖升级"],
+      assumptions: [],
+      acceptance: ["导出按钮出现在报表页工具栏", "导出的 CSV 与页面数据一致(含表头)", "verify: pnpm test 全绿"],
+      plan: [{ seq: 1, step: "实现并验证 CSV 导出", owner: "ai" as const }],
+      cost: { expected: { known: false as const }, p95: { known: false as const }, max: 20, currency: "CNY" as const },
+      risks: [],
+      mode: "step_confirm" as const,
+      preauthorizedEffects: [],
+      effectPolicyVersion: "e2/0.1.0"
+    };
+    const fixturePackage: DecisionPackage = {
+      ...packageUnsigned,
+      digest: computePackageDigest(packageUnsigned),
+      status: "approved",
+      createdAt: T0
+    };
+    insertPackage(db, fixturePackage);
 
     // 任务(六态覆盖;tier1 必带 adapter,route=hopper 恒 NULL adapter)
     const budget = '{"walltimeActiveMin":45,"maxTurns":80,"maxCost":20}';
@@ -65,16 +76,16 @@ export function seedConsoleFixture(db: Db, opts: { artifactsDir?: string } = {})
       db.prepare(
         `INSERT INTO tasks(id, project_id, package_id, package_rev, package_digest, title, spec_markdown, route, status,
                            adapter, cwd, budget_json, created_at, updated_at)
-         VALUES (?, 'prj_01F1XT0RE0A000000000000000', 'pkg_01F1XT0RE0A000000000000000', 1, 'sha256:${"a".repeat(64)}', ?, '规格见决策包', 'tier1', ?,
+         VALUES (?, 'prj_01F1XT0RE0A000000000000000', 'pkg_01F1XT0RE0A000000000000000', 1, ?, ?, '规格见决策包', 'tier1', ?,
                  'cursor', '/tmp/wt', ?, '${T0}', '${T0}')`
-      ).run(id, title, status, budget);
+      ).run(id, fixturePackage.digest, title, status, budget);
     }
     // 停靠(派生态 parked:blocked + parked_deadline)
     db.prepare(
       `INSERT INTO tasks(id, project_id, title, spec_markdown, route, status, adapter, cwd, budget_json,
                          parked_at, parked_deadline, created_at, updated_at)
        VALUES ('tsk_01F1XT0RE0TSKPRK0000000000', 'prj_01F1XT0RE0A000000000000000', '数据库索引重建', '规格见决策包', 'tier1', 'blocked',
-               'cursor', '/tmp/wt', '${budget}', '${T0}', '2026-07-28T02:00:00.000Z', '${T0}', '${T0}')`
+               'cursor', '/tmp/wt', '${budget}', '${T0}', '2099-07-28T02:00:00.000Z', '${T0}', '${T0}')`
     ).run();
 
     // tier1_runs(执行记录;settled_review 契约 = Tier1SettleProof 齐备——approve 的 evidenceDigest 从此自取)
@@ -85,6 +96,7 @@ export function seedConsoleFixture(db: Db, opts: { artifactsDir?: string } = {})
       packageRevision: 1,
       treeSha: "abc123def456",
       tier1VerifyDigest: `sha256:${"f".repeat(64)}`,
+      acceptanceChecks: fixturePackage.acceptance.map((criterion) => ({ criterion, status: "unknown", source: "manual" })),
       transcriptCursor: "cursor-fixture-1",
       settledAt: T0
     });
@@ -93,6 +105,19 @@ export function seedConsoleFixture(db: Db, opts: { artifactsDir?: string } = {})
        VALUES ('run_01F1XT0RE0A000000000000000', 'tsk_01F1XT0RE0TSKRDY0000000000', 1, 'cursor', '/tmp/wt', '/tmp/wt', 'abc123def456', 'settled_review', '${fixtureProof.replace(/'/g, "''")}', '${T0}', '${T0}'),
               ('run_01F1XT0RE0B000000000000000', 'tsk_01F1XT0RE0TSKRVN0000000000', 1, 'cursor', '/tmp/wt', '/tmp/wt', NULL, 'running', NULL, '${T0}', '${T0}')`
     ).run();
+    db.prepare(
+      `INSERT INTO audit_log(id, ts, actor, action, meta_json)
+       VALUES ('aud_01F1XT0RE0OBSMODEL0000000', '${T0}', 'daemon', 'tier1.settled_review', ?)`
+    ).run(
+      JSON.stringify({
+        taskId: "tsk_01F1XT0RE0TSKRDY0000000000",
+        runId: "run_01F1XT0RE0A000000000000000",
+        observedModel: "cursor-grok-4.6-high-fast",
+        observedModelSource: "stream",
+        observedModelExempted: false,
+        observedModelFamilyOk: true
+      })
+    );
 
     // 审批(S2 pending / S2 voice consumed / S3 screen consumed;voice 必带 turn_ref)
     db.prepare(
@@ -101,8 +126,8 @@ export function seedConsoleFixture(db: Db, opts: { artifactsDir?: string } = {})
     ).run();
     db.prepare(
       `INSERT INTO approvals(id, kind, ref_digest, effect, task_id, turn_ref, risk, decided_via, auth_strength, nonce, outcome, issued_at, expires_at, decided_at, consumed_at)
-       VALUES ('apr_01F1XT0RE0APRVC00000000000', 'dispatch_package', 'sha256:${"a".repeat(64)}', '拍板执行:报表导出 CSV', 'tsk_01F1XT0RE0TSKRDY0000000000', 'ses_01FIX#t2', 'S2', 'voice', 'voice_weak', 'nonce-fix-2', 'consumed', '${T0}', '2026-07-25T02:01:00.000Z', '${T0}', '${T0}')`
-    ).run();
+       VALUES ('apr_01F1XT0RE0APRVC00000000000', 'dispatch_package', ?, '拍板执行:报表导出 CSV', 'tsk_01F1XT0RE0TSKRDY0000000000', 'ses_01FIX#t2', 'S2', 'voice', 'voice_weak', 'nonce-fix-2', 'consumed', '${T0}', '2026-07-25T02:01:00.000Z', '${T0}', '${T0}')`
+    ).run(fixturePackage.digest);
     // W4(09 §3.3):S3 演示行改造为合法 S3MergeReceipt 全形状(v9 双向 CHECK 下 generic S3 行 DDL 层即非法)
     // ——先落已消费的 merge 挑战行(FK),收据带 s3 判别域六列(runtime_effect + os_biometric + 父包)
     db.prepare(
@@ -113,9 +138,9 @@ export function seedConsoleFixture(db: Db, opts: { artifactsDir?: string } = {})
     db.prepare(
       `INSERT INTO approvals(id, kind, ref_digest, parent_package_digest, effect, task_id, risk, decided_via, auth_strength, nonce, outcome, issued_at, expires_at, decided_at, consumed_at,
                              s3_challenge_id, credential_id, assertion_digest, attempt, package_revision, prospective_tree_sha)
-       VALUES ('apr_01F1XT0RE0APRSCR0000000000', 'runtime_effect', 'sha256:${"c".repeat(64)}', 'sha256:${"a".repeat(64)}', '合并到主分支(Touch ID 已批)', 'tsk_01F1XT0RE0TSKD0N0000000000', 'S3', 'screen', 'os_biometric', 'nonce-fix-3', 'consumed', '${T0}', '2026-07-25T02:05:00.000Z', '${T0}', '${T0}',
+       VALUES ('apr_01F1XT0RE0APRSCR0000000000', 'runtime_effect', 'sha256:${"c".repeat(64)}', ?, '合并到主分支(本机认证已批)', 'tsk_01F1XT0RE0TSKD0N0000000000', 'S3', 'screen', 'os_biometric', 'nonce-fix-3', 'consumed', '${T0}', '2026-07-25T02:05:00.000Z', '${T0}', '${T0}',
                's3c_01F1XT0RE0CHLMRG000000000', 'fixture-cred-id', 'sha256:${"e".repeat(64)}', 1, 1, '${"d".repeat(40)}')`
-    ).run();
+    ).run(fixturePackage.digest);
 
     // 回叫 outbox
     db.prepare(

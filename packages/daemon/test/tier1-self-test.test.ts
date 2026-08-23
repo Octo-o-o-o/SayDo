@@ -3,14 +3,17 @@
 // 单测 fake 全覆盖、零真调 claude(live 走查归 W5.4-c);按生效 adapter 分叉:
 // claude_code 检查链 / cursor 投影 tier1StartupVerdict / codex unsupported。
 
-import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseConfigText } from "../src/config/load.js";
 import { parseSetupTestRequest, runSetupTest } from "../src/api/setup.js";
 import {
+  claudeInitProbeArgv,
+  claudeInitProbeEnv,
   claudeVersionFirstToken,
+  defaultTier1Probes,
   runTier1SelfTest,
   type Tier1SelfTestProbes,
   type Tier1SelfTestReport
@@ -56,12 +59,46 @@ function fakeProbes(over: Partial<Tier1SelfTestProbes> = {}): Tier1SelfTestProbe
   return {
     claudeVersion: async () => ({ ok: true, output: "2.1.220 (Claude Code)" }),
     claudeAuthStatus: async () => ({ ok: true, output: '{"loggedIn": true, "authMethod": "claude.ai"}' }),
+    claudeInit: async () => ({ ok: true, output: initOutput() }),
     commandAvailable: async () => true,
     socketReachable: async () => true,
     // 评审 91:原生 Windows 上自检走 win32 分支,缺这个 probe 会让「全绿」用例恒红
     gateAssetsPresent: async () => true,
     ...over
   };
+}
+
+function initOutput(overrides: Record<string, unknown> = {}): string {
+  return [
+    {
+      type: "system",
+      subtype: "init",
+      session_id: "00000000-0000-4000-8000-000000000001",
+      model: "claude-opus-5",
+      tools: [],
+      permissionMode: "default",
+      apiKeySource: "none",
+      claude_code_version: "2.1.220",
+      ...overrides
+    },
+    {
+      type: "assistant",
+      message: { model: "claude-opus-5", content: [{ type: "text", text: "OK" }] }
+    },
+    {
+      type: "result",
+      session_id: "00000000-0000-4000-8000-000000000001",
+      subtype: "success",
+      is_error: false,
+      num_turns: 1,
+      stop_reason: "end_turn",
+      terminal_reason: "completed",
+      permission_denials: [],
+      result: "OK"
+    }
+  ]
+    .map((event) => JSON.stringify(event))
+    .join("\n");
 }
 
 function check(report: Tier1SelfTestReport, name: string): { status: string; error?: string } {
@@ -75,6 +112,78 @@ describe("claudeVersionFirstToken(合同:claude --version 首 token 比对)", ()
     expect(claudeVersionFirstToken("2.1.220 (Claude Code)")).toBe("2.1.220");
     expect(claudeVersionFirstToken(" 2.1.220\n")).toBe("2.1.220");
     expect(claudeVersionFirstToken("")).toBe("");
+  });
+});
+
+describe("claude init 生产探针参数与凭据剥离", () => {
+  it("argv 是有界零工具一发一收封闭形状", () => {
+    expect(claudeInitProbeArgv("opus")).toEqual([
+      "-p",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--model",
+      "opus",
+      "--permission-mode",
+      "default",
+      "--tools",
+      "",
+      "--setting-sources",
+      "",
+      "--strict-mcp-config",
+      "--no-session-persistence",
+      "--max-turns",
+      "1",
+      "只回复 OK,不要使用工具。"
+    ]);
+  });
+
+  it("env 只保留 G4 白名单并强制两项非凭据覆盖", () => {
+    const env = claudeInitProbeEnv({
+      PATH: "/usr/bin",
+      HOME: "/tmp/fake-home",
+      SHELL: "/bin/zsh",
+      ANTHROPIC_API_KEY: "fixture-secret",
+      CLAUDE_CODE_OAUTH_TOKEN: "fixture-token",
+      OPENROUTER_API_KEY: "fixture-secret",
+      RANDOM_FLAG: "1"
+    });
+    expect(env).toEqual({
+      PATH: "/usr/bin",
+      HOME: "/tmp/fake-home",
+      SHELL: "/bin/sh",
+      DISABLE_AUTOUPDATER: "1"
+    });
+    expect(Object.keys(env).some((key) => key.includes("KEY") || key.includes("TOKEN"))).toBe(false);
+  });
+
+  it.skipIf(process.platform === "win32")("取消 init 探针会回收 CLI 及其后代", async () => {
+    const home = makeHome();
+    const marker = join(home, "descendant.pid");
+    const bin = join(home, "claude-orphan.cjs");
+    writeFileSync(
+      bin,
+      `#!/usr/bin/env node\nconst {spawn}=require("node:child_process"),fs=require("node:fs");const child=spawn(process.execPath,["-e","setInterval(()=>{},1000)"],{stdio:"ignore"});fs.writeFileSync(${JSON.stringify(marker)},String(child.pid));setInterval(()=>{},1000);\n`
+    );
+    chmodSync(bin, 0o755);
+    const abort = new AbortController();
+    const probe = defaultTier1Probes().claudeInit(bin, "opus", abort.signal);
+    for (let attempt = 0; attempt < 100 && !existsSync(marker); attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    expect(existsSync(marker)).toBe(true);
+    const descendantPid = Number(readFileSync(marker, "utf8"));
+    abort.abort();
+    await expect(probe).resolves.toMatchObject({ ok: false });
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      try {
+        process.kill(descendantPid, 0);
+      } catch {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    expect(() => process.kill(descendantPid, 0)).toThrow();
   });
 });
 
@@ -101,16 +210,76 @@ describe("runTier1SelfTest claude 分支(fake probes,零真调)", () => {
     expect(report.adapter).toBe("claude_code");
     expect(report.status).toBe("ok");
     expect(report.identityWritten).toBe(true);
-    for (const name of ["binary", "version", "auth", "hook_jq", "hook_curl", "hook_socket", "identity"]) {
+    for (const name of ["binary", "version", "auth", "init", "hook_jq", "hook_curl", "hook_socket", "identity"]) {
       expect(check(report, name).status).toBe("ok");
     }
     const rec = readClaudeIdentity(home);
     expect(rec).not.toBeNull();
-    expect(rec?.binaryPath).toBe(bin);
+    expect(rec?.binaryPath).toBe(realpathSync(bin));
     expect(rec?.binaryDigest).toBe(sha256File(bin));
     expect(rec?.version).toBe("2.1.220");
     expect(rec?.testedAt).toBe(NOW.toISOString());
     expect((rec?.receipt as { source?: string }).source).toBe("setup_self_test_tier1");
+  });
+
+  it("同一 SAYDO_HOME 的并发自检串行化，两个回执都确定且最终登记可解析", async () => {
+    const home = makeHome();
+    const bin = makeClaudeBin(home);
+    let active = 0;
+    let maxActive = 0;
+    const delayed = async <T>(value: T): Promise<T> => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      active -= 1;
+      return value;
+    };
+    const probes = fakeProbes({
+      claudeVersion: async () => delayed({ ok: true, output: "2.1.220 (Claude Code)" }),
+      claudeAuthStatus: async () => delayed({ ok: true, output: '{"loggedIn": true}' }),
+      claudeInit: async () => delayed({ ok: true, output: initOutput() })
+    });
+    const input = {
+      saydoHome: home,
+      cfg: parseConfigText(claudeCfgToml(bin)),
+      probes,
+      now: () => NOW
+    };
+    const [first, second] = await Promise.all([runTier1SelfTest(input), runTier1SelfTest(input)]);
+    expect([first.status, second.status]).toEqual(["ok", "ok"]);
+    expect([first.identityWritten, second.identityWritten]).toEqual([true, true]);
+    expect(maxActive).toBe(1);
+    expect(readClaudeIdentity(home)?.binaryDigest).toBe(sha256File(bin));
+  });
+
+  it.skipIf(process.platform === "win32")("claude_bin 为 symlink 时解析实体再探测并登记", async () => {
+    const home = makeHome();
+    const target = makeClaudeBin(home);
+    const alias = join(home, "claude-current");
+    symlinkSync(target, alias, "file");
+    const seen = new Set<string>();
+    const report = await runTier1SelfTest({
+      saydoHome: home,
+      cfg: parseConfigText(claudeCfgToml(alias)),
+      probes: fakeProbes({
+        claudeVersion: async (bin) => {
+          seen.add(bin);
+          return { ok: true, output: "2.1.220 (Claude Code)" };
+        },
+        claudeAuthStatus: async (bin) => {
+          seen.add(bin);
+          return { ok: true, output: '{"loggedIn": true}' };
+        },
+        claudeInit: async (bin) => {
+          seen.add(bin);
+          return { ok: true, output: initOutput() };
+        }
+      }),
+      now: () => NOW
+    });
+    expect(report.status).toBe("ok");
+    expect([...seen]).toEqual([realpathSync(target)]);
+    expect(readClaudeIdentity(home)?.binaryPath).toBe(realpathSync(target));
   });
 
   it("版本漂移 ⇒ version fail(重跑门禁仪式处方)+ identity 不写(fail-closed)", async () => {
@@ -184,7 +353,7 @@ describe("runTier1SelfTest claude 分支(fake probes,零真调)", () => {
     });
     expect(out.status).toBe("fail");
     expect(out.identityWritten).toBe(true);
-    expect(readClaudeIdentity(home)?.binaryPath).toBe(bin);
+    expect(readClaudeIdentity(home)?.binaryPath).toBe(realpathSync(bin));
   });
 
   it("评审 91 A-2:首份 identity 写出后如实告知需重启才武装", async () => {
@@ -289,6 +458,103 @@ model = "opus"
     expect(check(report, "version").status).toBe("fail");
     expect(check(report, "version").error).toContain("ENOENT");
   });
+
+  it.each([
+    ["缺 system/init", JSON.stringify({ type: "result", subtype: "success" }), "system/init"],
+    ["API key 来源", initOutput({ apiKeySource: "ANTHROPIC_API_KEY" }), "API key"],
+    ["init 版本漂移", initOutput({ claude_code_version: "2.1.219" }), "pinned"],
+    ["模型异族", initOutput({ model: "gpt-5.6-sol" }), "Claude 族"],
+    ["工具面非空", initOutput({ tools: ["Read"] }), "零工具面"],
+    ["权限模式缺失", initOutput({ permissionMode: undefined }), "default"]
+  ])("init 物理断言 fail-closed:%s", async (_name, output, errorPart) => {
+    const home = makeHome();
+    const bin = makeClaudeBin(home);
+    const report = await runTier1SelfTest({
+      saydoHome: home,
+      cfg: parseConfigText(claudeCfgToml(bin)),
+      probes: fakeProbes({ claudeInit: async () => ({ ok: true, output }) }),
+      now: () => NOW
+    });
+    expect(report.status).toBe("fail");
+    expect(check(report, "init").status).toBe("fail");
+    expect(check(report, "init").error).toContain(errorPart);
+    expect(report.identityWritten).toBe(false);
+    expect(readClaudeIdentity(home)).toBeNull();
+  });
+
+  it.each([
+    ["未知前导事件", `not-json\n${initOutput()}`, "未知或损坏"],
+    ["只有 init 的截断流", initOutput().split("\n")[0]!, "result 终态"],
+    [
+      "成功 result 后追加第二个 init",
+      [initOutput(), initOutput({ apiKeySource: "ANTHROPIC_API_KEY" }).split("\n")[0]!].join("\n"),
+      "只能包含一个"
+    ],
+    [
+      "成功 result 后追加 assistant 事件",
+      [
+        initOutput(),
+        JSON.stringify({
+          type: "assistant",
+          message: { model: "claude-opus-5", content: [{ type: "text", text: "trailing" }] }
+        })
+      ].join("\n"),
+      "事件流末尾"
+    ],
+    [
+      "result 与 init session 不一致",
+      initOutput().replace(
+        '"session_id":"00000000-0000-4000-8000-000000000001","subtype":"success"',
+        '"session_id":"00000000-0000-4000-8000-000000000002","subtype":"success"'
+      ),
+      "同 session"
+    ],
+    [
+      "夹带工具调用",
+      [
+        initOutput().split("\n")[0]!,
+        JSON.stringify({
+          type: "assistant",
+          message: { model: "claude-opus-5", content: [{ type: "tool_use", id: "tool_1", name: "Read" }] }
+        }),
+        initOutput().split("\n")[2]!
+      ].join("\n"),
+      "工具调用"
+    ],
+    [
+      "成功终态不是一回合 OK",
+      initOutput().replace('"num_turns":1', '"num_turns":2').replace('"result":"OK"', '"result":"not ok"'),
+      "result 终态"
+    ]
+  ])("init 完整一发一收 fail-closed:%s", async (_name, output, errorPart) => {
+    const home = makeHome();
+    const bin = makeClaudeBin(home);
+    const report = await runTier1SelfTest({
+      saydoHome: home,
+      cfg: parseConfigText(claudeCfgToml(bin)),
+      probes: fakeProbes({ claudeInit: async () => ({ ok: true, output }) }),
+      now: () => NOW
+    });
+    expect(check(report, "init").status).toBe("fail");
+    expect(check(report, "init").error).toContain(errorPart);
+    expect(report.identityWritten).toBe(false);
+  });
+
+  it.each(["claude init 探针超时;请重试", "claude init 探针非零退出;请重试"])(
+    "init probe 进程失败不写 identity:%s",
+    async (error) => {
+      const home = makeHome();
+      const bin = makeClaudeBin(home);
+      const report = await runTier1SelfTest({
+        saydoHome: home,
+        cfg: parseConfigText(claudeCfgToml(bin)),
+        probes: fakeProbes({ claudeInit: async () => ({ ok: false, error }) }),
+        now: () => NOW
+      });
+      expect(check(report, "init").error).toBe(error);
+      expect(report.identityWritten).toBe(false);
+    }
+  );
 });
 
 describe("runTier1SelfTest 非 claude 分支(按生效 adapter 分叉)", () => {
@@ -300,6 +566,9 @@ describe("runTier1SelfTest 非 claude 分支(按生效 adapter 分叉)", () => {
       probes: fakeProbes({
         claudeVersion: async () => {
           throw new Error("cursor 分支不得调 claude probe");
+        },
+        claudeInit: async () => {
+          throw new Error("cursor 分支不得调 claude init probe");
         }
       }),
       now: () => NOW
@@ -352,7 +621,7 @@ describe("runSetupTest scope=tier1 集成(端点分支;四槽/voice 不跑)", ()
     expect(out.slots).toEqual({});
     expect(out.tier1?.status).toBe("ok");
     expect(out.tier1?.identityWritten).toBe(true);
-    expect(readClaudeIdentity(home)?.binaryPath).toBe(bin);
+    expect(readClaudeIdentity(home)?.binaryPath).toBe(realpathSync(bin));
   });
 
   it("cursor 生效(缺省):tier1 报告走 cursor 投影,不要求 claude probe", async () => {

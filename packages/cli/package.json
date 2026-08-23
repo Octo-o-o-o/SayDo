@@ -1,6 +1,6 @@
 {
   "name": "@saydo/cli",
-  "version": "0.0.1",
+  "version": "0.1.0-rc.2",
   "license": "Apache-2.0",
   "description": "SayDo 可分发 Node 运行时与命令行 supervisor",
   "type": "module",
@@ -8,13 +8,17 @@
     "saydo": "dist/cli.mjs"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "engines": {
     "node": ">=22 <23"
   },
   "scripts": {
-    "build": "node scripts/build.mjs",
+    "build": "node ../../scripts/third-party-notices.mjs --check && node scripts/build.mjs",
     "prepack": "pnpm build",
     "verify:distribution": "pnpm build && node scripts/verify-distribution.mjs",
     "typecheck": "tsc --noEmit",

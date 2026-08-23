@@ -1,6 +1,7 @@
 # W5.4-b 生产执行主流程接线批 · 证据(2026-08-22)
 
-> 性质:阶段性证据,**本批未收口**——C1/C2 已入库,C3(console 与话术)未做,live 冒烟与 conformance 归 W5.4-c。
+> 性质:前半段阶段性证据。本文 §1–§9 保留 2026-08-22 当时未收口的真实状态;
+> 2026-08-23 的补齐候选见 §10,首轮复审红灯见 §11;复审绿前不写收口。live hook 冒烟与 conformance 仍归 W5.4-c。
 > 交接 = `docs/plan/IMPL-PROMPT-15-W54B-WIRING.md`(第 15 轮);方案正本 = `docs/plan/2026-08-19-w54-claude-cli-tier1.fable.md` v3.1;合同 = `docs/09-data-contracts.md` §11 claude_code 承载段。
 > 代码提交:`4c4bf96b85aed8ad53c8808465dc3f99b3e5f9ad`(feat(w54b));canonical 前置 `5036bee`;合并 `4d2824e`。证据提交不自指。
 > 三级词表:[ok] 本会话真实命令或 file:line 实证 / [warn] 差距如实 / [fail] 未做。
@@ -153,3 +154,74 @@ Codex `gpt-5.6-sol` max 只读复核(prompt 91,报告 `research/codex-findings/9
 3. 把 `not_limited=true` 当 fail-closed 写进测试固化了错误行为,评审 91 抓到;后来才发现整套分词本就无证据支撑;
 4. 改 workspace 身份锚时**静默双改契约**,评审 92 抓到,是本轮最严重的一条;
 5. 台账里写了一条「已去掉重复 ACL 调用」的**不实陈述**,评审 92 对照代码抓到。
+
+## 10. 2026-08-23 收口候选补证
+
+本节 supersede 本文 §1、§2、§6 中「C1 init 未实现 / C3 未做」的现势判断,
+不改写它们在 2026-08-22 作为阶段快照的历史事实。它只形成关批候选;双向审计与独立复审绿前不宣称 W5.4-b 已收口。
+
+| 验收锚 | 结果 | 实现与证据 |
+|---|---|---|
+| C1 有界 `system/init` 物理探针 | [ok] | `selfTest.ts` 在空临时 cwd 用只读、单 turn、零工具参数启动 `claude -p`;30s/1MiB 上限;校验 adapter、pin 版本、`apiKeySource=none`、模型族、permission mode 与空 tools;环境白名单与生产 spawn 同源 |
+| C3 设置页 Tier1 卡 | [ok] | 展示 backend/model/version/login/self-test/五小时窗;未测试不伪造登录态,无 durable 记录不写“额度充足” |
+| C3 任务详情 | [ok] | 每次 Tier1 run 展示 adapter + 只读 `observedModel`;缺证据写「未观测」 |
+| C3 话术与 prompt | [ok] | 文件工具 S2、限流/登录/身份漂移/max-turns 人话化;认证统一写「本机认证」;Claude prompt 保护 `.claude/`,Cursor 保护 `.cursor/` |
+| 控制台端到端 | [ok] | `pnpm exec playwright test` exit 0,**36 passed (2.0m)**;同时修正正式 Today/Focus IA、首启 peek 装配、云语音测试 peer 与过期 parked fixture |
+
+边界仍不变:本节证明 W5.4-b 的 C1/C2/C3 合同与自动化收口,不证明真实 Claude
+PreToolUse/PostToolUse hook 全链已经跑通。真 hook smoke、live conformance 与 `@saydo/contracts`
+上收仍归 W5.4-c;四场真人验收也不能由自动化替代。
+
+## 11. 双向审计首轮复审红灯(2026-08-23)
+
+首轮两个零上下文评审与 Codex 对抗评审均判当前候选不可发布。确认的问题包括:Claude 自检子进程环境与终态校验、并发身份登记、Tier1 回叫四类话术同源、terminal audit 冲突、coding 验收项伪投影全绿、工作树未入审计账本、公开 snapshot 仅靠标题、发布包过期假绿、Windows shim 未真执行、桌面 fresh-origin 逃生口未覆盖、官网状态/环境白名单漂移。以上进入本轮修复与复审;最终关闭证据另开 §12,不得回改本节为绿。
+
+## 12. 冻结复审回修与最终本地门禁(2026-08-23)
+
+两路零上下文冻结复审继续按 No-Go 处置,没有把“发现已回修”偷换成“评审原结论已通过”。本轮补齐的
+A 级主线包括:审批后 eligibility 重读、review cancel/restart 优先、成功 result/usage 的 durable 恢复、
+review 终态事务失败保留原 marker、writing artifact 固定引用 exact-replay、常规 blob 原始字节核对、
+Claude 每次 spawn 强制重算二进制身份、Windows `.cmd` 真入口、Release rerun 永久 unavailable、
+实施回修双向账本、空 outbox entry 的原子回滚及固定 URL 完整生命周期。精确处置见
+`docs/review/2026-08-23-week-audit-faststart-release.md` F70–F87。
+
+最终本地门禁:
+
+- `just ci`:exit 0;contracts 111、platform 12、console 278、CLI 20 passed/1 skipped、daemon
+  1883 passed/5 skipped、pipeline 34 passed;emoji、颜色、迁移工具和实体发布证据自测同绿。
+- Cursor/Claude 恢复一致性定向回归:2 files、104 tests passed;覆盖 adapter 双向漂移、终态原子回滚、
+  durable event replay、Cursor usage 与成本证据。
+- fixed URL 验证器启动门:[ok] 无参启动精确返回用法与 exit 2,可在发布前捕获模块导入错误。首次全量复跑
+  因 restart 真实 Git 夹具的 15 秒等待上限红 1 项;目标用例单进程 1.08 秒通过,分层超时修正后最终
+  全量中同例 1.50 秒通过且总门退出 0。
+- `pnpm --filter @saydo/cli verify:distribution`:exit 0;包 17 个成员,真安装入口 `saydo`,owner/attach、
+  home/port 冲突、recovery-only、Tier1 restart 恢复和进程树零孤儿全部通过。
+- 实施冻结 `3e74a5a6a4e5c187688c157309989737bf9af947` 后发行物两次构建一致:
+  `saydo-cli-0.1.0-rc.2.tgz` `1145989` bytes、SHA-256
+  `aa03450c20d080aa893350d66f3b1e2e0b46329204f5990d77b1019c0593ff93`、
+  `sourceRevision=19bf877c67e9817e5694d344b9551b4279728551fcd860b6b34d779aed4c0c47`。
+- `node scripts/check-doc-links.mjs`:最终证据候选 96 个活跃文档,broken 0;`git diff --check` 与 emoji 门禁通过。
+
+外部 Codex 108 与全新会话 112 均未产生 final message;112 在 1200 秒守卫下 exit 124。两份原始日志
+字节数、SHA-256 与 `turn.completed=0` 已记录在对应 finding,不能把中间事件伪装成最终评审结论。
+不可变 Release、Mac/Windows 固定 URL、Pages 与移动真机属于发布阶段证据,不由本节提前宣称。
+
+## 13. 证据冻结后最终运行时复审回修(2026-08-23)
+
+`final_runtime_review` 的零上下文复审在冻结候选上发现三条 P1:review 终局意图可与 restart marker
+形成永久双锁、adapter 漂移会被缺失 worktree 预检绕过、旧 durable success result 可被新恢复进程继承。
+回修提交为 `877c875`，测试断言修正为 `3e74a5a`：终局意图优先并清 restart marker；adapter 双向漂移
+先于 workspace 判断且 spawn=0；未绑定 finalization 的旧 result 一律 fail-closed，旧用量只记一次。
+
+本机直接证据:
+
+- `pnpm --filter @saydo/daemon exec vitest run test/restart-policy.test.ts test/tier1-executor.test.ts`:
+  2 files、104 tests passed、exit 0。
+- `pnpm --filter @saydo/daemon typecheck`:exit 0。
+- `/private/tmp` 施工 worktree 首跑因项目 workspace 政策要求 owner home 子目录而红，不计为业务失败；
+  同一提交移入 `/Users/wangyixiao/WorkSpace/` 后上述全量定向门绿。
+
+同一独立评审会话已对 `81760a4` 判三条 `CONFIRMED_FIXED`、最终 Go,并独立复跑聚焦反例 8 项、
+daemon 1883/5 skipped、typecheck 与差量门。发布独立复审确认 F89–F94,唯一 No-Go 是旧 audit bundle；
+当前已把 implementation boundary 固定为 `3e74a5a` 并重生 schema 2/6,内部 `--check` 绿。公开过滤树
+`--check-bundle`、不可变 Release 与实体主机证据尚未执行，不提前宣称发布完成。

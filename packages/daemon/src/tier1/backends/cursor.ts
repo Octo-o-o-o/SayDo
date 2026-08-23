@@ -29,8 +29,8 @@ export function cursorParseLine(line: string): Tier1Event {
   }
   if (ev.kind === "result") {
     return ev.text !== undefined
-      ? { kind: "result", isError: false, text: ev.text }
-      : { kind: "result", isError: false };
+      ? { kind: "result", isError: false, text: ev.text, ...(ev.usage ? { usage: ev.usage } : {}) }
+      : { kind: "result", isError: false, ...(ev.usage ? { usage: ev.usage } : {}) };
   }
   if (ev.kind === "tool_call") {
     if (!isCursorStartedToolCall(line)) return { kind: "ignore" };

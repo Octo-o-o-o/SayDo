@@ -18,7 +18,7 @@
 | 2 | 信任条:无账号 · 无云端后台 · 只连你自己配置的服务 / 开源免费 / 复用你已有的 AI 订阅 | `.strip` | 2026-08-21 对齐:删首屏绝对离机承诺 |
 | 3 | 怎么工作:七步时间线 | `#how` | (2026-08-20 已解除)Demo 小样与回叫升级链当日落地;步 3 / 6 用 B.3 更新版文案 |
 | 4 | 痛点对照:没有它的时候 / 有了说到 | `#contrast` | 好,保留 |
-| 5 | 为什么不一样:六卖点卡 | `#why` | 「先吃透,再办事」中「先深度研究透」偏重;「AI 真的在干活」把推理供给与执行器混为一句(Gemini CLI 不能执行;Claude Code 执行器在建) |
+| 5 | 为什么不一样:六卖点卡 | `#why` | 「先吃透,再办事」中「先深度研究透」偏重;「AI 真的在干活」须分清推理供给与执行器(Gemini CLI 不能执行;Claude Code 生产接线已落地但 live conformance 未收口) |
 | 6 | 产品现状:7 张卡(3 可用 + 4 Coming soon) | `#status` | 诚实区是亮点;「驱动你已有的 AI · 现在可用」需拆两层;可补「进行中」徽标承载 Claude Code 执行器(新增一种 badge 颜色属最小 UI 变更,可选) |
 | 7 | 沟通面 ↔ 执行面 | 无 id | 好;「局域网直连」属实 |
 | 8 | 隐私带 | `#privacy` | 好 |
@@ -102,8 +102,8 @@
 - 说了就记 [保留]
 - 先吃透,再办事 [改]:`第一次聊一个项目,先读透结构、约定与关键文件,沉淀成持久知识底座,之后每次都带着对你项目的理解开聊。这是「说到」和「新开一个聊天窗口」的分水岭。`
   *EN: The first conversation about a project starts by reading its structure, conventions, and key files into a persistent knowledge base — every later conversation begins with that understanding. That's the line between SayDo and a fresh chat window.*
-- AI 真的在干活 [改]:`接上你电脑上已登录的 AI——Codex、Claude Code、Cursor、Gemini CLI、Grok 等替它对话、思考、评估;动手改代码由 Cursor Agent 承担,Claude Code 执行器在建。已订阅哪家用哪家,无需额外付费。`
-  *EN: It plugs into the AI already signed in on your machine — Codex, Claude Code, Cursor, Gemini CLI, Grok and more for thinking and evaluation; hands-on code changes run through Cursor Agent today, with a Claude Code executor in progress. Whichever you subscribe to, it uses. No extra fees.*
+- AI 真的在干活 [改 2026-08-22]:`接上你电脑上已登录的 AI——Codex、Claude Code、Cursor、Gemini CLI、Grok 等替它对话、思考、评估;动手改代码当前稳定路径是 Cursor Agent,Claude Code 已接入生产主流程、正在做最终真机收口。已订阅哪家用哪家,无需额外付费。`
+  *EN: It plugs into the AI already signed in on your machine — Codex, Claude Code, Cursor, Gemini CLI, Grok and more for thinking and evaluation. Cursor Agent is the stable code-editing path today; Claude Code is wired into production and undergoing final live closure. Whichever you subscribe to, it uses. No extra fees.*
 - 人拍板才算数 [保留]
 - 数据完全在你手里 [改]:`没有开发者运营的云端后台，没有账号注册。对话、事项与账本保存在你自己的设备上；手机与电脑之间走你自己的局域网或你自行配置的加密组网。开发者无法访问、也不收集。`
   *EN: No developer-operated backend, no accounts. Conversations, items, and the ledger stay on your devices. Phone and computer talk over your own LAN or an encrypted overlay you configure. The developer cannot access — and does not collect — any of your data.*
@@ -112,13 +112,13 @@
 ## B.6 产品现状(7 卡)
 
 - 标题 [保留]:eyebrow `产品现状` / H2 `做到哪了,一眼看清` / 引语 `不画饼。已经能用的如实标注「现在可用」,还在路上的如实写 Coming soon。`
-- 桌面服务 · 现在可用 [改]:`macOS 上的执行面:守护进程、Web 控制台与可选语音管线,开源免费;装好自己的电脑就是全部基础设施。目前以源码形式提供,安装说明见文档。`
-  *EN: The execution side on macOS: daemon, web console, and an optional voice pipeline. Free and open source — your own computer is all the infrastructure there is. Currently distributed as source; see the docs to install.*
+- 桌面服务 · 现在可用 [改 2026-08-23]:`macOS / Windows / Linux 的 daemon 与 Web 控制台源码形态已经可运行;v0.1.0-rc.2 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效,届时可一条命令启动、无需克隆源码。可选语音管线与常驻安装仍走源码说明。`
+  *EN: The source form of the daemon and Web console already runs on macOS, Windows, and Linux. The v0.1.0-rc.2 fixed URL becomes active only after the GitHub Release appears and all release checks are green; it then starts with one command and no source checkout. The optional voice pipeline and service installation still use the source guide.*
 - 驱动你已有的 AI · 现在可用 [改]:`对话、思考、评估可用你已登录的 Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot 订阅,或任一 OpenAI 兼容 API;真正动手改代码的执行器当前为 Cursor Agent。`
   *EN: Conversation, reasoning, and evaluation run on your signed-in Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot subscriptions, or any OpenAI-compatible API; the executor that actually edits code is Cursor Agent today.*
 - 项目记忆与四色账本 · 现在可用 [保留]
-- [可选新增] Claude Code 执行器 · 进行中:`用你的 Claude 订阅登录态驱动 Claude Code 在隔离 worktree 里改代码,审批门同样 fail-closed。官方 CLI 能力实测与审批门判定逻辑已验证,尚未接入生产执行链。`(需新增一种「进行中」徽标;若不想动 UI,把这句并入上一张卡末尾)
-  *EN: Claude Code executor · In progress — drive Claude Code with your own Claude subscription in an isolated worktree, behind the same fail-closed approval gate. Capabilities and the gate decision logic have been verified against the official CLI; it is not yet wired into the production execution path.*
+- Claude Code 执行器 · 收口中 [改 2026-08-22]:`生产执行主流程、审批门、恢复、记账、自检与控制台已经接线;最终真实端到端 conformance 尚未收口,因此暂不替代 Cursor 稳定路径。`
+  *EN: Claude Code executor · Closing out — production execution, approval, recovery, accounting, self-test, and console are wired; final live end-to-end conformance remains open, so Cursor stays the stable path for now.*
 - iOS / Android / HarmonyOS / 来电式语音汇报 四卡 [保留]
 
 ## B.7 沟通面 ↔ 执行面
@@ -137,11 +137,15 @@
 ## B.9 开始用(`#start`,保留 `#download` 锚点)
 
 - 标题 [改]:eyebrow `开始用` / H2 `桌面开源,App 在路上`(保留)
-- 引语 [改 2026-08-22]:`桌面服务是执行面：macOS 开源免费、现在可用；Windows 已完成原生适配并经真机验证，Linux 经 CI 全量验证，均可运行；常驻安装、系统通知等链路当前为 macOS 实现。移动 App 是沟通面，开发中、尚未上架、当前无可下载版本。在你的电脑上跑起桌面服务就能开聊。按文档显式打开局域网访问后，可用手机浏览器扫码连接。`
-  *EN: The desktop service is the execution side: macOS is free, open source, and available now; Windows has native support verified on real hardware, Linux passes the full CI matrix, and both run today — residency install, system notifications, and similar paths are macOS-only for now. The mobile apps are the communication side: in development, not listed in any store, and there is nothing to download today. After you explicitly enable LAN access as documented, you can connect with a phone browser by scanning a QR code.*
+- 引语 [改 2026-08-23]:`桌面服务是执行面：macOS 开源免费、现在可用；Windows 已完成原生适配并经真机验证，Linux 经 CI 全量验证，均可运行；常驻安装、系统通知等链路当前为 macOS 实现。移动 App 是沟通面，开发中、尚未上架、当前无可下载版本。在你的电脑上跑起桌面服务就能开聊；选择 SayDo 已支持且通过自检的登录态 AI CLI 时，无需另申请 API key，不支持的 CLI 会被明确拒绝。按文档显式打开局域网访问后，可用手机浏览器扫码连接。`
+  *EN: The desktop service is the execution side: the source form runs on macOS, Windows, and Linux today, while residency installation and system notifications remain macOS-only. Mobile apps are in development and are not available in any store. Run the desktop service and choose a signed-in AI CLI that SayDo supports and has passed through self-test; this needs no separate API key, and unsupported CLIs are rejected explicitly. After you enable LAN access as documented, a phone browser can connect by QR code.*
 - macOS 卡 [改]:`macOS 桌面服务 · 开源免费 · 现在可用` + 链接 `安装说明 →`(`/docs/#quickstart`)+ `GitHub →`
   *EN: macOS desktop service · Free & open source · Available now · Install guide → · GitHub →*
 - Windows / Linux 卡 [改 2026-08-22]:徽章 `开源 · 现在可用` / *Open source · Available now*;能力边界见引语(常驻安装与系统通知暂为 macOS 实现)
+- 三端卡上方 [改 2026-08-23]:并列展示固定版本 Release 的两种无源码入口:
+  1. 一次运行:`npm exec --yes --package=<tgz URL> -- saydo up`;
+  2. 常用安装:`npm install --global <tgz URL>` 后运行 `saydo up`。
+  说明需要 Node.js 22、包只含 daemon + Web 控制台、当前为 prerelease。
 - iOS / Android / HarmonyOS 三卡 [改]:徽章 `开发中` / *In development*;尚未上架、当前无可下载版本。邮件按钮 `邮件订阅进展` / *Email for updates*(mailto subject 为更新通知,不是 beta access)
 
 ## B.10 FAQ
@@ -158,8 +162,8 @@
     *EN (optional): Voice needs no setup — your browser's built-in speech works out of the box; cloud voice is an optional upgrade for better accuracy.*
 - [新增] `要花钱吗?`:`桌面服务免费。AI 的费用直接付给你选的厂商:用你已有的订阅(额度内零额外费用),或你自己的 API key 按量计费;每个任务有成本、时长、回合三重熔断。说到不加价、不经手、不代充。`
   *EN: Does it cost money? The desktop service is free. AI costs go straight to the vendor you choose — your existing subscription (no extra fees within its quota) or your own API key, pay as you go — with per-task cost, time, and turn circuit-breakers. SayDo adds no markup and never handles payment.*
-- [新增] `它会替我 push 或开 PR 吗?`:`不会。它只在你项目里的独立 worktree 和 saydo/<任务> 分支上改代码;合并到你的分支要你 Touch ID 确认或自己动手;推送远端、开 PR 永远是你之后自己做的事。`
-  *EN: Will it push or open PRs for me? No. It only edits code in an isolated worktree on a saydo/<task> branch inside your project; merging into your branch takes your Touch ID or your own hands, and pushing or opening a PR is always something you do afterwards.*
+- [新增] `它会替我 push 或开 PR 吗?`:`不会。它只在你项目里的独立 worktree 和 saydo/<任务> 分支上改代码;合并到你的分支要你用本机认证确认或自己动手;推送远端、开 PR 永远是你之后自己做的事。`
+  *EN: Will it push or open PRs for me? No. It only edits code in an isolated worktree on a saydo/<task> branch inside your project; merging into your branch takes local device authentication or your own hands, and pushing or opening a PR is always something you do afterwards.*
 
 ## B.11 尾 CTA
 
@@ -181,7 +185,7 @@
 | # | 事项 | 现状 | 建议 |
 |---|---|---|---|
 | C-1 | **已解除(2026-08-20)**:LICENSE = Apache-2.0;仓库已公开(`github.com/Octo-o-o-o/SayDo` = 快照仓,全史在私有归档;处置记录 `docs/plan/2026-08-20-repo-public-readiness.fable.md` §3.1) | 首页「开源免费」与 GitHub 直链成立 | 本稿可按原文案上线 |
-| C-2 | 「驱动你已有的 AI」两层混写 | 推理槽 7 家 CLI 可用;执行器仅 Cursor;Claude Code 执行器第一批(官方 CLI 能力实测 + 审批门判定逻辑)已验证、尚未接入生产执行链;Gemini CLI 无执行计划 | 按 B.5 / B.6 拆句;进行中徽标可保留,不得把生产接线写成在途 |
+| C-2 | 「驱动你已有的 AI」两层混写 | 推理槽 7 家 CLI 可用;Cursor 是稳定执行器缺省;Claude Code 生产主流程已接线、最终 live conformance 未收口;Gemini CLI 无执行计划 | 按 B.5 / B.6 拆句;Claude 标「收口中」,不得写成尚未接线或稳定可用 |
 | C-3 | **已解除(2026-08-20)**:七步第 3 步「轻量 Demo」 | S1 批落地:决策包同轮生成轻量小样(机械渲染)+ 控制台「看小样」+ 本机同轮上屏 | B.3 第 3 步已恢复小样表述(更新版) |
 | C-4 | **已解除(2026-08-20)**:七步第 6 步回叫升级链 | S2 批落地:在线语音回叫(控制台在线 + 语音管线健康)→ macOS 桌面通知 + ntfy;免打扰只推不响;「知道了」/开口即应答 | B.3 第 6 步已按新事实改写 |
 | C-5 | 「先深度研究透」 | 奠基 = 机械管道;LLM 深研未做 | B.5 改「读透结构、约定与关键文件」 |

@@ -41,8 +41,8 @@ observedModel 运行时断言按 provider 分档(安全等价细化,非放宽):
 owner 决定开发调试期只用 cursor_cli 一家:思考=cursor `sonnet-4.5-thinking`(Claude 族)、评估=cursor `gpt-5`(GPT 族),
 一家两族满足异族;dialog/cheap 走 OpenRouter。实测 cursor stream-json 的 `system.init` 带 model 字段
 (`"model":"gpt-5"` / `"model":"sonnet-4.5-thinking"`),故 cursor_cli 的 observedModel 严格口径天然满足、不放宽
-——ADR-002 恒定族豁免在 dev 期不激活。豁免逻辑保留在 consume.ts(familyFixed),仅供未来 claude_cli/claude_sdk
-接入时若流无 model 字段复用(届时实测再定);对 cursor_cli/api 严格口径完全不放宽。
+——ADR-002 恒定族豁免在 dev 期不激活。豁免逻辑保留在 consume.ts(familyFixed),仅供 BYOA `claude_cli`
+在满足文末身份核验收窄条款且流内无 model 时复用;Tier1 `claude_code` 不使用本豁免,对 cursor_cli/api 严格口径完全不放宽。
 owner ~/.saydo/config.toml 已改(evaluator=cursor gpt-5,解析校验 ok/devMode=true,异族 gemini/claude/gpt)。
 
 ## 附则(2026-07-25,owner 批复:收窄改写;SoT = `docs/09-data-contracts.md` §11 规则 2)

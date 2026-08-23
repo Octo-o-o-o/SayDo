@@ -3,11 +3,11 @@
 // reviewTask writing approve(barrier ④ 逐条裁决)+ explainResult content_done。
 
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync, existsSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { newId, textDigest, writingSettleStructuralViolations, type AcceptanceCheck } from "@saydo/contracts";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { jcsDigest, newId, textDigest, writingSettleStructuralViolations, type AcceptanceCheck } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
 import { createSqliteAuditSink } from "../src/storage/dao/misc.js";
 import { insertProject } from "../src/storage/dao/projects.js";
@@ -17,6 +17,8 @@ import { reviewTask } from "../src/tier1/operations.js";
 import { explainResult } from "../src/summary/explain.js";
 import { enabledProjectTypes } from "../src/config/types.js";
 import { parseConfigText } from "../src/config/load.js";
+import { getTaskDetail } from "../src/api/console.js";
+import { normalizeWritingArticlePath } from "../src/tier1/projectConfig.js";
 
 let home: string;
 let db: Db;
@@ -103,6 +105,15 @@ describe("§12-12 项目类型门禁(09 §13/§11)", () => {
   });
 });
 
+describe("writing article_path 边界", () => {
+  it("跨平台绝对路径、UNC、反斜杠穿越与空段全部拒绝", () => {
+    for (const value of ["../../secret.md", "..\\..\\secret.md", "C:\\secret.md", "\\\\server\\share\\a.md", "/tmp/a.md", "docs//a.md"]) {
+      expect(() => normalizeWritingArticlePath(value)).toThrow(/相对路径|穿越/u);
+    }
+    expect(normalizeWritingArticlePath("docs\\article.md")).toBe("docs/article.md");
+  });
+});
+
 describe("§12-14 writing settle barrier 结构断言(09 §6.1a ②③)", () => {
   const plan = [
     { seq: 1, step: "引言", owner: "ai" as const },
@@ -159,6 +170,7 @@ describe("§12-14 writing settle barrier 结构断言(09 §6.1a ②③)", () => 
       manualMustBeUnknown: true
     });
     expect(v.some((x) => x.includes("manual 验收项恒 unknown"))).toBe(true);
+    expect(v.some((x) => x.includes("pass/fail 验收项须绑非空 evidenceRef"))).toBe(true);
   });
 
   it("verify 项 fail 仍 settle 拒;agent_claim 作终局拒", () => {
@@ -197,12 +209,12 @@ import { FakeAuthenticator } from "./helpers/fakeWebauthn.js";
 const ORIGIN = "http://localhost:47100";
 const RP = "localhost";
 
-function fakeWritingSpawner(articleBody: string, articlePath = "article.md"): AgentSpawner {
+function fakeWritingSpawnerWithWrite(writeArticle: (cwd: string) => void): AgentSpawner {
   return {
     version: () => "2026.07.23-e383d2b",
     spawn(i): AgentProcessHandle {
       // fake agent:写成稿到 worktree(cwd 由 executor 先建);cb 注册后 setTimeout 触发行 + 退出
-      writeFileSync(join(i.cwd, articlePath), articleBody);
+      writeArticle(i.cwd);
       const lines = [
         JSON.stringify({ type: "system", subtype: "init", model: i.model, session_id: "chat_x" }),
         JSON.stringify({ type: "result", subtype: "success", result: "写完了引言和正文两节。" })
@@ -222,6 +234,10 @@ function fakeWritingSpawner(articleBody: string, articlePath = "article.md"): Ag
       };
     }
   };
+}
+
+function fakeWritingSpawner(articleBody: string | Uint8Array, articlePath = "article.md"): AgentSpawner {
+  return fakeWritingSpawnerWithWrite((cwd) => writeFileSync(join(cwd, articlePath), articleBody));
 }
 
 async function waitStatus(taskId: string, status: string): Promise<void> {
@@ -295,7 +311,11 @@ function seedWritingTaskAndPackage(
   return { taskId, pkgDigest: digest };
 }
 
-function buildExecutor(repo: string): Tier1Executor {
+function buildExecutor(
+  repo: string,
+  spawner: AgentSpawner = fakeWritingSpawner("# 引言\n章鱼很聪明。\n\n# 正文\n它有三颗心脏。\n")
+): Tier1Executor {
+  void repo;
   const gateDir = mkdtempSync(join(tmpdir(), "saydo-writing-gate-"));
   mkdirSync(gateDir, { recursive: true });
   const gp = join(gateDir, "gate.sh");
@@ -306,7 +326,7 @@ function buildExecutor(repo: string): Tier1Executor {
     log: createLogger({ dir: join(home, "logs"), name: "w-exec" }),
     callbacks: new CallbackEngine({ db, audit }),
     approvals: new RuntimeApprovalFlow({ db, audit, confirm: null, say: null, activeVoiceSession: () => null }),
-    spawner: fakeWritingSpawner("# 引言\n章鱼很聪明。\n\n# 正文\n它有三颗心脏。\n"),
+    spawner,
     artifacts: new ArtifactStore({ db, saydoDir: home }),
     cfg: {
       saydoHome: home,
@@ -384,6 +404,54 @@ describe("§12-14 内容 lint gate(09 §6.1a barrier ③ 后半句;w4-readback B
 });
 
 describe("§12-14 writing 全链 e2e(真 git;settle → approve → content_done)", () => {
+  it("终态事务重试复用 durable article 引用，不制造孤儿产物", async () => {
+    const repo = seedGitRepo();
+    const { taskId } = seedWritingTaskAndPackage(repo);
+    db.exec(`CREATE TRIGGER writing_outbox_injected_failure
+      BEFORE INSERT ON callback_outbox
+      WHEN NEW.trigger = 'ready_for_review' BEGIN
+        SELECT RAISE(ABORT, 'injected writing outbox failure');
+      END`);
+    const exec = buildExecutor(repo);
+    exec.tick();
+    await vi.waitFor(() => {
+      const run = db
+        .prepare("SELECT state, finalize_pending_json FROM tier1_runs WHERE task_id=?")
+        .get(taskId) as { state: string; finalize_pending_json: string | null };
+      expect(run.state).toBe("running");
+      expect(JSON.parse(run.finalize_pending_json ?? "null")).toMatchObject({
+        kind: "review",
+        writingArtifact: { articleVersion: 1 }
+      });
+      expect(
+        (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.finalize_transaction_failed'").get() as { c: number }).c
+      ).toBeGreaterThanOrEqual(1);
+    });
+    const first = db.prepare("SELECT id, version FROM artifacts WHERE project_id=? AND type='article'").all(WRITING) as Array<{
+      id: string;
+      version: number;
+    }>;
+    expect(first).toHaveLength(1);
+
+    exec.tick();
+    await vi.waitFor(() => {
+      expect(
+        (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.finalize_transaction_failed'").get() as { c: number }).c
+      ).toBeGreaterThanOrEqual(2);
+    });
+    expect(db.prepare("SELECT id, version FROM artifacts WHERE project_id=? AND type='article'").all(WRITING)).toEqual(first);
+
+    db.exec("DROP TRIGGER writing_outbox_injected_failure");
+    exec.tick();
+    await waitStatus(taskId, "ready_for_review");
+    const proof = JSON.parse(
+      (db.prepare("SELECT settle_proof_json FROM tier1_runs WHERE task_id=?").get(taskId) as { settle_proof_json: string })
+        .settle_proof_json
+    ) as { articleArtifactId: string; articleVersion: number };
+    expect(proof).toMatchObject({ articleArtifactId: first[0]!.id, articleVersion: 1 });
+    expect(db.prepare("SELECT id, version FROM artifacts WHERE project_id=? AND type='article'").all(WRITING)).toEqual(first);
+  });
+
   it("成稿 → writing settle(WritingSettleProof)→ ready_for_review;verify 可空不阻塞(no_verify 不 blocked)", async () => {
     const repo = seedGitRepo();
     const { taskId } = seedWritingTaskAndPackage(repo);
@@ -393,13 +461,62 @@ describe("§12-14 writing 全链 e2e(真 git;settle → approve → content_done
     const run = db.prepare("SELECT settle_proof_json FROM tier1_runs WHERE task_id=? ORDER BY attempt DESC LIMIT 1").get(taskId) as {
       settle_proof_json: string;
     };
-    const proof = JSON.parse(run.settle_proof_json) as { kind: string; sectionCoverage: unknown[]; acceptanceChecks: { source: string; status: string }[] };
+    const proof = JSON.parse(run.settle_proof_json) as {
+      kind: string;
+      treeSha: string;
+      sectionCoverage: unknown[];
+      acceptanceChecks: { source: string; status: string }[];
+    };
     expect(proof.kind).toBe("writing");
     expect(proof.sectionCoverage).toHaveLength(2); // 两个 ai 步
     expect(proof.acceptanceChecks.every((c) => c.source === "manual" && c.status === "unknown")).toBe(true); // settle 时 manual 恒 unknown
     // article artifact 落库(barrier ①)
     const art = db.prepare("SELECT type FROM artifacts WHERE project_id=?").get(WRITING) as { type: string } | undefined;
     expect(art?.type).toBe("article");
+
+    // 只有审计形状而任务仍未越过批准态，不得把 manual unknown 投影成 pass。
+    audit.record({
+      actor: "owner",
+      action: "task.review_approve",
+      meta: {
+        taskId,
+        kind: "writing",
+        evidenceDigest: jcsDigest(proof),
+        prospectiveTreeSha: proof.treeSha,
+        attempt: 1,
+        acceptancePassed: 2
+      }
+    });
+    const projected = getTaskDetail(db, taskId)?.["acceptanceChecks"] as AcceptanceCheck[];
+    expect(projected.every((check) => check.status === "unknown")).toBe(true);
+  });
+
+  it("成稿 symlink 即使目标是普通文本也拒绝，prospective tree mode 不得伪装常规文件", async () => {
+    if (process.platform === "win32") return;
+    const repo = seedGitRepo();
+    const { taskId } = seedWritingTaskAndPackage(repo);
+    const spawner = fakeWritingSpawnerWithWrite((cwd) => symlinkSync("README.md", join(cwd, "article.md")));
+    const exec = buildExecutor(repo, spawner);
+    exec.tick();
+    await waitStatus(taskId, "blocked");
+    expect((db.prepare("SELECT COUNT(*) AS c FROM artifacts WHERE project_id=?").get(WRITING) as { c: number }).c).toBe(0);
+    const terminal = db
+      .prepare("SELECT meta_json FROM audit_log WHERE action='tier1.blocked' AND json_extract(meta_json, '$.taskId')=?")
+      .get(taskId) as { meta_json: string };
+    expect(JSON.parse(terminal.meta_json).exitEvidence).toContain("article_invalid");
+  });
+
+  it("成稿含非法 UTF-8 原始字节时拒绝，不用 replacement character 生成可批准 artifact", async () => {
+    const repo = seedGitRepo();
+    const { taskId } = seedWritingTaskAndPackage(repo);
+    const exec = buildExecutor(repo, fakeWritingSpawner(new Uint8Array([0x23, 0x20, 0xff, 0x0a])));
+    exec.tick();
+    await waitStatus(taskId, "blocked");
+    expect((db.prepare("SELECT COUNT(*) AS c FROM artifacts WHERE project_id=?").get(WRITING) as { c: number }).c).toBe(0);
+    const terminal = db
+      .prepare("SELECT meta_json FROM audit_log WHERE action='tier1.blocked' AND json_extract(meta_json, '$.taskId')=?")
+      .get(taskId) as { meta_json: string };
+    expect(JSON.parse(terminal.meta_json).exitEvidence).toContain("article_invalid");
   });
 
   it("approve 未逐条裁决拒;逐条 pass 后 → review_approved_waiting_merge;explainResult=content_done", async () => {
@@ -456,6 +573,114 @@ describe("§12-14 writing 全链 e2e(真 git;settle → approve → content_done
     ).toThrow(/未通过/);
   });
 
+  it("approve 的 manual 裁决 criterion 必须 exact-set，重复或幽灵项都拒", async () => {
+    const repo = seedGitRepo();
+    const { taskId } = seedWritingTaskAndPackage(repo);
+    const exec = buildExecutor(repo);
+    exec.tick();
+    await waitStatus(taskId, "ready_for_review");
+    expect(() =>
+      reviewTask(
+        db,
+        audit,
+        {
+          taskId,
+          verdict: "approve",
+          expectedAttempt: 1,
+          acceptanceVerdicts: [
+            { criterion: "核心论点覆盖", status: "pass" },
+            { criterion: "核心论点覆盖", status: "pass" },
+            { criterion: "结构完整", status: "pass" }
+          ]
+        },
+        clock.toISOString()
+      )
+    ).toThrow(/重复 criterion/);
+    expect(() =>
+      reviewTask(
+        db,
+        audit,
+        {
+          taskId,
+          verdict: "approve",
+          expectedAttempt: 1,
+          acceptanceVerdicts: [
+            { criterion: "核心论点覆盖", status: "pass" },
+            { criterion: "结构完整", status: "pass" },
+            { criterion: "幽灵项", status: "pass" }
+          ]
+        },
+        clock.toISOString()
+      )
+    ).toThrow(/幽灵 criterion/);
+  });
+
+  it("writing approve 拒绝跨项目 DecisionPackage，即使包与 digest 均自洽", async () => {
+    const repo = seedGitRepo();
+    const { taskId } = seedWritingTaskAndPackage(repo);
+    const exec = buildExecutor(repo);
+    exec.tick();
+    await waitStatus(taskId, "ready_for_review");
+    db.prepare("UPDATE tasks SET project_id=? WHERE id=?").run(CODING, taskId);
+    expect(() =>
+      reviewTask(
+        db,
+        audit,
+        {
+          taskId,
+          verdict: "approve",
+          expectedAttempt: 1,
+          acceptanceVerdicts: [
+            { criterion: "核心论点覆盖", status: "pass" },
+            { criterion: "结构完整", status: "pass" }
+          ]
+        },
+        clock.toISOString()
+      )
+    ).toThrow(/决策包/);
+  });
+
+  it.each(["row_missing", "file_drift"] as const)("writing approve 事务重验 article artifact:%s", async (mode) => {
+    const repo = seedGitRepo();
+    const { taskId } = seedWritingTaskAndPackage(repo);
+    const exec = buildExecutor(repo);
+    exec.tick();
+    await waitStatus(taskId, "ready_for_review");
+    const proof = JSON.parse(
+      (db.prepare("SELECT settle_proof_json FROM tier1_runs WHERE task_id=?").get(taskId) as { settle_proof_json: string })
+        .settle_proof_json
+    ) as { articleArtifactId: string; articleVersion: number };
+    const artifact = db
+      .prepare("SELECT path FROM artifacts WHERE id=? AND version=?")
+      .get(proof.articleArtifactId, proof.articleVersion) as { path: string };
+    if (mode === "row_missing") {
+      db.prepare("DELETE FROM artifacts WHERE id=? AND version=?").run(proof.articleArtifactId, proof.articleVersion);
+    } else {
+      writeFileSync(artifact.path, "被批准前外部改写\n");
+    }
+
+    expect(() =>
+      reviewTask(
+        db,
+        audit,
+        {
+          taskId,
+          verdict: "approve",
+          expectedAttempt: 1,
+          acceptanceVerdicts: [
+            { criterion: "核心论点覆盖", status: "pass" },
+            { criterion: "结构完整", status: "pass" }
+          ]
+        },
+        clock.toISOString()
+      )
+    ).toThrow(/artifact/u);
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(taskId) as { status: string }).status).toBe("ready_for_review");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='task.review_approve' AND json_extract(meta_json, '$.taskId')=?").get(taskId) as { c: number }).c
+    ).toBe(0);
+  });
+
   it("W4 3.5 writing 全链闭合(聊→写→成稿→逐节验收→S3 合并→定稿;fake agent + fake Touch ID)", async () => {
     const repo = seedGitRepo();
     const { taskId } = seedWritingTaskAndPackage(repo);
@@ -478,6 +703,9 @@ describe("§12-14 writing 全链 e2e(真 git;settle → approve → content_done
       clock.toISOString()
     );
     expect(r.state).toBe("review_approved_waiting_merge");
+    const projected = getTaskDetail(db, taskId)?.["acceptanceChecks"] as AcceptanceCheck[];
+    expect(projected).toHaveLength(2);
+    expect(projected.every((check) => check.status === "pass" && check.evidenceRef?.startsWith("audit:"))).toBe(true);
     // S3 合并链(writing 合并 = 文章并回主分支,与 coding 同构):挑战→Touch ID 断言→收据→approveMerge→执行段
     const auth = new FakeAuthenticator();
     const deps = { db, audit, now: () => clock };

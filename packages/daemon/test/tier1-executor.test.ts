@@ -1,19 +1,21 @@
 // 执行器批任务①③④:认领循环 / 熔断 / canary / settle 与回叫 / 取消链 / §12-7 恢复。
 // fake spawner(可控事件流与退出码)+ 真 git 仓 + 真 SQLite;gate 决策链单独在 gate-socket 测试。
 
-import { execFileSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawn } from "node:child_process";
+import { once } from "node:events";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { newId, textDigest, tier1SettleProofSchema } from "@saydo/contracts";
+import { computePackageDigest, newId, textDigest, tier1SettleProofSchema, type DecisionPackage } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
 import { createSqliteAuditSink } from "../src/storage/dao/misc.js";
 import { insertProject } from "../src/storage/dao/projects.js";
 import { canonicalizeWorkspace, managedProjectPath } from "../src/projects/workspace.js";
 import { insertTask } from "../src/storage/dao/tasks.js";
+import { insertPackage } from "../src/storage/dao/packages.js";
 import { CallbackEngine } from "../src/callback/engine.js";
-import { cancelWithAutoSettle, retryTask, steerTask } from "../src/tier1/operations.js";
+import { cancelWithAutoSettle, requestCancel, retryTask, steerTask } from "../src/tier1/operations.js";
 import { sweepRetryQueue } from "../src/providers/byoa/retryQueue.js";
 import {
   Tier1Executor,
@@ -34,6 +36,15 @@ import { writeClaudeIdentity } from "../src/tier1/claudeIdentity.js";
 import { sha256File } from "../src/providers/binaryIdentity.js";
 import type { AuditSink } from "../src/obs/audit.js";
 import type { Logger } from "../src/obs/logger.js";
+import { freezeVerify } from "../src/tier1/verifyFreeze.js";
+import { readOwnedAgentProcessStart } from "../src/tier1/restartPolicy.js";
+import {
+  assignPidToJob,
+  closeNamedJob,
+  createNamedJob,
+  nativeSync,
+  type NamedJob
+} from "@saydo/platform";
 
 const PRJ = "prj_01EXEC0000000000000000000A";
 // 必须在 owner home 子树内（workspace 政策），且沙箱可能禁写 $HOME 根目录。
@@ -43,7 +54,24 @@ const OWNER_TEST_ROOT = mkdtempSync(
     ? join(tmpdir(), "saydo-tier1-executor-")
     : join(process.cwd(), ".saydo-tier1-executor-")
 );
-const PKG_DIGEST = `sha256:${"a".repeat(64)}`;
+const PKG = "pkg_01EXEC0000000000000000000A";
+const PKG_UNSIGNED = {
+  id: PKG,
+  revision: 1,
+  projectId: PRJ,
+  outcomePreview: "导出按钮可用",
+  inScope: ["导出"],
+  outOfScope: [],
+  assumptions: [],
+  acceptance: ["导出按钮可用", "项目登记的测试命令通过"],
+  plan: [{ seq: 1, step: "修导出按钮", owner: "ai" as const }],
+  cost: { expected: { known: false as const }, p95: { known: false as const }, max: 20, currency: "CNY" as const },
+  risks: [],
+  mode: "step_confirm" as const,
+  preauthorizedEffects: [],
+  effectPolicyVersion: "executor-fixture-v1"
+};
+const PKG_DIGEST = computePackageDigest(PKG_UNSIGNED);
 
 const fakeLog = { info() {}, warn() {}, error() {}, child() { return fakeLog; } } as unknown as Logger;
 
@@ -55,7 +83,9 @@ interface FakeRun {
   hang?: boolean;
   linesOnKill?: string[];
   killDelayMs?: number;
+  killExitCode?: number;
   beforeExit?: (cwd: string) => void;
+  beforeLine?: (cwd: string, index: number) => void;
   /** 保留 fixture 内 session_id,不改写成 spawn.sessionId(错配测试) */
   preserveInitSession?: boolean;
   stderrTail?: string;
@@ -125,7 +155,10 @@ class FakeSpawner implements AgentSpawner {
         i.sessionId && !run.preserveInitSession
           ? run.lines.map((l) => rewriteInitSessionId(l, i.sessionId!))
           : run.lines;
-      for (const l of lines) for (const cb of cbs) cb(l);
+      for (const [index, l] of lines.entries()) {
+        run.beforeLine?.(i.cwd, index);
+        for (const cb of cbs) cb(l);
+      }
       run.beforeExit?.(i.cwd);
       if (!run.hang) resolveExit({ exitCode: run.exitCode });
     }, 5);
@@ -134,8 +167,9 @@ class FakeSpawner implements AgentSpawner {
       onLine: (cb) => cbs.push(cb),
       kill: () => {
         for (const line of run.linesOnKill ?? []) for (const cb of cbs) cb(line);
-        if ((run.killDelayMs ?? 0) > 0) setTimeout(() => resolveExit({ exitCode: 143 }), run.killDelayMs);
-        else resolveExit({ exitCode: 143 });
+        const exitCode = run.killExitCode ?? 143;
+        if ((run.killDelayMs ?? 0) > 0) setTimeout(() => resolveExit({ exitCode }), run.killDelayMs);
+        else resolveExit({ exitCode });
       },
       wait: () => exitP,
       stderrTail: () => run.stderrTail ?? ""
@@ -231,7 +265,7 @@ function seedQueuedTask(id: string, budget = { walltimeActiveMin: 45, maxTurns: 
     {
       id,
       projectId: PRJ,
-      packageRef: { packageId: newId("pkg"), revision: 1, digest: PKG_DIGEST },
+      packageRef: { packageId: PKG, revision: 1, digest: PKG_DIGEST },
       title: "修导出按钮",
       specMarkdown: "# 修导出按钮\n把按钮修好。",
       route: "tier1",
@@ -251,7 +285,7 @@ function armClaudeIdentityAt(home: string, binName = "fake-claude", body = "#!/b
   const bin = join(home, binName);
   writeFileSync(bin, body);
   writeClaudeIdentity(home, {
-    binaryPath: bin,
+    binaryPath: realpathSync(bin),
     binaryDigest: sha256File(bin),
     version: "2.1.220",
     testedAt: "2026-08-22T00:00:00.000Z",
@@ -346,6 +380,12 @@ beforeEach(() => {
   });
   repo = makeRepo();
   seedProject(repo);
+  insertPackage(db, {
+    ...PKG_UNSIGNED,
+    digest: PKG_DIGEST,
+    status: "approved",
+    createdAt: new Date().toISOString()
+  } satisfies DecisionPackage);
   executor = makeExecutor();
 });
 
@@ -366,6 +406,10 @@ describe("认领循环(任务①):queued -> reserve CAS -> worktree 供给 -> sp
     expect(proof.taskId).toBe(TSK);
     expect(proof.treeSha).toBe(run["tree_sha"]);
     expect(proof.tier1VerifyDigest).toMatch(/^sha256:/);
+    expect(proof.acceptanceChecks).toEqual([
+      { criterion: "导出按钮可用", status: "unknown", source: "manual" },
+      { criterion: "项目登记的测试命令通过", status: "unknown", source: "manual" }
+    ]);
 
     // outbox:trigger=ready_for_review,occurrenceKey=attempt
     const ob = db.prepare("SELECT trigger, occurrence_key, state FROM callback_outbox WHERE task_id=?").get(TSK) as {
@@ -384,6 +428,562 @@ describe("认领循环(任务①):queued -> reserve CAS -> worktree 供给 -> sp
     // tasks 行落 Tier1 恢复钥匙(adapter/cwd)
     const trow = db.prepare("SELECT adapter, cwd FROM tasks WHERE id=?").get(TSK) as { adapter: string; cwd: string };
     expect(trow).toEqual({ adapter: "cursor", cwd: sp.cwd });
+  });
+
+  it("events.jsonl 追加失败时不推进 cursor、不消费未落盘终态，并终止为 failed", async () => {
+    const TSK = "tsk_01EXEC0000000000000000EV10";
+    seedQueuedTask(TSK);
+    spawner.plan = [{
+      lines: [EV.init, EV.result],
+      exitCode: 0,
+      beforeLine: (_cwd, index) => {
+        if (index !== 1) return;
+        const runId = (db.prepare("SELECT id FROM tier1_runs WHERE task_id=?").get(TSK) as { id: string }).id;
+        const eventsPath = join(saydoHome, "tier1", "runs", runId, "events.jsonl");
+        rmSync(eventsPath, { force: true });
+        mkdirSync(eventsPath);
+      }
+    }];
+
+    executor.tick();
+    await waitTaskStatus(TSK, "failed");
+
+    const run = db
+      .prepare("SELECT id, state, event_cursor FROM tier1_runs WHERE task_id=?")
+      .get(TSK) as { id: string; state: string; event_cursor: string };
+    expect(run.state).toBe("settled_failed");
+    expect(run.event_cursor).toBe(`events:${run.id}:line:1`);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.event_persistence_failed'").get() as { c: number }).c
+    ).toBe(1);
+    const terminal = db
+      .prepare("SELECT meta_json FROM audit_log WHERE action='tier1.failed' AND json_extract(meta_json, '$.taskId')=?")
+      .get(TSK) as { meta_json: string };
+    expect(JSON.parse(terminal.meta_json).exitEvidence).toContain("event_persistence_failed");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM cost_entries WHERE task_id=? AND kind='tier1.run'").get(TSK) as { c: number }).c
+    ).toBe(1);
+  });
+
+  it("tier1.run 成本写失败时成功终态整体回滚，保留 review marker 并可幂等重试", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C05T";
+    db.exec(`CREATE TRIGGER tier1_cost_injected_failure
+      BEFORE INSERT ON cost_entries
+      WHEN NEW.kind = 'tier1.run' BEGIN
+        SELECT RAISE(ABORT, 'injected tier1 cost failure');
+      END`);
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [EV.init, EV.result], exitCode: 0 }];
+
+    executor.tick();
+    await vi.waitFor(() => {
+      const row = db
+        .prepare("SELECT state, finalize_pending_json AS marker FROM tier1_runs WHERE task_id=?")
+        .get(TSK) as { state: string; marker: string | null };
+      expect(row.state).toBe("running");
+      expect(JSON.parse(row.marker ?? "null")).toMatchObject({ kind: "review", eventLine: 2 });
+    }, { timeout: 15_000, interval: 50 });
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("running");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger='ready_for_review'").get(TSK) as { c: number }).c
+    ).toBe(0);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.settled_review' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c
+    ).toBe(0);
+
+    db.exec("DROP TRIGGER tier1_cost_injected_failure");
+    executor.tick();
+    await waitTaskStatus(TSK, "ready_for_review");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM cost_entries WHERE task_id=? AND kind='tier1.run'").get(TSK) as { c: number }).c
+    ).toBe(1);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.settled_review' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c
+    ).toBe(1);
+  });
+
+  it("review verify 运行中到达 durable cancel 时中止子进程，取消优先且零 ready_for_review 副作用", async () => {
+    const TSK = "tsk_01EXEC0000000000000000RVCN";
+    writeFileSync(
+      join(repo, "package.json"),
+      JSON.stringify({
+        name: "fixture",
+        version: "1.0.0",
+        scripts: {
+          test: 'node -e "require(\'node:fs\').writeFileSync(\'verify-started\',\'1\');setInterval(()=>{},1000)"'
+        }
+      })
+    );
+    execFileSync("git", ["add", "package.json"], { cwd: repo });
+    execFileSync("git", ["commit", "-qm", "hanging verify fixture"], { cwd: repo });
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [EV.init, EV.result], exitCode: 0 }];
+
+    executor.tick();
+    const worktree = join(repo, ".saydo", "worktrees", TSK);
+    await vi.waitFor(() => expect(existsSync(join(worktree, "verify-started"))).toBe(true), {
+      timeout: 15_000,
+      interval: 50
+    });
+    requestCancel(db, audit, TSK, new Date().toISOString());
+    executor.tick();
+    await waitTaskStatus(TSK, "cancel_settled");
+
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe("cancel_settled");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger='ready_for_review'").get(TSK) as { c: number }).c
+    ).toBe(0);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.settled_review' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c
+    ).toBe(0);
+  });
+
+  it("settle 终态审计写失败时保留 review marker，解除故障后幂等 settle", async () => {
+    const TSK = "tsk_01EXEC0000000000000000TX01";
+    const sqliteAudit = audit;
+    let injectFailure = true;
+    const seenActions: string[] = [];
+    audit = {
+      record: (event) => {
+        seenActions.push(event.action);
+        if (injectFailure && event.action === "tier1.settled_review") throw new Error("injected terminal audit failure");
+        return sqliteAudit.record(event);
+      }
+    };
+    executor = makeExecutor();
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [EV.init, EV.result], exitCode: 0 }];
+
+    executor.tick();
+    await vi.waitFor(() => {
+      expect(seenActions).toContain("tier1.finalize_transaction_failed");
+      const count = db
+        .prepare(
+          "SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.finalize_transaction_failed' AND json_extract(meta_json, '$.taskId')=?"
+        )
+        .get(TSK) as { c: number };
+      expect(count.c).toBe(1);
+    }, { timeout: 15_000, interval: 50 });
+
+    const run = db.prepare("SELECT state, settle_proof_json, finalize_pending_json FROM tier1_runs WHERE task_id=?").get(TSK) as {
+      state: string;
+      settle_proof_json: string | null;
+      finalize_pending_json: string | null;
+    };
+    expect(run.state).toBe("running");
+    expect(run.settle_proof_json).toBeNull();
+    expect(JSON.parse(run.finalize_pending_json ?? "null")).toMatchObject({ kind: "review", resultEvent: { kind: "result" } });
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("running");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger='ready_for_review'").get(TSK) as { c: number }).c
+    ).toBe(0);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.settled_review' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c
+    ).toBe(0);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.failed' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c
+    ).toBe(0);
+
+    injectFailure = false;
+    executor.tick();
+    await waitTaskStatus(TSK, "ready_for_review");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger='ready_for_review'").get(TSK) as { c: number }).c
+    ).toBe(1);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.settled_review' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c
+    ).toBe(1);
+  });
+
+  it("settle outbox 非 dedupe 写失败时保留 review marker，解除故障后幂等 settle", async () => {
+    const TSK = "tsk_01EXEC0000000000000000TX02";
+    db.exec(`CREATE TRIGGER callback_outbox_settle_injected_failure
+      BEFORE INSERT ON callback_outbox
+      WHEN NEW.trigger = 'ready_for_review' BEGIN
+        SELECT RAISE(ABORT, 'injected settle outbox failure');
+      END`);
+    executor = makeExecutor();
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [EV.init, EV.result], exitCode: 0 }];
+
+    executor.tick();
+    await vi.waitFor(() => {
+      const count = db
+        .prepare(
+          "SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.finalize_transaction_failed' AND json_extract(meta_json, '$.taskId')=?"
+        )
+        .get(TSK) as { c: number };
+      expect(count.c).toBe(1);
+    }, { timeout: 15_000, interval: 50 });
+
+    const run = db.prepare("SELECT state, settle_proof_json, finalize_pending_json FROM tier1_runs WHERE task_id=?").get(TSK) as {
+      state: string;
+      settle_proof_json: string | null;
+      finalize_pending_json: string | null;
+    };
+    expect(run.state).toBe("running");
+    expect(run.settle_proof_json).toBeNull();
+    expect(JSON.parse(run.finalize_pending_json ?? "null")).toMatchObject({ kind: "review", resultEvent: { kind: "result" } });
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger='ready_for_review'").get(TSK) as { c: number }).c
+    ).toBe(0);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.settled_review' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c
+    ).toBe(0);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.failed' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c
+    ).toBe(0);
+
+    db.exec("DROP TRIGGER callback_outbox_settle_injected_failure");
+    executor.tick();
+    await waitTaskStatus(TSK, "ready_for_review");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger='ready_for_review'").get(TSK) as { c: number }).c
+    ).toBe(1);
+  });
+
+  it("settle outbox 静默拒绝且没有 durable entry 时整体回滚，恢复回叫后可幂等 settle", async () => {
+    const TSK = "tsk_01EXEC0000000000000000TX11";
+    const enqueue = callbacks.enqueue.bind(callbacks);
+    callbacks.enqueue = (input) =>
+      input.trigger === "ready_for_review"
+        ? { entryId: "", enqueued: false, reason: "injected incomplete proof" }
+        : enqueue(input);
+    executor = makeExecutor();
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [EV.init, EV.result], exitCode: 0 }];
+
+    executor.tick();
+    await vi.waitFor(() => {
+      const count = db
+        .prepare(
+          "SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.finalize_transaction_failed' AND json_extract(meta_json, '$.taskId')=?"
+        )
+        .get(TSK) as { c: number };
+      expect(count.c).toBe(1);
+    }, { timeout: 15_000, interval: 50 });
+
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("running");
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe("running");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger='ready_for_review'").get(TSK) as { c: number }).c
+    ).toBe(0);
+
+    callbacks.enqueue = enqueue;
+    executor.tick();
+    await waitTaskStatus(TSK, "ready_for_review");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger='ready_for_review'").get(TSK) as { c: number }).c
+    ).toBe(1);
+  });
+
+  it.each([
+    { trigger: "failed" as const, taskId: "tsk_01EXEC0000000000000000TX03" },
+    { trigger: "blocked" as const, taskId: "tsk_01EXEC0000000000000000TX04" }
+  ])("$trigger 终态 outbox 写失败时 run/task/outbox/audit 全回滚", async ({ trigger, taskId }) => {
+    db.exec(`CREATE TRIGGER callback_outbox_${trigger}_injected_failure
+      BEFORE INSERT ON callback_outbox
+      WHEN NEW.trigger = '${trigger}' BEGIN
+        SELECT RAISE(ABORT, 'injected ${trigger} outbox failure');
+      END`);
+    seedQueuedTask(taskId);
+    if (trigger === "blocked") {
+      db.prepare("DELETE FROM decision_packages WHERE id=? AND revision=1").run(PKG);
+      spawner.plan = [{ lines: [EV.init, EV.result], exitCode: 0 }];
+    } else {
+      spawner.plan = [{ lines: [EV.init], exitCode: 2 }];
+    }
+
+    executor.tick();
+    await vi.waitFor(() => {
+      const count = db
+        .prepare(
+          "SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.finalize_transaction_failed' AND json_extract(meta_json, '$.taskId')=?"
+        )
+        .get(taskId) as { c: number };
+      expect(count.c).toBe(1);
+    }, { timeout: 15_000, interval: 50 });
+
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(taskId) as { status: string }).status).toBe("running");
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(taskId) as { state: string }).state).toBe("running");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger=?").get(taskId, trigger) as { c: number }).c
+    ).toBe(0);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action=? AND json_extract(meta_json, '$.taskId')=?").get(`tier1.${trigger}`, taskId) as { c: number }).c
+    ).toBe(0);
+    expect(executor.activeRunCount()).toBe(1);
+
+    db.exec(`DROP TRIGGER callback_outbox_${trigger}_injected_failure`);
+    executor.tick();
+    await waitTaskStatus(taskId, trigger);
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(taskId) as { state: string }).state).toBe("settled_failed");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger=?").get(taskId, trigger) as { c: number }).c
+    ).toBe(1);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action=? AND json_extract(meta_json, '$.taskId')=?").get(`tier1.${trigger}`, taskId) as { c: number }).c
+    ).toBe(1);
+    expect(executor.activeRunCount()).toBe(0);
+  });
+
+  it("failed 终态审计写失败时 run/task/outbox 全回滚", async () => {
+    const TSK = "tsk_01EXEC0000000000000000TX05";
+    db.exec(`CREATE TRIGGER tier1_failed_audit_injected_failure
+      BEFORE INSERT ON audit_log
+      WHEN NEW.action = 'tier1.failed' BEGIN
+        SELECT RAISE(ABORT, 'injected failed audit failure');
+      END`);
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [EV.init], exitCode: 2 }];
+
+    executor.tick();
+    await vi.waitFor(() => {
+      const count = db
+        .prepare(
+          "SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.finalize_transaction_failed' AND json_extract(meta_json, '$.taskId')=?"
+        )
+        .get(TSK) as { c: number };
+      expect(count.c).toBe(1);
+    });
+
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("running");
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe("running");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger='failed'").get(TSK) as { c: number }).c
+    ).toBe(0);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.failed' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c
+    ).toBe(0);
+    expect(executor.activeRunCount()).toBe(1);
+
+    db.exec("DROP TRIGGER tier1_failed_audit_injected_failure");
+    executor.tick();
+    await waitTaskStatus(TSK, "failed");
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe("settled_failed");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger='failed'").get(TSK) as { c: number }).c
+    ).toBe(1);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.failed' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c
+    ).toBe(1);
+    expect(executor.activeRunCount()).toBe(0);
+  });
+
+  it.each([
+    { trigger: "failed" as const, taskId: "tsk_01EXEC0000000000000000TX06" },
+    { trigger: "blocked" as const, taskId: "tsk_01EXEC0000000000000000TX07" }
+  ])("$trigger pending 跨 executor 恢复先收口且绝不重启 agent", async ({ trigger, taskId }) => {
+    db.exec(`CREATE TRIGGER callback_outbox_${trigger}_recover_injected_failure
+      BEFORE INSERT ON callback_outbox
+      WHEN NEW.trigger = '${trigger}' BEGIN
+        SELECT RAISE(ABORT, 'injected ${trigger} recovery failure');
+      END`);
+    seedQueuedTask(taskId);
+    if (trigger === "blocked") {
+      db.prepare("DELETE FROM decision_packages WHERE id=? AND revision=1").run(PKG);
+      spawner.plan = [{ lines: [EV.init, EV.result], exitCode: 0 }];
+    } else {
+      spawner.plan = [{ lines: [EV.init], exitCode: 2 }];
+    }
+
+    executor.tick();
+    await vi.waitFor(() => {
+      const marker = db
+        .prepare("SELECT finalize_pending_json AS marker FROM tier1_runs WHERE task_id=?")
+        .get(taskId) as { marker: string | null };
+      expect(marker.marker).not.toBeNull();
+    }, { timeout: 15_000, interval: 50 });
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(taskId) as { status: string }).status).toBe("running");
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(taskId) as { state: string }).state).toBe("running");
+
+    const recoveredSpawner = new FakeSpawner();
+    executor = makeExecutor({}, recoveredSpawner);
+    await executor.recover();
+    expect(recoveredSpawner.spawned).toHaveLength(0);
+    expect(executor.activeRunCount()).toBe(1);
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(taskId) as { status: string }).status).toBe("running");
+
+    db.exec(`DROP TRIGGER callback_outbox_${trigger}_recover_injected_failure`);
+    executor.tick();
+    await waitTaskStatus(taskId, trigger);
+    const settled = db
+      .prepare("SELECT state, finalize_pending_json AS marker FROM tier1_runs WHERE task_id=?")
+      .get(taskId) as { state: string; marker: string | null };
+    expect(settled).toEqual({ state: "settled_failed", marker: null });
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger=?").get(taskId, trigger) as { c: number }).c
+    ).toBe(1);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action=? AND json_extract(meta_json, '$.taskId')=?").get(`tier1.${trigger}`, taskId) as { c: number }).c
+    ).toBe(1);
+    expect(executor.activeRunCount()).toBe(0);
+  });
+
+  it.each([
+    { trigger: "failed" as const, taskId: "tsk_01EXEC0000000000000000TX08" },
+    { trigger: "blocked" as const, taskId: "tsk_01EXEC0000000000000000TX09" }
+  ])("$trigger pending 后用户取消优先，零失败终态副作用", async ({ trigger, taskId }) => {
+    db.exec(`CREATE TRIGGER callback_outbox_${trigger}_cancel_injected_failure
+      BEFORE INSERT ON callback_outbox
+      WHEN NEW.trigger = '${trigger}' BEGIN
+        SELECT RAISE(ABORT, 'injected ${trigger} cancel race');
+      END`);
+    seedQueuedTask(taskId);
+    if (trigger === "blocked") {
+      db.prepare("DELETE FROM decision_packages WHERE id=? AND revision=1").run(PKG);
+      spawner.plan = [{ lines: [EV.init, EV.result], exitCode: 0 }];
+    } else {
+      spawner.plan = [{ lines: [EV.init], exitCode: 2 }];
+    }
+
+    executor.tick();
+    await vi.waitFor(() => {
+      const marker = db
+        .prepare("SELECT finalize_pending_json AS marker FROM tier1_runs WHERE task_id=?")
+        .get(taskId) as { marker: string | null };
+      expect(marker.marker).not.toBeNull();
+    }, { timeout: 15_000, interval: 50 });
+    cancelWithAutoSettle(db, audit, taskId, new Date().toISOString());
+    db.exec(`DROP TRIGGER callback_outbox_${trigger}_cancel_injected_failure`);
+
+    executor.tick();
+    await waitTaskStatus(taskId, "cancel_settled");
+    const settled = db
+      .prepare("SELECT state, finalize_pending_json AS marker FROM tier1_runs WHERE task_id=?")
+      .get(taskId) as { state: string; marker: string | null };
+    expect(settled).toEqual({ state: "cancel_settled", marker: null });
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger=?").get(taskId, trigger) as { c: number }).c
+    ).toBe(0);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action=? AND json_extract(meta_json, '$.taskId')=?").get(`tier1.${trigger}`, taskId) as { c: number }).c
+    ).toBe(0);
+    expect(executor.activeRunCount()).toBe(0);
+  });
+
+  it("failed pending 后 steer 优先；steer 审计失败整体回滚并可重试", async () => {
+    const TSK = "tsk_01EXEC0000000000000000TX10";
+    const sqliteAudit = audit;
+    let rejectSteerAudit = true;
+    let steerAuditAttempts = 0;
+    audit = {
+      record: (event) => {
+        if (event.action === "tier1.steer_resume_settled" && rejectSteerAudit) {
+          steerAuditAttempts++;
+          throw new Error("injected steer audit failure");
+        }
+        return sqliteAudit.record(event);
+      }
+    };
+    callbacks = new CallbackEngine({ db, audit });
+    executor = makeExecutor();
+    db.exec(`CREATE TRIGGER callback_outbox_failed_steer_injected_failure
+      BEFORE INSERT ON callback_outbox
+      WHEN NEW.trigger = 'failed' BEGIN
+        SELECT RAISE(ABORT, 'injected failed steer race');
+      END`);
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [EV.init], exitCode: 2 }];
+
+    executor.tick();
+    await vi.waitFor(() => {
+      const marker = db
+        .prepare("SELECT finalize_pending_json AS marker FROM tier1_runs WHERE task_id=?")
+        .get(TSK) as { marker: string | null };
+      expect(marker.marker).not.toBeNull();
+    }, { timeout: 15_000, interval: 50 });
+    steerTask(db, audit, { taskId: TSK, instruction: "改用另一条实现路径" }, new Date().toISOString());
+    db.exec("DROP TRIGGER callback_outbox_failed_steer_injected_failure");
+
+    executor.tick();
+    await vi.waitFor(() => expect(steerAuditAttempts).toBeGreaterThan(0));
+    expect(
+      db.prepare(
+        "SELECT state, finalize_pending_json AS marker FROM tier1_runs WHERE task_id=? AND attempt=1"
+      ).get(TSK)
+    ).toMatchObject({ state: "cancel_requested", marker: expect.any(String) });
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("running");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger='failed'").get(TSK) as { c: number }).c
+    ).toBe(0);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.failed' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c
+    ).toBe(0);
+
+    rejectSteerAudit = false;
+    spawner.plan = [{ lines: [EV.init], exitCode: 0, hang: true }];
+    executor.tick();
+    await vi.waitFor(() => {
+      expect(
+        db.prepare(
+          "SELECT state, finalize_pending_json AS marker FROM tier1_runs WHERE task_id=? AND attempt=1"
+        ).get(TSK)
+      ).toEqual({ state: "cancel_settled", marker: null });
+    });
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("running");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.steer_resume_settled' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c
+    ).toBe(1);
+  });
+
+  it("决策包正文缺失时拒绝伪造验收清单并阻塞 settle", async () => {
+    const TSK = "tsk_01EXEC0000000000000000000B";
+    db.prepare("DELETE FROM decision_packages WHERE id=? AND revision=1").run(PKG);
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [EV.init, EV.result], exitCode: 0 }];
+
+    executor.tick();
+    await waitTaskStatus(TSK, "blocked");
+
+    const run = db.prepare("SELECT state, settle_proof_json FROM tier1_runs WHERE task_id=?").get(TSK) as {
+      state: string;
+      settle_proof_json: string | null;
+    };
+    expect(run).toEqual({ state: "settled_failed", settle_proof_json: null });
+    const auditRow = db
+      .prepare("SELECT meta_json FROM audit_log WHERE action='tier1.blocked' ORDER BY ts DESC LIMIT 1")
+      .get() as { meta_json: string };
+    expect(auditRow.meta_json).toContain("package_body_unavailable");
+  });
+
+  it("settle 拒绝跨项目 DecisionPackage，即使包与 digest 均自洽", async () => {
+    const TSK = "tsk_01EXEC0000000000000000000C";
+    const otherProject = newId("prj");
+    insertProject(db, {
+      id: otherProject,
+      title: "另一项目",
+      type: "coding",
+      status: "active",
+      workspace: { kind: "local_folder", path: managedProjectPath(otherProject), managed: true },
+      executionModeDefault: "step_confirm",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    const otherUnsigned = { ...PKG_UNSIGNED, id: newId("pkg"), projectId: otherProject };
+    const otherDigest = computePackageDigest(otherUnsigned);
+    insertPackage(db, {
+      ...otherUnsigned,
+      digest: otherDigest,
+      status: "approved",
+      createdAt: new Date().toISOString()
+    } satisfies DecisionPackage);
+    seedQueuedTask(TSK);
+    db.prepare("UPDATE tasks SET package_id=?, package_digest=? WHERE id=?").run(otherUnsigned.id, otherDigest, TSK);
+    spawner.plan = [{ lines: [EV.init, EV.result], exitCode: 0 }];
+
+    executor.tick();
+    await waitTaskStatus(TSK, "blocked");
+
+    const run = db.prepare("SELECT state, settle_proof_json FROM tier1_runs WHERE task_id=?").get(TSK) as {
+      state: string;
+      settle_proof_json: string | null;
+    };
+    expect(run).toEqual({ state: "settled_failed", settle_proof_json: null });
+    const auditRow = db
+      .prepare("SELECT meta_json FROM audit_log WHERE action='tier1.blocked' ORDER BY ts DESC LIMIT 1")
+      .get() as { meta_json: string };
+    expect(auditRow.meta_json).toContain("package_body_unavailable");
   });
 
   it("W1.3 项目层配置生产消费:[git].protected 追加分支 gate push 判 S3 deny;白名单外键拒收留痕", async () => {
@@ -495,6 +1095,47 @@ describe("认领循环(任务①):queued -> reserve CAS -> worktree 供给 -> sp
     expect(JSON.parse(ob.settle_json).minimalProof.exitEvidence).toContain("no-workspace");
   });
 
+  it("项目无 git 工作区的 blocked outbox 写失败时任务状态与终态审计全回滚", async () => {
+    db.prepare(
+      "UPDATE projects SET workspace_json=?, canonical_workspace_path=NULL, workspace_dev=NULL, workspace_ino=NULL WHERE id=?"
+    ).run(
+      JSON.stringify({ kind: "local_folder", path: managedProjectPath(PRJ), managed: true }),
+      PRJ
+    );
+    db.exec(`CREATE TRIGGER callback_outbox_no_workspace_injected_failure
+      BEFORE INSERT ON callback_outbox
+      WHEN NEW.trigger = 'blocked' BEGIN
+        SELECT RAISE(ABORT, 'injected no-workspace outbox failure');
+      END`);
+    const TSK = "tsk_01EXEC0000000000000000TX06";
+    seedQueuedTask(TSK);
+
+    executor.tick();
+    await vi.waitFor(() => {
+      const count = db
+        .prepare(
+          "SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.claim_block_transaction_failed' AND json_extract(meta_json, '$.taskId')=?"
+        )
+        .get(TSK) as { c: number };
+      expect(count.c).toBe(1);
+    });
+
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("queued");
+    expect((db.prepare("SELECT COUNT(*) AS c FROM tier1_runs WHERE task_id=?").get(TSK) as { c: number }).c).toBe(0);
+    expect((db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=?").get(TSK) as { c: number }).c).toBe(0);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.blocked' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c
+    ).toBe(0);
+
+    db.exec("DROP TRIGGER callback_outbox_no_workspace_injected_failure");
+    executor.tick();
+    await waitTaskStatus(TSK, "blocked");
+    expect((db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=?").get(TSK) as { c: number }).c).toBe(1);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.blocked' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c
+    ).toBe(1);
+  });
+
   it("verify 红:settled_failed + task failed + trigger=failed 最小 proof 回叫(#31)", async () => {
     // 让 verify 脚本必红:重建仓,test 脚本 exit 1
     const badRepo = makeRepo();
@@ -556,7 +1197,7 @@ describe("认领循环(任务①):queued -> reserve CAS -> worktree 供给 -> sp
     executor.tick();
     await waitTaskStatus(TSK, "failed");
     expect(
-      (db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.settled_failed' ORDER BY ts DESC LIMIT 1").get() as { meta_json: string }).meta_json
+      (db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.failed' ORDER BY ts DESC LIMIT 1").get() as { meta_json: string }).meta_json
     ).toContain("agent_result_missing");
   });
 
@@ -570,7 +1211,7 @@ describe("认领循环(任务①):queued -> reserve CAS -> worktree 供给 -> sp
     executor.tick();
     await waitTaskStatus(TSK, "failed");
     expect(
-      (db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.settled_failed' ORDER BY ts DESC LIMIT 1").get() as { meta_json: string }).meta_json
+      (db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.failed' ORDER BY ts DESC LIMIT 1").get() as { meta_json: string }).meta_json
     ).toContain("agent_result_missing");
   });
 });
@@ -814,7 +1455,7 @@ describe("§12-7 Tier1 恢复:kill -9 后按 (adapter,nativeSessionId,cwd) 恢�
     ).toBe(0);
   });
 
-  it("D1:native resume 的 durable adapter/cwd 任一不等即明确降级,不得向错误环境传 --resume", async () => {
+  it("D1:native resume 的 durable cwd 不等即明确降级,不得向错误环境传 --resume", async () => {
     const TSK = "tsk_01EXEC000000000000000000TS";
     seedQueuedTask(TSK);
     const initWithSession = JSON.stringify({
@@ -830,7 +1471,7 @@ describe("§12-7 Tier1 恢复:kill -9 后按 (adapter,nativeSessionId,cwd) 恢�
         (db.prepare("SELECT native_session_id AS sid FROM tier1_runs WHERE task_id=?").get(TSK) as { sid: string | null }).sid
       ).toBe("chat-tuple");
     });
-    db.prepare("UPDATE tier1_runs SET adapter='codex' WHERE task_id=?").run(TSK);
+    db.prepare("UPDATE tier1_runs SET cwd='/tmp/wrong-resume-cwd' WHERE task_id=?").run(TSK);
     const resumed = new FakeSpawner();
     resumed.plan = [{ lines: [EV.init, EV.result], exitCode: 0 }];
     const executor2 = makeExecutor({}, resumed);
@@ -839,7 +1480,7 @@ describe("§12-7 Tier1 恢复:kill -9 后按 (adapter,nativeSessionId,cwd) 恢�
     expect(resumed.spawned[0]?.resumeChatId).toBeUndefined();
     expect(
       db.prepare("SELECT action, meta_json FROM audit_log WHERE action='tier1.recover_degraded_new_session' ORDER BY ts DESC LIMIT 1").get()
-    ).toMatchObject({ action: "tier1.recover_degraded_new_session", meta_json: expect.stringContaining("adapter_mismatch") });
+    ).toMatchObject({ action: "tier1.recover_degraded_new_session", meta_json: expect.stringContaining("cwd_mismatch") });
     expect(
       (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.recover_resume_native'").get() as { c: number }).c
     ).toBe(0);
@@ -957,9 +1598,14 @@ describe("§12-7 Tier1 恢复:kill -9 后按 (adapter,nativeSessionId,cwd) 恢�
     await resumed.recover();
     await waitTaskStatus(TSK, "ready_for_review");
     const settled = db
-      .prepare("SELECT state, restart_pending_at, restart_reason FROM tier1_runs WHERE task_id=?")
-      .get(TSK) as { state: string; restart_pending_at: string | null; restart_reason: string | null };
-    expect(settled).toEqual({ state: "settled_review", restart_pending_at: null, restart_reason: null });
+      .prepare("SELECT state, restart_pending_at, restart_reason, event_cursor FROM tier1_runs WHERE task_id=?")
+      .get(TSK) as { state: string; restart_pending_at: string | null; restart_reason: string | null; event_cursor: string };
+    expect(settled).toEqual({
+      state: "settled_review",
+      restart_pending_at: null,
+      restart_reason: null,
+      event_cursor: expect.stringMatching(/:line:3$/)
+    });
     expect(
       (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.restart_resumed'").get() as { c: number }).c
     ).toBe(1);
@@ -986,11 +1632,22 @@ describe("§12-7 Tier1 恢复:kill -9 后按 (adapter,nativeSessionId,cwd) 恢�
     expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("cancel_settled");
   });
 
-  it("D1:marker 后出现 canary 事实时安全终局胜出,不得在重启后复活", async () => {
+  it("D1:marker 后出现 canary 且终态事务失败时只保留终局意图，恢复只收口不复活", async () => {
     const TSK = "tsk_01EXEC000000000000000000SY";
+    db.exec(`CREATE TRIGGER callback_outbox_failed_restart_canary_injected_failure
+      BEFORE INSERT ON callback_outbox
+      WHEN NEW.trigger = 'failed' BEGIN
+        SELECT RAISE(ABORT, 'injected restart canary failure');
+      END`);
     seedQueuedTask(TSK);
     const hanging = new FakeSpawner();
-    hanging.plan = [{ lines: [EV.init], exitCode: 0, hang: true, linesOnKill: [EV.shellStarted], killDelayMs: 5 }];
+    const initWithSession = JSON.stringify({
+      type: "system",
+      subtype: "init",
+      model: "fable-5-max",
+      session_id: "chat-d1-canary-marker"
+    });
+    hanging.plan = [{ lines: [initWithSession], exitCode: 0, hang: true, linesOnKill: [EV.shellStarted], killDelayMs: 5 }];
     const ex = makeExecutor({}, hanging);
     ex.tick();
     await vi.waitFor(() =>
@@ -999,10 +1656,344 @@ describe("§12-7 Tier1 恢复:kill -9 后按 (adapter,nativeSessionId,cwd) 恢�
     const stats = await ex.prepareShutdown("restart");
     expect(stats.recoverableTier1).toBe(0);
     const row = db
-      .prepare("SELECT state, restart_pending_at, restart_reason FROM tier1_runs WHERE task_id=?")
-      .get(TSK) as { state: string; restart_pending_at: string | null; restart_reason: string | null };
-    expect(row).toEqual({ state: "settled_failed", restart_pending_at: null, restart_reason: null });
+      .prepare("SELECT state, restart_pending_at, restart_reason, finalize_pending_json FROM tier1_runs WHERE task_id=?")
+      .get(TSK) as {
+        state: string;
+        restart_pending_at: string | null;
+        restart_reason: string | null;
+        finalize_pending_json: string | null;
+      };
+    expect(row).toMatchObject({ state: "running", restart_pending_at: null, restart_reason: null });
+    expect(row.finalize_pending_json).not.toBeNull();
+    expect(JSON.parse(row.finalize_pending_json!) as { eventLine: number }).toMatchObject({ eventLine: 2 });
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("running");
+
+    const recoveredSpawner = new FakeSpawner();
+    const recovered = makeExecutor({}, recoveredSpawner);
+    await recovered.recover();
+    expect(recoveredSpawner.spawned).toHaveLength(0);
+    expect(recovered.activeRunCount()).toBe(1);
+    expect(
+      db.prepare("SELECT restart_pending_at, finalize_pending_json FROM tier1_runs WHERE task_id=?").get(TSK)
+    ).toMatchObject({ restart_pending_at: null, finalize_pending_json: expect.any(String) });
+    db.exec("DROP TRIGGER callback_outbox_failed_restart_canary_injected_failure");
+    recovered.tick();
+    await waitTaskStatus(TSK, "failed");
+    expect(
+      db.prepare(
+        "SELECT state, restart_pending_at, restart_reason, finalize_pending_json, event_cursor FROM tier1_runs WHERE task_id=?"
+      ).get(TSK)
+    ).toEqual({
+      state: "settled_failed",
+      restart_pending_at: null,
+      restart_reason: null,
+      finalize_pending_json: null,
+      event_cursor: expect.stringMatching(/:line:2$/)
+    });
+    expect(recovered.activeRunCount()).toBe(0);
+  });
+
+  it("D1:restart 退出时收到成功终态，先持久化 review intent 再清 marker", async () => {
+    const TSK = "tsk_01EXEC000000000000000000RV";
+    const pkgPath = join(repo, "package.json");
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as { scripts: Record<string, string> };
+    pkg.scripts["test"] =
+      'node -e "const f=require(\'fs\');const t=setInterval(()=>{if(f.existsSync(\'.allow-review\'))clearInterval(t)},10)"';
+    writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+    execFileSync("git", ["add", "package.json"], { cwd: repo });
+    execFileSync("git", ["commit", "-qm", "slow verify fixture"], { cwd: repo });
+    seedQueuedTask(TSK);
+    const hanging = new FakeSpawner();
+    const initWithSession = JSON.stringify({
+      type: "system",
+      subtype: "init",
+      model: "fable-5-max",
+      session_id: "chat-review-intent"
+    });
+    hanging.plan = [{
+      lines: [initWithSession],
+      exitCode: 0,
+      hang: true,
+      linesOnKill: [EV.result],
+      killExitCode: 0
+    }];
+    const ex = makeExecutor({}, hanging);
+    ex.tick();
+    await vi.waitFor(() =>
+      expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe("running")
+    );
+
+    const preparing = ex.prepareShutdown("restart");
+    await vi.waitFor(() => {
+      const row = db
+        .prepare("SELECT finalize_pending_json, restart_pending_at FROM tier1_runs WHERE task_id=?")
+        .get(TSK) as { finalize_pending_json: string | null; restart_pending_at: string | null };
+      expect(JSON.parse(row.finalize_pending_json ?? "null")).toMatchObject({ kind: "review", eventLine: 2 });
+      expect(row.restart_pending_at).toBeNull();
+    }, { timeout: 30_000, interval: 50 });
+    const worktree = (db.prepare("SELECT worktree_path FROM tier1_runs WHERE task_id=?").get(TSK) as { worktree_path: string })
+      .worktree_path;
+    writeFileSync(join(worktree, ".allow-review"), "ok\n");
+    await preparing;
+    await waitTaskStatus(TSK, "ready_for_review");
+    expect(
+      db.prepare("SELECT state, finalize_pending_json, restart_pending_at FROM tier1_runs WHERE task_id=?").get(TSK)
+    ).toEqual({ state: "settled_review", finalize_pending_json: null, restart_pending_at: null });
+  }, 45_000);
+
+  it("D1:durable review intent 恢复只继续 verify/settle，绝不 spawn agent", async () => {
+    const TSK = "tsk_01EXEC000000000000000000RW";
+    const runId = "run_01EXECRECOVERREVIEW000001";
+    seedQueuedTask(TSK);
+    const worktree = join(repo, ".saydo", "worktrees", TSK);
+    mkdirSync(join(repo, ".saydo", "worktrees"), { recursive: true });
+    execFileSync("git", ["worktree", "add", "-b", `saydo/${TSK}`, worktree, "HEAD"], { cwd: repo });
+    db.prepare("UPDATE tasks SET status='running', cwd=? WHERE id=?").run(worktree, TSK);
+    const nowIso = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO tier1_runs(
+         id, task_id, attempt, adapter, cwd, worktree_path, state, finalize_pending_json,
+         restart_pending_at, restart_reason, created_at, updated_at
+       ) VALUES (?, ?, 1, 'claude_code', ?, ?, 'running', ?, ?, 'restart', ?, ?)`
+    ).run(
+      runId,
+      TSK,
+      worktree,
+      worktree,
+      JSON.stringify({
+        kind: "review",
+        recordedAt: nowIso,
+        observedModel: "claude-opus-4-1",
+        observedModels: ["claude-opus-4-1"]
+      }),
+      nowIso,
+      nowIso,
+      nowIso
+    );
+    const runDir = join(saydoHome, "tier1", "runs", runId);
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(
+      join(runDir, "events.jsonl"),
+      `${JSON.stringify({ type: "system", subtype: "init", model: "claude-opus-4-1", session_id: "chat-review-recover" })}\n` +
+        `${JSON.stringify({
+          type: "result",
+          subtype: "success",
+          is_error: false,
+          num_turns: 7,
+          total_cost_usd: 1.25,
+          usage: {
+            input_tokens: 101,
+            output_tokens: 29,
+            cache_read_input_tokens: 11,
+            cache_creation_input_tokens: 5
+          },
+          modelUsage: { "claude-opus-4-1": { inputTokens: 101 } },
+          result: "done"
+        })}\n`
+    );
+    writeFileSync(
+      join(runDir, "frozen-verify.json"),
+      JSON.stringify([
+        freezeVerify(worktree, "package_script:test", { packageScripts: ["test"], justfileTasks: [] })
+      ])
+    );
+    const recoveredSpawner = new FakeSpawner();
+    const recovered = makeExecutor(
+      { adapter: "claude_code", model: "opus", lockedBinary: armClaudeIdentityAt(saydoHome) },
+      recoveredSpawner,
+      { backend: claudeBackend() }
+    );
+
+    await recovered.recover();
+
+    expect(recoveredSpawner.spawned).toHaveLength(0);
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("ready_for_review");
+    expect(
+      db.prepare("SELECT state, finalize_pending_json, restart_pending_at FROM tier1_runs WHERE id=?").get(runId)
+    ).toEqual({ state: "settled_review", finalize_pending_json: null, restart_pending_at: null });
+    const cost = db.prepare("SELECT meta_json FROM cost_entries WHERE id=?").get(`tier1.run:${runId}`) as {
+      meta_json: string;
+    };
+    expect(JSON.parse(cost.meta_json)).toMatchObject({
+      input_tokens: 101,
+      output_tokens: 29,
+      cached_input_tokens: 11,
+      cache_creation_input_tokens: 5,
+      num_turns: 7,
+      total_cost_usd_estimate: 1.25,
+      adapter: "claude_code",
+      runId
+    });
+    expect(JSON.parse(cost.meta_json)).not.toHaveProperty("usage_unavailable");
+    expect(recovered.activeRunCount()).toBe(0);
+  });
+
+  it("D1:agent 已退出但终态 marker 未落时，ownership 锚阻止二次 spawn 并保留真实事件行", async () => {
+    const TSK = "tsk_01EXEC000000000000000000AV";
+    const runId = "run_01EXECREC0VERANCH0R000001";
+    seedQueuedTask(TSK);
+    const nowIso = new Date().toISOString();
+    db.prepare("UPDATE tasks SET status='running', cwd='/tmp/x' WHERE id=?").run(TSK);
+    db.prepare(
+      `INSERT INTO tier1_runs(id, task_id, attempt, adapter, cwd, worktree_path, state, created_at, updated_at)
+       VALUES (?, ?, 1, 'cursor', '/tmp/x', '/tmp/x', 'running', ?, ?)`
+    ).run(runId, TSK, nowIso, nowIso);
+    const runDir = join(saydoHome, "tier1", "runs", runId);
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(join(runDir, "events.jsonl"), `${EV.init}\n${EV.result}\n`);
+    writeFileSync(
+      join(runDir, "agent-owner.json"),
+      JSON.stringify({
+        version: 1,
+        runId,
+        pid: 2_147_483_600,
+        binary: "/nonexistent/saydo-agent",
+        worktree: "/tmp/x",
+        processStart: "dead-process"
+      })
+    );
+    const recoveredSpawner = new FakeSpawner();
+    const recovered = makeExecutor({}, recoveredSpawner);
+
+    await recovered.recover();
+
+    expect(recoveredSpawner.spawned).toHaveLength(0);
     expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("failed");
+    expect(db.prepare("SELECT state, event_cursor FROM tier1_runs WHERE id=?").get(runId)).toEqual({
+      state: "settled_failed",
+      event_cursor: `events:${runId}:line:2`
+    });
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.recover_agent_exited_unsettled'").get() as { c: number }).c
+    ).toBe(1);
+  });
+
+  it("D1:旧版仅 agent.pid 的进程快速退出后仍视为 tombstone，恢复不得二次 spawn", async () => {
+    const TSK = "tsk_01EXEC0000000000000000001P";
+    const runId = "run_01EXECREC0VERLEGACYPID001";
+    seedQueuedTask(TSK);
+    const nowIso = new Date().toISOString();
+    db.prepare("UPDATE tasks SET status='running', cwd='/tmp/x' WHERE id=?").run(TSK);
+    db.prepare(
+      `INSERT INTO tier1_runs(id, task_id, attempt, adapter, cwd, worktree_path, state, created_at, updated_at)
+       VALUES (?, ?, 1, 'cursor', '/tmp/x', '/tmp/x', 'running', ?, ?)`
+    ).run(runId, TSK, nowIso, nowIso);
+    const runDir = join(saydoHome, "tier1", "runs", runId);
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(join(runDir, "events.jsonl"), `${EV.init}\n${EV.result}\n`);
+    writeFileSync(join(runDir, "agent.pid"), "2147483600\n");
+    const recoveredSpawner = new FakeSpawner();
+    const recovered = makeExecutor({}, recoveredSpawner);
+
+    await recovered.recover();
+
+    expect(recoveredSpawner.spawned).toHaveLength(0);
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("failed");
+    expect(db.prepare("SELECT state, event_cursor FROM tier1_runs WHERE id=?").get(runId)).toEqual({
+      state: "settled_failed",
+      event_cursor: `events:${runId}:line:2`
+    });
+  });
+
+  it("P1-C: live owner 已写 success result 时 recover/reap 不得 spawn，成本不串代", async () => {
+    const TSK = "tsk_01EXEC0000000000000000P1C1";
+    const runId = "run_01EXECSTALERESULT00000001";
+    seedQueuedTask(TSK);
+    const nowIso = new Date().toISOString();
+    const worktree = "/tmp/x";
+    db.prepare("UPDATE tasks SET status='running', cwd=? WHERE id=?").run(worktree, TSK);
+    db.prepare(
+      `INSERT INTO tier1_runs(id, task_id, attempt, adapter, cwd, worktree_path, state, created_at, updated_at)
+       VALUES (?, ?, 1, 'cursor', ?, ?, 'running', ?, ?)`
+    ).run(runId, TSK, worktree, worktree, nowIso, nowIso);
+    const resultLine = JSON.stringify({
+      type: "result",
+      subtype: "success",
+      result: "done",
+      usage: { inputTokens: 42, outputTokens: 9, cacheReadTokens: 4, cacheWriteTokens: 1 }
+    });
+    const runDir = join(saydoHome, "tier1", "runs", runId);
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(join(runDir, "events.jsonl"), `${EV.init}\n${resultLine}\n`);
+    const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+      detached: true,
+      stdio: "ignore"
+    });
+    if (!child.pid) throw new Error("P1-C 测试子进程未获得 pid");
+    const childPid = child.pid;
+    const childClosed = once(child, "close");
+    await once(child, "spawn");
+    let job: NamedJob | undefined;
+    try {
+      if (process.platform === "win32") {
+        nativeSync();
+        job = createNamedJob(`Local\\SayDoP1C-${runId}`);
+        assignPidToJob(job, childPid);
+      }
+      const processStart = readOwnedAgentProcessStart(childPid, process.execPath);
+      if (!processStart) throw new Error("P1-C 无法读取测试子进程 identity");
+      writeFileSync(
+        join(runDir, "agent-owner.json"),
+        JSON.stringify({
+          version: 1,
+          runId,
+          pid: childPid,
+          binary: process.execPath,
+          worktree,
+          processStart,
+          ...(job ? { jobName: job.name } : {})
+        })
+      );
+      const recoveredSpawner = new FakeSpawner();
+      recoveredSpawner.plan = [{
+        lines: [
+          EV.init,
+          JSON.stringify({
+            type: "result",
+            subtype: "success",
+            result: "new-generation",
+            usage: { inputTokens: 999, outputTokens: 888, cacheReadTokens: 0, cacheWriteTokens: 0 }
+          })
+        ],
+        exitCode: 0
+      }];
+      const recovered = makeExecutor({}, recoveredSpawner);
+      await recovered.recover();
+      await childClosed;
+      expect(() => process.kill(childPid, 0)).toThrow();
+      expect(recoveredSpawner.spawned).toHaveLength(0);
+      expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("failed");
+      expect((db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(runId) as { state: string }).state).toBe(
+        "settled_failed"
+      );
+      expect(
+        (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger='ready_for_review'").get(TSK) as { c: number }).c
+      ).toBe(0);
+      const costs = db
+        .prepare("SELECT meta_json FROM cost_entries WHERE task_id=? AND kind='tier1.run'")
+        .all(TSK) as { meta_json: string }[];
+      expect(costs).toHaveLength(1);
+      expect(JSON.parse(costs[0]!.meta_json)).toMatchObject({
+        input_tokens: 42,
+        output_tokens: 9,
+        cached_input_tokens: 4,
+        cache_creation_input_tokens: 1,
+        adapter: "cursor"
+      });
+      expect(
+        (db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.failed' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { meta_json: string }).meta_json
+      ).toContain("stale_terminal_result_without_finalization");
+    } finally {
+      try {
+        if (process.platform === "win32") process.kill(childPid);
+        else process.kill(-childPid, "SIGKILL");
+      } catch {
+        // 已退出
+      }
+      if (job) {
+        try { closeNamedJob(job); } catch { /* 已关 */ }
+      }
+    }
   });
 
   it("D1:marker 后新增回合触发预算时 blocked 胜出,预算不得借重启清零", async () => {
@@ -1127,24 +2118,226 @@ setInterval(() => {}, 1000);
       expect(processAlive(parentPid)).toBe(false);
       expect(processAlive(childPid)).toBe(false);
     }, { timeout: 5_000, interval: 20 });
+    const row = db
+      .prepare("SELECT state, restart_pending_at, finalize_pending_json FROM tier1_runs WHERE task_id=?")
+      .get(TSK) as { state: string; restart_pending_at: string | null; finalize_pending_json: string | null };
+    expect(row.state).toBe("running");
+    expect(row.restart_pending_at).toBeNull();
+    expect(JSON.parse(row.finalize_pending_json ?? "null")).toMatchObject({ kind: "review" });
+  });
+
+  it.each([
+    { kind: "cost" as const, taskId: "tsk_01EXEC0000000000000000P1A1" },
+    { kind: "outbox" as const, taskId: "tsk_01EXEC0000000000000000P1A2" },
+    { kind: "audit" as const, taskId: "tsk_01EXEC0000000000000000P1A3" }
+  ])("P1-A: review $kind 注入失败后 prepareShutdown 不得写 restart，恢复只收口", async ({ kind, taskId }) => {
+    const initWithSession = JSON.stringify({
+      type: "system",
+      subtype: "init",
+      model: "fable-5-max",
+      session_id: `chat-p1a-${kind}`
+    });
+    let injectAudit = true;
+    const sqliteAudit = audit;
+    if (kind === "cost") {
+      db.exec(`CREATE TRIGGER tier1_p1a_cost_injected_failure
+        BEFORE INSERT ON cost_entries
+        WHEN NEW.kind = 'tier1.run' BEGIN
+          SELECT RAISE(ABORT, 'injected p1a cost failure');
+        END`);
+    } else if (kind === "outbox") {
+      db.exec(`CREATE TRIGGER callback_outbox_p1a_injected_failure
+        BEFORE INSERT ON callback_outbox
+        WHEN NEW.trigger = 'ready_for_review' BEGIN
+          SELECT RAISE(ABORT, 'injected p1a outbox failure');
+        END`);
+    } else {
+      audit = {
+        record: (event) => {
+          if (injectAudit && event.action === "tier1.settled_review") throw new Error("injected p1a audit failure");
+          return sqliteAudit.record(event);
+        }
+      };
+      executor = makeExecutor();
+    }
+    seedQueuedTask(taskId);
+    spawner.plan = [{ lines: [initWithSession, EV.result], exitCode: 0 }];
+    executor.tick();
+    await vi.waitFor(() => {
+      const marker = db
+        .prepare("SELECT finalize_pending_json AS marker FROM tier1_runs WHERE task_id=?")
+        .get(taskId) as { marker: string | null };
+      expect(JSON.parse(marker.marker ?? "null")).toMatchObject({ kind: "review", eventLine: 2 });
+    }, { timeout: 15_000, interval: 50 });
+
+    await executor.prepareShutdown("restart");
     expect(
-      db.prepare("SELECT state, restart_pending_at FROM tier1_runs WHERE task_id=?").get(TSK)
-    ).toMatchObject({ state: "running", restart_pending_at: expect.any(String) });
+      db.prepare("SELECT state, restart_pending_at, finalize_pending_json FROM tier1_runs WHERE task_id=?").get(taskId)
+    ).toMatchObject({
+      state: "running",
+      restart_pending_at: null,
+      finalize_pending_json: expect.any(String)
+    });
+
+    const recoveredSpawner = new FakeSpawner();
+    const recovered = makeExecutor({}, recoveredSpawner);
+    await recovered.recover();
+    expect(recoveredSpawner.spawned).toHaveLength(0);
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(taskId) as { status: string }).status).toBe("running");
+    expect(
+      db.prepare("SELECT restart_pending_at, finalize_pending_json FROM tier1_runs WHERE task_id=?").get(taskId)
+    ).toMatchObject({ restart_pending_at: null, finalize_pending_json: expect.any(String) });
+
+    if (kind === "cost") db.exec("DROP TRIGGER tier1_p1a_cost_injected_failure");
+    else if (kind === "outbox") db.exec("DROP TRIGGER callback_outbox_p1a_injected_failure");
+    else injectAudit = false;
+    recovered.tick();
+    await waitTaskStatus(taskId, "ready_for_review");
+    expect(
+      db.prepare("SELECT state, finalize_pending_json, restart_pending_at FROM tier1_runs WHERE task_id=?").get(taskId)
+    ).toEqual({ state: "settled_review", finalize_pending_json: null, restart_pending_at: null });
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=? AND trigger='ready_for_review'").get(taskId) as { c: number }).c
+    ).toBe(1);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.settled_review' AND json_extract(meta_json, '$.taskId')=?").get(taskId) as { c: number }).c
+    ).toBe(1);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM cost_entries WHERE task_id=? AND kind='tier1.run'").get(taskId) as { c: number }).c
+    ).toBe(1);
   });
 
   it("cancel_requested run + 重启:补 proof 结算为 cancel_settled", async () => {
     const TSK = "tsk_01EXEC0000000000000000000Q";
+    const runId = "run_01EXECRECOVER00000000000A";
     seedQueuedTask(TSK);
     const nowIso = new Date().toISOString();
     db.prepare("UPDATE tasks SET status='cancel_requested', cwd='/tmp/x' WHERE id=?").run(TSK);
     db.prepare(
       `INSERT INTO tier1_runs(id, task_id, attempt, adapter, cwd, worktree_path, state, created_at, updated_at)
-       VALUES ('run_01EXECRECOVER00000000000A', ?, 1, 'cursor', '/tmp/x', '/tmp/x', 'cancel_requested', ?, ?)`
-    ).run(TSK, nowIso, nowIso);
+       VALUES (?, ?, 1, 'cursor', '/tmp/x', '/tmp/x', 'cancel_requested', ?, ?)`
+    ).run(runId, TSK, nowIso, nowIso);
+    const result = readFileSync(join(import.meta.dirname, "fixtures", "cursor-full-stream.ndjson"), "utf8")
+      .trim()
+      .split("\n")
+      .at(-1)!;
+    const runDir = join(saydoHome, "tier1", "runs", runId);
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(join(runDir, "events.jsonl"), `${EV.init}\n${result}\n`);
     const executor2 = makeExecutor();
     await executor2.recover();
     expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("cancel_settled");
-    expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe("cancel_settled");
+    expect(
+      db.prepare("SELECT state, event_cursor FROM tier1_runs WHERE task_id=?").get(TSK)
+    ).toEqual({ state: "cancel_settled", event_cursor: null });
+    const proof = JSON.parse(
+      (db.prepare("SELECT cancel_proof_json FROM tier1_runs WHERE id=?").get(runId) as { cancel_proof_json: string })
+        .cancel_proof_json
+    ) as { lastEventId: string };
+    expect(proof.lastEventId).toMatch(/:line:2$/);
+    const cost = JSON.parse(
+      (db.prepare("SELECT meta_json FROM cost_entries WHERE id=?").get(`tier1.run:${runId}`) as { meta_json: string })
+        .meta_json
+    );
+    expect(cost).toMatchObject({
+      input_tokens: 12_234,
+      output_tokens: 101,
+      cached_input_tokens: 5_888,
+      cache_creation_input_tokens: 0,
+      adapter: "cursor"
+    });
+    expect(cost).not.toHaveProperty("usage_unavailable");
+  });
+
+  it("recover 异步 reap 期间到达 cancel 时重读 durable 状态，不按旧快照 spawn", async () => {
+    const TSK = "tsk_01EXEC000000000000000000RC";
+    const runId = "run_01EXECRECOVERRACE0000001";
+    seedQueuedTask(TSK);
+    const nowIso = new Date().toISOString();
+    db.prepare("UPDATE tasks SET status='running', cwd='/tmp/x' WHERE id=?").run(TSK);
+    db.prepare(
+      `INSERT INTO tier1_runs(id, task_id, attempt, adapter, cwd, worktree_path, state, created_at, updated_at)
+       VALUES (?, ?, 1, 'cursor', '/tmp/x', '/tmp/x', 'running', ?, ?)`
+    ).run(runId, TSK, nowIso, nowIso);
+    const recoveredSpawner = new FakeSpawner();
+    const recovered = makeExecutor({}, recoveredSpawner);
+
+    const recovering = recovered.recover();
+    requestCancel(db, audit, TSK, new Date().toISOString());
+    await recovering;
+
+    expect(recoveredSpawner.spawned).toHaveLength(0);
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("cancel_settled");
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(runId) as { state: string }).state).toBe("cancel_settled");
+  });
+
+  it("task 已 cancel_settled 但 run 仍 cancel_requested 时，重启补 proof、清 marker 且不 spawn", async () => {
+    const TSK = "tsk_01EXEC000000000000000000CQ";
+    seedQueuedTask(TSK);
+    const nowIso = new Date().toISOString();
+    db.prepare("UPDATE tasks SET status='cancel_settled', cwd='/tmp/x' WHERE id=?").run(TSK);
+    db.prepare(
+      `INSERT INTO tier1_runs(
+         id, task_id, attempt, adapter, cwd, worktree_path, state,
+         finalize_pending_json, restart_pending_at, restart_reason, created_at, updated_at
+       ) VALUES ('run_01EXECRECOVER00000000000B', ?, 1, 'cursor', '/tmp/x', '/tmp/x', 'cancel_requested', ?, ?, 'restart', ?, ?)`
+    ).run(
+      TSK,
+      JSON.stringify({ exitEvidence: "agent_exit:2", taskState: "failed", recordedAt: nowIso, eventLine: 11 }),
+      nowIso,
+      nowIso,
+      nowIso
+    );
+    const recoveredSpawner = new FakeSpawner();
+    const executor2 = makeExecutor({}, recoveredSpawner);
+
+    await executor2.recover();
+
+    expect(recoveredSpawner.spawned).toHaveLength(0);
+    expect(executor2.activeRunCount()).toBe(0);
+    expect(
+      db.prepare(
+        "SELECT state, finalize_pending_json, restart_pending_at, cancel_proof_json FROM tier1_runs WHERE task_id=?"
+      ).get(TSK)
+    ).toMatchObject({
+      state: "cancel_settled",
+      finalize_pending_json: null,
+      restart_pending_at: null,
+      cancel_proof_json: expect.stringContaining(":line:11")
+    });
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("cancel_settled");
+  });
+
+  it("cancel 自愈首次写失败后，同 executor 下一 tick 仍按 cancel 收敛", async () => {
+    const TSK = "tsk_01EXEC000000000000000000CR";
+    const runId = "run_01EXECRECOVERCANCEL000001";
+    seedQueuedTask(TSK);
+    const nowIso = new Date().toISOString();
+    db.prepare("UPDATE tasks SET status='cancel_settled', cwd='/tmp/x' WHERE id=?").run(TSK);
+    db.prepare(
+      `INSERT INTO tier1_runs(id, task_id, attempt, adapter, cwd, worktree_path, state, created_at, updated_at)
+       VALUES (?, ?, 1, 'cursor', '/tmp/x', '/tmp/x', 'cancel_requested', ?, ?)`
+    ).run(runId, TSK, nowIso, nowIso);
+    db.exec(`CREATE TRIGGER tier1_cancel_recovery_injected_failure
+      BEFORE UPDATE OF state ON tier1_runs
+      WHEN OLD.id = '${runId}' AND NEW.state = 'cancel_settled' BEGIN
+        SELECT RAISE(ABORT, 'injected cancel recovery failure');
+      END`);
+    const recoveredSpawner = new FakeSpawner();
+    const recovered = makeExecutor({}, recoveredSpawner);
+
+    await recovered.recover();
+    expect(recoveredSpawner.spawned).toHaveLength(0);
+    expect(recovered.activeRunCount()).toBe(1);
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(runId) as { state: string }).state).toBe("cancel_requested");
+
+    db.exec("DROP TRIGGER tier1_cancel_recovery_injected_failure");
+    recovered.tick();
+    await vi.waitFor(() => expect(recovered.activeRunCount()).toBe(0));
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(runId) as { state: string }).state).toBe("cancel_settled");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.cancel_recovered'").get() as { c: number }).c
+    ).toBe(1);
   });
 });
 
@@ -1401,6 +2594,8 @@ describe("C2a claude spawn env / settings / hooks.json 仅 cursor", () => {
     expect(sp.env["SHELL"]).toBe("/bin/sh");
     expect(Object.keys(sp.env).some((k) => k.startsWith("ANTHROPIC") || k === "CLAUDE_CODE_OAUTH_TOKEN")).toBe(false);
     expect(sp.settingsJson).toBeTruthy();
+    expect(sp.prompt).toContain("不要改动 .claude/ 目录");
+    expect(sp.prompt).not.toContain("不要改动 .cursor/ 目录");
     const settings = JSON.parse(sp.settingsJson!) as { hooks: { PreToolUse: unknown[] } };
     expect(settings.hooks.PreToolUse.length).toBeGreaterThan(0);
     expect(sp.maxTurns).toBe(200);
@@ -1413,6 +2608,7 @@ describe("C2a claude spawn env / settings / hooks.json 仅 cursor", () => {
     expect(existsSync(join(wt, ".cursor", "hooks.json"))).toBe(true);
     expect(spawner.spawned[0]?.settingsJson).toBeUndefined();
     expect(spawner.spawned[0]?.maxTurns).toBeUndefined();
+    expect(spawner.spawned[0]?.prompt).toContain("不要改动 .cursor/ 目录");
   });
 });
 
@@ -1568,6 +2764,72 @@ describe("C2a handleGateRequest 文件分叉 + 并发 S2 + 双脚本 drift", () 
     expect((await third).permission).toBe("deny");
   });
 
+  it("S2 等待期间 durable cancel 到达后，即使旧审批随后 accept 也必须撤销放行", async () => {
+    seedDispatchReceipt();
+    const TSK = "tsk_01EXEC0000000000000000C2GR";
+    const wt = await hangRun(TSK);
+    const pending = executor.handleGateRequest({
+      kind: "file_write",
+      tool: "Write",
+      path: join(wt, ".env"),
+      cwd: wt
+    });
+    await vi.waitFor(() => expect(approvals.pendingCount()).toBe(1));
+    const receipt = db.prepare("SELECT id FROM approvals WHERE kind='runtime_effect' AND outcome='pending'").get() as {
+      id: string;
+    };
+    requestCancel(db, audit, TSK, new Date().toISOString());
+    expect(approvals.decide(receipt.id, "accept", { via: "screen" }).ok).toBe(true);
+
+    const decision = await pending;
+    expect(decision.permission).toBe("deny");
+    expect(String(decision.agent_message)).toContain("approval expired");
+    await waitTaskStatus(TSK, "cancel_settled");
+    const metas = (
+      db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.gate_decision'").all() as { meta_json: string }[]
+    ).map((row) => JSON.parse(row.meta_json) as { permission?: string; reason?: string });
+    expect(metas.some((meta) => meta.permission === "deny" && meta.reason?.startsWith("approval_revoked:"))).toBe(true);
+    expect(metas.some((meta) => meta.permission === "allow")).toBe(false);
+  });
+
+  it("command S2 等待期间 durable steer 到达后，旧审批 accept 仍必须撤销放行", async () => {
+    seedDispatchReceipt();
+    const TSK = "tsk_01EXEC0000000000000000C2GS";
+    const wt = await hangRun(TSK);
+    const pending = executor.handleGateRequest({
+      kind: "command",
+      command: "git push origin feature/x",
+      cwd: wt
+    });
+    await vi.waitFor(() => expect(approvals.pendingCount()).toBe(1));
+    const receipt = db.prepare("SELECT id FROM approvals WHERE kind='runtime_effect' AND outcome='pending'").get() as {
+      id: string;
+    };
+    expect(steerTask(db, audit, { taskId: TSK, instruction: "先不要推送，改走本地验证" }, new Date().toISOString())).toEqual({
+      applied: "cancel_resume"
+    });
+    expect(approvals.decide(receipt.id, "accept", { via: "screen" }).ok).toBe(true);
+
+    const decision = await pending;
+    expect(decision.permission).toBe("deny");
+    expect(String(decision.agent_message)).toContain("approval expired");
+    await vi.waitFor(() => {
+      expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe(
+        "cancel_settled"
+      );
+    });
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("running");
+    const metas = (
+      db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.gate_decision'").all() as { meta_json: string }[]
+    ).map((row) => JSON.parse(row.meta_json) as { permission?: string; reason?: string; kind?: string });
+    expect(
+      metas.some(
+        (meta) => meta.kind === "command" && meta.permission === "deny" && meta.reason === "approval_revoked:run_cancel_requested"
+      )
+    ).toBe(true);
+    expect(metas.some((meta) => meta.permission === "allow")).toBe(false);
+  });
+
   it("gate-claude.sh 漂移同样拦 + 自愈", async () => {
     const TSK = "tsk_01EXEC0000000000000000C2G5";
     const wt = await hangRun(TSK);
@@ -1582,6 +2844,21 @@ describe("C2a handleGateRequest 文件分叉 + 并发 S2 + 双脚本 drift", () 
     }[];
     expect(drift.some((r) => JSON.parse(r.meta_json).script === "gate-claude.sh")).toBe(true);
     expect(readFileSync(gp.claudeScriptPath, "utf8")).toBe(buildActiveClaudeGateScript(gp));
+  });
+
+  it("durable cancel 到达后 gate 立即拒绝副作用并推动取消收口", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2G6";
+    const wt = await hangRun(TSK);
+    requestCancel(db, audit, TSK, new Date().toISOString());
+
+    const denied = await executor.handleGateRequest({ cwd: wt, command: "ls" });
+
+    expect(denied.permission).toBe("deny");
+    expect(String(denied.agent_message)).toContain("durable run state");
+    await waitTaskStatus(TSK, "cancel_settled");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.gate_decision'").get() as { c: number }).c
+    ).toBe(0);
   });
 });
 
@@ -1691,7 +2968,7 @@ describe("C2b session / canary / 记账 / 限流 / 恢复", () => {
     executor.tick();
     await waitTaskStatus(TSK, "failed");
     expect(
-      (db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.settled_failed' ORDER BY ts DESC LIMIT 1").get() as {
+      (db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.failed' ORDER BY ts DESC LIMIT 1").get() as {
         meta_json: string;
       }).meta_json
     ).toContain("native_session_mismatch");
@@ -1805,7 +3082,7 @@ describe("C2b session / canary / 记账 / 限流 / 恢复", () => {
     executor.tick();
     await waitTaskStatus(TSK, "failed");
     expect(
-      (db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.settled_failed' ORDER BY ts DESC LIMIT 1").get() as {
+      (db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.failed' ORDER BY ts DESC LIMIT 1").get() as {
         meta_json: string;
       }).meta_json
     ).toContain("subscription_auth_violation");
@@ -1924,7 +3201,7 @@ describe("C2b session / canary / 记账 / 限流 / 恢复", () => {
     ).toBe(1);
   });
 
-  it("adapter mismatch ⇒ reap + 任务 blocked", async () => {
+  it("cursor → claude adapter mismatch ⇒ durable intent 原子收口且不 spawn", async () => {
     const TSK = "tsk_01EXEC0000000000000000C2BA";
     executor = makeClaude();
     seedQueuedTask(TSK);
@@ -1943,11 +3220,198 @@ describe("C2b session / canary / 记账 / 限流 / 恢复", () => {
     expect(spawner2.spawned).toHaveLength(0);
     expect(
       (db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state
-    ).toBe("cancel_settled");
+    ).toBe("settled_failed");
     const aud = db
-      .prepare("SELECT meta_json FROM audit_log WHERE action='tier1.recover_reaped_inconsistent' ORDER BY ts DESC LIMIT 1")
+      .prepare("SELECT meta_json FROM audit_log WHERE action='tier1.blocked' ORDER BY ts DESC LIMIT 1")
       .get() as { meta_json: string };
     expect(aud.meta_json).toContain("adapter_mismatch");
+  });
+
+  it("claude → cursor adapter mismatch 同样 blocked，绝不跨后端 spawn", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2BB";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [loadLine("init.jsonl")], exitCode: 0, hang: true }];
+    executor.tick();
+    await vi.waitFor(() => {
+      expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe(
+        "running"
+      );
+    });
+    const recoveredSpawner = new FakeSpawner();
+    const recovered = makeExecutor({}, recoveredSpawner);
+
+    await recovered.recover();
+
+    await waitTaskStatus(TSK, "blocked");
+    expect(recoveredSpawner.spawned).toHaveLength(0);
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe(
+      "settled_failed"
+    );
+  });
+
+  it("adapter mismatch 的 blocked outbox 写失败时 run/task/审计/成本整体回滚并可重试", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2BC";
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [EV.init], exitCode: 0, hang: true }];
+    executor.tick();
+    await vi.waitFor(() => {
+      expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe(
+        "running"
+      );
+    });
+    db.exec(`CREATE TRIGGER callback_outbox_adapter_mismatch_injected_failure
+      BEFORE INSERT ON callback_outbox
+      WHEN NEW.trigger = 'blocked' BEGIN
+        SELECT RAISE(ABORT, 'injected adapter mismatch outbox failure');
+      END`);
+    const recovered = makeClaude(new FakeSpawner());
+
+    await recovered.recover();
+
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("running");
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe(
+      "running"
+    );
+    expect((db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=?").get(TSK) as { c: number }).c).toBe(0);
+    expect((db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.blocked' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c).toBe(0);
+    expect((db.prepare("SELECT COUNT(*) AS c FROM cost_entries WHERE task_id=?").get(TSK) as { c: number }).c).toBe(0);
+    expect(recovered.activeRunCount()).toBe(1);
+
+    db.exec("DROP TRIGGER callback_outbox_adapter_mismatch_injected_failure");
+    recovered.tick();
+    await waitTaskStatus(TSK, "blocked");
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe(
+      "settled_failed"
+    );
+    expect((db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=?").get(TSK) as { c: number }).c).toBe(1);
+    expect((db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.blocked' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c).toBe(1);
+    expect((db.prepare("SELECT COUNT(*) AS c FROM cost_entries WHERE task_id=?").get(TSK) as { c: number }).c).toBe(1);
+    expect(recovered.activeRunCount()).toBe(0);
+  });
+
+  it("P1-B: cursor → claude mismatch 即使 worktree 已删也只写 failure intent 原子收口，spawn=0", async () => {
+    const TSK = "tsk_01EXEC0000000000000000P1B1";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [loadLine("init.jsonl")], exitCode: 0, hang: true }];
+    executor.tick();
+    await vi.waitFor(() => {
+      expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe(
+        "running"
+      );
+    });
+    const worktree = (db.prepare("SELECT worktree_path FROM tier1_runs WHERE task_id=?").get(TSK) as { worktree_path: string })
+      .worktree_path;
+    rmSync(join(worktree, ".git"), { recursive: true, force: true });
+    db.prepare("UPDATE tier1_runs SET adapter='cursor' WHERE task_id=?").run(TSK);
+    const recoveredSpawner = new FakeSpawner();
+    const recovered = makeClaude(recoveredSpawner);
+    await recovered.recover();
+    await waitTaskStatus(TSK, "blocked");
+    expect(recoveredSpawner.spawned).toHaveLength(0);
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe(
+      "settled_failed"
+    );
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM tasks WHERE id=? AND status='running'").get(TSK) as { c: number }).c
+    ).toBe(0);
+    const aud = db
+      .prepare("SELECT meta_json FROM audit_log WHERE action='tier1.blocked' ORDER BY ts DESC LIMIT 1")
+      .get() as { meta_json: string };
+    expect(aud.meta_json).toContain("adapter_mismatch");
+  });
+
+  it("P1-B: claude → cursor mismatch 缺 worktree 同样 blocked，绝不跨后端 spawn", async () => {
+    const TSK = "tsk_01EXEC0000000000000000P1B2";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [loadLine("init.jsonl")], exitCode: 0, hang: true }];
+    executor.tick();
+    await vi.waitFor(() => {
+      expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe(
+        "running"
+      );
+    });
+    const worktree = (db.prepare("SELECT worktree_path FROM tier1_runs WHERE task_id=?").get(TSK) as { worktree_path: string })
+      .worktree_path;
+    rmSync(join(worktree, ".git"), { recursive: true, force: true });
+    const recoveredSpawner = new FakeSpawner();
+    const recovered = makeExecutor({}, recoveredSpawner);
+    await recovered.recover();
+    await waitTaskStatus(TSK, "blocked");
+    expect(recoveredSpawner.spawned).toHaveLength(0);
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe(
+      "settled_failed"
+    );
+  });
+
+  it("P1-B: 缺 worktree 的 adapter mismatch outbox 失败整体回滚并可重试", async () => {
+    const TSK = "tsk_01EXEC0000000000000000P1B3";
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [EV.init], exitCode: 0, hang: true }];
+    executor.tick();
+    await vi.waitFor(() => {
+      expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe(
+        "running"
+      );
+    });
+    const worktree = (db.prepare("SELECT worktree_path FROM tier1_runs WHERE task_id=?").get(TSK) as { worktree_path: string })
+      .worktree_path;
+    rmSync(join(worktree, ".git"), { recursive: true, force: true });
+    db.prepare("UPDATE tier1_runs SET adapter='claude_code' WHERE task_id=?").run(TSK);
+    db.exec(`CREATE TRIGGER callback_outbox_p1b_mismatch_injected_failure
+      BEFORE INSERT ON callback_outbox
+      WHEN NEW.trigger = 'blocked' BEGIN
+        SELECT RAISE(ABORT, 'injected p1b adapter mismatch outbox failure');
+      END`);
+    const recovered = makeExecutor({}, new FakeSpawner());
+    await recovered.recover();
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("running");
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe("running");
+    expect((db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=?").get(TSK) as { c: number }).c).toBe(0);
+    expect((db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.blocked' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c).toBe(0);
+    expect((db.prepare("SELECT COUNT(*) AS c FROM cost_entries WHERE task_id=?").get(TSK) as { c: number }).c).toBe(0);
+    expect(JSON.parse(
+      (db.prepare("SELECT finalize_pending_json AS marker FROM tier1_runs WHERE task_id=?").get(TSK) as { marker: string }).marker
+    )).toMatchObject({ kind: "failure", taskState: "blocked" });
+    expect(recovered.activeRunCount()).toBe(1);
+
+    db.exec("DROP TRIGGER callback_outbox_p1b_mismatch_injected_failure");
+    recovered.tick();
+    await waitTaskStatus(TSK, "blocked");
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string }).state).toBe(
+      "settled_failed"
+    );
+    expect((db.prepare("SELECT COUNT(*) AS c FROM callback_outbox WHERE task_id=?").get(TSK) as { c: number }).c).toBe(1);
+    expect((db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.blocked' AND json_extract(meta_json, '$.taskId')=?").get(TSK) as { c: number }).c).toBe(1);
+    expect((db.prepare("SELECT COUNT(*) AS c FROM cost_entries WHERE task_id=?").get(TSK) as { c: number }).c).toBe(1);
+    expect(recovered.activeRunCount()).toBe(0);
+  });
+
+  it("Cursor result usage 进入唯一 tier1.run 成本行", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2BD";
+    const result = readFileSync(join(import.meta.dirname, "fixtures", "cursor-full-stream.ndjson"), "utf8")
+      .trim()
+      .split("\n")
+      .at(-1)!;
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [EV.init, result], exitCode: 0 }];
+    executor.tick();
+    await waitTaskStatus(TSK, "ready_for_review");
+    const cost = JSON.parse(
+      (db.prepare("SELECT meta_json FROM cost_entries WHERE task_id=? AND kind='tier1.run'").get(TSK) as {
+        meta_json: string;
+      }).meta_json
+    );
+    expect(cost).toMatchObject({
+      input_tokens: 12_234,
+      output_tokens: 101,
+      cached_input_tokens: 5_888,
+      cache_creation_input_tokens: 0,
+      adapter: "cursor"
+    });
+    expect(cost).not.toHaveProperty("usage_unavailable");
   });
 
   it("评审 90 A-5:spawn 前二进制身份漂移 ⇒ blocked binary_identity_mismatch,不起进程", async () => {

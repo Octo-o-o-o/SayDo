@@ -19,6 +19,7 @@ import type { Dirent } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join as joinPath } from "node:path";
 import { execRuntimeChild } from "../runtimeChildRegistry.js";
+import { resolveExecutable } from "./executable.js";
 
 /** 探测目录里登记过的本机 agent 名(含仅识别、未接线供给的) */
 export type CliName =
@@ -868,7 +869,7 @@ async function listGrokModels(
 export interface ProbeCliCapabilityDeps {
   exec?: ExecFn;
   signal?: AbortSignal;
-  /** which 查路径;测试可注入。多 bin 时会按目录顺序依次调用。 */
+  /** 可执行文件路径解析;测试可注入。多 bin 时会按目录顺序依次调用。 */
   whichFn?: (bin: string) => Promise<{ path?: string; version?: string }>;
   authTimeoutMs?: number;
   listTimeoutMs?: number;
@@ -900,8 +901,7 @@ async function defaultWhich(
   exec: ExecFn
 ): Promise<{ path?: string; version?: string }> {
   try {
-    const w = await exec("which", [bin], 3000);
-    const path = w.stdout.trim().split("\n")[0]?.trim();
+    const path = await resolveExecutable(bin);
     if (!path) return {};
     try {
       const v = await exec(path, ["--version"], 3000);

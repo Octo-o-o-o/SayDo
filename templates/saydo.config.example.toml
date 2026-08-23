@@ -38,16 +38,20 @@ evaluator = { provider = "api", via = "openrouter", model = "anthropic/claude-so
 
 [models.dev]
 # 5) 开发模型:派发执行用哪个本地 agent 及其模型。
-#    运行时当前只认 cursor;claude_code / codex 配了会被拒起执行器,对话不受影响;Claude Code 执行器接入中。
-agent     = "cursor"                # claude_code | codex | cursor(运行时只认 cursor)
+#    cursor 是当前稳定缺省;claude_code 已接生产主流程、最终 live conformance 收口中;codex 尚未实现并会 fail-closed 拒起。
+agent     = "cursor"                # claude_code | codex | cursor
 transport = "cli"                   # cli=订阅态零 key | sdk=CURSOR_API_KEY
 model     = "<cursor-agent 可列出的模型名>"
 
-# 两键齐备才启用执行器;不接受 `~`(必须是锁定副本绝对路径 versions/<ver>/cursor-agent)。
-# 占位真值会走 bin_missing(每次启动打 error);缺两键才是 not_configured。上手保持注释,换成真实路径再打开。
+# 选择 cursor 时两键齐备才启用执行器;不接受 `~`(必须是锁定副本绝对路径 versions/<ver>/cursor-agent)。
+# 选择 claude_code 时须配置 claude 三键并运行 Tier1 自检写入身份登记;model 使用 [tier1].model。
+# 占位真值会走 bin_missing(每次启动打 error);缺键才是 not_configured。上手保持注释,换成真实值再打开。
 # [tier1]
 # cursor_agent_bin            = "/absolute/path/to/versions/<ver>/cursor-agent"
 # cursor_agent_pinned_version = "<cursor-agent --version 输出>"
+# claude_bin                  = "/absolute/path/to/claude"
+# claude_pinned_version       = "<claude --version 首 token>"
+# model                       = "opus"
 
 # 成本倾向预设(可选,P1):economy | balanced | quality —— 一键切上面三档组合
 # preset = "balanced"

@@ -22,7 +22,7 @@ import {
 import { deliveryPreflight } from "../recovery/reconciler.js";
 import type { AuditSink } from "../obs/audit.js";
 
-/** settle 四项齐备(路径一 Tier1SettleProof;缺一不叫)——回叫前必须齐备且 verify 独立通过 */
+/** settle 证据齐备(路径一 Tier1SettleProof;缺一不叫)——回叫前必须齐备且 verify 独立通过 */
 export function isSettleComplete(proof: Tier1SettleProof | undefined): proof is Tier1SettleProof {
   if (!proof) return false;
   return (
@@ -30,6 +30,7 @@ export function isSettleComplete(proof: Tier1SettleProof | undefined): proof is 
     proof.runId !== "" &&
     proof.treeSha !== "" &&
     proof.tier1VerifyDigest !== "" &&
+    Array.isArray(proof.acceptanceChecks) &&
     proof.transcriptCursor !== ""
   );
 }
@@ -110,8 +111,22 @@ export class CallbackEngine {
     try {
       insertOutboxEntry(this.db, entry);
     } catch (err) {
-      // 活跃唯一索引冲突 = 同 dedupeKey 已在队(重启只叫一次)——幂等,不重复入队
-      return { entryId: "", enqueued: false, reason: `dedupe active-unique: ${String(err).slice(0, 60)}` };
+      // 只把“同一 dedupeKey 已有活跃条目”的唯一约束当幂等；磁盘、trigger、schema 等
+      // 其他写失败必须继续抛出，让 settle 外层事务整体回滚，不能伪装成已在队。
+      const code = typeof err === "object" && err !== null && "code" in err
+        ? (err as { code?: unknown }).code
+        : undefined;
+      const existing = code === "SQLITE_CONSTRAINT_UNIQUE"
+        ? (this.db
+            .prepare(
+              "SELECT id FROM callback_outbox WHERE dedupe_key=? AND state IN ('pending','notified','acked','requeued')"
+            )
+            .get(dedupeKey) as { id: string } | undefined)
+        : undefined;
+      if (existing) {
+        return { entryId: existing.id, enqueued: false, reason: "dedupe active-unique" };
+      }
+      throw err;
     }
     this.audit.record({ actor: "daemon", action: "callback.enqueue", meta: { entryId: entry.id, trigger: input.trigger, dedupeKey } });
     return { entryId: entry.id, enqueued: true };

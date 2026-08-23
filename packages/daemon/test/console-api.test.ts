@@ -54,10 +54,45 @@ describe("console API(fixture 投影)", () => {
   });
 
   it("task detail:决策包 acceptance + runs + 审批 + 成本齐", () => {
+    const clean = getTaskDetail(db, "tsk_01F1XT0RE0TSKRDY0000000000")!;
+    const cleanRun = (clean["runs"] as Record<string, unknown>[])[0]!;
+    const cleanChecks = clean["acceptanceChecks"] as { criterion: string; status: string; source: string }[];
+    expect(cleanChecks).toHaveLength(3);
+    expect(cleanChecks.every((check) => check.status === "unknown" && check.source === "manual")).toBe(true);
+    expect(cleanRun["observed_model"]).toBe("cursor-grok-4.6-high-fast");
+    expect(cleanRun["exit_evidence"]).toBeNull();
+    expect(cleanRun["terminal_audit_action"]).toBe("tier1.settled_review");
+    expect(cleanRun["evidence_conflict"]).toBe(false);
+
+    // 同一 run 出现互斥终态审计时不拼接字段；显式暴露证据冲突。
+    db.prepare("INSERT INTO audit_log(id,ts,actor,action,meta_json) VALUES (?,?,?,?,?)").run(
+      "aud_console_exit_evidence",
+      "2026-07-25T02:03:00.000Z",
+      "daemon",
+      "tier1.blocked",
+      JSON.stringify({
+        taskId: "tsk_01F1XT0RE0TSKRDY0000000000",
+        runId: "run_01F1XT0RE0A000000000000000",
+        exitEvidence: "subscription_rate_limited"
+      })
+    );
+    db.prepare("INSERT INTO audit_log(id,ts,actor,action,meta_json) VALUES (?,?,?,?,?)").run(
+      "aud_console_malformed_meta",
+      "2026-07-25T02:04:00.000Z",
+      "daemon",
+      "tier1.blocked",
+      "{malformed"
+    );
     const d = getTaskDetail(db, "tsk_01F1XT0RE0TSKRDY0000000000")!;
     const pkg = d["package"] as { acceptance: unknown[] };
     expect(pkg.acceptance).toHaveLength(3);
-    expect((d["runs"] as unknown[]).length).toBe(1);
+    const runs = d["runs"] as Record<string, unknown>[];
+    expect(runs).toHaveLength(1);
+    expect(runs[0]?.["observed_model"]).toBeNull();
+    expect(runs[0]?.["exit_evidence"]).toBeNull();
+    expect(runs[0]?.["terminal_audit_action"]).toBeNull();
+    expect(runs[0]?.["evidence_conflict"]).toBe(true);
+    expect((d["acceptanceChecks"] as { status: string }[]).every((check) => check.status === "unknown")).toBe(true);
     expect((d["approvals"] as unknown[]).length).toBe(1);
     expect((d["costs"] as unknown[]).length).toBe(2);
     expect(getTaskDetail(db, "tsk_none")).toBeNull();

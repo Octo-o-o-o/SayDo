@@ -1,8 +1,8 @@
 import { execFileSync, spawn, type ChildProcessByStdio } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import type { Readable, Writable } from "node:stream";
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { delimiter, extname, join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { delimiter, dirname, extname, join, resolve, win32 } from "node:path";
 import {
   assignPidToJob,
   closeNamedJob,
@@ -55,6 +55,59 @@ export function assertNoCmdShellMetachars(parts: readonly string[]): void {
   if (bad !== undefined) {
     throw new Error(`cmd/bat 参数含 shell 元字符,fail-closed 拒绝执行:${bad.slice(0, 80)}`);
   }
+}
+
+export interface RuntimeInvocation {
+  file: string;
+  args: string[];
+}
+
+/**
+ * Windows npm 的 cmd-shim 不经 cmd.exe：只接受 npm 完整标准 Node shim 模板，
+ * 从唯一终端行取出 JS 入口后改为当前 node.exe 直接执行。
+ * npm 的全局 bin 到 package 入口通常含 `..`；安全边界是“整份 shim 结构可证”，
+ * 而不是把合法的相对目标误判为路径穿越。任何额外命令或非 Node 模板一律拒绝。
+ */
+export function resolveRuntimeInvocation(
+  file: string,
+  args: string[],
+  platform: NodeJS.Platform = process.platform
+): RuntimeInvocation {
+  const extension = extname(file).toLowerCase();
+  if (platform !== "win32" || (extension !== ".cmd" && extension !== ".bat")) return { file, args };
+  const raw = readFileSync(file, "utf8");
+  if (Buffer.byteLength(raw, "utf8") > 64 * 1024) throw new Error("cmd/bat shim 过大，拒绝解析");
+  const text = raw.replace(/^\uFEFF/u, "").replace(/\r\n?/gu, "\n");
+  const legacyMatch = text.match(
+    /^@ECHO off\nGOTO start\n:find_dp0\nSET dp0=%~dp0\nEXIT \/b\n:start\nSETLOCAL\nCALL :find_dp0\n\nIF EXIST "%dp0%\\node\.exe" \(\n {2}SET "_prog=%dp0%\\node\.exe"\n\) ELSE \(\n {2}SET "_prog=node"\n {2}SET PATHEXT=%PATHEXT:;\.JS;=;%\n\)\n\nendLocal & goto #_undefined_# 2>NUL \|\| title %COMSPEC% & "%_prog%"\s+"%dp0%\\([^"\n]+?\.(?:cjs|mjs|js))" %\*\n?$/iu
+  );
+  // cmd-shim 9.x（npm 12 当前依赖）把 PATHEXT 收窄从 ELSE 分支移到唯一终端行。
+  // 仍然整份锚定，只提取该标准模板的唯一 JS 入口。
+  const currentMatch = text.match(
+    /^@ECHO off\nGOTO start\n:find_dp0\nSET dp0=%~dp0\nEXIT \/b\n:start\nSETLOCAL\nCALL :find_dp0\n\nIF EXIST "%dp0%\\node\.exe" \(\n {2}SET "_prog=%dp0%\\node\.exe"\n\) ELSE \(\n {2}SET "_prog=node"\n\)\n\nendLocal & goto #_undefined_# 2>NUL \|\| title %COMSPEC% & set PATHEXT=%PATHEXT:;\.JS;=;% & "%_prog%"\s+"%dp0%\\([^"\n]+?\.(?:cjs|mjs|js))" %\*\n?$/iu
+  );
+  const candidate = (legacyMatch?.[1] ?? currentMatch?.[1])?.replace(/\\/gu, "/");
+  if (!candidate) {
+    throw new Error("cmd/bat 仅支持可证明的 npm node shim；请改用 .exe 或 node <script>");
+  }
+  if (candidate.includes("\0") || win32.isAbsolute(candidate)) {
+    throw new Error("cmd/bat npm shim 的 JS 入口必须是相对路径");
+  }
+  const script = resolve(dirname(file), candidate);
+  if (!existsSync(script) || !statSync(script).isFile()) {
+    throw new Error("cmd/bat npm shim 的 JS 入口不存在或不是文件");
+  }
+  return { file: process.execPath, args: [realpathSync(script), ...args] };
+}
+
+/** 身份登记除 shim 本体外，还要钉住它最终执行的 JS 入口；非 shim 返回 null。 */
+export function runtimeInvocationIdentityTarget(
+  file: string,
+  platform: NodeJS.Platform = process.platform
+): string | null {
+  const invocation = resolveRuntimeInvocation(file, [], platform);
+  if (invocation.file !== process.execPath || invocation.args.length !== 1) return null;
+  return invocation.args[0] as string;
 }
 
 export interface SpawnedRuntimeChild {
@@ -150,14 +203,13 @@ permit.once("data", () => {
     (process.platform === "win32" && js === "");
   const spawnFile = wrapJs ? process.execPath : target;
   const spawnArgs = wrapJs ? [target, ...args] : args;
-  const useShell = process.platform === "win32" && (js === ".cmd" || js === ".bat");
-  // shell:true 下 Node 对 Windows 是零转义 join,元字符会被 cmd 当语法执行 ⇒ fail-closed。
-  if (useShell && [spawnFile, ...spawnArgs].some((a) => /[&|<>^"%!()\r\n]/.test(String(a)))) {
-    process.stderr.write("saydo: cmd/bat argument contains shell metacharacter (fail-closed)");
+  const unsupportedShell = process.platform === "win32" && (js === ".cmd" || js === ".bat");
+  if (unsupportedShell) {
+    process.stderr.write("saydo: unresolved cmd/bat target reached runtime wrapper (fail-closed)");
     drainAndExit(126);
     return;
   }
-  child = spawn(spawnFile, spawnArgs, { cwd: process.cwd(), env: process.env, stdio: ["pipe", "inherit", "inherit"], windowsHide: true, shell: useShell });
+  child = spawn(spawnFile, spawnArgs, { cwd: process.cwd(), env: process.env, stdio: ["pipe", "inherit", "inherit"], windowsHide: true });
   process.stdin.pipe(child.stdin);
   child.once("error", (err) => { process.stderr.write(String(err)); drainAndExit(127); });
   child.once("exit", (code, signal) => {
@@ -351,18 +403,16 @@ export function execAgentFileSync(
   options: { encoding: "utf8"; timeout?: number } = { encoding: "utf8" }
 ): string {
   const resolved = resolveSpawnFile(file);
-  const ext = extname(resolved).toLowerCase();
+  const invocation = resolveRuntimeInvocation(resolved, args);
+  const ext = extname(invocation.file).toLowerCase();
   const wrapJs = ext === ".js" || ext === ".mjs" || ext === ".cjs" ||
     (hostKind() === "win32" && ext === "");
-  const useShell = hostKind() === "win32" && (ext === ".cmd" || ext === ".bat");
-  const spawnFile = wrapJs ? process.execPath : resolved;
-  const spawnArgs = wrapJs ? [resolved, ...args] : args;
-  if (useShell) assertNoCmdShellMetachars([spawnFile, ...spawnArgs]);
+  const spawnFile = wrapJs ? process.execPath : invocation.file;
+  const spawnArgs = wrapJs ? [invocation.file, ...invocation.args] : invocation.args;
   return execFileSync(spawnFile, spawnArgs, {
     encoding: options.encoding,
     ...(options.timeout !== undefined ? { timeout: options.timeout } : {}),
-    windowsHide: true,
-    ...(useShell ? { shell: true } : {})
+    windowsHide: true
   }).trim();
 }
 
@@ -377,13 +427,14 @@ export function spawnRuntimeChild(
   prepareRuntimeChildRoot(registryHome);
   const commandToken = `saydo-child-${randomUUID()}`;
   const resolvedFile = resolveSpawnFile(file, options.env);
+  const invocation = resolveRuntimeInvocation(resolvedFile, args);
   let job: NamedJob | undefined;
   if (hostKind() === "win32") {
     job = createNamedJob(`Local\\SayDoJob-${runtimeOwnerInstanceId}-${commandToken}`);
   }
   const child = spawn(
     process.execPath,
-    ["-e", RUNTIME_CHILD_WRAPPER, commandToken, resolvedFile, JSON.stringify(args)],
+    ["-e", RUNTIME_CHILD_WRAPPER, commandToken, invocation.file, JSON.stringify(invocation.args)],
     {
       ...(options.cwd ? { cwd: options.cwd } : {}),
       ...(options.env ? { env: options.env } : {}),

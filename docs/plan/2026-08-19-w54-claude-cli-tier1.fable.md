@@ -94,7 +94,7 @@
 | D9 | `ask` / `--permission-prompt-tool` | hook 内同步等待 = 唯一 S2 通道；P0 不做 `--permission-prompt-tool`（MCP） | `ask` 在 `-p` 等同 deny（S2）；MCP 通道要起 stdio server 并改 `--strict-mcp-config` 口径，P1 |
 | D10 | 拆批 | 三批 W5.4-a/b/c（§6），各自 IMPL-PROMPT + evidence + readback | 四阶段一批约 8–12 人日（评审员推断），超出 W5 刻度；拆批预授权只给 W7/W8（PLAN-2 §7-6），故需 owner 批准 |
 | D11 | 合同时序 | §5 左栏"开批前置"项在 **W5.4-b 开批前**先回写（一致性 subagent + Codex 一次）；W5.4-a（spike + 纯函数、零行为变化）可先行 | PLAN-2 通则③"语义级变更一律先回写"；09 §11 `[tier1]` 2026-07-25 有"实现先行/时序如实"先例，若 owner 选先例路线需书面批准 |
-| D12 | 身份登记承载 | (b) 新建 `~/.saydo/tier1/claude-identity.json`（`{binaryPath, binaryDigest, version, testedAt, receipt}`）+ 把 `verifyBinaryIdentity` 提为共享函数；不扩 T18a 封闭四槽登记表 | 控爆炸半径；digest 校验 = 启动 + 每次 spawn 前 mtime/size 变化才重哈希（256MB 单文件） |
+| D12 | 身份登记承载 | (b) 新建 `~/.saydo/tier1/claude-identity.json`（`{binaryPath, binaryDigest, version, testedAt, runtimeTargetPath?, runtimeTargetDigest?, receipt}`；Windows npm `.cmd` 两个 runtime target 键成对钉住最终 JS）+ 把 `verifyBinaryIdentity` 提为共享函数；不扩 T18a 封闭四槽登记表 | 控爆炸半径；BYOA 保留 mtime/size 缓存，但 Tier1 安全门在启动与每次 spawn 前对 wrapper/JS 逐次全量重哈希；同尺寸同 mtime 替换与任一漂移均拒 |
 | D13 | agent env 新增 `DISABLE_AUTOUPDATER=1`、`SHELL=/bin/sh` | 批准作为**显式注入/覆盖键**（非凭据；写进 09 §11 G4 例外） | `--setting-sources ""` 让用户 `autoUpdates=false` 失效、npm 全局路径 owner 可写、自更新会在批中途改 digest（R-1）；`SHELL` 在白名单内但值来自 owner 登录 shell，Claude 的 Bash 工具按它初始化 shell 快照会把 `~/.zshrc` 导出的变量带进 agent Bash（B11），钉成 `/bin/sh` 止漏（待 spike B-12 对照） |
 | D14 | 文件读门 P0 口径 | 圈内 Read ⇒ hook 不裁决（Claude 自动放行；与 cursor Read 无门的现状持平，`.env` 圈内读残余如实）；**圈外 Read ⇒ deny**（reason 提示 agent 用 worktree 内信息；owner 预授权圈外读列 P1）。**（v3，A-09）Bash 侧同口径：只读词头（`cat/head/tail/less/sed -n/grep/…`）目标为圈外绝对路径 / `~` / `$HOME` 时，cmdEffect 升为 S2（`read` + `pathClass=outside` ⇒ 不再 S0 自动放行；两后端同受益、只升不降）；敏感路径仍按既有词表再升。`/etc/passwd`、`~/.claude/projects/...` 等不再自动放行** | v1 "圈外 Read S2 上浮"会撞单 pending 不变量（并行 Read 突发多张收据 ⇒ 近乎恒拒）且 `SENSITIVE_PATH_RE` 宽词会让圈内 `tokens.css` 都上浮；P0 取最简 fail-closed；Bash 读圈外取 S2 而非 deny 是因为 Bash 读不会并行风暴且人可批 |
 
@@ -187,7 +187,7 @@ claude -p --output-format stream-json --verbose
 ### 3.7 身份核验与版本 pin（ADR-002 附则②、HANDOFF #4）
 
 - `[tier1].claude_bin`（绝对路径，缺省 = `which claude` 的 realpath；symlink 解析到实体文件）、`[tier1].claude_pinned_version`（精确串，如 `2.1.220`；`claude --version` 首 token 比对，`assertExactVersion` 复用）。
-- 登记承载 = `~/.saydo/tier1/claude-identity.json`（D12），由自检写入；启动与每次 spawn 前 `verifyBinaryIdentity`（提为共享函数）——digest 重算只在 mtime/size 变化时；不符 ⇒ `binary_identity_mismatch` 不认领 + 处方化提示；`DISABLE_AUTOUPDATER=1` 注入（D13）。
+- 登记承载 = `~/.saydo/tier1/claude-identity.json`（D12），由自检写入；启动与每次 spawn 前 `verifyBinaryIdentity`（提为共享函数）——Tier1 对 wrapper 与 runtime target 逐次全量重哈希，不使用 mtime/size 缓存；Windows npm `.cmd` 同时整份校验受支持的 cmd-shim 模板与最终 JS 路径/digest；不符 ⇒ `binary_identity_mismatch` 不认领 + 处方化提示；`DISABLE_AUTOUPDATER=1` 注入（D13）。
 - 豁免不启用：`observedModelExempted` 恒 false（D4 上浮文案）。
 
 ### 3.8 订阅面：记账 / 限流 / 登录过期 / 并发预检
@@ -219,7 +219,7 @@ claude -p --output-format stream-json --verbose
 | egress | uncontrolled（如实） | uncontrolled（WebFetch/WebSearch 禁用；Bash curl 经 cmdEffect S2/S3） | 都不是网络栈隔离（04 §5.3） |
 | hooks 完整性 | `.cursor/hooks.json` 在 worktree 内（agent 可写）+ gate.sh digest 补偿 + canary | hooks 由 `--settings` 内联（进程参数，agent 不可改）+ `--setting-sources ""`（**B-14 矩阵全阻塞红：`disableAllHooks` / `permissions.allow` 放行 Bash / `additionalDirectories:["/tmp"]` 再 Write `/tmp/x` / worktree settings 覆盖 matcher——任一仍生效 ⇒ 不能声称命令行 hooks 是唯一门，停批**，v3 A-08）+ gate-claude.sh 纳入同一 drift guard + canary；**残余**：hook 进程被 timeout 杀或脚本不可执行时在 Claude 侧 = 非阻断、落回 Claude 自身权限流（S15/S16：无害 Bash 放行、变更类问=拒、圈内写在 acceptEdits 下自动）——脚本失败路径一律 deny + `exit 2`、curl 100 < hook 120 自返 deny、启动自检物理跑 hook 链 + canary 两 tick 兜底，如实登记 | 净提升但非全封闭 |
 | 审批语义 | S2 在 hook 内同步等（curl 110 < hook 120） | 同；`ask` 在 `-p` 等同 deny；并发 S2 串行化（第二张直接 deny + 提示） | `hookTimeoutSec ≥ 120`、脚本自返 deny 先于超时（A1/F-02） |
-| 版本与身份 | `versions/<ver>/cursor-agent` 绝对路径 + 精确版本串；无 digest | 绝对路径 + 精确版本串 + sha256 digest 登记（`claude-identity.json`）+ `DISABLE_AUTOUPDATER=1` | 净提升；升级须重跑仪式 |
+| 版本与身份 | `versions/<ver>/cursor-agent` 绝对路径 + 精确版本串；无 digest | 绝对路径 + 精确版本串 + shim/最终 JS sha256 digest 登记（`claude-identity.json`）+ `DISABLE_AUTOUPDATER=1` | 净提升；升级须重跑仪式 |
 | 模型身份 | `system.init.model` 严格 | `system/init.model` ∪ `assistant.message.model` 集合严格；`apiKeySource` 必须 `none` | 净提升 |
 | 进程与取消 | 进程组 SIGTERM→SIGKILL；result 即 SIGKILL | 进程组 SIGTERM→SIGKILL；result 后等自然退出再收（`finishPolicy`，保 transcript/SessionEnd 完整，待 B-9 证实必要性） | 同级 |
 | env | `AGENT_ENV_ALLOWLIST` | 同 + 显式 `DISABLE_AUTOUPDATER=1` + `SHELL=/bin/sh`（防 profile 快照泄漏，B11/B-12） | G4 不变（两键非凭据，写进 09 §11 例外） |

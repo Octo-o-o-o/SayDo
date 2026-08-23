@@ -32,7 +32,9 @@ OctoDesk / Work Steward(独立产品线:桌面工作台,提供协议模板与结
 
 ## 2. 战略路线
 
-**执行层已拍板(2026-07-23,[设计 ADR-001](adr/design/ADR-001-execution-layer.md)):复用 Hopper 现状、锁版本、不等待、双路径**——重任务 drop 进 Hopper 今天已跑通的流水线(外部系统姿势、锁 commit、契约测试),轻任务/交互审批走 Claude SDK 薄执行器;不等 Hopper 平台化(M3b/M3c/M3d),落地一块换一块。进度可见性与操作归属(用户全程留在 SayDo,Hopper Console 是排障面)见设计 ADR-001。对接需求已成文:`../research/hopper-integration-request.md`;**裁决终稿已回(2026-07-23,Hopper 仓 `docs/plan/2026-07-23-saydo-integration-adjudication.fable.md`)**:17 项全裁决、最小阻塞集给到可照写代码的契约,已回填 09(§6/§7/§11/§14 A3/A4 关闭)与设计 ADR-001(锁定点/协调点落点)。
+**执行层已拍板(2026-07-23,[设计 ADR-001](adr/design/ADR-001-execution-layer.md)):复用 Hopper 现状、锁版本、不等待、双路径**——重任务 drop 进 Hopper 当时已跑通的流水线(外部系统姿势、锁 commit、契约测试),轻任务/交互审批走 Tier 1 薄执行器(**当时方案为 Claude Agent SDK;Cursor CLI hooks 是已验证缺省**);不等 Hopper 平台化(M3b/M3c/M3d),落地一块换一块。进度可见性与操作归属(用户全程留在 SayDo,Hopper Console 是排障面)见设计 ADR-001。对接需求已成文:`../research/hopper-integration-request.md`;**裁决终稿已回(2026-07-23,Hopper 仓 `docs/plan/2026-07-23-saydo-integration-adjudication.fable.md`)**:17 项全裁决、最小阻塞集给到可照写代码的契约,已回填 09(§6/§7/§11/§14 A3/A4 关闭)与设计 ADR-001(锁定点/协调点落点)。
+
+**现时态 supersede(2026-08-21,W5.4 方案 v3.1)**:Claude 产品路径已改为 `claude -p` + `PreToolUse` hooks,生产主流程已接线;Agent SDK 只保留 live steer/streaming input 的未来候选,不再是现行执行传输。Cursor CLI hooks 仍是当前稳定/dev 缺省。
 
 **产品载体路线仍开放**(独立产品 vs 并入 OctoDesk 作能力面 vs 薄遥控器,归 owner):
 
@@ -75,7 +77,7 @@ OctoDesk / Work Steward(独立产品线:桌面工作台,提供协议模板与结
 
 - 级联语音引擎(ASR 已定档火山 sauc,**P0 语音输入 = PTT 松手后整段识别,不承诺 `asr.partial` 实时字幕**——实时分片流式 P1,工程 ADR-101 2026-07-24;文本 LLM + 流式 TTS);音频用耳机/PTT 起步(绕开外放 AEC);显式轮次按钮
 - voiced daemon:任务卡状态机、单队列、SQLite/JSONL 落盘、启动对账、电源断言
-- ClaudeAdapter(SDK streaming,Tier 1 审批闭环)或走窄闭环 PoC 直连 Hopper(两条路径分别按各自 steer 语义验收,不共享"无条件闭环")
+- ClaudeAdapter(**本段当时规划为 SDK streaming**;已由 2026-08-21 的 `claude -p` + `PreToolUse` hooks 现行路径 supersede)或走窄闭环 PoC 直连 Hopper(两条路径分别按各自 steer 语义验收,不共享"无条件闭环")
 - **执行模式两档(Tier 1)**:逐步确认 = 现状缺省语义命名化;直达验收 = 决策包预授权清单(04 §5.4;Gate 0 不豁免);Tier 2 的逐步确认(步序循环,C2 自建)排 P1
 - 失控防护:verify 白名单、任务三熔断
 - **最小可信记忆**(与 04 §1.3 对齐,不是"只读预研":)immutable 转写/证据 + append-only 记忆事件账本与派生视图 + 只收"用户确认的决定/机械 repo 事实"的 M1 + source-bound Context Pack + delete 测试;自动 consolidation/丰富召回留 P1/P2

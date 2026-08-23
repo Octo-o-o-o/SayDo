@@ -185,7 +185,7 @@ CREATE TABLE tier1_runs(id TEXT PRIMARY KEY NOT NULL, task_id TEXT NOT NULL REFE
   native_session_confirmed INTEGER NOT NULL DEFAULT 0 CHECK(native_session_confirmed IN (0,1)),
   worktree_path TEXT NOT NULL, tree_sha TEXT, event_cursor TEXT,
   state TEXT NOT NULL, settle_proof_json TEXT, cancel_proof_json TEXT,
-  decisions_json TEXT, restart_pending_at TEXT, restart_reason TEXT,
+  decisions_json TEXT, restart_pending_at TEXT, restart_reason TEXT, finalize_pending_json TEXT,
   budget_active_ms INTEGER NOT NULL DEFAULT 0, budget_tool_calls INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
   CHECK (adapter IN ('claude_code','cursor','codex')),
@@ -797,7 +797,8 @@ export const MIGRATIONS: ReadonlyArray<Migration> = [
   { version: 27, apply: applyDdlV27ObligationProvenance },
   { version: 28, apply: applyDdlV28FocusExpectations },
   { version: 29, apply: applyDdlV29RestartPending },
-  { version: 30, apply: applyDdlV30NativeSessionConfirmed }
+  { version: 30, apply: applyDdlV30NativeSessionConfirmed },
+  { version: 31, apply: applyDdlV31FinalizePending }
 ];
 
 // v29(D1 可分发运行时):可恢复退出使用 additive marker,不扩 tier1 run 状态机。
@@ -816,6 +817,12 @@ export function applyDdlV30NativeSessionConfirmed(db: DbLike): void {
     "native_session_confirmed",
     "INTEGER NOT NULL DEFAULT 0 CHECK(native_session_confirmed IN (0,1))"
   );
+}
+
+// v31(路径一终态原子提交):失败/阻塞事务写失败后的 durable 收口意图。
+// 保持 run 仍为既有活跃态；恢复时先消费该 marker，禁止重新 spawn agent，终态事务成功或取消结算时原子清除。
+export function applyDdlV31FinalizePending(db: DbLike): void {
+  addColumnIfMissing(db, "tier1_runs", "finalize_pending_json", "TEXT");
 }
 
 // v27(Focus v0.4 ④b):focus_obligations.provenance 可选列——过期确认降格溯源

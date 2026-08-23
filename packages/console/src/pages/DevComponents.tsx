@@ -135,7 +135,7 @@ export function DevComponents() {
       <Section title="ReviewPanel" note="左标准右证据;自报空心勾降权;讲给我听三层;writing 逐条裁决;S3 独立按钮">
         <Case name="coding(机器验+自报+人工 unknown)"><ReviewPanel ctx={reviewCoding} onAction={(a) => debug("review", a)} /></Case>
         <Case name="writing(人工项逐条裁决后才放行)"><ReviewPanel ctx={reviewWriting} onAction={(a) => debug("review", a)} /></Case>
-        <Case name="S3(Touch ID 独立按钮区)"><ReviewPanel ctx={reviewS3} onAction={(a) => debug("review", a)} /></Case>
+        <Case name="S3(本机认证独立按钮区)"><ReviewPanel ctx={reviewS3} onAction={(a) => debug("review", a)} /></Case>
       </Section>
 
       <Section title="BoardLaneGroup" note="Focus 分组+子泳道+4 列;格子折叠(4 张);组折叠">

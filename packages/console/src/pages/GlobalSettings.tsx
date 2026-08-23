@@ -9,6 +9,7 @@ import {
   DISPLAY_TO_PROBE_SLOT,
   MODEL_SLOT_DESCRIPTION,
   postSetupTest,
+  postTier1SetupTest,
   saveVoiceSecrets,
   setupErrorMessage,
   slotEffectiveLabel,
@@ -18,7 +19,8 @@ import {
   type ProbeSlotState,
   type SetupProbe,
   type SetupTestSlot,
-  type SlotHealth
+  type SlotHealth,
+  type Tier1SelfTestReport
 } from "../lib/setupApi";
 import { useAsync } from "../lib/useAsync";
 import { useSetup } from "../shell/SetupContext";
@@ -114,6 +116,9 @@ export function GlobalSettings() {
   const [voiceSaved, setVoiceSaved] = useState(false);
   const [voiceTesting, setVoiceTesting] = useState(false);
   const [voiceTest, setVoiceTest] = useState<SetupTestSlot | null>(null);
+  const [tier1Testing, setTier1Testing] = useState(false);
+  const [tier1Test, setTier1Test] = useState<Tier1SelfTestReport | null>(null);
+  const [tier1Error, setTier1Error] = useState<string | null>(null);
   const { data, error } = useAsync(() => api.config(), [setup.probe]);
   const showWizard = setup.wizardOpen || setup.showWizardEntry;
 
@@ -152,6 +157,15 @@ export function GlobalSettings() {
       .finally(() => setVoiceTesting(false));
   };
 
+  const onTestTier1 = () => {
+    setTier1Error(null);
+    setTier1Testing(true);
+    void postTier1SetupTest()
+      .then(setTier1Test)
+      .catch((err: unknown) => setTier1Error(setupErrorMessage(err)))
+      .finally(() => setTier1Testing(false));
+  };
+
   if (error) return <ErrorCard message="设置加载失败" detail={error} />;
   if (!data) return null;
   const models = (data["models"] ?? {}) as Record<string, Row>;
@@ -159,6 +173,7 @@ export function GlobalSettings() {
   const dnd = (data["dnd"] ?? {}) as Row;
   const gate0 = (data["gate0"] ?? {}) as Row;
   const params = (data["params"] ?? {}) as Row;
+  const tier1 = data["tier1"] && typeof data["tier1"] === "object" ? (data["tier1"] as Row) : null;
   const probeSlots = setup.probe?.config.slots;
 
   return (
@@ -328,6 +343,13 @@ export function GlobalSettings() {
           setup.setWizardOpen(true);
         }}
       />
+      <Tier1ExecutorCard
+        config={tier1}
+        report={tier1Test}
+        testing={tier1Testing}
+        error={tier1Error}
+        onTest={onTestTier1}
+      />
       <PaperCard data-voice-settings>
         <SectionTitle>语音</SectionTitle>
         <p style={{ margin: "0 0 10px", fontSize: "var(--text-sm)", color: "var(--text-muted)" }} data-voice-copy>
@@ -451,6 +473,109 @@ export function GlobalSettings() {
         </p>
       </PaperCard>
     </div>
+  );
+}
+
+function tier1Check(report: Tier1SelfTestReport | null, name: string) {
+  return report?.checks.find((check) => check.name === name);
+}
+
+function tier1StatusText(report: Tier1SelfTestReport | null): string {
+  if (!report) return "未测试";
+  if (report.status === "ok") return "检查通过";
+  if (report.status === "unsupported") return "当前后端不支持自检";
+  return "检查未通过";
+}
+
+export function tier1ResetText(value: unknown): string {
+  if (typeof value !== "string" || value === "") return "没有已知限流记录";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "限流记录时间不可读";
+  return `预计 ${parsed.toLocaleString("zh-CN", { hour12: false })} 重置`;
+}
+
+export function Tier1ExecutorCard({
+  config,
+  report,
+  testing,
+  error,
+  onTest
+}: {
+  config: Row | null;
+  report: Tier1SelfTestReport | null;
+  testing: boolean;
+  error: string | null;
+  onTest: () => void;
+}) {
+  const adapter = typeof config?.["adapter"] === "string" ? String(config["adapter"]) : "未配置";
+  const model = typeof config?.["model"] === "string" && config["model"] !== "" ? String(config["model"]) : "按执行器默认";
+  const pinnedVersion =
+    typeof config?.["pinnedVersion"] === "string" && config["pinnedVersion"] !== ""
+      ? String(config["pinnedVersion"])
+      : "未配置";
+  const version = tier1Check(report, "version");
+  const auth = tier1Check(report, "auth");
+  const failed = report?.checks.find((check) => check.status === "fail");
+  const loginText = !report ? "未测试" : auth?.status === "ok" ? "已登录" : auth?.status === "fail" ? "未通过" : "不适用";
+  return (
+    <PaperCard data-tier1-settings>
+      <div className="flex items-center justify-between gap-[12px]">
+        <div>
+          <SectionTitle>开发执行器</SectionTitle>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+            这里检查真正执行任务的 Tier1 后端;模型槽位的 CLI 自检不代替本项。
+          </p>
+        </div>
+        <button
+          type="button"
+          data-action="test-tier1"
+          disabled={testing}
+          onClick={onTest}
+          style={{
+            height: 34,
+            padding: "0 14px",
+            borderRadius: "var(--radius-xs)",
+            border: "1px solid var(--line)",
+            background: "var(--surface-control)",
+            color: "var(--text-primary)",
+            fontSize: "var(--text-sm)",
+            cursor: testing ? "wait" : "pointer",
+            whiteSpace: "nowrap"
+          }}
+        >
+          {testing ? "正在检查…" : "检查执行器"}
+        </button>
+      </div>
+      <div className="flex flex-col gap-[6px]" style={{ marginTop: 12, fontSize: "var(--text-sm)" }}>
+        <div className="flex justify-between"><span style={{ color: "var(--text-muted)" }}>后端</span><Mono>{adapter}</Mono></div>
+        <div className="flex justify-between"><span style={{ color: "var(--text-muted)" }}>模型</span><Mono>{model}</Mono></div>
+        <div className="flex justify-between" data-tier1-version>
+          <span style={{ color: "var(--text-muted)" }}>版本</span>
+          <Mono>{version?.status === "ok" && version.detail ? version.detail : pinnedVersion}</Mono>
+        </div>
+        <div className="flex justify-between" data-tier1-login><span style={{ color: "var(--text-muted)" }}>登录态</span><span>{loginText}</span></div>
+        <div className="flex justify-between" data-tier1-self-test><span style={{ color: "var(--text-muted)" }}>自检</span><span>{tier1StatusText(report)}</span></div>
+        <div className="flex justify-between" data-tier1-window>
+          <span style={{ color: "var(--text-muted)" }}>五小时窗</span>
+          <span>{tier1ResetText(config?.["nextRateLimitResetAt"])}</span>
+        </div>
+      </div>
+      {failed?.error ? (
+        <p data-tier1-failure style={{ margin: "10px 0 0", fontSize: "var(--text-xs)", color: "var(--color-error)" }}>
+          {failed.error}
+        </p>
+      ) : null}
+      {report?.prescription ? (
+        <p data-tier1-prescription style={{ margin: "10px 0 0", fontSize: "var(--text-xs)", color: "var(--color-warning)" }}>
+          {report.prescription}
+        </p>
+      ) : null}
+      {error ? (
+        <p data-tier1-error style={{ margin: "10px 0 0", fontSize: "var(--text-xs)", color: "var(--color-error)" }}>
+          {error}
+        </p>
+      ) : null}
+    </PaperCard>
   );
 }
 

@@ -34,6 +34,9 @@ e2e/spikes/asr-1.0/audio/
 # prompts/ 与 research/codex-findings/ 的成对材料是 tracked 的,原始流冗余且体量大(36M+)。
 logs/
 
+# 可重生的 GitHub Release 二进制与摘要(Release 上传，不入公开快照树)
+/artifacts/release/github/
+
 # 工具会话临时物(计划快照等)
 .zcode/
 

@@ -16,12 +16,14 @@ const nullAudit: AuditSink = { record: () => ({ id: "aud_x" }) };
 const TASK = "tsk_01AAAAAAAAAAAAAAAAAAAAAAAA";
 
 const proof = (over?: Partial<Tier1SettleProof>): Tier1SettleProof => ({
+  kind: "tier1",
   taskId: TASK,
   runId: "run-1",
   attempt: 1,
   packageRevision: 1,
   treeSha: "abc123",
   tier1VerifyDigest: "sha256:" + "1".repeat(64),
+  acceptanceChecks: [],
   transcriptCursor: "c-100",
   settledAt: "2026-07-25T00:00:00.000Z",
   ...over
@@ -89,6 +91,28 @@ describe("dedupe 活跃唯一 + 取消冻结 + 升级", () => {
     expect(dup.enqueued).toBe(false); // 活跃唯一冲突
     const diff = engine.enqueue({ taskId: TASK, trigger: "blocked", packageRevision: 1, occurrenceKey: "evt-2", minimalProof: { questionId: "q-evt-2", transcriptCursor: "cur-x" }, projectionCursor: "c", artifactChecks: [] });
     expect(diff.enqueued).toBe(true); // 不同 occurrenceKey
+  });
+
+  it("outbox 非 dedupe 写失败必须上抛,不能伪装成幂等命中", () => {
+    db.exec(`CREATE TRIGGER callback_outbox_injected_failure
+      BEFORE INSERT ON callback_outbox BEGIN
+        SELECT RAISE(ABORT, 'injected non-dedupe write failure');
+      END`);
+    try {
+      expect(() =>
+        engine.enqueue({
+          taskId: TASK,
+          trigger: "blocked",
+          packageRevision: 1,
+          occurrenceKey: "evt-write-failure",
+          minimalProof: { questionId: "q-write-failure", transcriptCursor: "cur-x" },
+          projectionCursor: "c",
+          artifactChecks: []
+        })
+      ).toThrow("injected non-dedupe write failure");
+    } finally {
+      db.exec("DROP TRIGGER callback_outbox_injected_failure");
+    }
   });
 
   it("取消冻结:task 活跃条目 superseded", () => {

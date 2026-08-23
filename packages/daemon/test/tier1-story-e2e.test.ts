@@ -10,11 +10,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { newId } from "@saydo/contracts";
+import { computePackageDigest, newId, type DecisionPackage } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
 import { createSqliteAuditSink } from "../src/storage/dao/misc.js";
 import { insertProject } from "../src/storage/dao/projects.js";
 import { insertTask } from "../src/storage/dao/tasks.js";
+import { insertPackage } from "../src/storage/dao/packages.js";
 import { CallbackEngine } from "../src/callback/engine.js";
 import { requestManualMerge, reviewTask, verifyAndCompleteMerge } from "../src/tier1/operations.js";
 import { reconnectFirstLine } from "../src/callback/arbitration.js";
@@ -104,12 +105,36 @@ function makeExecutor(spawner: AgentSpawner): Tier1Executor {
 
 function seedQueued(taskId: string): void {
   const t0 = new Date().toISOString();
+  const packageId = newId("pkg");
+  const packageUnsigned = {
+    id: packageId,
+    revision: 1,
+    projectId: PRJ,
+    outcomePreview: "报表页导出 CSV 可用",
+    inScope: ["导出"],
+    outOfScope: [],
+    assumptions: [],
+    acceptance: ["导出按钮可用", "项目登记的测试命令通过"],
+    plan: [{ seq: 1, step: "实现导出按钮", owner: "ai" as const }],
+    cost: { expected: { known: false as const }, p95: { known: false as const }, max: 20, currency: "CNY" as const },
+    risks: [],
+    mode: "step_confirm" as const,
+    preauthorizedEffects: [],
+    effectPolicyVersion: "story-e2e-v1"
+  };
+  const packageDigest = computePackageDigest(packageUnsigned);
+  insertPackage(db, {
+    ...packageUnsigned,
+    digest: packageDigest,
+    status: "approved",
+    createdAt: t0
+  } satisfies DecisionPackage);
   insertTask(
     db,
     {
       id: taskId,
       projectId: PRJ,
-      packageRef: { packageId: newId("pkg"), revision: 1, digest: `sha256:${"c".repeat(64)}` },
+      packageRef: { packageId, revision: 1, digest: packageDigest },
       title: "报表页导出 CSV",
       specMarkdown: "# 报表页导出 CSV\n实现导出按钮。",
       route: "tier1",

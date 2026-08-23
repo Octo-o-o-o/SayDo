@@ -84,7 +84,9 @@ export async function holdAttached(
   home: string
 ): Promise<void> {
   const signals = new SignalQueue(home);
-  process.stdout.write(`${JSON.stringify({ mode: "attached", pid: probe.pid, identity: probe.identity })}\n`);
+  process.stdout.write(
+    `${JSON.stringify({ mode: "attached", pid: probe.pid, supervisorPid: process.pid, identity: probe.identity })}\n`
+  );
   await signals.next();
 }
 
@@ -302,7 +304,9 @@ export async function runOwned(options: OwnedRunOptions): Promise<void> {
     if (first.kind === "exit") {
       const race = await probeStartupRace(home, port);
       if (race.kind === "attached") {
-        process.stdout.write(`${JSON.stringify({ mode: "attached", pid: race.pid, identity: race.identity })}\n`);
+        process.stdout.write(
+          `${JSON.stringify({ mode: "attached", pid: race.pid, supervisorPid: process.pid, identity: race.identity })}\n`
+        );
         await pendingSignal;
         return;
       }
@@ -313,7 +317,9 @@ export async function runOwned(options: OwnedRunOptions): Promise<void> {
     if (frame.t === "fatal" && frame.code === "port_conflict") {
       const race = await probeStartupRace(home, port);
       if (race.kind === "attached") {
-        process.stdout.write(`${JSON.stringify({ mode: "attached", pid: race.pid, identity: race.identity })}\n`);
+        process.stdout.write(
+          `${JSON.stringify({ mode: "attached", pid: race.pid, supervisorPid: process.pid, identity: race.identity })}\n`
+        );
         await pendingSignal;
         return;
       }
@@ -330,6 +336,7 @@ export async function runOwned(options: OwnedRunOptions): Promise<void> {
       mode: "owned",
       runtimeMode: frame.readiness.coreReady ? "normal" : "recovery_only",
       pid: child.pid,
+      supervisorPid: process.pid,
       ...frame
     })}\n`);
     if (openBrowser) {

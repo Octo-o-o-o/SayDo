@@ -4,22 +4,29 @@
 
 import type { AdapterKind } from "./adapter.js";
 import {
+  acceptanceExactSetViolations,
   canTransitionTask,
   jcsDigest,
   newId,
   textDigest,
   tier1SettleProofSchema,
+  verifyPackageDigest,
   writingSettleProofSchema,
   writingSettleStructuralViolations,
   isWritingSettleProof,
   type AcceptanceCheck,
   type MergeProof,
-  type Tier1CancelProof
+  type Tier1CancelProof,
+  type WritingSettleProof
 } from "@saydo/contracts";
 import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
 import { resolveActiveEntriesForTask } from "../storage/dao/outbox.js";
+import { getPackage } from "../storage/dao/packages.js";
+import { getArtifact } from "../storage/dao/artifacts.js";
 import { hopperSteerSupport } from "../bridge/capabilities.js";
+import { normalizeWritingArticlePath } from "./projectConfig.js";
+import { readRegularWritingFile, readWritingTreeBlob } from "./writingArtifact.js";
 
 /** retry message / 返工 comments 原文的 durable 落点(DDL v3;audit 只记 digest 是 E3 纪律,功能存储在此) */
 function persistTaskMessage(
@@ -110,31 +117,40 @@ export function steerTask(
     // 二进制升级已发生,桥消费面随升级批接线(出站 op 形状属 canonical §6.2,不在此杜撰)
     throw new Error(support.phrase);
   }
-  const adapter = (task.adapter ?? "cursor") as AdapterKind;
-  const activeRun = db
-    .prepare("SELECT id FROM tier1_runs WHERE task_id=? AND state IN ('running','step_paused') LIMIT 1")
-    .get(i.taskId) as { id: string } | undefined;
-  let applied: SteerApplied;
-  if (task.status === "running" && activeRun) {
-    // cancel_resume:run 级取消(任务保持 running;执行器 reap 辨识"run cancel_requested ∧
-    // task 非 cancel_requested"= steer_resume,杀进程 + run 级结算,worktree 留)
-    applied = "cancel_resume";
-    db.prepare("UPDATE tier1_runs SET state='cancel_requested', updated_at=? WHERE id=? AND state IN ('running','step_paused')").run(
-      nowIso,
-      activeRun.id
-    );
-  } else {
-    applied = steerApplied(adapter);
-  }
-  const run = db.prepare("SELECT MAX(attempt) AS a FROM tier1_runs WHERE task_id=?").get(i.taskId) as { a: number | null };
-  const nextAttemptNo = (run.a ?? 0) + 1;
-  persistTaskMessage(db, { taskId: i.taskId, attempt: nextAttemptNo, kind: "steer", body: i.instruction }, nowIso);
-  audit.record({
-    actor: "owner",
-    action: "task.steer",
-    meta: { taskId: i.taskId, applied, forAttempt: nextAttemptNo, instructionDigest: textDigest(i.instruction) }
+  const tx = db.transaction((): { applied: SteerApplied } => {
+    const current = db.prepare("SELECT status, adapter, route FROM tasks WHERE id=?").get(i.taskId) as
+      | { status: string; adapter: string | null; route: string }
+      | undefined;
+    if (!current || current.route === "hopper" || !STEERABLE.includes(current.status)) {
+      throw new Error(`steerTask target changed concurrently: ${current?.status ?? "missing"}`);
+    }
+    const adapter = (current.adapter ?? "cursor") as AdapterKind;
+    const activeRun = db
+      .prepare("SELECT id FROM tier1_runs WHERE task_id=? AND state IN ('running','step_paused') LIMIT 1")
+      .get(i.taskId) as { id: string } | undefined;
+    let applied: SteerApplied;
+    if (current.status === "running" && activeRun) {
+      // cancel_resume:run 级取消(任务保持 running;执行器 reap 辨识"run cancel_requested ∧
+      // task 非 cancel_requested"= steer_resume,杀进程 + run 级结算,worktree 留)
+      applied = "cancel_resume";
+      const changed = db
+        .prepare("UPDATE tier1_runs SET state='cancel_requested', updated_at=? WHERE id=? AND state IN ('running','step_paused')")
+        .run(nowIso, activeRun.id);
+      if (changed.changes !== 1) throw new Error(`steer run race: ${activeRun.id}`);
+    } else {
+      applied = steerApplied(adapter);
+    }
+    const run = db.prepare("SELECT MAX(attempt) AS a FROM tier1_runs WHERE task_id=?").get(i.taskId) as { a: number | null };
+    const nextAttemptNo = (run.a ?? 0) + 1;
+    persistTaskMessage(db, { taskId: i.taskId, attempt: nextAttemptNo, kind: "steer", body: i.instruction }, nowIso);
+    audit.record({
+      actor: "owner",
+      action: "task.steer",
+      meta: { taskId: i.taskId, applied, forAttempt: nextAttemptNo, instructionDigest: textDigest(i.instruction) }
+    });
+    return { applied };
   });
-  return { applied };
+  return tx();
 }
 
 // ---------- cancelTask(取消全链)----------
@@ -149,22 +165,25 @@ export interface CancelResult {
 
 /** 请求取消:task -> cancel_requested(U);tier1_run -> cancel_requested */
 export function requestCancel(db: Db, audit: AuditSink, taskId: string, nowIso: string): CancelResult {
-  const row = db.prepare("SELECT status FROM tasks WHERE id=?").get(taskId) as { status: string } | undefined;
-  if (!row) throw new Error(`task not found: ${taskId}`);
-  if (!canTransitionTask(row.status as never, "cancel_requested", "U")) {
-    throw new Error(`cannot cancel task in status ${row.status}`);
-  }
-  // CAS(评审 B7):status 变了就不写(changes=0 => 竞态,拒);离开停靠态清 parked 字段
-  const upd = db
-    .prepare(
-      "UPDATE tasks SET status='cancel_requested', cancel_reason='user_cancel', updated_at=?, parked_at=NULL, parked_deadline=NULL WHERE id=? AND status=?"
-    )
-    .run(nowIso, taskId, row.status);
-  if (upd.changes === 0) throw new Error(`cancel race: task status changed concurrently (${taskId})`);
-  db.prepare("UPDATE tier1_runs SET state='cancel_requested', updated_at=? WHERE task_id=? AND state IN ('reserved','running','step_paused')").run(nowIso, taskId);
-  freezeOutbox(db, audit, taskId, nowIso); // A3:取消冻结全部活跃条目(09 §6.3)
-  audit.record({ actor: "daemon", action: "task.cancel_requested", meta: { taskId } });
-  return { state: "cancel_requested" };
+  const tx = db.transaction((): CancelResult => {
+    const row = db.prepare("SELECT status FROM tasks WHERE id=?").get(taskId) as { status: string } | undefined;
+    if (!row) throw new Error(`task not found: ${taskId}`);
+    if (!canTransitionTask(row.status as never, "cancel_requested", "U")) {
+      throw new Error(`cannot cancel task in status ${row.status}`);
+    }
+    // CAS(评审 B7):status 变了就不写(changes=0 => 竞态,拒);离开停靠态清 parked 字段
+    const upd = db
+      .prepare(
+        "UPDATE tasks SET status='cancel_requested', cancel_reason='user_cancel', updated_at=?, parked_at=NULL, parked_deadline=NULL WHERE id=? AND status=?"
+      )
+      .run(nowIso, taskId, row.status);
+    if (upd.changes === 0) throw new Error(`cancel race: task status changed concurrently (${taskId})`);
+    db.prepare("UPDATE tier1_runs SET state='cancel_requested', updated_at=? WHERE task_id=? AND state IN ('reserved','running','step_paused')").run(nowIso, taskId);
+    freezeOutbox(db, audit, taskId, nowIso); // A3:取消冻结全部活跃条目(09 §6.3)
+    audit.record({ actor: "daemon", action: "task.cancel_requested", meta: { taskId } });
+    return { state: "cancel_requested" };
+  });
+  return tx();
 }
 
 /**
@@ -173,21 +192,58 @@ export function requestCancel(db: Db, audit: AuditSink, taskId: string, nowIso: 
  */
 export function settleCancel(db: Db, audit: AuditSink, proof: Tier1CancelProof, nowIso: string): CancelResult {
   if (!isCancelProofComplete(proof)) throw new Error("cancel proof incomplete (需进程退出+worktree 锁释放+lastEventId)");
-  const row = db.prepare("SELECT status FROM tasks WHERE id=?").get(proof.taskId) as { status: string } | undefined;
-  if (!row) throw new Error(`task not found: ${proof.taskId}`);
-  if (row.status !== "cancel_requested") throw new Error(`settle requires cancel_requested, got ${row.status}`);
-  // CAS + 幂等(评审 B7):重复 settle 不重复写/不重复审计
-  const upd = db
-    .prepare("UPDATE tasks SET status='cancel_settled', updated_at=? WHERE id=? AND status='cancel_requested'")
-    .run(nowIso, proof.taskId);
-  if (upd.changes === 0) return { state: "cancel_settled" }; // 已结算(幂等)
-  db.prepare("UPDATE tier1_runs SET state='cancel_settled', cancel_proof_json=?, updated_at=? WHERE task_id=? AND state='cancel_requested'").run(
-    JSON.stringify(proof),
-    nowIso,
-    proof.taskId
-  );
-  audit.record({ actor: "daemon", action: "task.cancel_settled", meta: { taskId: proof.taskId, lastEventId: proof.lastEventId } });
-  return { state: "cancel_settled" };
+  const tx = db.transaction((): CancelResult => {
+    const row = db.prepare("SELECT status FROM tasks WHERE id=?").get(proof.taskId) as { status: string } | undefined;
+    if (!row) throw new Error(`task not found: ${proof.taskId}`);
+    const taskAlreadySettled = row.status === "cancel_settled";
+    if (!taskAlreadySettled && row.status !== "cancel_requested") {
+      throw new Error(`settle requires cancel_requested, got ${row.status}`);
+    }
+    const run = db
+      .prepare("SELECT state FROM tier1_runs WHERE id=? AND task_id=?")
+      .get(proof.runId, proof.taskId) as { state: string } | undefined;
+    if (!run) throw new Error(`cancel run not found: ${proof.runId}`);
+    if (run.state === "reserved" || run.state === "running" || run.state === "step_paused") {
+      const requested = db
+        .prepare("UPDATE tier1_runs SET state='cancel_requested', updated_at=? WHERE id=? AND state=?")
+        .run(nowIso, proof.runId, run.state);
+      if (requested.changes !== 1) throw new Error(`cancel run request race: ${proof.runId}`);
+    } else if (run.state !== "cancel_requested" && run.state !== "cancel_settled") {
+      throw new Error(`cancel settle requires active run, got ${run.state}`);
+    }
+    if (run.state !== "cancel_settled") {
+      const settled = db
+        .prepare(
+          `UPDATE tier1_runs
+           SET state='cancel_settled', cancel_proof_json=?, finalize_pending_json=NULL,
+               restart_pending_at=NULL, restart_reason=NULL, updated_at=?
+           WHERE id=? AND task_id=? AND state='cancel_requested'`
+        )
+        .run(JSON.stringify(proof), nowIso, proof.runId, proof.taskId);
+      if (settled.changes !== 1) throw new Error(`cancel run settle race: ${proof.runId}`);
+    } else {
+      db.prepare(
+        `UPDATE tier1_runs
+         SET finalize_pending_json=NULL, restart_pending_at=NULL, restart_reason=NULL, updated_at=?
+         WHERE id=?`
+      ).run(nowIso, proof.runId);
+    }
+    if (!taskAlreadySettled) {
+      const upd = db
+        .prepare("UPDATE tasks SET status='cancel_settled', updated_at=? WHERE id=? AND status='cancel_requested'")
+        .run(nowIso, proof.taskId);
+      if (upd.changes !== 1) throw new Error(`cancel task settle race: ${proof.taskId}`);
+      audit.record({ actor: "daemon", action: "task.cancel_settled", meta: { taskId: proof.taskId, lastEventId: proof.lastEventId } });
+    } else if (run.state !== "cancel_settled") {
+      audit.record({
+        actor: "daemon",
+        action: "tier1.cancel_recovered",
+        meta: { taskId: proof.taskId, runId: proof.runId, fromState: run.state, lastEventId: proof.lastEventId }
+      });
+    }
+    return { state: "cancel_settled" };
+  });
+  return tx();
 }
 
 /**
@@ -195,37 +251,43 @@ export function settleCancel(db: Db, audit: AuditSink, proof: Tier1CancelProof, 
  * 该时点无活跃 run ⇒ 即时 settled,不需 Tier1CancelProof)。有活跃 run 行 ⇒ 拒(走 proof 链)。
  */
 export function settleCancelNoActiveRun(db: Db, audit: AuditSink, taskId: string, nowIso: string): CancelResult {
-  const row = db.prepare("SELECT status FROM tasks WHERE id=?").get(taskId) as { status: string } | undefined;
-  if (!row) throw new Error(`task not found: ${taskId}`);
-  if (row.status !== "cancel_requested") throw new Error(`settle requires cancel_requested, got ${row.status}`);
-  const active = (
-    db
-      .prepare(
-        "SELECT COUNT(*) AS c FROM tier1_runs WHERE task_id=? AND state IN ('reserved','running','step_paused','cancel_requested')"
-      )
-      .get(taskId) as { c: number }
-  ).c;
-  if (active > 0) throw new Error(`task ${taskId} has ${active} active run(s); settle requires Tier1CancelProof`);
-  const upd = db
-    .prepare("UPDATE tasks SET status='cancel_settled', updated_at=? WHERE id=? AND status='cancel_requested'")
-    .run(nowIso, taskId);
-  if (upd.changes === 0) return { state: "cancel_settled" }; // 已结算(幂等)
-  audit.record({ actor: "daemon", action: "task.cancel_settled", meta: { taskId, noActiveRun: true } });
-  return { state: "cancel_settled" };
+  const tx = db.transaction((): CancelResult => {
+    const row = db.prepare("SELECT status FROM tasks WHERE id=?").get(taskId) as { status: string } | undefined;
+    if (!row) throw new Error(`task not found: ${taskId}`);
+    if (row.status !== "cancel_requested") throw new Error(`settle requires cancel_requested, got ${row.status}`);
+    const active = (
+      db
+        .prepare(
+          "SELECT COUNT(*) AS c FROM tier1_runs WHERE task_id=? AND state IN ('reserved','running','step_paused','cancel_requested')"
+        )
+        .get(taskId) as { c: number }
+    ).c;
+    if (active > 0) throw new Error(`task ${taskId} has ${active} active run(s); settle requires Tier1CancelProof`);
+    const upd = db
+      .prepare("UPDATE tasks SET status='cancel_settled', updated_at=? WHERE id=? AND status='cancel_requested'")
+      .run(nowIso, taskId);
+    if (upd.changes === 0) return { state: "cancel_settled" }; // 已结算(幂等)
+    audit.record({ actor: "daemon", action: "task.cancel_settled", meta: { taskId, noActiveRun: true } });
+    return { state: "cancel_settled" };
+  });
+  return tx();
 }
 
 /** cancelTask 全链(09 §13 工具面与 console 写口共用):请求取消 + 无活跃 run 即时结算(09 §6.1 括注) */
 export function cancelWithAutoSettle(db: Db, audit: AuditSink, taskId: string, nowIso: string): CancelResult {
-  const r = requestCancel(db, audit, taskId, nowIso);
-  const active = (
-    db
-      .prepare(
-        "SELECT COUNT(*) AS c FROM tier1_runs WHERE task_id=? AND state IN ('reserved','running','step_paused','cancel_requested')"
-      )
-      .get(taskId) as { c: number }
-  ).c;
-  if (active === 0) return settleCancelNoActiveRun(db, audit, taskId, nowIso);
-  return r;
+  const tx = db.transaction((): CancelResult => {
+    const r = requestCancel(db, audit, taskId, nowIso);
+    const active = (
+      db
+        .prepare(
+          "SELECT COUNT(*) AS c FROM tier1_runs WHERE task_id=? AND state IN ('reserved','running','step_paused','cancel_requested')"
+        )
+        .get(taskId) as { c: number }
+    ).c;
+    if (active === 0) return settleCancelNoActiveRun(db, audit, taskId, nowIso);
+    return r;
+  });
+  return tx();
 }
 
 /**
@@ -335,8 +397,44 @@ export function reviewTask(
     if (proof.taskId !== input.taskId || proof.attempt !== currentAttempt || proof.runId !== run.id || proof.treeSha !== run.tree_sha) {
       throw new Error("settle proof 与 run 行交叉核对不符(taskId/attempt/runId/treeSha 任一失配,拒批)");
     }
+    const body = packageBodyForReview(db, input.taskId);
+    if (!body) throw new Error("读不到完整决策包正文,无法对账 coding 验收(fail-closed)");
+    if (proof.packageRevision !== body.revision) {
+      throw new Error(`settle proof packageRevision=${proof.packageRevision} 与当前决策包 revision=${body.revision} 不符,拒批`);
+    }
+    const acceptanceViolations = acceptanceExactSetViolations(proof.acceptanceChecks, body.acceptance);
+    if (acceptanceViolations.length > 0) {
+      throw new Error(`coding approve 验收 exact-set 对账没过:${acceptanceViolations.slice(0, 2).join(";")}`);
+    }
     const evidenceDigest = proof.tier1VerifyDigest;
     const tx = db.transaction(() => {
+      const currentRun = db
+        .prepare(
+          `SELECT id, state, tree_sha, settle_proof_json
+           FROM tier1_runs WHERE task_id=? AND attempt=? ORDER BY created_at DESC LIMIT 1`
+        )
+        .get(input.taskId, currentAttempt) as
+        | { id: string; state: string; tree_sha: string | null; settle_proof_json: string | null }
+        | undefined;
+      if (!currentRun || currentRun.state !== "settled_review" || !currentRun.tree_sha || !currentRun.settle_proof_json) {
+        throw new Error("coding approve race:当前 run/proof 不再可批准");
+      }
+      const currentProof = tier1SettleProofSchema.parse(JSON.parse(currentRun.settle_proof_json) as unknown);
+      const currentBody = packageBodyForReview(db, input.taskId);
+      if (
+        !currentBody ||
+        currentRun.id !== run.id ||
+        currentRun.tree_sha !== run.tree_sha ||
+        currentProof.taskId !== input.taskId ||
+        currentProof.runId !== currentRun.id ||
+        currentProof.attempt !== currentAttempt ||
+        currentProof.treeSha !== currentRun.tree_sha ||
+        currentProof.packageRevision !== currentBody.revision ||
+        currentProof.tier1VerifyDigest !== evidenceDigest ||
+        acceptanceExactSetViolations(currentProof.acceptanceChecks, currentBody.acceptance).length > 0
+      ) {
+        throw new Error("coding approve race:task/run/package/proof 在批准前发生变化");
+      }
       const upd = db
         .prepare(
           "UPDATE tasks SET status='review_approved_waiting_merge', approved_tree_sha=?, updated_at=?, parked_at=NULL, parked_deadline=NULL WHERE id=? AND status='ready_for_review'"
@@ -381,19 +479,22 @@ export function reviewTask(
   }
   // reject → 取消链(作废这轮;worktree 留存可捡回,#34)
   guard("cancel_requested");
-  const upd = db
-    .prepare(
-      "UPDATE tasks SET status='cancel_requested', cancel_reason='user_cancel', updated_at=?, parked_at=NULL, parked_deadline=NULL WHERE id=? AND status='ready_for_review'"
-    )
-    .run(nowIso, input.taskId);
-  if (upd.changes === 0) throw new Error("reject race: task left ready_for_review concurrently");
-  db.prepare("UPDATE tier1_runs SET state='cancel_requested', updated_at=? WHERE task_id=? AND state IN ('reserved','running','step_paused')").run(nowIso, input.taskId);
-  freezeOutbox(db, audit, input.taskId, nowIso); // A3:取消冻结全部活跃条目
-  audit.record({
-    actor: "owner",
-    action: "task.reject",
-    meta: { taskId: input.taskId, ...(input.comments !== undefined ? { commentsDigest: textDigest(input.comments) } : {}) }
+  const rejectTx = db.transaction(() => {
+    const upd = db
+      .prepare(
+        "UPDATE tasks SET status='cancel_requested', cancel_reason='user_cancel', updated_at=?, parked_at=NULL, parked_deadline=NULL WHERE id=? AND status='ready_for_review'"
+      )
+      .run(nowIso, input.taskId);
+    if (upd.changes === 0) throw new Error("reject race: task left ready_for_review concurrently");
+    db.prepare("UPDATE tier1_runs SET state='cancel_requested', updated_at=? WHERE task_id=? AND state IN ('reserved','running','step_paused')").run(nowIso, input.taskId);
+    freezeOutbox(db, audit, input.taskId, nowIso); // A3:取消冻结全部活跃条目
+    audit.record({
+      actor: "owner",
+      action: "task.reject",
+      meta: { taskId: input.taskId, ...(input.comments !== undefined ? { commentsDigest: textDigest(input.comments) } : {}) }
+    });
   });
+  rejectTx();
   return { state: "cancel_requested" };
 }
 
@@ -416,39 +517,95 @@ function approveWritingTask(
     nowIso: string;
   }
 ): ReviewResult {
-  const proof = writingSettleProofSchema.parse(i.rawProof);
-  if (proof.taskId !== i.taskId || proof.attempt !== i.currentAttempt || proof.runId !== i.run.id || proof.treeSha !== i.run.tree_sha) {
+  const initialProof = writingSettleProofSchema.parse(i.rawProof);
+  if (
+    initialProof.taskId !== i.taskId ||
+    initialProof.attempt !== i.currentAttempt ||
+    initialProof.runId !== i.run.id ||
+    initialProof.treeSha !== i.run.tree_sha
+  ) {
     throw new Error("writing settle proof 与 run 行交叉核对不符(taskId/attempt/runId/treeSha 任一失配,拒批)");
   }
-  // 决策包正文(plan/acceptance;barrier ①②③ 对账源)
-  const body = packageBodyForReview(db, i.taskId);
-  if (!body) throw new Error("读不到决策包正文,无法对账 writing 验收(fail-closed)");
-  // ④ 人评终局:manual 项须由本次 approve 逐条裁决(UI 未逐条 ⇒ 拒);verdicts exact-set 覆盖全部 manual 项
-  const manualCriteria = proof.acceptanceChecks.filter((c) => c.source === "manual").map((c) => c.criterion);
-  const verdicts = new Map((i.acceptanceVerdicts ?? []).map((v) => [v.criterion, v.status]));
-  for (const c of manualCriteria) {
-    if (!verdicts.has(c)) {
-      throw new Error(`验收项未逐条裁决:「${c}」——writing 任务须逐条 pass/fail(settled ≠ 全绿,11 §5.5)`);
-    }
-  }
-  // 逐条落定:manual 项按裁决置 pass/fail;非 manual 项保持
-  const decided: AcceptanceCheck[] = proof.acceptanceChecks.map((c) =>
-    c.source === "manual" ? { ...c, status: verdicts.get(c.criterion) ?? "unknown" } : c
-  );
-  // 断言 ①②③ 仍成立(approve 门 requireAllDrafted;manual 此刻已裁决,不再要求 unknown)
-  const violations = writingSettleStructuralViolations(
-    { sectionCoverage: proof.sectionCoverage, acceptanceChecks: decided },
-    { plan: body.plan, acceptance: body.acceptance },
-    { requireAllDrafted: true, manualMustBeUnknown: false }
-  );
-  if (violations.length > 0) throw new Error(`writing approve 对账没过:${violations.slice(0, 2).join(";")}`);
-  // critical 验收项 fail ⇒ 不批准(人评判否)——至少一条 fail 即整体不通过,回 request_changes 语义由 UI 引导
-  const failed = decided.filter((c) => c.status === "fail").map((c) => c.criterion);
+  const verdictRows = i.acceptanceVerdicts ?? [];
+  const verdicts = new Map(verdictRows.map((v) => [v.criterion, v.status]));
+  if (verdicts.size !== verdictRows.length) throw new Error("writing 验收裁决含重复 criterion,拒绝歧义输入");
+  const failed = verdictRows.filter((c) => c.status === "fail").map((c) => c.criterion);
   if (failed.length > 0) {
     throw new Error(`有验收项未通过:${failed.slice(0, 2).join(";")}——请提修改或作废这轮,不能带病批准`);
   }
-  const evidenceDigest = jcsDigest(proof); // H(JCS(WritingSettleProof))
+  const evidenceDigest = jcsDigest(initialProof); // H(JCS(WritingSettleProof))
   const tx = db.transaction(() => {
+    // ①②③ 与批准 CAS 同事务重读；不信事务外的 task/run/package/artifact 快照。
+    const currentTask = db.prepare("SELECT status, project_id FROM tasks WHERE id=?").get(i.taskId) as
+      | { status: string; project_id: string }
+      | undefined;
+    if (!currentTask || currentTask.status !== "ready_for_review" || currentTask.project_id !== i.projectId) {
+      throw new Error("writing approve race:task 身份或状态已变化");
+    }
+    const currentRun = db
+      .prepare(
+        `SELECT id, state, tree_sha, cwd, settle_proof_json
+         FROM tier1_runs WHERE task_id=? AND attempt=? ORDER BY created_at DESC LIMIT 1`
+      )
+      .get(i.taskId, i.currentAttempt) as
+      | { id: string; state: string; tree_sha: string | null; cwd: string; settle_proof_json: string | null }
+      | undefined;
+    if (!currentRun || currentRun.state !== "settled_review" || !currentRun.tree_sha || !currentRun.settle_proof_json) {
+      throw new Error("writing approve race:当前 run/proof 不再可批准");
+    }
+    const proof = writingSettleProofSchema.parse(JSON.parse(currentRun.settle_proof_json) as unknown);
+    if (
+      proof.taskId !== i.taskId ||
+      proof.attempt !== i.currentAttempt ||
+      proof.runId !== currentRun.id ||
+      proof.treeSha !== currentRun.tree_sha ||
+      jcsDigest(proof) !== evidenceDigest
+    ) {
+      throw new Error("writing approve race:proof/run 在批准前发生变化");
+    }
+    const body = packageBodyForReview(db, i.taskId);
+    if (!body) throw new Error("读不到决策包正文,无法对账 writing 验收(fail-closed)");
+    if (proof.packageRevision !== body.revision) {
+      throw new Error(`writing settle proof packageRevision=${proof.packageRevision} 与当前决策包 revision=${body.revision} 不符,拒批`);
+    }
+    validateWritingApprovalArtifact(db, currentTask.project_id, currentRun.cwd, proof);
+
+    // ④ 人评终局:manual 项须由本次 approve 逐条裁决；verdicts exact-set 覆盖全部 manual 项。
+    const manualCriteria = proof.acceptanceChecks.filter((c) => c.source === "manual").map((c) => c.criterion);
+    const manualSet = new Set(manualCriteria);
+    for (const criterion of verdicts.keys()) {
+      if (!manualSet.has(criterion)) throw new Error(`writing 验收裁决含幽灵 criterion:「${criterion}」`);
+    }
+    for (const criterion of manualCriteria) {
+      if (!verdicts.has(criterion)) {
+        throw new Error(`验收项未逐条裁决:「${criterion}」——writing 任务须逐条 pass/fail(settled ≠ 全绿,11 §5.5)`);
+      }
+    }
+    // owner 的本次不可变审计行就是 manual pass 的证据；先取得 id，再以 audit:<id> 回绑每条裁决。
+    // SQLite 主 sink 与下方状态 CAS 在同一事务，任一后续断言失败时审计行也回滚，不留下“已批准”假证据。
+    const reviewAudit = audit.record({
+      actor: "owner",
+      action: "task.review_approve",
+      meta: {
+        taskId: i.taskId,
+        kind: "writing",
+        evidenceDigest,
+        prospectiveTreeSha: proof.treeSha,
+        attempt: i.currentAttempt,
+        acceptancePassed: manualCriteria.length
+      }
+    });
+    const decided: AcceptanceCheck[] = proof.acceptanceChecks.map((c) =>
+      c.source === "manual"
+        ? { ...c, status: verdicts.get(c.criterion) ?? "unknown", evidenceRef: `audit:${reviewAudit.id}` }
+        : c
+    );
+    const violations = writingSettleStructuralViolations(
+      { sectionCoverage: proof.sectionCoverage, acceptanceChecks: decided },
+      { plan: body.plan, acceptance: body.acceptance },
+      { requireAllDrafted: true, manualMustBeUnknown: false }
+    );
+    if (violations.length > 0) throw new Error(`writing approve 对账没过:${violations.slice(0, 2).join(";")}`);
     const upd = db
       .prepare(
         "UPDATE tasks SET status='review_approved_waiting_merge', approved_tree_sha=?, updated_at=?, parked_at=NULL, parked_deadline=NULL WHERE id=? AND status='ready_for_review'"
@@ -456,26 +613,60 @@ function approveWritingTask(
       .run(proof.treeSha, i.nowIso, i.taskId);
     if (upd.changes === 0) throw new Error("approve race: task left ready_for_review concurrently");
     freezeOutbox(db, audit, i.taskId, i.nowIso, "ready_for_review");
-    audit.record({
-      actor: "owner",
-      action: "task.review_approve",
-      meta: { taskId: i.taskId, kind: "writing", evidenceDigest, prospectiveTreeSha: proof.treeSha, attempt: i.currentAttempt, acceptancePassed: manualCriteria.length }
-    });
   });
   tx();
   return { state: "review_approved_waiting_merge" };
 }
 
-function packageBodyForReview(db: Db, taskId: string): { plan: { seq: number; owner: "ai" | "human" }[]; acceptance: string[] } | null {
+function validateWritingApprovalArtifact(db: Db, projectId: string, cwd: string, proof: WritingSettleProof): void {
+  const rawArticlePath = proof.articlePath ?? "article.md";
+  const articlePath = normalizeWritingArticlePath(rawArticlePath);
+  if (articlePath !== rawArticlePath) throw new Error("writing proof articlePath 不是 canonical git 路径");
+  const artifact = getArtifact(db, proof.articleArtifactId, proof.articleVersion);
+  if (
+    !artifact ||
+    artifact.projectId !== projectId ||
+    artifact.type !== "article" ||
+    artifact.digest !== proof.articleDigest
+  ) {
+    throw new Error("writing approve 要求的 article artifact 行缺失或身份不符");
+  }
+  let artifactContent: ReturnType<typeof readRegularWritingFile>;
+  try {
+    artifactContent = readRegularWritingFile(artifact.path, "article artifact");
+  } catch {
+    throw new Error("writing approve article artifact 文件缺失、为空或 digest 漂移");
+  }
+  if (artifactContent.text.trim() === "" || artifactContent.digest !== proof.articleDigest) {
+    throw new Error("writing approve article artifact 文件缺失、为空或 digest 漂移");
+  }
+  let treeContent: ReturnType<typeof readWritingTreeBlob>;
+  try {
+    treeContent = readWritingTreeBlob(cwd, proof.treeSha, articlePath);
+  } catch {
+    throw new Error("writing approve 的成稿不在批准树内或不是常规 UTF-8 blob");
+  }
+  if (
+    treeContent.text.trim() === "" ||
+    treeContent.digest !== proof.articleDigest ||
+    !treeContent.bytes.equals(artifactContent.bytes)
+  ) {
+    throw new Error("writing approve 的 tree/article artifact 与 settle proof 不一致");
+  }
+}
+
+function packageBodyForReview(
+  db: Db,
+  taskId: string
+): { revision: number; plan: { seq: number; owner: "ai" | "human" }[]; acceptance: string[] } | null {
   const row = db
-    .prepare(
-      "SELECT dp.body_json FROM tasks t JOIN decision_packages dp ON dp.id=t.package_id AND dp.revision=t.package_rev WHERE t.id=?"
-    )
-    .get(taskId) as { body_json: string } | undefined;
+    .prepare("SELECT project_id, package_id, package_rev, package_digest FROM tasks WHERE id=?")
+    .get(taskId) as { project_id: string; package_id: string; package_rev: number; package_digest: string } | undefined;
   if (!row) return null;
   try {
-    const body = JSON.parse(row.body_json) as { plan?: { seq: number; owner: "ai" | "human" }[]; acceptance?: string[] };
-    return { plan: body.plan ?? [], acceptance: body.acceptance ?? [] };
+    const pkg = getPackage(db, row.package_id, row.package_rev);
+    if (!pkg || pkg.projectId !== row.project_id || pkg.digest !== row.package_digest || verifyPackageDigest(pkg) !== null) return null;
+    return { revision: pkg.revision, plan: pkg.plan, acceptance: pkg.acceptance };
   } catch {
     return null;
   }

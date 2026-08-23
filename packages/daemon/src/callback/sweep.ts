@@ -4,7 +4,7 @@
 // DND:只推低优先级 ntfy 一次并 snooze,不语音不桌面。
 // micHeldByMeeting 无数据源,调用方恒传 false。
 
-import type { OutboxTrigger } from "@saydo/contracts";
+import { renderTier1BlockedReason, type OutboxTrigger } from "@saydo/contracts";
 import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
 import { redactText } from "../voice/redactor.js";
@@ -71,6 +71,7 @@ interface OutboxRow {
   created_at: string;
   notified_at: string | null;
   acked_at: string | null;
+  settle_json: string;
 }
 
 function emptyReport(): SweepReport {
@@ -96,7 +97,7 @@ function sortByPriority(rows: OutboxRow[]): OutboxRow[] {
 function loadDue(db: Db, nowIso: string, state: "pending" | "requeued"): OutboxRow[] {
   const rows = db
     .prepare(
-      `SELECT id, task_id, trigger, state, escalation, created_at, notified_at, acked_at
+      `SELECT id, task_id, trigger, state, escalation, created_at, notified_at, acked_at, settle_json
        FROM callback_outbox
        WHERE state = ? AND (snoozed_until IS NULL OR snoozed_until <= ?)
        ORDER BY created_at`
@@ -108,7 +109,7 @@ function loadDue(db: Db, nowIso: string, state: "pending" | "requeued"): OutboxR
 function loadL0Timeouts(db: Db, now: Date): OutboxRow[] {
   const rows = db
     .prepare(
-      `SELECT id, task_id, trigger, state, escalation, created_at, notified_at, acked_at
+      `SELECT id, task_id, trigger, state, escalation, created_at, notified_at, acked_at, settle_json
        FROM callback_outbox
        WHERE state = 'notified' AND escalation = 0 AND acked_at IS NULL AND notified_at IS NOT NULL`
     )
@@ -148,8 +149,19 @@ function taskMeta(db: Db, taskId: string): { taskTitle: string; projectTitle: st
   };
 }
 
-function spokenLine(db: Db, trigger: OutboxTrigger, taskId: string): string {
-  return reconnectFirstLine(trigger, redactText(taskMeta(db, taskId).taskTitle));
+function blockedReason(settleJson: string): string | null {
+  try {
+    const parsed = JSON.parse(settleJson) as { minimalProof?: { exitEvidence?: unknown } };
+    return renderTier1BlockedReason(parsed.minimalProof?.exitEvidence);
+  } catch {
+    return null;
+  }
+}
+
+function spokenLine(db: Db, row: OutboxRow): string {
+  const taskTitle = redactText(taskMeta(db, row.task_id).taskTitle);
+  const reason = row.trigger === "blocked" || row.trigger === "failed" ? blockedReason(row.settle_json) : null;
+  return reason ? `${taskTitle}:${reason}` : reconnectFirstLine(row.trigger, taskTitle);
 }
 
 function nowHmOf(now: Date): string {
@@ -184,7 +196,7 @@ export async function runCallbackSweep(deps: SweepDeps, now: Date): Promise<Swee
       voiceReady.push({ row, sessionId });
     } else {
       if (sessionId && !deps.voice.ttsHealthy()) {
-        const text = spokenLine(deps.db, row.trigger, row.task_id);
+        const text = spokenLine(deps.db, row);
         if (deps.voice.consoleSay(sessionId, text)) report.consoleSay += 1;
       }
       noVoice.push(row);
@@ -206,7 +218,7 @@ export async function runCallbackSweep(deps: SweepDeps, now: Date): Promise<Swee
         { voiceBusy: false, micHeldByMeeting: false }
       );
       if (result.action === "speak") {
-        const text = spokenLine(deps.db, speakCandidate.row.trigger, speakCandidate.row.task_id);
+        const text = spokenLine(deps.db, speakCandidate.row);
         const ok = await deps.voice.say(speakCandidate.sessionId, text, "callback");
         if (ok) {
           deps.engine.attemptNotify(speakCandidate.row.id, { nowHm, channelReachable: true });
@@ -267,7 +279,12 @@ async function deliverDnd(deps: SweepDeps, now: Date, nowIso: string, report: Sw
   for (const row of due) {
     let sent = false;
     if (deps.ntfy.enabled) {
-      const base = deps.ntfy.render(deps.db, { id: row.id, task_id: row.task_id, trigger: row.trigger });
+      const base = deps.ntfy.render(deps.db, {
+        id: row.id,
+        task_id: row.task_id,
+        trigger: row.trigger,
+        settle_json: row.settle_json
+      });
       const msg: NtfyMessage = { ...base, priority: 2, body: `（免打扰时段）${base.body}` };
       sent = await deps.ntfy.post(msg);
       if (sent) {
@@ -284,7 +301,12 @@ async function deliverDnd(deps: SweepDeps, now: Date, nowIso: string, report: Sw
 }
 
 async function deliverL1(deps: SweepDeps, row: OutboxRow, nowHm: string, report: SweepReport): Promise<void> {
-  const msg = deps.ntfy.render(deps.db, { id: row.id, task_id: row.task_id, trigger: row.trigger });
+  const msg = deps.ntfy.render(deps.db, {
+    id: row.id,
+    task_id: row.task_id,
+    trigger: row.trigger,
+    settle_json: row.settle_json
+  });
   const { projectTitle } = taskMeta(deps.db, row.task_id);
   const title = `SayDo · ${redactText(projectTitle)}`;
   let desktopOk = false;

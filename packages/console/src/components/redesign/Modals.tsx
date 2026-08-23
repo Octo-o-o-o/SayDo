@@ -229,7 +229,7 @@ export function S3InfoModal({ onClose, inline }: { onClose?: () => void; inline?
   return (
     <ModalFrame title="S3 强认证(演示环境)" icon={Fingerprint} onClose={onClose} inline={inline}>
       <div style={{ fontSize: "var(--text-sm)" }}>
-        真实环境这里会唤起系统本机认证(Touch ID / Windows Hello)。S3 = 不可逆外部影响(合并 / 发布 / 删除),只在这台电脑上、由你本人完成;语音与远程永不出现这个按钮。
+        真实环境这里会唤起系统本机认证。S3 = 不可逆外部影响(合并 / 发布 / 删除),只在这台电脑上、由你本人完成;语音与远程永不出现这个按钮。
       </div>
       <div style={{ fontSize: "var(--text-md)", fontWeight: 600, margin: "var(--space-4) 0 var(--space-2)" }}>流程(WebAuthn · rpId=localhost)</div>
       {[

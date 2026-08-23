@@ -1,8 +1,13 @@
 import { chromium } from 'playwright';
+import { dirname, resolve } from 'node:path';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+
+const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const docsUrl = pathToFileURL(resolve(repo, 'deploy/saydo-octoooo-com/en/docs/index.html')).href;
 const browser = await chromium.launch();
 for (const theme of ['dark','light']) {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, colorScheme: theme });
-  await page.goto('file:///Users/wangyixiao/WorkSpace/SayDo/deploy/saydo-octoooo-com/en/docs/index.html');
+  await page.goto(docsUrl);
   await page.waitForTimeout(800);
   const info = await page.evaluate(() => {
     const de = document.documentElement;

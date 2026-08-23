@@ -5,6 +5,7 @@
 // trust-report iframe 组件本步只建壳(P0.5-D 真实渲染);零外部跳转(深链 collapsed)。
 
 import { useState } from "react";
+import { renderTier1BlockedReason, type AcceptanceCheck } from "@saydo/contracts";
 import { Check, CircleDashed, Fingerprint, ShieldAlert, X } from "lucide-react";
 import { api, isRemoteOrigin, webauthnCreate, webauthnGet, type Row } from "../lib/api";
 import { useAsync } from "../lib/useAsync";
@@ -18,7 +19,22 @@ interface Acceptance {
   verify?: { templateRef?: string };
 }
 
+export function acceptanceStateForCriterion(
+  criterion: string,
+  checks: AcceptanceCheck[]
+): "pass" | "fail" | "unknown" {
+  const matches = checks.filter((check) => check.criterion === criterion);
+  if (matches.length !== 1) return "unknown";
+  const check = matches[0]!;
+  if (check.status !== "unknown" && !check.evidenceRef?.trim()) return "unknown";
+  return check.status;
+}
+
 const CANCELABLE = ["confirmed", "queued", "running", "blocked", "paused_step_boundary", "ready_for_review"];
+
+export function humanizeTier1RunEvidence(value: unknown): string | null {
+  return renderTier1BlockedReason(value);
+}
 
 export function TaskDetail({ taskId }: { taskId: string }) {
   const [refresh, setRefresh] = useState(0);
@@ -52,9 +68,10 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const costs = (data["costs"] ?? []) as Row[];
   const decisions = (data["decisions"] ?? []) as Row[];
   const writingProof = data["writingProof"] as { acceptanceChecks?: { criterion: string; source: string; status: string }[] } | null;
+  const acceptanceChecks = (data["acceptanceChecks"] ?? []) as AcceptanceCheck[];
   const isWriting = String(task["project_type"] ?? "") === "writing" && writingProof !== null;
-  const acceptance = ((pkg?.["acceptance"] as Acceptance[] | undefined) ?? []).map(
-    (a) => a.text ?? a.criterion ?? JSON.stringify(a)
+  const acceptance = ((pkg?.["acceptance"] as (string | Acceptance)[] | undefined) ?? []).map((a) =>
+    typeof a === "string" ? a : a.text ?? a.criterion ?? JSON.stringify(a)
   );
   const status = String(task["status"]);
   const settled = status === "ready_for_review" || status === "review_approved_waiting_merge";
@@ -138,8 +155,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
         ) : (
           <ul style={{ margin: 0, padding: 0, listStyle: "none" }} data-acceptance-list>
             {acceptance.map((ac, i) => {
-              // P0:settle 后 verify 通过 = pass;失败任务 = fail;运行中/无证据 = unknown(禁伪精确)
-              const state: "pass" | "fail" | "unknown" = settled ? "pass" : String(task["status"]) === "failed" ? "fail" : "unknown";
+              // 只消费 daemon 返回的逐条 AcceptanceCheck；task/run 终态不能代替 criterion 证据。
+              const state = acceptanceStateForCriterion(ac, acceptanceChecks);
               return (
                 <li key={i} className="flex items-center gap-[8px]" style={{ padding: "6px 0", fontSize: "var(--text-sm)" }}>
                   {state === "pass" ? (
@@ -207,7 +224,22 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                   <td>
                     <Mono>{String(r["adapter"])}</Mono>
                   </td>
-                  <td>{String(r["state"])}</td>
+                  <td>
+                    <div>{String(r["state"])}</div>
+                    {r["evidence_conflict"] === true ? (
+                      <div data-tier1-evidence-conflict style={{ fontSize: "var(--text-xs)", color: "var(--color-error)" }}>
+                        终态证据冲突,本行不合并展示
+                      </div>
+                    ) : humanizeTier1RunEvidence(r["exit_evidence"]) ? (
+                      <div data-tier1-run-reason style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+                        {humanizeTier1RunEvidence(r["exit_evidence"])}
+                      </div>
+                    ) : null}
+                  </td>
+                  <td data-observed-model>
+                    <div style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>观测模型</div>
+                    <Mono>{String(r["observed_model"] ?? "未观测")}</Mono>
+                  </td>
                   <td style={{ textAlign: "right" }}>
                     <Mono>{String(r["tree_sha"] ?? "").slice(0, 8) || "-"}</Mono>
                   </td>
@@ -340,7 +372,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                     ? "先验收通过,批准后才可合并"
                     : s3Status?.registered
                       ? "本机认证系统弹窗确认后,daemon 本地合并"
-                      : "未注册批准指纹:去受信终端人工合并(或先注册指纹)"
+                      : "未注册本机认证凭据:去受信终端人工合并(或先注册凭据)"
                 }
                 onClick={() => {
                   if (!s3Status?.registered) {
@@ -357,7 +389,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                   void (async () => {
                     try {
                       const ch = await api.s3Challenge({ action: "merge", taskId });
-                      if (!ch.allowCredentialId) throw new Error("无活跃批准指纹");
+                      if (!ch.allowCredentialId) throw new Error("无活跃本机认证凭据");
                       const assertion = await webauthnGet(ch.challenge, ch.rpId, ch.allowCredentialId);
                       const v = await api.s3Verify(ch.challengeId, assertion);
                       await api.approveMerge(taskId, v.receiptId);
@@ -395,7 +427,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                       const ch = await api.s3Challenge({ action: "register" });
                       const attestation = await webauthnCreate(ch.challenge, ch.rpId);
                       await api.s3Register(ch.challengeId, attestation);
-                      setActionMsg("批准指纹已注册;现在可以用本机认证批准合并了。");
+                      setActionMsg("本机认证凭据已注册;现在可以用本机认证批准合并了。");
                       setRefresh((n) => n + 1);
                     } catch (e) {
                       setActionMsg(`注册未完成:${String(e instanceof Error ? e.message : e)}`);
@@ -406,7 +438,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 }}
               >
                 <Fingerprint size={16} aria-hidden />
-                注册批准指纹
+                注册本机认证凭据
               </button>
             ) : null}
             {settled && !isRemoteOrigin() && s3Status?.registered ? (
@@ -461,7 +493,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
           {settled && !isRemoteOrigin() ? (
             // 诚实注脚(09 §3.3 同步凭据条款 ②;11 §5.4 逐字):不宣称"密钥永不离开本机"
             <p style={{ margin: "8px 0 0", fontSize: "var(--text-xs)", color: "var(--text-faint)" }} data-s3-honesty-note>
-              批准指纹可能经 iCloud 同步到你的其他设备;批准动作本身只能在这台电脑完成。
+              用于本机认证的 passkey 可能经系统账号同步到你的其他设备;批准动作本身只能在这台电脑完成。
             </p>
           ) : null}
         </PaperCard>
