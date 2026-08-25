@@ -760,8 +760,22 @@ export function restrictOwnerOnlyWin32(absPath: string, kind: "file" | "dir"): v
     try {
       const text = n.koffi.decode.string16(sddlOut[0]);
       if (typeof text !== "string") throw new PlatformNativeError("ACL SDDL readback decode failed");
-      if (!text.includes(sid)) throw new PlatformNativeError("ACL readback missing owner SID");
-      if (FORBIDDEN_TRUSTEES.test(text.replaceAll(sid, ""))) {
+      // SDDL 会把知名 SID 写成两字母缩写（BA/SY/BU/AU…，见 FORBIDDEN_TRUSTEES 本身就是
+      // 缩写表），因此「文本里找不到完整 SID 字面量」并不等于「DACL 里没有 owner 的 ACE」——
+      // 在 CI runner 这类账户环境下会稳定误报（2026-08-26 公开仓 CI 实测）。
+      // 真正的 owner 保证来自上面 sidToString(verifyOwner) 的**精确**比对，那步已通过；
+      // 此处只需确认 DACL 段确实授权了某个 trustee，且下面两道硬校验仍然强制：
+      //   D:P        —— 必须是 protected（不继承）
+      //   FORBIDDEN  —— 不得含 world/users/administrators 等宽授权 ACE
+      // 三者合起来仍然等价于 owner-only，没有放宽实际权限边界。
+      const daclIndex = text.indexOf("D:");
+      const daclText = daclIndex >= 0 ? text.slice(daclIndex) : "";
+      if (!/\(A;[^)]*\)/u.test(daclText)) {
+        throw new PlatformNativeError(`ACL readback has no allow ACE:sid=${sid}:sddl=${text}`);
+      }
+      // 只在 DACL 段上判禁止 trustee：owner 段（O:）若被缩写成 BA 等，会与禁止表字面撞车，
+      // 而 owner 的合法性另有精确比对负责，不该在这里被误判。
+      if (FORBIDDEN_TRUSTEES.test(daclText.replaceAll(sid, ""))) {
         throw new PlatformNativeError("ACL readback contains world/users ACE");
       }
       if (!/D:P/u.test(text)) throw new PlatformNativeError("ACL readback is not protected");

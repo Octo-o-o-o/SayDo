@@ -1701,8 +1701,8 @@
       "path": "docs/review/2026-08-25-rc4-runtime-final-reimplementation-readback.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 29244,
-      "sha256": "3a22a09e79852b181f437cc25fe2e3a548f0589e9767e70c4a1497145c1ce1a6"
+      "bytes": 29445,
+      "sha256": "d34390bac6b3a633440290b3fe5d5c05574b0d7dc00562e08025b0de234663dd"
     },
     {
       "path": "docs/site/2026-08-20-docs-page-content.fable.md",
@@ -7581,8 +7581,8 @@
       "path": "packages/platform/src/win32.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 74174,
-      "sha256": "687d87b16977ea3753e485afab6929a925842a3b8ed63588bce59ccfcfdc5f30"
+      "bytes": 75334,
+      "sha256": "dc3a93310d6cd7a09f166b935f15c6bec4ef14b5090b45b8d8559992481f5d12"
     },
     {
       "path": "packages/platform/src/win32Quote.ts",
