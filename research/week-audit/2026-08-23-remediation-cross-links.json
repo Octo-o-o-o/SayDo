@@ -58,6 +58,33 @@
         "docs/review/2026-08-23-week-audit-faststart-release.md",
         "e2e/evidence/2026-08-23-rc3-release-recovery.md"
       ]
+    },
+    {
+      "commit": "951249e696afdb38c2c9cb8e4de8b0a26e828f3c",
+      "relatedDocumentRefs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/release/v0.1.0-rc.4.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/2026-08-23-rc3-release-recovery.md",
+        "e2e/evidence/2026-08-23-rc4-release-candidate.md"
+      ]
+    },
+    {
+      "commit": "b92b0ea39e99537c88a25baed56d0a8c3b772c01",
+      "relatedDocumentRefs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/2026-08-23-rc4-release-candidate.md"
+      ]
+    },
+    {
+      "commit": "b768089585d710255d61a693c2489ccf425f446f",
+      "relatedDocumentRefs": [
+        "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
+        "docs/review/2026-08-23-week-audit-faststart-release.md",
+        "e2e/evidence/2026-08-23-rc4-release-candidate.md",
+        "prompts/97-rc4-macos-npm-exec-signal-implementation.md"
+      ]
     }
   ]
 }

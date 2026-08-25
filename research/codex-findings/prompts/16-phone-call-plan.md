@@ -11,7 +11,7 @@
 - `research/phone-call-design-2026-07.md`(方案 v3,§9 有你上轮的 A1–A9)
 - `research/codex-findings/logs/15-phone-call-design.log`(你上轮报告)
 - `IMPLEMENTATION-PLAN.md`(既有 SayDo 实施计划,对照 Phase/门禁/两提交法风格与工期口径)
-- 实施仓 /Users/wangyixiao/WorkSpace/SayDo/(只读,核实计划步骤落点;重点 packages/daemon/src 的 callback/approvals/voice/session/net)
+- 实施仓 ~/WorkSpace/SayDo/(只读,核实计划步骤落点;重点 packages/daemon/src 的 callback/approvals/voice/session/net)
 
 ## 评审任务
 

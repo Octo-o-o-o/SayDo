@@ -2,8 +2,8 @@
 
 你是只读的对抗性评审员。请审查仓库：
 
-- canonical 设计文档：`/Users/wangyixiao/WorkSpace/voice-coding/docs/01–11`
-- 实施仓（只读参照）：`/Users/wangyixiao/WorkSpace/SayDo`，以 `HANDOFF.md`、`e2e/evidence/`、实际 contracts/daemon 代码为现状真相。
+- canonical 设计文档：`~/WorkSpace/voice-coding/docs/01–11`
+- 实施仓（只读参照）：`~/WorkSpace/SayDo`，以 `HANDOFF.md`、`e2e/evidence/`、实际 contracts/daemon 代码为现状真相。
 
 本轮变更（2026-07-26）：
 
@@ -20,4 +20,4 @@
 - `enabled_project_types` 开 writing 与实施仓未实现的中间态；HANDOFF 红线是否被突破。
 
 只读核验，绝不修改 canonical 或实施代码。输出简体中文，按“一句话结论 → A 级硬伤（修法）→ B 级 → C 级 → 免修确认”组织，并给出实际 `file:line` 证据。将结果写入：
-`/Users/wangyixiao/WorkSpace/voice-coding/research/codex-findings/21-ra-codex-review.md`
+`~/WorkSpace/voice-coding/research/codex-findings/21-ra-codex-review.md`

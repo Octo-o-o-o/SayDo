@@ -18,7 +18,8 @@
 6. `v0.1.0` 仍受四场真人验收门约束。本轮只发布不可移动预发布标签，
    不得把预发布写成正式首发。`v0.1.0-rc.2` 的首次托管门因 Windows native
    依赖安装与 Linux 恢复夹具竞态失败，标签保留为失败证据且不得移动或重跑；
-   修复后使用新的 `v0.1.0-rc.3` 候选重新走完整首次运行发布链。
+   修复后的 `v0.1.0-rc.3` 又因 Windows Git checkout 换行与 Linux agent pipe 终止错误失败，
+   同样保留首次证据。当前只使用新的 `v0.1.0-rc.4` 重新走完整首次运行发布链。
 
 ## 2. 冻结基线
 
@@ -83,6 +84,18 @@ pnpm exec playwright test e2e/console --grep "Tier1|observed model|本机认证"
   native external 必须从安装后的 tarball 真加载；tarball 只含运行所需文件、
   README、LICENSE、NOTICE、THIRD_PARTY_NOTICES 与 npm package.json，不含源码树、秘密或私有归档。
 - 产出版本固定的 npm tarball 与 `SHA256SUMS`，并在 GitHub Release 作为 prerelease 发布。
+- 本机冻结 tracked asset manifest `docs/release/v0.1.0-rc.4-assets.json`：记录 schema、tag、package、
+  version、sourceRevision、buildId、protocolVersion，以及 Release exact-set 三个文件的 filename/bytes/sha256
+  （tgz 另含 npmIntegrity/entryCount）。`--write` 只重建 ignored artifact；`--freeze` 才原子刷新 tracked
+  manifest；`--check` 与 Ubuntu publish job 在 `--write` 之后必须把三个资产和 metadata/build identity 与
+  该清单全字段对账。manifest 自身不是 Release asset。verify-release-url、post-release-gate 与 workflow
+  草稿/发布后 API 也按该清单核对 exact-set 和精确 bytes，不得只检查非空。
+- 推公开 tag 前，`release.yml` 对该 tag 的全历史 push run 必须为零（REST 每页 100 读到空页/短页，按
+  `head_branch===tag` 筛选，禁止 `--limit 50` 或只按当前 SHA 查找）；公开仓必须已有 active tag ruleset：
+  target=tag、include `refs/tags/v*` 或更窄且覆盖 rc.4、无 bypass、同时禁止 delete 与 update。脚本只验证、
+  不改 ruleset。workflow 顶层按 tag concurrency 且 `cancel-in-progress:false`，权限显式含 `actions:read`。
+  运行中与 post-release gate 要求全历史恰好一次、run id/head_sha 匹配、`run_attempt===1`；开始、创建
+  Release 前、标记 available 前都从远端重读 `refs/tags/$GITHUB_REF_NAME` 并等于 `$GITHUB_SHA`。
 - GitHub Release 必须走 draft→上传三项 exact-set→非空校验→以 `UNAVAILABLE - PENDING SMOKE`
   标题和置顶警示发布→immutable 校验；发布后 fixed-URL smoke 六项全绿才把 title/notes 改为可用态。
   任一 smoke 失败则把 pending 改成明确 unavailable，保留不可变 tag/asset 作为证据，不删除后复用同名 tag。
@@ -106,9 +119,11 @@ pnpm exec playwright test e2e/console --grep "Tier1|observed model|本机认证"
 
 ```sh
 pnpm --filter @saydo/cli verify:distribution
+node scripts/test-release-provenance.mjs
 node scripts/build-release-artifacts.mjs --write
+node scripts/build-release-artifacts.mjs --freeze
 node scripts/build-release-artifacts.mjs --check
-node scripts/post-release-gate.mjs --check-candidate v0.1.0-rc.3
+node scripts/post-release-gate.mjs --check-candidate v0.1.0-rc.4
 ```
 
 ### C1. rc.2 首次运行红灯补救
@@ -130,8 +145,29 @@ node scripts/post-release-gate.mjs --check-candidate v0.1.0-rc.3
   `ECONNRESET` 必须被显式收口，不能作为 Vitest 未处理异常泄漏到后续用例。
 - 新候选发布前，三个原失败反例连续运行、daemon 全套、`just ci`、Mac 分发、实体 Windows
   干净安装与分发均须通过；新标签只能在新的实施提交和证据提交进入 internal/public main 后创建。
-- `v0.1.0-rc.2` 的 Actions run `32616479767` / `32616480151` 与失败日志必须写入最终报告；
-  `v0.1.0-rc.3` 的 post-release gate 只接受绑定新 tag SHA、`run_attempt=1` 的成功 workflow。
+- `v0.1.0-rc.2` 的 Actions run `32616479767` / `32616480151` 与失败日志必须写入最终报告。
+
+### C2. rc.3 首次运行红灯补救
+
+- `v0.1.0-rc.3` 绑定内部 `8602c7324844ede014c577409ae10a834f1a1714` 与公开
+  `a29f671f79cf5f73452cecd60b092072c72c2aab`。CI `32622757288` 与 release `32622757385`
+  首次 attempt 1 均失败，没有创建 GitHub Release；不得移动 tag 或重跑两个 workflow。
+- 所有 Git 文本 checkout 必须用仓库级属性固定 LF，且该属性文件必须进入 CLI
+  source revision 输入集。验收必须在 `core.autocrlf=true` 的全新 Git checkout 上确认法务文件、
+  源码与构建脚本均无 CRLF，不能用 archive 解压副本代替 checkout。
+- 主 agent stdout/stderr 只能在已收到权威 result、已开始退出/kill 或已 settle 时收口
+  `ECONNRESET`；BYOA 与受管命令 helper 同样只能忽略收口期 reset。所有活动期 pipe 错误都必须
+  fail-closed，进入有界诊断且不得被当成网络故障重试。
+  runtime wrapper 中合同为 `ignore` 的 stdin/stdout/stderr 与只写 permit 控制 pipe 必须在统一 spawn
+  边界消费读写端错误，业务结果继续只认 child 的 exit/close；不得让被明确丢弃的 pipe 越界成为
+  进程级 uncaught exception。
+- macOS 从 `npm exec` 前台启动时，同一次 `Ctrl+C` 会经终端进程组与 npm 包装层瞬时重复投递
+  `SIGINT`。supervisor 必须只合并同一种 OS signal 在 50ms 窗口内的重复；不同 signal、显式
+  `cli-stop-*` 控制原因和窗口后的第二次人工 signal 均不得被吞。单元测试须覆盖四个边界，最终
+  tarball 还要在真实 macOS `npm exec` 路径验证退出码 0、`cli_sigint` 优雅停止和零孤儿。
+- `v0.1.0-rc.4` 发布前必须通过 Mac `just ci`/完整分发、实体 Windows 全新 Git checkout
+  安装/分发、Linux 相关反例压测与零上下文独立复审。post-release gate 只接受绑定 rc.4
+  tag SHA、`run_attempt=1` 且所有必需 job 成功的 workflow。
 
 ### D. 平台与真机验证
 
@@ -158,7 +194,7 @@ node scripts/post-release-gate.mjs --check-candidate v0.1.0-rc.3
 - 本地 `just ci`、分发验收、站点视觉截图、隐私探针、公开快照树差异与 emoji 门禁全部绿后，
   才按仓库两提交法入库并推送。
 - 发布顺序固定且不得交换：① clean 的最终 internal SHA 推到 `origin/main`；② 从同一 SHA 的 clean
-  clone 生成公开快照，并把 `public/main` 与不可移动 `v0.1.0-rc.3` 在一次 atomic push 中发布；
+  clone 生成公开快照，并把 `public/main` 与约定不移动的 `v0.1.0-rc.4` 在一次 atomic push 中发布；
   ③ 等待 tag workflow 的 snapshot、Node/Python、fresh-origin Playwright、三平台 distribution、
   Release 以 pending/unavailable 态创建及三平台 exec/global 固定 URL smoke 全绿；任一 smoke 红则
   workflow 保留不可变 tag/asset、显式标记 Release unavailable，官网继续保持“发布候选”文案；六项
@@ -168,11 +204,36 @@ node scripts/post-release-gate.mjs --check-candidate v0.1.0-rc.3
   拒绝任何预制证据输入，并机械核对 tag SHA、Release/asset exact-set、指定 workflow 与六项托管 smoke，
   再写 availability 文案，并自动重生、
   按私有完整树模式复核 audit bundle；availability 与 bundle 同一提交，
+  文案/evidence/physical evidence/`week-audit --write` 生成文件必须在第一次本地 mutation 前快照，
+  内存完成 exact-anchor 后用同目录临时文件 + rename 原子替换；任一写入或 audit 失败则按原始 bytes
+  精确回滚并删除原先不存在的新产物，不得留下半数页面已切换。
   重建公开快照后只推 `public/main`、不移动 tag；⑥ availability 快照进入
   公开 main 后先等待精确绑定该 `public/main` SHA 的公开 CI 全绿，其中 node job 必须已执行公开树
-  `--check-bundle`；随后由同一脚本 `--deploy` 再核对 internal/public 全树 exact-set 和这次公开 CI，
-  并用固定 Wrangler 4.112.0 依次上传两个 Pages
-  项目；部署必须核对 origin push URL 与实时 `ls-remote origin/main`，并强制落 `--evidence`；⑦ 核验生产域名 HTTP、
+  `--check-bundle`；随后由同一脚本 `--deploy` 再核对 internal/public 全树 exact-set 和这次公开 CI。
+  `--deploy` 在任何 Cloudflare readback、Wrangler、persist/audit 之前，对证据路径做
+  `O_CREAT|O_EXCL|O_NOFOLLOW` 原子独占 claim/lease，并在写入前锚定整条父目录链（最终项
+  与中间目录 symlink 都拒绝，`inside/redirect -> outside` 不得在树外落文件）。已存在的
+  任何目录项都不能被 fresh claim 覆盖，并发第二 caller 必须在外部动作前失败。既有证据用
+  `O_NOFOLLOW` 打开后从同一 fd 读取，不得 `lstat` 后再跟随 symlink。公共读取、claim、
+  lease 校验和持久化路径在 `close` 结果不可信时 fail-closed，不得把半关闭当成成功租约。
+  持久化只对租约 inode 做 in-place 写入，不得在 lstat→rename 窗口把后来出现的
+  symlink/目录/FIFO 覆盖成普通文件。崩溃或未知状态 fail-closed，不得删除证据重试。只有
+  取得 fresh lease 才允许部署；`audit_pending`/`audit_failed` 只允许只读恢复（零 Wrangler
+  redeploy，以外部 readback 重新绑定既有 deployment）。dangling / 有效 symlink、目录、
+  FIFO、非普通文件和非 ENOENT I/O 全部 fail-closed。文件存在但根为 `null` / `0` /
+  `false` / `""` / 数组或非合同对象时，在任何 Wrangler、persist、audit 之前 fail-closed。
+  `started`、`claimed`、deploying、`partial_failed`、畸形、未知和 `completed` 继续
+  fail-closed，不得盲目覆盖部分部署事实。Cloudflare Pages deployment id 只接受 36 字符
+  小写 UUID v4；project domains 必须与本地 official+canonical exact-set 一致，返回投影
+  只含这组可信 host。未知 caught value 必须生成新的受控常量错误，不得凭可拦截 `name`、
+  symbol/message descriptor 或 revoked Proxy 的 `.code` 原样返回/重抛攻击对象。响应
+  body、result、getter/Proxy/toJSON、canonicalHost 派生值与 sentinel 不得进入 Error、
+  stdout 或耐久 evidence；persist 只投影 own data property，在 JSON 序列化前对完整
+  evidence 做合同与 sentinel fail-closed。`--check-bundle` 的全树 live-set 不再预过滤
+  私有排除前缀：公开候选无私有路径时 exact-set 等于 entries；live 仍含已知前缀时必须与
+  冻结 count/digest 一致，多出来的私有路径失败且错误不落完整私有路径。workflow 删除公开
+  树私有前缀仍是第二道防线。
+  部署必须核对 origin push URL 与实时 `ls-remote origin/main`，并强制落 `--evidence`；⑦ 核验生产域名 HTTP、
   关键安装文案、Release metadata/SHA256SUMS 与线上 tarball 摘要，随后再次重生 bundle 并形成最终 records snapshot。
   公开快照全程先确认私有软著材料仍被排除。
 - 发布前后分别核对 `git worktree list`、本地分支 ancestor、工作区 clean；只删除已证明合并且

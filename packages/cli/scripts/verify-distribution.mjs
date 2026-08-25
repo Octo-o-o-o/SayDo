@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { createConnection } from "node:net";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve, delimiter } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -184,6 +184,18 @@ function writeWindowsNpmNodeShim(dir, name, source) {
     join(dir, `${name}.cmd`),
     `@ECHO off\r\nGOTO start\r\n:find_dp0\r\nSET dp0=%~dp0\r\nEXIT /b\r\n:start\r\nSETLOCAL\r\nCALL :find_dp0\r\n\r\nIF EXIST "%dp0%\\node.exe" (\r\n  SET "_prog=%dp0%\\node.exe"\r\n) ELSE (\r\n  SET "_prog=node"\r\n)\r\n\r\nendLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & set PATHEXT=%PATHEXT:;.JS;=;% & "%_prog%"  "%dp0%\\${name}.mjs" %*\r\n`
   );
+}
+
+/** POSIX 用 `exec <execPath>` 的 node shim；Windows 标准 npm cmd-shim 优先 `%dp0%\\node.exe`。 */
+function ensureIsolatedNode(dir) {
+  if (process.platform === "win32") {
+    const dest = join(dir, "node.exe");
+    if (!existsSync(dest)) copyFileSync(process.execPath, dest);
+    return;
+  }
+  const nodeShim = join(dir, "node");
+  writeFileSync(nodeShim, `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} "$@"\n`);
+  chmodSync(nodeShim, 0o755);
 }
 
 function cliInvocation(args) {
@@ -491,6 +503,7 @@ async function attachAndRelease(port, expectedPid) {
 
 function prepareTier1Fixture() {
   mkdirSync(fixtureBin, { recursive: true });
+  ensureIsolatedNode(fixtureBin);
   if (process.platform === "win32") {
     writeWindowsNpmNodeShim(fixtureBin, "pnpm", "process.exit(0);\n");
   } else {
@@ -654,6 +667,7 @@ try {
   invariant(Number(process.versions.node.split(".")[0]) === 22, `需要 Node 22,当前 ${process.version}`);
   const packed = packAndInstall();
   mkdirSync(fixtureBin, { recursive: true });
+  ensureIsolatedNode(fixtureBin);
   for (const command of ["pnpm", "tsx"]) {
     if (process.platform === "win32") {
       writeFileSync(
@@ -681,9 +695,6 @@ try {
     chmodSync(codexFixture, 0o755);
   }
   if (process.platform !== "win32") {
-    const nodeShim = join(fixtureBin, "node");
-    writeFileSync(nodeShim, `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} "$@"\n`);
-    chmodSync(nodeShim, 0o755);
     const openFixture = join(fixtureBin, "open");
     writeFileSync(openFixture, "#!/bin/sh\nprintf '%s' \"$1\" > \"$SAYDO_OPEN_MARKER\"\n");
     chmodSync(openFixture, 0o755);
@@ -1032,7 +1043,24 @@ try {
       onboardingInventory: "codex_fixture_found"
     },
     lifecycle: { taskId, prepareShutdown: "restart_pending", resumed: "settled_review" },
-    orphanCheck: "daemon_agent_and_descendant_exited"
+    // 实测而非固定字符串：逐个复核本轮 rememberPid 记录过的 pid 是否都已退出。
+    // 原先这里直接写死 "daemon_agent_and_descendant_exited"，等于在报告里断言了一个
+    // 从未验证的结论——未收口的进程会被随后的 cleanup 掩盖，报告照样"通过"。
+    // 复用 birth identity 判定，避免 PID 复用把新进程误认成旧的。
+    orphanCheck: (() => {
+      const survivors = [];
+      for (const [pid, info] of observedPids) {
+        if (!processAlive(pid)) continue;
+        // PID 复用：同号但 birth 不同即非当初那个进程。
+        if (processStart(pid) !== info.start) continue;
+        survivors.push(`${info.label}:${pid}`);
+      }
+      invariant(
+        survivors.length === 0,
+        `收口后仍有存活的受管进程:${survivors.join(",")}`
+      );
+      return `verified_all_exited(tracked=${observedPids.size})`;
+    })()
   };
 } finally {
   // B8: 清理单元独立捕获；allSettled 遍历全部资源；仅全员 ESRCH 后删 scratch。

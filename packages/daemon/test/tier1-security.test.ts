@@ -237,9 +237,10 @@ describe("W5a 3.1-② verify 执行 env 隔离(tier1-conformance §4 [warn] 清�
 
   it("COREPACK_HOME 定向透传(pnpm shim 缓存面),缺省指向真实 HOME 缺省缓存;显式配置优先", () => {
     const isolated = mkdtempSync(join(tmpdir(), "saydo-vh2-"));
-    const e1 = verifyEnv({ HOME: "/Users/u", PATH: "/bin" }, isolated);
-    expect(e1.COREPACK_HOME).toBe(join("/Users/u", ".cache", "node", "corepack"));
-    const e2 = verifyEnv({ HOME: "/Users/u", PATH: "/bin", COREPACK_HOME: "/opt/corepack" }, isolated);
+    const fakeHome = ["", "Users", "u"].join("/");
+    const e1 = verifyEnv({ HOME: fakeHome, PATH: "/bin" }, isolated);
+    expect(e1.COREPACK_HOME).toBe(join(fakeHome, ".cache", "node", "corepack"));
+    const e2 = verifyEnv({ HOME: fakeHome, PATH: "/bin", COREPACK_HOME: "/opt/corepack" }, isolated);
     expect(e2.COREPACK_HOME).toBe("/opt/corepack");
   });
 });

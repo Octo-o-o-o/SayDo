@@ -1,6 +1,6 @@
 # SayDo 场次①项目归属闭环最终对抗审计 33
 
-请在只读模式审查 `/Users/wangyixiao/WorkSpace/SayDo` 当前未提交工作树。禁止修改文件，禁止
+请在只读模式审查 `~/WorkSpace/SayDo` 当前未提交工作树。禁止修改文件，禁止
 启动 subagent，禁止 commit、push、deploy、restart 或写生产数据。报告写在最终回答中，只列
 有代码或测试证据的 A/B/C 级问题；没有阻断则明确写 `A=0`。
 

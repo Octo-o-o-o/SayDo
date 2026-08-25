@@ -2,7 +2,7 @@
 
 前次全量评审(prompts/13)已完成分析但输出被超时截断,已知结论是"当前批次不能放行"。本次聚焦复核,直接输出发现清单,不要重新全库扫描。
 
-评审对象:/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md 的 2026-07-25 M 批新增(M1 拆表/M4 cost meta 定型/M7 §5 规则⑥⑦/M8 params/M9 单位词表/M11 audioSegmentRef)+ docs/10 的 M6 四话术,与 09 既有 §11(模型/配置/记账规则)、§12(契约测试清单)、§0.1(签名域)的一致性。
+评审对象:~/WorkSpace/voice-coding/docs/09-data-contracts.md 的 2026-07-25 M 批新增(M1 拆表/M4 cost meta 定型/M7 §5 规则⑥⑦/M8 params/M9 单位词表/M11 audioSegmentRef)+ docs/10 的 M6 四话术,与 09 既有 §11(模型/配置/记账规则)、§12(契约测试清单)、§0.1(签名域)的一致性。
 
 重点核对(疑似冲突点,请证实或证伪):
 1. **M4 vs §11-5**:§9 cost_entries 注释新定 kind='llm' 行 meta 必含 {model,input_tokens,cached_input_tokens,output_tokens};§11-5 既有"订阅调用记账 meta_json={provider, plan_window?, requests}"——订阅行的 meta 形状两处是否矛盾?若矛盾给最小改法。

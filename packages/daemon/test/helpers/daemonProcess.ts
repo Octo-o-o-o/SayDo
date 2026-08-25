@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -14,6 +15,7 @@ afterAll(async () => {
   for (const daemon of [...activeDaemons]) await daemon.stop();
 });
 const TSX_CLI = resolve(ROOT, "packages/daemon/node_modules/tsx/dist/cli.mjs");
+const TSX_LOADER = createRequire(resolve(ROOT, "packages/daemon/package.json")).resolve("tsx");
 const DAEMON_ENTRY = resolve(ROOT, "packages/daemon/src/index.ts");
 
 export async function reservePort(): Promise<number> {
@@ -35,6 +37,8 @@ export interface DaemonProcess {
   port: number;
   token: string;
   output: () => string;
+  frames: unknown[];
+  sendSupervisor: (frame: object) => void;
   health: () => Promise<{ pid: number; runtimeSha: string; stateRootDigest: string }>;
   api: (path: string, init?: RequestInit) => Promise<Response>;
   waitForRestart: (previousPid: number) => Promise<{ pid: number; runtimeSha: string; stateRootDigest: string }>;
@@ -48,7 +52,8 @@ async function waitForHealth(port: number, predicate: (health: { pid: number }) 
     try {
       const response = await fetch(`http://127.0.0.1:${port}/health`, {
         keepalive: false,
-        headers: { connection: "close" }
+        headers: { connection: "close" },
+        signal: AbortSignal.timeout(1_000)
       });
       if (response.ok) {
         const health = (await response.json()) as { pid: number; runtimeSha: string; stateRootDigest: string };
@@ -66,14 +71,21 @@ export async function startDaemonProcess(input: {
   home: string;
   port: number;
   env?: Record<string, string | undefined>;
-  importBeforeTsx?: string[];
+  importAfterTsxLoader?: string[];
+  supervised?: boolean;
+  /** 缺省等 /health。ready 失败即退出的用例不得等 health。 */
+  waitForHealth?: boolean;
 }): Promise<DaemonProcess> {
   let logs = "";
-  const args = [
-    ...(input.importBeforeTsx ?? []).flatMap((modulePath) => ["--import", pathToFileURL(modulePath).href]),
-    TSX_CLI,
-    DAEMON_ENTRY
-  ];
+  const frames: unknown[] = [];
+  const args = input.importAfterTsxLoader?.length
+    ? [
+        "--import",
+        pathToFileURL(TSX_LOADER).href,
+        ...input.importAfterTsxLoader.flatMap((modulePath) => ["--import", pathToFileURL(modulePath).href]),
+        DAEMON_ENTRY
+      ]
+    : [TSX_CLI, DAEMON_ENTRY];
   const child = spawn(process.execPath, args, {
     cwd: ROOT,
     env: {
@@ -81,10 +93,21 @@ export async function startDaemonProcess(input: {
       SAYDO_MOBILE_LAN: undefined,
       SAYDO_HOME: input.home,
       SAYDO_DAEMON_PORT: String(input.port),
+      ...(input.supervised
+        ? {
+            SAYDO_SUPERVISED: "1",
+            SAYDO_CONSOLE_DIST: resolve(ROOT, "packages/daemon/test/fixtures/console-dist")
+          }
+        : {}),
       ...input.env
     },
-    stdio: ["ignore", "pipe", "pipe"]
+    stdio: input.supervised ? ["ignore", "pipe", "pipe", "ipc"] : ["ignore", "pipe", "pipe"]
   });
+  if (input.supervised) {
+    child.on("message", (message) => {
+      frames.push(message);
+    });
+  }
   const collect = (chunk: Buffer) => {
     logs = `${logs}${chunk.toString()}`.slice(-100_000);
   };
@@ -93,13 +116,35 @@ export async function startDaemonProcess(input: {
   child.stdout?.on("error", () => undefined);
   child.stderr?.on("error", () => undefined);
   child.on("error", () => undefined);
-  try {
-    await waitForHealth(input.port);
-  } catch (err) {
-    child.kill("SIGTERM");
-    throw new Error(`${String(err)}\n${logs}`);
+  if (input.waitForHealth !== false) {
+    const failEarly = (code: number | null, signal: NodeJS.Signals | null): Error =>
+      new Error(`daemon exited before health:code=${String(code)} signal=${String(signal)}`);
+    let onExit: ((code: number | null, signal: NodeJS.Signals | null) => void) | undefined;
+    try {
+      await Promise.race([
+        waitForHealth(input.port),
+        new Promise<never>((_, reject) => {
+          onExit = (code, signal) => reject(failEarly(code, signal));
+          if (child.exitCode != null || child.signalCode != null) {
+            onExit(child.exitCode, child.signalCode);
+            return;
+          }
+          child.once("exit", onExit);
+        })
+      ]);
+    } catch (err) {
+      child.kill("SIGTERM");
+      throw new Error(`${String(err)}\n${logs}`);
+    } finally {
+      if (onExit) child.off("exit", onExit);
+    }
   }
-  const token = readFileSync(resolve(input.home, ".cap-token"), "utf8").trim();
+  let token = "";
+  try {
+    token = readFileSync(resolve(input.home, ".cap-token"), "utf8").trim();
+  } catch {
+    token = "";
+  }
   const knownPids = new Set<number>([child.pid as number]);
   const health = () => waitForHealth(input.port);
   const api = (path: string, init: RequestInit = {}) =>
@@ -123,6 +168,11 @@ export async function startDaemonProcess(input: {
     port: input.port,
     token,
     output: () => logs,
+    frames,
+    sendSupervisor: (frame) => {
+      if (typeof child.send !== "function") throw new Error("daemon IPC unavailable");
+      child.send(frame as Parameters<NonNullable<ChildProcess["send"]>>[0]);
+    },
     health,
     api,
     async waitForRestart(previousPid) {

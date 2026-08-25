@@ -1,5 +1,5 @@
 {
-  "_comment": "SayDo listing draft. Chinese main name 说到 (owner 2026-08-13). App Store en-US name locked 2026-08-22 to 'SayDo - You Say, AI Do' (exact SayDo occupied; 千手-style Brand - tagline). Validate: node /Users/wangyixiao/WorkSpace/OctoSkill/release-assistant/scripts/check-metadata-limits.mjs docs/release/metadata.json",
+  "_comment": "SayDo listing draft. Chinese main name 说到 (owner 2026-08-13). App Store en-US name locked 2026-08-22 to 'SayDo - You Say, AI Do' (exact SayDo occupied; 千手-style Brand - tagline). Validate: node ~/WorkSpace/OctoSkill/release-assistant/scripts/check-metadata-limits.mjs docs/release/metadata.json",
   "_asc_mapping": "name/subtitle -> appInfoLocalizations; description/keywords/promotional_text/whats_new + URLs -> appStoreVersionLocalizations.",
   "_urls_status": "privacy/support/marketing live 2026-08-13 on saydo.octoooo.com (Pages). Do not point at qianshou.octoooo.com (that page is 千手, not SayDo).",
 

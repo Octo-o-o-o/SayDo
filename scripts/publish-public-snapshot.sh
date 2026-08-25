@@ -73,6 +73,8 @@ if [ -n "$PUBLIC_TAG" ]; then
     echo "[fail] 公开仓尚未启用 immutable releases，拒绝推 release tag"
     exit 1
   fi
+  node scripts/release-tag-guard.mjs uniqueness --require-zero --repo Octo-o-o-o/SayDo --workflow release.yml --tag "$PUBLIC_TAG"
+  node scripts/release-tag-guard.mjs ruleset --repo Octo-o-o-o/SayDo --tag "$PUBLIC_TAG"
 fi
 # 只入私有归档的路径(软著鉴别材料:源码摘录 PDF / 操作说明书 / 截图 / R11 预填表)
 PUBLIC_EXCLUDE=(
@@ -130,6 +132,7 @@ if [ "$private_probe_count" -lt 1 ]; then
   echo "[fail] 公开快照前必须在 Git 私有目录配置至少一条有效隐私探针（空行和注释不计）"
   exit 1
 fi
+node scripts/check-public-tree-privacy.mjs --ref "$EXPECTED_INTERNAL_SHA" --require-private-probes
 fail=0
 probe_index=0
 for p in "${probes[@]}"; do
@@ -170,6 +173,8 @@ msg="$(printf 'snapshot: %s from internal %s\n\npublic-tree: %s\nfilter-version:
   "$PUBLIC_FILTER_VERSION")"
 if [ -n "$prev" ]; then new="$(git commit-tree "$tree" -p "$prev" -m "$msg")"; else new="$(git commit-tree "$tree" -m "$msg")"; fi
 if [ -n "$PUBLIC_TAG" ]; then
+  node scripts/release-tag-guard.mjs uniqueness --require-zero --repo Octo-o-o-o/SayDo --workflow release.yml --tag "$PUBLIC_TAG"
+  node scripts/release-tag-guard.mjs ruleset --repo Octo-o-o-o/SayDo --tag "$PUBLIC_TAG"
   git push --atomic "$PUBLIC_REMOTE" "$new:refs/heads/main" "$new:refs/tags/$PUBLIC_TAG"
   echo "[ok] 已原子推送公开快照与约定不得移动标签 $new -> $PUBLIC_REMOTE/main + $PUBLIC_TAG"
 else

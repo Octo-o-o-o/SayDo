@@ -1,7 +1,7 @@
 # Codex 攒批评审 14:canonical 回写批 3(首发收口批)
 
 你是独立评审员,复核 SayDo 项目 canonical 文档(`docs/09-data-contracts.md` 为主)的七处回写。
-设计库根 = 当前目录(voice-coding);实现仓 = `/Users/wangyixiao/WorkSpace/SayDo`(可读源码与测试作证据)。
+设计库根 = 当前目录(voice-coding);实现仓 = `~/WorkSpace/SayDo`(可读源码与测试作证据)。
 你只读不写。产出:逐条裁决(通过 / A 级硬伤 / B 级应修 / C 级建议),每条给位置(file:line)、问题、最小改法。
 
 ## 背景

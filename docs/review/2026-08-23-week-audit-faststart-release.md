@@ -20,8 +20,8 @@
 测试漂移、CLI 发布身份与法务文件、端口占用误判、Windows 分发 CI、官网源码-only 入口、
 跨平台认证话术和 prompt 隔离。首轮两路独立评审与 Codex 对抗评审又发现工作树审计、
 验收证据真实性、发布物源码绑定、真实安装入口、并发身份登记与官网状态等收口缺陷,
-以及 rc.2 首次托管门暴露的跨平台红灯，已按 §5 的 F29–F105 回修；两路最终独立复审均为 Go，是否可标记可用仍以
-公开标签首次 Actions 与发布后实测为准。无法由自动化替代的
+以及 rc.2 首次托管门暴露的跨平台红灯，已按 §5 的 F29–F105 回修；rc.3 两路独立复审均为 Go，但首次托管门又暴露
+F106–F107。当前 rc.4 必须重新复审并以新标签首次 Actions 与发布后实测为准。无法由自动化替代的
 四场真人验收、真 Claude hook 全链、HarmonyOS 签名与商店/npm registry 发布继续如实保留为边界。
 
 全量原始主账本见 `docs/review/2026-08-22-week-audit-ledger.md`,机器可读明细见
@@ -42,7 +42,7 @@
 |---|---:|---|
 | 主线提交 | 115 | `8a8247a..3fccf4a`,逐提交列路径、文档、实现、测试与分类 |
 | 已记录 ref 宇宙时间窗提交 | 131 | 主线 115 + 额外 16；不外推到事后已消失的 ref |
-| 额外引用 | 16 | 5 个公开 snapshot 逐一验证允许删除集 + 11 个 tree-equivalent;独立未合并实现 0 |
+| 额外引用 | 16 | 5 个公开 snapshot 逐一验证允许删除集 + 11 个 tree-equivalent;独立未合并实现 0。snapshot **commit** 与可重算的 public tree object digest（该提交 `^{tree}`，快照说明 `public-tree:` 行）是两个 git 对象，不得混称。旧公开快照 commit `2bb91011cacc889c4ab8c2504e3b74871bd4c169` 的 tree digest 为 `0fa18ac3e7c16c91ac21b1addce886e6ed1a4961`。 |
 | 变更路径 | 434 | 全量 `git diff --name-only -z` |
 | 文档型资产 | 219 | Markdown 154 + 站点/证据/许可证等 65 |
 | 提交分类 | 115 | paired 29 / document-only 48 / implementation-only 38 |
@@ -116,7 +116,7 @@ modules/c、官网 Docs 与 `docs/11` 的现时态,见 §5。
 |---|---:|---|
 | canonical | 13 | 09/10/11 与 ADR-002 的合同形状有实现锚;03–07、modules/c 的 Agent SDK 现时态漂移已改成 CLI hooks |
 | plan | 16 | 历史计划保持原时点;唯一排产源 PLAN-2 只标 W5.4-b 收口候选,复审与 Windows 证据齐备前不关批 |
-| website | 27 | 原 source-only 入口与平台口径已对齐 GitHub Release；rc.2 首次门失败后，当前中英首页、Docs 与内容稿统一指向 rc.3 候选 |
+| website | 27 | 原 source-only 入口与平台口径已对齐 GitHub Release；rc.2/rc.3 首次门失败后，当前中英首页、Docs 与内容稿统一指向 rc.4 候选 |
 | root contract | 5 | README 增加无源码快速启动;HANDOFF 在最终提交/部署后刷新三层时钟 |
 | evidence | 37 | 不回写历史红灯;`w54b-batch.md` 以新 §10 supersede 旧现势,保留原始时间点 |
 | review | 7 | 作为评审结论保存;本报告对前一份 crosscheck 的新漂移作 supersede |
@@ -132,8 +132,8 @@ modules/c、官网 Docs 与 `docs/11` 的现时态,见 §5。
 | F19 | C1 验收写了真实 init,实现只有版本/身份检查 | 对齐实施到已批准验收 | 新增空 cwd、零工具、30s/1MiB 的 `system/init` 探针,环境白名单与生产 spawn 同源 |
 | F20 | C3 明确在计划但未实施 | 对齐实施到合同 | 设置页 Tier1 卡、任务 observed model、blocked 人话、跨平台认证与 backend prompt 隔离全部落地 |
 | F21 | 03/04/05/06/modules/c 仍把 Claude Agent SDK 写成当前主档 | 对齐文档到 09 与物理实现 | 当前主档改为 `claude -p` + CLI hooks;Agent SDK/live steer 只保留未来候选 |
-| F22 | 官网写成“只能源码运行”,但仓内已有可分发 CLI | 补实现并对齐文档 | 固定 tarball、一次运行/全局安装两条路径;诚实注明只含 daemon + console；rc.2 失败后由 F98–F101 升为 rc.3 |
-| F23 | CLI 仍是 0.0.1,包内无 README/LICENSE/NOTICE | 对齐发布身份与 Apache-2.0 | 当前版本 `0.1.0-rc.3`,包内法务副本逐字校验,只打包 dist、package.json 与四份包文档 |
+| F22 | 官网写成“只能源码运行”,但仓内已有可分发 CLI | 补实现并对齐文档 | 固定 tarball、一次运行/全局安装两条路径;诚实注明只含 daemon + console；rc.2 由 F98–F101 升为 rc.3，rc.3 再由 F106–F107 升为 rc.4 |
+| F23 | CLI 仍是 0.0.1,包内无 README/LICENSE/NOTICE | 对齐发布身份与 Apache-2.0 | 当前版本 `0.1.0-rc.4`,包内法务副本逐字校验,只打包 dist、package.json 与四份包文档 |
 | F24 | 分发 verifier 把已有 daemon 误判成可绑定端口 | 修实施 | 先真实 TCP connect 判断占用,再做 bind 探针;47100 冲突保持与默认端口生命周期都复验 |
 | F25 | CI 没有完整桌面分发门 | 补实施 | 发布前 `distribution` 与发布后固定 URL smoke 均覆盖 Ubuntu、macOS、Windows |
 | F26 | `docs/11` 仍写 29 failed / 3 passed | 以现行 IA 与真实门禁为准 | 修 Focus ID、Today/Dashboard 路由、首启 peek、云语音 peer、过期 parked fixture;36/36 绿后回写 |
@@ -216,6 +216,9 @@ modules/c、官网 Docs 与 `docs/11` 的现时态,见 §5。
 | F103 | Win32 `BOOL/LPBOOL` 被 Koffi 1-byte `bool` 错绑，且 SID/SDDL 系统分配字符串未 `LocalFree` | 对齐 Win32 32-bit ABI 与系统所有权合同 | 全文件 Win32 BOOL 改为 `int32`，LPBOOL 改 `int32 *`；系统分配字符串以原始指针读取、`string16` 解码并在 finally 释放；实体 Windows platform 13 项与完整 distribution 通过 |
 | F104 | Playwright 截图直接写仓库内状态根，公开图会暴露本机路径；主题又被初始 effect 竞态覆盖，暗色图可能实际为亮色 | 公开证据必须匿名且可判定 | macOS/Linux 测试状态根固定到无用户名的系统临时目录；亮暗主题先持久化、重载，再断言 `data-theme` 后截图；最终关键图目视复核，定向门与全套 Playwright 均通过 |
 | F105 | `HANDOFF.md` 的现行发布门仍把待发布候选写成 rc.2，报告又把流程纪律简写成技术不可移动 | 历史事实与现行候选分层 | rc.2 历史失败记录保留；未来门禁统一指向 rc.3，旧 tag 明确为“按发布纪律不移动、不重跑” |
+| F106 | rc.3 的 Windows Git checkout 因 `core.autocrlf` 把受控法务文件与构建输入改成 CRLF | 跨平台同一 Git 树必须派生同一字节 | 新增仓库级 `* text=auto eol=lf`，并把 `.gitattributes` 纳入 CLI source revision；`core.autocrlf=true` 对照 checkout 从 1513/212 个 CRLF 降为 0/0 |
+| F107 | rc.3 Linux 终止受管进程组时，主 agent 与 runtime wrapper 的 stdio/control pipe 仍可把 `ECONNRESET` 泄漏为 Vitest unhandled error | 运行中错误 fail-closed，明确丢弃的流仍以 child exit/close 为权威 | agent、BYOA 与受管命令活动期 stdout/stderr 错误进入有界诊断并失败，只忽略收口期 `ECONNRESET`，且本地 pipe 错误不得触发网络重试；统一 spawn 边界消费 `ignore` stdin/stdout/stderr 与 permit pipe 错误；跨 executor 夹具先等原终态事务真实红灯再模拟重启 |
+| F108 | macOS 通过 `npm exec` 前台运行时，一次 `Ctrl+C` 被终端进程组与 npm 包装层瞬时重复投递，supervisor 误走 repeated-signal 强停 | 合并同一物理按键的瞬时重复，同时保留真正二次信号的紧急出口 | 同种 OS signal 在 50ms 内只入队一次；不同 signal、显式 `cli-stop-*` 与窗口后的第二次 signal 保持原语义；CLI 24 passed/1 skipped，最终 tarball 真机输出 `daemon stopping reason="cli_sigint"`、前台 exit 0、状态/监听/PID 全归零 |
 
 ### 5.1 独立评审状态
 
@@ -245,6 +248,8 @@ modules/c、官网 Docs 与 `docs/11` 的现时态,见 §5。
   为最终实施边界重生 schema 2/6 bundle；对 `07c253d` 的最终复核又确认 F105 已关闭。全新
   公开过滤树 `f38b3d8c93c47adba09eb67882adee1d5f817108` 运行 `--check-bundle` 为 exit 0，结论 Go，
   无 actionable P0/P1/P2。
+- rc.3 发布后的首次托管门又暴露 F106–F107；它们不在上述 Go 的本地/实体环境中可见。
+  rc.4 修复必须在新的零上下文实施复审与发布复审后才可推送，不沿用 rc.3 的 Go 结论。
 - 外部 Codex 108 与全新 session 112 都没有产生 final message。108 日志为 `1893732` bytes、
   SHA-256 `7669f8311c5adb809827b3f2b4716f855b8ef10d3d68a7e7b68acad6d3e2079f`;112 在 1200 秒
   守卫下 exit 124,日志 `1469747` bytes、SHA-256
@@ -255,6 +260,11 @@ modules/c、官网 Docs 与 `docs/11` 的现时态,见 §5。
   `5171a10f76afb21611b9dfdfea9d6fd525f01e4d10e05504dedcc6bdd0393764`，终态 `end_turn`；
   后续 Windows ACL 追加尝试在零文件改动时因循环输出终止，exit 130，日志 `702824` bytes、SHA-256
   `71ab7a68a124dc88f1ca695612e0bae596dc19362b3a3d8acc8fadcc3f000a16`，不作为通过证据。
+- Grok F108 施工日志 `logs/2026-08-23-rc4-f108-grok.jsonl` 为 `1504789` bytes、SHA-256
+  `cadac83a2881a3fd3715524111fb9ae8e2c37f9e080a469de7ba3e8e5b511793`，终态 `end_turn`；其
+  sandbox 内 supervisor 聚焦测试 5 passed/2 skipped，完整 CLI 门因 sandbox 禁止 `ps` 未通过。
+  主会话在真实主机重跑完整 CLI 为 24 passed/1 skipped，并以最终 tarball 真机复验，未把 sandbox
+  失败伪写成通过。
 
 ## 6. 快速启动方案裁决
 
@@ -275,35 +285,34 @@ package README 和 Release notes 一致呈现。
 
 本轮当前已取得的直接证据:
 
-- 最终实施边界 `57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e` 的 schema 2/6 bundle 已重生；
-  `node scripts/week-audit.mjs --check`:[ok] `main=115 all_refs=131 extra=16 paths=434 docs=219`。
-  `--check-bundle` 只允许在剔除私有软著材料后的公开过滤树运行,内部完整树按设计拒绝该模式。
-- 运行时与发布两路最终独立复审均为 Go，无 actionable P0/P1/P2；公开过滤树
-  `f38b3d8c93c47adba09eb67882adee1d5f817108` 为 1356 个跟踪文件，`--check-bundle` 为 exit 0，
-  三个私有提交对象均不可解析，软著目录不存在。
-- `node scripts/check-doc-links.mjs`:[ok] 最终证据候选的活跃文档 97,broken 0。
-- rc.3 回修后的最终 `just ci`:[ok] exit 0;contracts 111、platform 13、console 278、
-  CLI 20 passed/1 skipped、daemon 1883 passed/5 skipped、pipeline 34 passed;emoji、颜色、迁移工具与
-  实体发布证据自测同绿。Linux 三个原失败反例与相邻恢复反例连续五轮均为 4 passed/98 skipped；
-  `tier1-executor` 全套 102 passed，未再出现未处理 stream error。
-- `pnpm --filter @saydo/cli verify:distribution`:[ok] 真安装入口启动;读回、owner/attach、
-  端口冲突、recovery-only、Tier1 重启恢复及 daemon/agent/后代无孤儿全绿;输出包为
-  `saydo-cli-0.1.0-rc.3.tgz`,17 个成员,安装入口为 `saydo`。
+- rc.4 最终实施边界为 `b768089585d710255d61a693c2489ccf425f446f`：`951249e` 修 F106/F107，
+  `b92b0ea` 修 Windows 标准 npm shim 与脚本 basename 夹具，`b768089` 修 F108。schema 2/6 bundle
+  将以该实施边界重生；公开 `--check-bundle` 只在剔除私有软著材料后的过滤树运行。
+- Mac 最终 `just ci` exit 0：contracts 111、platform 13、console 278、CLI 24 passed/1 skipped、
+  daemon 1885 passed/5 skipped、pipeline 34 passed，emoji、颜色、迁移工具与实体发布证据自测同绿。
+- Linux daemon 全套在 F107 修复后为 1883 passed/7 skipped、无 unhandled `ECONNRESET`；最终
+  runtime-child + tier1-executor 为 111/111，CLI 为 24 passed/1 skipped，完整 distribution exit 0。
+- macOS、Linux、Windows 的最终 distribution 均读回同一身份：
+  `sourceRevision=043c335d6e6f6f5a293aa2b04a1c7282ff594a5f3249aceb3c60c126f93066b9`，
+  `buildId=0.1.0-rc.4+043c335d6e6f.p1-0-0.c043c335d6e6f`；17 个包成员，生命周期与零孤儿门全绿。
 - `pnpm exec playwright test`:[ok] 36 passed(2.7m),其中 11 路由亮暗主题均经重载后属性断言，
   22 张 PNG 均可解码，OCR 扫描未检出本机用户名、`/Users/` 或工作区路径；fresh-origin 真点击
-  `peek-anyway` 并在整页重载后保持选择。
-- 最终实施冻结后重新执行 `build-release-artifacts --write/--check`;两次隔离构建字节一致。新 tgz 为
-  `1146345` bytes、SHA-256 `a0f4e7da0166574b1cfda7792efdd8679a41a704a4b336a2e99beeb70a7f5314`、
-  17 个成员,`sourceRevision=baf15c4f1391a5ab2bde63d59b0dd0d12c15301ae201a59bb13140cf06dcfbff`,
-  `buildId=0.1.0-rc.3+baf15c4f1391.p1-0-0.cbaf15c4f1391`；独立 `--check` 为 exit 0。
-- 实体 Windows 从 SHA-256
-  `d6854bb4e47fe6debea072bce07db1033261b9c2c30458b660c80d944a3189cf` 的最终评审回修 Git index 归档与
-  空安装根运行；Node `v22.22.0`、pnpm `10.33.1`，frozen install 没有执行 `better-sqlite3`/`node-gyp`，
-  SQLite 查询、platform 13 项、完整 CLI distribution 全部 exit 0。安装入口为 `saydo.cmd`，ACL owner
-  精确 readback、attach/冲突、Tier1 恢复与 daemon/agent/后代零孤儿均通过。完整记录见
-  `e2e/evidence/2026-08-23-rc3-release-recovery.md`。
+  `peek-anyway` 并在整页重载后保持选择；F108 只改 CLI supervisor，未改 UI 资产。
+- 最终实施冻结后重新执行 `build-release-artifacts --write/--check`；两次隔离构建字节一致。tgz 为
+  `1146972` bytes、SHA-256 `d4ac2e2866a7ffb5191a8d4c3cea97b8581a7ecbe8380f698b42f661a1eb370e`、
+  17 个成员，身份同上；独立 `--check` 为 exit 0。
+- Mac 最终 tarball 真走 `npm exec`：status/health/ready/console/SQLite 通过，单次 `Ctrl+C` 输出
+  `daemon stopping reason="cli_sigint"` 且前台 exit 0，状态为 available、监听与记录 PID 均为 0。
+- 实体 Windows 使用 `core.autocrlf=true` 的全新 Git checkout，HEAD 精确为 `b768089`，工作树 clean，
+  受控源码 CRLF 为 0；Node `v22.22.0`、pnpm `10.33.1`，空依赖安装、CLI 24 passed/1 skipped 与
+  distribution 均 exit 0。最终 tarball 真启动后 status/health/ready/console/SQLite 通过，单次
+  `Ctrl+C` 前台 exit 0，监听、daemon PID、supervisor PID 与匹配进程均归零。daemon 代码边界
+  `b92b0ea` 的 runtime-child + tier1-executor 111/111 另已在同一实体主机通过。
 - rc.2 的公开 Actions run `32616479767` / `32616480151` 首次运行失败且未创建 Release；旧 tag
-  按发布纪律保持不移动且不重跑。当前所有发布入口和 `--check-candidate` 的 11 个锚已统一为 rc.3 candidate。
+  按发布纪律保持不移动且不重跑。rc.3 的公开 CI `32622757288` 与 release
+  `32622757385` 同样为 attempt 1 / failure，没有创建 Release；Windows notice 换行对账与 Linux 四次
+  agent pipe `ECONNRESET` 分别形成 F106–F107。当前所有发布入口和 `--check-candidate`
+  的 11 个锚改指 rc.4 candidate。
 - 官网本地视觉复核:[ok] 中文/英文桌面与窄屏安装入口完整可读,三条命令无横向溢出、两张图标均加载成功,
   浏览器 console 无 warning/error;关键章节 DOM 各恰好一份。超长截图在平滑滚动中出现拼接伪影,
   未作为页面重复的证据。
@@ -313,9 +322,9 @@ package README 和 Release notes 一致呈现。
 
 1. W5.4-c 的真实 Claude PreToolUse/PostToolUse hook 全链与 live conformance。
 2. 四场真人语音体验、S3 真人过卡与主观听感。
-3. Windows system service、Windows 通知/SAPI TTS 与 Linux systemd 常驻安装;rc.3 只承诺前台运行。
+3. Windows system service、Windows 通知/SAPI TTS 与 Linux systemd 常驻安装;rc.4 只承诺前台运行。
 4. HarmonyOS 真机当前离线且 HAP 缺签名 Profile;不得把 unsigned build 写成装机通过。
 5. npm registry、App Store、Google Play、AppGallery 发布;本轮不代替 owner 的商店与 npm 操作。
 
-最终独立复审、Mac/Windows Release URL 实跑、GitHub Release、公开 Actions、
+当前 rc.4 的最终独立复审、Mac/Windows Release URL 实跑、GitHub Release、公开 Actions、
 官网部署、真机结果与 Git/worktree 清理证据在发布阶段完成后续写本文,任何失败保留原始结论。

@@ -15,7 +15,7 @@
 - `docs/04-key-mechanisms.md` §3(会话经济学)/§4(回叫)/§5(审批 S0–S3,重点 §5.2 远程通道)
 - `docs/07-tech-stack-decisions.md` D11/D12/D13(推送/移动外壳/移动连接选型)
 - `docs/09-data-contracts.md`(§9 DDL、§10 VoiceHub WS 契约)
-- 实施仓现状可参考(只读):/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/(voice/hub.ts、callback/、approvals/、session/)
+- 实施仓现状可参考(只读):~/WorkSpace/SayDo/packages/daemon/src/(voice/hub.ts、callback/、approvals/、session/)
 
 ## 评审任务(按优先级)
 

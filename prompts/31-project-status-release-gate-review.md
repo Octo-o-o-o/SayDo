@@ -1,6 +1,6 @@
 # SayDo 发布前回修终审 31
 
-请在只读模式审查 `/Users/wangyixiao/WorkSpace/SayDo` 当前工作树。禁止修改文件，禁止启动
+请在只读模式审查 `~/WorkSpace/SayDo` 当前工作树。禁止修改文件，禁止启动
 subagent，禁止 commit、push、deploy、restart 或写生产数据。只报告仍然存在的 A/B 级问题；
 没有则明确写 `A=0, B=0, Go`。
 

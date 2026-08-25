@@ -2,7 +2,7 @@
 
 > 日期：2026-08-13（对象标题为 2026-08-14 复核版）  
 > HEAD：`c5148ab597ba08bd07aff7045418326ce263a180`  
-> 评审对象：`/Users/wangyixiao/WorkSpace/SayDo/docs/review/2026-08-14-saydo-phase-gap-analysis.md`  
+> 评审对象：`~/WorkSpace/SayDo/docs/review/2026-08-14-saydo-phase-gap-analysis.md`
 > 只读；未运行 lint 或测试。
 
 ## 终裁

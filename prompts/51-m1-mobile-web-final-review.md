@@ -2,7 +2,7 @@
 
 只读审查当前未提交工作树，不要修改文件。基线为
 `415df2a86a5208c1f68672bab0c75618f3070594`。规格正本仍是
-`/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-08-11-SayDo移动端完整方案-v1.md`
+`~/WorkSpace/OctoAgent/docs/product/2026-08-11-SayDo移动端完整方案-v1.md`
 v3.2/v3.3（冲突以后者为准），canonical 为本仓 docs/09 与 docs/11。
 
 前轮 `research/codex-findings/50-m1-mobile-web-fix-review.md` 判 4A/3B No-Go；本轮只需：

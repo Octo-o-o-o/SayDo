@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
-  "purpose": "冻结将进入公开快照的完整路径 exact-set 与逐文件内容；七个生成物由 integrity.files 闭环",
-  "implementationBoundary": "57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e",
+  "purpose": "冻结 Git index/tracked 公开候选 exact-set 与逐文件内容；七个生成物由 integrity.files 闭环；私有排除集只记 count/digest；无关 untracked 不入公开集",
+  "implementationBoundary": "b768089585d710255d61a693c2489ccf425f446f",
   "publicExcludes": [
-    "artifacts/release/copyright/"
+    "artifacts/release/copyright"
   ],
   "generatedOutputs": [
     "docs/review/2026-08-22-week-audit-ledger.md",
@@ -14,6 +14,8 @@
     "research/week-audit/2026-08-23-publication-manifest.json",
     "research/week-audit/2026-08-23-remediation-ledger.json"
   ],
+  "privateExcludedCount": 8,
+  "privateExcludedDigest": "cae0ff39b54fc1c59821f686c9a015c1ff2c6789e8880d0d6832168ea545e9a9",
   "entries": [
     {
       "path": ".contract-v032.md",
@@ -30,18 +32,25 @@
       "sha256": "2699a0bec8f9e34bdf8a8ae7dbe54775580058eb6de8205434c24ea31d372413"
     },
     {
+      "path": ".gitattributes",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 19,
+      "sha256": "d60f352d0db1404c70afb4bb8b2ca3fd1c610572aa40720e8a0b7baa7885418c"
+    },
+    {
       "path": ".github/workflows/ci.yml",
       "kind": "file",
       "mode": 420,
-      "bytes": 3181,
-      "sha256": "24c8ae2d1fed5d06d4f521621069ba3c3928ad9d603e31bbffe580001335109b"
+      "bytes": 3288,
+      "sha256": "5c203fa5a8c047d43282129d876cf73f580a3103d78bbfc6c3bbeb53b25b2e4b"
     },
     {
       "path": ".github/workflows/release.yml",
       "kind": "file",
       "mode": 420,
-      "bytes": 15765,
-      "sha256": "b73efe360a4388a59572b8301f995454ffb6428febc529a7c6e7206ed9e651a0"
+      "bytes": 19600,
+      "sha256": "a7484bd66de3004348eaf00395699230e88788db4ce0dfff3b8ceab106d4fada"
     },
     {
       "path": ".gitignore",
@@ -502,8 +511,8 @@
       "path": "apps/ios/build-and-install.sh",
       "kind": "file",
       "mode": 493,
-      "bytes": 543,
-      "sha256": "4b0672981c59ee70df920f0c4d8505f39676b98fb69d85fbd9098fec7a2a10ff"
+      "bytes": 885,
+      "sha256": "9b981723ef18f2b3fffcdada245710b5302f2f5f919888e936e2c33729898228"
     },
     {
       "path": "apps/ios/project.yml",
@@ -516,15 +525,15 @@
       "path": "apps/ios/README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2415,
-      "sha256": "499d8b0eb2c96707088cf6b52c1adaf28b94ebb7e0e9295d4dec447a11b12d35"
+      "bytes": 2669,
+      "sha256": "19bccaaf7149f5873904b8a8b9a2769094ab219a11b0e1b38f89057d564fa5ab"
     },
     {
       "path": "apps/ios/REVIEW-60.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 6827,
-      "sha256": "637746f951930210424854b8f63379b33e61902d5b246fab44d26589c2536287"
+      "bytes": 6811,
+      "sha256": "3edc96605ce31463e4142b8922b2ba71622698a088e342c0210349887395e969"
     },
     {
       "path": "apps/ios/SayDo/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png",
@@ -895,21 +904,21 @@
       "kind": "file",
       "mode": 420,
       "bytes": 125658,
-      "sha256": "99c3f05c965a68c9750008f1cbe25c71ddc1bee63aa9e99e8f21aa8c795fe075"
+      "sha256": "49bb1d6e6838948957a71646a16e132b48fae0ce26f1a2308696892dabdfe967"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/docs/index.html",
       "kind": "file",
       "mode": 420,
       "bytes": 146749,
-      "sha256": "83cbb31968947d26df2228ce748a7b728b0c1ba3c720f3b920967cd5dddfc92f"
+      "sha256": "a7daad1aceee87b5d0885c86ce7d46dbda5a6f719aaa708cd5e0ac322e2e5004"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/index.html",
       "kind": "file",
       "mode": 420,
       "bytes": 43666,
-      "sha256": "5b4e5fca26535793504fef7c13cd88516e9745a3054476121bb7c0eddcfb7107"
+      "sha256": "918865f472212da8846619d429360d9e54d2c9e36dd9d9c9d8c82b2344ba100e"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/privacy/index.html",
@@ -958,7 +967,7 @@
       "kind": "file",
       "mode": 420,
       "bytes": 42476,
-      "sha256": "d80abbfda64bc849bf7c84e0074c59cbf6e773309e3aa38868ac63017bf91d09"
+      "sha256": "840352f77f4e49837bf5f9a690fd91723747ed93bad1118bb0f771a3a8a4b3e6"
     },
     {
       "path": "deploy/saydo-octoooo-com/privacy/index.html",
@@ -1048,8 +1057,8 @@
       "path": "docs/07-tech-stack-decisions.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 35919,
-      "sha256": "ea56c3c0e8427a92a96b69af4f4780d6d15a943841f5d9998aa12395979e117e"
+      "bytes": 35929,
+      "sha256": "60700947018c2486e9ff722e8cf1a7b219b426715f7a1900eff535147756587c"
     },
     {
       "path": "docs/08-module-design.md",
@@ -1097,8 +1106,8 @@
       "path": "docs/adr/ADR-003-os-adapters.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 14121,
-      "sha256": "0f5c71c1e1890a68199719d4abd98a60971a45c9d3c34c6b1c6a7d120130e1ee"
+      "bytes": 14745,
+      "sha256": "2c11f65b4f9e007127e332e0c8704685265fc9c6baef8cf77c525e2b16c35a49"
     },
     {
       "path": "docs/adr/ADR-101-asr-volc.md",
@@ -1174,8 +1183,8 @@
       "path": "docs/plan/2026-08-13-deepseek-harness-borrowing-assessment.fable.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 26466,
-      "sha256": "22621aae0e90ddac7f636bc328c3387c376d31028f92c5817da95b4201f99cbb"
+      "bytes": 26448,
+      "sha256": "38f47534885cff606fe6749dc37ca79c1a8824519ca4dd2a0a1ed70af154c98e"
     },
     {
       "path": "docs/plan/2026-08-13-ui-standardization-audit.md",
@@ -1188,22 +1197,22 @@
       "path": "docs/plan/2026-08-15-default-runner-decision.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 25401,
-      "sha256": "6b3ee3b0822c917c2d52eb8d882dbb94b8cc52eb079bd7698dc3c3775b599997"
+      "bytes": 25385,
+      "sha256": "7cbf95cd13d96537da1f98a3ac90d9c8a493b4ade1b6ebb8b7c2b2c5abac05b0"
     },
     {
       "path": "docs/plan/2026-08-17-dsh-plugin-line-assessment.fable.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 60744,
-      "sha256": "7ddbe55be6142496aac06b235695197e19e35e0290df73c6b785990705f142ba"
+      "bytes": 60712,
+      "sha256": "c6f45f4175aa40fc465845c4ee4311b0fc61814a2cb239c6a6e09c050ef6cfd3"
     },
     {
       "path": "docs/plan/2026-08-19-w54-claude-cli-tier1.fable.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 91841,
-      "sha256": "e36e5b1041cb5ef3ba4c78dff9b583d29c9fd27f4ae39630bcd5e2ba4411ff66"
+      "bytes": 91831,
+      "sha256": "c033b6670fa9001d89d0835dc3f38e4f05bcf70c389d8f506b79962d0c705789"
     },
     {
       "path": "docs/plan/2026-08-20-repo-public-readiness.fable.md",
@@ -1223,8 +1232,99 @@
       "path": "docs/plan/2026-08-22-week-audit-faststart-release.fable.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 15582,
-      "sha256": "3423401a64a047875372b1c00a30815c906bd973a56266d31f0cf41efffb11b1"
+      "bytes": 21725,
+      "sha256": "0074639c11d3307a73a4b24f5c18a2851bc1787468a4f9d670d5aa67e61a0113"
+    },
+    {
+      "path": "docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 548204,
+      "sha256": "6641d2b2462fb9e7548f61ad1af9de228dedefcfa7c23b55bd31f0105d69fbd0"
+    },
+    {
+      "path": "docs/plan/2026-08-24-ai-supply-owner-decisions.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 21288,
+      "sha256": "bb61b24be934eb3307abc9ab1cb173c6dfa9ca850b8ab9aca6e0c339db69c2ea"
+    },
+    {
+      "path": "docs/plan/ai-supply-contracts-draft/01-core-contracts.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1126890,
+      "sha256": "81413d2a0573aadd9f4ec00555dd87b4279a8ede8ca20927adf8b5564e173530"
+    },
+    {
+      "path": "docs/plan/ai-supply-contracts-draft/02-rights-billing.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 588,
+      "sha256": "b0e52c632cb68ab2be7a695b2db5f9aed4238b972a8be7559fbfe6226f624e94"
+    },
+    {
+      "path": "docs/plan/ai-supply-contracts-draft/03-extension-points.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 22609,
+      "sha256": "df588af6b19a4a69bd7737e7fcaf0d07b4a8c66659ae0f571c0b8971fa1f6f4f"
+    },
+    {
+      "path": "docs/plan/ai-supply-contracts-draft/04-inference-ir.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5887,
+      "sha256": "96369e390afc38c638ec5e595b2074500d051d50a9d50c148ed5bb1152545863"
+    },
+    {
+      "path": "docs/plan/ai-supply-contracts-draft/05-control-plane.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1594,
+      "sha256": "f995d3e02d5cdce35bbe346e8494ab5bca24ad81d1ea4631e2ab0be5421509f1"
+    },
+    {
+      "path": "docs/plan/ai-supply-contracts-draft/06-sdk-compat.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 29993,
+      "sha256": "8cece321c4e87f3cbdd214d60c5b15c87da8eefb77f647a1fafa307b02f24e6b"
+    },
+    {
+      "path": "docs/plan/ai-supply-contracts-draft/07-reference-monitor.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 61152,
+      "sha256": "1ed9c480a25d246eaef4ccf56b9e1d8e0dcd3379c264b6c67ec6379d6112537e"
+    },
+    {
+      "path": "docs/plan/ai-supply-contracts-draft/08-wire-budget.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 732410,
+      "sha256": "1e6b2c1dc5fc282908f3c50d6c46bff2277082c6174c4aa827255bd0f91db469"
+    },
+    {
+      "path": "docs/plan/ai-supply-contracts-draft/09-public-truth.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 158175,
+      "sha256": "649725de3e440d9132aed8aeccd7b7d7246e0c407f5c33d27197356aff69b7f9"
+    },
+    {
+      "path": "docs/plan/ai-supply-contracts-draft/10-ui-state-copy.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 144949,
+      "sha256": "2129df1a36114fe07f6bf63e4e547e79ac226a8306a27228039dced457da1490"
+    },
+    {
+      "path": "docs/plan/ai-supply-contracts-draft/README.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5584,
+      "sha256": "9345dc5d81ece78bc0324b70eed107b434728ba4829775b7ff9ba4f869050551"
     },
     {
       "path": "docs/plan/IMPL-PROMPT-10-W54A-CLAUDE-CLI.md",
@@ -1269,53 +1369,60 @@
       "sha256": "60a084ff86a81315da43fb6b8fd70fd0eac092305629ab586fb4ea9b5505e592"
     },
     {
+      "path": "docs/plan/IMPL-PROMPT-16-W54B-CLOSEOUT.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 14298,
+      "sha256": "3bb91b9062c34488c511bb6230c2a80ad3acf94e3ac94f61479d974a67515bba"
+    },
+    {
       "path": "docs/plan/IMPL-PROMPT-2-CLOSEOUT.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 12198,
-      "sha256": "a39982b0d44755a2f21a3b6c0e151441f2b3ce1b2b03b35454f88ddbf4db0478"
+      "bytes": 12054,
+      "sha256": "51274ca28a5728239da643d2c89d1916462943b7ca31ffdb73d7f49d3c749094"
     },
     {
       "path": "docs/plan/IMPL-PROMPT-3-WIRING.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 5682,
-      "sha256": "eeeaa2829572c10e5dba9ee5cc55d6ffc2b99d06f7cea1f63e9f4044825b2612"
+      "bytes": 5634,
+      "sha256": "0363ffedbe579eafc380a5f0b65045d41f9dc220dac2f5b3d094c9916f3eedc8"
     },
     {
       "path": "docs/plan/IMPL-PROMPT-4-EXECUTOR.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 6094,
-      "sha256": "7409dea16eb63280a60ec8c4f11ff1cc23a28b01623cf4288838cb0a9ebfe45d"
+      "bytes": 6046,
+      "sha256": "40ffd3cbf3417e30ff05c2493a2aed71718061e1b2eeb979e8b18407025291c3"
     },
     {
       "path": "docs/plan/IMPL-PROMPT-5-PULLFORWARD.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 10694,
-      "sha256": "5cf05c30fe67efa520362f3264183d657f61f0c8e0bcb7f33101429968ea581f"
+      "bytes": 10646,
+      "sha256": "1a03ef7a801073354510ab1393b6000620acd7c05902a6f0b862f59c4c145ed8"
     },
     {
       "path": "docs/plan/IMPL-PROMPT-6-W1.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 5757,
-      "sha256": "ec91dac94b5bbca227cdbd0b287f8a5e72b50787239992f7dc28c95191f07e08"
+      "bytes": 5725,
+      "sha256": "8ec60493757fd143ae6cd3bc3755c909f809863ca15f0584163eb5f2c6f7170e"
     },
     {
       "path": "docs/plan/IMPL-PROMPT-7-W5A.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 8597,
-      "sha256": "ccc57cf93ee62754ae51be1e2d832115dc9afacd4b0e60569c6cf13622cb6c4e"
+      "bytes": 8565,
+      "sha256": "06f6ddbbe7ddef5d8dacbebeed5cc2df5715990eccd18c586e7f4226dad63f5f"
     },
     {
       "path": "docs/plan/IMPL-PROMPT-8-W4.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 12314,
-      "sha256": "c6d857ae48af378eb9480dce89e81a4adc4fc8cf45b6000c8f48ba7212da9568"
+      "bytes": 12282,
+      "sha256": "2d93ab408285b2c9fc9b3c09f4d6476a6130aa0189f15b1f4a62d93cb9dddad6"
     },
     {
       "path": "docs/plan/IMPL-PROMPT-9-CMDEFFECT-HARDENING.md",
@@ -1328,8 +1435,8 @@
       "path": "docs/plan/IMPL-PROMPT.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 11292,
-      "sha256": "eeef16a5f0723fda0affc2d638f9391e74dbe480dad0528f3422d59e2759abbf"
+      "bytes": 11244,
+      "sha256": "2d37ce0071dab5600a34717a78111cb8ec8d75ecfb70e377f3a30ffff248aaa9"
     },
     {
       "path": "docs/plan/IMPLEMENTATION-PLAN-2.md",
@@ -1342,8 +1449,8 @@
       "path": "docs/plan/IMPLEMENTATION-PLAN.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 47188,
-      "sha256": "b305754a21a0385e5a384d5f00065c13338ff076ce4ba9a50382da8c8b9826dc"
+      "bytes": 47172,
+      "sha256": "4ab5b307a14520dfd478977bf99823fd01f6d8cd73c32636226160833543d567"
     },
     {
       "path": "docs/plan/LINUX-ALIGNMENT.md",
@@ -1356,8 +1463,8 @@
       "path": "docs/plan/MIGRATION.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 19521,
-      "sha256": "ce0cad4baef5fd021dfe486272d051be58187a1cc6a26e679adff0c884370ce0"
+      "bytes": 19361,
+      "sha256": "6dee96d0e82d3952cf5493bc6c3b44db1fb711b6883cf922b199479cfe464208"
     },
     {
       "path": "docs/plan/migration/migrated-files.tsv",
@@ -1398,8 +1505,8 @@
       "path": "docs/plan/README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 697,
-      "sha256": "05dbb03f2f3fc95b644f015e71cf517d4399cac39edf5a8a285861cf296d1bff"
+      "bytes": 2203,
+      "sha256": "700815fc12e3752afc29cde38578f154e860ef7b69abc5f62001dcf7303191d9"
     },
     {
       "path": "docs/plan/REPO-MERGE-PROPOSAL.md",
@@ -1454,8 +1561,8 @@
       "path": "docs/release/metadata.json",
       "kind": "file",
       "mode": 420,
-      "bytes": 7724,
-      "sha256": "887aa4c666a9a15fe916e1618c0cd4572f677dcf1dbf05bf409bbb02f33e6049"
+      "bytes": 7708,
+      "sha256": "d8623b8ba32b8094ecde8be275770c08cb15d0fe0d0e198f898892c052ff732b"
     },
     {
       "path": "docs/release/name-occupancy.md",
@@ -1493,6 +1600,20 @@
       "sha256": "b15effd0df2bbd28444a7171465b955fe7d25e09cabf2fbf888f03d6ae5a7c52"
     },
     {
+      "path": "docs/release/v0.1.0-rc.4-assets.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 934,
+      "sha256": "323631019fb0400fef4f1a52abc02f4f7ec29eba2fcab051c317a531b3d085ed"
+    },
+    {
+      "path": "docs/release/v0.1.0-rc.4.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2437,
+      "sha256": "e0971aeec9a30afeab09bab0c407a1348299eb894b99d13166a5f2c96dfaa06f"
+    },
+    {
       "path": "docs/review/2026-08-13-mobile-gap-audit.fable.md",
       "kind": "file",
       "mode": 420,
@@ -1524,8 +1645,8 @@
       "path": "docs/review/2026-08-16-remote-mobile-w0-impl-readback.fable.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 4888,
-      "sha256": "c5e6162880e04dd188f84e67ea8fbbee6753f8a096911a93f04ddf45e382c95e"
+      "bytes": 4872,
+      "sha256": "cbb3770c8a8f89815459da8fea95f450f8af490d469fc86492a19ea8de3e9ed3"
     },
     {
       "path": "docs/review/2026-08-21-w54a-impl-readback.fable.md",
@@ -1538,29 +1659,64 @@
       "path": "docs/review/2026-08-22-week-crosscheck.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 19763,
-      "sha256": "4710baad9b5989f247512530ab8e78078700d914bc010b0cee6d652de4c7b478"
+      "bytes": 19969,
+      "sha256": "caefbf80c08a6cc1f9080b8b74c1fd3594c208b7f83a7a9a0405ec35e9ff274f"
     },
     {
       "path": "docs/review/2026-08-23-week-audit-faststart-release.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 44064,
-      "sha256": "21adfe45afc715002bf530de38da5740b3a5ecbe93d01206377129c613deba35"
+      "bytes": 46553,
+      "sha256": "3aab01fbd0ec6d214931556a75235044588b12ff7c1ed4e574f59ddeda4ea308"
+    },
+    {
+      "path": "docs/review/2026-08-24-ai-supply-review-loop-archive.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 205493,
+      "sha256": "d827d3cec2d53bd96ef0e4e0482e14d4f6f30f9c6892851386aadfde4450f082"
+    },
+    {
+      "path": "docs/review/2026-08-24-ai-supply-v20-loop-diagnosis.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 8629,
+      "sha256": "69b1512db722979db16087464bbf349581aedd19235309fc8b9942b9d85c8fb7"
+    },
+    {
+      "path": "docs/review/2026-08-24-decision-2-impact-analysis.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 12999,
+      "sha256": "d4b2428d602258e57c4da1d62556809a6afad9ac99328ba16f47da44db10e96c"
+    },
+    {
+      "path": "docs/review/2026-08-25-agent-cli-acp-capability-survey.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 10753,
+      "sha256": "ac6c27db958b47eb7fc61b4e14137064a081ce064aa65ef2fc41dc7e1c5c0565"
+    },
+    {
+      "path": "docs/review/2026-08-25-rc4-runtime-final-reimplementation-readback.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 29244,
+      "sha256": "3a22a09e79852b181f437cc25fe2e3a548f0589e9767e70c4a1497145c1ce1a6"
     },
     {
       "path": "docs/site/2026-08-20-docs-page-content.fable.md",
       "kind": "file",
       "mode": 420,
       "bytes": 109654,
-      "sha256": "2d81beef60a6f8af2c79667ff69a0cb39b070139f50b31ef54f398f9883b9b71"
+      "sha256": "8ff3ed5f4774122033c69ff15cfc29a27ac5719e0eb524ef0c9706a276de3ffb"
     },
     {
       "path": "docs/site/2026-08-20-homepage-structure-copy.fable.md",
       "kind": "file",
       "mode": 420,
       "bytes": 23198,
-      "sha256": "ec68186dc28c0266c80d3cfd8832a2707b1feda11a4f571518c5b76245782092"
+      "sha256": "f077475b04b38605cda1a007b75a2feeba2c03865d5bf8067904d98bc83c8866"
     },
     {
       "path": "docs/site/archive/2026-08-20-docs-page-content-v1-glm53.md",
@@ -1664,22 +1820,22 @@
       "path": "e2e/evidence/2026-08-16-full-acceptance/manual-retest-needed.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2958,
-      "sha256": "108113c01980cab5e87b7ae4f48943dbdde5265679f030e7e76dde438ad578c0"
+      "bytes": 2956,
+      "sha256": "71fece115fadbd98746a741233dc9e2377696553bdcc4da4d6ddb481192fb4fc"
     },
     {
       "path": "e2e/evidence/2026-08-16-full-acceptance/plan.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2260,
-      "sha256": "8f561c97d78350b63ee5f7c7737c3885bc36671484ff157833156b1a363b18b1"
+      "bytes": 2244,
+      "sha256": "03dd2eef19e04da6a4c3a3868cce49a46d26ae90a72e72b7e06dd271bc1582df"
     },
     {
       "path": "e2e/evidence/2026-08-16-full-acceptance/report.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 12165,
-      "sha256": "05a941e938457d00f687c3a3d0dd00d9ddd51bad3ff7de03c63fa6870c3a5987"
+      "bytes": 12163,
+      "sha256": "1af538d45e0318639d41ab0ab0089f747ca09de8c5674cb055a7ed2545130481"
     },
     {
       "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/01-D1_20260816-175009_PASS.png",
@@ -1825,8 +1981,8 @@
       "path": "e2e/evidence/2026-08-16-full-acceptance/steps.json",
       "kind": "file",
       "mode": 420,
-      "bytes": 14627,
-      "sha256": "0ed0b0ffcd6188177c5af108d7c41aa03a6eab50f1fd2474833a0053bcf729bb"
+      "bytes": 14609,
+      "sha256": "0cd8a884740e62e6b097a5b685b51b56141c356650aafed26d452580c2293656"
     },
     {
       "path": "e2e/evidence/2026-08-16-full-acceptance/walkthrough.mjs",
@@ -1839,15 +1995,22 @@
       "path": "e2e/evidence/2026-08-22-mobile-shells-device-build.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3199,
-      "sha256": "489aa30aa99b8808fbb3bae6bf251f288bd944d59fbdb304dcf64546789cf286"
+      "bytes": 3183,
+      "sha256": "31212ca0e565c3e0883e7bf83c507634d73e135232824232455969af6302b4db"
     },
     {
       "path": "e2e/evidence/2026-08-23-rc3-release-recovery.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 5770,
-      "sha256": "9eff6f51764a7a7c54eaaa127022c2aa3be0d7d99ef835b8848ad58f3c6c160c"
+      "bytes": 7062,
+      "sha256": "0f42042355360a2d086a4283c281928bc9f97d758523ac8a636b57cf5c9732da"
+    },
+    {
+      "path": "e2e/evidence/2026-08-23-rc4-release-candidate.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 7289,
+      "sha256": "0acc7d829882cbbd3a07ad1bc6ce54666654ca767d09a506ed1484edc9feefcf"
     },
     {
       "path": "e2e/evidence/a3-armed-batch.md",
@@ -1867,8 +2030,8 @@
       "path": "e2e/evidence/cmdeffect-hardening.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 18944,
-      "sha256": "613ce5f41ebc239c5060ebe5e8be90ae2a6b789c9c8212ecd6ebceaf5f4a43ad"
+      "bytes": 18896,
+      "sha256": "4b9b43332d7de8d180dc5ea56ae367bab6bedb6df1668c231c43abd74de4821d"
     },
     {
       "path": "e2e/evidence/executor-batch.md",
@@ -1888,8 +2051,8 @@
       "path": "e2e/evidence/focus-contract-batch.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 12299,
-      "sha256": "d6cb07d59288c3055e13e9ce307693b15521a87e233837f0a377512aa5b49de5"
+      "bytes": 12283,
+      "sha256": "ce55bdabc4f4fd48b5914c8e4e3d5a8f8a860f0df0af4c7269af5fc0c8616fb4"
     },
     {
       "path": "e2e/evidence/gate0-checklist.md",
@@ -1979,8 +2142,8 @@
       "path": "e2e/evidence/remote-mobile-w0.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 5471,
-      "sha256": "83efe3e93da18a3a544f2eab0b18fbcdde430e2fc084498ffe3c23e5bd5e7a1a"
+      "bytes": 5455,
+      "sha256": "32c9e43c6f7b23c3e26b6cf7d0c7336870457095889aee9669ade514c30ec48f"
     },
     {
       "path": "e2e/evidence/review-m-batch.md",
@@ -1993,15 +2156,15 @@
       "path": "e2e/evidence/s1-demo-wiring.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 8353,
-      "sha256": "8f84da46fc946f157ea6cb0b634c0581d64d06546389cd518e78b959aa915122"
+      "bytes": 8337,
+      "sha256": "1479dc5eab64aa67e8378526ddfcf35cdd63ed5ce5bb9ceb0b6f598c49153aa1"
     },
     {
       "path": "e2e/evidence/s2-callback-channels.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 9215,
-      "sha256": "c905772e050ad1c514c4f059b5e5bce28059c999c1fb4e7cfd4de29fb94a3afc"
+      "bytes": 9199,
+      "sha256": "0726a8ad5b55a2c2ccba4042893481a0b9d66cc25823b569591bcfbccc022e4d"
     },
     {
       "path": "e2e/evidence/status-alignment-20260821.md",
@@ -2042,8 +2205,8 @@
       "path": "e2e/evidence/w54b-batch.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 26643,
-      "sha256": "be59b3302b7e374310130c2a8933ef398ba4a7a032b7bad8caf80cec3103e66e"
+      "bytes": 26627,
+      "sha256": "ffaf70fc6f02a16eb02eef5227b2d2296d71861930529275f7ee4fd7547ea52d"
     },
     {
       "path": "e2e/evidence/w5a-batch.md",
@@ -2056,8 +2219,8 @@
       "path": "e2e/evidence/windows-alignment.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 7695,
-      "sha256": "919507e67c090641ecee72786c8f2993b356a1784c2a4376bc08d5a809e1befe"
+      "bytes": 7681,
+      "sha256": "ce231a0fd7609d1221af805835b87f246fad16d9a4412792575445c86cd3197b"
     },
     {
       "path": "e2e/evidence/wiring-batch.md",
@@ -2084,15 +2247,15 @@
       "path": "e2e/owner-sessions/runtime-deploy.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 8175,
-      "sha256": "00a0c1697b2268dad2631d75dfc2110209cc2edf1a00e4d691efd9dba3653d5c"
+      "bytes": 8143,
+      "sha256": "83d6d4a7871b7d25a19c2e20e7b0cdae76e658e2d1409f89ad6bf389912ead57"
     },
     {
       "path": "e2e/owner-sessions/session-1.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 7930,
-      "sha256": "5cc1fd9d9e0608273283ffc3ede9e7b38c8fe1cebdf9dda1e8c0c86b20e8e98e"
+      "bytes": 7914,
+      "sha256": "c72e5c9fcc83139416273bccc04e045fd3fae468350fc7e7c735a765d98ae9a3"
     },
     {
       "path": "e2e/owner-sessions/session-2.md",
@@ -2252,8 +2415,8 @@
       "path": "e2e/poc/tier1-live-executor/evidence/events.jsonl",
       "kind": "file",
       "mode": 420,
-      "bytes": 17861,
-      "sha256": "a89aebe9731a3df9e4c529d7ca33a1331da36b0bf3fed01215b61aa8f455775a"
+      "bytes": 17845,
+      "sha256": "00b249811dde0d1d38bf100870a3028710b9647e455b76c287fbdd06701ca6bd"
     },
     {
       "path": "e2e/poc/tier1-live-executor/evidence/frozen-verify.json",
@@ -2665,15 +2828,15 @@
       "path": "HANDOFF.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 34624,
-      "sha256": "31712645b774f4c43977fca937324349748582875ddfd679505302d2c87d5ce0"
+      "bytes": 34452,
+      "sha256": "8f856980ea7b950778e102900282484da29e67d97c9798b2c24b2d5c5e470fb9"
     },
     {
       "path": "history/2026-07-29-migration-and-implementation-status.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 21409,
-      "sha256": "e9a3eccc6a2069805c05bde8bb49f9bf91f4393404a5c09eaf9f0976c41a6ac5"
+      "bytes": 21345,
+      "sha256": "920c157c2d4e1e066d94814cdd7b385343680f698f801dce187619f2d9cf963a"
     },
     {
       "path": "history/DEV-VERSION-LEDGER.md",
@@ -2700,8 +2863,8 @@
       "path": "history/PROCESS-JOURNAL.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 303224,
-      "sha256": "42931b7976f52877b5e7dc2290a679883adb70c2489aee1d0c9dae76bd33909e"
+      "bytes": 355839,
+      "sha256": "77892c6024295b4afa8dee42398b9a0e42ce750db7f57b04c4c1d7b1dc2ae6a6"
     },
     {
       "path": "history/README.md",
@@ -2826,8 +2989,8 @@
       "path": "justfile",
       "kind": "file",
       "mode": 420,
-      "bytes": 1208,
-      "sha256": "aebcf304bf07be7d21be1109d6ff460c27390f0f85860b841405e2e349f8e233"
+      "bytes": 1395,
+      "sha256": "b36e85fd7c867547be2f07ad39e1fd7fc8fad8aa0f6d28ce3770f74610382e11"
     },
     {
       "path": "LICENSE",
@@ -2847,8 +3010,8 @@
       "path": "package.json",
       "kind": "file",
       "mode": 420,
-      "bytes": 978,
-      "sha256": "8bdadc7970192721717aac81a23b2a73f47d60a9550c46ebeb86868237258458"
+      "bytes": 1161,
+      "sha256": "3d8a2f5bcb7fe6bf2858975234f2679d3d6c7d3a7f4a90ea8ae93478589cd100"
     },
     {
       "path": "packages/cli/LICENSE",
@@ -2869,28 +3032,28 @@
       "kind": "file",
       "mode": 420,
       "bytes": 957,
-      "sha256": "d9c189c14ef6e1b3928f4fe8d5137fbe314c1918ffba1d4fed233ca17368f047"
+      "sha256": "e070292b29959906c06dc985e18cf5eaeb2e7d85e4215388de835801985d1c1d"
     },
     {
       "path": "packages/cli/README.md",
       "kind": "file",
       "mode": 420,
       "bytes": 1037,
-      "sha256": "1dca457caa322eea7625b6162e694b934a315788e75840682b2d2caf91ffc054"
+      "sha256": "a57f5abe4f86f172d7f4212cacd900cac816b1dedf7c50767f15c884aa43244c"
     },
     {
       "path": "packages/cli/scripts/build.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 8219,
-      "sha256": "f4880599e10e0370324d3ab6ded7088cbb54035408b519154aaf4998a8ce3b46"
+      "bytes": 8241,
+      "sha256": "51fbe2eb9a75769d01ddcb2522b089a15cb5c899633ed56cd807392407387ce8"
     },
     {
       "path": "packages/cli/scripts/verify-distribution.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 50512,
-      "sha256": "639b1efcd65050d5e7e46d6a8a37b9aa2cb05e36e8a810db9297aea2d36ad8eb"
+      "bytes": 51771,
+      "sha256": "8ec3e688a4ad573567453ff5ec97f259109d01e5b078615ba189b40bdc6fe22e"
     },
     {
       "path": "packages/cli/src/buildIdentity.ts",
@@ -2903,15 +3066,15 @@
       "path": "packages/cli/src/cli.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 1632,
-      "sha256": "cf97d4af4f85edc3fd08a4a85026887a0023b372d92f1454b386fab974a46558"
+      "bytes": 1860,
+      "sha256": "e02a5f0eded467a68c608ad1e214f6ba8b02ccc8f8df47ba09773c812f461ab1"
     },
     {
       "path": "packages/cli/src/emergencyReaper.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 9990,
-      "sha256": "ea1114f5708d63783f2b33314251f11c0dfc9e4a466785ef2b7ca7867da4c441"
+      "bytes": 15050,
+      "sha256": "e4c553945cdf3584cc2ce07e07ccfd3cab63498e3aaf8f860bf83df87d852185"
     },
     {
       "path": "packages/cli/src/open.ts",
@@ -2938,15 +3101,22 @@
       "path": "packages/cli/src/supervisor.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 15309,
-      "sha256": "bd0a2c2b0b858a7831b67d2dc7fba2e90d4f558486f49ef5ab050028ef3e05b0"
+      "bytes": 21746,
+      "sha256": "0b7c0d707cbd93d82f8cee72795b707fa5811ddae5c66e9e1ac78834fef61e00"
     },
     {
       "path": "packages/cli/test/emergency-reaper.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 14350,
-      "sha256": "e542c5db358a6e7763f983f0df3121d720c5bac69fd4390e322c7510091dff64"
+      "bytes": 40611,
+      "sha256": "711cc70a3355df84ce7ddaf2b7e7b83c7bba2c51fc4bfb572c1a708fc7f62c3b"
+    },
+    {
+      "path": "packages/cli/test/fixtures/cli-reap-worker.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1123,
+      "sha256": "b6eb9ee60981e2ca623c94c17e90ea0ed86cf247b737d3cb81bc3c030549f77f"
     },
     {
       "path": "packages/cli/test/options.test.ts",
@@ -2973,8 +3143,8 @@
       "path": "packages/cli/test/supervisor.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 2312,
-      "sha256": "05634bf1d0beeb532d084111d747f726aa6d4a435ba87e6fbd835176b8c718ce"
+      "bytes": 10535,
+      "sha256": "7af9120d9224bad37694219514f845d717a736126b44e261ed60dc12dc3ed31d"
     },
     {
       "path": "packages/cli/THIRD_PARTY_NOTICES.md",
@@ -3512,8 +3682,8 @@
       "path": "packages/console/src/lib/pairing.test.tsx",
       "kind": "file",
       "mode": 420,
-      "bytes": 3082,
-      "sha256": "9fbaab9bea8112452798ac7b0119bfab6c054634cbf0177e73045f52a07e3de9"
+      "bytes": 3310,
+      "sha256": "b48b7d4c45c4d67378bfdda302b6554433acaf5736009a814dfd47db5355e43f"
     },
     {
       "path": "packages/console/src/lib/pairing.ts",
@@ -4660,8 +4830,8 @@
       "path": "packages/daemon/src/api/recoveryOnlyServer.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 31933,
-      "sha256": "980d1e35f212c58dbf5270b411cc37f966a9fcd03784eaa066054d5cd92c2399"
+      "bytes": 34312,
+      "sha256": "36715cb9d5625b81c2ca6ce3a261df630bfad2a0740e4d8f42d71658986f6ccf"
     },
     {
       "path": "packages/daemon/src/api/s3Routes.ts",
@@ -4961,8 +5131,8 @@
       "path": "packages/daemon/src/config/cliRuntime.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 21958,
-      "sha256": "da87d52ea4400b661467debb656dc6ab045569cb42152fed92291c56040b31bd"
+      "bytes": 22029,
+      "sha256": "792f00f03a7b32fd89ca29e992897b1dab4075382ad01a6d5d64f44dce12ba4b"
     },
     {
       "path": "packages/daemon/src/config/defaultTemplate.ts",
@@ -5003,8 +5173,8 @@
       "path": "packages/daemon/src/config/pending.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 9898,
-      "sha256": "e984261835f62eb3f45410e783856368261856bddb713ca8be5c93bba51551af"
+      "bytes": 10261,
+      "sha256": "bfffca52ba3c483161c25c44ada5f4f9f97eecf7f3a16aaab15e625a3a08ad75"
     },
     {
       "path": "packages/daemon/src/config/probe.ts",
@@ -5031,8 +5201,8 @@
       "path": "packages/daemon/src/config/runtime.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 2858,
-      "sha256": "89b5c0d73ba8d107a6ae90939f36e2eace8d459954b3098be0a97eb65d6532f4"
+      "bytes": 2995,
+      "sha256": "ccce989cdce22794be3ff11fa5566ec7ecec0e813c74583f86325f17c798c92d"
     },
     {
       "path": "packages/daemon/src/config/types.ts",
@@ -5061,6 +5231,13 @@
       "mode": 420,
       "bytes": 7328,
       "sha256": "6db8b8bdb0812a126b045adbc6c0f09c34b959620343e2e020de1ea7c7fb6387"
+    },
+    {
+      "path": "packages/daemon/src/daemonStartupHooks.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1064,
+      "sha256": "fcacd703dfe213f944d88d8301fbc2975bad1eef7f91cc4c62fbff600499f810"
     },
     {
       "path": "packages/daemon/src/demo/generator.ts",
@@ -5266,11 +5443,25 @@
       "sha256": "fdcb841dd4d8f8b39fddef8ca0b23ad46c51145abcde013006fdcae986b6652e"
     },
     {
+      "path": "packages/daemon/src/httpJsonBody.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3412,
+      "sha256": "da7032ecfd024aeac0459bd61781eb608b47a7e7f6b2f09c8b3f947b56edef44"
+    },
+    {
+      "path": "packages/daemon/src/independentDeadline.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2559,
+      "sha256": "6c547d73f9a8fbe64f3c79ad24cc1ed1d3e4ef87b2bb3407603052f4a4d7ad37"
+    },
+    {
       "path": "packages/daemon/src/index.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 166774,
-      "sha256": "b93a125278ac71d3f727be00b03a8c55c2ceb0e62cbaa07cea0a96aaa040b949"
+      "bytes": 173112,
+      "sha256": "415a2c0ff6876a84d0415311f4217da7d096eb1a12981cc512ed539246784430"
     },
     {
       "path": "packages/daemon/src/intent/view.ts",
@@ -5306,6 +5497,13 @@
       "mode": 420,
       "bytes": 1390,
       "sha256": "f1f1a10ee798bcc54ae25627b3adb381f8e6b28eaead0d2c94a070a4e44d8c7a"
+    },
+    {
+      "path": "packages/daemon/src/lifecycleDisposition.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4809,
+      "sha256": "379ae897115f0350927b67ee449646296b00967fd4dc8359842cb45d1278d3bf"
     },
     {
       "path": "packages/daemon/src/live/confirm.ts",
@@ -5521,8 +5719,8 @@
       "path": "packages/daemon/src/processGroupLifecycle.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 950,
-      "sha256": "63a2fbcfcfa250c4baf5d6e1fa5b6dac7718299f6fd716acda339abe51584d99"
+      "bytes": 37238,
+      "sha256": "f145a90d0e8c479b4babbbc417b8357cce3f610c8115452d634a983bef157c71"
     },
     {
       "path": "packages/daemon/src/projects/anchor.ts",
@@ -5612,8 +5810,8 @@
       "path": "packages/daemon/src/providers/byoa/provider.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 29224,
-      "sha256": "10cea0f0d94a7461d5d3e263bc43955baa827282a74c8225879bbc5187155ca7"
+      "bytes": 30311,
+      "sha256": "b4037fc33eb108b64720f8337280c2c5c782753980c178969b9e2c9d58a86f1c"
     },
     {
       "path": "packages/daemon/src/providers/byoa/retryQueue.ts",
@@ -5626,8 +5824,8 @@
       "path": "packages/daemon/src/providers/byoa/runner.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 15563,
-      "sha256": "4dfc95c050643f01f07602aeb32887ab720b3632de87d2fb47e39429a7be891a"
+      "bytes": 21088,
+      "sha256": "3cda2b699a3ae14166fdd36f54f7ce19469d87663fe9eac33c3eb9a78820c5e3"
     },
     {
       "path": "packages/daemon/src/providers/byoa/safetyDiagnostics.ts",
@@ -5654,8 +5852,8 @@
       "path": "packages/daemon/src/providers/slotResolvers.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 14283,
-      "sha256": "a1857388cef25aace43ecc3d013885ab53a64a5f5c69646dac1c4713eca3e1fd"
+      "bytes": 14658,
+      "sha256": "e1c65c88fd971751cc49748a8ac7b1903b6881f29d7dffa72973b417e3c15de9"
     },
     {
       "path": "packages/daemon/src/providers/types.ts",
@@ -5689,8 +5887,8 @@
       "path": "packages/daemon/src/runtimeChildRegistry.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 23055,
-      "sha256": "387a81fb0ba35d6290a9a154754fd43f27ea45ebcaa119154b03c1ad80f65e41"
+      "bytes": 82809,
+      "sha256": "b33d822ef7f4c80c0a06dd50d6e2e774e0f664b68191169787aa55a0f3e9d7c4"
     },
     {
       "path": "packages/daemon/src/runtimeIdentity.ts",
@@ -5712,6 +5910,20 @@
       "mode": 420,
       "bytes": 7185,
       "sha256": "6c141542909307d5c25bb9345d51f556db1e7222ba518b87f7d8646f7d008a58"
+    },
+    {
+      "path": "packages/daemon/src/shutdownDeadline.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1168,
+      "sha256": "7af6dd874788e855c47f7226ed1ce4517f700f0df6ee737b8920bae26efa0059"
+    },
+    {
+      "path": "packages/daemon/src/startupFailure.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5010,
+      "sha256": "8fd896828e0278935c2fa32438019f64cc6213f8fb4c55d830cbe8f0b9325d46"
     },
     {
       "path": "packages/daemon/src/storage/dao/approvals.ts",
@@ -5826,6 +6038,13 @@
       "sha256": "49c6d564331a2e9458c1cd8181356119f4821b439db4fcefca56c355520e935f"
     },
     {
+      "path": "packages/daemon/src/supervisorIpc.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2370,
+      "sha256": "a341e929388f46c540b4907c4fef23083c43e943f8eea6a89f290350daca7e01"
+    },
+    {
       "path": "packages/daemon/src/tier1/activeWorkClassifier.ts",
       "kind": "file",
       "mode": 420,
@@ -5899,8 +6118,8 @@
       "path": "packages/daemon/src/tier1/executor.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 183477,
-      "sha256": "21937d4154b03eef1f5bfdb166418ba3c0e601466247944800c1b6861645bd52"
+      "bytes": 201751,
+      "sha256": "d73c3e9c116ea94ad9db208314e91d58d930316264c81f78db595e83fcf9bdaa"
     },
     {
       "path": "packages/daemon/src/tier1/fileToolEffect.ts",
@@ -5920,15 +6139,15 @@
       "path": "packages/daemon/src/tier1/gateScript.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 19253,
-      "sha256": "6ac460267489822cc597035b9419eda7a09eb60d1a5df74a08f6dcb5bc915a1e"
+      "bytes": 19252,
+      "sha256": "258d5e381a194791c8ec6caf0e2563ea5ce1da26c9d44e9ee013648d780a1c32"
     },
     {
       "path": "packages/daemon/src/tier1/gateServer.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 4729,
-      "sha256": "e2bbb308cdb95ff62c60ff7619992d8b495c76581ddbe2f2a9933a8829e5a815"
+      "bytes": 8552,
+      "sha256": "4ae7e3de1114030f71bac18b83ec56eafd23f1622d6db5a195384b055824f3b7"
     },
     {
       "path": "packages/daemon/src/tier1/operations.ts",
@@ -5955,8 +6174,8 @@
       "path": "packages/daemon/src/tier1/restartPolicy.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 10957,
-      "sha256": "647a76a40bfe11d833ad08dd6118d9405b422daf96f01f51dda1e92490afa730"
+      "bytes": 17229,
+      "sha256": "e518b02fbd08a89f83821b04e23d61612243798e0ed11d6e3262d707c1003584"
     },
     {
       "path": "packages/daemon/src/tier1/s3Tools.ts",
@@ -6081,8 +6300,8 @@
       "path": "packages/daemon/test/byoa-fake-cli.e2e.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 43463,
-      "sha256": "7368860734e450d1fc000dc2502b4471daa0d04bf3edda1ee8b3bf349d0c2f9f"
+      "bytes": 43828,
+      "sha256": "e513f8ca05038d948ad745b44cf1052379f706ed92d3ce0ddf165fd76e8b68e2"
     },
     {
       "path": "packages/daemon/test/byoa-smoke.mjs",
@@ -6095,8 +6314,8 @@
       "path": "packages/daemon/test/byoa.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 47810,
-      "sha256": "be519864b513a7fa06968d75a8bffdba0956abf090885d0e98572f12872576e2"
+      "bytes": 70634,
+      "sha256": "9ff5e3c79a9f99abb76ac9db3729b2e67c45c1ece7c10eac9a09750d9e0997ee"
     },
     {
       "path": "packages/daemon/test/callback-ack.test.ts",
@@ -6193,8 +6412,8 @@
       "path": "packages/daemon/test/confirmation-ledger.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 17952,
-      "sha256": "cc96edfaded07d24b1542b6ae44f01dde05546e3ddc7f3bcb888221829aa2b54"
+      "bytes": 17993,
+      "sha256": "4edf990f97e60d74ac95b901ab787658bcb34d1e327a81b429148a7f0f77b67a"
     },
     {
       "path": "packages/daemon/test/console-actions.test.ts",
@@ -6207,15 +6426,15 @@
       "path": "packages/daemon/test/console-api.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 6935,
-      "sha256": "ed781f675b470590d1130ccf18bd46a8a738dcd1824f07adf0b4c66531aaf2f6"
+      "bytes": 7027,
+      "sha256": "a3d8a8623133a934df879c75f73bb750bf5dc85fd4ccadb4e050bbe98cc203e8"
     },
     {
       "path": "packages/daemon/test/control-turn-v04c.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 30427,
-      "sha256": "2e8c98803990414454112d2b63dbf5a7fb91bd8568ff3bccb1e443b7eaa311ad"
+      "bytes": 30450,
+      "sha256": "f81cd966b811bf9c79b4d33de9c955ebc823580ce835f80948664132dc949239"
     },
     {
       "path": "packages/daemon/test/desktop-summary.test.ts",
@@ -6244,6 +6463,20 @@
       "mode": 420,
       "bytes": 25354,
       "sha256": "a25ea4c0cc188e46baf4b051c4fe542a7491d9286bbc65c20b9885af3d0d8d7e"
+    },
+    {
+      "path": "packages/daemon/test/exact-test-roots.test.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1311,
+      "sha256": "5e2929f172c2746e44d2bfab946847150811e05f682989821e370d1ea1ecfc98"
+    },
+    {
+      "path": "packages/daemon/test/exact-test-roots.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3563,
+      "sha256": "d7bdc23b1e100a166c43e655e0622eaa85d045933116d8207dac9a5439b9eb2a"
     },
     {
       "path": "packages/daemon/test/executable.test.ts",
@@ -6351,11 +6584,32 @@
       "sha256": "c97bef991cb6f696a18546de7edd5688bfe3d7b91ec48cd1cc9364fba6550838"
     },
     {
+      "path": "packages/daemon/test/fixtures/close-durables-reject.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 172,
+      "sha256": "2dc8ae16117fd527d0a818bd42f59913ffaa6b5c0a220528d3c17eafb0706d8b"
+    },
+    {
       "path": "packages/daemon/test/fixtures/codex-rate-limit-event.jsonl",
       "kind": "file",
       "mode": 420,
       "bytes": 67,
       "sha256": "c9a482a10e433d14ae11cfb8f9a5e93ae69edf13a012f7b834d0e85448f8b6ce"
+    },
+    {
+      "path": "packages/daemon/test/fixtures/console-dist/assets/app.js",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 25,
+      "sha256": "aa8cc799ba0f6847d0ed50d82ec3600fc7e2804504ea14b53d2395621a5db085"
+    },
+    {
+      "path": "packages/daemon/test/fixtures/console-dist/index.html",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 192,
+      "sha256": "9f72e0e26ec048bc99597cc829dd412873c7c230e41991f8d99b2eb6a4794594"
     },
     {
       "path": "packages/daemon/test/fixtures/controlled-runtime.mjs",
@@ -6393,6 +6647,13 @@
       "sha256": "6d72438e56479b21238973b4617e7ed3c54f4db422c6ad42a0786302ba9fbde2"
     },
     {
+      "path": "packages/daemon/test/fixtures/deadline-hang.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 272,
+      "sha256": "278fc1f8f70c7013f0379b0be172fd7ec1410b5ba7e9d9da2547b0be1db543d6"
+    },
+    {
       "path": "packages/daemon/test/fixtures/fake-byoa-cli.mjs",
       "kind": "file",
       "mode": 493,
@@ -6403,8 +6664,15 @@
       "path": "packages/daemon/test/fixtures/fake-codex-hold.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 1296,
-      "sha256": "dc82c94064096fbfd5674b3a17586daf8ad46b37a7131913324846b741a2e006"
+      "bytes": 1430,
+      "sha256": "e2b6c87276a837e7a835506785c1f4ed9502dd2454a412ee2729ba7dc3d706e7"
+    },
+    {
+      "path": "packages/daemon/test/fixtures/gate-bind-harness.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3204,
+      "sha256": "c9599b0141ce725b45db0c1b729dbab4fa5159244276f0181b8086087ef1200b"
     },
     {
       "path": "packages/daemon/test/fixtures/gemini-stream-sample.jsonl",
@@ -6414,11 +6682,25 @@
       "sha256": "05801dca8ad7d285708302d534d9e62585faf09033bacc881dc98e25634a5073"
     },
     {
+      "path": "packages/daemon/test/fixtures/listen-hold.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 374,
+      "sha256": "82be5b29d5981c38740c8690fc618b91a7ccf53a33e606c77e47dd08730ba6f0"
+    },
+    {
       "path": "packages/daemon/test/fixtures/memory-crash-child.ts",
       "kind": "file",
       "mode": 420,
       "bytes": 1208,
       "sha256": "bb1aa642bd302dbc0f7a0cd41971dae30678a0915ec6f8364e2e1b0d905f7dc8"
+    },
+    {
+      "path": "packages/daemon/test/fixtures/owner-boundary-worker.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2958,
+      "sha256": "a8b6f82b4e596100c1297c32a8304d362f447f4db9c1339b10a17a946fa63858"
     },
     {
       "path": "packages/daemon/test/fixtures/qwen-stream-sample.jsonl",
@@ -6428,11 +6710,46 @@
       "sha256": "2e30a10d05c18cd3b435316ae2f7625604b5dd07fbf0c7995ece4bd96c776a44"
     },
     {
+      "path": "packages/daemon/test/fixtures/ready-send-fail.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 784,
+      "sha256": "d49750db6b5f07b49f276e634791058487d409bf5e1cc2d0cf2ac92d37d4f216"
+    },
+    {
+      "path": "packages/daemon/test/fixtures/ready-send-hang.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 498,
+      "sha256": "a8fca3db01dd5525cf1a03f268677a1fa01975415d1f1837e1ba9e8486c9855d"
+    },
+    {
+      "path": "packages/daemon/test/fixtures/recover-hold.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 803,
+      "sha256": "38042b48ed34859d8c766d39cf13d8702075098ae6bd56a8df095ba2c7b4ab16"
+    },
+    {
       "path": "packages/daemon/test/fixtures/schema-v4-era.sql",
       "kind": "file",
       "mode": 420,
       "bytes": 7271,
       "sha256": "d541646f3efe8c9c55edf0ffc2a6c9327f3ff59a053e205300270b811958c8cd"
+    },
+    {
+      "path": "packages/daemon/test/fixtures/startup-entry-harness.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5536,
+      "sha256": "1e36e54ea25f73e762834135ed83e8e6a7882855ba27a0f10417ec9d8073e716"
+    },
+    {
+      "path": "packages/daemon/test/fixtures/startup-fatal-harness.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3874,
+      "sha256": "8825e61155dbbb295f7abd4bdc793034c8666eff285fc1fdedb10634c5f8222c"
     },
     {
       "path": "packages/daemon/test/focus-batch3.test.ts",
@@ -6515,8 +6832,8 @@
       "path": "packages/daemon/test/global-tmp-cleanup.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 1977,
-      "sha256": "128a5ec27cae44dad7f10bceec9c4fa6c2c6b989a15b9b3d3b686d84e568d629"
+      "bytes": 2825,
+      "sha256": "7955ca326f0b9240209c835af7b08f11238ab4ddde96b4684ed777ce51f1cb71"
     },
     {
       "path": "packages/daemon/test/golden-coverage.test.ts",
@@ -6529,8 +6846,8 @@
       "path": "packages/daemon/test/helpers/daemonProcess.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 5927,
-      "sha256": "8806635b43a6c992ffde1c9b9ad4fbd97e840599e91127bc25619af9417fe3da"
+      "bytes": 7830,
+      "sha256": "fd09ffec0db4c9e097956e8dc1f15950196e0d54966e86d71aa6703b7db431e6"
     },
     {
       "path": "packages/daemon/test/helpers/fakeWebauthn.ts",
@@ -6554,6 +6871,20 @@
       "sha256": "86e77bf8f895ef2dea063c4b93ca73c14faf06c7a3f420d153e9c007315ba639"
     },
     {
+      "path": "packages/daemon/test/helpers/runtimeOwner.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 139,
+      "sha256": "f707482d2b5e172d17855a70712b6a10a0b02699d0a4ed3cf5da32cea577ddcc"
+    },
+    {
+      "path": "packages/daemon/test/http-json-body.test.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3312,
+      "sha256": "ce212eb722ce9a86cb691a85a3f0f070cd59a5d23f10cbe382baefbca9b60d73"
+    },
+    {
       "path": "packages/daemon/test/improvements-m.test.ts",
       "kind": "file",
       "mode": 420,
@@ -6571,8 +6902,15 @@
       "path": "packages/daemon/test/launchd-plist.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 12142,
-      "sha256": "4c8e3cd3aff3130314554e5a445028ffe9588753dcf036f1f26b0728e53c8ac1"
+      "bytes": 12264,
+      "sha256": "f54122f0adc34c99508fa3396d2358c254e97ebdbf9a0574c271c3170e8193c1"
+    },
+    {
+      "path": "packages/daemon/test/lifecycle-disposition.test.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 12042,
+      "sha256": "47cefd14276b4f1936d6855e20ac49e0b0894e78f1e8446d9183614ab6d5fcb0"
     },
     {
       "path": "packages/daemon/test/live-voice-sessions.test.ts",
@@ -6648,8 +6986,8 @@
       "path": "packages/daemon/test/ownership-anchor.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 7303,
-      "sha256": "fe836a2290c4e4ea8db65c50117a3bb60af80a4fdb0bf07bdbd21c1bcf7b2cec"
+      "bytes": 7523,
+      "sha256": "b12c904dd905955c5641386c165bf8545e952f84cafb2e9a868053bdf7b6a39f"
     },
     {
       "path": "packages/daemon/test/p05a-contracts.test.ts",
@@ -6704,8 +7042,8 @@
       "path": "packages/daemon/test/pairing-info.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 3126,
-      "sha256": "2372830242c691ffa751414f5519a04511683c67eba8c82856e13d8b33be3c17"
+      "bytes": 3224,
+      "sha256": "3dea8032ff1dcaa23f45856ed544be59e6301bdb15169df7c559f2a79ecd2751"
     },
     {
       "path": "packages/daemon/test/park-scheduler.test.ts",
@@ -6732,8 +7070,8 @@
       "path": "packages/daemon/test/process-group-lifecycle.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 816,
-      "sha256": "d02d8285afadb8d13d380b1ee44124c861a88b2e18a11b33a1026a1c0b0f1308"
+      "bytes": 62880,
+      "sha256": "aae5941ea9c253eb221f946d6373eafa2c5beb6ae57ffb493e1e9a85b2c2332d"
     },
     {
       "path": "packages/daemon/test/project-anchor.test.ts",
@@ -6799,11 +7137,18 @@
       "sha256": "5af93dff0a283d8c048083aee941a3d7314850b6b9290f4cfcc3465948c4bb93"
     },
     {
+      "path": "packages/daemon/test/recovery-only-json.test.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3052,
+      "sha256": "89faa2e46bc31e2df014c3004ebe1574e12e057bd8e93a291f0b94a03f3c3cd4"
+    },
+    {
       "path": "packages/daemon/test/recovery-only-process.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 22275,
-      "sha256": "c0efa7ca1bf657164cb9a9d4e58cef7894be50209b5e2087ee0680f22c96b451"
+      "bytes": 33685,
+      "sha256": "69f4e24aef2e7265037e576ccd6aee258a74b76f1e634eeca02a05812199edd1"
     },
     {
       "path": "packages/daemon/test/redactor.test.ts",
@@ -6816,8 +7161,8 @@
       "path": "packages/daemon/test/restart-policy.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 14175,
-      "sha256": "5d83a00140cf610ce9958a84ce66045621432300c4a696e4869238bad56b5f7c"
+      "bytes": 48036,
+      "sha256": "f6582d7507352ab4059256cd50d6fb4edf5e5fef0b71da00a4f10f824b9fda42"
     },
     {
       "path": "packages/daemon/test/runtime-assets.test.ts",
@@ -6830,15 +7175,15 @@
       "path": "packages/daemon/test/runtime-child-registry.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 7096,
-      "sha256": "3d1b2f67be7c83b2904bb8b49249909deaf9f718380c6d053b6839b1faf60a91"
+      "bytes": 117240,
+      "sha256": "99050ed6bb8c8684f30ddbc7044a246acd6367514f6e1fb10298a3a74a456a85"
     },
     {
       "path": "packages/daemon/test/runtime-child-wrapper-syntax.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 2773,
-      "sha256": "c514aabaa1b8f2eb71650913845d3c2d61d8dfa5d65826b5e163eb5754198fea"
+      "bytes": 4649,
+      "sha256": "4010113a32f6745fd2b76cfc5f6bc0c19f6338e597436571601ec23979efa66c"
     },
     {
       "path": "packages/daemon/test/runtime-identity.test.ts",
@@ -6851,8 +7196,8 @@
       "path": "packages/daemon/test/s3-merge-chain.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 34824,
-      "sha256": "d46e281b989ade7e65fc966e833301c4d5d6419b7ba972508f6f0d6a84d5d55d"
+      "bytes": 34837,
+      "sha256": "cf8dda68880f3be503dffeb09bab5eabee39f186c850841b7190bd69dbb12515"
     },
     {
       "path": "packages/daemon/test/safety-diagnostics.test.ts",
@@ -6879,8 +7224,15 @@
       "path": "packages/daemon/test/setup.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 2820,
-      "sha256": "bcc4733ac758b7582e089b3fe28289c2dfdf0331a161156e1d92768161290df6"
+      "bytes": 4287,
+      "sha256": "53c33f423fa4ade0cfdff9cb313d2d7e634950cc17d83c4268f9c4f6cfbb35b9"
+    },
+    {
+      "path": "packages/daemon/test/shutdown-deadline.test.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 6852,
+      "sha256": "67092fe32dc305fad9c15de524953b135fca4b88fdc1b838128f695a7ce89d0a"
     },
     {
       "path": "packages/daemon/test/slot-resolvers.test.ts",
@@ -6888,6 +7240,13 @@
       "mode": 420,
       "bytes": 7642,
       "sha256": "e8b7c0641b9d9ca0d271a5a4f81c6997f107a89556404ee077614444496161df"
+    },
+    {
+      "path": "packages/daemon/test/startup-failure.test.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 39861,
+      "sha256": "a5a58b9055331b6b79c967c7456d13b0a2a6a4ef7fc01f404314af014af6346f"
     },
     {
       "path": "packages/daemon/test/storage-checks.test.ts",
@@ -6949,15 +7308,15 @@
       "path": "packages/daemon/test/t18a-cli-slots.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 43172,
-      "sha256": "b7781d0785769bc1bb4219701e7f5a44fd02ad59a202765241588e4d10e7e659"
+      "bytes": 43466,
+      "sha256": "e58deaec07090dcb1f031bcb5527fb03e5128fd87c06377f341b630926760996"
     },
     {
       "path": "packages/daemon/test/t2-thin.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 16180,
-      "sha256": "4af92da479764c19c649df3d9afde5e02c64ec93f49afd2abeba38150497cf1b"
+      "bytes": 16452,
+      "sha256": "c56cefa88e43b1d501c100fe750929af02e1b0dc69c0d3189f7dcc2f32211534"
     },
     {
       "path": "packages/daemon/test/tier1-approval-live.test.ts",
@@ -6991,8 +7350,8 @@
       "path": "packages/daemon/test/tier1-cmd-effect.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 25835,
-      "sha256": "cb7e72ea9e83f8030e996d5851d8d0e1992ed40f31d02eafbcae64dd73914014"
+      "bytes": 25830,
+      "sha256": "036f55f501a5ed11915c41985ca549f79647332582696f8b5397cb6c5c4d696c"
     },
     {
       "path": "packages/daemon/test/tier1-config-validate.test.ts",
@@ -7019,8 +7378,8 @@
       "path": "packages/daemon/test/tier1-executor.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 161282,
-      "sha256": "d2b0bccde0f5c237a149021a729314c3a113f0ec1983144e63644f13ee20b875"
+      "bytes": 268170,
+      "sha256": "ffd8e702457356e030e7060158541c796f023c37c87acf25c77180fab9ecdfba"
     },
     {
       "path": "packages/daemon/test/tier1-file-tool-effect.test.ts",
@@ -7047,15 +7406,15 @@
       "path": "packages/daemon/test/tier1-gate-socket.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 28932,
-      "sha256": "9d729aabd11990ac5e60aa16376f3a0e61c5c6018cfdd98322136a9394fd6d78"
+      "bytes": 29011,
+      "sha256": "d77c3fb771ff78ec9b115409c9a7e12e868def25e17c363439819cb105a7d2d6"
     },
     {
       "path": "packages/daemon/test/tier1-live.e2e.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 17305,
-      "sha256": "d8a81e5b606d81170578c31f942cdad9b476aab5a300d15c33e7dba7750aeb07"
+      "bytes": 17334,
+      "sha256": "4db018fb5ecdc1864e196dae4c569ab8ecae2e00df72dcc7f9ffad7d11fa5766"
     },
     {
       "path": "packages/daemon/test/tier1-operations.test.ts",
@@ -7075,15 +7434,15 @@
       "path": "packages/daemon/test/tier1-security.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 16931,
-      "sha256": "1449dbc2714fa54bca6bb302729ed765e98326e0c7e82370d55f27349fd7ddc3"
+      "bytes": 16976,
+      "sha256": "93f832b34590fced3a5e45979d4a33fd1df277d918994bc7a0e3e78457fa1003"
     },
     {
       "path": "packages/daemon/test/tier1-self-test.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 24026,
-      "sha256": "85ab610f14edb21d5d9bbc0d9e9580a05d667a3c2a16df6cff62f9ca5ba310b3"
+      "bytes": 24711,
+      "sha256": "6b49f747661476d300ef4a629a52ee4e7c3075334ea2d774131e1783e26b8eee"
     },
     {
       "path": "packages/daemon/test/tier1-story-e2e.test.ts",
@@ -7110,8 +7469,8 @@
       "path": "packages/daemon/test/voice-hub.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 45739,
-      "sha256": "dfac8e01f296a0b7bcbb2f96b6787798c1e59ca02e9623cb659b5dde6cee0dac"
+      "bytes": 45762,
+      "sha256": "b468890d3cc7d300ce37564af321eb5ceefbdbe0c26ac62f1f6e9df960638b21"
     },
     {
       "path": "packages/daemon/test/workspace-identity-remount.test.ts",
@@ -7124,8 +7483,8 @@
       "path": "packages/daemon/test/writing-narrow.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 33821,
-      "sha256": "4716f381bcabbda1d61895710da2a5dd5f6079e2d2453461fea942db77fb4fa3"
+      "bytes": 34828,
+      "sha256": "7b9d46966f6be6cabf51c09992fe48961c700e707625a50f8f8f51bd6edbfe6f"
     },
     {
       "path": "packages/daemon/tsconfig.json",
@@ -7149,18 +7508,32 @@
       "sha256": "c2862798e075a11f329706f7b74f6dfdd112d0effcb101f8439b66e84beaec5a"
     },
     {
+      "path": "packages/platform/src/errno.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1986,
+      "sha256": "1a1ee633e1101a44ecd536f17e2a5cf369bf7b5d31d35d108965eafe5d5ccdf5"
+    },
+    {
       "path": "packages/platform/src/fs.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 3335,
-      "sha256": "0145ed5e4e720fe0690fd27b5e17636fb8efae7872df6e44aba51e6376d865d0"
+      "bytes": 4531,
+      "sha256": "46207107e865b94a537cb47cc42e3576b1ac5d5eb9acb85bc012819da9f1c360"
     },
     {
       "path": "packages/platform/src/gate.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 5444,
-      "sha256": "32111da6d7beb4f84fb6df75818a00a9e0a05699d79b5f133d2f06d20682b79c"
+      "bytes": 7119,
+      "sha256": "5f613b4394c509f0c8c5c026db671f9020180f65d19ea7aac52da47c1189750b"
+    },
+    {
+      "path": "packages/platform/src/homeLock.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 8509,
+      "sha256": "ce0ddeef4cfce3992e8566db11588057c6d5cf9754558c39be00b2a65c177772"
     },
     {
       "path": "packages/platform/src/host.ts",
@@ -7173,8 +7546,15 @@
       "path": "packages/platform/src/index.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 928,
-      "sha256": "64c06a4721c948643e5e50e7981ed124205a936ba2116ae0d54253edc305a9c5"
+      "bytes": 3376,
+      "sha256": "97d85bdf4fdab18cbcc4ad36d1100e31b24a6085d595a0889d64cace3caf2505"
+    },
+    {
+      "path": "packages/platform/src/jobIdentity.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 16737,
+      "sha256": "95364c3e8d35844f278d01cbeb4994d72c4dd7bfc32073e48a208c11ed047814"
     },
     {
       "path": "packages/platform/src/lock.ts",
@@ -7194,22 +7574,36 @@
       "path": "packages/platform/src/process.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 6449,
-      "sha256": "6ad9465d97294615baacb9694cac8d2bd914b94335cdc8e79b0bdc24df014748"
+      "bytes": 36414,
+      "sha256": "322f35ee7cde425350b60fb42aacdd037e8eb1ad7afaf1402fbacb0401b46c95"
     },
     {
       "path": "packages/platform/src/win32.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 20367,
-      "sha256": "3aec24368c5a1b0f77511a145636dc60a6fe6197375eae5cc40f078a67abead7"
+      "bytes": 74174,
+      "sha256": "687d87b16977ea3753e485afab6929a925842a3b8ed63588bce59ccfcfdc5f30"
+    },
+    {
+      "path": "packages/platform/src/win32Quote.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1825,
+      "sha256": "9556b335de6889797ee144028cac2cbdc622c2f77ef92279414b9fb0495f4dd9"
+    },
+    {
+      "path": "packages/platform/test/fixtures/home-lock-worker.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2296,
+      "sha256": "34c2fcd0c77e908ad17b2eed48721e034022e8b4d98f5b56a2c71ce159fd6046"
     },
     {
       "path": "packages/platform/test/fs.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 2374,
-      "sha256": "b09ca690bb54cae8154b2aa332eca0bdb15453075c0f64656bbe0694a737060f"
+      "bytes": 4453,
+      "sha256": "58f490087637e1b469f98616cb0094e9b22ca5d7cd6d514a1ab49cf94636be1d"
     },
     {
       "path": "packages/platform/test/gate.test.ts",
@@ -7217,6 +7611,20 @@
       "mode": 420,
       "bytes": 2191,
       "sha256": "9f8ff459c845d5448a7379b8df3bc491274ee3babfb56cf9cd3895ab4116c323"
+    },
+    {
+      "path": "packages/platform/test/home-lock.test.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 11509,
+      "sha256": "1408efa79c867d209f42443909213f17c062bb23a0ee2e42543792163fdd0887"
+    },
+    {
+      "path": "packages/platform/test/job-identity.test.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 11617,
+      "sha256": "7ccd1dc6c46e071cd799a5ce051bf948d8ae52cc8cc13c71f859816e82625392"
     },
     {
       "path": "packages/platform/test/open.test.ts",
@@ -7229,8 +7637,15 @@
       "path": "packages/platform/test/process.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 4327,
-      "sha256": "502eefa81d17943bfa9318476f2cab9d2d263c309d7d0caad3574eec55a627d0"
+      "bytes": 51211,
+      "sha256": "5be3c06fa630567bbcf4e3783e8624de35bded2e0487398cce83dc19ddc69dcc"
+    },
+    {
+      "path": "packages/platform/test/win32-quote.test.ts",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2204,
+      "sha256": "7c8a8ce4db8b84aaba147113d58abda71eefb559e4df18eb93bdc8c5c7a400d7"
     },
     {
       "path": "packages/platform/tsconfig.json",
@@ -7380,6 +7795,27 @@
       "sha256": "43a305a2232956711361a89dd4db02f0571bd196e4ea6b1b6dd07f204f7c77b0"
     },
     {
+      "path": "prompts/100-ai-supply-universal-onboarding-final-billing-gate-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2639,
+      "sha256": "cea846eb6a149115e75d02615ee649353904cfde2b83ede9f80de20506954194"
+    },
+    {
+      "path": "prompts/101-ai-supply-universal-onboarding-derived-billing-final-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2572,
+      "sha256": "7dc5db0171f58655e00fa09b09b01a81b457e28023bc9faa08fb705d8750e1e3"
+    },
+    {
+      "path": "prompts/102-ai-supply-reference-architecture-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2026,
+      "sha256": "3bd5312604a43c78c0a4663bd3ffc697d2dbfebeddda03e1a51b3c988d4543c1"
+    },
+    {
       "path": "prompts/102-week-audit-faststart-final-adversarial-review.md",
       "kind": "file",
       "mode": 420,
@@ -7387,18 +7823,165 @@
       "sha256": "18116036cdb2c892cac9703d64ac0634dd80a36871d1b731e7d5b470eae56870"
     },
     {
+      "path": "prompts/103-ai-supply-ecosystem-oss-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2326,
+      "sha256": "6e2247b9932e20f0701ac692463ffe70fe6dcbf51b7fe27e2db8e17b4c7f0208"
+    },
+    {
+      "path": "prompts/104-ai-supply-reference-grade-adversarial-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3613,
+      "sha256": "3f8ba9673e637df2f26dab1c0fdab9bacd7060f093802ea04b3fca9d3d29c41f"
+    },
+    {
+      "path": "prompts/105-ai-supply-reference-architecture-final-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1959,
+      "sha256": "60525c984bfbe40ee185e28d1ead2ef9ed1b8fe775a9f0892e9b024b290178eb"
+    },
+    {
+      "path": "prompts/106-ai-supply-ecosystem-ux-final-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2238,
+      "sha256": "37be05cf53b5a962c0124168dfd8be7e3562a5b29ecdc0536c2d4693d61f432b"
+    },
+    {
+      "path": "prompts/106-rc4-runtime-second-review-remediation.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 8844,
+      "sha256": "bd625ec5fd3243e55d3ed139619b5f0c661c7630f0baddff3608b81075e5e9cc"
+    },
+    {
+      "path": "prompts/107-ai-supply-reference-grade-final-adversarial-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1773,
+      "sha256": "e83d22dc7756696453731fd3d5fc8c3d7fee9dcff3aadaffaeaf58b25c0fcc61"
+    },
+    {
       "path": "prompts/108-week-audit-faststart-final-code-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2914,
-      "sha256": "b215089d377d955e7a17d0b30369fb036de0b2ae368b4cf9b37d5b44a1697497"
+      "bytes": 2898,
+      "sha256": "09bdd911aa14fa512ba898a5c80b4fdf300890ffe636ddc072f3245f6f21a5b4"
+    },
+    {
+      "path": "prompts/109-ai-supply-reference-architecture-closure-v2.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2733,
+      "sha256": "0f80af370eabfe1cce6e24e070a4f9a05c06e23b70f1c899ded3616777e26dba"
+    },
+    {
+      "path": "prompts/109-rc4-runtime-host-gate-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2759,
+      "sha256": "aaae9283c956cf8da3dc883b754c0c295eedd78dbfb92d64c03217414449264d"
+    },
+    {
+      "path": "prompts/110-ai-supply-ecosystem-ux-closure-v2.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3157,
+      "sha256": "55e19605adea4a36f116ba07f4b48b40e29a3f84ae94c0d81e2eb95927a7b034"
+    },
+    {
+      "path": "prompts/111-ai-supply-reference-grade-final-adversarial-v2.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2258,
+      "sha256": "5fe273abc8761c982911d59f2617eeeedb9182490777cc44a0b11fe411c0a1b8"
+    },
+    {
+      "path": "prompts/112-ai-supply-reference-architecture-closure-v3.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3191,
+      "sha256": "1d1193efb37e9bd02272127b5059e0f368634bd1aaa1d7475bcf59ffc91c0332"
+    },
+    {
+      "path": "prompts/112-rc4-release-second-red-new-session.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5261,
+      "sha256": "7e8b00da95b4f6900042b68d237237f5504698043727791da809bae0f8a6002a"
     },
     {
       "path": "prompts/112-week-audit-faststart-freeze-adversarial-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3154,
-      "sha256": "99ca6c580e07bf960a302ba8c9d8244e5b01007078c74728bc232639c05b677f"
+      "bytes": 3138,
+      "sha256": "7efe073b46d5279d1568c338eff593ed6d1d14da4c11c3cb8181a09f75a82cb7"
+    },
+    {
+      "path": "prompts/113-ai-supply-ecosystem-ux-closure-v3.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3262,
+      "sha256": "c33e683abd32bc93dd813026e0e98f80bc3dd97576bdc73c9858e74959221d90"
+    },
+    {
+      "path": "prompts/114-ai-supply-reference-grade-final-adversarial-v3.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2654,
+      "sha256": "78be4570bfa6c1403846a250da2a112bcf38f7976566fc8535748f0bb70877b7"
+    },
+    {
+      "path": "prompts/115-ai-supply-reference-architecture-final-closure-v4.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3478,
+      "sha256": "c8afd51c2fa152160c16f203288b2e3870289a4b5d0e12eb8b01448140a2c79c"
+    },
+    {
+      "path": "prompts/115-rc4-release-first-review-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 6003,
+      "sha256": "706cfa67a8e1c049008985904bd73f5b2dc9d667595c6e2a90998cf432268f40"
+    },
+    {
+      "path": "prompts/116-ai-supply-ecosystem-ux-final-closure-v4.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3541,
+      "sha256": "04f3080cc7a792333f8b3238ab2287cc90d43b824555c7da97603e967f6afdd2"
+    },
+    {
+      "path": "prompts/117-ai-supply-reference-grade-final-adversarial-v4.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3040,
+      "sha256": "09ed7638a58643c88083e40844c4bb73d52cbab4d262fb9f2798b34602a2d8c4"
+    },
+    {
+      "path": "prompts/118-ai-supply-reference-architecture-final-closure-v5.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3997,
+      "sha256": "eccc1359e4925d51123c2c64f1861fd2993ed1c447eeda3845dabaee8f36f340"
+    },
+    {
+      "path": "prompts/118-rc4-release-second-red-new-session.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5261,
+      "sha256": "953e2700dc9f1e607f42c4eebcbbf536c8fb3887de2442d8786cda6c43634726"
+    },
+    {
+      "path": "prompts/119-ai-supply-ecosystem-ux-final-closure-v5.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4379,
+      "sha256": "323b6da546f477a243b156c83f749a7ee84a80112662da88419c6bcc2aab7c41"
     },
     {
       "path": "prompts/12-canonical-writeback-batch1.md",
@@ -7408,60 +7991,501 @@
       "sha256": "dff5d0f87cd9583277194f024c61a627e8148da2055a51a4b02dd6c46644f657"
     },
     {
+      "path": "prompts/120-ai-supply-reference-grade-final-adversarial-v5.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3842,
+      "sha256": "2194e36428509fc2fd65610e9c6f8f862e9ee8e38d0eed9f834adc4c2c0c3d7b"
+    },
+    {
+      "path": "prompts/121-ai-supply-reference-architecture-final-closure-v6.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3481,
+      "sha256": "36a6e13d56c0f9cfc77d6af46715bf1104718af7644d8bc0772dc201f42971dc"
+    },
+    {
+      "path": "prompts/121-rc4-release-final-review-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4182,
+      "sha256": "97dffa1077db831d057a4cfabd3cac1e338496061b17a02635601dc39321f420"
+    },
+    {
+      "path": "prompts/122-ai-supply-ecosystem-ux-final-closure-v6.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3447,
+      "sha256": "2189ecebdd227118466990c4c1172ebf7de8ad3d7ad62e9e536b3ae3b9da4784"
+    },
+    {
+      "path": "prompts/123-ai-supply-reference-grade-final-adversarial-v6.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2366,
+      "sha256": "cb6e2d2c115d56b2b3a64fd72c785e2be8870453a4ca8edac98875d2ddb4da1c"
+    },
+    {
+      "path": "prompts/124-ai-supply-reference-architecture-final-closure-v7.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3780,
+      "sha256": "819066105b3b95eabfd84049480d415a5b054198c0cd9278082fa4470b6fedc3"
+    },
+    {
+      "path": "prompts/125-ai-supply-ecosystem-ux-final-closure-v7.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3626,
+      "sha256": "c0e6b282ca2a59d480b6b094ea0011b3e72db69ba083125b2f472c191c705a7e"
+    },
+    {
+      "path": "prompts/126-ai-supply-reference-grade-final-adversarial-v7.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2626,
+      "sha256": "76d0ce9b8a0dbb495e231e76673bbc8f37a2ed6aeb648eff4a7ff4eab023f8e0"
+    },
+    {
+      "path": "prompts/127-ai-supply-reference-architecture-final-closure-v8.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3906,
+      "sha256": "210183e8280933b448a5b0d89918c0ef9b87ed61cf424dab494a92142bba25c2"
+    },
+    {
+      "path": "prompts/128-ai-supply-ecosystem-ux-final-closure-v8.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3931,
+      "sha256": "d9b8d85b887bf8b1f37873cd62e433feec4ecbb7308d61e2d59872eb5c19a6e7"
+    },
+    {
+      "path": "prompts/128-rc4-release-postfix-second-red-fresh-implementation.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5000,
+      "sha256": "a89219cdb4ac1d9a5d60d33af1e41d674c46ecec9ec8dcb064aefffbf8a439d1"
+    },
+    {
+      "path": "prompts/129-ai-supply-reference-grade-final-adversarial-v8.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2812,
+      "sha256": "d1a4209bc7ac480c953e23591779b2cf45db92a278fdf86aaae4a5dc4b268daa"
+    },
+    {
+      "path": "prompts/130-ai-supply-reference-architecture-final-closure-v9.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3017,
+      "sha256": "cc21c9081397ff8d43ee1ab441295dabc1ff95785e506f9177655b0d6e8ba1b6"
+    },
+    {
+      "path": "prompts/131-ai-supply-ecosystem-ux-final-closure-v9.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3324,
+      "sha256": "78e6b11754efa17f6bb6447687d2206c0acba0a67ff4b44d4c62413e99fffcce"
+    },
+    {
+      "path": "prompts/132-ai-supply-reference-grade-final-adversarial-v9.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2611,
+      "sha256": "20906aeaf0eb5d31114fb4a2308ba7f62b269c05d144b95c180ea30b1dccdc7f"
+    },
+    {
+      "path": "prompts/133-ai-supply-reference-architecture-final-closure-v10.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3995,
+      "sha256": "5213b49d3eee95eb5187e2e52cc1c97be98e28ea5494af681389d7f7a46431d6"
+    },
+    {
+      "path": "prompts/134-ai-supply-ecosystem-ux-final-closure-v10.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4209,
+      "sha256": "603f363560e7625a33f5d6d5ce8b4eb74481143932cfb5f3f217439a2711f18e"
+    },
+    {
+      "path": "prompts/135-ai-supply-reference-grade-final-adversarial-v10.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2689,
+      "sha256": "451424df48b68a84c441622d35a754d385d8247e4901e5e2ab6e636916d29956"
+    },
+    {
+      "path": "prompts/136-ai-supply-reference-architecture-final-closure-v11.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3944,
+      "sha256": "eb084051b73ba05d6dfb0805a96b4c3b7814632ffadbc46497a5b61a5a964d6b"
+    },
+    {
+      "path": "prompts/137-ai-supply-ecosystem-ux-final-closure-v11.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4277,
+      "sha256": "2839d2367cdf01bfb895c84666bb868d3f4a14962d9893583c70a499800df342"
+    },
+    {
+      "path": "prompts/138-ai-supply-reference-grade-final-adversarial-v11.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2556,
+      "sha256": "85ebe4123a61248335168cecc5e202626b165dbb10036937c3dc7e5374043c8c"
+    },
+    {
+      "path": "prompts/139-ai-supply-reference-architecture-final-closure-v12.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3491,
+      "sha256": "d6d01f82135405e9b0cdbcb6917208e16ab8afa14aef3e50a6004f08b4a88ebc"
+    },
+    {
+      "path": "prompts/140-ai-supply-ecosystem-ux-final-closure-v12.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3702,
+      "sha256": "80ba0ff811db246751f85de8017beddc134b9f36e03735e9764e7c0d16c5e1cc"
+    },
+    {
+      "path": "prompts/141-ai-supply-reference-grade-final-adversarial-v12.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2966,
+      "sha256": "752224a70e3e396bd2a6162e7b734a7e29727f558c32d9c6dee294fc99176023"
+    },
+    {
+      "path": "prompts/142-ai-supply-reference-grade-final-adversarial-v12-report-recovery.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3521,
+      "sha256": "1b7ee09ddf8b2dc0b5a27f03b0055be7b6ff22909a08e16e022abb43c714806f"
+    },
+    {
+      "path": "prompts/143-ai-supply-reference-architecture-final-closure-v13.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2560,
+      "sha256": "e0418d0210f2bb1996fb2bb247cac6ecbd76cd840e65b1fd04358ae74a3a5ab5"
+    },
+    {
+      "path": "prompts/144-ai-supply-ecosystem-ux-final-closure-v13.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3214,
+      "sha256": "a72df27fb8e54614590f53788df75e15bd9c321539f3bb4f2851c11f2495ba2e"
+    },
+    {
+      "path": "prompts/145-ai-supply-reference-grade-final-adversarial-v13.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1925,
+      "sha256": "37ce3ff2f5232384af20984323f992c19be7bc74a7043f094aab68b614e39982"
+    },
+    {
+      "path": "prompts/145-rc4-release-host-readback-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5015,
+      "sha256": "d07b1e4b63b26360677599c62fd31853f473d5589d3a817dbc36ec77d746eded"
+    },
+    {
+      "path": "prompts/146-ai-supply-reference-architecture-final-closure-v14.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3641,
+      "sha256": "4bda2f12d053c064443a3c2eaa014ae28e2473ba35e4f6036a92e3abbe8a1b0c"
+    },
+    {
+      "path": "prompts/147-ai-supply-ecosystem-ux-final-closure-v14.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3309,
+      "sha256": "f539e0e7a0fcccd5c16b92e5e77c14952fad3f109192891376f2ceae3197fdab"
+    },
+    {
+      "path": "prompts/147-rc4-release-second-host-readback-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3102,
+      "sha256": "d04793349febdf72c663f54021c11c1fe4869ed4f5832c9ad1f76a20fffebfb4"
+    },
+    {
+      "path": "prompts/148-ai-supply-reference-grade-final-adversarial-v14.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2653,
+      "sha256": "2915f305e622cf35c8041f728b29f09239d0dcf847f36785b5cb38687c3a3989"
+    },
+    {
+      "path": "prompts/149-ai-supply-reference-architecture-final-closure-v15.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4449,
+      "sha256": "3d13d3c8cab4b875835f3bf54018fbb0b5898813897a2bdfaaad194d77ab8a1c"
+    },
+    {
+      "path": "prompts/150-ai-supply-ecosystem-ux-final-closure-v15.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3885,
+      "sha256": "117acb4fea95a1de8204c302f846e9648bf5e7ecd9cc99d36ef6c38cea1d71c4"
+    },
+    {
+      "path": "prompts/150-rc4-release-proxy-error-readback-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2018,
+      "sha256": "ed81b3998a24c7085ade451485c19f7cae5b560aaca40bed98772b5449d0a95a"
+    },
+    {
+      "path": "prompts/151-ai-supply-reference-grade-final-adversarial-v15.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3366,
+      "sha256": "dd659f590f357eb740d10c48b63f15b484a55866eabb8d1a02019dd2a1aeaf23"
+    },
+    {
+      "path": "prompts/151-rc4-release-final-review-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3359,
+      "sha256": "003e3bfb41f0eef6c1102084a9a65611a4b2ed6ce6718ef7d87b058963403cdd"
+    },
+    {
+      "path": "prompts/152-ai-supply-reference-architecture-final-closure-v16.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5314,
+      "sha256": "9822154a3b548e751e220203f016724ac65075822babf58f5868c90f35d02cba"
+    },
+    {
+      "path": "prompts/153-ai-supply-ecosystem-ux-final-closure-v16.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4451,
+      "sha256": "20a00459243034c0fcf5c3f86bee2452e963dad58c4be525b94e864ef6270636"
+    },
+    {
+      "path": "prompts/154-ai-supply-reference-grade-final-adversarial-v16.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3856,
+      "sha256": "70822f67679a6888a8320e79c7b6f23284d04e69473d622ea81024ddb0ca0294"
+    },
+    {
+      "path": "prompts/155-ai-supply-reference-architecture-final-closure-v17.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5645,
+      "sha256": "ccaba99252c6df7049637b9ce326cc4b8a9358a9c18bfeea19704543f530dd6e"
+    },
+    {
+      "path": "prompts/156-ai-supply-ecosystem-ux-final-closure-v17.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4654,
+      "sha256": "97138535e1ee9a45adfe6cace87b1ebfd494a016dd4aab26ace4cf95b8ef1e9e"
+    },
+    {
+      "path": "prompts/156-rc4-release-adversarial-state-machine-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 6397,
+      "sha256": "9355cf4ef40047a366017468ed5fc3027f232ba88f8d9adc01a24a3c8ffd93f2"
+    },
+    {
+      "path": "prompts/157-ai-supply-reference-grade-final-adversarial-v17.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4017,
+      "sha256": "2cb603e80c2a653095197c98c3a2dafd0775ecc1fe846ff2d54f3511edbb735d"
+    },
+    {
+      "path": "prompts/158-ai-supply-reference-architecture-final-closure-v18.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2953,
+      "sha256": "758cc5e483a5db33c1013bb5be4185e2323bb869a3b6e1dbed1a073c4fd66eb3"
+    },
+    {
+      "path": "prompts/159-ai-supply-ecosystem-ux-final-closure-v18.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3073,
+      "sha256": "36a59d7ccb6d00690888d742f8ea24154d1d05c5f423d03ccd1722fa871c513b"
+    },
+    {
       "path": "prompts/16-wiring-batch-writeback.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2728,
-      "sha256": "912ad3fc29ca25e564737c06d9f70efa9a1824f1a5da552c02cbc48fa90775c1"
+      "bytes": 2696,
+      "sha256": "5b30ddabe4bde041fffd5aa095a0684538266674f3cb802a42552a333df12234"
+    },
+    {
+      "path": "prompts/160-ai-supply-reference-grade-final-adversarial-v18.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2027,
+      "sha256": "9b420b4e27408fa471e069d85804ccdf906681f9dcd57062d88e79b7665ef1f2"
+    },
+    {
+      "path": "prompts/161-ai-supply-reference-architecture-final-closure-v19.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4113,
+      "sha256": "4ecf853fbd26cc00c7c636e4f1d8030ce55daa8556f26c127d0df57f9c7ea691"
+    },
+    {
+      "path": "prompts/161-rc4-release-openat-hardening-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4794,
+      "sha256": "55d073532f271ce4d50336244c507b05624444498d589a02bfda123f444b8ebd"
+    },
+    {
+      "path": "prompts/162-ai-supply-ecosystem-ux-final-closure-v19.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4363,
+      "sha256": "73d0802d3a128db53c944389b29df4187402f16ca719197c9a5fbe3db1ab0220"
+    },
+    {
+      "path": "prompts/163-ai-supply-reference-grade-final-adversarial-v19.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2714,
+      "sha256": "0e94f8c9809268fb73fb98b32edccc5135f458cf0526186fc2c2d895dd7ec169"
+    },
+    {
+      "path": "prompts/164-ai-supply-reference-architecture-final-closure-v20.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4461,
+      "sha256": "57f33721cdc39a8e12a05ae7cba1a47a2c857d0d37b954d8be3ac1af05215299"
+    },
+    {
+      "path": "prompts/165-ai-supply-ecosystem-ux-final-closure-v20.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4753,
+      "sha256": "599bc2ebf498cf3abdbbd0838425e00083e6f691f00b36c4353208c7befb3176"
+    },
+    {
+      "path": "prompts/165-rc4-release-bounded-write-and-result-envelope-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 6109,
+      "sha256": "96c65f6a4fe06847fbf1e099579d0a5baa8488ad444813c38f8156dcbe926ffd"
+    },
+    {
+      "path": "prompts/166-ai-supply-reference-grade-final-adversarial-v20.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2892,
+      "sha256": "5116edf673357e008d378056962942d17d7331d72b7b536b9ffa7e112e08e69a"
+    },
+    {
+      "path": "prompts/167-ai-supply-v21-design-closure-handoff.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 19670,
+      "sha256": "791b0f4722edabfc6abbf411b08b96f5e51e3f6548501635ea24333ae43119fc"
+    },
+    {
+      "path": "prompts/168-rc4-release-failure-envelope-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3839,
+      "sha256": "c89b3d64d066e2d8aa172e302584a4d3a600c8dc117f53cef15762d283719902"
     },
     {
       "path": "prompts/17-repo-merge-proposal.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2666,
-      "sha256": "b7c5b4cd20ee55a0e0b7c8142de00c7fb660e4cc3972b1d0bbfae554068ecb32"
+      "bytes": 2618,
+      "sha256": "68c5eb24e225bd4dcaa58836ae0a57d56c3ac982a4219ebdd2633a8b1d01dc10"
+    },
+    {
+      "path": "prompts/172-rc4-release-single-fd-stdin-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2829,
+      "sha256": "1b2c2577ac6db0c25d881c0deafd64bbd4ec715cc5bd8ea6f0225d0c48998c87"
+    },
+    {
+      "path": "prompts/173-rc4-release-readback-single-fd-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3971,
+      "sha256": "d5ce529c8b3ba6bfcc815334fbdfd6aecc7ba1a44ceb4b77cd71b5cfd15218d0"
+    },
+    {
+      "path": "prompts/177-rc4-release-fresh-test-lock-implementation.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2168,
+      "sha256": "67440cd87e2b721737ca6ecd01ac468eac61c14190aed2545d1bb817949cb5b3"
     },
     {
       "path": "prompts/18-writing-flow-codex-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 1615,
-      "sha256": "dd018d9b84af338722053ef3ec92dce9b1264f8496b51df8e5e7b02ccf6b1d69"
+      "bytes": 1583,
+      "sha256": "399b76dada42ebea6951a09342bc58e986ad40ef100becba766382dcd38c5950"
     },
     {
       "path": "prompts/18-writing-flow-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3246,
-      "sha256": "e4ca6bca4d259398238f22ab65d139e304fb95182d9d39f082865db1e59a2b8c"
+      "bytes": 3230,
+      "sha256": "ef2f8984283168aeff7dd25224e644ad1d115508e1ff9851be37b3710b637820"
     },
     {
       "path": "prompts/19-plan2-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2380,
-      "sha256": "43f4984394194ef160fb4abfeedf30a55c22ce25fbf962d330282e2595436fe8"
+      "bytes": 2348,
+      "sha256": "b01041e80bc593a6c7eb55bd54494e2d89d5b33f984724140d4c773081aa4478"
     },
     {
       "path": "prompts/19-tier1-executor-batch.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 5776,
-      "sha256": "2b52b4fd7bf11e1e89ce46bd594dc0a749fef3c32c9632c879c1447b51d2feec"
+      "bytes": 5760,
+      "sha256": "5b15188dec12ca49bf6f639b5c3525e1a9219ce53ab534e191c8849917fc5608"
+    },
+    {
+      "path": "prompts/202-rc4-runtime-second-red-final-reimplementation.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 16120,
+      "sha256": "5b255dc748874bce78dc88073a3dc332f6a428f3edd74518b9ec7565e36d5562"
+    },
+    {
+      "path": "prompts/204-ai-supply-post-rc4-continuation.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 8386,
+      "sha256": "571c2a200e31688acb28aafb9547fedf94fc1f07344613d54831259bbe9cbb68"
     },
     {
       "path": "prompts/21-ra-contract-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 4452,
-      "sha256": "96b6ee22459fdd4be43fa27b62e9120ea21adb63292b611ec9b41389a6da1164"
+      "bytes": 4420,
+      "sha256": "ed7653c8e263c9fdf858f3b749ff663060b036125d9eae751a2244a6a3ce75d4"
     },
     {
       "path": "prompts/22-ra-verification-completion.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3815,
-      "sha256": "8e084fd6d3d9b8ae6c045764e7623275f72db73f70df107da05261d52dc53ead"
+      "bytes": 3783,
+      "sha256": "f5eeb9baf2f45a3dc0b04fb62a09b56f73147852d387798a2c42dc21467cd145"
     },
     {
       "path": "prompts/23-a3-armed-design-review.md",
@@ -7474,71 +8498,71 @@
       "path": "prompts/24-repo-merge-migration-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2889,
-      "sha256": "395ce3a3dfb035e45c3882f44914aa9736dd328d5415bdceba0426ee2de6549a"
+      "bytes": 2873,
+      "sha256": "122bd555cf42d9616c21c68437f5f0b304899dab82ef15b75437b211c2fca775"
     },
     {
       "path": "prompts/25-repo-merge-final-audit.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 4700,
-      "sha256": "0e958a9a2325c4359603feda014e0a026d76fa0b346449d2a61092d432ddee44"
+      "bytes": 4636,
+      "sha256": "54acc41354c8980785461994d4b40294db8c29f94637758c644d849f1f04f8d8"
     },
     {
       "path": "prompts/26-repo-migration-post-commit-audit.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2244,
-      "sha256": "f9f6bb7acc305f8f6d8bdb06a1daeff800aac77f670e28736746b15b8fef10cf"
+      "bytes": 2212,
+      "sha256": "36e014f4babcc0925334b223fa7c8f86c17df691ac252c8eddb008e17c47ed17"
     },
     {
       "path": "prompts/27-project-status-archive-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2099,
-      "sha256": "09a240ed85faa1fbafa3c2a17b5a41ea476354ee386927d532355cbbc1b9211e"
+      "bytes": 2083,
+      "sha256": "5423f834c30c8652b7f908cba32038225d37c86a294057d6787f75793b385081"
     },
     {
       "path": "prompts/28-project-status-postfix-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2795,
-      "sha256": "b7ceb10b5da6922c50ea1d22c1ecd092bce193fe1e300a13dfc0abac0da36565"
+      "bytes": 2763,
+      "sha256": "2def0914a02d7867ca2b4ab436900cdd6effea409ceb99b748dd401bd083265a"
     },
     {
       "path": "prompts/29-project-status-final-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2213,
-      "sha256": "d68e58bce67e64429ae5a754e4301fe23d0cbd7c1665e100d14fa4962527a540"
+      "bytes": 2197,
+      "sha256": "b774283caea52b38673f0579d2eeaa8e074ad7280a8b15ef546256ec38936f76"
     },
     {
       "path": "prompts/30-project-status-final-adversarial-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2734,
-      "sha256": "b79e73fe3252956ee513e37b92859acdf79d82204edcc9d1062f3f2ce3e511aa"
+      "bytes": 2702,
+      "sha256": "a42799722cd270859fcbe753b0ec97755060dc0dbab9d9982c1e942efdbe4227"
     },
     {
       "path": "prompts/31-project-status-release-gate-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2039,
-      "sha256": "5cc8cdc7b6c710630fb75521371f2a8658018ead37992dcd2bf69d10298494f7"
+      "bytes": 2023,
+      "sha256": "70829f86221b361d690b9e4e246c2b81270fcacfde15d5cb8efe97a8665e243d"
     },
     {
       "path": "prompts/32-session1-project-anchor-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3120,
-      "sha256": "391effeb71001203feb041beab8c7a9dad457dd067184268a944dc5b48fea446"
+      "bytes": 3104,
+      "sha256": "09b63e8838241c8484a026572eb04bea2d44415b02bc43030d55db238103dacf"
     },
     {
       "path": "prompts/33-session1-project-anchor-final-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2763,
-      "sha256": "818692cc152ad6b826b4383cf6f099abba31769d34fbc633bb6706d419826e13"
+      "bytes": 2747,
+      "sha256": "dbfe87e9cb7ec3a253a4c0e55d27a074ef0ddeae13082ffc9e2a211e86d3b7f4"
     },
     {
       "path": "prompts/34-session1-project-anchor-release-review.md",
@@ -7649,50 +8673,50 @@
       "path": "prompts/49-m1-mobile-web-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2136,
-      "sha256": "fe053e6feb8b18c07fde2b24d2dd005f7e0cab81f6d49b4a43c1ab10338a548b"
+      "bytes": 2104,
+      "sha256": "6c72e3f940d8c59655d0258c2a4399353112e39df3233ccfbb248eddc815f8a3"
     },
     {
       "path": "prompts/50-m1-mobile-web-fix-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 1881,
-      "sha256": "0673d394ba612ccf465d2abeed21d1f919c36b3d804d9414525de52bd3ba8ad8"
+      "bytes": 1865,
+      "sha256": "3ae4455d53094e10485f6a1d8054648d9f490abfab926dcc9bf812857b891e30"
     },
     {
       "path": "prompts/51-m1-mobile-web-final-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 1937,
-      "sha256": "ae245e8fd350ef9507620dd6913ab394968fbf6f0aecdb8104506e81f60ade79"
+      "bytes": 1921,
+      "sha256": "60508212d9d1bf579f676062fbe0e7aa799537996b5879169a1425d21da6d8b8"
     },
     {
       "path": "prompts/52-m1-mobile-web-closure-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 1615,
-      "sha256": "692823e686bd8da090dc030255076b8d6f6b8ab6ea826636d7abc7453f56c470"
+      "bytes": 1599,
+      "sha256": "2881e75647dbccbb0a97305c0612099abf4016c7ed1fdf201a6d809c8ef40db5"
     },
     {
       "path": "prompts/53-t18a-cli-slots-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2645,
-      "sha256": "13e126019d4a5f73f56aa0f67d88e8834f33b649f72cae00a775898efce1cdd0"
+      "bytes": 2613,
+      "sha256": "71ca6358c92cc3c45375a104b4cb4e5151f5459932ba5612c367481384c1ff6c"
     },
     {
       "path": "prompts/54-t18a-cli-slots-fix-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 4229,
-      "sha256": "26837b4196a065ef3feab94683c22a509e57a5fc54df272a7bd5444abfcccccc"
+      "bytes": 4213,
+      "sha256": "b8c56391bb5072e970a5ec9935d772a3e4685afaa5327039a12881f0d1f40ac4"
     },
     {
       "path": "prompts/55-t18b-oneshot-ui-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3516,
-      "sha256": "b4b21dc613a66d8c8b4181b820a33a20b1c94dbf2c60d3668bf498a39b98e71b"
+      "bytes": 3484,
+      "sha256": "a7036f09421494b739789050ce66b1593048c877094d5f2da0a29bd66ce98397"
     },
     {
       "path": "prompts/61-d1-distributable-runtime-review.md",
@@ -7705,71 +8729,71 @@
       "path": "prompts/65-cli-expand-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 1875,
-      "sha256": "2326a68036533af0b980621d0e2e3d317e4f9160df45c017835e4ffbe204660d"
+      "bytes": 1843,
+      "sha256": "71b6ade529646006b78b1e9e090fb986cd46c1fdf9452b2cd771a70d0dc5f079"
     },
     {
       "path": "prompts/66-wizard-ux-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2178,
-      "sha256": "b532102bebd4325d4021d743197e450a1f96b3b467b688708cca83f1fe625097"
+      "bytes": 2146,
+      "sha256": "61250aa306bf5e3b64f7d59a7c91f58f11b5de1d4a5a60a67d24c1644bbbf1a0"
     },
     {
       "path": "prompts/67-t19-polish-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 1218,
-      "sha256": "7627567019d22729741b4113e4ffa1f4ac6ea452856fc3d66d0754525113348b"
+      "bytes": 1186,
+      "sha256": "485446db7615fb8c0b3f52a0759e4b2abb4ac63f7f74920ced115317800f6edb"
     },
     {
       "path": "prompts/68-fusion-layout-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 1763,
-      "sha256": "dcbe114c1d69a2077bf81dfad320e622c11228d5df31198be766134b53c845b5"
+      "bytes": 1731,
+      "sha256": "30d40e754c8bb97b348347f4ecd137557224550474251ae6050b67ed940b873b"
     },
     {
       "path": "prompts/69-mobile-shell-strategy-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 4611,
-      "sha256": "61e0758fb447cf92399830e3f7f9f878c4e4bad17babca1f7b4be012963671bb"
+      "bytes": 4546,
+      "sha256": "5b7574c5f8bcbc41e0def818bfeb9526e82d3dc796737a561fca82ca8230963c"
     },
     {
       "path": "prompts/70-mobile-together-scope-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 4725,
-      "sha256": "0c93c792f35995e6d9bcddeac15b367fac9fba3b3e9f818ee2396d23492e7220"
+      "bytes": 4693,
+      "sha256": "57dcbfb4c811bfa383fc42ee3f3dc376991bb3070d0f27eeb17803c995276c74"
     },
     {
       "path": "prompts/71-phase-analysis-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2699,
-      "sha256": "a5d7e9ed2d21012dfda0dc65263745ce4c3fb499a7414a91704b268b5e5da18d"
+      "bytes": 2683,
+      "sha256": "973f18eb704222c1f43e1f42f0aa3dd66233b6f16c5d430b8c47e6802b56d238"
     },
     {
       "path": "prompts/72-dsh-default-runner-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 6297,
-      "sha256": "debe57478b05fe4b8c7fda982d0c33dbbc319daca16b9dfcf888ec01f8a30d24"
+      "bytes": 6265,
+      "sha256": "0b6d15bb5f92a40c37fdec7e076534c9ce787095a543ee0c605078880d5d2dd2"
     },
     {
       "path": "prompts/73-now-vs-later-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2881,
-      "sha256": "a8e87ee4500b5efb65f80c903edc9b22dc7188931f667124a510c74f6d424645"
+      "bytes": 2865,
+      "sha256": "e2a0e94f32ed4460937f4b2db743165d039fb5b7bac5a3efebfe254f6eecae5f"
     },
     {
       "path": "prompts/74-canonical-remote-mobile.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2742,
-      "sha256": "5da900936d5ee48617be2493006d29497a2e0eaee72ae99d4dce3203ade00793"
+      "bytes": 2726,
+      "sha256": "a7389e8d7057f1bb5b101bf08ef16828ce89ee9b0496c61158f7399f5c7b32dd"
     },
     {
       "path": "prompts/75-official-website-redesign.md",
@@ -7782,8 +8806,8 @@
       "path": "prompts/76-website-docs-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2382,
-      "sha256": "dda1dd29593ba3c8a303a63dc1e76a17bdf8b38c4eaef08a78934feedac6c938"
+      "bytes": 2373,
+      "sha256": "8e89e4272dcab771f0869a2671635847f5246050cbe9016efb0ca4e397904d22"
     },
     {
       "path": "prompts/77-w54-plan-adversarial-review.md",
@@ -7859,8 +8883,8 @@
       "path": "prompts/87-status-alignment-post-implementation-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3838,
-      "sha256": "25501d6b0a551b9d1de116d71b85889a1e559747fce174ea98168c3e7c39ca89"
+      "bytes": 3822,
+      "sha256": "c0ca75b39d433008be571d6926c67575b188a40fb6e38b8d5943791f80320833"
     },
     {
       "path": "prompts/88-version-records-audit-review.md",
@@ -7901,22 +8925,22 @@
       "path": "prompts/90-week-crosscheck-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 6181,
-      "sha256": "3fefd6018b6fac34e996129ba1d0af5c8af15c3d1e6cff794999cd844d5d0f9f"
+      "bytes": 6165,
+      "sha256": "c29c594c4d915db59cb19ca76ceff0eb68dcb57106bb2d205e43d8a0aed27b1e"
     },
     {
       "path": "prompts/91-review90-rework-verify.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 5576,
-      "sha256": "8ee6b8573362e66e52c896a600a8f15c663de3b4cce20877510553cf8f7a44f3"
+      "bytes": 5560,
+      "sha256": "492f2b70127a34131173204e7a21132a5c0b26fff010083328f0e3c021e2661c"
     },
     {
       "path": "prompts/92-review91-rework-verify.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3159,
-      "sha256": "a88a31b5ffc02421ba62dbafaeede16478b7f5caf444a5c43dd345f5e0b38bcf"
+      "bytes": 3143,
+      "sha256": "cf916919f10ae024f48a99866924308b8e674498851bce05865e92e8ae50090e"
     },
     {
       "path": "prompts/93-w54b-c1-c3-closeout-grok.md",
@@ -7943,22 +8967,71 @@
       "path": "prompts/94-week-audit-faststart-adversarial-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2608,
-      "sha256": "6235802cf0a69727f71478b096afdbda7c4bd0bdf629eb2e6c68772b79c63d8b"
+      "bytes": 2592,
+      "sha256": "70338c3352f8207eafa0f12b10b07438f19716c155b1959aad1eee80d1c33b58"
+    },
+    {
+      "path": "prompts/95-ai-supply-universal-onboarding-adversarial-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2847,
+      "sha256": "b3233a35de46cf9104365d94c9dd748c8b6e96980afe8df3844c2533c6b80b83"
+    },
+    {
+      "path": "prompts/96-ai-supply-universal-onboarding-closure-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1949,
+      "sha256": "17a8268b4b51ae8c89decb3f1e89cf888770e3b289f9a457db294828e7d376f4"
     },
     {
       "path": "prompts/96-week-audit-faststart-closeout-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3066,
-      "sha256": "22eb6e31e38cbf33154d3430ab38b5b15d6ab9a10addfe845f4e1ab7e9ccd61b"
+      "bytes": 3050,
+      "sha256": "b1a17914b9e4c8a64584797e7cd3857f815aa3ac492c2eaf6c47cc83f1e861f9"
+    },
+    {
+      "path": "prompts/97-ai-supply-universal-onboarding-final-closure-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5926,
+      "sha256": "537ba10e69ba915b8fd52baaefe73a237060b214f3ed35de9cdafb108670ca5d"
+    },
+    {
+      "path": "prompts/97-rc4-macos-npm-exec-signal-implementation.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2512,
+      "sha256": "33358c5d7809256d466ff6fcbb8eebc5414cdbf689707b50a8cd6530f89bae44"
+    },
+    {
+      "path": "prompts/98-ai-supply-universal-onboarding-final-gate-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2451,
+      "sha256": "4023597cfb5828665d3ff67434b35aa6cc6cace6a7100872cf4c8e61495f7fa4"
+    },
+    {
+      "path": "prompts/98-rc4-final-adversarial-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2693,
+      "sha256": "7d131a855de715a6bdd31d7508bd4338c531c0f0cf683ce14941c255c66fa5af"
+    },
+    {
+      "path": "prompts/99-ai-supply-universal-onboarding-billing-closure-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2445,
+      "sha256": "70c07029e9728032dd1964840f79057e875f507d7f5b098102b66bac8c778b89"
     },
     {
       "path": "prompts/w54b-c2a-grok-implementation.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 5773,
-      "sha256": "a05e0fa16891098e74b4c7da7670aee44ff74d173c4333a06bb32d7861122247"
+      "bytes": 5757,
+      "sha256": "24a95c528e1347640b21e36a95a608fd88148ff4d77236e47f0e9c3e9bb8207e"
     },
     {
       "path": "prompts/w54b-c2a-grok-resume.md",
@@ -7971,8 +9044,8 @@
       "path": "prompts/w54b-c2b-grok-implementation.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 4969,
-      "sha256": "759a480330ed37d4f04e99a3dd4d212b38a31365dfb35d6ba6932344d3c926f2"
+      "bytes": 4953,
+      "sha256": "aa1ebe79d0538570bd5aac227ba28e9eaa8b2e07402e3bb1b4a94259f905c1c2"
     },
     {
       "path": "prompts/w54b-c2b-grok-resume.md",
@@ -7986,14 +9059,14 @@
       "kind": "file",
       "mode": 420,
       "bytes": 4181,
-      "sha256": "4dc7923f5262e7928558af4e7af495380f01e34c6dfc08d8787594e1c77cafd3"
+      "sha256": "33b7581de156f73df2b9573b427985aa709db052ea543dee4857b5d5a98ed0da"
     },
     {
       "path": "research/2026-07-25-saydo-closeout-impl-readback.fable.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 13206,
-      "sha256": "bf0a3f236a7450bf0ee1e48d5fef10fdee7ac32fa355dda02f2e694147d8cdf2"
+      "bytes": 13174,
+      "sha256": "a8dbaecfcfee70e13da0417b260772f028b5fd2323e35ea79414d30605e58101"
     },
     {
       "path": "research/2026-07-25-saydo-wiring-impl-readback.fable.md",
@@ -8006,8 +9079,8 @@
       "path": "research/2026-07-26-saydo-executor-impl-readback.fable.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 10276,
-      "sha256": "174ed4bba582915716acbf66752319e9c620e297df991c371ee2bcec3d2d9f35"
+      "bytes": 10260,
+      "sha256": "0323ac764e78028559dead5fb2d047c56dd1408c88fbf3cc40a67564bc84cc8c"
     },
     {
       "path": "research/2026-07-26-saydo-w1-impl-readback.fable.md",
@@ -8055,8 +9128,8 @@
       "path": "research/2026-07-30-saydo-full-business-flow-collaboration-audit.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 102924,
-      "sha256": "27ec1213cc3172094a44143d4d24f74c1b0e554c4afb1897135f327f5c94bc05"
+      "bytes": 102588,
+      "sha256": "0b73ed9ce8f45256819f043a3d691fedab900c79581306410d73938da25925e5"
     },
     {
       "path": "research/2026-08-13-v32-fusion-details.md",
@@ -8132,8 +9205,8 @@
       "path": "research/codex-findings/08-plan-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 36388,
-      "sha256": "c1f6062cd613b53ae5c88aaafc78406ca99970c14c44f002eeefeec380b12971"
+      "bytes": 36372,
+      "sha256": "ccc0c9b42c1a4f61e9660a7700054fc25a94ce1db6842805b96c21f8fb244f8a"
     },
     {
       "path": "research/codex-findings/09-byoa-v2.md",
@@ -8150,11 +9223,67 @@
       "sha256": "f12cd5dc8c38154bd4f0ccef5a355e0e996e44871654e465d1b486a54f96650a"
     },
     {
+      "path": "research/codex-findings/100-ai-supply-universal-onboarding-final-billing-gate-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1929,
+      "sha256": "9f55086aff8593b806544f11e39023bc389fa3a90509663986c854ce40c6745c"
+    },
+    {
+      "path": "research/codex-findings/101-ai-supply-universal-onboarding-derived-billing-final-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2516,
+      "sha256": "dcc325140abcf6e7033793560023273d44ca708c39d722ee61079678cbd9ff20"
+    },
+    {
+      "path": "research/codex-findings/102-ai-supply-reference-architecture-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 6314,
+      "sha256": "cce398f2c04f1e538ce384aeddaf9545e2c5c8dbd493b3df000f232f1fee1ffb"
+    },
+    {
       "path": "research/codex-findings/102-week-audit-faststart-final-adversarial-review.md",
       "kind": "file",
       "mode": 420,
       "bytes": 16646,
       "sha256": "c2d637116d6633085fd8419f4114102196839b10856eb983b1ae7a276f3d6861"
+    },
+    {
+      "path": "research/codex-findings/103-ai-supply-ecosystem-oss-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5298,
+      "sha256": "1219bccc4945504c531ddaaf03697689c70059a51301ee1c342f289cfccd3c58"
+    },
+    {
+      "path": "research/codex-findings/104-ai-supply-reference-grade-adversarial-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 20005,
+      "sha256": "a90de02daadc104997343235ab5ab27a3b4e9071830a0fd753111bbd7d41522f"
+    },
+    {
+      "path": "research/codex-findings/105-ai-supply-reference-architecture-final-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 9073,
+      "sha256": "d250906eeb8665a89cbb23643ba823f443892c7f9c28e8ba895b3e8ac742564b"
+    },
+    {
+      "path": "research/codex-findings/106-ai-supply-ecosystem-ux-final-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3953,
+      "sha256": "30295f1da54d8025d2118140f21ecb523857a456b7a9358c32e93ef909935073"
+    },
+    {
+      "path": "research/codex-findings/107-ai-supply-reference-grade-final-adversarial-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 27215,
+      "sha256": "fa35476ec5ab8eee5c4d424013f1122a2c16dd98b19b83912bfebeda91562bbf"
     },
     {
       "path": "research/codex-findings/108-week-audit-faststart-final-code-review.md",
@@ -8164,11 +9293,18 @@
       "sha256": "51803cf98f7bbd7033ea7ca1f7f4119fc3edfc6485f84cc0f96a54603d9f865f"
     },
     {
+      "path": "research/codex-findings/109-ai-supply-reference-architecture-closure-v2.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 13486,
+      "sha256": "4d12395c7b78e5a6b5c77c4ad9445aa0d1d79454a7225d2fca842c135ad29ac1"
+    },
+    {
       "path": "research/codex-findings/11-implementation-plan-v25.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 14138,
-      "sha256": "9eff61d3c2ed7b69fdbfc9497bf0bfffd37177896266a6156dffe44be47427ed"
+      "bytes": 14122,
+      "sha256": "cd3d6ee213a30149b2306db8940922c5cba5219bd34bd94c8eb6bf45ad7b322f"
     },
     {
       "path": "research/codex-findings/11-post-review-reassessment-sol-review.md",
@@ -8178,6 +9314,27 @@
       "sha256": "104271c0f61ee884a14db7acad7b471bd79eeb51fb32593c4c450e858f77d8c3"
     },
     {
+      "path": "research/codex-findings/110-ai-supply-ecosystem-ux-closure-v2.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 15309,
+      "sha256": "8f42b149ca3ba8367f51a8dd6a2ffb7426f0d0270413284f3197d2385df8ca80"
+    },
+    {
+      "path": "research/codex-findings/111-ai-supply-reference-grade-final-adversarial-v2.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 23923,
+      "sha256": "94d1799859b1b033743f611cc84fffa05a22d4beee73f23fee93d0a5ccb7814a"
+    },
+    {
+      "path": "research/codex-findings/112-ai-supply-reference-architecture-closure-v3.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 11038,
+      "sha256": "3c60c9beb99afdc6b2a8f10a23d54ac06173b84a661f20973d5894b129394730"
+    },
+    {
       "path": "research/codex-findings/112-week-audit-faststart-freeze-adversarial-review.md",
       "kind": "file",
       "mode": 420,
@@ -8185,11 +9342,130 @@
       "sha256": "da27dac33e1c8346ece931341a35a7a2cabd8aecc183ab37017bc43b03d4b550"
     },
     {
+      "path": "research/codex-findings/113-ai-supply-ecosystem-ux-closure-v3.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 9813,
+      "sha256": "bcda64bc87859c4611623d63bd867fe65c0dc6cff1090d809f7a5d9f815405fd"
+    },
+    {
+      "path": "research/codex-findings/114-ai-supply-reference-grade-final-adversarial-v3.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 19696,
+      "sha256": "1a8e0bc5ebbda7f8fd9a9a1cd2cfcd0b81dd3892a9a351191179b9423f983cc8"
+    },
+    {
+      "path": "research/codex-findings/115-ai-supply-reference-architecture-final-closure-v4.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 8424,
+      "sha256": "403b80612b5f07aaf54b1b9108df1b05c724c8a5fa29ac640b1bb9f158d0ef93"
+    },
+    {
+      "path": "research/codex-findings/116-ai-supply-ecosystem-ux-final-closure-v4.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 6464,
+      "sha256": "7ac98bf2e4947c12a5375c2b20cf9814a57b0f8137defa4d72b700ce0f7f56ca"
+    },
+    {
+      "path": "research/codex-findings/117-ai-supply-reference-grade-final-adversarial-v4.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 8495,
+      "sha256": "c6bb4302f2c19dfee3ad7c0d838b189bad32a10113a6a7a49504500700600c47"
+    },
+    {
+      "path": "research/codex-findings/118-ai-supply-reference-architecture-final-closure-v5.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 16601,
+      "sha256": "2dc7b09fd6248eded7417fa7fa9e573de2aee4e98d046d646a9567c758a4a332"
+    },
+    {
+      "path": "research/codex-findings/119-ai-supply-ecosystem-ux-final-closure-v5.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 13306,
+      "sha256": "17b33cb33708a34a42d8250a57429fca91a2262efd7ade09db852e4142bd51d5"
+    },
+    {
       "path": "research/codex-findings/12-canonical-writeback-batch1.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 12960,
-      "sha256": "ec339521e8acf4de8e0f9ba66be217e8b72afd7924d8b28ef879c934fb8148af"
+      "bytes": 12384,
+      "sha256": "04e28f3c5a44101eb2ef2c17e433fb2b92f17e33d750b8c594ea612e2d41927e"
+    },
+    {
+      "path": "research/codex-findings/120-ai-supply-reference-grade-final-adversarial-v5.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 15482,
+      "sha256": "e13663a4e640993462cccf6d6c0abfc8360cf8849c0e1c11d2d42c48e2ba32ce"
+    },
+    {
+      "path": "research/codex-findings/121-ai-supply-reference-architecture-final-closure-v6.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 36165,
+      "sha256": "2374ac3b73b920025b06864454a30962187498e36154be775d822a4232b73c0c"
+    },
+    {
+      "path": "research/codex-findings/122-ai-supply-ecosystem-ux-final-closure-v6.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 22038,
+      "sha256": "7690e7526e313d339c7af065a9b85995ab8749f06fe8bc5640af1322f83a52e7"
+    },
+    {
+      "path": "research/codex-findings/123-ai-supply-reference-grade-final-adversarial-v6.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 14570,
+      "sha256": "3a74726eb663f2cf31e44c13f0ee4f58a271cf2660be8516f9c84ff054da9117"
+    },
+    {
+      "path": "research/codex-findings/124-ai-supply-reference-architecture-final-closure-v7.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 16976,
+      "sha256": "ffd2fddf992a500114406b30e9cbfcfc9b4c283ed75d0dea5d0aa890685dbbc9"
+    },
+    {
+      "path": "research/codex-findings/125-ai-supply-ecosystem-ux-final-closure-v7.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 21436,
+      "sha256": "913d9c3ebd0c35d1d09c178087c5f1faadae515ffc8293230f77aba7330d9f9c"
+    },
+    {
+      "path": "research/codex-findings/126-ai-supply-reference-grade-final-adversarial-v7.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 11706,
+      "sha256": "dad8b5e4a7c834d058b9bbd88dd0d61b533fc7a8d1589dc0e4b3b7b2d12821f2"
+    },
+    {
+      "path": "research/codex-findings/127-ai-supply-reference-architecture-final-closure-v8.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 16645,
+      "sha256": "f2ca6479ce9a4eb5ef26e2a2c2942476865ebd99776f5096edd425104cd05111"
+    },
+    {
+      "path": "research/codex-findings/128-ai-supply-ecosystem-ux-final-closure-v8.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 12362,
+      "sha256": "69b8d68bffa0b8dcc018f5945ca930285415dd77cc17a3f45e54c62d09a35096"
+    },
+    {
+      "path": "research/codex-findings/129-ai-supply-reference-grade-final-adversarial-v8.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 20259,
+      "sha256": "dea387c041339b87b61869a43d0e10ad5fa153b62f313d7b789be1ff93b74684"
     },
     {
       "path": "research/codex-findings/13-canonical-writeback-m-batch.md",
@@ -8199,11 +9475,151 @@
       "sha256": "7a6d161fcbc5bb7e8becd4364e939e7036b800b248832ec8dd2169cc90f25a21"
     },
     {
+      "path": "research/codex-findings/130-ai-supply-reference-architecture-final-closure-v9.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 23591,
+      "sha256": "7e1cff0dd18c53c28ca3ec09b897d501cb609ff3b0298453a219e8a960bb0da5"
+    },
+    {
+      "path": "research/codex-findings/131-ai-supply-ecosystem-ux-final-closure-v9.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 11710,
+      "sha256": "b46b478ebff018b0c89449d5ffbb5e18f896db63eb14d3307631c79950526ab0"
+    },
+    {
+      "path": "research/codex-findings/132-ai-supply-reference-grade-final-adversarial-v9.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 18861,
+      "sha256": "1d24c6beb7afb8b4a0cbb2b875670adbf149758ec7e756bfd6fc9573acbb3c6d"
+    },
+    {
+      "path": "research/codex-findings/133-ai-supply-reference-architecture-final-closure-v10.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 20448,
+      "sha256": "a195d3c2fbd7c2f4b964b72d28992833a21379a1807c5d12ccc77dcae6ed3b45"
+    },
+    {
+      "path": "research/codex-findings/134-ai-supply-ecosystem-ux-final-closure-v10.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 12799,
+      "sha256": "5c0ff9e28b089d666aa5e872dc43e0bcb0e6df2175652cd1113b6d5824aed4f1"
+    },
+    {
+      "path": "research/codex-findings/135-ai-supply-reference-grade-final-adversarial-v10.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 18900,
+      "sha256": "47497c78162d7223ad54df1993fe5c86b8cf8f6e7601064d4c3b3d97515f9431"
+    },
+    {
+      "path": "research/codex-findings/136-ai-supply-reference-architecture-final-closure-v11.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 15241,
+      "sha256": "16fb148d56fb8a073ca610fab877eeab74e5896e56bb9c23d9ea5083683cdc28"
+    },
+    {
+      "path": "research/codex-findings/137-ai-supply-ecosystem-ux-final-closure-v11.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 16340,
+      "sha256": "76aaaff78031f73255e6c7b6253fe223756548cce713efb0b7e1293d92e90a1c"
+    },
+    {
+      "path": "research/codex-findings/138-ai-supply-reference-grade-final-adversarial-v11.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 16173,
+      "sha256": "86b83a1d89f1a1f5855b9ba077d5432fd73eb2170c0eea6b85abe83718ee8f38"
+    },
+    {
+      "path": "research/codex-findings/139-ai-supply-reference-architecture-final-closure-v12.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 16667,
+      "sha256": "335fe11c253e37befb639b8899449ccf588820b799c820af38c25e3497b581ac"
+    },
+    {
       "path": "research/codex-findings/14-canonical-writeback-closeout.md",
       "kind": "file",
       "mode": 420,
       "bytes": 13114,
       "sha256": "14370393c771b1c2eb6026f09b911b7c83351773a0dbaa64a0a061511630181d"
+    },
+    {
+      "path": "research/codex-findings/140-ai-supply-ecosystem-ux-final-closure-v12.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 18709,
+      "sha256": "ae4909eb381b5be65cc43b0e20f4866aff2367cf1245239d6ff83c57d131937e"
+    },
+    {
+      "path": "research/codex-findings/141-ai-supply-reference-grade-final-adversarial-v12.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1024,
+      "sha256": "a9564c82b8f8b68e2f2aa71aef5a5150a367e9c429ccd87a80bf7272dabd2d11"
+    },
+    {
+      "path": "research/codex-findings/142-ai-supply-reference-grade-final-adversarial-v12-report-recovery.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 36117,
+      "sha256": "8d9a57b313a99a56ef648293113039fbdc9a15baf775274cee7159f6b1048ba3"
+    },
+    {
+      "path": "research/codex-findings/143-ai-supply-reference-architecture-final-closure-v13.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 20676,
+      "sha256": "01dd0343a77df4aa7af35c4357cd02fec58ba0886b983313e0bab0924da27c78"
+    },
+    {
+      "path": "research/codex-findings/144-ai-supply-ecosystem-ux-final-closure-v13.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 21158,
+      "sha256": "7e8bab54d22539bbd3a77145b5aacf67466069dfa901baddc39697901acb18ed"
+    },
+    {
+      "path": "research/codex-findings/145-ai-supply-reference-grade-final-adversarial-v13.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 22365,
+      "sha256": "1a5b9697bc92300ebae50ae907eb57a09d134d23a72f1ba6062e88e7c9fb41a7"
+    },
+    {
+      "path": "research/codex-findings/146-ai-supply-reference-architecture-final-closure-v14.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 17964,
+      "sha256": "b8e5017264543b1f1d4a70e8042554e2f6c41fc0e339d9249054842b2156097b"
+    },
+    {
+      "path": "research/codex-findings/147-ai-supply-ecosystem-ux-final-closure-v14.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 20390,
+      "sha256": "b143d2698c8d32e792e277e85ed81d6c50c8bebc937ae6ad0b20ee14f18a6a35"
+    },
+    {
+      "path": "research/codex-findings/148-ai-supply-reference-grade-final-adversarial-v14.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 30477,
+      "sha256": "d59b15a060e8226562c14d52a98321fc6cf21cf24b20ba4fc1111a2c6c9c6b96"
+    },
+    {
+      "path": "research/codex-findings/149-ai-supply-reference-architecture-final-closure-v15.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 17977,
+      "sha256": "19af12adb7e3077aff7df2739c43b1bfa76463ad91b4669d9eb2096d5aa13011"
     },
     {
       "path": "research/codex-findings/15-owner-decisions-panel.md",
@@ -8213,18 +9629,137 @@
       "sha256": "d8de22aa1ae5c92e7a2043abfdbd5388aefe06c8674808e5636e7e094113dc8f"
     },
     {
+      "path": "research/codex-findings/150-ai-supply-ecosystem-ux-final-closure-v15.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 21709,
+      "sha256": "06c2f49b090c67fcf015d94de77303291cdb39ce31a35c4dc21ab012871cca90"
+    },
+    {
+      "path": "research/codex-findings/151-ai-supply-reference-grade-final-adversarial-v15.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 30702,
+      "sha256": "9caf12c1ace1484004d6da6ab3c97db650210f7be3827355640c0f56003899dd"
+    },
+    {
+      "path": "research/codex-findings/152-ai-supply-reference-architecture-final-closure-v16.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 17366,
+      "sha256": "72dd66861f66cc80201cc4f06a01e08bcf78c5433fd8fc9fd94849de72733ac8"
+    },
+    {
+      "path": "research/codex-findings/153-ai-supply-ecosystem-ux-final-closure-v16.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 25203,
+      "sha256": "a2e66f1a8a1d6919600ec00f58c796bdcb160cda05272132be7e5a3c117e9051"
+    },
+    {
+      "path": "research/codex-findings/154-ai-supply-reference-grade-final-adversarial-v16.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 23601,
+      "sha256": "4d25324da6cb86db7963120c42d58ed3c4a0b7f28a1e8541b63ee38f05bb5b63"
+    },
+    {
+      "path": "research/codex-findings/155-ai-supply-reference-architecture-final-closure-v17.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 27313,
+      "sha256": "e5eb175ab9329e81a808002eb5ba113b05a56fd3efa3b489c0f57d958a0e52cd"
+    },
+    {
+      "path": "research/codex-findings/156-ai-supply-ecosystem-ux-final-closure-v17.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 16534,
+      "sha256": "ad8a8bcb63178c11a402d52c45f7a8c53ffcf5e2c666c883f218b000ae40245f"
+    },
+    {
+      "path": "research/codex-findings/157-ai-supply-reference-grade-final-adversarial-v17.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 36381,
+      "sha256": "745a891db62a61bba3741de299ebe2ed0ef74cce0072975d019630f812eaa832"
+    },
+    {
+      "path": "research/codex-findings/158-ai-supply-reference-architecture-final-closure-v18.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 19140,
+      "sha256": "4423b4ac471a17c2ac115a565d42226336e7f75d1eb8411a0cab674046591fab"
+    },
+    {
+      "path": "research/codex-findings/159-ai-supply-ecosystem-ux-final-closure-v18.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 17330,
+      "sha256": "5cd3b3fe37ba899e11952cf7444d39e156ff51f7805a49bf3cb574645fdc44b6"
+    },
+    {
       "path": "research/codex-findings/16-wiring-batch-writeback.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 37191,
-      "sha256": "0e7cfb0e54452a4863da78a7d1e005e47410bc1ec9784139737a0d90a770fa0a"
+      "bytes": 34951,
+      "sha256": "8ed2e5319f8acffc88f3ea0738c7e2a5a9fc63feafaf18071af15a78db4e32eb"
+    },
+    {
+      "path": "research/codex-findings/160-ai-supply-reference-grade-final-adversarial-v18.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 33484,
+      "sha256": "646abded0b93394ab7fe51d85f0c5895ccfb060e421c01e61ef2fa6b2ae6c398"
+    },
+    {
+      "path": "research/codex-findings/161-ai-supply-reference-architecture-final-closure-v19.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 26875,
+      "sha256": "25c94a80fee25d2e85f40e5ebf35b2cc631ae2ca2b7f9b5ed19b48affdc3b8ef"
+    },
+    {
+      "path": "research/codex-findings/162-ai-supply-ecosystem-ux-final-closure-v19.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 13829,
+      "sha256": "969d64a013e3ca1c4b4e33a58c24d9f0de3b2cd1ef430045c677c6e13a5ca7ca"
+    },
+    {
+      "path": "research/codex-findings/163-ai-supply-reference-grade-final-adversarial-v19.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 25381,
+      "sha256": "5a7aa42e3ae0a33b201845d0b03482a472728affcc3f829bcca208d0628b972d"
+    },
+    {
+      "path": "research/codex-findings/164-ai-supply-reference-architecture-final-closure-v20.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 19392,
+      "sha256": "7d896204979c86f3f84df79faf72fc3cd35f6b95669b5d3cfa120172c15d8ea2"
+    },
+    {
+      "path": "research/codex-findings/165-ai-supply-ecosystem-ux-final-closure-v20.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 17712,
+      "sha256": "921429129b62b282246496ede6d3238fb0e6c1734a8ff4a04f2cc1efcfa7d2c8"
+    },
+    {
+      "path": "research/codex-findings/166-ai-supply-reference-grade-final-adversarial-v20.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 16708,
+      "sha256": "718476c7f132f7d576632a59b4c1c782ee60f9066e0b6acb49b417844026a431"
     },
     {
       "path": "research/codex-findings/17-repo-merge-proposal.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 34269,
-      "sha256": "36fc3efcd6bc96aff682da098d5650f97fedbe075661fe3dab8d52d9dfd8b35d"
+      "bytes": 34189,
+      "sha256": "17af815741401aa5fb0f1ba2236a45e66c47f616876ba11f9b4ea7f03792a16f"
     },
     {
       "path": "research/codex-findings/18-writing-flow-review.md",
@@ -8237,8 +9772,8 @@
       "path": "research/codex-findings/19-plan2-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 22588,
-      "sha256": "d023e341a299cf9880bbed97c08563e64fc048ad7936fc3b99dce003e5b1e0b5"
+      "bytes": 22572,
+      "sha256": "3e8c5cf991fef0bd9730e2e946a14d01e8ca4053657a12265bc3259ddfc400f5"
     },
     {
       "path": "research/codex-findings/19-tier1-executor-batch.md",
@@ -8255,18 +9790,32 @@
       "sha256": "30b135674c0ca4a669e9689c8ea7f45a31f201b529a44b8ff27bfb9337e371f3"
     },
     {
+      "path": "research/codex-findings/2026-08-25-rc4-runtime-adversarial-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 13578,
+      "sha256": "0227f8cb5d068403741c540b2419e2a39eab80dc23d65a810b1019dcb16ca2f0"
+    },
+    {
+      "path": "research/codex-findings/2026-08-25-rc4-windows-tier1-selfkill-rootcause.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 7516,
+      "sha256": "1e84c194cadc9280db63189c2efb39872635611ddc5dd0effb6e737b4b0beeca"
+    },
+    {
       "path": "research/codex-findings/21-ra-contract-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 20818,
-      "sha256": "b3612d08448cc2c26a2aee09a9a8a087164c0514c916168bf8b203c2d23d6a6d"
+      "bytes": 20802,
+      "sha256": "4ad2f6e117baf30ae7975d1b1a06122c1ec93b7a9cf2aaa1653d60e1637e986d"
     },
     {
       "path": "research/codex-findings/22-ra-verification-completion.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 57459,
-      "sha256": "123d610937b3c966b54724a095ce34faea158f31a9795cf087416512f364e123"
+      "bytes": 57155,
+      "sha256": "9528009bbbd65438d49f0f88fa0dd0ba26531e0ab1ff63b482f5326b21ce3da6"
     },
     {
       "path": "research/codex-findings/23-a3-armed-design-review.md",
@@ -8279,57 +9828,57 @@
       "path": "research/codex-findings/24-repo-merge-migration-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 23862,
-      "sha256": "197636adba5933af328a56552547f8fad4840bd678be16a99083aa954bace457"
+      "bytes": 23814,
+      "sha256": "bcf1a0c487b6dbd2aed7692e7ab44dd5a7eb6258ad1529f02f7a563548b67a6c"
     },
     {
       "path": "research/codex-findings/25-repo-merge-final-audit.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 44220,
-      "sha256": "320ee9682ed00c3e320582e0bc78fe84f7c9c4c1ccdca61e5780d38a6deaf26e"
+      "bytes": 43900,
+      "sha256": "216f1949be419bcade3d25940dd20a6c06390ec2a07e0ace63667246c2b1ef67"
     },
     {
       "path": "research/codex-findings/26-repo-migration-post-commit-audit.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 13181,
-      "sha256": "2d960cdae9a5b5867182418c33a35bd00a332bba8733f81f9045411bd4915d29"
+      "bytes": 12941,
+      "sha256": "0f80fca38725b187cc61fc80951382e1ed949b38c6949919215cde88494ea1c4"
     },
     {
       "path": "research/codex-findings/27-project-status-archive-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 11005,
-      "sha256": "d82c24b75306afa15861880e090eff57bcd71bc0a5fcfaf2eef71cbfda204ffa"
+      "bytes": 10493,
+      "sha256": "a0b0681a355e9237de31eafeb829e4a0d40d3b2a0d4b35019afa4cac482b1ca7"
     },
     {
       "path": "research/codex-findings/28-project-status-postfix-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 12721,
-      "sha256": "ff57a1bccdb331dbd2a6914f5ee9cd249694812dbf5920e1e138ebba5b0b19f1"
+      "bytes": 12321,
+      "sha256": "606c3f2ed447643554dd45ed71389901d45eb4ba07701117b4fd4fc504f99cff"
     },
     {
       "path": "research/codex-findings/29-project-status-final-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3686,
-      "sha256": "143b15e4b7d1150254b1e3c0a9776914d0c43297a4f949bad178ef0bf20de16b"
+      "bytes": 3494,
+      "sha256": "ce0bc87da9aac445c93aef87f239cfc91e72b3a1bb103fd336960246db83c096"
     },
     {
       "path": "research/codex-findings/30-project-status-final-adversarial-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 12939,
-      "sha256": "3de9856892fd6d9b1111c36e2f1f4dafb08e5ffc16a1998c05b17f5f729d6026"
+      "bytes": 12603,
+      "sha256": "917bee60fa9df12dbc3bd3c869aa9efd74868035be5361d91f465c101d878df7"
     },
     {
       "path": "research/codex-findings/31-project-status-release-gate-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 5147,
-      "sha256": "6cd5deffe7bfb65fe702a7797f55ccc1ace0d3291769a7ea75937a4653c95383"
+      "bytes": 4747,
+      "sha256": "468e1d6b0629ec3743e6fcc0864682e02f521c3ecb31e7708bc1a4d1f50736c7"
     },
     {
       "path": "research/codex-findings/32-session1-project-anchor-review.md",
@@ -8363,15 +9912,15 @@
       "path": "research/codex-findings/36-session1-project-anchor-final-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3788,
-      "sha256": "5e3c9a715d315b78f6f1dcf742da2c593a1e97aea8148e8fb89441588e80c9d2"
+      "bytes": 3772,
+      "sha256": "c0801257bf7df8ce610eedf256c746834ea66a90f3d7bb95b8378772fa484a99"
     },
     {
       "path": "research/codex-findings/37-session1-project-anchor-rereview.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3453,
-      "sha256": "753844c29e000cb2b8277c842a420b2ba97d14a68f93ad2862580bc956bd90fc"
+      "bytes": 3421,
+      "sha256": "f24de20d500b9d58cf54eda495613a49fa505f669ebcc7252115971a51a392c6"
     },
     {
       "path": "research/codex-findings/38-session1-project-anchor-release-rereview.md",
@@ -8419,50 +9968,50 @@
       "path": "research/codex-findings/49-m1-mobile-web-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 19458,
-      "sha256": "b28e7b385a2782884e43d39f9aa8f9017058cea7cdd386825896a0d21c7aaf12"
+      "bytes": 18322,
+      "sha256": "a1a50415341c4f3be4fb1be5e16c6c6064799efd0f4a6b9ab93544f045f453d6"
     },
     {
       "path": "research/codex-findings/50-m1-mobile-web-fix-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 16083,
-      "sha256": "08244e18397e951249aea5b4013df074d6b6b830ad3a5cbea971ef341396c0b6"
+      "bytes": 15059,
+      "sha256": "c8e1ca192da037de23e1e0228a99a7b091cd50f9a820318f0e5b45e5772529fc"
     },
     {
       "path": "research/codex-findings/51-m1-mobile-web-final-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 13110,
-      "sha256": "1e1f598c2e2214b187479ff3bcb15fbe2fe04fc1b2b4f87e41a435f2f5402d30"
+      "bytes": 12267,
+      "sha256": "385a4f620b74cc2d451a71ae4428f854753ef3af897b04515849d1d01666b26b"
     },
     {
       "path": "research/codex-findings/52-m1-mobile-web-closure-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 12949,
-      "sha256": "39213f193b0ee806ade1bb6a0fee425aaf1a34575ee45db918382537114d3f68"
+      "bytes": 12341,
+      "sha256": "432c92913c991391cf3ea8799fbd337ff774f8eef6384bc6daf7a6783bd0d1c9"
     },
     {
       "path": "research/codex-findings/53-t18a-cli-slots-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 8747,
-      "sha256": "5113b706451a9eb7b6874c8661d1c3627f6f8498a3d782f88fb43dd6fa0adf87"
+      "bytes": 8411,
+      "sha256": "a3ca331ee922e4f5fbdccb041c68b16338b454504672544a1d2e7ffd84a6526a"
     },
     {
       "path": "research/codex-findings/54-t18a-cli-slots-fix-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 17518,
-      "sha256": "6772c11cf4f21940113c19f337af09e3a5a983790d2ce0b9fb42e1a1714d417f"
+      "bytes": 16798,
+      "sha256": "c7b7d0a25183f59a45aea4337e0f8485271a85143bc43781d0e17ab5da4c0bc7"
     },
     {
       "path": "research/codex-findings/55-t18b-oneshot-ui-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 9484,
-      "sha256": "cc3448b6e64236e11a307c3b976d1a87596c551266c2350c14f081d5de161663"
+      "bytes": 9148,
+      "sha256": "7b4529339e3863fa18778a2dfbe880e02d778c526475a2f4401d07bb4b28e582"
     },
     {
       "path": "research/codex-findings/56-t18b-oneshot-ui-fix-review.md",
@@ -8475,15 +10024,15 @@
       "path": "research/codex-findings/57-m2-ios-shell-spike-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 6286,
-      "sha256": "90e9618f05071ae71628908b830f6feedfa5d94c4d09112cff7828a48e2e7414"
+      "bytes": 6285,
+      "sha256": "bae44c4ed4aef5b2e659916484aad13ce42d11cc0a08bd20ffa1aaf3aa217440"
     },
     {
       "path": "research/codex-findings/58-m2-android-shell-spike-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 5701,
-      "sha256": "2e1a4e7147246a0d126448f87bd321a02ecc9840f65e916fcf724174f682cc1b"
+      "bytes": 5685,
+      "sha256": "4b03664764ae60e7c8a61056885e5e5ec3bcbc6a3b88e601cabdfb93bae74dfa"
     },
     {
       "path": "research/codex-findings/59-m2-harmonyos-shell-spike-review.md",
@@ -8503,8 +10052,8 @@
       "path": "research/codex-findings/61-d1-distributable-runtime-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 13268,
-      "sha256": "4e16c165949a6db6a37f0acb26ae9c414595e45f401be83969cebc2b3cbeea99"
+      "bytes": 12468,
+      "sha256": "e32337ab1bf181cf9d6030ca51fb2080cafc51af13f6fa3b434266a210849a03"
     },
     {
       "path": "research/codex-findings/62-d1-final-findings-remediation.md",
@@ -8531,22 +10080,22 @@
       "path": "research/codex-findings/65-cli-expand-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 18064,
-      "sha256": "44908bfb452fa842947de9ad175d9cefe9f1c4f47b3022aef09c782c3e9d00d4"
+      "bytes": 16864,
+      "sha256": "04e8b3530f1380f003d66fc99fe638f3a2026bdf9d43bf4e038f61a53d62888f"
     },
     {
       "path": "research/codex-findings/66-wizard-ux-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 12258,
-      "sha256": "1f7fd0c154baff2c7ae42be4edad1910eda6c6e7a23ad1f7b9c2caf4cbc44998"
+      "bytes": 11618,
+      "sha256": "f115d33088e5ac0abea83d7998f15c02621778e2b8d8953a41576b5740f83b08"
     },
     {
       "path": "research/codex-findings/67-t19-polish-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 10957,
-      "sha256": "54b8f67db6208dc8a215763860a9a4bb391700eeb0269df4a7ed6618a6633550"
+      "bytes": 10347,
+      "sha256": "6cf764ad42707835b99bfc17061c1a16fad6f9a87c62a8b5b9e19ca9d52ca202"
     },
     {
       "path": "research/codex-findings/68-fusion-layout-review.md",
@@ -8559,8 +10108,8 @@
       "path": "research/codex-findings/69-mobile-shell-strategy-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 18161,
-      "sha256": "c28e99645e5ad8ed2f4d6e7a92327681171cb621e41437af02754fe68ffd9ded"
+      "bytes": 18145,
+      "sha256": "f093d9e0dccfbb1e4496ac058a9a417ac06420ee084603bde0efd7413f02f96a"
     },
     {
       "path": "research/codex-findings/70-mobile-together-scope-review.md",
@@ -8573,36 +10122,36 @@
       "path": "research/codex-findings/71-phase-analysis-review-attempt1.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 8257,
-      "sha256": "1749074d96d6ee0d8c49a2bc4dc645d04baa1cb47d90e7fe6c7fc5a39c251204"
+      "bytes": 8223,
+      "sha256": "af2d368dd879cbe1c937a0f77a795ec3a05b933cab7eae5e29e405ba002a1770"
     },
     {
       "path": "research/codex-findings/71-phase-analysis-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 20594,
-      "sha256": "d8a21b794adccd69c3ada74f7002feedc58849f4d8d9185e69d45acd68144fb7"
+      "bytes": 20576,
+      "sha256": "94b0bca04658dcd6261fdc6d1aab3e4f52f68d910a4c757032fc4013bffbd37f"
     },
     {
       "path": "research/codex-findings/72-dsh-default-runner-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 32474,
-      "sha256": "6995fa3bcba6da7a77f6a4f6eca0d167df107d64263929567c5522848126c292"
+      "bytes": 30138,
+      "sha256": "50d96780c03e831534c028c6fcf957da0981917c0ba6b2cf712d1c65e1ce44d7"
     },
     {
       "path": "research/codex-findings/73-now-vs-later-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 13142,
-      "sha256": "cc850ef6dd92fd4023becb97c01ac65f2d3016924e442658129deea5e4021dd9"
+      "bytes": 12518,
+      "sha256": "2cd7c9ae10a538dd0d8dfa80c67baaad068424175e3ca39a7e760d06a6fee58e"
     },
     {
       "path": "research/codex-findings/74-canonical-remote-mobile.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 5578,
-      "sha256": "a11bccab42d8fe4b2b8d7b1cd25a0cd22ec85ae47fcac05007898de2d01d0d20"
+      "bytes": 5242,
+      "sha256": "6323fcf85b4f99d9648495fb3fe9ff45f24d193d25138f6332d1476022336d5a"
     },
     {
       "path": "research/codex-findings/75-official-website-redesign.md",
@@ -8657,8 +10206,8 @@
       "path": "research/codex-findings/82-w54a-claude-cli-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 14266,
-      "sha256": "0e18d332f237a6d65d6e6c204a4a86ef652d27910c72f244fe48960f40d9551a"
+      "bytes": 14234,
+      "sha256": "8e23584ec8114dd71b5d15bac820874bc2d1f84652d13d4ef5a9a07a4b447ff3"
     },
     {
       "path": "research/codex-findings/83-s2-callback-channels-review-2.md",
@@ -8804,8 +10353,8 @@
       "path": "research/codex-findings/91-review90-rework-verify.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 10385,
-      "sha256": "9d975e8a5f85632a8383cf7aa941eed25c576c111ca9846edc7e46eae915fb1a"
+      "bytes": 9569,
+      "sha256": "401eaeeb89b91fc18dec06056184ce5158973f59a9a3d81c25d3ffb819fe0547"
     },
     {
       "path": "research/codex-findings/92-review91-rework-verify.md",
@@ -8818,22 +10367,57 @@
       "path": "research/codex-findings/94-week-audit-faststart-adversarial-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 15778,
-      "sha256": "0435c9da165d1069eefbfac4febb634932824189c1818dc111a3f64d00cdf2e0"
+      "bytes": 15058,
+      "sha256": "7a7cb9f4351f2d0575e75e23f6e6fa3b56b40e2278720d669f7bd0895f6827fa"
+    },
+    {
+      "path": "research/codex-findings/95-ai-supply-universal-onboarding-adversarial-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 22249,
+      "sha256": "e35ac7ee8c23c97fe48c4420a034f51b952b5ff11175b4b10fb118e47b442c69"
+    },
+    {
+      "path": "research/codex-findings/96-ai-supply-universal-onboarding-closure-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 8800,
+      "sha256": "04d02597817ca8516f14565089f9a1fdaee724314028d661568277ac752add80"
     },
     {
       "path": "research/codex-findings/96-week-audit-faststart-closeout-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 21273,
-      "sha256": "8fa3ec6c91f840341733057ed6323b9041a14488e9dd9ba18f4509d944f2f3f2"
+      "bytes": 20025,
+      "sha256": "2dd7881f79044230c5b57d8f10f618214e52645eb6ab49406fdc541e77c32004"
+    },
+    {
+      "path": "research/codex-findings/97-ai-supply-universal-onboarding-final-closure-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1813,
+      "sha256": "03f554bd8ae32a63abc69fe592375634f21b0dd8c8edaca5e06048d05a17ac14"
+    },
+    {
+      "path": "research/codex-findings/98-ai-supply-universal-onboarding-final-gate-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1903,
+      "sha256": "0df48accbe53e53ac7ede1232d5432982dc60a6c0ef80004c7d3a9fa817ccd3a"
+    },
+    {
+      "path": "research/codex-findings/99-ai-supply-universal-onboarding-billing-closure-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2056,
+      "sha256": "51014329ab68de22c0237ff196361b7cab7d6a944571537ec53183be526a9c51"
     },
     {
       "path": "research/codex-findings/octodesk-mobile.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 15774,
-      "sha256": "48a063eb296832623e5c82bb943b05c0c591e8d5e2def23ace690147a4505ebc"
+      "bytes": 15758,
+      "sha256": "e329692c20cf25faa642d740497f2c72290d8e4b3b0b9e71eeb3c370d72c8d2e"
     },
     {
       "path": "research/codex-findings/prompts/01-architecture-redteam.md",
@@ -8867,43 +10451,43 @@
       "path": "research/codex-findings/prompts/05-full-docs-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3059,
-      "sha256": "b9ecef7bf22c3dee70269b0dd6c9b67613b6aaad88f1cdfbe6dc05f7817fd9ec"
+      "bytes": 3027,
+      "sha256": "687c0cd194cd993c01f93b8eaa4729d45848b34bb595a9c5da92160ecc51ce7b"
     },
     {
       "path": "research/codex-findings/prompts/06-recent-rounds-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3913,
-      "sha256": "38b74d2fcfafb86f08d6ac4c8e5831889af17bbf48a83714826ba3b9a3f74c0f"
+      "bytes": 3865,
+      "sha256": "babd0c3bb456689e0560361f327e6b2b4f0a6637c1ab41ccc2defcc04bb4fc56"
     },
     {
       "path": "research/codex-findings/prompts/07-contracts-uxspec-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2845,
-      "sha256": "bb74e7f35fe0a36a83a79ec9d58c3e0071f5a529538e2faf9a943cd19edde7b2"
+      "bytes": 2797,
+      "sha256": "f3e17b5550f361f2d77c56ccffab4ac82535140a842af8cac3c09548c303a0e4"
     },
     {
       "path": "research/codex-findings/prompts/08-plan-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3362,
-      "sha256": "c54554f0245cbb553268d12188df3f6f08edacc3babf3763a1987027cf89682b"
+      "bytes": 3314,
+      "sha256": "6879a27e6413a1cfc74fc9a17990df79535684dd85bceecd36a9b1abcd38985f"
     },
     {
       "path": "research/codex-findings/prompts/09-byoa-v2.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3832,
-      "sha256": "f1206dea464fc8d82f9a60f5bb504768670befc997bb56fa40f290c512e17924"
+      "bytes": 3800,
+      "sha256": "fdcd8d8f9c82d0ce369aba5d8a8a0754ad4855144419844fb6690602bb53c580"
     },
     {
       "path": "research/codex-findings/prompts/10-product-value-gap-sol-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2668,
-      "sha256": "4401c33718e04adae2d7654c91b7441388cb79a76c7960489f7bb66569e59fd5"
+      "bytes": 2652,
+      "sha256": "365aeab08f512b0307a9904d59bf54f18386f40e4dbbd5e1781f7a1b6ce58cae"
     },
     {
       "path": "research/codex-findings/prompts/11-implementation-plan-v25.md",
@@ -8930,43 +10514,43 @@
       "path": "research/codex-findings/prompts/13-canonical-writeback-m-batch.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2832,
-      "sha256": "1c59d85ba309ba3d5d76f8c798f54b3c8b3a321d51f6510b18e6e7db792d5982"
+      "bytes": 2816,
+      "sha256": "547dd8a125aa8de61ae9eaac3a62202ee73d164d1232fa3173d47581c1463c19"
     },
     {
       "path": "research/codex-findings/prompts/13b-m-batch-focused.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2163,
-      "sha256": "9289e410def3835d71a2d7caa3f274c539ab19181c73981b6bb7f376d1abc86a"
+      "bytes": 2147,
+      "sha256": "52b36ee5aa3a514140b29e2ccbf46af401772b7ef2f48869fb496610e6ded375"
     },
     {
       "path": "research/codex-findings/prompts/14-canonical-writeback-closeout.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 4223,
-      "sha256": "771d81d71fe3a6b7b880ceedc90ee28212dbe1174c90cd549854991beb4786ed"
+      "bytes": 4207,
+      "sha256": "dec870916fdd195cf6cd9c1fd6d4b8199c6b867b03349d01e43b049f7976fa78"
     },
     {
       "path": "research/codex-findings/prompts/15-owner-decisions-panel.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3951,
-      "sha256": "f67a02e3f9014bd16cdc37da21fa157fd4efdc5049fb0c3460641f45c12f1f7f"
+      "bytes": 3823,
+      "sha256": "70b245ebd7a20fcbdf69d9d3fd3d2eb472137a885f0d83e90a41b185de618a5f"
     },
     {
       "path": "research/codex-findings/prompts/15-phone-call-design.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2559,
-      "sha256": "2d07d38d6dc9f0a5a8345ba00cfd23d73687b459d67583afaedd344faaf4694f"
+      "bytes": 2543,
+      "sha256": "a7227b8c5f82023a8fd5dd5d956dba7ecc924730f63e3d5286ba87ad047f5f4e"
     },
     {
       "path": "research/codex-findings/prompts/16-phone-call-plan.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2420,
-      "sha256": "3198bd5d2992201f38d66c5309e95d6d2abf9660cb0e5fac15d757a2a70e4bd1"
+      "bytes": 2404,
+      "sha256": "3719ace4870a484ab39c518878aef646798bbfd236314821d32ef70223e42d0b"
     },
     {
       "path": "research/codex-findings/prompts/20-executor-writeback.md",
@@ -8979,15 +10563,15 @@
       "path": "research/codex-findings/prompts/21-ra-contract-review.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 1893,
-      "sha256": "80993d48619fd4aab90e272388142a46e5b7606191000a385d9fafc497ad2070"
+      "bytes": 1845,
+      "sha256": "92526d8a917eab162b92e6200f10276b13eaf31fedfa55517e70358b9c6b2f86"
     },
     {
       "path": "research/codex-findings/prompts/22-ra-verification-completion.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2528,
-      "sha256": "ab42c578ce2c4a8d4d0b23b0a55ff980f1b5cb652623080d2cfa7fc567283428"
+      "bytes": 2496,
+      "sha256": "e2ad9bba8c24bd708112639d616f4f2c426bd1032df1820a56a0cd9727a22247"
     },
     {
       "path": "research/codex-findings/prompts/23-a3-armed-design-review.md",
@@ -9035,8 +10619,8 @@
       "path": "research/hopper-integration-request.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 17721,
-      "sha256": "dd268d43ca29034ef07f1dd7f68fcb01b69870f619e003e61aa86c12256f6666"
+      "bytes": 17609,
+      "sha256": "c14f29ae66a9b14c6e20a74fffd98d58dfcd2d6220eb1448530c738d385c712b"
     },
     {
       "path": "research/local-projects-borrowing-assessment.md",
@@ -9070,8 +10654,8 @@
       "path": "research/phone-call-impl-plan-2026-07-IMPL-PROMPT.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 7817,
-      "sha256": "e6411b95ea271637f5a9de993751333bf7916e1ae2e4aaa930a442f2088dae6d"
+      "bytes": 7785,
+      "sha256": "aa7610e3bc5f5df5ff50f9fb6d3fcc231fb741a507c7c3faa52ee3e55ad2186c"
     },
     {
       "path": "research/phone-call-impl-plan-2026-07.md",
@@ -9098,8 +10682,8 @@
       "path": "research/saydo-improvement-scan-2026-07-IMPL-PROMPT.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 8829,
-      "sha256": "561edd9a1c02925456898aea00a07965d1d70c2cc9d9e913ddda86ab56f1e1b9"
+      "bytes": 8813,
+      "sha256": "e338f96908c8e4d9c17cfc0b05578d54dd7ef37ef62771eb326647287effcedf"
     },
     {
       "path": "research/saydo-improvement-scan-2026-07.md",
@@ -9112,8 +10696,8 @@
       "path": "research/saydo-post-review-reassessment-sol.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 73470,
-      "sha256": "d654710ca2298594d51c24559197485e430ab5604a97dfa209e0197e076c9310"
+      "bytes": 73422,
+      "sha256": "ae45e2767ece6d3a5eeb399fdaa9e09c71b1995a0e53b01e479e05ee12199540"
     },
     {
       "path": "research/saydo-product-value-and-gap-analysis-sol.md",
@@ -9196,8 +10780,8 @@
       "path": "research/week-audit/2026-08-23-remediation-cross-links.json",
       "kind": "file",
       "mode": 420,
-      "bytes": 1932,
-      "sha256": "5f0580bc8ae3128733b2689e790abc5e7f1ffc7fb76803b72a0bf0ff7520a7af"
+      "bytes": 3017,
+      "sha256": "c1cdfebe08cac2adff5ebdd521e9f180210b6a40bac32498fa0cb8ca2022e02e"
     },
     {
       "path": "research/week-audit/2026-08-23-review-finding-anchor.json",
@@ -9210,8 +10794,8 @@
       "path": "scripts/build-release-artifacts.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 9698,
-      "sha256": "cfaae06440547c1c0fa513fde682b7f03f644e5d96cc0b610ec62d3734817d1a"
+      "bytes": 11095,
+      "sha256": "372a01f8372ed67698f86fc3be3cefe6273f7ce153e9802c5d03bceb67daa9ab"
     },
     {
       "path": "scripts/check-doc-links.mjs",
@@ -9249,6 +10833,13 @@
       "sha256": "f263811f77ca1a6dfb74bc754e0334be61a8fb6197fb08ef28897402f091d710"
     },
     {
+      "path": "scripts/check-public-tree-privacy.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 10214,
+      "sha256": "3b3eb3dd1ae4ec77ed892aa4e71041798e84e55c0993d1a79ba0437ab18a1ea8"
+    },
+    {
       "path": "scripts/design-archive-manifest.mjs",
       "kind": "file",
       "mode": 493,
@@ -9273,8 +10864,8 @@
       "path": "scripts/freeze-design-archive.mjs",
       "kind": "file",
       "mode": 493,
-      "bytes": 9265,
-      "sha256": "d931e12f754d0dd9924bdcd699eb2b691459b26e815b02f7494e301460b4d48a"
+      "bytes": 9304,
+      "sha256": "b989b5bbefbdcd96b055ce02b6c2a7067b9d83e7eac0777609c0b8b35f842a0b"
     },
     {
       "path": "scripts/gen-copyright-docs.mjs",
@@ -9287,22 +10878,85 @@
       "path": "scripts/post-release-gate.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 36835,
-      "sha256": "327b53ae1d89ce288d68ae9c78c8339f82c68a90c9f150745066fff7fa7ab4b5"
+      "bytes": 41430,
+      "sha256": "127713a1a8ee69c480511975c8751f0d26341c961cd20aa705cf07ee37801c9e"
+    },
+    {
+      "path": "scripts/public-text-redaction.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3174,
+      "sha256": "2f1fe54ffb0015491b20936907ddff19d3704ac58490a0741fbd493442949671"
     },
     {
       "path": "scripts/publish-public-snapshot.sh",
       "kind": "file",
       "mode": 493,
-      "bytes": 8280,
-      "sha256": "143c116886b3e642ffd0a56f2d76a6734625f71d0db6ff84e5b5be7313f040f0"
+      "bytes": 8817,
+      "sha256": "498884357500f205e1542c413dbe62f1c225c2bb36db08e10c230a0f07472eae"
     },
     {
       "path": "scripts/refine-week-audit-evidence.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 15223,
-      "sha256": "a78349561ac904ccfe444e56501b0f946f55d0f6b92730cc2b7a4f6cb64d5960"
+      "bytes": 14673,
+      "sha256": "e93c28251fef96eecaab9d117c0da02e7aabbac645a6dca24a7135b4b2a7090e"
+    },
+    {
+      "path": "scripts/release-asset-manifest.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 11412,
+      "sha256": "c89720fc558b9c2e3542259ceb426c3169b6d54c929cc9593f7d6ed112797d67"
+    },
+    {
+      "path": "scripts/release-availability.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1521,
+      "sha256": "d212e27b214dcdf0b4e8c6378bc20c4cfa64a9e59f01f179d9b92290925b0417"
+    },
+    {
+      "path": "scripts/release-cloudflare-pages.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 16377,
+      "sha256": "2ece79dcfa3a13824bb4c2dd711424352a78449181078e2d5ded3bffd4076b68"
+    },
+    {
+      "path": "scripts/release-file-transaction.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 15421,
+      "sha256": "6a29f7fcf8391fd39a9a2e127ed2b70ae81cd95abb0d05fb28e547cfb7f18c9f"
+    },
+    {
+      "path": "scripts/release-openat-posix.py",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 13469,
+      "sha256": "d2d8ac8b138951f9fcdbefc4552df8a746e2eaf35e4bf2e9318621c7eacb58ae"
+    },
+    {
+      "path": "scripts/release-openat.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 20657,
+      "sha256": "07f71537bc80881cc650c7c1600940be52d906676f3a78ca0b8d31995a96c9de"
+    },
+    {
+      "path": "scripts/release-pages-deploy.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 55729,
+      "sha256": "9fbd3baff384daa148236de94595b14da8eb29299242d630115a1bb91f947e86"
+    },
+    {
+      "path": "scripts/release-physical-closure.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5935,
+      "sha256": "c6b6184c2618fed725116a0684e23cbc5b408ebb3d799a9bab6ff1c5a277f218"
     },
     {
       "path": "scripts/release-physical-evidence.mjs",
@@ -9312,11 +10966,18 @@
       "sha256": "3d9a75c25df223b599b4b339d2aa2697d9e6b3bec9c06fc8ef536f2ca9213a7e"
     },
     {
+      "path": "scripts/release-tag-guard.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 9276,
+      "sha256": "f35206e2246a09807fa3ba2d4eb160c875139e4d2983ee8e6402b547bb29ef95"
+    },
+    {
       "path": "scripts/run-release-verifier-windows.ps1",
       "kind": "file",
       "mode": 420,
-      "bytes": 2394,
-      "sha256": "5c38139b01a3df82599a361c049e8e8bae9d5f7f2044303585c53332408765d8"
+      "bytes": 2602,
+      "sha256": "6e141cb7f430c089e3a70c9ea21a3c73d4b785acc31ec921e3eb3365580dd8a2"
     },
     {
       "path": "scripts/runtime-preflight.sh",
@@ -9361,6 +11022,13 @@
       "sha256": "e0bb29dcc21a4dc9bf1c9e843597ba49830f2bcd4dd3b4f5e29a38d54b02b668"
     },
     {
+      "path": "scripts/test-ios-build-and-install.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2382,
+      "sha256": "ebf1a80e71f9d05de146030da82ad1d70ad82baf8466833b7cdbf07af47aa489"
+    },
+    {
       "path": "scripts/test-migration-tools.mjs",
       "kind": "file",
       "mode": 420,
@@ -9375,11 +11043,32 @@
       "sha256": "475a7b91ba9f028fc46618c1031c35962fed9d2d9feed57d07c15b86aa8841b0"
     },
     {
+      "path": "scripts/test-public-text-redaction.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 6558,
+      "sha256": "aed72f3ba75949d1229b898f47dd0403a2c6e3bda2b13507607a71f4f9d7f788"
+    },
+    {
+      "path": "scripts/test-public-tree-privacy.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 8162,
+      "sha256": "bac669476e4ed832703884cf11a19898ccce92c6e033a83bc34a30f7b95e4283"
+    },
+    {
       "path": "scripts/test-release-physical-evidence.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 5620,
-      "sha256": "64ae7c00618cde3ae0efe78ee3fa01ab3bb476fa41c99858121423567dd2c436"
+      "bytes": 6448,
+      "sha256": "496b392ba047eb31b2f075f3e07bc3b6df17591818df98e9c6c3f96446ebf009"
+    },
+    {
+      "path": "scripts/test-release-provenance.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 197483,
+      "sha256": "f5bf65d1cc7f98a85bfe8746ac965bda8ba9df6e20267b78ccb2f464a06e2e45"
     },
     {
       "path": "scripts/third-party-notices.mjs",
@@ -9399,8 +11088,8 @@
       "path": "scripts/verify-release-url.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 15781,
-      "sha256": "43b290728ba4fe02ab805485d27957f6972060fff5495e1254034161b260d0be"
+      "bytes": 16413,
+      "sha256": "78826c2effde138f3ee6602163c1143359527abab7f5d6f9eda842f78976df1f"
     },
     {
       "path": "scripts/verify-snapshot.mjs",
@@ -9410,11 +11099,18 @@
       "sha256": "a457a2d40445a4677f6329f1d650375fc06d28627712a0caed1388c9cd5565b9"
     },
     {
+      "path": "scripts/week-audit-publication.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3205,
+      "sha256": "8cea786b2755068801ce16ea3dca4f9faddbd82e9353ffc7a51f36583eb5e2ae"
+    },
+    {
       "path": "scripts/week-audit.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 56703,
-      "sha256": "76d039ca83cd01df81179fe4565c85cfa84d5f69b19c662d45fdd5120b33ce15"
+      "bytes": 58096,
+      "sha256": "79701fd2e3f2e060d57b8048093455ff0da3f4b14ebf63eccd3493e240363e3e"
     },
     {
       "path": "SECURITY.md",

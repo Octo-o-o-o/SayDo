@@ -36,7 +36,7 @@
 
 ## 门禁结果
 
-命令均在 `/Users/wangyixiao/WorkSpace/SayDo`,本会话终端实跑。
+命令均在 `~/WorkSpace/SayDo`,本会话终端实跑。
 
 ### `just ci`(清偿 HEAD 既有 7 条 eslint 后)
 

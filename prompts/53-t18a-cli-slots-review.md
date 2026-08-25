@@ -1,11 +1,11 @@
 # T18a 三槽 CLI 接线对抗性评审
 
 你是 SayDo T18a 第一批的对抗性只读评审者。仓库
-`/Users/wangyixiao/WorkSpace/SayDo`，基线 `d1bde0d`，当前分支
+`~/WorkSpace/SayDo`，基线 `d1bde0d`，当前分支
 `feat/t18a-cli-slots`；候选包含已提交的 canonical/BYOA 骨架与未提交的三槽接线。
 
 规格正本是
-`/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-08-09-onboarding方案-v1.md`
+`~/WorkSpace/OctoAgent/docs/product/2026-08-09-onboarding方案-v1.md`
 的 `## v11`、`### v11.1`，细则以后者为准。先完整阅读规格、`AGENTS.md`、当前
 `git diff d1bde0d`、`docs/07-tech-stack-decisions.md`、`docs/09-data-contracts.md`、
 `docs/11-ui-spec.md` 与相关测试。不要修改文件，不要启动 subagent。

@@ -1,6 +1,6 @@
 # SayDo Tier1 生产执行器批 实施对账报告(impl-readback)
 
-> 仓:/Users/wangyixiao/WorkSpace/SayDo(main)· 区间:`2f657ed..65559c2`(6 提交,本会话 git log 实取)· 改动面:35 文件 +3934/−35
+> 仓:~/WorkSpace/SayDo(main)· 区间:`2f657ed..65559c2`(6 提交,本会话 git log 实取)· 改动面:35 文件 +3934/−35
 > 计划来源:HANDOFF §2-9 边界声明 + 实施会话总结(用户转述)· 对账会话:2026-07-26(voice-coding 主会话)
 > 提交清单(实取):`6e9014d` 任务1-4 → `b837fdc` e2e → `b9412aa` code-review 回修 → `602aa09` 收口 evidence → `47118a9` 一致性回修 → `65559c2` evidence §4 更新
 

@@ -8,7 +8,7 @@
 1. 零 emoji、零 pictographic 符号；文本状态标记使用 `[ok]` / `[fail]` / `[warn]`，文本箭头 → ↔ 合法。
 2. 状态词纪律:执行完成只说「等你验收 / ready for your review」,不说 done;合并后才说「交付了 / delivered」。
 3. 完成度诚实:已落地 = 现在可用;已开工未收口 = 进行中;未开工 = 规划中/Coming soon。不得把未落地能力写成已可用。
-4. 正文不得出现仓内批号、内部文件路径(packages/... 之类)、commit SHA、本机绝对路径(/Users/wyx 之类);`~/.saydo` 与 `<workspace>/.saydo` 是产品路径,允许。
+4. 正文不得出现仓内批号、内部文件路径(packages/... 之类)、commit SHA、本机绝对路径(~ 之类);`~/.saydo` 与 `<workspace>/.saydo` 是产品路径,允许。
 5. 零构建约束:不得引入任何构建步骤或外部依赖;样式只许消费 site.css/tokens.css 已有 token。
 
 ## 评审角度(找问题,不给好评)

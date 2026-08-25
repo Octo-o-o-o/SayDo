@@ -5,21 +5,21 @@
 
 ---
 
-你接手 **SayDo 首发的收口与交付验证**。上一会话已完成首次完整开发并留下自报账(`HANDOFF.md` + `e2e/evidence/final-readback.md`),但其交接文档存在内部矛盾、且有明确登记的欠账。你的使命四件:**①独立对账(不轻信任何自报)②修复与欠账清偿 ③owner 场次支撑 ④首发交付判定**。代码仓 `/Users/wangyixiao/WorkSpace/SayDo`(远端 `github.com/Octo-o-o-o/SayDo`,main 直推);设计库 `/Users/wangyixiao/WorkSpace/voice-coding`(**只读,唯一改动通道=轻量评审仪式**,见 AGENTS.md)。
+你接手 **SayDo 首发的收口与交付验证**。上一会话已完成首次完整开发并留下自报账(`HANDOFF.md` + `e2e/evidence/final-readback.md`),但其交接文档存在内部矛盾、且有明确登记的欠账。你的使命四件:**①独立对账(不轻信任何自报)②修复与欠账清偿 ③owner 场次支撑 ④首发交付判定**。代码仓 `~/WorkSpace/SayDo`(远端 `github.com/Octo-o-o-o/SayDo`,main 直推);设计库 `~/WorkSpace/voice-coding`(**只读,唯一改动通道=轻量评审仪式**,见 AGENTS.md)。
 
 ## 0. 坐标核验(第一件事;逐项跑命令,与期望不符 ⇒ 停下报告,禁止"应该差不多"继续)
 
 | 命令 | 期望(2026-07-25 上午实测值) |
 |---|---|
-| `git -C /Users/wangyixiao/WorkSpace/SayDo log --oneline -1` | `ed16d72 chore(evidence): HANDOFF 刷新(全量对账收口,f03c637)` |
-| `git -C /Users/wangyixiao/WorkSpace/SayDo status --short` | 空(工作区干净;不干净则先问 owner 是否有未收口改动) |
-| `git -C /Users/wangyixiao/WorkSpace/SayDo branch -vv \| head -1` | `main … [origin/main]`(与远端同步) |
-| `git -C /Users/wangyixiao/WorkSpace/Hopper rev-parse "v0.1.0-saydo-baseline.2^{commit}"` | `bdd1e548f9359789497a797eda24398beba68ac5` |
+| `git -C ~/WorkSpace/SayDo log --oneline -1` | `ed16d72 chore(evidence): HANDOFF 刷新(全量对账收口,f03c637)` |
+| `git -C ~/WorkSpace/SayDo status --short` | 空(工作区干净;不干净则先问 owner 是否有未收口改动) |
+| `git -C ~/WorkSpace/SayDo branch -vv \| head -1` | `main … [origin/main]`(与远端同步) |
+| `git -C ~/WorkSpace/Hopper rev-parse "v0.1.0-saydo-baseline.2^{commit}"` | `bdd1e548f9359789497a797eda24398beba68ac5` |
 | `git -C ~/.saydo/hopper-dist rev-parse HEAD` | `bdd1e548f9359789497a797eda24398beba68ac5`(锁定副本就位) |
 | `rg -n "expected_version" ~/.saydo/config.toml` | `bdd1e548…`(运行时**已切锁 baseline.2**) |
-| `rg -n "expected_version" /Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md \| head -1` | 仍 `ea3fb31…`——**这不是漂移,是已知欠账**(canonical 示例块未随切锁回写,阶段 B 清偿) |
-| `ls /Users/wangyixiao/WorkSpace/SayDo/e2e/evidence/` | 11 份:`final-readback.md` `gate0-checklist.md` `p0-readback.md` `p05.md` `phase-0..5.md` `review-m-batch.md` |
-| `cd /Users/wangyixiao/WorkSpace/SayDo && just ci` | 双矩阵绿(主会话实测约 12s:contracts 65 + daemon 335 + pytest 8 + emoji 门禁自检 4/4,尾行 `[ok] just ci: node + python matrices green`) |
+| `rg -n "expected_version" ~/WorkSpace/voice-coding/docs/09-data-contracts.md \| head -1` | 仍 `ea3fb31…`——**这不是漂移,是已知欠账**(canonical 示例块未随切锁回写,阶段 B 清偿) |
+| `ls ~/WorkSpace/SayDo/e2e/evidence/` | 11 份:`final-readback.md` `gate0-checklist.md` `p0-readback.md` `p05.md` `phase-0..5.md` `review-m-batch.md` |
+| `cd ~/WorkSpace/SayDo && just ci` | 双矩阵绿(主会话实测约 12s:contracts 65 + daemon 335 + pytest 8 + emoji 门禁自检 4/4,尾行 `[ok] just ci: node + python matrices green`) |
 
 其余门禁(Playwright 8 例、fake-runner e2e 3 例、golden 43 条、音频烟测 5 条)的**准确命令主会话未逐一复跑**——你在阶段 A 从 `e2e/evidence/phase-5.md`/`p05.md` 的"测试命令"段定位原始命令并复跑,把命令与尾行输出记进你的对账报告(这些 evidence 文件声称的命令若定位不到=对账发现,记 [fail])。
 

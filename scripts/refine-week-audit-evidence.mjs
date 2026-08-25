@@ -8,6 +8,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { safeExcerpt } from "./public-text-redaction.mjs";
 
 const repo = resolve(import.meta.dirname, "..");
 const ledgerPath = resolve(repo, "research/week-audit/2026-08-22-ledger.json");
@@ -55,23 +56,6 @@ function refHasPath(ref, path) {
   } catch {
     return false;
   }
-}
-
-function safeExcerpt(value) {
-  const normalized = [...value.replaceAll("\0", "")]
-    .map((character) => {
-      const codePoint = character.codePointAt(0);
-      const forbidden =
-        codePoint === 0xfe0f ||
-        (codePoint >= 0x2600 && codePoint <= 0x27bf) ||
-        (codePoint >= 0x1f000 && codePoint <= 0x1faff) ||
-        /\p{Emoji_Presentation}/u.test(character);
-      return forbidden ? `[U+${codePoint.toString(16).toUpperCase()}]` : character;
-    })
-    .join("")
-    .replace(/\s+/g, " ")
-    .trim();
-  return normalized.length > 220 ? `${normalized.slice(0, 217)}...` : normalized;
 }
 
 function firstChangedLine(commit, path) {

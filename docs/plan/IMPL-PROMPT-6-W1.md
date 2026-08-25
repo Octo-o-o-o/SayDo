@@ -4,7 +4,7 @@
 
 ---
 
-你接手 **SayDo W1 批**。代码仓 `/Users/wangyixiao/WorkSpace/SayDo`(main 直推);设计库 `/Users/wangyixiao/WorkSpace/voice-coding`(只读;canonical 回写按批攒、走轻量评审)。完成判定 = W1 九项验收锚全绿 + evidence `e2e/evidence/w1-batch.md` 落盘 + HANDOFF 回填。
+你接手 **SayDo W1 批**。代码仓 `~/WorkSpace/SayDo`(main 直推);设计库 `~/WorkSpace/voice-coding`(只读;canonical 回写按批攒、走轻量评审)。完成判定 = W1 九项验收锚全绿 + evidence `e2e/evidence/w1-batch.md` 落盘 + HANDOFF 回填。
 
 ## 0. 坐标核验(先做,漂移即停)
 

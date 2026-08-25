@@ -1,7 +1,7 @@
 # SayDo 首发收口 · 实施对账报告(/impl-review)
 
 > 对账对象:收口会话(交接 prompt = `IMPL-PROMPT-2-CLOSEOUT.md`,4 阶段/10 红线/4 检查点)的实施结果。
-> 仓库:`/Users/wangyixiao/WorkSpace/SayDo` main;基线 `ed16d72` → HEAD `d12e5c2`(与 origin/main 同步,工作区干净——本会话 `git status/branch -vv` 实测);区间 **11 个提交,48 文件 +780/-180**(本会话 `git log/diff --stat ed16d72..d12e5c2` 实测)。
+> 仓库:`~/WorkSpace/SayDo` main;基线 `ed16d72` → HEAD `d12e5c2`(与 origin/main 同步,工作区干净——本会话 `git status/branch -vv` 实测);区间 **11 个提交,48 文件 +780/-180**(本会话 `git log/diff --stat ed16d72..d12e5c2` 实测)。
 > 被引用 hash 存在性:`0eb96f1`/`2837ba5`/`d12e5c2`/`e4b6ab3` 均 `git cat-file -t` = commit(本会话实测;无幻觉引用)。
 > 评审路径:本人逐项取证(文件 Read + 门禁亲跑)+ 1 个独立 code-review subagent(区间 diff 质量复审,见 §3)。
 > 落盘位置说明:按仓库纪律(AGENTS.md:`docs/` 仅 canonical、`research/` 为评审证据源)写入 research/,文件名从 /impl-review 约定。
@@ -80,7 +80,7 @@ emoji 门禁 HEAD 绿(本会话 `just ci` 内自检 4/4)[ok];两提交法(log �
 
 | 命令 | 结果 |
 |---|---|
-| `cd /Users/wangyixiao/WorkSpace/SayDo && just ci`(基线 ed16d72,12:36 前) | 绿:contracts 65 + daemon 335 + pytest 8 + emoji 4/4 |
+| `cd ~/WorkSpace/SayDo && just ci`(基线 ed16d72,12:36 前) | 绿:contracts 65 + daemon 335 + pytest 8 + emoji 4/4 |
 | 同上(HEAD d12e5c2) | 绿:daemon `Tests 344 passed | 1 skipped (345)`(skip=SAYDO_SLOW_E2E 门控,合法)+ pytest `8 passed` + `[ok] emoji gate: clean` + 尾行 `[ok] just ci: node + python matrices green`,exit 0 |
 
 Playwright/fake-runner/golden/音频烟测:收口会话已于同日复跑并记录命令+尾行(closeout-verification §1),本会话对其中 fake-runner 的锚(测试文件+越界反例行号)做了静态复核;未重复跑全量(判断:`just ci` 亲跑 + 报告命令可复跑性 + 静态锚复核已足以支撑判定,如需 100% 亲跑可再补)。

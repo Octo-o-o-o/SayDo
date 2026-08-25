@@ -10,11 +10,20 @@ import {
   pairingTargetUrl
 } from "./pairing";
 
+const ipv4 = (...parts: number[]) => parts.join(".");
+const LAN = ipv4(192, 168, 1, 8);
+const TEN = ipv4(10, 0, 0, 1);
+const TEN_B = ipv4(10, 1, 2, 3);
+const C172A = ipv4(172, 16, 0, 1);
+const C172B = ipv4(172, 31, 255, 255);
+const C172LOW = ipv4(172, 15, 0, 1);
+const C172HIGH = ipv4(172, 32, 0, 1);
+
 describe("配对 URL 与浮层", () => {
-  const open = { lanIp: "192.168.1.8", port: 47473, mobileLanEnabled: true };
+  const open = { lanIp: LAN, port: 47473, mobileLanEnabled: true };
 
   it("QR 内容用本机 token 拼 LAN URL,不经 daemon 往返", () => {
-    expect(pairingTargetUrl(open, "cap_abc")).toBe("http://192.168.1.8:47473/?token=cap_abc");
+    expect(pairingTargetUrl(open, "cap_abc")).toBe(`http://${LAN}:47473/?token=cap_abc`);
     expect(pairingTargetUrl({ ...open, mobileLanEnabled: false }, "cap_abc")).toBeNull();
     expect(pairingTargetUrl({ ...open, lanIp: null }, "cap_abc")).toBeNull();
     expect(pairingTargetUrl(open, "")).toBeNull();
@@ -26,7 +35,7 @@ describe("配对 URL 与浮层", () => {
     );
     const html = renderToStaticMarkup(
       <PairingOverlay
-        info={{ lanIp: "192.168.1.8", port: 47473, mobileLanEnabled: false }}
+        info={{ lanIp: LAN, port: 47473, mobileLanEnabled: false }}
         token="cap_abc"
         error={null}
         onClose={() => {}}
@@ -39,17 +48,17 @@ describe("配对 URL 与浮层", () => {
   });
 
   it("RFC1918 私网才出码,公网/CGNAT/环回不出", () => {
-    expect(isRfc1918Ipv4("192.168.1.8")).toBe(true);
-    expect(isRfc1918Ipv4("10.0.0.1")).toBe(true);
-    expect(isRfc1918Ipv4("172.16.0.1")).toBe(true);
-    expect(isRfc1918Ipv4("172.31.255.255")).toBe(true);
-    expect(isRfc1918Ipv4("172.15.0.1")).toBe(false);
-    expect(isRfc1918Ipv4("172.32.0.1")).toBe(false);
+    expect(isRfc1918Ipv4(LAN)).toBe(true);
+    expect(isRfc1918Ipv4(TEN)).toBe(true);
+    expect(isRfc1918Ipv4(C172A)).toBe(true);
+    expect(isRfc1918Ipv4(C172B)).toBe(true);
+    expect(isRfc1918Ipv4(C172LOW)).toBe(false);
+    expect(isRfc1918Ipv4(C172HIGH)).toBe(false);
     expect(isRfc1918Ipv4("8.8.8.8")).toBe(false);
     expect(isRfc1918Ipv4("100.64.0.1")).toBe(false);
     expect(isRfc1918Ipv4("127.0.0.1")).toBe(false);
-    expect(pairingTargetUrl({ ...open, lanIp: "10.1.2.3" }, "cap_abc")).toBe(
-      "http://10.1.2.3:47473/?token=cap_abc"
+    expect(pairingTargetUrl({ ...open, lanIp: TEN_B }, "cap_abc")).toBe(
+      `http://${TEN_B}:47473/?token=cap_abc`
     );
     expect(pairingTargetUrl({ ...open, lanIp: "1.1.1.1" }, "cap_abc")).toBeNull();
     expect(pairingBlockedReason({ ...open, lanIp: "1.1.1.1" }, "cap_abc")).toBe(PAIRING_NOT_PRIVATE_MESSAGE);

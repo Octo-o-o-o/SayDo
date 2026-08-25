@@ -1,0 +1,10 @@
+PASS
+
+- BillingMatch 仅保存 typed refs、完整 `coverageSources` 与固定算法，不含金额 summary；strict schema 明确拒绝额外 summary。[方案:484](docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md:484) [方案:772](docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md:772)
+- 构造、Result verify、promote、dispatch 均从 CandidateBilling、Authorization、两级 reservation、runtime Billing 和权威 terminal current state 重算；ref kind/digest 或来源不符即 anomaly。[方案:768](docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md:768) [方案:772](docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md:772)
+- fixed 恰好一个 coverage；dynamic 完整覆盖全部 sent attempt，并强制 ordinal 连续唯一及 InvocationEnvelope 实际序列一致。[方案:773](docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md:773)
+- 每个 member 先独立验证完整数值链，再验 ingress aggregate；A held=5/runtimeWorst=1 的明确反例要求零 `covered`。[方案:773](docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md:773) [方案:1461](docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md:1461)
+- Result 的 coverage ordinal 必须唯一命中成功 attempt，相关 refs 与 Result 逐项相等且 Match 必须为 `covered`。[方案:771](docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md:771)
+- operation closure 与 fixed/RouteSetCore binding 集合保持完全闭合；换挂、漏项、重复和跨 member 均在四个时点拒绝。[方案:774](docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md:774) [方案:1462](docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md:1462)
+- producer 顺序保持无环；Billing anomaly 在 OperationBillingClosure/Result 前终止。[方案:769](docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md:769)
+- Phase 0 已加入 Billing contract/refinement 专用命令；Phase 3 的专用测试文件覆盖 summary 伪造、真实 ref 抄大、terminal 低报及 dynamic 漏重错序/错 member，并进入总矩阵。[方案:1345](docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md:1345) [方案:1460](docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md:1460) [方案:1477](docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md:1477) [方案:1746](docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md:1746)

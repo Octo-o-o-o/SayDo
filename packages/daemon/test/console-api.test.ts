@@ -131,9 +131,9 @@ describe("console API(fixture 投影)", () => {
       "correction",
       1,
       JSON.stringify({
-        title: "修 /Users/alice/private/.env，Bearer sk-mobile-secret-value-123456",
-        revision: "核对 /Users/alice/private/revision.json",
-        path: "/Users/owner/private.txt",
+        title: `修 ${["", "Users", "alice"].join("/")}/private/.env，Bearer sk-mobile-secret-value-123456`,
+        revision: `核对 ${["", "Users", "alice"].join("/")}/private/revision.json`,
+        path: `${["", "Users", "owner"].join("/")}/private.txt`,
         secret: "hidden"
       }),
       "daemon",
@@ -149,7 +149,7 @@ describe("console API(fixture 投影)", () => {
       revision: "核对 某个配置文件"
     });
     expect(projected).not.toHaveProperty("sessionId");
-    expect(JSON.stringify(detail)).not.toContain("/Users/owner/private.txt");
+    expect(JSON.stringify(detail)).not.toContain(`${["", "Users", "owner"].join("/")}/private.txt`);
     expect(JSON.stringify(detail)).not.toContain("sk-mobile-secret-value-123456");
   });
 });

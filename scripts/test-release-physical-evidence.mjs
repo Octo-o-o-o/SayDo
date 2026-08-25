@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -7,6 +8,10 @@ import {
   validatePhysicalReleaseEvidence,
   validatePhysicalReleaseRun
 } from "./release-physical-evidence.mjs";
+import {
+  TRACKED_ASSET_MANIFEST_RELATIVE_PATH,
+  windowsVerifierClosure
+} from "./release-physical-closure.mjs";
 
 const verifierStartup = spawnSync(process.execPath, [fileURLToPath(new URL("./verify-release-url.mjs", import.meta.url))], {
   encoding: "utf8"
@@ -45,17 +50,30 @@ if (
 ) {
   throw new Error("公开 tag 隐私探针未固定到 Git 私有目录");
 }
+const verifierPathContract = /\$request\.verifierPath\s+-cne\s+"([^"]+)"/.exec(windowsWrapperSource)?.[1];
+if (verifierPathContract !== "scripts/verify-release-url.mjs") {
+  throw new Error(`Windows wrapper 未锁定固定相对 verifier 路径:${String(verifierPathContract)}`);
+}
+const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+const windowsFiles = windowsVerifierClosure(repoRoot);
+if (
+  !windowsFiles.includes("scripts/release-asset-manifest.mjs") ||
+  !windowsFiles.includes("scripts/release-file-transaction.mjs") ||
+  !windowsFiles.includes(TRACKED_ASSET_MANIFEST_RELATIVE_PATH)
+) {
+  throw new Error("Windows verifier 闭包缺少 helper/data");
+}
 
 const expected = {
   key: "macExec",
   path: "e2e/evidence/release-mac-exec.json",
   platform: "darwin",
   installMode: "exec",
-  packageUrl: "https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.3/saydo-cli-0.1.0-rc.3.tgz",
-  tag: "v0.1.0-rc.3",
+  packageUrl: "https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.4/saydo-cli-0.1.0-rc.4.tgz",
+  tag: "v0.1.0-rc.4",
   tarballSha256: "a".repeat(64),
   sourceRevision: "b".repeat(64),
-  buildId: `0.1.0-rc.3+${"b".repeat(12)}.test`,
+  buildId: `0.1.0-rc.4+${"b".repeat(12)}.test`,
   protocolVersion: "1.0.0",
   publishedAt: "2026-08-22T23:59:00.000Z",
   challenge: "d".repeat(64),

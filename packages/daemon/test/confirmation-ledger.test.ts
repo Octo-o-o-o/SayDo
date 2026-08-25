@@ -251,12 +251,12 @@ describe("confirmation_ledger ④a", () => {
   it("f) 白名单快照:summary 无 detail 全文/无路径", () => {
     const payload = focusObligationPayload(focusId, {
       detail: "敏感细节全文",
-      nextStep: "/Users/secret/path/to/repo"
+      nextStep: `${["", "Users", "secret"].join("/")}/path/to/repo`
     });
     const summary = buildPayloadSummary(payload);
     const json = JSON.stringify(summary);
     expect(json).not.toContain("敏感细节全文");
-    expect(json).not.toContain("/Users/secret");
+    expect(json).not.toContain(["", "Users", "secret"].join("/"));
     expect(summary.kind).toBe("focus_obligation");
     expect(summary.title).toBe("写测");
     expect(summary.dedupeKey).toBe(`${focusId}:action:t1`);

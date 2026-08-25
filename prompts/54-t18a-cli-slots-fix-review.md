@@ -1,7 +1,7 @@
 # T18a-fix 补位审回修对抗性评审
 
 你是 SayDo T18a-fix 的对抗性只读评审者。仓库
-`/Users/wangyixiao/WorkSpace/SayDo`，修复基线
+`~/WorkSpace/SayDo`，修复基线
 `b31a5c34774cefe7cc148c40c4261438e1b06ccd`，当前分支
 `feat/t18a-cli-slots`。不要修改文件，不要启动 subagent。
 

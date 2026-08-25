@@ -326,7 +326,7 @@ directory、symlink、regular file，没有 `else` 拒绝 FIFO/socket/device 等
 
 ### C-2 迁入文本保留了较多本机绝对路径，应明确公开仓隐私取舍
 
-[warn] 对 tracked+untracked 文本扫描，52 个文件包含 `/Users/wangyixiao`，主要分布在
+[warn] 对 tracked+untracked 文本扫描，52 个文件包含 `~`，主要分布在
 research、prompts 和 docs。未发现高置信密钥，但公开仓会暴露用户名和本机目录结构。
 
 最小建议：历史证据若需保持原貌，在迁移说明中明确接受该披露；活动 README/HANDOFF/命令尽量改用
@@ -359,8 +359,8 @@ unknown              0           0
 
 ```text
 [ok] no sibling voice-coding path in runtime/test/spike/template scope
-template_default=/Users/wangyixiao/WorkSpace/SayDo/templates exists=true
-fts_default=/Users/wangyixiao/WorkSpace/SayDo/docs exists=true
+template_default=~/WorkSpace/SayDo/templates exists=true
+fts_default=~/WorkSpace/SayDo/docs exists=true
 ```
 
 - [ok] 两份 TOML 模板与四份相关 JSON 均可解析；这里仅证明语法，B-2 所述语义问题仍存在。

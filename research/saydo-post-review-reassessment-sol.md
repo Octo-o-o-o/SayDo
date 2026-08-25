@@ -15,7 +15,7 @@
 
 状态变化不是“产品已经开始实现”。本机事实仍是：
 
-- `/Users/wangyixiao/WorkSpace/SayDo/` 目录存在，但没有 `.git`，也没有项目文件；
+- `~/WorkSpace/SayDo/` 目录存在，但没有 `.git`，也没有项目文件；
 - `~/.saydo/hopper-dist` 不存在；
 - `~/.saydo/hopper-vault` 不存在；
 - `~/.saydo/config.toml` 与 `~/.saydo/.env` 文件存在，但本轮出于敏感信息纪律没有读取或打印内容；
@@ -788,7 +788,7 @@ forget_hard 后的 zero-recall
 当前只读检查结果：
 
 ```text
-/Users/wangyixiao/WorkSpace/SayDo
+~/WorkSpace/SayDo
 SayDo/.git: MISSING
 hopper-dist: MISSING
 hopper-vault: MISSING
@@ -987,7 +987,7 @@ accept | reject | edit | respond | ignore
 
 顺序建议：
 
-1. Phase 0 前：初始化 `/Users/wangyixiao/WorkSpace/SayDo` Git 仓与基础 CI，运行不泄密的 `preflight --target phase0`，验证当前凭据引用、Cursor smoke，并指定独立 fixture；
+1. Phase 0 前：初始化 `~/WorkSpace/SayDo` Git 仓与基础 CI，运行不泄密的 `preflight --target phase0`，验证当前凭据引用、Cursor smoke，并指定独立 fixture；
 2. 0.5 前：checkout/build 锁定 Hopper dist、初始化专用 vault、断言 HEAD/tag，再运行手动 PoC；
 3. Phase 1 前：通过音频底板；
 4. P0.5 前：完成 Hopper 批次 A 或 owner 批准的窄兜底；

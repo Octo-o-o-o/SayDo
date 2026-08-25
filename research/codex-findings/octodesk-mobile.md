@@ -1,6 +1,6 @@
 # OctoDesk 手机↔桌面/服务端连接实现调查
 
-> 调查时间:2026-07-22。范围:`/Users/wangyixiao/WorkSpace/OctoDesk/`。
+> 调查时间:2026-07-22。范围:`~/WorkSpace/OctoDesk/`。
 > 方法:rg 精准定位 + 读 15 个核心文件,未做全项目遍历。证据标注 `文件:行`;区分【事实】【推断】【未确认】。
 
 ## TL;DR

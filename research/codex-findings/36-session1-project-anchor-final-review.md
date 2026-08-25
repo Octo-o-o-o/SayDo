@@ -22,7 +22,7 @@ Codex 判定仍需阻断：A=2、B=3、C=3。两项 A 分别是“路径字面�
 复现：
 
 ```text
-不要挂到 /Users/wangyixiao/WorkSpace/SayDo，先按新事情继续
+不要挂到 ~/WorkSpace/SayDo，先按新事情继续
 => explicit_path
 => 形成 adopt_workspace 候选
 ```

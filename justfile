@@ -18,6 +18,10 @@ ci-node:
     node scripts/test-color-gate.mjs
     node scripts/test-migration-tools.mjs
     node scripts/test-release-physical-evidence.mjs
+    node scripts/test-release-provenance.mjs
+    node scripts/test-public-text-redaction.mjs
+    node scripts/test-public-tree-privacy.mjs
+    node scripts/test-ios-build-and-install.mjs
 
 ci-python:
     uv --directory pipeline sync --quiet

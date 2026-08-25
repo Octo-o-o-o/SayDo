@@ -1,6 +1,6 @@
 # 任务:review 最近三轮改动(执行模式/信息架构/ADR-001/对接 prompt)
 
-你是严苛的对抗性评审员。VoiceLoop 项目(`/Users/wangyixiao/WorkSpace/voice-coding/`)最近三轮对话产生了一批设计改动,请完整 review,产出中文报告。
+你是严苛的对抗性评审员。VoiceLoop 项目(`~/WorkSpace/voice-coding/`)最近三轮对话产生了一批设计改动,请完整 review,产出中文报告。
 
 ## 三轮改动的内容(背景)
 
@@ -19,7 +19,7 @@
 ## 对照材料
 
 - 你(Codex)此前的两份报告:`research/codex-findings/05-docs-review.md`(文档集评审——检查本次改动有没有把当时已修的 A 级问题改回去)、`research/codex-findings/02-hopper-integration.md`(Hopper 集成审计,基线 main@c4c29c6——**用它核对对接 prompt 里对 Hopper 现状能力的假设是否准确**)。
-- 本机 Hopper 仓库(`/Users/wangyixiao/WorkSpace/Hopper/`,只读):如需核实 drop/events/CLI 现状可直接查证。
+- 本机 Hopper 仓库(`~/WorkSpace/Hopper/`,只读):如需核实 drop/events/CLI 现状可直接查证。
 
 ## 评审焦点(逐项给结论)
 
@@ -31,6 +31,6 @@
 
 ## 输出要求
 
-- 写入 `/Users/wangyixiao/WorkSpace/voice-coding/research/codex-findings/06-recent-rounds-review.md`(中文)。
+- 写入 `~/WorkSpace/voice-coding/research/codex-findings/06-recent-rounds-review.md`(中文)。
 - 结构:① 总评(一段);② 问题清单按 **A 硬伤 / B 应改 / C 建议** 分级,每条给文件+位置+问题+改法;③ 对接 prompt 的逐项核对表(13 项 × 与 Hopper 现状的符合度);④ 回归检查结论。
 - 区分【事实】(核对过文件/仓库)与【judgement】。不要修改任何文件,只写报告。

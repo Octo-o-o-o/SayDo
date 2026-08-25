@@ -1,6 +1,6 @@
 # 21 · 对抗性评审:R-A 合同轮(S3 屏幕审批卡 + writing 窄版 + 场次① canonical 补丁包)
 
-你是对抗性评审员。仓库 `/Users/wangyixiao/WorkSpace/voice-coding` 是 SayDo 设计文档仓(docs/01–11 canonical,09 是实施照抄源);实施仓 `/Users/wangyixiao/WorkSpace/SayDo`(只读参照,HANDOFF/e2e evidence 是现状真相)。
+你是对抗性评审员。仓库 `~/WorkSpace/voice-coding` 是 SayDo 设计文档仓(docs/01–11 canonical,09 是实施照抄源);实施仓 `~/WorkSpace/SayDo`(只读参照,HANDOFF/e2e evidence 是现状真相)。
 
 ## 本轮变更(R-A 合同轮,2026-07-26;owner 三项已拍板:WebAuthn platform authenticator / writing 走 worktree 交付 / step_confirm 承载 deferred)
 

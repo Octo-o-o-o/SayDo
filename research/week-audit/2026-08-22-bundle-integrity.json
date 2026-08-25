@@ -6,7 +6,7 @@
     "refsFrozenAt": "2026-08-22T22:30:44+08:00",
     "base": "8a8247a347238b6bf6ad649f1162f1934540eafd",
     "rangeEnd": "3fccf4a704ad9a5d8e013baaefb67c66a5737cba",
-    "remediationEnd": "57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e",
+    "remediationEnd": "b768089585d710255d61a693c2489ccf425f446f",
     "markdownOutput": "docs/review/2026-08-22-week-audit-ledger.md",
     "jsonOutput": "research/week-audit/2026-08-22-ledger.json",
     "semanticOutput": "research/week-audit/2026-08-22-semantic-review.json",
@@ -30,48 +30,27 @@
     "documentOnlyCommits": 48,
     "implementationOnlyCommits": 38
   },
-  "historyDigest": "7638adc4299abde14794256d66abae58a9448fd8522745c7d88011bf46054ffd",
+  "historyDigest": "b36484329fa3c2359c7c2d6261f22a6a474f38e7fb06a6a36d3136a97635391e",
   "expectedPublication": {
     "repository": "Octo-o-o-o/SayDo",
-    "tag": "v0.1.0-rc.3",
+    "tag": "v0.1.0-rc.4",
     "rule": "GitHub tag workflow 对本 bundle 运行 --check-bundle 后构成外部不可移动锚"
   },
   "files": {
-    "docs/review/2026-08-22-week-audit-ledger.md": "e22c8df627a9bc25a030aeef033e28d411735d0c79201482fb02306e4b7f5427",
-    "research/week-audit/2026-08-22-ledger.json": "5de8d931b710ae17b2c58c76393a31f74b2ebbd752448181344e6948e4f2576c",
-    "research/week-audit/2026-08-22-semantic-review.json": "5d36908b34bf04813f30f275ac0710a70649b1b1ec9c3c66a70ba5dc5af7c925",
+    "docs/review/2026-08-22-week-audit-ledger.md": "74815d1b75ca49aee7f03da196364aa176f0bbba3f83c248d92d2f728be54ff4",
+    "research/week-audit/2026-08-22-ledger.json": "a989895c421d23ad35966da0cfbd86ac74c1089bf152aa763c38302b7c2b216d",
+    "research/week-audit/2026-08-22-semantic-review.json": "905b2806c237bcea81eb8b3f64f66cec3e81ff8d3f5d1d3889c82839073cd1e5",
     "research/week-audit/2026-08-22-ref-manifest.json": "46fc3c9b4b5ac02a9a862ace714d721c9434583fc055f8f5246b58bd7cf0f70d",
-    "research/week-audit/2026-08-23-publication-manifest.json": "1f9eabc6dcbd87c39ac0c7b01b25dc6cef63ce1bbe27301222c77e0545a11718",
+    "research/week-audit/2026-08-23-publication-manifest.json": "6a279c6e4ae637d111a5785b1a656e86f87d19eb4b5eef7ed2dc99accc6f6b26",
     "research/week-audit/2026-08-23-review-finding-anchor.json": "03c6ef06fb8f3834e311b06874a869c4e232b4b8f3842f95ef54d6ce388ef378",
-    "research/week-audit/2026-08-23-remediation-cross-links.json": "5f0580bc8ae3128733b2689e790abc5e7f1ffc7fb76803b72a0bf0ff7520a7af",
-    "research/week-audit/2026-08-23-remediation-ledger.json": "9337dda47a3ebeaf3ed593e69fc0b12787a96afe0ce25844a048e949070f9513",
-    "docs/review/2026-08-23-remediation-ledger.md": "bb56ea6dd038c4217834c070be39a59d1de51ebe68790e53c5e8ef9029966b47"
+    "research/week-audit/2026-08-23-remediation-cross-links.json": "c1cdfebe08cac2adff5ebdd521e9f180210b6a40bac32498fa0cb8ca2022e02e",
+    "research/week-audit/2026-08-23-remediation-ledger.json": "2ce58f8c0cea79751ee7968a58d46f7d6a2f4d788100be98b0abe0660f001d2a",
+    "docs/review/2026-08-23-remediation-ledger.md": "5976f017a117214910e78513a463419974f9f98a08ccd3ad4b1d9f821eae3993"
   },
   "workingTreeSnapshot": {
     "schemaVersion": 2,
-    "implementationBoundary": "57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e",
-    "exclusionRule": "七个账本生成物由 files digest/全树 manifest 单独闭环，避免自引用；其余 staged/unstaged/untracked 文件逐个冻结内容",
-    "entries": [
-      {
-        "path": "docs/review/2026-08-23-week-audit-faststart-release.md",
-        "states": [
-          "unstaged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 44064,
-        "sha256": "21adfe45afc715002bf530de38da5740b3a5ecbe93d01206377129c613deba35"
-      },
-      {
-        "path": "history/PROCESS-JOURNAL.md",
-        "states": [
-          "unstaged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 303224,
-        "sha256": "42931b7976f52877b5e7dc2290a679883adb70c2489aee1d0c9dae76bd33909e"
-      }
-    ]
+    "implementationBoundary": "b768089585d710255d61a693c2489ccf425f446f",
+    "exclusionRule": "七个账本生成物由 files digest/全树 manifest 单独闭环，避免自引用；其余 staged/unstaged 已跟踪文件逐个冻结内容；无关 untracked 不入快照",
+    "entries": []
   }
 }

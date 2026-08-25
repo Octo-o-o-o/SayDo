@@ -1,11 +1,11 @@
 # T18b oneshot 与三形态 UI 对抗性评审
 
 你是 SayDo T18b 终批的对抗性只读评审者。仓库
-`/Users/wangyixiao/WorkSpace/SayDo`，基线 `main` 的 `9a6e767`，当前分支
+`~/WorkSpace/SayDo`，基线 `main` 的 `9a6e767`，当前分支
 `feat/t18b-oneshot-ui`；候选改动尚未提交。
 
 规格正本是
-`/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-08-09-onboarding方案-v1.md`
+`~/WorkSpace/OctoAgent/docs/product/2026-08-09-onboarding方案-v1.md`
 的 v11 与 v11.1，尤其 A6/B1/B3/B4/B5/B6；任务还要求 L26 重启后保留
 `/chat-new` 导航意图，以及 voice probe 失败时禁用「点击说话」并给固定人话。先完整阅读
 规格、仓库 `AGENTS.md`、`git diff 9a6e767`、`docs/07`、`docs/09`、`docs/10`、

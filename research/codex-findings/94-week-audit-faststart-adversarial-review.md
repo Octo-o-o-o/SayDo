@@ -12,11 +12,11 @@
 
 - 严重级别：A
 - 位置：
-  - `/Users/wangyixiao/WorkSpace/SayDo/scripts/week-audit.mjs:8`
-  - `/Users/wangyixiao/WorkSpace/SayDo/scripts/week-audit.mjs:84`
-  - `/Users/wangyixiao/WorkSpace/SayDo/scripts/week-audit.mjs:91`
-  - `/Users/wangyixiao/WorkSpace/SayDo/scripts/week-audit.mjs:273`
-  - `/Users/wangyixiao/WorkSpace/SayDo/docs/review/2026-08-23-week-audit-faststart-release.md:9`
+  - `~/WorkSpace/SayDo/scripts/week-audit.mjs:8`
+  - `~/WorkSpace/SayDo/scripts/week-audit.mjs:84`
+  - `~/WorkSpace/SayDo/scripts/week-audit.mjs:91`
+  - `~/WorkSpace/SayDo/scripts/week-audit.mjs:273`
+  - `~/WorkSpace/SayDo/docs/review/2026-08-23-week-audit-faststart-release.md:9`
 - 实际证据：
 
 ```text
@@ -47,9 +47,9 @@ packages/console/src/pages/TaskDetail.tsx=true
 
 - 严重级别：A
 - 位置：
-  - `/Users/wangyixiao/WorkSpace/SayDo/scripts/build-release-artifacts.mjs:36`
-  - `/Users/wangyixiao/WorkSpace/SayDo/scripts/build-release-artifacts.mjs:50`
-  - `/Users/wangyixiao/WorkSpace/SayDo/scripts/build-release-artifacts.mjs:91`
+  - `~/WorkSpace/SayDo/scripts/build-release-artifacts.mjs:36`
+  - `~/WorkSpace/SayDo/scripts/build-release-artifacts.mjs:50`
+  - `~/WorkSpace/SayDo/scripts/build-release-artifacts.mjs:91`
 - 实际证据：
 
 ```text
@@ -73,12 +73,12 @@ $ node scripts/build-release-artifacts.mjs --check
 
 - 严重级别：A
 - 位置：
-  - `/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/pages/TaskDetail.tsx:64`
-  - `/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/pages/TaskDetail.tsx:143`
-  - `/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/pages/TaskDetail.tsx:147`
-  - `/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/api/console.ts:219`
-  - `/Users/wangyixiao/WorkSpace/SayDo/docs/09-data-contracts.md:1434`
-  - `/Users/wangyixiao/WorkSpace/SayDo/docs/11-ui-spec.md:352`
+  - `~/WorkSpace/SayDo/packages/console/src/pages/TaskDetail.tsx:64`
+  - `~/WorkSpace/SayDo/packages/console/src/pages/TaskDetail.tsx:143`
+  - `~/WorkSpace/SayDo/packages/console/src/pages/TaskDetail.tsx:147`
+  - `~/WorkSpace/SayDo/packages/daemon/src/api/console.ts:219`
+  - `~/WorkSpace/SayDo/docs/09-data-contracts.md:1434`
+  - `~/WorkSpace/SayDo/docs/11-ui-spec.md:352`
 - 实际证据：
 
 ```typescript
@@ -90,7 +90,7 @@ const state: "pass" | "fail" | "unknown" =
   settled ? "pass" : String(task["status"]) === "failed" ? "fail" : "unknown";
 ```
 
-Console API 仅返回 task、package、runs、approvals、costs、decisions 和 writingProof，没有 coding `AcceptanceCheck[]`。现有 `/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/pages/TaskDetail.test.tsx:1` 只测试错误码文案，没有验收证据真实性测试。
+Console API 仅返回 task、package、runs、approvals、costs、decisions 和 writingProof，没有 coding `AcceptanceCheck[]`。现有 `~/WorkSpace/SayDo/packages/console/src/pages/TaskDetail.test.tsx:1` 只测试错误码文案，没有验收证据真实性测试。
 
 Canonical 明确规定每条 criterion 必须绑定 `pass/fail/unknown` 和证据，无法绑定时显示 `unknown`；`ready_for_review` 不等于逐项全绿。
 
@@ -103,10 +103,10 @@ Canonical 明确规定每条 criterion 必须绑定 `pass/fail/unknown` 和证�
 
 - 严重级别：B
 - 位置：
-  - `/Users/wangyixiao/WorkSpace/SayDo/scripts/week-audit.mjs:116`
-  - `/Users/wangyixiao/WorkSpace/SayDo/scripts/week-audit.mjs:125`
-  - `/Users/wangyixiao/WorkSpace/SayDo/scripts/week-audit.mjs:153`
-  - `/Users/wangyixiao/WorkSpace/SayDo/scripts/week-audit.mjs:210`
+  - `~/WorkSpace/SayDo/scripts/week-audit.mjs:116`
+  - `~/WorkSpace/SayDo/scripts/week-audit.mjs:125`
+  - `~/WorkSpace/SayDo/scripts/week-audit.mjs:153`
+  - `~/WorkSpace/SayDo/scripts/week-audit.mjs:210`
 - 实际证据：只要提交标题匹配 `from internal <sha>`，就直接标为 `public_snapshot`；非档案类纯文档也直接标为 `document_only_reviewed`，没有机械评审输入。
 
 ```text
@@ -126,11 +126,11 @@ f090078 internal=6365513 tree_equal=true
 
 - 严重级别：B
 - 位置：
-  - `/Users/wangyixiao/WorkSpace/SayDo/packages/cli/scripts/verify-distribution.mjs:118`
-  - `/Users/wangyixiao/WorkSpace/SayDo/packages/cli/scripts/verify-distribution.mjs:136`
-  - `/Users/wangyixiao/WorkSpace/SayDo/packages/cli/scripts/verify-distribution.mjs:142`
-  - `/Users/wangyixiao/WorkSpace/SayDo/packages/cli/scripts/verify-distribution.mjs:151`
-  - `/Users/wangyixiao/WorkSpace/SayDo/docs/plan/2026-08-22-week-audit-faststart-release.fable.md:76`
+  - `~/WorkSpace/SayDo/packages/cli/scripts/verify-distribution.mjs:118`
+  - `~/WorkSpace/SayDo/packages/cli/scripts/verify-distribution.mjs:136`
+  - `~/WorkSpace/SayDo/packages/cli/scripts/verify-distribution.mjs:142`
+  - `~/WorkSpace/SayDo/packages/cli/scripts/verify-distribution.mjs:151`
+  - `~/WorkSpace/SayDo/docs/plan/2026-08-22-week-audit-faststart-release.fable.md:76`
 - 实际证据：verifier 测试本地 `npm pack` 后的前缀安装，不测试 GitHub 固定 URL，也不是 `npm install --global`。Windows 只检查 `saydo.cmd` 存在，实际运行时绕过 shim，直接调用 Node 加 `dist/cli.mjs`。本地标签命令退出 0，但仅返回：
 
 ```text
@@ -146,16 +146,16 @@ rc.2 远端 URL 因网络受限未验证，不能据此断言远端不存在。
 
 - 严重级别：B
 - 位置：
-  - `/Users/wangyixiao/WorkSpace/SayDo/deploy/saydo-octoooo-com/docs/index.html:515`
-  - `/Users/wangyixiao/WorkSpace/SayDo/deploy/saydo-octoooo-com/docs/index.html:522`
-  - `/Users/wangyixiao/WorkSpace/SayDo/deploy/saydo-octoooo-com/docs/index.html:533`
-  - `/Users/wangyixiao/WorkSpace/SayDo/deploy/saydo-octoooo-com/docs/index.html:566`
-  - `/Users/wangyixiao/WorkSpace/SayDo/deploy/saydo-octoooo-com/docs/index.html:851`
-  - `/Users/wangyixiao/WorkSpace/SayDo/deploy/saydo-octoooo-com/en/docs/index.html:533`
-  - `/Users/wangyixiao/WorkSpace/SayDo/deploy/saydo-octoooo-com/en/docs/index.html:540`
-  - `/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/tier1/validateConfig.ts:198`
-  - `/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/tier1/agentEnv.ts:2`
-  - `/Users/wangyixiao/WorkSpace/SayDo/docs/11-ui-spec.md:347`
+  - `~/WorkSpace/SayDo/deploy/saydo-octoooo-com/docs/index.html:515`
+  - `~/WorkSpace/SayDo/deploy/saydo-octoooo-com/docs/index.html:522`
+  - `~/WorkSpace/SayDo/deploy/saydo-octoooo-com/docs/index.html:533`
+  - `~/WorkSpace/SayDo/deploy/saydo-octoooo-com/docs/index.html:566`
+  - `~/WorkSpace/SayDo/deploy/saydo-octoooo-com/docs/index.html:851`
+  - `~/WorkSpace/SayDo/deploy/saydo-octoooo-com/en/docs/index.html:533`
+  - `~/WorkSpace/SayDo/deploy/saydo-octoooo-com/en/docs/index.html:540`
+  - `~/WorkSpace/SayDo/packages/daemon/src/tier1/validateConfig.ts:198`
+  - `~/WorkSpace/SayDo/packages/daemon/src/tier1/agentEnv.ts:2`
+  - `~/WorkSpace/SayDo/docs/11-ui-spec.md:347`
 - 实际证据：
   - 同一中文页面先称“只有 cursor 有生产实现，其他配置会被拒”，稍后又称 Claude 的生产执行主流程已接线；实现 `tier1StartupVerdict()` 明确接受 `claude_code`。
   - 中英文页面称环境“只有十个变量”，实际 allowlist 有 23 个跨平台变量。
@@ -168,10 +168,10 @@ rc.2 远端 URL 因网络受限未验证，不能据此断言远端不存在。
 
 - 严重级别：B
 - 位置：
-  - `/Users/wangyixiao/WorkSpace/SayDo/e2e/console/console.spec.ts:26`
-  - `/Users/wangyixiao/WorkSpace/SayDo/e2e/console/console.spec.ts:115`
-  - `/Users/wangyixiao/WorkSpace/SayDo/e2e/console/console.spec.ts:338`
-  - `/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/components/SetupGate.tsx:381`
+  - `~/WorkSpace/SayDo/e2e/console/console.spec.ts:26`
+  - `~/WorkSpace/SayDo/e2e/console/console.spec.ts:115`
+  - `~/WorkSpace/SayDo/e2e/console/console.spec.ts:338`
+  - `~/WorkSpace/SayDo/packages/console/src/components/SetupGate.tsx:381`
 - 实际证据：
 
 ```text
@@ -194,9 +194,9 @@ e2e/console/console.spec.ts:394:
 
 - 严重级别：B
 - 位置：
-  - `/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/tier1/claudeIdentity.ts:44`
-  - `/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/tier1/claudeIdentity.ts:48`
-  - `/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/index.ts:1299`
+  - `~/WorkSpace/SayDo/packages/daemon/src/tier1/claudeIdentity.ts:44`
+  - `~/WorkSpace/SayDo/packages/daemon/src/tier1/claudeIdentity.ts:48`
+  - `~/WorkSpace/SayDo/packages/daemon/src/index.ts:1299`
 - 实际证据：临时文件固定为 `${target}.tmp-${process.pid}`。同一 daemon 内并发的两个 setup self-test 使用相同 PID；HTTP 路径直接启动 `runSetupTest()`，没有按 `SAYDO_HOME` 串行化。现有 identity 测试没有并发用例。
 - 影响：两个合法自检可能相互覆盖临时内容，导致其中一次 `renameSync` 报 `ENOENT`，或返回回执与最终登记文件不对应。
 - 最小修复：临时文件加入随机唯一后缀，并按 identity target 对自检写入加互斥；补两个并发自检均有确定结果且最终文件可解析的测试。
@@ -207,9 +207,9 @@ e2e/console/console.spec.ts:394:
 
 - 严重级别：C
 - 位置：
-  - `/Users/wangyixiao/WorkSpace/SayDo/scripts/check-doc-links.mjs:11`
-  - `/Users/wangyixiao/WorkSpace/SayDo/scripts/check-doc-links.mjs:17`
-  - `/Users/wangyixiao/WorkSpace/SayDo/scripts/check-doc-links.mjs:28`
+  - `~/WorkSpace/SayDo/scripts/check-doc-links.mjs:11`
+  - `~/WorkSpace/SayDo/scripts/check-doc-links.mjs:17`
+  - `~/WorkSpace/SayDo/scripts/check-doc-links.mjs:28`
 - 实际证据：
 
 ```text
@@ -224,7 +224,7 @@ $ node scripts/check-doc-links.mjs
 
 ## 补充核验结果
 
-- tarball 列表命令退出 0，共 15 个条目，仅含 `dist/`、`package.json`、README、LICENSE、NOTICE；包内 README 在 `/Users/wangyixiao/WorkSpace/SayDo/packages/cli/README.md:20` 如实说明只含 daemon 和 Web 控制台。
+- tarball 列表命令退出 0，共 15 个条目，仅含 `dist/`、`package.json`、README、LICENSE、NOTICE；包内 README 在 `~/WorkSpace/SayDo/packages/cli/README.md:20` 如实说明只含 daemon 和 Web 控制台。
 - 根许可证与包内 LICENSE、NOTICE 的两次 `cmp -s` 均退出 0。
 - 对 tar 内容执行绝对用户路径、常见私钥和 token 格式的定向扫描，`rg` 退出 1且无输出，表示这些模式未命中；这不是完整秘密扫描，且发布物重建后必须重跑。
 - 两个非同树 public snapshot 与对应 internal commit 的实际差异都只有 8 个版权登记资产删除，未发现额外代码实现。

@@ -1,6 +1,6 @@
 # 评审 92 · 评审 91 二次回修的聚焦复核(零上下文;范围收窄)
 
-只读仓库 `/Users/wangyixiao/WorkSpace/SayDo`,分支 `main`,HEAD = `afd31b4`。
+只读仓库 `~/WorkSpace/SayDo`,分支 `main`,HEAD = `afd31b4`。
 
 前两轮报告在 `research/codex-findings/90-week-crosscheck-review.md` 与 `91-review90-rework-verify.md`,
 二次回修台账在 `e2e/evidence/w54b-batch.md` §8。**本轮范围收窄,只回答两个问题**:

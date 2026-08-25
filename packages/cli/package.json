@@ -1,6 +1,6 @@
 {
   "name": "@saydo/cli",
-  "version": "0.1.0-rc.3",
+  "version": "0.1.0-rc.4",
   "license": "Apache-2.0",
   "description": "SayDo 可分发 Node 运行时与命令行 supervisor",
   "type": "module",

@@ -1,6 +1,6 @@
 # 用途:把下面整段 prompt 复制到 Hopper 项目的 AI 会话里
 
-> 背景:SayDo(原名 VoiceLoop)执行层已决策"复用 Hopper 现状、锁版本、不等待、双路径"(见 `/Users/wangyixiao/WorkSpace/voice-coding/docs/adr/ADR-001-execution-layer.md`)。本 prompt 让 Hopper 侧 AI 逐项裁决对接需求并产出契约草案。
+> 背景:SayDo(原名 VoiceLoop)执行层已决策"复用 Hopper 现状、锁版本、不等待、双路径"(见 `~/WorkSpace/voice-coding/docs/adr/ADR-001-execution-layer.md`)。本 prompt 让 Hopper 侧 AI 逐项裁决对接需求并产出契约草案。
 > 版本:v4(2026-07-23)。v3 经 Codex 源码实读;v4 经 4 subagent 对抗评审(Hopper 现状核对=准确度高 / 契约完整性 / 边界安全 / Hopper 维护者视角=约 1.5 轮可出货)修订:补 drop→执行触发合同、修承诺区危险措辞("CAS 预检"非原子)、全部改绝对路径、加输出分级、预写 P0-C 的 M3b 通道可选答案、请求 Hopper 真实状态枚举。
 > 分隔线以下是要粘贴的完整内容(自包含)。**注意:粘进 Hopper 会话后 cwd 是 Hopper 仓库,Hopper 自己也有同名的 `docs/09-*` 文件,故本 prompt 内 SayDo 侧文件一律用绝对路径。**
 
@@ -10,7 +10,7 @@
 
 ## 背景(一分钟)
 
-我在做 **SayDo**(仓库 `github.com/Octo-o-o-o/SayDo`;设计文档在 `/Users/wangyixiao/WorkSpace/voice-coding/`):"对话优先于指令"的语音高级助手——用户只管和 AI 聊,AI 研究透项目、采访式问清需求,就绪后给决策包(成果预览 + 计划 + Demo)请用户拍板;确认后派本地 agent 后台执行,**跑到"等验收"状态后回叫用户**(我方状态词纪律:runner 退出 ≠ 完成,merge 后才是 done)。**重任务执行层已决策复用 Hopper 现状流水线**(drop→triage→compile→调度→worktree→执行→verification→acceptance→review→merge),把 Hopper 当外部系统、锁版本对接,不等平台化。SayDo 侧自建"控制面桥"(事件消费/回叫/审批收据/对账)。
+我在做 **SayDo**(仓库 `github.com/Octo-o-o-o/SayDo`;设计文档在 `~/WorkSpace/voice-coding/`):"对话优先于指令"的语音高级助手——用户只管和 AI 聊,AI 研究透项目、采访式问清需求,就绪后给决策包(成果预览 + 计划 + Demo)请用户拍板;确认后派本地 agent 后台执行,**跑到"等验收"状态后回叫用户**(我方状态词纪律:runner 退出 ≠ 完成,merge 后才是 done)。**重任务执行层已决策复用 Hopper 现状流水线**(drop→triage→compile→调度→worktree→执行→verification→acceptance→review→merge),把 Hopper 当外部系统、锁版本对接,不等平台化。SayDo 侧自建"控制面桥"(事件消费/回叫/审批收据/对账)。
 
 **时间关系(重要,决定你的排期)**:SayDo 首发交付**包含接你的路径**(owner 已定:首发做完整,双路径都在第一次交付范围内)。开发顺序上我方 Tier 1 本地路径先行(不依赖你,约 3–4 周),**桥接阶段等你的契约落地即接上**。所以——**裁决(17 项)我现在就要**(在我关键路径上);**契约的"实现"有约 3–4 周落地窗口**(= 我方 Tier 1 开发期),可排进你现有 lane,但不是"无限期"。我最急需先拿到的最小裁决集见文末"请你输出"第一档。
 
@@ -21,8 +21,8 @@
 ## 请先读(都在本机)
 
 - 你自己的(cwd 内相对路径):`docs/01-specification.md`、`docs/11`+`docs/12`(Console——**注意:第 13 项指你已存在的 Console localhost 路由**,如 `/api/status`、`/api/events?after=`、`/api/stream`、`/api/review/...`,不是规格 §17 的 Obsidian Companion API)、`docs/SCHEMA-FREEZE-M3A.md`(里程碑口径:**M3b=command/executor+decision enforcement,M3c=usage accounting,M3d=workflow,WS4=Console/decision/notification surface**)、交付完整性批次(以 `src/delivery/` + schemas 为准,merge 锚点 `9cc835d`)。
-- SayDo 侧(**绝对路径,别读成你自己的同名文件**):`/Users/wangyixiao/WorkSpace/voice-coding/docs/adr/ADR-001-execution-layer.md`、`/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md`(合同草案,含 EffectGrant/DispatchBinding/收据——**逐字段批注只需覆盖"跨边界字段":digest 算法、S0–S3 与你 `decision.ts` 分级的对齐、constraints↔未来 M3b EffectGrant 语义;`spokenForm`/念读模板等授权 UX 内部件不必批**)、`/Users/wangyixiao/WorkSpace/voice-coding/docs/05-roadmap.md` §3。**注意:09 §7 的投影表目前只是部分枚举映射,全枚举映射待你第 3 项给出真实状态词后重写(其 §14-A4 已登记);其余以其 §14 为准。**
-- 第三方审计(绝对路径):`/Users/wangyixiao/WorkSpace/voice-coding/research/codex-findings/02-hopper-integration.md`(基线 `c4c29c6`,与 `ea3fb31` 生产代码无差)——可直接反驳。
+- SayDo 侧(**绝对路径,别读成你自己的同名文件**):`~/WorkSpace/voice-coding/docs/adr/ADR-001-execution-layer.md`、`~/WorkSpace/voice-coding/docs/09-data-contracts.md`(合同草案,含 EffectGrant/DispatchBinding/收据——**逐字段批注只需覆盖"跨边界字段":digest 算法、S0–S3 与你 `decision.ts` 分级的对齐、constraints↔未来 M3b EffectGrant 语义;`spokenForm`/念读模板等授权 UX 内部件不必批**)、`~/WorkSpace/voice-coding/docs/05-roadmap.md` §3。**注意:09 §7 的投影表目前只是部分枚举映射,全枚举映射待你第 3 项给出真实状态词后重写(其 §14-A4 已登记);其余以其 §14 为准。**
+- 第三方审计(绝对路径):`~/WorkSpace/voice-coding/research/codex-findings/02-hopper-integration.md`(基线 `c4c29c6`,与 `ea3fb31` 生产代码无差)——可直接反驳。
 
 ## SayDo 的对接原则(我方承诺;标注"现在可执行"与"裁决落地前过渡形态")
 
@@ -83,6 +83,6 @@
 
 **本轮给"裁决 + 骨架 + 排期"即可的**:
 4. 第 5/6/7/8/10/12 项(若裁走 M3b Command 通道,按 P0-C 预答给 a/b/c 三件);第 13/14 项(P1);
-5. 对 `/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md` 的**跨边界字段**批注(接受/改名/反对;范围见"请先读");
+5. 对 `~/WorkSpace/voice-coding/docs/09-data-contracts.md` 的**跨边界字段**批注(接受/改名/反对;范围见"请先读");
 6. **与在途改造的冲突或顺路点**(console lane / WS 系列 / M3b/M3c/M3d)+ 工作量与顺序(一天内 / 排进现有 lane / 建议 SayDo 侧自建);
 7. **反向约束与异议**:events 轮询频率/文件礼仪/提交速率/重试规范,以及你认为这份清单设计得不对的地方——直说。

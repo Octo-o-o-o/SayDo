@@ -4,7 +4,7 @@
 对抗性评审《SayDo 阶段、缺口与核心问题分析(2026-08-14 复核版)》:
 docs/review/2026-08-14-saydo-phase-gap-analysis.md
 
-实施仓:/Users/wangyixiao/WorkSpace/SayDo
+实施仓:~/WorkSpace/SayDo
 HEAD 以 git rev-parse 为准。工作树有未提交文件,只读;评审对象本身也在工作树(未追踪),用绝对路径读。
 
 你的工作:

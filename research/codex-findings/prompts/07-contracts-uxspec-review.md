@@ -1,6 +1,6 @@
 # 任务:review 两份新文档(09 数据契约 / 10 语音话术规范)+ 本轮回修
 
-你是严苛的对抗性评审员。VoiceLoop(`/Users/wangyixiao/WorkSpace/voice-coding/`)为开工前补齐了两份实施级文档,并按你上一份报告(06)完成了回修。请完整 review,写中文报告。
+你是严苛的对抗性评审员。VoiceLoop(`~/WorkSpace/voice-coding/`)为开工前补齐了两份实施级文档,并按你上一份报告(06)完成了回修。请完整 review,写中文报告。
 
 ## 待评审(重点)
 
@@ -11,7 +11,7 @@
 ## 对照材料
 
 - 你自己的 `research/codex-findings/06-recent-rounds-review.md`(逐项检查 A-01~A-05、B 级是否真正关闭,有无新回归);
-- `research/codex-findings/02-hopper-integration.md` + 本机 `/Users/wangyixiao/WorkSpace/Hopper/`(只读):核对 09 §6/§7 的映射与 `[待Hopper裁决]` 标注是否与现状一致、v3 prompt 的 17 项与现状描述是否准确;
+- `research/codex-findings/02-hopper-integration.md` + 本机 `~/WorkSpace/Hopper/`(只读):核对 09 §6/§7 的映射与 `[待Hopper裁决]` 标注是否与现状一致、v3 prompt 的 17 项与现状描述是否准确;
 - `docs/01/02/03/06/07/08`:交叉一致性(术语/状态词/分期)。
 
 ## 评审焦点
@@ -24,4 +24,4 @@
 
 ## 输出
 
-写入 `/Users/wangyixiao/WorkSpace/voice-coding/research/codex-findings/07-contracts-review.md`(中文):① 总评(09/10 是否达到"实施可照抄"标准);② A/B/C 分级问题清单(文件+位置+改法);③ 06 报告回归核对表;④ 过度设计裁决清单。区分【事实】/【judgement】;不修改任何文件。
+写入 `~/WorkSpace/voice-coding/research/codex-findings/07-contracts-review.md`(中文):① 总评(09/10 是否达到"实施可照抄"标准);② A/B/C 分级问题清单(文件+位置+改法);③ 06 报告回归核对表;④ 过度设计裁决清单。区分【事实】/【judgement】;不修改任何文件。

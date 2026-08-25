@@ -2,7 +2,7 @@
 
 > 产出：Claude Opus 5（本会话实读）+ Codex `gpt-5.6-sol`/effort=max 对抗校审（报告 `research/codex-findings/72-dsh-default-runner-review.md`，prompt `prompts/72-dsh-default-runner-review.md`，事件流 `logs/72-dsh-review.jsonl`）
 > 本产品基线：SayDo `feat/t20-fusion-layout`（工作树含未提交改动）
-> 对方基线：`/Users/wangyixiao/WorkSpace/Reference/deepseek-harness`，`origin` = 官方 `deepseek-ai/deepseek-harness`，`0.1.0-rc.5`，MIT，developer preview。该 checkout 是 owner 自己的 fork（`apps/desktop` 与少量 web/session 提交为 fork 新增）；**「fork 的 `packages/` 与上游逐字相同」未作为证据前提核验**。
+> 对方基线：`~/WorkSpace/Reference/deepseek-harness`，`origin` = 官方 `deepseek-ai/deepseek-harness`，`0.1.0-rc.5`，MIT，developer preview。该 checkout 是 owner 自己的 fork（`apps/desktop` 与少量 web/session 提交为 fork 新增）；**「fork 的 `packages/` 与上游逐字相同」未作为证据前提核验**。
 > **supersede 关系**：本文 supersede `docs/plan/2026-08-13-deepseek-harness-borrowing-assessment.fable.md` 的 **D-31 单条**（"是否把 DSH 收成 BYOA cage"）。该评估其余 41 条裁决不受影响。
 
 ## TL;DR

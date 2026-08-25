@@ -307,7 +307,7 @@ default_rows=1,1,1
 
 ### 7.1 当前机器 / owner 前置
 
-- 【事实】`/Users/wangyixiao/WorkSpace/VoiceLoop/` 当前不存在；Phase -1 C 未完成。
+- 【事实】`~/WorkSpace/VoiceLoop/` 当前不存在；Phase -1 C 未完成。
 - 【事实】Node `v22.23.1`、pnpm `10.33.1`、Python `3.12.13`、uv `0.11.7`、Google Chrome 与 `codex` 可执行文件已存在。
 - 【事实】`just` 当前为 **MISSING**，`~/.voiceloop/config.toml` 也不存在；全局 Playwright 命令未安装（可由新仓本地依赖解决）。`codex --version` 返回 `codex-cli 0.145.0`，同时给出无法创建 PATH alias 的非致命 `Operation not permitted` 警告；本轮没有另跑 headless 任务探针，所以“binary 存在”尚不等于实施环境的 Codex 攒批链可用。
 - 【事实】本轮没有读取或打印凭据，也没有验证额度、麦克风/扬声器、ASR/TTS key、ntfy、hosting、dogfood 项目与音频底板；“未验证”不等于“缺失”。

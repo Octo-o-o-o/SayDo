@@ -5,7 +5,7 @@
     "refsFrozenAt": "2026-08-22T22:30:44+08:00",
     "base": "8a8247a347238b6bf6ad649f1162f1934540eafd",
     "rangeEnd": "3fccf4a704ad9a5d8e013baaefb67c66a5737cba",
-    "remediationEnd": "57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e",
+    "remediationEnd": "b768089585d710255d61a693c2489ccf425f446f",
     "markdownOutput": "docs/review/2026-08-22-week-audit-ledger.md",
     "jsonOutput": "research/week-audit/2026-08-22-ledger.json",
     "semanticOutput": "research/week-audit/2026-08-22-semantic-review.json",

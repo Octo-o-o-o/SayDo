@@ -5,7 +5,7 @@ import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { AuditEvent, AuditSink } from "../src/obs/audit.js";
 import { DRAFT_JSON_SCHEMA } from "../src/brain/liveTools.js";
 import { runDialogCliOneshot } from "../src/brain/dialogLoop.js";
@@ -16,9 +16,14 @@ import {
   activeByoaInvocationCount,
   BYOA_NO_TOOL_PROMPT_HEADER,
   createByoaProvider,
+  resetByoaLifecycleForTests,
   type ByoaProviderOptions
 } from "../src/providers/byoa/provider.js";
 import { ByoaConcurrencyLimiter } from "../src/providers/byoa/runner.js";
+import {
+  configureRuntimeChildRegistry,
+  resetRuntimeChildLifecycleForTests
+} from "../src/runtimeChildRegistry.js";
 
 const fakeCli = fileURLToPath(new URL("./fixtures/fake-byoa-cli.mjs", import.meta.url));
 const testDir = mkdtempSync(join(tmpdir(), "saydo-byoa-e2e-"));
@@ -69,7 +74,18 @@ async function waitUntil(predicate: () => boolean, timeoutMs = 1000): Promise<vo
   }
 }
 
-beforeAll(() => chmodSync(fakeCli, 0o755));
+beforeAll(() => {
+  chmodSync(fakeCli, 0o755);
+  configureRuntimeChildRegistry(testDir);
+});
+afterEach(() => {
+  resetByoaLifecycleForTests();
+  try {
+    resetRuntimeChildLifecycleForTests();
+  } catch {
+    // 污染由本测断言覆盖
+  }
+});
 afterAll(() => rmSync(testDir, { recursive: true, force: true }));
 
 describe("BYOA fake CLI 进程级反例", () => {

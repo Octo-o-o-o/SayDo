@@ -132,10 +132,21 @@ import {
 } from "./config/projectOverrides.js";
 import { sweepRetryQueue } from "./providers/byoa/retryQueue.js";
 import { abortAllByoaInvocations, activeByoaInvocationCount } from "./providers/byoa/provider.js";
+import { configureRuntimeChildRegistry, recoverPriorGenerationRuntimeOwners } from "./runtimeChildRegistry.js";
+import {
+  assertShutdownExactEmpty,
+  raceWithMonotonicDeadline
+} from "./shutdownDeadline.js";
+import {
+  LifecycleDisposition,
+  afterClientGone,
+  shutdownReasonOf
+} from "./lifecycleDisposition.js";
+import { safeFailureText } from "./processGroupLifecycle.js";
 import { runParkSweep } from "./live/scheduler.js";
 import { sweepExpiredProposed } from "./storage/dao/packages.js";
 import { buildActiveClaudeGateScript, buildActiveGateScript, ensureGateScript } from "./tier1/gateScript.js";
-import { parseGateWireRequest, startGateServer } from "./tier1/gateServer.js";
+import { closeGateServer, parseGateWireRequest, startGateServer, type GateListeningServer } from "./tier1/gateServer.js";
 import { claudeBackend } from "./tier1/backends/claude.js";
 import { cursorBackend } from "./tier1/backends/cursor.js";
 import { verifyClaudeIdentity } from "./tier1/claudeIdentity.js";
@@ -162,6 +173,20 @@ import {
   processAlive,
   processBirth
 } from "@saydo/platform";
+import {
+  isOwnEexist,
+  listenFatalCode,
+  listenFatalMessage,
+  projectBootActivationFailure,
+  projectBootActivationRollbackFailure,
+  projectDaemonFatalMessage,
+  projectDaemonLockFailure,
+  projectDaemonShutdownFailureText,
+  projectDatabaseCloseFailure,
+  settleTier1StartupFailure
+} from "./startupFailure.js";
+import { publishSupervisorReady, sendSupervisorFrameAndWait as sendSupervisorFrameSafe } from "./supervisorIpc.js";
+import { readUtf8Body } from "./httpJsonBody.js";
 import {
   assessRuntimeReadiness,
   pipelineRuntimeJoined,
@@ -206,8 +231,8 @@ import { RUNTIME_IDENTITY } from "./buildIdentity.js";
 import { getDesktopSummary } from "./api/desktop.js";
 import { getRecentTranscript, parseRecentTranscriptLimit } from "./api/recentTranscript.js";
 import { getRecentMemory, parseRecentMemoryLimit } from "./api/recentMemory.js";
-import { configureRuntimeChildRegistry } from "./runtimeChildRegistry.js";
 import { runtimeOwnershipProof } from "./runtimeOwnership.js";
+import { daemonStartupHooks } from "./daemonStartupHooks.js";
 
 if (hostKind() === "win32") nativeSync();
 const SAYDO_HOME = ensureStateRoot();
@@ -221,6 +246,15 @@ const BOOT_SUPERVISED = process.env["SAYDO_SUPERVISED"] === "1";
 const RUNTIME_INSTANCE_ID = process.env["SAYDO_RUNTIME_INSTANCE_ID"] ?? randomUUID();
 const INSTANCE_LOCK_PATH = join(SAYDO_HOME, ".daemon-supervisor.lock");
 let instanceLockFd: number | null = null;
+const homeOwnedErrors = new WeakSet<object>();
+function throwHomeOwned(message: string): never {
+  const err = new Error(message);
+  homeOwnedErrors.add(err);
+  throw err;
+}
+function isHomeOwnedError(err: unknown): boolean {
+  return typeof err === "object" && err !== null && homeOwnedErrors.has(err);
+}
 function acquireInstanceLock(): void {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -236,7 +270,7 @@ function acquireInstanceLock(): void {
       instanceLockFd = openSync(INSTANCE_LOCK_PATH, "r");
       return;
     } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
+      if (!isOwnEexist(err)) throw projectDaemonLockFailure(err);
       let ownerPid: number | null = null;
       let ownerStart: string | null = null;
       try {
@@ -247,17 +281,17 @@ function acquireInstanceLock(): void {
         // 损坏锁只在没有可验证 live owner 时回收。
       }
       if (!Number.isInteger(ownerPid) || (ownerPid as number) <= 1 || !ownerStart) {
-        throw new Error("saydo home supervisor lock ownership unverified");
+        throwHomeOwned("saydo home supervisor lock ownership unverified");
       }
       const observedStart = processBirth(ownerPid as number);
       if (observedStart === ownerStart) {
-        throw new Error(`saydo home already owned by pid ${String(ownerPid)}`);
+        throwHomeOwned(`saydo home already owned by pid ${String(ownerPid)}`);
       }
       if (observedStart !== null) {
-        throw new Error("saydo home supervisor lock birth identity mismatch");
+        throwHomeOwned("saydo home supervisor lock birth identity mismatch");
       }
       if (processAlive(ownerPid as number)) {
-        throw new Error("saydo home supervisor lock birth identity unavailable");
+        throwHomeOwned("saydo home supervisor lock birth identity unavailable");
       }
       unlinkSync(INSTANCE_LOCK_PATH);
     }
@@ -275,7 +309,26 @@ function releaseInstanceLock(): void {
     // 只删除仍明确属于本进程的锁。
   }
 }
-acquireInstanceLock();
+try {
+  acquireInstanceLock();
+} catch (err) {
+  const code = isHomeOwnedError(err) ? "home_owned" : "instance_lock_failed";
+  if (typeof process.send === "function") {
+    await new Promise<void>((resolveSend) => {
+      const timer = setTimeout(resolveSend, 250);
+      process.send?.({
+        v: 1,
+        t: "fatal",
+        code,
+        message: code
+      } satisfies SupervisorFrame, () => {
+        clearTimeout(timer);
+        resolveSend();
+      });
+    });
+  }
+  process.exit(1);
+}
 process.once("exit", releaseInstanceLock);
 configureRuntimeChildRegistry(SAYDO_HOME, RUNTIME_INSTANCE_ID);
 const PORT = Number(process.env["SAYDO_DAEMON_PORT"] ?? 47100);
@@ -283,13 +336,30 @@ const t2Cfg = readT2Config(join(SAYDO_HOME, "config.toml"));
 const MOBILE_LAN = mobileLanEnabled(process.env["SAYDO_MOBILE_LAN"]);
 const LISTEN_ADDRESS = daemonListenAddress(t2Cfg.listen, MOBILE_LAN);
 let bootShutdownReason: PrepareShutdownReason | null = null;
+let runtimeDraining = false;
+const startupAbort = new AbortController();
+const lifecycleDisposition = new LifecycleDisposition();
+let lifecycleOnce: Promise<never> | null = null;
+let dbClosed = false;
+function claimLifecycleIntent(next: Parameters<LifecycleDisposition["claim"]>[0]): boolean {
+  return lifecycleDisposition.claim(next);
+}
+function noteStartupShutdown(reason: PrepareShutdownReason): void {
+  bootShutdownReason ??= reason;
+  runtimeDraining = true;
+  if (!startupAbort.signal.aborted) startupAbort.abort();
+  claimLifecycleIntent({ kind: "signal", reason });
+  daemonStartupHooks().afterNoteShutdown?.({
+    claimRestart: () => claimLifecycleIntent({ kind: "restart", generation: 1 })
+  });
+}
 process.on("message", (message: unknown) => {
   const parsed = supervisorFrameSchema.safeParse(message);
-  if (parsed.success && parsed.data.t === "prepareShutdown") bootShutdownReason ??= parsed.data.reason;
+  if (parsed.success && parsed.data.t === "prepareShutdown") noteStartupShutdown(parsed.data.reason);
 });
-process.on("SIGINT", () => { if (!BOOT_SUPERVISED) bootShutdownReason ??= "cli_sigint"; });
-process.on("SIGTERM", () => { if (!BOOT_SUPERVISED) bootShutdownReason ??= "supervisor_stop"; });
-if (BOOT_SUPERVISED) process.on("disconnect", () => { bootShutdownReason ??= "supervisor_stop"; });
+process.on("SIGINT", () => { if (!BOOT_SUPERVISED) noteStartupShutdown("cli_sigint"); });
+process.on("SIGTERM", () => { if (!BOOT_SUPERVISED) noteStartupShutdown("supervisor_stop"); });
+if (BOOT_SUPERVISED) process.on("disconnect", () => { noteStartupShutdown("supervisor_stop"); });
 // B9: bind 后立即提供 starting 探针，避免同 HOME attach 在 DB/migration 窗口误判 unknown_service。
 let httpHandlersInstalled = false;
 const BOOT_STATE_ROOT_DIGEST = stateRootDigest(SAYDO_HOME);
@@ -340,9 +410,34 @@ try {
       rejectListen(err);
     };
     server.once("error", onError);
-    server.listen(PORT, LISTEN_ADDRESS, () => {
+    server.listen({ port: PORT, host: LISTEN_ADDRESS, signal: startupAbort.signal }, () => {
       server.off("error", onError);
-      resolveListen();
+      // listen({ signal }) 在 abort 时自己 close；再 close 一次会打出
+      // ERR_SERVER_NOT_RUNNING，而此处已摘掉 once("error")，未处理会把进程打成非零。
+      server.on("error", (err: NodeJS.ErrnoException) => {
+        if (err.code === "ERR_SERVER_NOT_RUNNING") return;
+        if (startupAbort.signal.aborted || runtimeDraining) return;
+      });
+      const finishListen = (): void => {
+        resolveListen();
+      };
+      try {
+        daemonStartupHooks().onListening?.();
+      } catch (err) {
+        rejectListen(err instanceof Error ? err : new Error("listen hook failed"));
+        return;
+      }
+      const hold = daemonStartupHooks().listenHold;
+      if (hold) {
+        const onAbort = (): void => {
+          startupAbort.signal.removeEventListener("abort", onAbort);
+          finishListen();
+        };
+        startupAbort.signal.addEventListener("abort", onAbort);
+        void hold.then(finishListen, finishListen);
+        return;
+      }
+      finishListen();
     });
   });
 } catch (err) {
@@ -351,13 +446,51 @@ try {
       process.send?.({
         v: 1,
         t: "fatal",
-        code: (err as NodeJS.ErrnoException).code === "EADDRINUSE" ? "port_conflict" : "listen_failed",
-        message: String(err).slice(0, 300)
+        code: listenFatalCode(err),
+        message: listenFatalMessage(err)
       } satisfies SupervisorFrame, () => resolveSend());
     });
   }
   releaseInstanceLock();
   process.exit(1);
+}
+if (startupAbort.signal.aborted || runtimeDraining) {
+  const reason = bootShutdownReason ?? "supervisor_stop";
+  let stoppedSent = false;
+  try {
+    await Promise.race([
+      sendSupervisorFrameSafe({
+        v: 1,
+        t: "stopped",
+        reason,
+        recoverableTier1: 0,
+        abortedUnrecoverable: 0
+      }).then(() => {
+        stoppedSent = true;
+      }),
+      new Promise<void>((_, reject) => {
+        setTimeout(() => reject(new Error("stopped send timeout")), 250);
+      })
+    ]);
+  } catch {
+    stoppedSent = false;
+  }
+  if (!stoppedSent) {
+    try {
+      await sendSupervisorFrameSafe({
+        v: 1,
+        t: "fatal",
+        code: "stopped_send_failed",
+        message: "bind-before-shutdown stopped frame failed"
+      });
+    } catch {
+      // 已尽最大努力
+    }
+    releaseInstanceLock();
+    process.exit(1);
+  }
+  releaseInstanceLock();
+  process.exit(0);
 }
 const db = openDb(join(SAYDO_HOME, "saydo.db"));
 const audit = createSqliteAuditSink(db);
@@ -408,7 +541,7 @@ if (hasBootActivation) {
       return typeof binding !== "string" && binding.provider !== "api";
     });
   } catch (err) {
-    bootActivationPreflightError = String(err instanceof Error ? err.message : err).slice(0, 300);
+    bootActivationPreflightError = projectBootActivationFailure(err);
     bootCliRuntimePromotionError = bootActivationPreflightError;
   }
 }
@@ -449,10 +582,10 @@ if (
     bootCliRuntimeCleanupError = result.cleanupError;
   } catch (err) {
     const rollback = rollbackActivationFiles(SAYDO_HOME, bootPendingActivation, bootPromote);
-    const cause = String(err instanceof Error ? err.message : err).slice(0, 200);
+    const cause = projectBootActivationFailure(err);
     bootCliRuntimePromotionError = rollback.ok
       ? `${cause},已恢复旧活动文件`
-      : `${cause},文件回滚失败:${rollback.error}`;
+      : `${cause},文件回滚失败:${projectBootActivationRollbackFailure(undefined)}`;
     bootActivationRollbackFailed = !rollback.ok;
     bootActivationRolledBack = rollback.ok;
   }
@@ -477,12 +610,8 @@ let pipelineRuntimeState: PipelineRuntimeState = {
   asr: "down",
   tts: "down"
 };
-let runtimeDraining = false;
-let shutdownPromise: Promise<void> | null = null;
-let fatalPromise: Promise<never> | null = null;
-let dbClosed = false;
 let tier1Executor: Tier1Executor | null = null;
-let tier1GateServer: ReturnType<typeof startGateServer> | null = null;
+let tier1GateServer: GateListeningServer | null = null;
 let inactiveTier1Drain: Promise<{ recoverableTier1: number; abortedUnrecoverable?: number }> | null = null;
 let startupLifecycleReady = false;
 let pendingShutdownReason: PrepareShutdownReason | null = null;
@@ -491,34 +620,6 @@ const runtimeJobs = new Set<Promise<void>>();
 const runtimeJobAbort = new AbortController();
 let acceptingRuntimeJobs = true;
 let setupRestartRequested = false;
-/** B4: 单一 lifecycle intent CAS；signal/fatal 优先于 restart。 */
-type LifecycleIntent =
-  | { kind: "signal"; reason: PrepareShutdownReason }
-  | { kind: "restart"; generation: number }
-  | { kind: "fatal"; code: string };
-let lifecycleIntent: LifecycleIntent | null = null;
-
-function claimLifecycleIntent(next: LifecycleIntent): boolean {
-  if (!lifecycleIntent) {
-    lifecycleIntent = next;
-    return true;
-  }
-  if (lifecycleIntent.kind === "fatal") return false;
-  if (next.kind === "fatal") {
-    lifecycleIntent = next;
-    return true;
-  }
-  if (lifecycleIntent.kind === "signal") return next.kind === "signal" && lifecycleIntent.reason === next.reason;
-  if (lifecycleIntent.kind === "restart" && next.kind === "signal") {
-    lifecycleIntent = next;
-    return true;
-  }
-  if (lifecycleIntent.kind === "restart" && next.kind === "restart") {
-    return lifecycleIntent.generation === next.generation;
-  }
-  return false;
-}
-
 function armShutdownIngress(): void {
   runtimeDraining = true;
   acceptingRuntimeJobs = false;
@@ -799,24 +900,7 @@ server.on("request", (req, res) => {
     return;
   }
   if (req.method === "POST" && (pathname === "/dev/inject" || pathname === "/dev/say")) {
-    let body = "";
-    let devBytes = 0;
-    let devOverflow = false;
-    req.on("data", (c: Buffer) => {
-      devBytes += c.length; // C-3(回收批 2 复审):/dev 路由同享 1MB 字节上限
-      if (devBytes > 1_048_576) {
-        if (!devOverflow) {
-          devOverflow = true;
-          res.writeHead(413, { "content-type": "application/json" });
-          res.end(JSON.stringify({ ok: false, code: "payload_too_large", message: "body exceeds 1MB", retryable: false }));
-          req.destroy();
-        }
-        return;
-      }
-      body += c.toString();
-    });
-    req.on("end", () => {
-      if (devOverflow) return;
+    withLimitedUtf8Body(req, res, 1_048_576, (body) => {
       try {
         const json = JSON.parse(body) as Record<string, unknown>;
         if (pathname === "/dev/say") {
@@ -834,7 +918,7 @@ server.on("request", (req, res) => {
         res.end(JSON.stringify({ ok: true }));
       } catch (err) {
         res.writeHead(400, { "content-type": "application/json" });
-        res.end(JSON.stringify({ ok: false, code: "bad_inject", message: String(err).slice(0, 200), retryable: false }));
+        res.end(JSON.stringify({ ok: false, code: "bad_inject", message: projectCaughtText(err, "bad_inject", 200), retryable: false }));
       }
     });
     return;
@@ -899,11 +983,7 @@ server.on("request", (req, res) => {
     };
     const isS3Face = pathname.startsWith("/api/s3/") || /^\/api\/tasks\/[^/]+\/approve-merge$/.test(pathname);
     if (isS3Face) {
-      let s3body = "";
-      req.on("data", (c: Buffer) => {
-        if (s3body.length < 1_048_576) s3body += c.toString();
-      });
-      req.on("end", () => {
+      withLimitedUtf8Body(req, res, 1_048_576, (s3body) => {
         let parsedBody: unknown = {};
         try {
           parsedBody = s3body.trim() === "" ? {} : (JSON.parse(s3body) as unknown);
@@ -1014,7 +1094,7 @@ server.on("request", (req, res) => {
             );
           }).catch((err) => {
             if (!res.headersSent) res.writeHead(503, { "content-type": "application/json" });
-            if (!res.writableEnded) res.end(JSON.stringify({ ok: false, code: "runtime_draining", message: String(err).slice(0, 160) }));
+            if (!res.writableEnded) res.end(JSON.stringify({ ok: false, code: "runtime_draining", message: projectCaughtText(err, "runtime_draining", 160) }));
           });
           return;
         }
@@ -1043,7 +1123,7 @@ server.on("request", (req, res) => {
                 JSON.stringify({
                   ok: false,
                   code: "cli_probe_failed",
-                  message: String(err).slice(0, 200),
+                  message: projectCaughtText(err, "cli_probe_failed", 200),
                   retryable: true
                 })
               );
@@ -1100,6 +1180,7 @@ server.on("request", (req, res) => {
             res.writeHead(200, { "content-type": "application/json" });
             res.end(JSON.stringify(out));
           } catch (err) {
+            // ArtifactAccessError 是本模块品牌错误，code/message 由构造函数写入。
             if (err instanceof ArtifactAccessError) {
               res.writeHead(err.status, { "content-type": "application/json" });
               res.end(JSON.stringify({ ok: false, code: err.code, message: err.message, retryable: false }));
@@ -1151,24 +1232,7 @@ server.on("request", (req, res) => {
           );
           return;
         }
-        let sbody = "";
-        let sbytes = 0;
-        let soverflow = false;
-        req.on("data", (c: Buffer) => {
-          sbytes += c.length;
-          if (sbytes > 65_536) {
-            if (!soverflow) {
-              soverflow = true;
-              res.writeHead(413, { "content-type": "application/json" });
-              res.end(JSON.stringify({ ok: false, code: "payload_too_large", message: "body exceeds 64KB", retryable: false }));
-              req.destroy();
-            }
-            return;
-          }
-          sbody += c.toString();
-        });
-        req.on("end", () => {
-          if (soverflow) return;
+        withLimitedUtf8Body(req, res, 65_536, (sbody) => {
           void (async () => {
             try {
               if (pathname === "/api/setup/first-run/query") {
@@ -1368,7 +1432,7 @@ server.on("request", (req, res) => {
               }
               // POST /api/setup/restart — v4 三协议
               if (pathname === "/api/setup/restart") {
-                if (runtimeDraining || setupRestartRequested || lifecycleIntent) {
+                if (runtimeDraining || setupRestartRequested || lifecycleDisposition.peek()) {
                   res.writeHead(503, { "content-type": "application/json" });
                   res.end(JSON.stringify({
                     ok: false,
@@ -1431,10 +1495,10 @@ server.on("request", (req, res) => {
                   });
                 }
                 // 先回响应,再 drain/关 listener/spawn/exit
-                res.writeHead(200, { "content-type": "application/json" });
+                res.writeHead(200, { "content-type": "application/json", connection: "close" });
                 res.end(JSON.stringify({ ok: true, restarting: true, generation, pipelineAcked: acked }));
-                // 下一 tick 执行关停,确保响应 flush
-                setImmediate(() => {
+                lifecycleDisposition.armRestartOverrideGrace();
+                afterClientGone(req.socket, () => {
                   void performSelfRestart(generation);
                 });
                 return;
@@ -1445,7 +1509,7 @@ server.on("request", (req, res) => {
                 JSON.stringify({
                   ok: false,
                   code: "setup_error",
-                  message: String(err instanceof Error ? err.message : err).slice(0, 200),
+                  message: projectCaughtText(err, "setup_error", 200),
                   retryable: true
                 })
               );
@@ -1468,11 +1532,7 @@ server.on("request", (req, res) => {
       }
       const mApproval = /^\/api\/approvals\/([^/]+)\/decide$/.exec(pathname);
       if (mApproval) {
-        let abody = "";
-        req.on("data", (c: Buffer) => {
-          if (abody.length < 65_536) abody += c.toString();
-        });
-        req.on("end", () => {
+        withLimitedUtf8Body(req, res, 65_536, (abody) => {
           try {
             const parsed = JSON.parse(abody || "{}") as { decision?: string; editedCommand?: string };
             // W4 3.1(09 §3.3 红线):S3 收据只能由 verifyS3Assertion 产生——通用 decide 端点对
@@ -1530,7 +1590,7 @@ server.on("request", (req, res) => {
             res.end(JSON.stringify(r.ok ? { ok: true, decision: parsed.decision } : { ok: false, code: "decide_failed", message: r.reason ?? "收据已终局", retryable: false }));
           } catch (err) {
             res.writeHead(400, { "content-type": "application/json" });
-            res.end(JSON.stringify({ ok: false, code: "bad_json", message: String(err).slice(0, 160), retryable: false }));
+            res.end(JSON.stringify({ ok: false, code: "bad_json", message: projectCaughtText(err, "bad_json", 160), retryable: false }));
           }
         });
         return;
@@ -1553,7 +1613,7 @@ server.on("request", (req, res) => {
             res.end(JSON.stringify({ ok: true, action: mMemAct[2], eventId: ev.id }));
           } catch (err) {
             res.writeHead(409, { "content-type": "application/json" });
-            res.end(JSON.stringify({ ok: false, code: "memory_action_failed", message: String(err instanceof Error ? err.message : err).slice(0, 200), retryable: false }));
+            res.end(JSON.stringify({ ok: false, code: "memory_action_failed", message: projectCaughtText(err, "memory_action_failed", 200), retryable: false }));
           }
         });
         return;
@@ -1562,11 +1622,7 @@ server.on("request", (req, res) => {
       // 与奠基同级保守;09 §11 白名单禁 project.toml 承载,本表是唯一合法写点)
       const mOverrides = /^\/api\/projects\/([^/]+)\/settings\/overrides$/.exec(pathname);
       if (mOverrides) {
-        let obody = "";
-        req.on("data", (c: Buffer) => {
-          if (obody.length < 65_536) obody += c.toString();
-        });
-        req.on("end", () => {
+        withLimitedUtf8Body(req, res, 65_536, (obody) => {
           if (idvVia === "tailnet") {
             res.writeHead(403, { "content-type": "application/json" });
             res.end(JSON.stringify({ ok: false, code: "overrides_require_trusted_terminal", message: "模型/预算覆盖只在受信终端改——回到桌面完成。", retryable: false }));
@@ -1594,7 +1650,7 @@ server.on("request", (req, res) => {
             res.end(JSON.stringify({ ok: true, overrides: v.overrides }));
           } catch (err) {
             res.writeHead(400, { "content-type": "application/json" });
-            res.end(JSON.stringify({ ok: false, code: "bad_overrides", message: String(err).slice(0, 200), retryable: false }));
+            res.end(JSON.stringify({ ok: false, code: "bad_overrides", message: projectCaughtText(err, "bad_overrides", 200), retryable: false }));
           }
         });
         return;
@@ -1620,18 +1676,14 @@ server.on("request", (req, res) => {
             res.end(JSON.stringify(r));
           } catch (err) {
             res.writeHead(409, { "content-type": "application/json" });
-            res.end(JSON.stringify({ ok: false, code: "bootstrap_failed", message: String(err instanceof Error ? err.message : err).slice(0, 200), retryable: true }));
+            res.end(JSON.stringify({ ok: false, code: "bootstrap_failed", message: projectCaughtText(err, "bootstrap_failed", 200), retryable: true }));
           }
         });
         return;
       }
       // W1.5 手工字段写口(05 §4 dogfood 登记表两字段:自报分钟 + 自发选择率;G1 token 门内)
       if (pathname === "/api/value-report/manual") {
-        let mbody = "";
-        req.on("data", (c: Buffer) => {
-          if (mbody.length < 65_536) mbody += c.toString();
-        });
-        req.on("end", () => {
+        withLimitedUtf8Body(req, res, 65_536, (mbody) => {
           try {
             const parsed = JSON.parse(mbody || "{}") as Record<string, unknown>;
             const entry = appendManualEntry(
@@ -1649,7 +1701,7 @@ server.on("request", (req, res) => {
             res.end(JSON.stringify({ ok: true, entry }));
           } catch (err) {
             res.writeHead(400, { "content-type": "application/json" });
-            res.end(JSON.stringify({ ok: false, code: "invalid_input", message: String(err).slice(0, 160), retryable: false }));
+            res.end(JSON.stringify({ ok: false, code: "invalid_input", message: projectCaughtText(err, "invalid_input", 160), retryable: false }));
           }
         });
         return;
@@ -1657,11 +1709,7 @@ server.on("request", (req, res) => {
       // W5a 3.2:屏幕触发的结果讲解/决策提炼(与语音 explainResult 同一实现与落库——口播/上屏一致)
       const mExplain = /^\/api\/tasks\/([^/]+)\/explain$/.exec(pathname);
       if (mExplain) {
-        let ebody = "";
-        req.on("data", (c: Buffer) => {
-          if (ebody.length < 65_536) ebody += c.toString();
-        });
-        req.on("end", () => {
+        withLimitedUtf8Body(req, res, 65_536, (ebody) => {
           void trackRuntimeJob(async (signal): Promise<void> => {
             try {
               const parsed = JSON.parse(ebody || "{}") as { level?: string };
@@ -1674,22 +1722,18 @@ server.on("request", (req, res) => {
               res.end(JSON.stringify(r));
             } catch (err) {
               res.writeHead(500, { "content-type": "application/json" });
-              res.end(JSON.stringify({ ok: false, code: "explain_error", message: String(err).slice(0, 200), retryable: true }));
+              res.end(JSON.stringify({ ok: false, code: "explain_error", message: projectCaughtText(err, "explain_error", 200), retryable: true }));
             }
           }).catch((err) => {
             if (!res.headersSent) res.writeHead(503, { "content-type": "application/json" });
-            if (!res.writableEnded) res.end(JSON.stringify({ ok: false, code: "runtime_draining", message: String(err).slice(0, 160) }));
+            if (!res.writableEnded) res.end(JSON.stringify({ ok: false, code: "runtime_draining", message: projectCaughtText(err, "runtime_draining", 160) }));
           });
         });
         return;
       }
       const mOutboxAck = /^\/api\/outbox\/([^/]+)\/ack$/.exec(pathname);
       if (mOutboxAck) {
-        let obody = "";
-        req.on("data", (c: Buffer) => {
-          if (obody.length < 4096) obody += c.toString();
-        });
-        req.on("end", () => {
+        withLimitedUtf8Body(req, res, 4096, () => {
           const out = handleOutboxAck(
             callbackEngine,
             db,
@@ -1739,11 +1783,7 @@ server.on("request", (req, res) => {
         mExpWithdraw ||
         mAttentionAck
       ) {
-        let sbody = "";
-        req.on("data", (c: Buffer) => {
-          if (sbody.length < 65_536) sbody += c.toString();
-        });
-        req.on("end", () => {
+        withLimitedUtf8Body(req, res, 65_536, (sbody) => {
           let parsed: unknown = {};
           try {
             parsed = sbody.trim() === "" ? {} : (JSON.parse(sbody) as unknown);
@@ -1882,6 +1922,7 @@ server.on("request", (req, res) => {
               out = { status: 404, payload: { ok: false, code: "not_found" } };
             }
           } catch (e) {
+            // TaskContextError 是本模块品牌错误，code/message 由构造函数写入。
             if (e instanceof TaskContextError) {
               out = {
                 status: e.code === "session_not_found" || e.code === "target_not_found" ? 404 : 400,
@@ -1890,7 +1931,7 @@ server.on("request", (req, res) => {
             } else {
               out = {
                 status: 500,
-                payload: { ok: false, code: "internal", message: String(e instanceof Error ? e.message : e).slice(0, 160) }
+                payload: { ok: false, code: "internal", message: projectCaughtText(e, "internal", 160) }
               };
             }
           }
@@ -1905,24 +1946,7 @@ server.on("request", (req, res) => {
         res.end(JSON.stringify({ ok: false, code: "not_found", message: "unknown api action", retryable: false }));
         return;
       }
-      let body = "";
-      let bytes = 0;
-      let overflow = false;
-      req.on("data", (c: Buffer) => {
-        bytes += c.length; // C-2(回收批 2 复审):按网络字节计,不按 UTF-16 码元
-        if (bytes > 1_048_576) {
-          if (!overflow) {
-            overflow = true; // C1:POST body 1MB 上限(token 门内纵深)
-            res.writeHead(413, { "content-type": "application/json" });
-            res.end(JSON.stringify({ ok: false, code: "payload_too_large", message: "body exceeds 1MB", retryable: false }));
-            req.destroy();
-          }
-          return;
-        }
-        body += c.toString();
-      });
-      req.on("end", () => {
-        if (overflow) return;
+      withLimitedUtf8Body(req, res, 1_048_576, (body) => {
         let parsed: unknown = {};
         try {
           parsed = body.trim() === "" ? {} : (JSON.parse(body) as unknown);
@@ -1943,11 +1967,7 @@ server.on("request", (req, res) => {
     if (req.method === "DELETE") {
       const mTaskCtxDel = /^\/api\/session\/([^/]+)\/task-context$/.exec(pathname);
       if (mTaskCtxDel) {
-        let body = "";
-        req.on("data", (c: Buffer) => {
-          if (body.length < 4096) body += c.toString();
-        });
-        req.on("end", () => {
+        withLimitedUtf8Body(req, res, 4096, (body) => {
           let nonce: string | undefined;
           try {
             if (body.trim()) {
@@ -1988,9 +2008,36 @@ server.on("request", (req, res) => {
   res.end(JSON.stringify({ ok: false, code: "not_found", message: "unknown route", retryable: false }));
 });
 
+/** catch 内 trap-free 投影；委托既有 error-graph projector，不读 unknown .toString。 */
+function projectCaughtText(err: unknown, fallback: string, max = 200): string {
+  const text = safeFailureText(err, max);
+  return text.length > 0 ? text : fallback.slice(0, max);
+}
+
+function withLimitedUtf8Body(
+  req: IncomingMessage,
+  res: ServerResponse,
+  limit: number,
+  onText: (text: string) => void | Promise<void>
+): void {
+  void readUtf8Body(req, res, limit).then((parsed) => {
+    if (parsed.status === "failed") return;
+    return onText(parsed.text);
+  }).catch((err) => {
+    if (res.headersSent || res.writableEnded) return;
+    res.writeHead(400, { "content-type": "application/json" });
+    res.end(JSON.stringify({
+      ok: false,
+      code: "bad_json",
+      message: projectCaughtText(err, "bad_json", 160),
+      retryable: false
+    }));
+  });
+}
+
 /** 500 人话:去掉本机绝对路径(S1 评审 1 B7) */
 function publicApiErrorMessage(err: unknown): string {
-  const raw = (err instanceof Error ? err.message : String(err)).slice(0, 200);
+  const raw = projectCaughtText(err, "internal", 200);
   return raw.replace(/\/(?:Users|home|private|var\/folders|tmp|opt)[^\s"']*/g, "[path]");
 }
 
@@ -2188,7 +2235,7 @@ function resolveDialogProvider(): LlmProvider | null {
     const cfg = loadConfigFile(join(SAYDO_HOME, "config.toml"));
     return resolveDialogSlot(cfg, readSaydoEnv(), log, audit, cliResolverContext()).provider;
   } catch (err) {
-    log.warn("dialog provider unresolved (voice replies degraded)", { error: String(err).slice(0, 160) });
+    log.warn("dialog provider unresolved (voice replies degraded)", { error: projectCaughtText(err, "log_failed", 160) });
     return null;
   }
 }
@@ -2255,7 +2302,7 @@ const liveSessions = new LiveVoiceSessions({
         try {
           voiceHub.sendConsoleEvent({ t: "focus.entity", sessionId: sid, entity });
         } catch (err) {
-          log.warn("focus.entity emit failed", { sessionId: sid, error: String(err).slice(0, 120) });
+          log.warn("focus.entity emit failed", { sessionId: sid, error: projectCaughtText(err, "log_failed", 120) });
         }
       }
     };
@@ -2278,7 +2325,7 @@ const liveSessions = new LiveVoiceSessions({
         nominateFromSession({ ledger: memoryLedger, audit }, { sessionId, projectId: srow.project_id, userTurns });
       }
     } catch (err) {
-      log.warn("session nominate failed (non-blocking)", { sessionId, error: String(err).slice(0, 160) });
+      log.warn("session nominate failed (non-blocking)", { sessionId, error: projectCaughtText(err, "log_failed", 160) });
     }
     // K2 幽灵会话静默:idle 收场且用户已在更新的会话里——不播"我先退下了"
     if (reason === "idle" && isSupersededSession(sessionId)) return;
@@ -2369,7 +2416,7 @@ function dialogProviderFor(_sessionId: string, projectId: string | null): LlmPro
     audit.record({ actor: "daemon", action: "config.project_dialog_override_resolved", meta: { projectId } });
     return provider;
   } catch (err) {
-    log.warn("project dialog override unresolved (falling back to global)", { projectId, error: String(err).slice(0, 120) });
+    log.warn("project dialog override unresolved (falling back to global)", { projectId, error: projectCaughtText(err, "log_failed", 120) });
     return dialogProvider;
   }
 }
@@ -2412,7 +2459,7 @@ function thinkingProviderFor(sessionId: string): ReturnType<typeof resolveApiPro
   } catch (err) {
     log.warn("project thinking override unresolved (falling back to global dialog)", {
       sessionId,
-      error: String(err).slice(0, 120)
+      error: projectCaughtText(err, "log_failed", 120)
     });
     return dialogProvider;
   }
@@ -2425,7 +2472,7 @@ function resolveDrafterProvider(): ReturnType<typeof resolveApiProvider> | null 
     const cfg = loadConfigFile(join(SAYDO_HOME, "config.toml"));
     return resolveDrafterSlot(cfg, readSaydoEnv(), dialogProvider, log, audit, cliResolverContext()).provider;
   } catch (err) {
-    log.warn("cheap provider resolution failed; falling back to dialog", { error: String(err).slice(0, 160) });
+    log.warn("cheap provider resolution failed; falling back to dialog", { error: projectCaughtText(err, "log_failed", 160) });
     return dialogProvider;
   }
 }
@@ -2443,7 +2490,7 @@ function resolveEvaluatorProvider(): {
     const expectedFamily = evaluatorFamilyContext(cfg, env).evaluator;
     return { provider, ...(expectedFamily ? { expectedFamily } : {}) };
   } catch (err) {
-    log.warn("evaluator provider unresolved (deep readiness pipeline not armed)", { error: String(err).slice(0, 160) });
+    log.warn("evaluator provider unresolved (deep readiness pipeline not armed)", { error: projectCaughtText(err, "log_failed", 160) });
     return { provider: null };
   }
 }
@@ -2513,7 +2560,7 @@ const brainTools = new BrainTools({
     try {
       nodeSpawn("open", [url], { stdio: "ignore", detached: true }).unref();
     } catch (err) {
-      log.warn("openUrl failed", { error: String(err).slice(0, 120) });
+      log.warn("openUrl failed", { error: projectCaughtText(err, "log_failed", 120) });
     }
   }
 });
@@ -2561,7 +2608,7 @@ function warmupSeedTerms(): string[] {
         seeds.add(t);
       }
     } catch (err) {
-      log.warn("warmup seedTerms skipped", { code: err instanceof Error ? err.name : "unknown" });
+      log.warn("warmup seedTerms skipped", { code: projectCaughtText(err, "unknown", 80) });
     }
   }
   return [...seeds];
@@ -2748,7 +2795,7 @@ registerLiveTools(toolRegistry, {
     try {
       voiceHub.sendConsoleEvent({ t: "focus.entity", sessionId: sid, entity });
     } catch (err) {
-      log.warn("focus.entity emit failed", { sessionId: sid, error: String(err).slice(0, 120) });
+      log.warn("focus.entity emit failed", { sessionId: sid, error: projectCaughtText(err, "log_failed", 120) });
     }
   },
   focusStage: () => {
@@ -2776,7 +2823,7 @@ const liveDialog: LiveDialog = new LiveDialog({
     try {
       ackL0ForSession(db, callbackEngineRef, sessionId);
     } catch (err) {
-      log.warn("implicit L0 ack failed", { sessionId, error: String(err).slice(0, 120) });
+      log.warn("implicit L0 ack failed", { sessionId, error: projectCaughtText(err, "log_failed", 120) });
     }
   },
   onUserMessageAccepted: (sessionId) => {
@@ -2785,7 +2832,7 @@ const liveDialog: LiveDialog = new LiveDialog({
     } catch (err) {
       log.warn("first-run marker update failed after accepted user turn", {
         sessionId,
-        error: String(err).slice(0, 160)
+        error: projectCaughtText(err, "log_failed", 160)
       });
     }
   },
@@ -2801,7 +2848,7 @@ const liveDialog: LiveDialog = new LiveDialog({
     try {
       voiceHub.sendConsoleEvent({ t: "focus.entity", sessionId: sid, entity });
     } catch (err) {
-      log.warn("focus.entity emit failed", { sessionId: sid, error: String(err).slice(0, 120) });
+      log.warn("focus.entity emit failed", { sessionId: sid, error: projectCaughtText(err, "log_failed", 120) });
     }
   },
   dispatchDeps: {
@@ -2816,7 +2863,7 @@ const liveDialog: LiveDialog = new LiveDialog({
       try {
         voiceHub.sendConsoleEvent({ t: "focus.entity", sessionId: sid, entity });
       } catch (err) {
-        log.warn("focus.entity emit failed", { sessionId: sid, error: String(err).slice(0, 120) });
+        log.warn("focus.entity emit failed", { sessionId: sid, error: projectCaughtText(err, "log_failed", 120) });
       }
     }
   },
@@ -2911,7 +2958,7 @@ const voiceHub: VoiceHub = new VoiceHub(server, log.child({ mod: "voice" }), {
       return;
     }
     void liveDialog.onAsrFinal(msg.sessionId, msg.turnId, msg.text).catch((err) =>
-      log.error("dialog loop error", { error: String(err).slice(0, 200) })
+      log.error("dialog loop error", { error: projectCaughtText(err, "log_failed", 200) })
     );
   },
   onBargeIn: (msg) => {
@@ -2924,7 +2971,7 @@ const voiceHub: VoiceHub = new VoiceHub(server, log.child({ mod: "voice" }), {
     try {
       liveDialog.applyConfirmClick(msg.sessionId, msg.receiptId, msg.digest, msg.decision);
     } catch (err) {
-      log.warn("confirm.click failed", { error: String(err).slice(0, 120) });
+      log.warn("confirm.click failed", { error: projectCaughtText(err, "log_failed", 120) });
     }
   },
   onConfirmDecision: (msg, via) => {
@@ -2940,7 +2987,7 @@ const voiceHub: VoiceHub = new VoiceHub(server, log.child({ mod: "voice" }), {
         } as const;
       }
     } catch (err) {
-      log.warn("confirm.decision failed", { error: String(err).slice(0, 120) });
+      log.warn("confirm.decision failed", { error: projectCaughtText(err, "log_failed", 120) });
     }
   },
   onTurnText: (msg) => {
@@ -2953,7 +3000,7 @@ const voiceHub: VoiceHub = new VoiceHub(server, log.child({ mod: "voice" }), {
       return;
     }
     void liveDialog.onAsrFinal(msg.sessionId, msg.turnId, msg.text).catch((err) =>
-      log.error("turn.text dialog error", { error: String(err).slice(0, 200) })
+      log.error("turn.text dialog error", { error: projectCaughtText(err, "log_failed", 200) })
     );
   },
   onVoiceMode: (msg) => {
@@ -3028,7 +3075,7 @@ const voiceHub: VoiceHub = new VoiceHub(server, log.child({ mod: "voice" }), {
     } catch (err) {
       log.warn("cancelIdle on console offline failed", {
         sessionId,
-        error: String(err).slice(0, 120)
+        error: projectCaughtText(err, "log_failed", 120)
       });
     }
   }
@@ -3044,21 +3091,10 @@ if (!RECOVERY_ONLY) {
   log.warn("confirmation recovery disabled in recovery-only mode");
 }
 
-function sendSupervisorFrame(frame: SupervisorFrame): void {
-  void sendSupervisorFrameAndWait(frame);
-}
-
 function sendSupervisorFrameAndWait(frame: SupervisorFrame): Promise<void> {
-  if (typeof process.send !== "function") return Promise.resolve();
-  return new Promise((resolveSend) => {
-    try {
-      process.send?.(frame, (err) => {
-        if (err) log.warn("supervisor IPC send failed", { t: frame.t, error: String(err).slice(0, 160) });
-        resolveSend();
-      });
-    } catch (err) {
-      log.warn("supervisor IPC send failed", { t: frame.t, error: String(err).slice(0, 160) });
-      resolveSend();
+  return sendSupervisorFrameSafe(frame, {
+    log: (msg, fields) => {
+      log.warn(msg, { t: frame.t, ...fields });
     }
   });
 }
@@ -3066,54 +3102,25 @@ function sendSupervisorFrameAndWait(frame: SupervisorFrame): Promise<void> {
 // first-run onboarding v4:self-restart 协调。受监管模式只请求 supervisor 重拉,禁止 detached self-spawn。
 function performSelfRestart(generation: number): void {
   // B4: 复核 lifecycle intent；signal/fatal 已抢占则不得再 restart spawn。
-  if (lifecycleIntent?.kind === "signal" || lifecycleIntent?.kind === "fatal") {
-    log.warn("self-restart skipped: higher-priority lifecycle intent", { generation, intent: lifecycleIntent.kind });
+  const peeked = lifecycleDisposition.peek();
+  if (peeked?.kind === "signal" || peeked?.kind === "fatal") {
+    log.warn("self-restart skipped: higher-priority lifecycle intent", { generation, intent: peeked.kind });
     return;
   }
   if (!claimLifecycleIntent({ kind: "restart", generation })) {
     log.warn("self-restart skipped: lifecycle intent conflict", { generation });
     return;
   }
-  log.info("self-restart begin", { generation, pid: process.pid });
-  audit.record({ actor: "daemon", action: "setup.self_restart", meta: { generation, pid: process.pid } });
-  if (SUPERVISED) {
-    if (typeof process.send !== "function") {
-      void fatalShutdown("supervisor_ipc_missing", new Error("supervised restart requires IPC"));
-      return;
-    }
-    sendSupervisorFrame({ v: 1, t: "restartRequested", reason: "setup", generation });
+  if (SUPERVISED && typeof process.send !== "function") {
+    consumeFatalShutdown("supervisor_ipc_missing", new Error("supervised restart requires IPC"));
     return;
   }
-  // 与 signal shutdown 共享单一 drain；完成后仅在 intent 仍为 restart 时释放锁并 spawn。
-  if (shutdownPromise) return;
-  armShutdownIngress();
-  shutdownPromise = drainRuntime("restart")
-    .then(async (stats) => {
-      if (lifecycleIntent?.kind !== "restart" || lifecycleIntent.generation !== generation) {
-        log.warn("self-restart aborted after drain: intent changed", { generation, intent: lifecycleIntent?.kind });
-        await sendSupervisorFrameAndWait({ v: 1, t: "stopped", reason: "restart", ...stats });
-        process.exit(0);
-        return;
-      }
-      closeDurables();
-      // B4: 先释放 HOME lock，再 spawn 新实例，避免锁 handoff 竞态。
-      releaseInstanceLock();
-      const child = nodeSpawn(process.execPath, [...process.execArgv, ...process.argv.slice(1)], {
-        detached: true,
-        stdio: "inherit",
-        env: { ...process.env },
-        cwd: process.cwd()
-      });
-      child.unref();
-      log.info("self-restart spawned", { childPid: child.pid, generation });
-      process.exit(0);
-    })
-    .catch((err) => fatalShutdown("restart_failed", err));
+  void ensureLifecycleOnce("restart");
 }
 
 // 阶段 B:监听地址可配([t2].listen,缺省 127.0.0.1;非本机绑定时 Host/Origin 白名单 + token 三道门照守)
 // bind 只取得端口所有权；领域恢复与进程回收全部成功后才 announce ready。
-function announceReady(): void {
+async function announceReady(): Promise<void> {
     log.info("daemon started", {
       port: PORT,
       listen: LISTEN_ADDRESS,
@@ -3145,19 +3152,23 @@ function announceReady(): void {
       },
       voiceHub.pipelineAvailable()
     );
-    sendSupervisorFrame({
-      v: 1,
-      t: "ready",
-      identity: RUNTIME_IDENTITY,
-      port: PORT,
-      stateRootDigest: STATE_ROOT_DIGEST,
-      readiness: {
-        version: ready.version,
-        coreReady: ready.coreReady,
-        voiceReady: ready.voiceReady,
-        voice: ready.voice
-      }
-    });
+    try {
+      await publishSupervisorReady({
+        v: 1,
+        t: "ready",
+        identity: RUNTIME_IDENTITY,
+        port: PORT,
+        stateRootDigest: STATE_ROOT_DIGEST,
+        readiness: {
+          version: ready.version,
+          coreReady: ready.coreReady,
+          voiceReady: ready.voiceReady,
+          voice: ready.voice
+        }
+      }, sendSupervisorFrameAndWait);
+    } catch (err) {
+      await fatalShutdown("supervisor_ipc_failed", err);
+    }
     if (RECOVERY_ONLY) {
       log.warn("daemon running in recovery-only mode", {
         violations: activeConfigValidation.violations.map((v) => ({ code: v.code, slot: v.slot }))
@@ -3277,7 +3288,7 @@ if (!RECOVERY_ONLY && !runtimeDraining) {
     const recovered = recoverMergingTasks({ db, audit, runsDir: join(SAYDO_HOME, "tier1", "runs") });
     if (recovered.length > 0) log.info("merging recovery", { recovered });
   } catch (err) {
-    log.error("merging recovery failed", { error: String(err).slice(0, 200) });
+    log.error("merging recovery failed", { error: projectCaughtText(err, "log_failed", 200) });
   }
 } else {
   log.warn("merging recovery disabled in recovery-only mode");
@@ -3415,7 +3426,7 @@ if (!RECOVERY_ONLY) scheduleRuntimeInterval(() => {
       log.info("proposed ttl sweep", { expired: expiredPkgs });
     }
   } catch (err) {
-    log.error("park sweep failed", { error: String(err).slice(0, 200) });
+    log.error("park sweep failed", { error: projectCaughtText(err, "log_failed", 200) });
   }
 }, 15_000);
 
@@ -3436,7 +3447,7 @@ if (!RECOVERY_ONLY) try {
     liveDialogRef?.notifyDowngradeApplied(a.sessionId, a.receiptId, a.focusId);
   }
 } catch (err) {
-  log.error("confirm downgrade saga boot failed", { error: String(err).slice(0, 200) });
+  log.error("confirm downgrade saga boot failed", { error: projectCaughtText(err, "log_failed", 200) });
 }
 
 // W5a 3.7:订阅限流 durable 重放 sweep(09 §11-5 清偿)。replayers 按 kind 注册。
@@ -3450,14 +3461,14 @@ const subscriptionReplayers: Record<string, Parameters<typeof sweepRetryQueue>[2
       retryTask(db, audit, taskId, new Date().toISOString());
       return { ok: true };
     } catch (err) {
-      return { ok: false, rateLimitedAgain: false, message: String(err).slice(0, 160) };
+      return { ok: false, rateLimitedAgain: false, message: projectCaughtText(err, "retry_failed", 160) };
     }
   }
 };
 if (!RECOVERY_ONLY) scheduleRuntimeInterval(() => {
   startRuntimeJob(async () => {
     await sweepRetryQueue(db, audit, subscriptionReplayers).catch((err) => {
-      log.error("subscription retry sweep failed", { error: String(err).slice(0, 200) });
+      log.error("subscription retry sweep failed", { error: projectCaughtText(err, "log_failed", 200) });
     });
   });
 }, 15_000);
@@ -3562,7 +3573,7 @@ if (!RECOVERY_ONLY) scheduleRuntimeInterval(() => {
         new Date()
       );
     } catch (err) {
-      log.error("callback sweep failed", { error: String(err).slice(0, 200) });
+      log.error("callback sweep failed", { error: projectCaughtText(err, "log_failed", 200) });
     } finally {
       callbackSweepBusy = false;
     }
@@ -3600,6 +3611,21 @@ function readTier1Startup(): ReturnType<typeof tier1StartupVerdict> {
   }
 }
 const tier1Startup = readTier1Startup();
+if (!runtimeDraining) {
+  try {
+    await recoverPriorGenerationRuntimeOwners(SAYDO_HOME, {
+      ownerPid: process.pid,
+      ownerInstanceId: RUNTIME_INSTANCE_ID
+    }, { signal: startupAbort.signal });
+  } catch (err) {
+    await fatalShutdown("prior_runtime_owner_recover_failed", err);
+  }
+}
+if (runtimeDraining || startupAbort.signal.aborted) {
+  const reason = bootShutdownReason ?? "supervisor_stop";
+  noteStartupShutdown(reason);
+  requestDaemonShutdown(reason);
+}
 if (tier1Startup.start && !RECOVERY_ONLY && !runtimeDraining) {
   const gp = ensureGateScript(SAYDO_HOME);
   const adapter = readDevAdapter();
@@ -3643,6 +3669,7 @@ if (tier1Startup.start && !RECOVERY_ONLY && !runtimeDraining) {
     receiptTimeoutSec
   };
   if (process.platform === "win32") executorCfg.gateBindPath = gp.bindPath;
+  const startupHooks = daemonStartupHooks();
   tier1Executor = new Tier1Executor({
     db,
     audit,
@@ -3652,14 +3679,22 @@ if (tier1Startup.start && !RECOVERY_ONLY && !runtimeDraining) {
     spawner: realAgentSpawner(backend),
     backend,
     artifacts: artifactStore, // W4 3.2 writing:成稿落 article artifact
-    cfg: executorCfg
+    cfg: executorCfg,
+    recoverAbort: startupAbort.signal,
+    onRecoverEntered: () => {
+      startupHooks.onRecoverEntered?.();
+    },
+    onRecoverAttempt: () => {
+      startupHooks.onRecoverAttempt?.();
+    },
+    ...(startupHooks.recoverHold ? { recoverHold: startupHooks.recoverHold } : {})
   });
   try {
     tier1Executor.assertVersion(); // 启动断言(精确版本相等;漂移 = 拒起执行器,处方化)
     const armedExecutor = tier1Executor;
     if (process.platform === "win32") {
       const listened = await listenGateHttp(SAYDO_HOME, async (json) =>
-        armedExecutor.handleGateRequest(parseGateWireRequest(json))
+        armedExecutor.handleGateRequest(parseGateWireRequest(json)), { signal: startupAbort.signal }
       );
       // 评审 90 B-1:期望值取平台层返回的可信 bind 对象,不回读刚落盘的 gate-bind.json——
       // 回读会把「落盘后、回读前被替换」的内容当成基线(漂移基线自我投毒)。
@@ -3667,18 +3702,81 @@ if (tier1Startup.start && !RECOVERY_ONLY && !runtimeDraining) {
       executorCfg.gateBindExpected = `${JSON.stringify(listened.bind)}\n`;
       tier1GateServer = listened.server;
     } else {
-      tier1GateServer = startGateServer(gp.sockPath, (req) => armedExecutor.handleGateRequest(req));
+      tier1GateServer = await startGateServer(gp.sockPath, (req) => armedExecutor.handleGateRequest(req), {
+        signal: startupAbort.signal
+      });
     }
-    await tier1Executor.recover(); // §12-7:先确认旧进程组 ESRCH，再恢复非终态 run
-    scheduleRuntimeInterval(() => tier1Executor?.tick(), 15_000);
-    log.info("tier1 executor started", { bin: tier1Startup.bin, pinned: tier1Startup.pinned });
+    void tier1GateServer.failed.then(
+      (err) => {
+        consumeFatalShutdown("GATE_POST_BIND_FAILED", err);
+      },
+      (late) => {
+        consumeFatalShutdown("GATE_POST_BIND_FAILED", late);
+      }
+    );
+    if (runtimeDraining || startupAbort.signal.aborted) {
+      const reason = bootShutdownReason ?? "supervisor_stop";
+      noteStartupShutdown(reason);
+      requestDaemonShutdown(reason);
+    } else {
+      if (runtimeDraining || startupAbort.signal.aborted) {
+        const reason = bootShutdownReason ?? "supervisor_stop";
+        noteStartupShutdown(reason);
+        requestDaemonShutdown(reason);
+      } else if (startupHooks.recoverReject !== undefined) {
+        throw startupHooks.recoverReject;
+      } else {
+        startupHooks.beforeRecover?.();
+        if (runtimeDraining || startupAbort.signal.aborted) {
+          const reason = bootShutdownReason ?? "supervisor_stop";
+          noteStartupShutdown(reason);
+          requestDaemonShutdown(reason);
+        } else {
+          await tier1Executor.recover();
+          if (runtimeDraining || startupAbort.signal.aborted) {
+            const reason = bootShutdownReason ?? "supervisor_stop";
+            noteStartupShutdown(reason);
+            requestDaemonShutdown(reason);
+          } else {
+            scheduleRuntimeInterval(() => tier1Executor?.tick(), 15_000);
+            log.info("tier1 executor started", { bin: tier1Startup.bin, pinned: tier1Startup.pinned });
+          }
+        }
+      }
+    }
   } catch (err) {
-    await tier1Executor.emergencyShutdown().catch(() => undefined);
-    await closeServer(tier1GateServer).catch(() => undefined);
-    tier1GateServer = null;
-    tier1Executor = null;
-    log.error("tier1 executor disabled: version pin assertion failed", { error: String(err).slice(0, 200) });
-    audit.record({ actor: "daemon", action: "tier1.executor_disabled", meta: { reason: String(err).slice(0, 200) } });
+    const outcome = await settleTier1StartupFailure(err, tier1Executor.emergencyShutdown(), {
+      closeGate: async () => {
+        await closeGateServer(tier1GateServer);
+        tier1GateServer = null;
+      },
+      logError: (msg, fields) => {
+        log.error(msg, fields);
+      },
+      audit: (action, meta) => {
+        audit.record({ actor: "daemon", action, meta });
+      },
+      sendFatal: async (code, message) => {
+        await Promise.race([
+          sendSupervisorFrameAndWait({
+            v: 1,
+            t: "fatal",
+            code,
+            message
+          }),
+          new Promise<void>((resolveTimeout) => {
+            const timer = setTimeout(resolveTimeout, 500);
+            timer.unref?.();
+          })
+        ]);
+      },
+      exit: (code) => {
+        process.exit(code);
+      }
+    });
+    if (outcome === "executor-disabled") {
+      tier1Executor = null;
+    }
   }
 } else if (RECOVERY_ONLY) {
   log.warn("tier1 executor disabled in recovery-only mode", {
@@ -3705,7 +3803,13 @@ if (inactiveTier1Drain) {
 function closeServer(target: { listening: boolean; close(cb: (err?: Error) => void): void } | null): Promise<void> {
   if (!target?.listening) return Promise.resolve();
   return new Promise<void>((resolveClose, rejectClose) => {
-    target.close((err) => (err ? rejectClose(err) : resolveClose()));
+    target.close((err) => {
+      if (err && (err as NodeJS.ErrnoException).code !== "ERR_SERVER_NOT_RUNNING") {
+        rejectClose(err);
+        return;
+      }
+      resolveClose();
+    });
   });
 }
 
@@ -3730,25 +3834,24 @@ async function drainRuntime(reason: PrepareShutdownReason): Promise<{
     byoaDrain,
     voiceDrain,
     jobsDrain,
-    closeServer(tier1GateServer)
+    closeGateServer(tier1GateServer)
   ]);
   server.closeAllConnections();
   await httpClosed;
   // A1: 发送 stopped 前确认本 instance 的 owner 进程组已 ESRCH。
-  if (tier1Executor?.lifecycleContamination()) {
-    throw tier1Executor.lifecycleContamination();
-  }
+  assertShutdownExactEmpty(SAYDO_HOME, tier1Executor?.lifecycleContamination());
   const abortedUnrecoverable = (tier1.abortedUnrecoverable ?? 0) + byoa.aborted;
-  audit.record({
-    actor: "daemon",
-    action: "runtime.prepare_shutdown",
-    meta: { reason, recoverableTier1: tier1.recoverableTier1, abortedUnrecoverable }
-  });
   return { recoverableTier1: tier1.recoverableTier1, abortedUnrecoverable };
 }
 
 function closeDurables(): void {
   if (dbClosed) return;
+  const injected = daemonStartupHooks().closeDurables;
+  if (injected) {
+    injected();
+    dbClosed = true;
+    return;
+  }
   db.close();
   dbClosed = true;
 }
@@ -3767,90 +3870,186 @@ async function waitForCleanupWithin(jobs: Promise<unknown>[], timeoutMs: number)
   }
 }
 
-async function fatalShutdown(code: string, error: unknown): Promise<never> {
-  if (fatalPromise) return fatalPromise;
-  const message = String(error instanceof Error ? error.message : error).slice(0, 500);
-  log.error("daemon shutdown failed", { code, message });
-  fatalPromise = (async (): Promise<never> => {
-    runtimeDraining = true;
-    clearRuntimeIntervals();
-    acceptingRuntimeJobs = false;
-    runtimeApprovals.prepareShutdown();
-    liveSessions.prepareShutdown();
-    await waitForCleanupWithin([
-      tier1Executor?.emergencyShutdown() ?? Promise.resolve(),
-      liveDialog.prepareShutdown(),
-      abortAllByoaInvocations({ permanent: true }),
-      voiceHub.close(),
-      drainRuntimeJobs(),
-      closeServer(tier1GateServer),
-      closeServer(server)
-    ], 5_000);
-    server.closeAllConnections();
+function ensureLifecycleOnce(label: string): Promise<never> {
+  if (lifecycleOnce) return lifecycleOnce;
+  armShutdownIngress();
+  log.info("daemon lifecycle drain", { intent: lifecycleDisposition.peek()?.kind, label });
+  lifecycleOnce = raceWithMonotonicDeadline((async () => {
+    const peeked = lifecycleDisposition.peek();
+    const drainReason: PrepareShutdownReason = peeked ? shutdownReasonOf(peeked) : "supervisor_stop";
+    log.info("daemon lifecycle close", { intent: peeked?.kind, label });
+    const stats = await drainRuntime(drainReason);
+    await lifecycleDisposition.waitRestartOverrideGrace();
+    try {
+      audit.record({
+        actor: "daemon",
+        action: "runtime.prepare_shutdown",
+        meta: {
+          reason: shutdownReasonOf(lifecycleDisposition.peek() ?? { kind: "signal", reason: drainReason }),
+          recoverableTier1: stats.recoverableTier1,
+          abortedUnrecoverable: stats.abortedUnrecoverable
+        }
+      });
+    } catch (err) {
+      claimLifecycleIntent({ kind: "fatal", code: "shutdown_failed", message: projectDaemonShutdownFailureText(err) });
+    }
+    const peekedRestart = lifecycleDisposition.peek();
+    if (peekedRestart?.kind === "restart") {
+      log.info("self-restart begin", { generation: peekedRestart.generation, pid: process.pid });
+      try {
+        audit.record({ actor: "daemon", action: "setup.self_restart", meta: { generation: peekedRestart.generation, pid: process.pid } });
+      } catch (err) {
+        claimLifecycleIntent({ kind: "fatal", code: "shutdown_failed", message: projectDaemonShutdownFailureText(err) });
+      }
+    }
     try {
       closeDurables();
     } catch (closeError) {
-      log.error("daemon database close failed", { error: String(closeError).slice(0, 200) });
+      log.error("daemon database close failed", { error: projectDatabaseCloseFailure(closeError) });
+      claimLifecycleIntent({
+        kind: "fatal",
+        code: "shutdown_failed",
+        message: projectDatabaseCloseFailure(closeError)
+      });
     }
-    await waitForCleanupWithin([
-      sendSupervisorFrameAndWait({ v: 1, t: "fatal", code, message })
-    ], 500);
-    process.exit(1);
-  })();
-  return fatalPromise;
+    const intent = lifecycleDisposition.freeze();
+    if (intent.kind === "fatal" && intent.code === "shutdown_failed") {
+      await sendSupervisorFrameAndWait({
+        v: 1,
+        t: "fatal",
+        code: "shutdown_failed",
+        message: intent.message ?? projectDaemonShutdownFailureText(undefined)
+      });
+      process.exit(1);
+      return;
+    }
+    if (intent.kind === "restart") {
+      releaseInstanceLock();
+      if (SUPERVISED) {
+        await sendSupervisorFrameAndWait({ v: 1, t: "restartRequested", reason: "setup", generation: intent.generation });
+        await sendSupervisorFrameAndWait({
+          v: 1,
+          t: "stopped",
+          reason: "restart",
+          recoverableTier1: stats.recoverableTier1,
+          abortedUnrecoverable: stats.abortedUnrecoverable
+        });
+        process.exit(0);
+        return;
+      }
+      const child = nodeSpawn(process.execPath, [...process.execArgv, ...process.argv.slice(1)], {
+        detached: true,
+        stdio: "inherit",
+        env: { ...process.env },
+        cwd: process.cwd()
+      });
+      child.unref();
+      log.info("self-restart spawned", { childPid: child.pid, generation: intent.generation });
+      process.exit(0);
+      return;
+    }
+    if (intent.kind === "fatal") {
+      await sendSupervisorFrameAndWait({
+        v: 1,
+        t: "fatal",
+        code: intent.code,
+        message: (intent.message ?? intent.code).slice(0, 500)
+      });
+      process.exit(1);
+      return;
+    }
+    const reason = shutdownReasonOf(intent);
+    await sendSupervisorFrameAndWait({ v: 1, t: "stopped", reason, ...stats });
+    process.exit(0);
+  })(), label).then(
+    () => undefined as never,
+    async (err) => {
+      let message = projectDaemonShutdownFailureText(err);
+      try {
+        log.error("daemon shutdown failed", { code: "shutdown_failed", message });
+      } catch {
+        message = projectDaemonShutdownFailureText(undefined);
+      }
+      try {
+        closeDurables();
+      } catch (closeError) {
+        try {
+          log.error("daemon database close failed", { error: projectDatabaseCloseFailure(closeError) });
+        } catch {
+          // catch 自身不得再抛。
+        }
+      }
+      await waitForCleanupWithin([
+        sendSupervisorFrameAndWait({ v: 1, t: "fatal", code: "shutdown_failed", message })
+      ], 500);
+      process.exit(1);
+      return undefined as never;
+    }
+  );
+  return lifecycleOnce;
+}
+
+function consumeFatalShutdown(code: string, error: unknown): void {
+  void fatalShutdown(code, error).then(
+    () => undefined,
+    (late) => {
+      const message = projectDaemonFatalMessage(late);
+      void sendSupervisorFrameAndWait({
+        v: 1,
+        t: "fatal",
+        code: "shutdown_failed",
+        message
+      }).then(
+        () => {
+          process.exit(1);
+        },
+        () => {
+          process.exit(1);
+        }
+      );
+    }
+  );
+}
+
+async function fatalShutdown(code: string, error: unknown): Promise<never> {
+  let message = projectDaemonFatalMessage(error);
+  try {
+    log.error("daemon shutdown failed", { code, message });
+  } catch {
+    message = projectDaemonFatalMessage(undefined);
+  }
+  try {
+    claimLifecycleIntent({ kind: "fatal", code, message });
+  } catch {
+    // intent 失败仍走 lifecycle once。
+  }
+  return ensureLifecycleOnce("fatal");
 }
 
 function prepareDaemonShutdown(reason: PrepareShutdownReason): Promise<void> {
-  if (shutdownPromise) return shutdownPromise;
   claimLifecycleIntent({ kind: "signal", reason });
   armShutdownIngress();
   log.info("daemon stopping", { reason });
-  // B2: 统一硬 deadline 覆盖 drain、DB close、IPC stopped 与退出。
-  const deadlineMs = 25_000;
-  const deadlineAt = Date.now() + deadlineMs;
-  const raceDeadline = <T>(work: Promise<T>, label: string): Promise<T> =>
-    Promise.race([
-      work,
-      new Promise<never>((_, rejectTimeout) => {
-        const remain = Math.max(0, deadlineAt - Date.now());
-        const timer = setTimeout(
-          () => rejectTimeout(new Error(`shutdown deadline exceeded:${label}`)),
-          remain
-        );
-        timer.unref();
-      })
-    ]);
-  shutdownPromise = raceDeadline(drainRuntime(reason), "drain")
-    .then(async (stats) => {
-      await raceDeadline(Promise.resolve().then(() => closeDurables()), "db_close");
-      await raceDeadline(
-        sendSupervisorFrameAndWait({ v: 1, t: "stopped", reason, ...stats }),
-        "stopped_ipc"
-      );
-      process.exit(0);
-    })
-    .catch((err) => fatalShutdown("shutdown_failed", err));
-  return shutdownPromise;
+  return ensureLifecycleOnce("shutdown");
 }
 
 function requestDaemonShutdown(reason: PrepareShutdownReason): void {
-  // B6: 登记 shutdown intent 时立即关闭全部 ingress。
   armShutdownIngress();
-  if (!claimLifecycleIntent({ kind: "signal", reason }) && lifecycleIntent?.kind === "fatal") {
+  noteStartupShutdown(reason);
+  if (!claimLifecycleIntent({ kind: "signal", reason }) && lifecycleDisposition.peek()?.kind === "fatal") {
+    void ensureLifecycleOnce("fatal");
     return;
   }
-  if (!startupLifecycleReady) {
-    pendingShutdownReason ??= reason;
-    return;
-  }
+  pendingShutdownReason ??= reason;
   void prepareDaemonShutdown(reason);
 }
 
-if (pendingShutdownReason) {
-  startupLifecycleReady = true;
-  await prepareDaemonShutdown(pendingShutdownReason);
+if (runtimeDraining || startupAbort.signal.aborted || pendingShutdownReason) {
+  const reason = pendingShutdownReason ?? bootShutdownReason ?? "supervisor_stop";
+  startupLifecycleReady = false;
+  await prepareDaemonShutdown(reason);
 } else {
   startupLifecycleReady = true;
-  announceReady();
+  await announceReady();
 }
 }

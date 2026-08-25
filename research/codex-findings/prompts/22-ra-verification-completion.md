@@ -1,6 +1,6 @@
 # 22 · R-A 落盘核验复核 + 补完方案对抗审
 
-你是独立对抗审查者。只读 `/Users/wangyixiao/WorkSpace/voice-coding/docs/`、`history/PROCESS-JOURNAL.md`、`research/codex-findings/21-ra-contract-review.md`、`docs.bak-r-a-20260727/` 与 `/Users/wangyixiao/WorkSpace/SayDo`，不得修改任何文件。
+你是独立对抗审查者。只读 `~/WorkSpace/voice-coding/docs/`、`history/PROCESS-JOURNAL.md`、`research/codex-findings/21-ra-contract-review.md`、`docs.bak-r-a-20260727/` 与 `~/WorkSpace/SayDo`，不得修改任何文件。
 
 请逐项核对 journal 的 R50（约 753 行起）所称已落盘/未落盘清单和两处损伤，尤其是 docs/09 的 §3.3、§9 两表、§13 四工具、§6.1a、TTL 注记、tailnet 对表行，以及 approveMerge CAS、S3MergeReceipt、executor 按类型分叉是否存在。再对 21 号报告 A1-A6 给出 canonical 侧最小充分修法（插入锚点、关键措辞、DDL/Schema 增量、§12 反例）并区分 canonical 本轮落盘与 SayDo W4 挂账；裁决 A4 是否回收 writing 默认开值。最后把 B1-B6、C1-C3 分为 canonical/W4/不做，并给出可机械执行的 grep/sqlite3/python 断言。所有事实必须带文件:行号；无法验证明确写“未验证”。输出一份简洁但具体的审查意见，不要声称运行了未运行的命令。
 

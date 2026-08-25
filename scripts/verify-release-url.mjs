@@ -8,6 +8,13 @@ import { hostname, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  assertAssetsMatchTrackedManifest,
+  assertIdentityMatchesTrackedManifest,
+  inspectAssetBytes,
+  loadTrackedReleaseAssetManifest
+} from "./release-asset-manifest.mjs";
+
 const packageUrl = process.argv[2];
 const installMode = process.argv[3] ?? "global";
 const evidenceFlag = process.argv.indexOf("--evidence");
@@ -111,6 +118,17 @@ async function verifyPublishedBytes() {
     "线上 release-metadata 与 tgz 身份不一致"
   );
   invariant(createHash("sha256").update(readFileSync(localTarball)).digest("hex") === digest, "落盘 tgz 摘要漂移");
+  const repo = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  const tracked = loadTrackedReleaseAssetManifest(repo, tag);
+  assertIdentityMatchesTrackedManifest(metadata, tracked);
+  assertAssetsMatchTrackedManifest(
+    [
+      inspectAssetBytes(filename, tarBytes, { tarballPath: localTarball }),
+      inspectAssetBytes("SHA256SUMS", checksumBytes),
+      inspectAssetBytes("release-metadata.json", metadataBytes)
+    ],
+    tracked
+  );
   return metadata;
 }
 

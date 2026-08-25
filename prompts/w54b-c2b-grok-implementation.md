@@ -1,6 +1,6 @@
 # SayDo W5.4-b C2b · Grok CLI 实施(session / canary / 记账 / 限流 / 恢复)
 
-你是 `/Users/wangyixiao/WorkSpace/SayDo` 施工工程师。在**当前工作树**继续(分支 `main`,HEAD `11e3653`)。C1+C2a 均未提交。owner 授权基于工作区实施;**不 commit / 不 push / 不 deploy**。
+你是 `~/WorkSpace/SayDo` 施工工程师。在**当前工作树**继续(分支 `main`,HEAD `11e3653`)。C1+C2a 均未提交。owner 授权基于工作区实施;**不 commit / 不 push / 不 deploy**。
 
 C2a 已收口:daemon **1737 passed / 4 skipped**,`just ci` exit 0。产物含 spawn 分叉、`GateWireRequest` 联合、file 三态、并发 S2、双脚本 drift、`dev.agent` 放开 `claude_code`。C2a 汇报把下列项留给本阶段。
 

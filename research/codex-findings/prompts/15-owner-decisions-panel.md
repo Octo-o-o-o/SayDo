@@ -4,14 +4,14 @@
 
 ## 必读材料(按序)
 
-1. `/Users/wangyixiao/WorkSpace/SayDo/HANDOFF.md`(现状单一真相;§2 = 待决清单)
-2. `/Users/wangyixiao/WorkSpace/SayDo/e2e/evidence/final-readback.md` + `closeout-verification.md`(交付判定口径)
-3. `/Users/wangyixiao/WorkSpace/SayDo/e2e/owner-sessions/`(session-1..4 现场清单 + adr-002-review-brief.md)
-4. `/Users/wangyixiao/WorkSpace/SayDo/docs/adr/ADR-002-byoa-observed-model.md`
-5. `/Users/wangyixiao/WorkSpace/voice-coding/IMPLEMENTATION-PLAN.md`(场次定义/受控 dogfood gate/风险表)
-6. `/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md` §6.1(任务状态机边表)+ §11 规则 2(observedModel 分档)
-7. `/Users/wangyixiao/WorkSpace/voice-coding/research/codex-findings/14-canonical-writeback-closeout.md`(三件上浮的原始裁决 #2/#3b/横1)
-8. `/Users/wangyixiao/WorkSpace/voice-coding/docs/05-roadmap.md`(dogfood 与价值证据轨)
+1. `~/WorkSpace/SayDo/HANDOFF.md`(现状单一真相;§2 = 待决清单)
+2. `~/WorkSpace/SayDo/e2e/evidence/final-readback.md` + `closeout-verification.md`(交付判定口径)
+3. `~/WorkSpace/SayDo/e2e/owner-sessions/`(session-1..4 现场清单 + adr-002-review-brief.md)
+4. `~/WorkSpace/SayDo/docs/adr/ADR-002-byoa-observed-model.md`
+5. `~/WorkSpace/voice-coding/IMPLEMENTATION-PLAN.md`(场次定义/受控 dogfood gate/风险表)
+6. `~/WorkSpace/voice-coding/docs/09-data-contracts.md` §6.1(任务状态机边表)+ §11 规则 2(observedModel 分档)
+7. `~/WorkSpace/voice-coding/research/codex-findings/14-canonical-writeback-closeout.md`(三件上浮的原始裁决 #2/#3b/横1)
+8. `~/WorkSpace/voice-coding/docs/05-roadmap.md`(dogfood 与价值证据轨)
 
 ## 必须实读代码验证的前提(逐项给 file:line 证据)
 

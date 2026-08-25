@@ -6,7 +6,7 @@
 import { chmodSync, existsSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { parseConfigText } from "../src/config/load.js";
 import { parseSetupTestRequest, runSetupTest } from "../src/api/setup.js";
 import {
@@ -20,12 +20,26 @@ import {
 } from "../src/tier1/selfTest.js";
 import { readClaudeIdentity } from "../src/tier1/claudeIdentity.js";
 import { sha256File } from "../src/providers/binaryIdentity.js";
+import {
+  configureRuntimeChildRegistry,
+  resetRuntimeChildLifecycleForTests
+} from "../src/runtimeChildRegistry.js";
 
 const NOW = new Date("2026-08-21T08:00:00.000Z");
 
 function makeHome(): string {
-  return mkdtempSync(join(tmpdir(), "saydo-t1st-"));
+  const home = mkdtempSync(join(tmpdir(), "saydo-t1st-"));
+  configureRuntimeChildRegistry(home);
+  return home;
 }
+
+afterEach(() => {
+  try {
+    resetRuntimeChildLifecycleForTests();
+  } catch {
+    // 污染由本测断言覆盖
+  }
+});
 
 function makeClaudeBin(home: string): string {
   const bin = join(home, "claude.exe");
@@ -42,14 +56,17 @@ cheap = { provider = "api", via = "openrouter", model = "google/gemini-3.1-flash
 evaluator = { provider = "api", via = "openrouter", model = "anthropic/claude-sonnet-5" }
 `;
 
+// 路径必须经 JSON.stringify 转义后再插入 TOML：TOML 基本字符串里 `\U`/`\x` 等是转义序列，
+// Windows 路径 `C:\Users\...` 会被解析成非法 unicode 转义而整份配置解析失败
+// （真机上曾因此让本文件 26/37 例全红）。同目录 startup-failure.test.ts:753 即用此写法。
 function claudeCfgToml(bin: string, pinned = "2.1.220"): string {
   return `${MODELS}
 [models.dev]
 agent = "claude_code"
 model = "unused-for-claude"
 [tier1]
-claude_bin = "${bin}"
-claude_pinned_version = "${pinned}"
+claude_bin = ${JSON.stringify(bin)}
+claude_pinned_version = ${JSON.stringify(pinned)}
 model = "opus"
 claude_max_turns = 200
 `;
@@ -435,7 +452,7 @@ model = "unused"
 agent = "claude_code"
 model = "unused"
 [tier1]
-claude_bin = "${bin}"
+claude_bin = ${JSON.stringify(bin)}
 model = "opus"
 `),
       probes: fakeProbes(),

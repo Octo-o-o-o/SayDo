@@ -3,7 +3,7 @@
 <task>
 攒批复核 remote-mobile-w0 的 canonical 回写(实施期轻量:回写 canonical = 一致性 + 本次 Codex)。
 
-实施仓:/Users/wangyixiao/WorkSpace/SayDo
+实施仓:~/WorkSpace/SayDo
 HEAD 以 git rev-parse 为准(预期 3197fd8)。工作区含未提交回写,只读评审工作区+HEAD。
 
 待复核两处(只评这两处与其直接邻居,不要顺手重开 v0.1.0 范围):

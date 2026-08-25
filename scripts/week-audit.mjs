@@ -3,10 +3,18 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
+import { writeWeekAuditOutputs } from "./release-file-transaction.mjs";
+import { safeExcerpt } from "./public-text-redaction.mjs";
+import { isExcludedByExactSet, readPublicExcludeExactSet } from "./check-public-tree-privacy.mjs";
+import {
+  assertPublicationExactSet,
+  privateExcludedIdentity,
+  unpublishedIndexedSource
+} from "./week-audit-publication.mjs";
 
 const repo = resolve(import.meta.dirname, "..");
-const remediationEnd = "57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e"; // 最终实施冻结 SHA；后续证据载体提交因自引用排除。
+const remediationEnd = "b768089585d710255d61a693c2489ccf425f446f"; // 最终实施冻结 SHA；后续证据载体提交因自引用排除。
 const config = {
   cutoff: "2026-08-15T00:00:00+08:00",
   refsFrozenAt: "2026-08-22T22:30:44+08:00",
@@ -36,22 +44,6 @@ const sameSet = (a, b) =>
   a.length === b.length &&
   new Set(a).size === a.length &&
   [...a].sort().every((value, index) => value === [...b].sort()[index]);
-const safeExcerpt = (value) => {
-  const normalized = [...value.replaceAll("\0", "")]
-    .map((character) => {
-      const codePoint = character.codePointAt(0);
-      const forbidden =
-        codePoint === 0xfe0f ||
-        (codePoint >= 0x2600 && codePoint <= 0x27bf) ||
-        (codePoint >= 0x1f000 && codePoint <= 0x1faff) ||
-        /\p{Emoji_Presentation}/u.test(character);
-      return forbidden ? `[U+${codePoint.toString(16).toUpperCase()}]` : character;
-    })
-    .join("")
-    .replace(/\s+/g, " ")
-    .trim();
-  return normalized.length > 220 ? `${normalized.slice(0, 217)}...` : normalized;
-};
 const generatedOutputs = new Set([
   config.markdownOutput,
   config.jsonOutput,
@@ -61,8 +53,11 @@ const generatedOutputs = new Set([
   config.remediationJsonOutput,
   config.remediationMarkdownOutput
 ]);
-const publicExcludes = ["artifacts/release/copyright/"];
-const isPublicExcluded = (path) => publicExcludes.some((prefix) => path.startsWith(prefix));
+// 排除清单从权威源(publish-public-snapshot.sh 的 PUBLIC_EXCLUDE)动态读取，而不是在
+// week-audit-publication.mjs 里另存一份常量：两处独立定义迟早漂移，而这份清单决定
+// 「哪些路径不进公开树」，一旦与真实发布脚本不一致，审计就会对着错误的集合下结论。
+const publicExcludes = readPublicExcludeExactSet();
+const isPublicExcluded = (path) => isExcludedByExactSet(path, publicExcludes);
 
 function contentFingerprint(path) {
   const absolute = resolve(repo, path);
@@ -101,6 +96,25 @@ function verifyRecordedSnapshot(integrity) {
       actual.sha256 !== entry.sha256
     ) {
       throw new Error(`审计后工作树内容漂移:${entry.path}`);
+    }
+  }
+  const listed = (args) =>
+    execFileSync("git", args, {
+      cwd: repo,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "pipe"]
+    })
+      .split("\0")
+      .filter(Boolean);
+  const recorded = new Set(entries.map((entry) => entry.path));
+  const dirty = [
+    ...listed(["diff", "--name-only", "-z"]),
+    ...listed(["diff", "--cached", "--name-only", "-z"])
+  ].filter((path) => !generatedOutputs.has(path));
+  for (const path of dirty) {
+    if (!recorded.has(path)) {
+      throw new Error(isPublicExcluded(path) ? "审计后出现未入账工作树路径" : `审计后出现未入账工作树路径:${path}`);
     }
   }
 }
@@ -314,25 +328,35 @@ function verifyPublicationManifest(manifest) {
     !Array.isArray(manifest.entries) ||
     !Array.isArray(manifest.generatedOutputs) ||
     !sameSet(manifest.publicExcludes ?? [], publicExcludes) ||
-    !sameSet(manifest.generatedOutputs, [...generatedOutputs])
+    !sameSet(manifest.generatedOutputs, [...generatedOutputs]) ||
+    !Number.isInteger(manifest.privateExcludedCount) ||
+    manifest.privateExcludedCount < 0 ||
+    typeof manifest.privateExcludedDigest !== "string" ||
+    !/^[0-9a-f]{64}$/.test(manifest.privateExcludedDigest)
   ) {
     throw new Error("公开发布全树 manifest 结构非法");
   }
   const entryPaths = manifest.entries.map((entry) => entry.path);
-  if (new Set(entryPaths).size !== entryPaths.length || manifest.entries.some((entry) => isPublicExcluded(entry.path))) {
-    throw new Error("公开发布全树 manifest 含重复或私有路径");
-  }
-  const actualTracked = execFileSync("git", ["ls-files", "-z"], {
-    cwd: repo,
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-    stdio: ["ignore", "pipe", "pipe"]
-  })
-    .split("\0")
-    .filter(Boolean);
-  if (actualTracked.some(isPublicExcluded)) throw new Error("公开发布树仍含私有排除路径");
-  const expectedTracked = [...entryPaths, ...manifest.generatedOutputs];
-  if (!sameSet(actualTracked, expectedTracked)) throw new Error("公开发布树路径 exact-set 与冻结 manifest 不一致");
+  const listed = (args) =>
+    execFileSync("git", args, {
+      cwd: repo,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "pipe"]
+    })
+      .split("\0")
+      .filter(Boolean);
+  const actualTracked = listed(["ls-files", "-z"]);
+  const actualOthers = listed(["ls-files", "--others", "--exclude-standard", "-z"]);
+  assertPublicationExactSet({
+    livePaths: { tracked: actualTracked, others: actualOthers },
+    entryPaths,
+    generatedOutputs,
+    publicExcludes,
+    privateExcludedCount: manifest.privateExcludedCount,
+    privateExcludedDigest: manifest.privateExcludedDigest,
+    fingerprint: contentFingerprint
+  });
   for (const entry of manifest.entries) {
     const actual = contentFingerprint(entry.path);
     if (
@@ -408,7 +432,7 @@ if (mode === "--check-bundle") {
     remediationCommits: remediation.commits
   });
   if (integrity.historyDigest !== sha256Text(historyMaterial)) throw new Error("账本历史物化摘要不一致");
-  if (integrity.expectedPublication?.tag !== "v0.1.0-rc.3") throw new Error("账本 bundle 缺预发布 tag 外部锚");
+  if (integrity.expectedPublication?.tag !== "v0.1.0-rc.4") throw new Error("账本 bundle 缺预发布 tag 外部锚");
   if (
     remediation.schemaVersion !== 1 ||
     remediation.base !== ledger.generatedFrom.rangeEnd ||
@@ -536,7 +560,6 @@ function dirtyPathMap() {
   };
   for (const path of splitZ(git(["diff", "--name-only", "-z"]))) add(path, "unstaged");
   for (const path of splitZ(git(["diff", "--cached", "--name-only", "-z"]))) add(path, "staged");
-  for (const path of splitZ(git(["ls-files", "--others", "--exclude-standard", "-z"]))) add(path, "untracked");
   return map;
 }
 
@@ -545,7 +568,7 @@ function captureWorkingTreeSnapshot() {
   return {
     schemaVersion: 2,
     implementationBoundary: config.remediationEnd,
-    exclusionRule: "七个账本生成物由 files digest/全树 manifest 单独闭环，避免自引用；其余 staged/unstaged/untracked 文件逐个冻结内容",
+    exclusionRule: "七个账本生成物由 files digest/全树 manifest 单独闭环，避免自引用；其余 staged/unstaged 已跟踪文件逐个冻结内容；无关 untracked 不入快照",
     entries: [...dirty.entries()]
       .map(([path, states]) => ({ path, states: uniqueSorted(states), ...contentFingerprint(path) }))
       .sort((a, b) => a.path.localeCompare(b.path, "en"))
@@ -553,16 +576,22 @@ function captureWorkingTreeSnapshot() {
 }
 
 function capturePublicationManifest() {
-  const paths = uniqueSorted([
-    ...splitZ(git(["ls-files", "-z"])),
-    ...splitZ(git(["ls-files", "--others", "--exclude-standard", "-z"]))
-  ]).filter((path) => !generatedOutputs.has(path) && !isPublicExcluded(path));
+  const tracked = splitZ(git(["ls-files", "-z"]));
+  const others = splitZ(git(["ls-files", "--others", "--exclude-standard", "-z"]));
+  if (unpublishedIndexedSource(others, generatedOutputs).length > 0) {
+    throw new Error("应发布源文件未入 index");
+  }
+  const liveAll = uniqueSorted(tracked).filter((path) => !generatedOutputs.has(path));
+  const identity = privateExcludedIdentity(liveAll, contentFingerprint);
+  const paths = liveAll.filter((path) => !isPublicExcluded(path));
   return {
     schemaVersion: 2,
-    purpose: "冻结将进入公开快照的完整路径 exact-set 与逐文件内容；七个生成物由 integrity.files 闭环",
+    purpose: "冻结 Git index/tracked 公开候选 exact-set 与逐文件内容；七个生成物由 integrity.files 闭环；私有排除集只记 count/digest；无关 untracked 不入公开集",
     implementationBoundary: config.remediationEnd,
-    publicExcludes,
+    publicExcludes: [...publicExcludes],
     generatedOutputs: [...generatedOutputs].sort((a, b) => a.localeCompare(b, "en")),
+    privateExcludedCount: identity.count,
+    privateExcludedDigest: identity.digest,
     entries: paths.map((path) => ({ path, ...contentFingerprint(path) }))
   };
 }
@@ -1033,6 +1062,7 @@ md.push(
   `- 覆盖：${counts.mainCommits} 个主线提交、${counts.extraRefCommits} 个额外引用提交、${counts.changedPaths} 个变更路径、${counts.documents} 份文档型资产（Markdown ${counts.markdown}，其他 ${counts.nonMarkdownDocuments}）。`,
   "- ref 边界：清单在冻结时刻之后补录，只证明其中列明的 ref tip 可重建；无法排除冻结时已存在、随后删除或强制移动且未留下本地记录的 ref。",
   "- 说明：`paired` 与 `mechanically_evidenced` 只证明可追溯，不等于逐项人工判定正确；人工 findings、修复与真实门禁统一写入同日主报告。",
+  "- 公开快照：额外引用里的 snapshot SHA 是 **commit** 对象；可重算的 public tree object digest 是该提交的 `^{tree}`，与快照说明 `public-tree:` 行一致，二者不得混称为同一个对象。",
   ""
 );
 md.push("## 1. 提交 -> 文档 / 实现 / 测试", "");
@@ -1089,7 +1119,7 @@ const integrityContent =
           ),
           expectedPublication: {
             repository: "Octo-o-o-o/SayDo",
-            tag: "v0.1.0-rc.3",
+            tag: "v0.1.0-rc.4",
             rule: "GitHub tag workflow 对本 bundle 运行 --check-bundle 后构成外部不可移动锚"
           },
           files: {
@@ -1123,11 +1153,7 @@ const outputs = [
 ];
 
 if (mode === "--write") {
-  for (const [path, content] of outputs) {
-    const absolute = resolve(repo, path);
-    mkdirSync(dirname(absolute), { recursive: true });
-    writeFileSync(absolute, content);
-  }
+  writeWeekAuditOutputs(outputs.map(([path, content]) => [resolve(repo, path), content]));
   console.log(
     `[ok] week audit ledger: main=${counts.mainCommits} all_refs=${counts.allRefCommits} extra=${counts.extraRefCommits} paths=${counts.changedPaths} docs=${counts.documents} markdown=${counts.markdown}`
   );

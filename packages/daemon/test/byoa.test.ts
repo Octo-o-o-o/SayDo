@@ -1,10 +1,12 @@
 // §12-9 1.2b 子集:buildCageArgv 快照 + cursor 六类 golden + tripwire + observedModel 族断言 + billing-switch 收据。
 
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { EventEmitter } from "node:events";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { PassThrough } from "node:stream";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { buildCageArgv } from "../src/providers/byoa/cage.js";
 import {
   parseClaudeLine,
@@ -22,7 +24,33 @@ import { consumeByoaEvents } from "../src/providers/byoa/consume.js";
 import { BillingSwitchStore, isCliSubscriptionRateLimit, isSubscriptionRateLimited } from "../src/providers/byoa/billing.js";
 import { familyFromModelName } from "../src/config/family.js";
 import { CURSOR_GOLDEN, CURSOR_THINKING_SAMPLES } from "./fixtures/cursor-golden.js";
-import { buildBoundedPrompt } from "../src/providers/byoa/provider.js";
+import {
+  abortAllByoaInvocations,
+  assertByoaShutdownAllowsStopped,
+  buildBoundedPrompt,
+  createByoaProvider,
+  resetByoaProviderForTests
+} from "../src/providers/byoa/provider.js";
+import {
+  ByoaConcurrencyLimiter,
+  getByoaLifecycleContamination,
+  runSpawnTurn
+} from "../src/providers/byoa/runner.js";
+import { ProcessGroupLifecycleError } from "../src/processGroupLifecycle.js";
+import { formatSayDoJobName } from "@saydo/platform";
+import {
+  beginRuntimeChild,
+  configureRuntimeChildRegistry,
+  installRuntimeJobForTests,
+  RUNTIME_DRAIN_DEADLINE_MS,
+  resetRuntimeChildLifecycleForTests,
+  runtimeChildOwnerIdentity,
+  runtimeChildRecordPath,
+  runtimeGenerationIsCurrent,
+  setRuntimeChildTestHooks,
+  signalRuntimeChildGeneration,
+  type SpawnedRuntimeChild
+} from "../src/runtimeChildRegistry.js";
 
 const familyOf = (m: string) => familyFromModelName(m);
 
@@ -1104,5 +1132,601 @@ describe("provider invocation 记录(spawn 层不测,consume 层证据 digest �
     const a = consumeByoaEvents(CURSOR_GOLDEN.clean.map(parseCursorLine), { expectedFamily: "claude", familyOf });
     const b = consumeByoaEvents(CURSOR_GOLDEN.clean.map(parseCursorLine), { expectedFamily: "claude", familyOf });
     expect(a.evidenceDigest).toBe(b.evidenceDigest);
+  });
+});
+
+describe("BYOA 有界 drain 与 pipe_failed", () => {
+  const homes: string[] = [];
+  afterEach(() => {
+    setRuntimeChildTestHooks(null);
+    try {
+      resetRuntimeChildLifecycleForTests();
+    } catch {
+      // 污染用例由本测断言覆盖
+    }
+    resetByoaProviderForTests();
+    for (const dir of homes) rmSync(dir, { recursive: true, force: true });
+    homes.length = 0;
+  });
+
+  function virtualClock() {
+    let now = 0;
+    const timers: { id: number; at: number; fn: () => void }[] = [];
+    let seq = 1;
+    return {
+      hooks: {
+        now: () => now,
+        setTimeout(fn: () => void, ms: number) {
+          const id = seq++;
+          timers.push({ id, at: now + ms, fn });
+          return { id } as unknown as NodeJS.Timeout;
+        },
+        clearTimeout(timer: NodeJS.Timeout) {
+          const id = (timer as unknown as { id: number }).id;
+          const index = timers.findIndex((item) => item.id === id);
+          if (index >= 0) timers.splice(index, 1);
+        }
+      },
+      advance(ms: number) {
+        now += ms;
+        let progressed = true;
+        while (progressed) {
+          progressed = false;
+          for (const timer of [...timers]) {
+            if (timer.at > now) continue;
+            const i = timers.indexOf(timer);
+            if (i < 0) continue;
+            timers.splice(i, 1);
+            timer.fn();
+            progressed = true;
+          }
+        }
+      }
+    };
+  }
+
+  function fakeSpawned(pid: number, home: string): SpawnedRuntimeChild {
+    const stdout = new PassThrough();
+    const stderr = new PassThrough();
+    const stdin = new PassThrough();
+    const child = new EventEmitter() as SpawnedRuntimeChild["child"];
+    child.stdout = stdout;
+    child.stderr = stderr;
+    child.stdin = stdin;
+    Object.defineProperty(child, "pid", { value: pid });
+    child.kill = () => true;
+    queueMicrotask(() => child.emit("spawn"));
+    const generationId = "01234567-89ab-cdef-0123-456789abcdef";
+    const commandToken = `saydo-child-${generationId}`;
+    const runId = `byoa-${String(pid)}`;
+    const ownerInstanceId = runtimeChildOwnerIdentity().ownerInstanceId;
+    const jobName = formatSayDoJobName("Local", ownerInstanceId, runId, generationId);
+    const captured = installRuntimeJobForTests(pid, { name: jobName, handle: null }, {
+      id: generationId,
+      ownerInstanceId,
+      runId,
+      jobName,
+      commandToken,
+      binary: process.execPath,
+      kind: "byoa",
+      processStart: "byoa-birth"
+    });
+    const realLease = beginRuntimeChild(pid, process.execPath, "byoa", {
+      registryHome: home,
+      runId,
+      commandToken,
+      generation: generationId,
+      jobName
+    });
+    return {
+      child,
+      commandToken,
+      generation: captured,
+      lease: { establish: async () => undefined, release: () => realLease.release() },
+      signal: (signal) => {
+        if (!runtimeGenerationIsCurrent(captured)) return;
+        signalRuntimeChildGeneration(captured, signal);
+      }
+    };
+  }
+
+  it("alive drain deadline 有界 settle 并保留 owner", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-byoa-alive-"));
+    homes.push(home);
+    configureRuntimeChildRegistry(home);
+    const clock = virtualClock();
+    const spawned = fakeSpawned(51001, home);
+    setRuntimeChildTestHooks({
+      ...clock.hooks,
+      spawn: () => spawned,
+      groupState: () => "alive"
+    });
+    const pending = runSpawnTurn({
+      argv: { bin: "cursor-agent", args: ["-p"], cwd: home },
+      prompt: "hi",
+      wallTimeoutMs: 20,
+      idleTimeoutMs: 0,
+      killGraceMs: 20,
+      networkRetryLimit: 0
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    clock.advance(500);
+    clock.advance(20);
+    clock.advance(20);
+    clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+    const result = await pending;
+    expect(result.lifecycleError).toBe("process_group_not_reaped");
+    expect(result.attempts).toBe(1);
+    expect(existsSync(runtimeChildRecordPath(home, 51001))).toBe(true);
+  });
+
+  it("unknown drain deadline 同样有界 fail-closed", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-byoa-unknown-"));
+    homes.push(home);
+    configureRuntimeChildRegistry(home);
+    const clock = virtualClock();
+    const spawned = fakeSpawned(51002, home);
+    setRuntimeChildTestHooks({
+      ...clock.hooks,
+      spawn: () => spawned,
+      groupState: () => "unknown"
+    });
+    const pending = runSpawnTurn({
+      argv: { bin: "cursor-agent", args: ["-p"], cwd: home },
+      prompt: "hi",
+      wallTimeoutMs: 20,
+      idleTimeoutMs: 0,
+      killGraceMs: 20,
+      networkRetryLimit: 0
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    clock.advance(500);
+    clock.advance(20);
+    clock.advance(20);
+    clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+    const result = await pending;
+    expect(result.lifecycleError).toBe("process_group_not_reaped");
+    expect(existsSync(runtimeChildRecordPath(home, 51002))).toBe(true);
+  });
+
+  it("活动 pipe error 不走 spawnError 且不可网络重试", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-byoa-pipe-"));
+    homes.push(home);
+    configureRuntimeChildRegistry(home);
+    const spawned = fakeSpawned(51003, home);
+    setRuntimeChildTestHooks({
+      spawn: () => spawned,
+      groupState: () => "gone"
+    });
+    const pending = runSpawnTurn({
+      argv: { bin: "cursor-agent", args: ["-p"], cwd: home },
+      prompt: "hi",
+      networkRetryLimit: 1
+    });
+    await Promise.resolve();
+    spawned.child.stdout.emit("error", Object.assign(new Error("read EIO"), { code: "EIO" }));
+    spawned.child.emit("exit", 0, null);
+    spawned.child.emit("close", 0, null);
+    const result = await pending;
+    expect(result.pipeError).toEqual({ stream: "stdout", code: "EIO" });
+    expect(result.pipeErrors).toEqual([{ stream: "stdout", code: "EIO" }]);
+    expect(result.spawnError).toBeUndefined();
+    expect(result.attempts).toBe(1);
+  });
+
+  it("两个 distinct pipe identity 进入 pipeErrors，SECRET 不进 stderrTail", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-byoa-pipe-dup-"));
+    homes.push(home);
+    configureRuntimeChildRegistry(home);
+    const spawned = fakeSpawned(51034, home);
+    setRuntimeChildTestHooks({
+      spawn: () => spawned,
+      groupState: () => "gone"
+    });
+    const pending = runSpawnTurn({
+      argv: { bin: "cursor-agent", args: ["-p"], cwd: home },
+      prompt: "hi",
+      networkRetryLimit: 0
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    const first = Object.assign(new Error("SECRET"), { code: "EIO" });
+    const second = Object.assign(new Error("SECRET"), { code: "EPIPE" });
+    spawned.child.stdout.emit("error", first);
+    spawned.child.stdout.emit("error", first);
+    spawned.child.stderr.emit("error", second);
+    spawned.child.emit("exit", 0, null);
+    spawned.child.emit("close", 0, null);
+    const result = await pending;
+    expect(result.pipeError).toEqual({ stream: "stdout", code: "EIO" });
+    expect(result.pipeErrors).toEqual([
+      { stream: "stdout", code: "EIO" },
+      { stream: "stderr", code: "EPIPE" }
+    ]);
+    expect(result.stderrTail).not.toContain("SECRET");
+    expect(JSON.stringify(result)).not.toContain("SECRET");
+  });
+
+  it("真实 pipe listener 对 hostile/primitive/Proxy/null 不抛不泄漏", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-byoa-pipe-hostile-"));
+    homes.push(home);
+    configureRuntimeChildRegistry(home);
+    const spawned = fakeSpawned(51033, home);
+    setRuntimeChildTestHooks({
+      spawn: () => spawned,
+      groupState: () => "gone"
+    });
+    const pending = runSpawnTurn({
+      argv: { bin: "cursor-agent", args: ["-p"], cwd: home },
+      prompt: "hi",
+      networkRetryLimit: 0
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    const traps = { get: 0, getOwnPropertyDescriptor: 0, ownKeys: 0, getPrototypeOf: 0 };
+    const proxy = new Proxy(Object.assign(new Error("read EIO"), { code: "EIO" }), {
+      get(t, p, r) {
+        traps.get += 1;
+        return Reflect.get(t, p, r);
+      },
+      getOwnPropertyDescriptor(t, p) {
+        traps.getOwnPropertyDescriptor += 1;
+        return Reflect.getOwnPropertyDescriptor(t, p);
+      },
+      ownKeys(t) {
+        traps.ownKeys += 1;
+        return Reflect.ownKeys(t);
+      },
+      getPrototypeOf(t) {
+        traps.getPrototypeOf += 1;
+        return Reflect.getPrototypeOf(t);
+      }
+    });
+    const secretObj = { code: "SECRET", message: "SECRET" };
+    let accessorGets = 0;
+    const accessor = new Error("init");
+    Object.defineProperty(accessor, "code", {
+      get(): string {
+        accessorGets += 1;
+        return "SECRET";
+      }
+    });
+    Object.defineProperty(accessor, "message", {
+      get(): string {
+        accessorGets += 1;
+        return "SECRET";
+      }
+    });
+    const fn = function byoaPipe(): string {
+      return "SECRET";
+    };
+    const revoked = Proxy.revocable(Object.assign(new Error("read EIO"), { code: "EIO" }), {
+      get() {
+        traps.get += 1;
+        throw new Error("revoked get");
+      }
+    });
+    revoked.revoke();
+    const uncaught: unknown[] = [];
+    const rejections: unknown[] = [];
+    const onUncaught = (err: unknown): void => {
+      uncaught.push(err);
+    };
+    const onReject = (reason: unknown): void => {
+      rejections.push(reason);
+    };
+    process.on("uncaughtException", onUncaught);
+    process.on("unhandledRejection", onReject);
+    try {
+      expect(() => {
+        spawned.child.stdout.emit("error", secretObj);
+        spawned.child.stderr.emit("error", accessor);
+        spawned.child.stdin.emit("error", fn);
+        spawned.child.stdout.emit("error", 42);
+        spawned.child.stderr.emit("error", null);
+        spawned.child.stdin.emit("error", undefined);
+        spawned.child.stdout.emit("error", proxy);
+        spawned.child.stderr.emit("error", revoked.proxy);
+      }).not.toThrow();
+      spawned.child.emit("exit", 0, null);
+      spawned.child.emit("close", 0, null);
+      const result = await pending;
+      expect(result.pipeError).toEqual({ stream: "stdout", code: "unknown" });
+      expect(result.pipeErrors![0]).toEqual({ stream: "stdout", code: "unknown" });
+      expect(JSON.stringify(result)).not.toContain("SECRET");
+      expect(result.stderrTail).not.toContain("SECRET");
+      expect(accessorGets).toBe(0);
+      expect(traps.get + traps.getOwnPropertyDescriptor + traps.ownKeys + traps.getPrototypeOf).toBe(0);
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(uncaught).toEqual([]);
+      expect(rejections).toEqual([]);
+    } finally {
+      process.off("uncaughtException", onUncaught);
+      process.off("unhandledRejection", onReject);
+    }
+  });
+
+  it("pipe_failed 进入 API 与审计且不记录原文", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-byoa-api-"));
+    homes.push(home);
+    configureRuntimeChildRegistry(home);
+    const spawned = fakeSpawned(51004, home);
+    setRuntimeChildTestHooks({
+      spawn: () => spawned,
+      groupState: () => "gone"
+    });
+    const events: { action: string; meta?: Record<string, unknown> }[] = [];
+    const limiter = new ByoaConcurrencyLimiter({ perCliLimit: 1, globalLimit: 1, maxQueue: 1 });
+    const provider = createByoaProvider({
+      provider: "cursor_cli",
+      model: "claude-fable-5",
+      expectedFamily: "claude",
+      familyOf,
+      profile: "default",
+      audit: {
+        record(event) {
+          events.push({ action: event.action, ...(event.meta ? { meta: event.meta as Record<string, unknown> } : {}) });
+          return { id: "aud_1" };
+        }
+      },
+      binaryPath: process.execPath,
+      networkRetryLimit: 1,
+      concurrencyLimiter: limiter,
+      readonlyFoundationCwd: home
+    });
+    const pending = provider.chat({ messages: [{ role: "user", content: "hi" }] });
+    await Promise.resolve();
+    spawned.child.stdout.emit("error", Object.assign(new Error("secret-token-should-not-audit"), { code: "EIO" }));
+    spawned.child.emit("exit", 1, null);
+    spawned.child.emit("close", 1, null);
+    const result = await pending;
+    expect(result).toMatchObject({ ok: false, code: "pipe_failed", retryable: false });
+    expect(limiter.snapshot().globalActive).toBe(0);
+    const invocation = events.find((event) => event.action === "byoa.invocation");
+    expect(invocation?.meta?.["voidReason"]).toBe("pipe_failed");
+    expect(JSON.stringify(events)).not.toContain("secret-token-should-not-audit");
+    await expect(abortAllByoaInvocations()).resolves.toMatchObject({ aborted: 0 });
+    expect(() => assertByoaShutdownAllowsStopped()).not.toThrow();
+    expect(getByoaLifecycleContamination()).toBeNull();
+  });
+
+  it("BYOA Job release 失败时不得当成功 settle，并保留 owner", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-byoa-release-fail-"));
+    homes.push(home);
+    configureRuntimeChildRegistry(home);
+    const spawned = fakeSpawned(51099, home);
+    spawned.lease.release = async () => {
+      throw new ProcessGroupLifecycleError("byoa job close failed");
+    };
+    setRuntimeChildTestHooks({
+      spawn: () => spawned,
+      groupState: () => "gone"
+    });
+    const pending = runSpawnTurn({
+      argv: { bin: "cursor-agent", args: ["-p"], cwd: home },
+      prompt: "hi",
+      wallTimeoutMs: 20,
+      idleTimeoutMs: 0,
+      killGraceMs: 20,
+      networkRetryLimit: 0
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    spawned.child.emit("exit", 0, null);
+    spawned.child.emit("close", 0);
+    const result = await pending;
+    expect(result.lifecycleError).toBe("process_group_not_reaped");
+    expect(result.exitCode).not.toBe(0);
+    expect(getByoaLifecycleContamination()).toBeInstanceOf(ProcessGroupLifecycleError);
+    expect(existsSync(runtimeChildRecordPath(home, 51099))).toBe(true);
+    expect(() => assertByoaShutdownAllowsStopped()).toThrow(ProcessGroupLifecycleError);
+  });
+
+  it("普通 lifecycleError 字段不冒充全局 contamination", async () => {
+    expect(getByoaLifecycleContamination()).toBeNull();
+    expect(() => assertByoaShutdownAllowsStopped()).not.toThrow();
+    await expect(abortAllByoaInvocations()).resolves.toMatchObject({ aborted: 0 });
+  });
+
+  it("alive drain 后全局 contamination，shutdown 不发 stopped，后续 chat 拒绝", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-byoa-cont-"));
+    homes.push(home);
+    configureRuntimeChildRegistry(home);
+    const clock = virtualClock();
+    const spawned = fakeSpawned(51005, home);
+    setRuntimeChildTestHooks({
+      ...clock.hooks,
+      spawn: () => spawned,
+      groupState: () => "alive"
+    });
+    const pending = runSpawnTurn({
+      argv: { bin: "cursor-agent", args: ["-p"], cwd: home },
+      prompt: "hi",
+      wallTimeoutMs: 20,
+      idleTimeoutMs: 0,
+      killGraceMs: 20,
+      networkRetryLimit: 0
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    clock.advance(500);
+    clock.advance(20);
+    clock.advance(20);
+    clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+    const result = await pending;
+    expect(result.lifecycleError).toBe("process_group_not_reaped");
+    expect(getByoaLifecycleContamination()).toBeInstanceOf(ProcessGroupLifecycleError);
+    await expect(abortAllByoaInvocations()).rejects.toBeInstanceOf(ProcessGroupLifecycleError);
+    expect(() => assertByoaShutdownAllowsStopped()).toThrow(ProcessGroupLifecycleError);
+    const limiter = new ByoaConcurrencyLimiter({ perCliLimit: 1, globalLimit: 1, maxQueue: 1 });
+    const provider = createByoaProvider({
+      provider: "cursor_cli",
+      model: "claude-fable-5",
+      expectedFamily: "claude",
+      familyOf,
+      profile: "default",
+      audit: { record() { return { id: "aud_1" }; } },
+      binaryPath: process.execPath,
+      concurrencyLimiter: limiter,
+      readonlyFoundationCwd: home
+    });
+    await expect(provider.chat({ messages: [{ role: "user", content: "hi" }] })).resolves.toMatchObject({
+      ok: false,
+      code: "process_group_not_reaped",
+      retryable: false
+    });
+  });
+
+  it("spawn 后 child error + group alive 走 bounded drain 并污染", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-byoa-err-"));
+    homes.push(home);
+    configureRuntimeChildRegistry(home);
+    const clock = virtualClock();
+    const spawned = fakeSpawned(51006, home);
+    setRuntimeChildTestHooks({
+      ...clock.hooks,
+      spawn: () => spawned,
+      groupState: () => "alive"
+    });
+    const pending = runSpawnTurn({
+      argv: { bin: "cursor-agent", args: ["-p"], cwd: home },
+      prompt: "hi",
+      wallTimeoutMs: 20,
+      idleTimeoutMs: 0,
+      killGraceMs: 20,
+      networkRetryLimit: 0
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    clock.advance(500);
+    spawned.child.emit("error", new Error("EIO after spawn"));
+    clock.advance(20);
+    clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+    const result = await pending;
+    expect(result.spawnError).toBe("process group error graph contained a hostile value");
+    expect(result.spawnError).not.toContain("SECRET");
+    expect(result.lifecycleError).toBe("process_group_not_reaped");
+    expect(getByoaLifecycleContamination()).toBeInstanceOf(ProcessGroupLifecycleError);
+    expect(existsSync(runtimeChildRecordPath(home, 51006))).toBe(true);
+  });
+
+  it("exit emitted close withheld 有界污染", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-byoa-close-"));
+    homes.push(home);
+    configureRuntimeChildRegistry(home);
+    const clock = virtualClock();
+    const spawned = fakeSpawned(51007, home);
+    setRuntimeChildTestHooks({
+      ...clock.hooks,
+      spawn: () => spawned,
+      groupState: () => "alive",
+      closeDeadlineMs: 20
+    });
+    const pending = runSpawnTurn({
+      argv: { bin: "cursor-agent", args: ["-p"], cwd: home },
+      prompt: "hi",
+      wallTimeoutMs: 20,
+      idleTimeoutMs: 0,
+      killGraceMs: 20,
+      networkRetryLimit: 0
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    clock.advance(500);
+    spawned.child.emit("exit", 0, null);
+    clock.advance(20);
+    clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+    const result = await pending;
+    expect(result.lifecycleError).toBe("process_group_not_reaped");
+    expect(getByoaLifecycleContamination()).toBeInstanceOf(ProcessGroupLifecycleError);
+  });
+
+  it("活动期 stdin EPIPE 覆盖 exit 0 且 attempts=1", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-byoa-stdin-epipe-"));
+    homes.push(home);
+    configureRuntimeChildRegistry(home);
+    const spawned = fakeSpawned(51008, home);
+    setRuntimeChildTestHooks({
+      spawn: () => spawned,
+      groupState: () => "gone"
+    });
+    const pending = runSpawnTurn({
+      argv: { bin: "cursor-agent", args: ["-p"], cwd: home },
+      prompt: "hi",
+      networkRetryLimit: 1
+    });
+    await Promise.resolve();
+    spawned.child.stdin.emit("error", Object.assign(new Error("write EPIPE"), { code: "EPIPE" }));
+    spawned.child.emit("exit", 0, null);
+    spawned.child.emit("close", 0, null);
+    const result = await pending;
+    expect(result.pipeError).toEqual({ stream: "stdin", code: "EPIPE" });
+    expect(result.attempts).toBe(1);
+    expect(result.spawnError).toBeUndefined();
+  });
+
+  it("exit 后 close 前 stdin EIO 失败且审计 pipe_failed", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-byoa-stdin-eio-"));
+    homes.push(home);
+    configureRuntimeChildRegistry(home);
+    const spawned = fakeSpawned(51009, home);
+    setRuntimeChildTestHooks({
+      spawn: () => spawned,
+      groupState: () => "gone"
+    });
+    const events: { action: string; meta?: Record<string, unknown> }[] = [];
+    const limiter = new ByoaConcurrencyLimiter({ perCliLimit: 1, globalLimit: 1, maxQueue: 1 });
+    const provider = createByoaProvider({
+      provider: "cursor_cli",
+      model: "claude-fable-5",
+      expectedFamily: "claude",
+      familyOf,
+      profile: "default",
+      audit: {
+        record(event) {
+          events.push({ action: event.action, ...(event.meta ? { meta: event.meta as Record<string, unknown> } : {}) });
+          return { id: "aud_1" };
+        }
+      },
+      binaryPath: process.execPath,
+      networkRetryLimit: 1,
+      concurrencyLimiter: limiter,
+      readonlyFoundationCwd: home
+    });
+    const pending = provider.chat({ messages: [{ role: "user", content: "hi" }] });
+    await Promise.resolve();
+    spawned.child.emit("exit", 0, null);
+    spawned.child.stdin.emit("error", Object.assign(new Error("read EIO"), { code: "EIO" }));
+    spawned.child.emit("close", 0, null);
+    const result = await pending;
+    expect(result).toMatchObject({ ok: false, code: "pipe_failed", retryable: false });
+    expect(limiter.snapshot().globalActive).toBe(0);
+    expect(events.find((event) => event.action === "byoa.invocation")?.meta?.["voidReason"]).toBe("pipe_failed");
+  });
+
+  it("terminating 窗口 stdin ECONNRESET 可成功", async () => {
+    const home = mkdtempSync(join(tmpdir(), "saydo-byoa-stdin-reset-"));
+    homes.push(home);
+    configureRuntimeChildRegistry(home);
+    const spawned = fakeSpawned(51010, home);
+    setRuntimeChildTestHooks({
+      spawn: () => spawned,
+      groupState: () => "gone"
+    });
+    const pending = runSpawnTurn({
+      argv: { bin: "cursor-agent", args: ["-p"], cwd: home },
+      prompt: "hi",
+      networkRetryLimit: 1
+    });
+    await Promise.resolve();
+    spawned.child.emit("exit", 0, null);
+    spawned.child.stdin.emit("error", Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" }));
+    spawned.child.emit("close", 0, null);
+    const result = await pending;
+    expect(result.pipeError).toBeUndefined();
+    expect(result.exitCode).toBe(0);
+    expect(result.attempts).toBe(1);
   });
 });

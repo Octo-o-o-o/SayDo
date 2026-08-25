@@ -1,7 +1,7 @@
 # 22 · R-A 落盘核验复核 + 补完终局追认
 
 审查日期：2026-07-27 至 2026-07-28。
-审查对象：`docs/`、`docs.bak-r-a-20260727/`、`history/PROCESS-JOURNAL.md`、21 号报告，以及只读参照仓 `/Users/wangyixiao/WorkSpace/SayDo`。
+审查对象：`docs/`、`docs.bak-r-a-20260727/`、`history/PROCESS-JOURNAL.md`、21 号报告，以及只读参照仓 `~/WorkSpace/SayDo`。
 裁决对象：R-A 域，不替代 W5a/W4 的整批产品验收。
 
 ## 一句话结论
@@ -696,8 +696,8 @@ writing 继续保持 disabled 时成立。若要翻 writing 开值，正文节�
 
 ```sh
 set -euo pipefail
-VC=/Users/wangyixiao/WorkSpace/voice-coding
-SD=/Users/wangyixiao/WorkSpace/SayDo
+VC=~/WorkSpace/voice-coding
+SD=~/WorkSpace/SayDo
 BASE=b5d45e9f7df66f2dad218112edefec0a0af1ddb9
 AUDITED=edac8d0398f182da638664afe22030ee32f67107
 
@@ -726,7 +726,7 @@ PY
 
 ```sh
 set -euo pipefail
-SD=/Users/wangyixiao/WorkSpace/SayDo
+SD=~/WorkSpace/SayDo
 AUDITED=edac8d0398f182da638664afe22030ee32f67107
 OUT=$(mktemp -t ra22-current-tests)
 
@@ -757,8 +757,8 @@ NODE
 
 ```sh
 set -euo pipefail
-VC=/Users/wangyixiao/WorkSpace/voice-coding
-SD=/Users/wangyixiao/WorkSpace/SayDo
+VC=~/WorkSpace/voice-coding
+SD=~/WorkSpace/SayDo
 
 python3 - "$VC/docs/09-data-contracts.md" \
           "$SD/packages/contracts/src/types/approval.ts" \
@@ -848,7 +848,7 @@ A2 的工具级正反例必须真实执行；下列六个语义用例缺一、sk
 
 ```sh
 set -euo pipefail
-SD=/Users/wangyixiao/WorkSpace/SayDo
+SD=~/WorkSpace/SayDo
 OUT=$(mktemp -t ra22-a2-tests)
 
 pnpm --dir "$SD" --filter @saydo/daemon exec vitest run \
@@ -880,8 +880,8 @@ NODE
 
 ```sh
 set -euo pipefail
-VC=/Users/wangyixiao/WorkSpace/voice-coding
-SD=/Users/wangyixiao/WorkSpace/SayDo
+VC=~/WorkSpace/voice-coding
+SD=~/WorkSpace/SayDo
 
 python3 - "$VC/docs/09-data-contracts.md" \
           "$SD/packages/daemon/src/index.ts" \
@@ -943,8 +943,8 @@ coding settle；实现行为与 §12 反例同时检查。**
 
 ```sh
 set -euo pipefail
-VC=/Users/wangyixiao/WorkSpace/voice-coding
-SD=/Users/wangyixiao/WorkSpace/SayDo
+VC=~/WorkSpace/voice-coding
+SD=~/WorkSpace/SayDo
 
 python3 - "$VC/docs/09-data-contracts.md" \
           "$SD/packages/daemon/src/tier1/typeGate.ts" \
@@ -990,7 +990,7 @@ canonical 状态与 API 同步。下列旧句任一命中即红；generic receip
 
 ```sh
 set -euo pipefail
-VC=/Users/wangyixiao/WorkSpace/voice-coding
+VC=~/WorkSpace/voice-coding
 
 if rg -n '\*\*writing 已启用\*\*|\*\*W4 开值\*\*|开值 = W4 收口动作|实施仓现 \*\*v5\*\*|禁 DAO 直改,W4 补谓词|随下一契约同步批接线|实施仓接线时机 = 下一契约同步批|实施批次排产待 PLAN-2|实施待接\(W4\)|前置七项中六项全绿|verify-fail.*机械检查.*才算全绿|第 6 项.*待.*内容 lint fail|已生物/本机强认证' \
   "$VC/docs/09-data-contracts.md" "$VC/docs/05-roadmap.md"; then
@@ -1017,7 +1017,7 @@ S3 producer-only provenance 选择还要求消费端复验 challenge 已消费�
 
 ```sh
 set -euo pipefail
-SD=/Users/wangyixiao/WorkSpace/SayDo
+SD=~/WorkSpace/SayDo
 
 python3 - "$SD/packages/daemon/src/tier1/s3Tools.ts" <<'PY'
 from pathlib import Path
@@ -1047,7 +1047,7 @@ writing verify、正文节锚、额外 verdict、重复 verdict 必须是四个�
 
 ```sh
 set -euo pipefail
-SD=/Users/wangyixiao/WorkSpace/SayDo
+SD=~/WorkSpace/SayDo
 OUT=$(mktemp -t ra22-writing-tests)
 
 pnpm --dir "$SD" --filter @saydo/daemon exec vitest run \
@@ -1079,8 +1079,8 @@ current canonical 已选择“`expires_at` 一次写锚”；除静态唯一写�
 
 ```sh
 set -euo pipefail
-VC=/Users/wangyixiao/WorkSpace/voice-coding
-SD=/Users/wangyixiao/WorkSpace/SayDo
+VC=~/WorkSpace/voice-coding
+SD=~/WorkSpace/SayDo
 
 python3 - "$VC/docs/09-data-contracts.md" \
           "$SD/packages/contracts/src/types/package.ts" \
@@ -1126,8 +1126,8 @@ NODE
 
 ```sh
 set -euo pipefail
-VC=/Users/wangyixiao/WorkSpace/voice-coding
-SD=/Users/wangyixiao/WorkSpace/SayDo
+VC=~/WorkSpace/voice-coding
+SD=~/WorkSpace/SayDo
 
 rg -n 'writing.*(?:17 例|17/17)|(?:17 例|17/17).*writing' \
   "$SD/e2e/evidence/w4-batch.md"
@@ -1148,7 +1148,7 @@ PY
 
 ```sh
 set -euo pipefail
-SD=/Users/wangyixiao/WorkSpace/SayDo
+SD=~/WorkSpace/SayDo
 
 (cd "$SD" && just ci)
 (cd "$SD" && pnpm exec playwright test)

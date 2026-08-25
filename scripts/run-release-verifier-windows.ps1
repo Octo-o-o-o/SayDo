@@ -32,7 +32,7 @@ try {
   if (Compare-Object -ReferenceObject $expectedProperties -DifferenceObject $actualProperties) {
     throw "request property set is invalid"
   }
-  if ($request.schemaVersion -ne 1 -or $request.tag -ne "v0.1.0-rc.3") {
+  if ($request.schemaVersion -ne 1 -or $request.tag -ne "v0.1.0-rc.4") {
     throw "request release identity is invalid"
   }
   $expectedUrl = "https://github.com/Octo-o-o-o/SayDo/releases/download/$($request.tag)/saydo-cli-$($request.tag.Substring(1)).tgz"
@@ -45,7 +45,10 @@ try {
   if ($request.challenge -notmatch "^[0-9a-f]{64}$") {
     throw "request challenge is invalid"
   }
-  if ($request.verifierPath -notmatch "^[A-Za-z0-9.-]+\.mjs$") {
+  if ($request.verifierPath -cne "scripts/verify-release-url.mjs") {
+    throw "request verifier path is invalid"
+  }
+  if ($request.verifierPath -match "(\.\.|//|\\\\|[\x00-\x1f])" -or $request.verifierPath.StartsWith("/") -or $request.verifierPath -match "^[A-Za-z]:") {
     throw "request verifier path is invalid"
   }
   if ($request.nodePath -notmatch "^[A-Za-z]:[\\/].+\.exe$" -or $request.nodePath -match "[\x00-\x1f]") {

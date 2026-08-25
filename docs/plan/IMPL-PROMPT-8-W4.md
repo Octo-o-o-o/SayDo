@@ -4,7 +4,7 @@
 
 ---
 
-你接手 **SayDo W4 批(S3 卡 + writing 窄版落地)**。代码仓 `/Users/wangyixiao/WorkSpace/SayDo`(main 直推);设计库 `/Users/wangyixiao/WorkSpace/voice-coding`(只读;canonical 回写见 §2 红线)。完成判定 = §3 各项验收锚绿 + evidence `e2e/evidence/w4-batch.md` 落盘 + HANDOFF 回填(批次指针开批写 `W4`、收口清除)。
+你接手 **SayDo W4 批(S3 卡 + writing 窄版落地)**。代码仓 `~/WorkSpace/SayDo`(main 直推);设计库 `~/WorkSpace/voice-coding`(只读;canonical 回写见 §2 红线)。完成判定 = §3 各项验收锚绿 + evidence `e2e/evidence/w4-batch.md` 落盘 + HANDOFF 回填(批次指针开批写 `W4`、收口清除)。
 
 ## 0. 坐标核验(先做,漂移即停;期望值 2026-07-27 19:10 实测)
 

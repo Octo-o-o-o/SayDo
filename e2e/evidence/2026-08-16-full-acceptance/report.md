@@ -7,7 +7,7 @@
 - `/health.identity.sourceRevision` 与 HEAD 一致:`bc2ac871ee97`
 - Browser: Playwright Chromium headless;桌面 1440x900;本机窄屏 390x844;LAN 横屏 1000x844
 - Web 入口:`http://localhost:47100/`(G1 首次 `?token=`,证据不写 token)
-- LAN:`http://192.168.31.132:47100/`
+- LAN:`http://<private-ip>:47100/`
 - API:`http://127.0.0.1:47100`
 - Start: 2026-08-16T17:50:06+08:00
 - End: 2026-08-16T17:51:27+08:00(走查主程 81s;just ci 与 Playwright 全套另计)

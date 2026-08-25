@@ -1,9 +1,52 @@
 // BYOA 一发一收 spawn 运行器(无 Electron):prompt 走 stdin,持续 drain stdout/stderr。
 // 安全底座:wall/idle 双 watchdog、总输出上限、AbortSignal、SIGTERM→3s→SIGKILL、网络失败至多重试一次。
 
+import { randomUUID } from "node:crypto";
 import { StringDecoder } from "node:string_decoder";
 import type { CageArgv, CageProvider } from "./cage.js";
-import { runtimeProcessGroupState, signalRuntimeChildTree, spawnRuntimeChild } from "../../runtimeChildRegistry.js";
+import {
+  ProcessGroupLifecycleError,
+  contaminateSharedLifecycle,
+  inspectUntrustedPipeFailure,
+  isProcessGroupLifecycleError,
+  projectTrustedKillFailure,
+  resetSharedLifecycleForTests,
+  safeFailureText,
+  sharedLifecycleContaminationError
+} from "../../processGroupLifecycle.js";
+import {
+  RUNTIME_DRAIN_DEADLINE_MS,
+  runtimeClearTimeout,
+  runtimeCloseDeadlineMs,
+  runtimeNow,
+  runtimeProcessGroupState,
+  runtimeSetTimeout,
+  shouldIgnoreTerminatingPipeError,
+  spawnRuntimeChild,
+  type SpawnedRuntimeChild
+} from "../../runtimeChildRegistry.js";
+
+let byoaLifecycleContamination: ProcessGroupLifecycleError | null = null;
+
+export function getByoaLifecycleContamination(): ProcessGroupLifecycleError | null {
+  return byoaLifecycleContamination ?? sharedLifecycleContaminationError();
+}
+
+export function contaminateByoaLifecycle(err: unknown): ProcessGroupLifecycleError {
+  const contamination = contaminateSharedLifecycle(err);
+  byoaLifecycleContamination ??= contamination;
+  return contamination;
+}
+
+export function resetByoaLifecycleForTests(): void {
+  byoaLifecycleContamination = null;
+  resetSharedLifecycleForTests();
+}
+
+export function assertByoaShutdownAllowsStopped(): void {
+  const contamination = getByoaLifecycleContamination();
+  if (contamination) throw contamination;
+}
 
 export const DEFAULT_WALL_TIMEOUT_MS = 120_000;
 export const DEFAULT_IDLE_TIMEOUT_MS = 45_000;
@@ -36,6 +79,9 @@ export interface SpawnAttemptResult {
   aborted: boolean;
   outputLimitExceeded: boolean;
   spawnError?: string;
+  pipeError?: { stream: "stdout" | "stderr" | "stdin"; code: string };
+  pipeErrors?: Array<{ stream: "stdout" | "stderr" | "stdin"; code: string }>;
+  lifecycleError?: "process_group_not_reaped";
   safetyStop?: "tripwire" | "unknown_event" | "parse_error" | "family_mismatch";
   /** 触发 safetyStop 的 stdout 行原文(截断/脱敏由调用方负责)。 */
   safetyStopLine?: string;
@@ -83,7 +129,7 @@ export function buildSpawnEnv(passEnv: Record<string, string | undefined> = {}):
 }
 
 function isRetryableNetworkFailure(result: SpawnAttemptResult): boolean {
-  if (result.aborted || result.timedOut || result.outputLimitExceeded || result.safetyStop) return false;
+  if (result.aborted || result.timedOut || result.outputLimitExceeded || result.safetyStop || result.spawnError || result.pipeError || result.lifecycleError) return false;
   if (result.exitCode === 0) return false;
   return /(?:network|connection|econnreset|econnrefused|socket|fetch failed|temporarily unavailable|retrying)/i.test(
     result.stderrTail
@@ -108,14 +154,52 @@ async function runSpawnAttempt(opts: SpawnTurnOptions): Promise<SpawnAttemptResu
   const killGraceMs = opts.killGraceMs ?? DEFAULT_KILL_GRACE_MS;
 
   return new Promise((resolve) => {
-    const spawned = spawnRuntimeChild(opts.argv.bin, opts.argv.args, {
-      cwd: opts.argv.cwd,
-      env: buildSpawnEnv(opts.passEnv),
-      stdin: "pipe",
-      stdout: "pipe",
-      stderr: "pipe"
-    }, "byoa");
+    const failSpawn = (err: unknown): void => {
+      if (isProcessGroupLifecycleError(err)) {
+        contaminateByoaLifecycle(err);
+        resolve({
+          lines: [],
+          stderrTail: "",
+          exitCode: null,
+          timedOut: false,
+          aborted: false,
+          outputLimitExceeded: false,
+          spawnError: safeFailureText(err),
+          lifecycleError: "process_group_not_reaped"
+        });
+        return;
+      }
+      resolve({
+        lines: [],
+        stderrTail: "",
+        exitCode: null,
+        timedOut: false,
+        aborted: false,
+        outputLimitExceeded: false,
+        spawnError: safeFailureText(err)
+      });
+    };
+    let spawned: SpawnedRuntimeChild;
+    try {
+      spawned = spawnRuntimeChild(opts.argv.bin, opts.argv.args, {
+        cwd: opts.argv.cwd,
+        env: buildSpawnEnv(opts.passEnv),
+        stdin: "pipe",
+        stdout: "pipe",
+        stderr: "pipe",
+        runId: randomUUID(),
+        ...(opts.signal ? { signal: opts.signal } : {})
+      }, "byoa");
+    } catch (err) {
+      failSpawn(err);
+      return;
+    }
     const { child, lease: childLease } = spawned;
+    const signalCaptured = spawned.signal;
+    if (!signalCaptured) {
+      failSpawn(new ProcessGroupLifecycleError("runtime job identity missing"));
+      return;
+    }
 
     const lines: string[] = [];
     const stdoutDecoder = new StringDecoder("utf8");
@@ -130,8 +214,13 @@ async function runSpawnAttempt(opts: SpawnTurnOptions): Promise<SpawnAttemptResu
     let safetyStop: SpawnAttemptResult["safetyStop"];
     let safetyStopLine: string | undefined;
     let spawnError: string | undefined;
+    let pipeError: SpawnAttemptResult["pipeError"];
+    const pipeErrors: NonNullable<SpawnAttemptResult["pipeErrors"]> = [];
+    const seenPipeProjected = new WeakSet<object>();
+    let lifecycleError: SpawnAttemptResult["lifecycleError"];
     let settled = false;
     let stopping = false;
+    let exiting = false;
     let wallTimer: NodeJS.Timeout | undefined;
     let wallArmTimer: NodeJS.Timeout | undefined;
     let idleTimer: NodeJS.Timeout | undefined;
@@ -139,58 +228,52 @@ async function runSpawnAttempt(opts: SpawnTurnOptions): Promise<SpawnAttemptResu
     let drainTimer: NodeJS.Timeout | undefined;
     let treeKillAt = 0;
     let treeKillSent = false;
+    let closeDeadlineAt: number | undefined;
 
     const clearTimers = (): void => {
-      if (wallTimer) clearTimeout(wallTimer);
-      if (wallArmTimer) clearTimeout(wallArmTimer);
-      if (idleTimer) clearTimeout(idleTimer);
-      if (killTimer) clearTimeout(killTimer);
-      if (drainTimer) clearTimeout(drainTimer);
+      runtimeClearTimeout(wallTimer);
+      runtimeClearTimeout(wallArmTimer);
+      runtimeClearTimeout(idleTimer);
+      runtimeClearTimeout(killTimer);
+      runtimeClearTimeout(drainTimer);
     };
 
     const killProcessTree = (signal: NodeJS.Signals): void => {
-      if (child.pid) {
-        try {
-          signalRuntimeChildTree(child.pid, signal);
-          return;
-        } catch {
-          // 进程组已退出或平台不支持负 PID，回退直接子进程。
-        }
-      }
       try {
-        child.kill(signal);
-      } catch {
-        // 子进程已退出。
+        signalCaptured(signal);
+      } catch (err) {
+        contaminateByoaLifecycle(projectTrustedKillFailure(signal, err, "primary"));
+        lifecycleError = "process_group_not_reaped";
       }
     };
 
     const requestStop = (): void => {
       if (stopping) return;
       stopping = true;
+      closeDeadlineAt ??= runtimeNow() + runtimeCloseDeadlineMs();
       try {
         child.stdin.end();
       } catch {
         // stdin 已关闭。
       }
       killProcessTree("SIGTERM");
-      treeKillAt = Date.now() + killGraceMs;
-      killTimer = setTimeout(() => {
+      treeKillAt = runtimeNow() + killGraceMs;
+      killTimer = runtimeSetTimeout(() => {
         if (settled) return;
         treeKillSent = true;
         killProcessTree("SIGKILL");
+        armDrainWatch();
       }, killGraceMs);
-      killTimer.unref?.();
     };
 
     const resetIdleTimer = (): void => {
       if (idleTimer) clearTimeout(idleTimer);
       if (idleMs <= 0 || settled || stopping) return;
-      idleTimer = setTimeout(() => {
+      idleTimer = runtimeSetTimeout(() => {
         timedOut = true;
         timeoutKind = "idle";
         requestStop();
       }, idleMs);
-      idleTimer.unref?.();
     };
 
     const acceptOutput = (chunk: Buffer): boolean => {
@@ -230,16 +313,33 @@ async function runSpawnAttempt(opts: SpawnTurnOptions): Promise<SpawnAttemptResu
       if (!acceptOutput(chunk)) return;
       stderrTail = (stderrTail + stderrDecoder.write(chunk)).slice(-64 * 1024);
     });
-    // 子进程可能在 prompt 写完前退出；stdin EPIPE 属于该次进程结果，不能变成未捕获异常。
-    child.stdin.on("error", () => {
-      // 退出码/close 事件才是权威结果；EPIPE 不应被误报成 spawn_failed。
-    });
+    const handlePipeError = (stream: "stdout" | "stderr" | "stdin", err: unknown): void => {
+      try {
+        const inspection = inspectUntrustedPipeFailure(err);
+        if (shouldIgnoreTerminatingPipeError(inspection.trustedCode, stopping || exiting)) return;
+        if (seenPipeProjected.has(inspection.projected)) return;
+        seenPipeProjected.add(inspection.projected);
+        const record = { stream, code: inspection.diagnostic.code };
+        pipeErrors.push(record);
+        pipeError ??= record;
+        stderrTail = `${stderrTail}\n${stream} pipe failed:${inspection.diagnostic.code}`.slice(-64 * 1024);
+        requestStop();
+      } catch {
+        const record = { stream, code: "unknown" as const };
+        pipeErrors.push(record);
+        pipeError ??= record;
+        stderrTail = `${stderrTail}\n${stream} pipe failed:unknown`.slice(-64 * 1024);
+        requestStop();
+      }
+    };
+    child.stdout.on("error", (err: unknown) => handlePipeError("stdout", err));
+    child.stderr.on("error", (err: unknown) => handlePipeError("stderr", err));
+    child.stdin.on("error", (err: unknown) => handlePipeError("stdin", err));
 
     const finish = (exitCode: number | null): void => {
       if (settled) return;
       settled = true;
       clearTimers();
-      childLease.release();
       opts.signal?.removeEventListener("abort", onAbort);
       if (!outputLimitExceeded) stdoutBuf += stdoutDecoder.end();
       stderrTail = (stderrTail + stderrDecoder.end()).slice(-64 * 1024);
@@ -248,7 +348,7 @@ async function runSpawnAttempt(opts: SpawnTurnOptions): Promise<SpawnAttemptResu
         safetyStop ??= opts.onStdoutLine?.(stdoutBuf);
         if (safetyStop && safetyStopLine === undefined) safetyStopLine = stdoutBuf;
       }
-      resolve({
+      const payload: SpawnAttemptResult = {
         lines,
         stderrTail,
         exitCode,
@@ -257,69 +357,126 @@ async function runSpawnAttempt(opts: SpawnTurnOptions): Promise<SpawnAttemptResu
         aborted,
         outputLimitExceeded,
         ...(spawnError ? { spawnError } : {}),
+        ...(pipeError ? { pipeError } : {}),
+        ...(pipeErrors.length > 0 ? { pipeErrors } : {}),
+        ...(lifecycleError ? { lifecycleError } : {}),
         ...(safetyStop ? { safetyStop } : {}),
         ...(safetyStopLine !== undefined ? { safetyStopLine } : {})
-      });
+      };
+      void childLease.release().then(
+        () => resolve(payload),
+        (err) => {
+          contaminateByoaLifecycle(err);
+          resolve({
+            ...payload,
+            exitCode: payload.exitCode === 0 ? 1 : payload.exitCode,
+            lifecycleError: "process_group_not_reaped"
+          });
+        }
+      );
     };
 
+    let drainStartedAt = 0;
+    let childClosed = false;
+    let lastExitCode: number | null = null;
     const finishAfterTreeDrain = (exitCode: number | null): void => {
+      lastExitCode = exitCode;
       if (!child.pid) {
-        finish(exitCode);
+        if (childClosed) finish(exitCode);
         return;
       }
       const groupState = runtimeProcessGroupState(child.pid);
-      if (groupState === "gone") {
+      if (!drainStartedAt) drainStartedAt = runtimeNow();
+      const expired = runtimeNow() - drainStartedAt >= RUNTIME_DRAIN_DEADLINE_MS;
+      if (groupState === "gone" && childClosed) {
         finish(exitCode);
         return;
       }
-      // EPERM/其它探测异常不是“已经退出”；保留 durable owner 并继续 fail-closed 等待，
-      // 让上层 shutdown deadline 进入有界 fatal，而不是先报 stopped 留下未知后代。
-      if (groupState === "unknown") {
-        drainTimer = setTimeout(() => finishAfterTreeDrain(exitCode), 50);
+      if (!childClosed && closeDeadlineAt !== undefined && runtimeNow() >= closeDeadlineAt) {
+        killProcessTree("SIGKILL");
+        treeKillSent = true;
+        lifecycleError = "process_group_not_reaped";
+        contaminateByoaLifecycle(new ProcessGroupLifecycleError(
+          `byoa child close withheld:${String(child.pid)}`
+        ));
+        if (groupState === "gone" || expired) {
+          finish(exitCode);
+          return;
+        }
+      }
+      if (expired) {
+        lifecycleError = "process_group_not_reaped";
+        contaminateByoaLifecycle(new ProcessGroupLifecycleError(
+          groupState === "unknown"
+            ? `byoa process group ${String(child.pid)} state unknown`
+            : `byoa process group ${String(child.pid)} did not exit`
+        ));
+        finish(exitCode);
         return;
       }
-      if (!treeKillAt) treeKillAt = Date.now() + killGraceMs;
-      if (!treeKillSent && Date.now() >= treeKillAt) {
+      if (!treeKillAt) treeKillAt = runtimeNow() + killGraceMs;
+      if (!treeKillSent && runtimeNow() >= treeKillAt) {
         treeKillSent = true;
         killProcessTree("SIGKILL");
       }
-      drainTimer = setTimeout(() => finishAfterTreeDrain(exitCode), 10);
+      drainTimer = runtimeSetTimeout(() => finishAfterTreeDrain(lastExitCode), groupState === "unknown" ? 50 : 10);
+    };
+    const armDrainWatch = (): void => {
+      if (!drainStartedAt) drainStartedAt = runtimeNow();
+      finishAfterTreeDrain(lastExitCode);
     };
 
-    child.on("error", (err) => {
-      spawnError = err.message;
-      finish(null);
+    child.on("error", (err: unknown) => {
+      spawnError = safeFailureText(err);
+      if (!child.pid) {
+        childClosed = true;
+        finish(null);
+        return;
+      }
+      requestStop();
     });
     // direct child 正常/异常退出时也收掉同组后代；否则 stdio=ignore 的孙进程会静默泄漏，
     // 继承 pipe 的孙进程则会让 close 永不抵达。
     child.on("exit", () => {
+      exiting = true;
+      closeDeadlineAt ??= runtimeNow() + runtimeCloseDeadlineMs();
       if (!stopping) requestStop();
     });
-    child.on("close", (code) => finishAfterTreeDrain(code));
+    child.on("close", (code) => {
+      childClosed = true;
+      finishAfterTreeDrain(code);
+    });
 
     void childLease.establish()
       .then(() => {
+        if (opts.signal?.aborted) {
+          requestStop();
+          return;
+        }
         // arbitrary CLI 没有统一 ready frame；给目标进程一个有界启动窗安装信号处理，
         // 业务 walltime 从启动窗后计，避免只杀 wrapper 而目标尚未真正运行。
-        wallArmTimer = setTimeout(() => {
-          wallTimer = setTimeout(() => {
+        wallArmTimer = runtimeSetTimeout(() => {
+          wallTimer = runtimeSetTimeout(() => {
             timedOut = true;
             timeoutKind = "wall";
             requestStop();
           }, wallMs);
-          wallTimer.unref?.();
         }, 500);
-        wallArmTimer.unref?.();
         resetIdleTimer();
         try {
           child.stdin.end(opts.prompt);
         } catch (err) {
-          spawnError = err instanceof Error ? err.message : String(err);
+          spawnError = safeFailureText(err);
           requestStop();
         }
       })
-      .catch((err) => {
-        spawnError = err instanceof Error ? err.message : String(err);
+      .catch((err: unknown) => {
+        if (isProcessGroupLifecycleError(err)) {
+          contaminateByoaLifecycle(err);
+          lifecycleError = "process_group_not_reaped";
+        } else {
+          spawnError = safeFailureText(err);
+        }
         requestStop();
       });
   });

@@ -5,7 +5,7 @@
 ## 背景
 
 owner 提出将设计文档库 voice-coding 合并进实现仓 SayDo,voice-coding 转归档。方案文档已成稿:
-`/Users/wangyixiao/WorkSpace/voice-coding/REPO-MERGE-PROPOSAL.md`。请对该方案做对抗性复核。
+`~/WorkSpace/voice-coding/REPO-MERGE-PROPOSAL.md`。请对该方案做对抗性复核。
 
 ## 复核任务(逐条编号裁决)
 
@@ -23,4 +23,4 @@ owner 提出将设计文档库 voice-coding 合并进实现仓 SayDo,voice-codin
 - 结尾给"事实前提核验表"(你实读了哪些文件/跑了哪些命令、哪些结论来自推断);
 - 全部结论必须来自实读文件与实跑命令(只读命令:ls/rg/du/git status 等),不许臆测;读不到的如实标注。
 
-仓库路径:设计库 `/Users/wangyixiao/WorkSpace/voice-coding`(canonical,非 git);实现仓 `/Users/wangyixiao/WorkSpace/SayDo`(git,main)。
+仓库路径:设计库 `~/WorkSpace/voice-coding`(canonical,非 git);实现仓 `~/WorkSpace/SayDo`(git,main)。

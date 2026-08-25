@@ -7,7 +7,23 @@
 import { createServer, type Server } from "node:http";
 import { existsSync, unlinkSync } from "node:fs";
 import { z } from "zod";
-import { listenGateHttp } from "@saydo/platform";
+import { listenGateHttp, projectUntrustedFailureText, readOwnErrnoCode } from "@saydo/platform";
+
+export const GATE_BIND_FAILED = "gate bind failed";
+export const GATE_CLOSE_FAILED = "gate close failed";
+export const GATE_REQUEST_FAILED = "gate request failed";
+
+interface GateServerTestHooks {
+  listenDelayMs?: number;
+  forceListenError?: NodeJS.ErrnoException;
+  preserveSockFile?: boolean;
+}
+
+let gateServerTestHooks: GateServerTestHooks = {};
+
+export function setGateServerTestHooks(hooks: GateServerTestHooks | null): void {
+  gateServerTestHooks = hooks ?? {};
+}
 
 const legacyGateRequestSchema = z.object({
   command: z.string(),
@@ -59,12 +75,27 @@ export interface GateWireResponse {
 
 export type GateHandler = (req: GateWireRequest) => Promise<GateWireResponse>;
 
+function projectGateBindFailure(err: unknown): Error {
+  const code = readOwnErrnoCode(err);
+  const out = new Error(code === "EADDRINUSE" || code === "EACCES" ? code : GATE_BIND_FAILED);
+  if (code === "EADDRINUSE" || code === "EACCES") {
+    Object.defineProperty(out, "code", { value: code });
+  }
+  return out;
+}
+
 /**
  * 起审批 socket 服务(调用方注入 handler = executor 的门决策链)。
- * 任何解析失败/handler 异常 ⇒ deny(fail-closed);旧 sock 文件启动前清理(崩溃残留)。
+ * 只有 listening 成功后才 resolve；异步 error 受控 reject；close/abort 不得留下失联 listener。
  */
-export function startGateServer(sockPath: string, handler: GateHandler): Server {
-  if (existsSync(sockPath)) unlinkSync(sockPath);
+export type GateListeningServer = Server & { failed: Promise<Error> };
+
+export function startGateServer(
+  sockPath: string,
+  handler: GateHandler,
+  options?: { signal?: AbortSignal }
+): Promise<GateListeningServer> {
+  if (existsSync(sockPath) && !gateServerTestHooks.preserveSockFile) unlinkSync(sockPath);
   const server = createServer((req, res) => {
     if (req.method !== "POST" || (req.url ?? "").split("?")[0] !== "/gate") {
       res.writeHead(404, { "content-type": "application/json" });
@@ -97,20 +128,111 @@ export function startGateServer(sockPath: string, handler: GateHandler): Server 
           res.end(
             JSON.stringify({
               permission: "deny",
-              agent_message: `SayDo gate error (fail-closed): ${String(err).slice(0, 120)}`
+              agent_message: `SayDo gate error (fail-closed): ${projectUntrustedFailureText(err, GATE_REQUEST_FAILED)}`
             } satisfies GateWireResponse)
           );
         }
       })();
     });
   });
-  server.listen(sockPath);
-  server.unref();
-  return server;
+  return new Promise<GateListeningServer>((resolve, reject) => {
+    let settled = false;
+    let closed = false;
+    let listenTimer: NodeJS.Timeout | undefined;
+    let failSettled = false;
+    let reportFail!: (err: Error) => void;
+    const failed = new Promise<Error>((resolveFail) => {
+      reportFail = resolveFail;
+    });
+    failed.then(() => undefined, () => undefined);
+    const listened = server as GateListeningServer;
+    Object.defineProperty(listened, "failed", { value: failed, enumerable: false });
+    server.on("error", (err) => {
+      if (failSettled) return;
+      failSettled = true;
+      reportFail(projectGateBindFailure(err));
+    });
+    const finish = (err?: Error): void => {
+      if (settled) return;
+      settled = true;
+      if (listenTimer) clearTimeout(listenTimer);
+      server.off("listening", onListening);
+      server.off("error", onError);
+      options?.signal?.removeEventListener("abort", onAbort);
+      if (err) {
+        closed = true;
+        server.close(() => {
+          reject(projectGateBindFailure(err));
+        });
+        return;
+      }
+      server.unref();
+      resolve(listened);
+    };
+    const onListening = (): void => {
+      if (closed) {
+        server.close(() => finish(new Error(GATE_BIND_FAILED)));
+        return;
+      }
+      finish();
+    };
+    const onError = (err: Error): void => {
+      finish(err);
+    };
+    const onAbort = (): void => {
+      closed = true;
+      finish(new Error(GATE_BIND_FAILED));
+    };
+    server.once("listening", onListening);
+    server.once("error", onError);
+    if (options?.signal?.aborted) {
+      onAbort();
+      return;
+    }
+    options?.signal?.addEventListener("abort", onAbort, { once: true });
+    const beginListen = (): void => {
+      if (settled) return;
+      const forced = gateServerTestHooks.forceListenError;
+      if (forced) {
+        queueMicrotask(() => onError(forced));
+        return;
+      }
+      try {
+        server.listen(sockPath);
+      } catch (err) {
+        finish(projectGateBindFailure(err));
+      }
+    };
+    const delay = gateServerTestHooks.listenDelayMs ?? 0;
+    if (delay > 0) listenTimer = setTimeout(beginListen, delay);
+    else beginListen();
+  });
+}
+
+export function closeGateServer(server: Server | null): Promise<void> {
+  if (!server) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const done = (err?: Error): void => {
+      if (settled) return;
+      settled = true;
+      const code = readOwnErrnoCode(err);
+      if (err && code !== "ERR_SERVER_NOT_RUNNING") {
+        reject(new Error(GATE_CLOSE_FAILED));
+        return;
+      }
+      resolve();
+    };
+    try {
+      server.close((err) => done(err ?? undefined));
+    } catch {
+      done(new Error(GATE_CLOSE_FAILED));
+    }
+  });
 }
 
 /** POSIX = unix socket; win32 = 环回临时端口 + HMAC */
-export async function startTier1Gate(saydoHome: string, sockPath: string, handler: GateHandler): Promise<Server> {
+export async function startTier1Gate(saydoHome: string, sockPath: string, handler: GateHandler): Promise<GateListeningServer> {
   if (process.platform === "win32") {
     const listened = await listenGateHttp(saydoHome, async (json) => handler(parseGateWireRequest(json)));
     return listened.server;

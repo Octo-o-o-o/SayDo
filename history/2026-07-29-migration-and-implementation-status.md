@@ -44,10 +44,10 @@
 
 ### 3.1 活动入口与冷档
 
-- 唯一活动仓：`/Users/wangyixiao/WorkSpace/SayDo`。
-- 兼容入口：`/Users/wangyixiao/WorkSpace/voice-coding`，精确指向 SayDo，与 SayDo 跟随后的
+- 唯一活动仓：`~/WorkSpace/SayDo`。
+- 兼容入口：`~/WorkSpace/voice-coding`，精确指向 SayDo，与 SayDo 跟随后的
   inode 相同，不是第二个开发目录。
-- 冷档：`/Users/wangyixiao/WorkSpace/voice-coding.archive-20260729`，是独立普通目录。
+- 冷档：`~/WorkSpace/voice-coding.archive-20260729`，是独立普通目录。
 - 冷档“冻结”是仓库协作规则，不是文件系统不可变属性；owner 仍可在操作系统层写入。
 
 迁前 2087 个非目录条目经清单守恒复算为：
@@ -297,7 +297,7 @@ owner 同时授权形成发布前 commit，并给出立即部署 daemon 与 pipe
 该精确 SHA 在独立 detached clean worktree 运行 `just ci`，结果为 contracts 73、daemon
 700 passed / 4 skipped、Python 25、emoji 自测 11/11，exit 0。
 
-部署前生成新快照 `/Users/wangyixiao/.saydo/backups/20260730T110948Z`，strict verifier
+部署前生成新快照 `~/.saydo/backups/20260730T110948Z`，strict verifier
 输出 `entries=4 digests=verified foundation=restorable extras=0`；隔离 dry-run restore 与真实
 消费者探针通过，临时根随后移入 Trash，可恢复。`git fetch origin main` 因 GitHub TLS
 `SSL_ERROR_SYSCALL` 连续两次失败，因此祖先关系仅基于本地

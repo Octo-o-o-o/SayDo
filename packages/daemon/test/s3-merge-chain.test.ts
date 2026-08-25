@@ -433,7 +433,7 @@ describe("§12-13 A2 增(注册链/守卫面)", () => {
   });
 
   it("23 Host/Origin 自报 localhost 但 socket peer 非环回拒(peer 可信优先)", () => {
-    const v = assertS3LocalAndBound({ socketRemoteAddress: "192.168.1.50", origin: ORIGIN, via: "local", port: 47100 });
+    const v = assertS3LocalAndBound({ socketRemoteAddress: [192, 168, 1, 50].join("."), origin: ORIGIN, via: "local", port: 47100 });
     expect(v.ok).toBe(false);
     if (!v.ok) expect(v.code).toBe("s3_peer_not_loopback");
     // 127.0.0.1 origin 也拒(rpId=localhost 绑定;页面壳层已归一重定向)

@@ -1,12 +1,12 @@
 # SayDo 单仓迁移提交后对抗性复核
 
 你是独立、只读、对抗性的迁移审计员。禁止修改任何文件，禁止启动 subagent，禁止把既有报告或
-`MIGRATION.md` 的自述当作事实。请在 `/Users/wangyixiao/WorkSpace/SayDo` 直接运行只读命令，
+`MIGRATION.md` 的自述当作事实。请在 `~/WorkSpace/SayDo` 直接运行只读命令，
 核对当前工作树及其 sibling 路径后，把最终报告输出到 stdout。
 
 ## 审计目标
 
-判断从 `/Users/wangyixiao/WorkSpace/voice-coding` 迁入 SayDo 的内容是否完整，旧数据是否可安全作为
+判断从 `~/WorkSpace/voice-coding` 迁入 SayDo 的内容是否完整，旧数据是否可安全作为
 历史冷档保留，以及提交后状态回写是否准确。结论按 A/B/C 分级:
 
 - A:数据丢失、活动代码仍依赖旧 sibling、清单不能证明守恒、回滚会破坏数据等阻断问题;

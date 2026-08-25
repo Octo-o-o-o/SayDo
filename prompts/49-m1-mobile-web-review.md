@@ -4,9 +4,9 @@
 
 基线是 `main` HEAD `415df2a86a5208c1f68672bab0c75618f3070594`，任务是 console M1 移动 Web。规格正本为：
 
-1. `/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-08-11-SayDo移动端完整方案-v1.md` 的 v3.2。
+1. `~/WorkSpace/OctoAgent/docs/product/2026-08-11-SayDo移动端完整方案-v1.md` 的 v3.2。
 2. 同文件 v3.3，冲突时 v3.3 优先。
-3. 视觉参照 `/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-08-11-mobile-demo-final-v3.html`，但 v3.3 明示降级的数据不得伪造。
+3. 视觉参照 `~/WorkSpace/OctoAgent/docs/product/2026-08-11-mobile-demo-final-v3.html`，但 v3.3 明示降级的数据不得伪造。
 
 必审范围：
 

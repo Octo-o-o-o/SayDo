@@ -1,7 +1,7 @@
 # Codex 25 · SayDo 单仓迁移第二轮终验
 
 > 审计日期：2026-07-29
-> 审计根：`/Users/wangyixiao/WorkSpace/SayDo`
+> 审计根：`~/WorkSpace/SayDo`
 > 审计角色：独立对抗性审查；不采信 MIGRATION、journal、Codex 24 或 subagent 自报
 > 写入边界：真实仓只写本报告；未 commit、push、pull、rebase、reset、clean、删除、解冻或改动真实
 > archive/symlink；所有破坏性演练均在 `/private/tmp` 完成
@@ -47,24 +47,24 @@ git rev-parse --show-toplevel
 git branch --show-current
 git rev-parse HEAD
 stat -f '%HT|%Sp|%z|%N' \
-  /Users/wangyixiao/WorkSpace/voice-coding \
-  /Users/wangyixiao/WorkSpace/voice-coding.archive-20260729
-readlink /Users/wangyixiao/WorkSpace/voice-coding
-realpath /Users/wangyixiao/WorkSpace/voice-coding
+  ~/WorkSpace/voice-coding \
+  ~/WorkSpace/voice-coding.archive-20260729
+readlink ~/WorkSpace/voice-coding
+realpath ~/WorkSpace/voice-coding
 ```
 
 原始输出摘录：
 
 ```text
-pwd_logical=/Users/wangyixiao/WorkSpace/voice-coding
-pwd_physical=/Users/wangyixiao/WorkSpace/SayDo
-git_root=/Users/wangyixiao/WorkSpace/SayDo
+pwd_logical=~/WorkSpace/voice-coding
+pwd_physical=~/WorkSpace/SayDo
+git_root=~/WorkSpace/SayDo
 branch=codex/merge-voice-coding-20260729
 head=838aeea4385a41ec58318437bb36a7db5ede635f
-Symbolic Link|lrwxr-xr-x|33|/Users/wangyixiao/WorkSpace/voice-coding
-Directory|drwxr-xr-x|992|/Users/wangyixiao/WorkSpace/voice-coding.archive-20260729
-compat_readlink=/Users/wangyixiao/WorkSpace/SayDo
-compat_realpath=/Users/wangyixiao/WorkSpace/SayDo
+Symbolic Link|lrwxr-xr-x|33|~/WorkSpace/voice-coding
+Directory|drwxr-xr-x|992|~/WorkSpace/voice-coding.archive-20260729
+compat_readlink=~/WorkSpace/SayDo
+compat_realpath=~/WorkSpace/SayDo
 ```
 
 `pwd` 仍显示旧逻辑路径，是 shell 会话从 symlink 入口继承的结果；`pwd -P` 与 Git 根均为 SayDo，
@@ -131,17 +131,17 @@ origin/main...HEAD=0  27
 
 ```bash
 node scripts/design-archive-manifest.mjs check \
-  /Users/wangyixiao/WorkSpace/voice-coding.archive-20260729 \
+  ~/WorkSpace/voice-coding.archive-20260729 \
   docs/plan/migration/source-prearchive-manifest.tsv \
   AGENTS.md README.md AGENTS.prearchive.md README.prearchive.md
 
 node scripts/verify-design-migration.mjs check \
-  /Users/wangyixiao/WorkSpace/voice-coding.archive-20260729 \
-  /Users/wangyixiao/WorkSpace/SayDo \
+  ~/WorkSpace/voice-coding.archive-20260729 \
+  ~/WorkSpace/SayDo \
   docs/plan/migration/migrated-files.tsv
 
 node scripts/target-change-manifest.mjs check \
-  /Users/wangyixiao/WorkSpace/SayDo \
+  ~/WorkSpace/SayDo \
   838aeea4385a41ec58318437bb36a7db5ede635f \
   docs/plan/migration/target-change-manifest.tsv
 ```
@@ -634,7 +634,7 @@ A 项删除需 owner 授权、不得使用宽泛 clean；但这些纪律不能�
 
 ```bash
 rg -n \
-  '/Users/wangyixiao/WorkSpace/voice-coding|\.\./voice-coding|\./voice-coding' \
+  '~/WorkSpace/voice-coding|\.\./voice-coding|\./voice-coding' \
   packages pipeline e2e scripts templates \
   README.md AGENTS.md HANDOFF.md docs/plan/IMPLEMENTATION-PLAN-2.md
 ```
@@ -810,7 +810,7 @@ ADR 双序列索引见 `docs/adr/README.md:3-22`：设计位于 `docs/adr/design
 `docs/adr/` 根；编号可重复，引用必须带序列。除 C-1 的 HANDOFF 三处裸写外，活动索引和链接没有
 发现分叉。
 
-当前包含 `/Users/wangyixiao` 的候选文件共 53 个：
+当前包含 `~` 的候选文件共 53 个：
 
 ```text
 HANDOFF 1
@@ -1028,8 +1028,8 @@ A-4/A-5、A-2/A-3 的实测反例击穿。
 
 ```bash
 set -euo pipefail
-repo=/Users/wangyixiao/WorkSpace/SayDo
-archive=/Users/wangyixiao/WorkSpace/voice-coding.archive-20260729
+repo=~/WorkSpace/SayDo
+archive=~/WorkSpace/voice-coding.archive-20260729
 baseline=838aeea4385a41ec58318437bb36a7db5ede635f
 
 test "$(git -C "$repo" branch --show-current)" = codex/merge-voice-coding-20260729

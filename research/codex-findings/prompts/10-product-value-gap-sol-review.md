@@ -1,7 +1,7 @@
 # Codex 10 · SayDo 产品价值与实施前校准方案对抗评审
 
 你是独立的产品战略、agent 架构与安全评审者。请在仓库
-`/Users/wangyixiao/WorkSpace/voice-coding` 中进行只读评审，不要修改任何文件。
+`~/WorkSpace/voice-coding` 中进行只读评审，不要修改任何文件。
 
 ## 主评对象
 

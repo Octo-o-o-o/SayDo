@@ -1,4 +1,5 @@
 import type { ModelBinding } from "@saydo/contracts";
+import { projectUntrustedFailureText } from "@saydo/platform";
 import { isAbsolute } from "node:path";
 import type { CliCapability } from "../config/cliCapability.js";
 import {
@@ -240,7 +241,7 @@ export function resolveDialogProvider(
         ? { provider: resolved, effective: "active", mode: "oneshot" }
         : { provider: null, effective: "unarmed", reason: "cli_self_test_required", mode: "oneshot" };
     } catch (err) {
-      log.warn("dialog CLI self-test registration rejected", { error: String(err).slice(0, 160) });
+      log.warn("dialog CLI self-test registration rejected", { error: projectUntrustedFailureText(err, "provider_error").slice(0, 160) });
       return { provider: null, effective: "unarmed", reason: "cli_self_test_failed", mode: "oneshot" };
     }
   }
@@ -248,7 +249,7 @@ export function resolveDialogProvider(
   try {
     return { provider: apiProvider("dialog", cfg, binding, env, audit), effective: "active", mode: "realtime" };
   } catch (err) {
-    log.warn("dialog provider unavailable", { error: String(err).slice(0, 160) });
+    log.warn("dialog provider unavailable", { error: projectUntrustedFailureText(err, "provider_error").slice(0, 160) });
     return { provider: null, effective: "unarmed", reason: "provider_unavailable", mode: "realtime" };
   }
 }
@@ -285,7 +286,7 @@ export function resolveThinkingProvider(
     } catch (err) {
       return fallbackDialog("thinking", dialogProvider, "cli_self_test_failed", log, {
         provider,
-        error: String(err).slice(0, 160)
+        error: projectUntrustedFailureText(err, "provider_error").slice(0, 160)
       });
     }
   }
@@ -294,7 +295,7 @@ export function resolveThinkingProvider(
     return { provider: apiProvider("thinking", cfg, binding, env, audit), effective: "active" };
   } catch (err) {
     return fallbackDialog("thinking", dialogProvider, "provider_unavailable", log, {
-      error: String(err).slice(0, 160)
+      error: projectUntrustedFailureText(err, "provider_error").slice(0, 160)
     });
   }
 }
@@ -318,7 +319,7 @@ export function resolveDrafterProvider(
     } catch (err) {
       return fallbackDialog("cheap", dialogProvider, "cli_self_test_failed", log, {
         provider,
-        error: String(err).slice(0, 160)
+        error: projectUntrustedFailureText(err, "provider_error").slice(0, 160)
       });
     }
   }
@@ -327,7 +328,7 @@ export function resolveDrafterProvider(
     return { provider: apiProvider("cheap", cfg, binding, env, audit), effective: "active" };
   } catch (err) {
     return fallbackDialog("cheap", dialogProvider, "provider_unavailable", log, {
-      error: String(err).slice(0, 160)
+      error: projectUntrustedFailureText(err, "provider_error").slice(0, 160)
     });
   }
 }
@@ -354,7 +355,7 @@ export function resolveEvaluatorProvider(
         ? { provider: resolved, effective: "active" }
         : { provider: null, effective: "unarmed", reason: "cli_self_test_required" };
     } catch (err) {
-      log.warn("evaluator CLI self-test registration rejected", { error: String(err).slice(0, 160) });
+      log.warn("evaluator CLI self-test registration rejected", { error: projectUntrustedFailureText(err, "provider_error").slice(0, 160) });
       return { provider: null, effective: "unarmed", reason: "cli_self_test_failed" };
     }
   }
@@ -382,7 +383,7 @@ export function resolveEvaluatorProvider(
     return { provider: apiProvider("evaluator", cfg, binding, env, audit), effective: "active" };
   } catch (err) {
     log.warn("evaluator provider unavailable; deep readiness pipeline unarmed", {
-      error: String(err).slice(0, 160)
+      error: projectUntrustedFailureText(err, "provider_error").slice(0, 160)
     });
     return { provider: null, effective: "unarmed", reason: "provider_unavailable" };
   }

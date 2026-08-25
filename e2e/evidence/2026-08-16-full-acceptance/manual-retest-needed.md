@@ -31,5 +31,5 @@ Git 只带源码与本目录证据,不带 `~/.saydo`(token、config.toml、SQLit
 1. `git pull` 到含 `feat(console): LAN remote-mobile` 的 HEAD(短 SHA `addfd19` 及之后的 evidence 提交)。
 2. 从源码起 daemon + pipeline + console;`SAYDO_MOBILE_LAN=1` 才允许扫码。不要默认常驻 `~/.saydo/runtime` 已经是这棵树。
 3. 向导或手改 `~/.saydo/config.toml`:对话/沉思/评估 = `cursor_cli` / `cursor-grok-4.6-high-fast`;廉价与 `[models.dev]` = `composer-2.5-fast`。然后跑设置里的自检或 `POST /api/setup/test` `scope=plan`。Cursor CLI 须已登录且能列出这两个模型。
-4. 入口用那台机器自己的 token:`http://localhost:47100/?token=$(cat ~/.saydo/.cap-token)`。不要复用本报告里的局域网地址 `192.168.31.132`。
+4. 入口用那台机器自己的 token:`http://localhost:47100/?token=$(cat ~/.saydo/.cap-token)`。不要复用本报告里的局域网地址 `<private-ip>`。
 5. 先做本页「必须人做」四场;自动化走查脚本 `walkthrough.mjs` 可选用,F1 等待条件有已知缺陷,以截图和设置页为准。

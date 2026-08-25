@@ -7,9 +7,17 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  assertAssetsMatchTrackedManifest,
+  assertIdentityMatchesTrackedManifest,
+  freezeTrackedReleaseAssetManifest,
+  inspectReleaseAssetDir,
+  loadTrackedReleaseAssetManifest
+} from "./release-asset-manifest.mjs";
+
 const mode = process.argv[2];
-if (!["--write", "--check"].includes(mode)) {
-  console.error("用法:node scripts/build-release-artifacts.mjs <--write|--check>");
+if (!["--write", "--check", "--freeze"].includes(mode)) {
+  console.error("用法:node scripts/build-release-artifacts.mjs <--write|--freeze|--check>");
   process.exit(2);
 }
 
@@ -131,9 +139,20 @@ function verifyArchiveAgainstCurrentBuild() {
   return entries.length;
 }
 
+function trackedIdentityFromMetadata(metadata, current) {
+  return {
+    package: metadata.package,
+    version: metadata.version,
+    tag: metadata.tag,
+    sourceRevision: current.sourceRevision,
+    buildId: current.buildId,
+    protocolVersion: current.protocolVersion
+  };
+}
+
 const currentBuild = buildCurrentSource();
 
-if (mode === "--write") {
+if (mode === "--write" || mode === "--freeze") {
   rmSync(releaseDir, { recursive: true, force: true });
   mkdirSync(releaseDir, { recursive: true });
   const npm = npmCommand();
@@ -146,7 +165,16 @@ if (mode === "--write") {
       const raw = execFileSync(
         npm.file,
         [...npm.prefix, "pack", "--ignore-scripts", "--json", "--pack-destination", destination],
-        { cwd: packageRoot, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] }
+        {
+          cwd: packageRoot,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "inherit"],
+          env: {
+            ...process.env,
+            npm_config_cache: join(scratch, "npm-cache"),
+            npm_config_logs_dir: join(scratch, "npm-logs")
+          }
+        }
       );
       const result = JSON.parse(raw)[0];
       if (result?.filename !== expectedFilename) throw new Error(`tarball 文件名不一致:${String(result?.filename)}`);
@@ -189,6 +217,14 @@ if (mode === "--write") {
     )}\n`
   );
   console.log(`[ok] release artifact: ${expectedFilename} bytes=${size} sha256=${digest}`);
+  if (mode === "--freeze") {
+    const metadata = JSON.parse(readFileSync(metadataFile, "utf8"));
+    freezeTrackedReleaseAssetManifest(repo, {
+      ...trackedIdentityFromMetadata(metadata, currentBuild),
+      assets: inspectReleaseAssetDir(releaseDir, pkg.version)
+    });
+    console.log(`[ok] frozen tracked manifest: docs/release/v${pkg.version}-assets.json`);
+  }
   process.exit(0);
 }
 
@@ -224,6 +260,9 @@ if (
 ) {
   throw new Error("release-metadata / tarball build identity 与当前源码输入不一致");
 }
+const tracked = loadTrackedReleaseAssetManifest(repo, `v${pkg.version}`);
+assertIdentityMatchesTrackedManifest(trackedIdentityFromMetadata(metadata, currentBuild), tracked);
+assertAssetsMatchTrackedManifest(inspectReleaseAssetDir(releaseDir, pkg.version), tracked);
 console.log(
   `[ok] release artifact verified: ${expectedFilename} bytes=${metadata.bytes} sha256=${digest} source=${currentBuild.sourceRevision}`
 );

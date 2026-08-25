@@ -29,6 +29,11 @@ function iface(partial: Partial<NetworkInterfaceInfo> & { address: string }): Ne
   };
 }
 
+const ipv4 = (...parts: number[]) => parts.join(".");
+const EN0 = ipv4(192, 168, 1, 23);
+const EN1 = ipv4(10, 0, 0, 8);
+const LAN = ipv4(192, 168, 0, 10);
+
 describe("pairing-info 本机投影", () => {
   it("只取 en0 非内部 IPv4", () => {
     expect(
@@ -36,15 +41,15 @@ describe("pairing-info 本机投影", () => {
         lo0: [iface({ address: "127.0.0.1", internal: true })],
         en0: [
           iface({ address: "fe80::1", family: "IPv6" }),
-          iface({ address: "192.168.1.23", family: "IPv4" })
+          iface({ address: EN0, family: "IPv4" })
         ],
-        en1: [iface({ address: "10.0.0.8", family: "IPv4" })]
+        en1: [iface({ address: EN1, family: "IPv4" })]
       })
-    ).toBe("192.168.1.23");
+    ).toBe(EN0);
   });
 
   it("en0 无 IPv4 或缺失时 lanIp 为 null", () => {
-    expect(lanIpv4FromInterfaces({ en1: [iface({ address: "10.0.0.8" })] })).toBeNull();
+    expect(lanIpv4FromInterfaces({ en1: [iface({ address: EN1 })] })).toBeNull();
     expect(lanIpv4FromInterfaces({ en0: [iface({ address: "fe80::1", family: "IPv6" })] })).toBeNull();
     expect(lanIpv4FromInterfaces({})).toBeNull();
   });
@@ -52,11 +57,11 @@ describe("pairing-info 本机投影", () => {
   it("payload 带 port 与 mobileLanEnabled", () => {
     expect(
       pairingInfoPayload({
-        ifaces: { en0: [iface({ address: "192.168.0.10" })] },
+        ifaces: { en0: [iface({ address: LAN })] },
         port: 47473,
         mobileLanEnabled: true
       })
-    ).toEqual({ lanIp: "192.168.0.10", port: 47473, mobileLanEnabled: true });
+    ).toEqual({ lanIp: LAN, port: 47473, mobileLanEnabled: true });
   });
 
   it("mobile_lan 白名单不放行 pairing-info", () => {

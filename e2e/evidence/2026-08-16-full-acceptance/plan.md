@@ -11,7 +11,7 @@
 
 ## 环境
 
-- 仓:`/Users/wangyixiao/WorkSpace/SayDo`,HEAD `bc2ac87`(evidence 提交;feat `addfd19`)。
+- 仓:`~/WorkSpace/SayDo`,HEAD `bc2ac87`(evidence 提交;feat `addfd19`)。
 - 模型(验收临时改 live `~/.saydo/config.toml`;备份 `.bak-2026-08-16-acceptance`):
   - dialog / thinking / evaluator = `cursor_cli` / `cursor-grok-4.6-high-fast`
   - cheap = `cursor_cli` / `composer-2.5-fast`

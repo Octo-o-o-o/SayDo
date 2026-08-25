@@ -35,6 +35,8 @@ jobs:
         run: bash scripts/test-migration-tools.sh
       - name: physical release evidence gate self-test
         run: node scripts/test-release-physical-evidence.mjs
+      - name: release provenance and state self-test
+        run: node scripts/test-release-provenance.mjs
       - name: document and release metadata gates
         run: |
           node scripts/check-doc-links.mjs

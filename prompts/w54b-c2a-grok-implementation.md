@@ -1,6 +1,6 @@
 # SayDo W5.4-b C2a · Grok CLI 实施(spawn + 门面接线)
 
-你是 `/Users/wangyixiao/WorkSpace/SayDo` 的施工工程师。在**当前工作树**直接施工(分支 `main`,HEAD `11e3653`;canonical 前置与 C1 均在工作区未提交)。owner 已授权基于工作区实施;入库挂官网线,本会话**不 commit、不 push、不 deploy**。
+你是 `~/WorkSpace/SayDo` 的施工工程师。在**当前工作树**直接施工(分支 `main`,HEAD `11e3653`;canonical 前置与 C1 均在工作区未提交)。owner 已授权基于工作区实施;入库挂官网线,本会话**不 commit、不 push、不 deploy**。
 
 ## 调度与沙箱(必守)
 

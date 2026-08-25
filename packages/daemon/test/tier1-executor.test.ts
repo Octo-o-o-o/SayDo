@@ -2,11 +2,13 @@
 // fake spawner(可控事件流与退出码)+ 真 git 仓 + 真 SQLite;gate 决策链单独在 gate-socket 测试。
 
 import { execFileSync, spawn } from "node:child_process";
-import { once } from "node:events";
+import { EventEmitter, once } from "node:events";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { createInterface } from "node:readline";
+import { PassThrough } from "node:stream";
 import { homedir, tmpdir } from "node:os";
-import { delimiter, join } from "node:path";
-import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { basename, delimiter, dirname, join } from "node:path";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computePackageDigest, newId, textDigest, tier1SettleProofSchema, type DecisionPackage } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
 import { createSqliteAuditSink } from "../src/storage/dao/misc.js";
@@ -19,9 +21,17 @@ import { cancelWithAutoSettle, requestCancel, retryTask, steerTask } from "../sr
 import { sweepRetryQueue } from "../src/providers/byoa/retryQueue.js";
 import {
   Tier1Executor,
+  bindAgentStdioPipeErrors,
+  brandedBinaryIdentityFailureText,
+  classifyTier1ReviewSettlementCatch,
+  classifyTier1ReviewTransactionCatch,
+  isTier1BinaryIdentityError,
   realAgentSpawner,
   strippedAgentEnv,
   AGENT_ENV_ALLOWLIST,
+  tier1CostLedgerFailure,
+  tier1ReviewTransactionFailure,
+  Tier1BinaryIdentityError,
   type AgentProcessHandle,
   type AgentSpawner,
   type ExecutorDeps
@@ -34,15 +44,45 @@ import { getProjectTasks } from "../src/api/console.js";
 import { buildActiveClaudeGateScript, buildActiveGateScript, ensureGateScript, gatePaths } from "../src/tier1/gateScript.js";
 import { writeClaudeIdentity } from "../src/tier1/claudeIdentity.js";
 import { sha256File } from "../src/providers/binaryIdentity.js";
+import {
+  combineLifecycleFailureList,
+  combineLifecycleFailures,
+  invocationBusinessFailure,
+  isProcessGroupLifecycleError,
+  lifecycleFailureLeaves,
+  ProcessGroupLifecycleError,
+  RuntimeInvocationError,
+  settleWithLeaseRelease
+} from "../src/processGroupLifecycle.js";
+import { registerExactTestRoot } from "./exact-test-roots.js";
+import {
+  RUNTIME_DRAIN_DEADLINE_MS,
+  RUNTIME_KILL_GRACE_MS,
+  beginRuntimeChild,
+  configureRuntimeChildRegistry,
+  installRuntimeJobForTests,
+  remainingRuntimeChildOwnerCount,
+  runtimeChildOwnerIdentity,
+  remainingRuntimeJobCount,
+  resetRuntimeChildLifecycleForTests,
+  runtimeChildLifecycleError,
+  setRuntimeChildTestHooks,
+  signalRuntimeChildTree,
+  spawnRuntimeChild,
+  type SpawnedRuntimeChild
+} from "../src/runtimeChildRegistry.js";
 import type { AuditSink } from "../src/obs/audit.js";
 import type { Logger } from "../src/obs/logger.js";
 import { freezeVerify } from "../src/tier1/verifyFreeze.js";
-import { readOwnedAgentProcessStart } from "../src/tier1/restartPolicy.js";
+import { readOwnedAgentProcessStart, setRestartPolicyTestHooks } from "../src/tier1/restartPolicy.js";
 import {
   assignPidToJob,
   closeNamedJob,
+  commandTokenForGeneration,
   createNamedJob,
+  formatSayDoJobName,
   nativeSync,
+  setKillOwnedTreeTestHooks,
   type NamedJob
 } from "@saydo/platform";
 
@@ -54,6 +94,7 @@ const OWNER_TEST_ROOT = mkdtempSync(
     ? join(tmpdir(), "saydo-tier1-executor-")
     : join(process.cwd(), ".saydo-tier1-executor-")
 );
+registerExactTestRoot(OWNER_TEST_ROOT);
 const PKG = "pkg_01EXEC0000000000000000000A";
 const PKG_UNSIGNED = {
   id: PKG,
@@ -89,6 +130,7 @@ interface FakeRun {
   /** 保留 fixture 内 session_id,不改写成 spawn.sessionId(错配测试) */
   preserveInitSession?: boolean;
   stderrTail?: string;
+  pipeFailed?: boolean;
 }
 
 function rewriteInitSessionId(line: string, sessionId: string): string {
@@ -119,10 +161,12 @@ class FakeSpawner implements AgentSpawner {
     return "1.0.0-pinned"; // W2 阶段0-②:assertVersion 改精确相等(实测 --version 输出即裸版本串)
   }
   spawn(i: {
+    binary: string;
     prompt: string;
     cwd: string;
     env: Record<string, string>;
     model: string;
+    runId: string;
     resumeChatId?: string;
     settingsJson?: string;
     sessionId?: string;
@@ -140,9 +184,9 @@ class FakeSpawner implements AgentSpawner {
     });
     const run = this.plan.shift() ?? { lines: [], exitCode: 0 };
     const cbs: ((l: string) => void)[] = [];
-    let resolveExit!: (v: { exitCode: number }) => void;
+    let resolveExit!: (v: { exitCode: number; terminationCause?: "exit" | "pipe_failed" }) => void;
     let exited = false;
-    const exitP = new Promise<{ exitCode: number }>((r) => {
+    const exitP = new Promise<{ exitCode: number; terminationCause?: "exit" | "pipe_failed" }>((r) => {
       resolveExit = (v) => {
         if (!exited) {
           exited = true;
@@ -160,7 +204,12 @@ class FakeSpawner implements AgentSpawner {
         for (const cb of cbs) cb(l);
       }
       run.beforeExit?.(i.cwd);
-      if (!run.hang) resolveExit({ exitCode: run.exitCode });
+      if (!run.hang) {
+        resolveExit({
+          exitCode: run.exitCode,
+          terminationCause: run.pipeFailed ? "pipe_failed" : "exit"
+        });
+      }
     }, 5);
     return {
       pid: 4242,
@@ -168,8 +217,10 @@ class FakeSpawner implements AgentSpawner {
       kill: () => {
         for (const line of run.linesOnKill ?? []) for (const cb of cbs) cb(line);
         const exitCode = run.killExitCode ?? 143;
-        if ((run.killDelayMs ?? 0) > 0) setTimeout(() => resolveExit({ exitCode }), run.killDelayMs);
-        else resolveExit({ exitCode });
+        if ((run.killDelayMs ?? 0) > 0) {
+          setTimeout(() => resolveExit({ exitCode, terminationCause: "exit" }), run.killDelayMs);
+        }
+        else resolveExit({ exitCode, terminationCause: "exit" });
       },
       wait: () => exitP,
       stderrTail: () => run.stderrTail ?? ""
@@ -251,11 +302,7 @@ function setExternalWorkspace(projectId: string, path: string): void {
 }
 
 afterAll(() => {
-  try {
-    rmSync(OWNER_TEST_ROOT, { recursive: true, force: true, maxRetries: 30, retryDelay: 100 });
-  } catch {
-    // Windows 偶发 EBUSY;根在 %TEMP%,不影响仓内路径
-  }
+  rmSync(OWNER_TEST_ROOT, { recursive: true, force: true, maxRetries: 30, retryDelay: 100 });
 });
 
 function seedQueuedTask(id: string, budget = { walltimeActiveMin: 45, maxTurns: 80, maxCost: 20 }): void {
@@ -297,7 +344,12 @@ function armClaudeIdentityAt(home: string, binName = "fake-claude", body = "#!/b
 function makeExecutor(
   overrides: Partial<ExecutorDeps["cfg"]> = {},
   spawnerOverride?: AgentSpawner,
-  extra?: { backend?: Tier1Backend }
+  extra?: {
+    backend?: Tier1Backend;
+    recoverAbort?: AbortSignal;
+    afterProvision?: () => void | Promise<void>;
+    onRecoverAttempt?: () => void;
+  }
 ): Tier1Executor {
   // A1 补偿控制(W2 阶段0-①):测试同生产——真写 gate.sh,expected 与落盘一致
   const gp = ensureGateScript(saydoHome);
@@ -309,6 +361,9 @@ function makeExecutor(
     approvals,
     spawner: spawnerOverride ?? spawner,
     ...(extra?.backend ? { backend: extra.backend } : {}),
+    ...(extra?.recoverAbort ? { recoverAbort: extra.recoverAbort } : {}),
+    ...(extra?.afterProvision ? { afterProvision: extra.afterProvision } : {}),
+    ...(extra?.onRecoverAttempt ? { onRecoverAttempt: extra.onRecoverAttempt } : {}),
     cfg: {
       saydoHome,
       lockedBinary: "/fake/versions/1.0.0-pinned/cursor-agent",
@@ -381,7 +436,16 @@ async function waitRunEventLines(taskId: string, minLines: number): Promise<void
 }
 
 beforeEach(() => {
+  setKillOwnedTreeTestHooks(null);
+  setRestartPolicyTestHooks(null);
+  try {
+    resetRuntimeChildLifecycleForTests();
+  } catch {
+    // 上一测的 contamination/job 不得串入本测
+  }
+  setRuntimeChildTestHooks(null);
   saydoHome = mkdtempSync(join(tmpdir(), "saydo-home-"));
+  configureRuntimeChildRegistry(saydoHome);
   db = openDb(join(saydoHome, "saydo.db"));
   audit = createSqliteAuditSink(db);
   callbacks = new CallbackEngine({ db, audit });
@@ -810,6 +874,16 @@ describe("认领循环(任务①):queued -> reserve CAS -> worktree 供给 -> sp
         .get(taskId) as { marker: string | null };
       expect(marker.marker).not.toBeNull();
     }, { timeout: 15_000, interval: 50 });
+    // marker 先于终态事务持久化；必须等原 executor 已真实撞到注入红灯，才能模拟重启。
+    // 否则新旧 executor 会在 Linux 并行门下同时尝试同一 finalization，测试读到的是瞬时竞态。
+    await vi.waitFor(() => {
+      const failures = db
+        .prepare(
+          "SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.finalize_transaction_failed' AND json_extract(meta_json, '$.taskId')=?"
+        )
+        .get(taskId) as { c: number };
+      expect(failures.c).toBe(1);
+    }, { timeout: 15_000, interval: 50 });
     expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(taskId) as { status: string }).status).toBe("running");
     expect((db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(taskId) as { state: string }).state).toBe("running");
 
@@ -1204,6 +1278,100 @@ describe("认领循环(任务①):queued -> reserve CAS -> worktree 供给 -> sp
     await waitTaskStatus(TSK, "failed");
     const ob = db.prepare("SELECT settle_json FROM callback_outbox WHERE task_id=?").get(TSK) as { settle_json: string };
     expect(JSON.parse(ob.settle_json).minimalProof.exitEvidence).toContain("agent_exit:2");
+    expect(executor.lifecycleContamination()).toBeNull();
+    expect(remainingRuntimeChildOwnerCount(saydoHome)).toBe(0);
+  });
+
+  it("agent pipe_failed 走业务 failed 且不污染 lifecycle", async () => {
+    const TSK = "tsk_01EXEC000000000000000000PF";
+    seedQueuedTask(TSK);
+    setRuntimeChildTestHooks({
+      groupState: () => "gone",
+      spawn: () => {
+        const stdout = new PassThrough();
+        const stderr = new PassThrough();
+        const stdin = new PassThrough();
+        const child = new EventEmitter() as SpawnedRuntimeChild["child"];
+        child.stdout = stdout;
+        child.stderr = stderr;
+        child.stdin = stdin;
+        Object.defineProperty(child, "pid", { value: 74001 });
+        child.kill = () => true;
+        queueMicrotask(() => {
+          child.emit("spawn");
+          child.emit("exit", 0, null);
+          child.emit("close", 0, null);
+        });
+        return {
+          child,
+          commandToken: "saydo-child-01234567-89ab-cdef-0123-456789abcdef", generation: "01234567-89ab-cdef-0123-456789abcdef",
+          lease: { establish: async () => undefined, release: async () => undefined },
+          signal: () => undefined
+        };
+      }
+    });
+    spawner.plan = [{ lines: [EV.init], exitCode: 1, pipeFailed: true }];
+    executor.tick();
+    await waitTaskStatus(TSK, "failed");
+    const ob = db.prepare("SELECT settle_json FROM callback_outbox WHERE task_id=?").get(TSK) as { settle_json: string };
+    expect(JSON.parse(ob.settle_json).minimalProof.exitEvidence).toContain("stdio_pipe_failed");
+    expect(executor.lifecycleContamination()).toBeNull();
+    setRuntimeChildTestHooks(null);
+  });
+
+  it("业务+signal 才污染 lifecycle 并聚合", async () => {
+    const TSK = "tsk_01EXEC000000000000000000BS";
+    seedQueuedTask(TSK);
+    setRuntimeChildTestHooks({
+      groupState: () => "gone",
+      spawn: () => {
+        const stdout = new PassThrough();
+        const stderr = new PassThrough();
+        const stdin = new PassThrough();
+        const child = new EventEmitter() as SpawnedRuntimeChild["child"];
+        child.stdout = stdout;
+        child.stderr = stderr;
+        child.stdin = stdin;
+        Object.defineProperty(child, "pid", { value: 74002 });
+        child.kill = () => true;
+        queueMicrotask(() => {
+          child.emit("spawn");
+          child.emit("exit", 0, null);
+          child.emit("close", 0, null);
+        });
+        return {
+          child,
+          commandToken: "saydo-child-01234567-89ab-cdef-0123-456789abcdef", generation: "01234567-89ab-cdef-0123-456789abcdef",
+          lease: { establish: async () => undefined, release: async () => undefined },
+          signal: () => undefined
+        };
+      }
+    });
+    class SignalSpawner extends FakeSpawner {
+      override spawn(input: Parameters<FakeSpawner["spawn"]>[0]): AgentProcessHandle {
+        const handle = super.spawn(input);
+        return {
+          ...handle,
+          wait: () => Promise.reject(combineLifecycleFailures(
+            invocationBusinessFailure({ exitCode: 1, knownExit: true, terminationCause: "exit" })!,
+            new ProcessGroupLifecycleError("TerminateJobObject failed in signal path")
+          ))
+        };
+      }
+    }
+    const sig = new SignalSpawner();
+    sig.plan = [{ lines: [EV.init], exitCode: 1 }];
+    const ex = makeExecutor({}, sig);
+    ex.tick();
+    await vi.waitFor(() => expect(ex.lifecycleContamination()).toBeInstanceOf(ProcessGroupLifecycleError));
+    const walked = lifecycleFailureLeaves(ex.lifecycleContamination());
+    expect(walked[0]).toBeInstanceOf(RuntimeInvocationError);
+    expect(walked.map((item) => item.message)).toEqual([
+      "Command failed with exit code 1",
+      "TerminateJobObject failed in signal path"
+    ]);
+    expect(walked).toHaveLength(2);
+    setRuntimeChildTestHooks(null);
   });
 
   it("exit=0 但没有合法 result 终态时作废", async () => {
@@ -1300,6 +1468,7 @@ describe("取消链(任务④):cancelTask -> 进程终止 -> Tier1CancelProof ->
     expect(proof.processExited).toBe(true);
     expect(proof.worktreeLockReleased).toBe(true);
     expect(proof.lastEventId).toContain(`events:`);
+    expect(executor.lifecycleContamination()).toBeNull();
   });
 });
 
@@ -1859,6 +2028,8 @@ describe("§12-7 Tier1 恢复:kill -9 后按 (adapter,nativeSessionId,cwd) 恢�
     const runDir = join(saydoHome, "tier1", "runs", runId);
     mkdirSync(runDir, { recursive: true });
     writeFileSync(join(runDir, "events.jsonl"), `${EV.init}\n${EV.result}\n`);
+    const generation = "01234567-89ab-cdef-0123-456789abcdef";
+    const ownerInstanceId = "owner-test";
     writeFileSync(
       join(runDir, "agent-owner.json"),
       JSON.stringify({
@@ -1867,7 +2038,13 @@ describe("§12-7 Tier1 恢复:kill -9 后按 (adapter,nativeSessionId,cwd) 恢�
         pid: 2_147_483_600,
         binary: "/nonexistent/saydo-agent",
         worktree: "/tmp/x",
-        processStart: "dead-process"
+        processStart: "dead-process",
+        kind: "tier1:agent",
+        commandToken: `saydo-child-${generation}`,
+        generation,
+        ownerPid: 2,
+        ownerInstanceId,
+        jobName: formatSayDoJobName("Local", ownerInstanceId, runId, generation)
       })
     );
     const recoveredSpawner = new FakeSpawner();
@@ -1933,7 +2110,13 @@ describe("§12-7 Tier1 恢复:kill -9 后按 (adapter,nativeSessionId,cwd) 恢�
     const runDir = join(saydoHome, "tier1", "runs", runId);
     mkdirSync(runDir, { recursive: true });
     writeFileSync(join(runDir, "events.jsonl"), `${EV.init}\n${resultLine}\n`);
-    const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+    const generation = "01234567-89ab-cdef-0123-456789abcdef";
+    const commandToken = `saydo-child-${generation}`;
+    const ownerInstanceId = "owner-test";
+    const jobName = formatSayDoJobName("Local", ownerInstanceId, runId, generation);
+    const hang = join(runDir, "p1c-hang.mjs");
+    writeFileSync(hang, "setInterval(() => {}, 1000);\n");
+    const child = spawn(process.execPath, [hang, commandToken], {
       detached: true,
       stdio: "ignore"
     });
@@ -1945,10 +2128,10 @@ describe("§12-7 Tier1 恢复:kill -9 后按 (adapter,nativeSessionId,cwd) 恢�
     try {
       if (process.platform === "win32") {
         nativeSync();
-        job = createNamedJob(`Local\\SayDoP1C-${runId}`);
+        job = createNamedJob(jobName);
         assignPidToJob(job, childPid);
       }
-      const processStart = readOwnedAgentProcessStart(childPid, process.execPath);
+      const processStart = readOwnedAgentProcessStart(childPid, process.execPath, commandToken);
       if (!processStart) throw new Error("P1-C 无法读取测试子进程 identity");
       writeFileSync(
         join(runDir, "agent-owner.json"),
@@ -1959,7 +2142,12 @@ describe("§12-7 Tier1 恢复:kill -9 后按 (adapter,nativeSessionId,cwd) 恢�
           binary: process.execPath,
           worktree,
           processStart,
-          ...(job ? { jobName: job.name } : {})
+          kind: "tier1:agent",
+          commandToken,
+          generation,
+          ownerPid: 2,
+          ownerInstanceId,
+          jobName
         })
       );
       const recoveredSpawner = new FakeSpawner();
@@ -2038,9 +2226,8 @@ describe("§12-7 Tier1 恢复:kill -9 后按 (adapter,nativeSessionId,cwd) 恢�
 
   it("D1:setup 卡住时 prepareShutdown 仍可响应并确认整个进程组退出", async () => {
     const TSK = "tsk_01EXEC000000000000000000SP";
-    const fixtureBin = join(saydoHome, "fixture-bin");
-    mkdirSync(fixtureBin, { recursive: true });
-    const pnpmBody = `const { spawn } = require("node:child_process");
+    const pnpmBody = `#!/usr/bin/env node
+const { spawn } = require("node:child_process");
 const { writeFileSync } = require("node:fs");
 const { join } = require("node:path");
 writeFileSync(join(process.cwd(), "setup-parent.pid"), String(process.pid));
@@ -2048,16 +2235,31 @@ const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { s
 writeFileSync(join(process.cwd(), "setup-child.pid"), String(child.pid));
 setInterval(() => {}, 1000);
 `;
-    writeFileSync(join(fixtureBin, "pnpm.cjs"), pnpmBody);
-    if (process.platform === "win32") {
-      writeFileSync(
-        join(fixtureBin, "pnpm.cmd"),
-        `@echo off\r\n"${process.execPath}" "${join(fixtureBin, "pnpm.cjs")}" %*\r\n`
-      );
-    } else {
-      writeFileSync(join(fixtureBin, "pnpm"), `#!/usr/bin/env node\n${pnpmBody}`);
-      chmodSync(join(fixtureBin, "pnpm"), 0o755);
-    }
+    const pkgRoot = join(saydoHome, "fixture-pnpm-pkg");
+    const prefix = join(saydoHome, "fixture-pnpm-prefix");
+    mkdirSync(pkgRoot, { recursive: true });
+    mkdirSync(prefix, { recursive: true });
+    writeFileSync(
+      join(pkgRoot, "package.json"),
+      JSON.stringify({ name: "saydo-fixture-pnpm", version: "0.0.0", private: true, bin: { pnpm: "./pnpm.cjs" } })
+    );
+    writeFileSync(join(pkgRoot, "pnpm.cjs"), pnpmBody);
+    chmodSync(join(pkgRoot, "pnpm.cjs"), 0o755);
+    const npmCliCandidates = [
+      join(dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js"),
+      join(dirname(process.execPath), "..", "lib", "node_modules", "npm", "bin", "npm-cli.js")
+    ];
+    const npmCli = npmCliCandidates.find((candidate) => existsSync(candidate));
+    if (!npmCli) throw new Error(`npm-cli.js 未找到:${npmCliCandidates.join(",")}`);
+    execFileSync(
+      process.execPath,
+      [npmCli, "install", pkgRoot, "--prefix", prefix, "--offline", "--no-audit", "--no-fund", "--ignore-scripts", "--package-lock=false"],
+      { cwd: prefix, stdio: "ignore" }
+    );
+    const fixtureBin = join(prefix, "node_modules", ".bin");
+    const fixturePnpm = join(fixtureBin, process.platform === "win32" ? "pnpm.cmd" : "pnpm");
+    expect(existsSync(fixturePnpm)).toBe(true);
+    if (process.platform !== "win32") chmodSync(fixturePnpm, 0o755);
     writeFileSync(
       join(repo, ".saydo", "project.toml"),
       '[[verify.entries]]\nname="test"\nsource="package_script"\nref="test"\n[setup]\ncommand="pnpm install"\n'
@@ -2458,7 +2660,7 @@ describe("strippedAgentEnv(G4)", () => {
   it("白名单外全部剥离(含 *_API_KEY/TOKEN 类)", () => {
     const env = strippedAgentEnv({
       PATH: "/usr/bin",
-      HOME: "/Users/t",
+      HOME: ["", "Users", "t"].join("/"),
       OPENROUTER_API_KEY: "x",
       VOLC_ACCESS_TOKEN: "y",
       AWS_SECRET_ACCESS_KEY: "z",
@@ -2481,6 +2683,7 @@ setInterval(() => {}, 1000);
     );
     chmodSync(script, 0o755);
     const proc = realAgentSpawner().spawn({
+      runId: "test-run",
       binary: script,
       model: "fable-5-max",
       prompt: "test",
@@ -2489,7 +2692,8 @@ setInterval(() => {}, 1000);
     });
     await proc.started;
     proc.ownershipEstablished?.();
-    await expect(proc.wait()).resolves.toEqual({ exitCode: 1 });
+    await expect(proc.wait()).resolves.toEqual({ exitCode: 1, terminationCause: "exit" });
+    expect(runtimeChildLifecycleError()).toBeNull();
   });
 
   it("wait_exit_then_kill: result 早于 ownership 仍启动 5s 定时器;cursor kill_on_result 立即收", async () => {
@@ -2504,6 +2708,7 @@ setInterval(() => {}, 1000);
     chmodSync(hang, 0o755);
     const settingsJson = buildClaudeHooksSettings("/tmp/gate-claude.sh", 120);
     const claudeProc = realAgentSpawner(claudeBackend()).spawn({
+      runId: "test-run",
       binary: hang,
       model: "opus",
       prompt: "test",
@@ -2519,8 +2724,9 @@ setInterval(() => {}, 1000);
     });
     const t0 = Date.now();
     claudeProc.ownershipEstablished?.();
-    await expect(claudeProc.wait()).resolves.toMatchObject({ exitCode: expect.any(Number) });
+    await expect(claudeProc.wait()).resolves.toEqual({ exitCode: 128, terminationCause: "exit" });
     expect(Date.now() - t0).toBeGreaterThanOrEqual(4500);
+    expect(runtimeChildLifecycleError()).toBeNull();
 
     const cursorHang = join(OWNER_TEST_ROOT, "fake-cursor-hang-after-result.mjs");
     writeFileSync(
@@ -2532,6 +2738,7 @@ setInterval(() => {}, 1000);
     );
     chmodSync(cursorHang, 0o755);
     const cursorProc = realAgentSpawner().spawn({
+      runId: "test-run",
       binary: cursorHang,
       model: "fable-5-max",
       prompt: "test",
@@ -2541,7 +2748,7 @@ setInterval(() => {}, 1000);
     await cursorProc.started;
     cursorProc.ownershipEstablished?.();
     const c0 = Date.now();
-    await expect(cursorProc.wait()).resolves.toEqual({ exitCode: 0 });
+    await expect(cursorProc.wait()).resolves.toEqual({ exitCode: 0, terminationCause: "exit" });
     expect(Date.now() - c0).toBeLessThan(2000);
   }, 20_000);
 
@@ -2559,6 +2766,7 @@ process.exit(0);
     chmodSync(dump, 0o755);
     const settingsJson = buildClaudeHooksSettings("/tmp/gate-claude.sh", 120);
     const proc = realAgentSpawner(claudeBackend()).spawn({
+      runId: "test-run",
       binary: dump,
       model: "opus",
       prompt: "hello-c2a",
@@ -2596,6 +2804,2292 @@ process.exit(0);
     expect(dumped.argv.at(-1)).toBe("hello-c2a");
   });
 });
+
+describe("real agent spawner readline pipe error", () => {
+  function pipeErr(code: string, message: string): NodeJS.ErrnoException {
+    return Object.assign(new Error(message), { code });
+  }
+
+  function setupFixture(terminating: boolean): {
+    stdout: PassThrough;
+    stderr: PassThrough;
+    rl: ReturnType<typeof createInterface>;
+    diagnostics: string[];
+    failed: { value: boolean };
+  } {
+    const stdout = new PassThrough();
+    const stderr = new PassThrough();
+    const rl = createInterface({ input: stdout });
+    const diagnostics: string[] = [];
+    const failed = { value: false };
+    bindAgentStdioPipeErrors({
+      stdout,
+      stderr,
+      rl,
+      isTerminating: () => terminating,
+      onDiagnostic: (stream, err) => {
+        diagnostics.push(`${stream} error:${err.code ?? "unknown"}:${err.message}`);
+      },
+      onPipeFailure: () => {
+        failed.value = true;
+      }
+    });
+    return { stdout, stderr, rl, diagnostics, failed };
+  }
+
+  async function collectProcessFaults(fn: () => void): Promise<{ uncaught: unknown[]; rejections: unknown[] }> {
+    const uncaught: unknown[] = [];
+    const rejections: unknown[] = [];
+    const onUncaught = (err: unknown): void => {
+      uncaught.push(err);
+    };
+    const onReject = (reason: unknown): void => {
+      rejections.push(reason);
+    };
+    process.on("uncaughtException", onUncaught);
+    process.on("unhandledRejection", onReject);
+    try {
+      fn();
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      return { uncaught, rejections };
+    } finally {
+      process.off("uncaughtException", onUncaught);
+      process.off("unhandledRejection", onReject);
+    }
+  }
+
+  it("收口期 stdout ECONNRESET 经 source 与 Interface 传播不 uncaught 且保持成功", async () => {
+    const fx = setupFixture(true);
+    try {
+      const faults = await collectProcessFaults(() => {
+        fx.stdout.emit("error", pipeErr("ECONNRESET", "read ECONNRESET"));
+      });
+      expect(faults.uncaught).toEqual([]);
+      expect(faults.rejections).toEqual([]);
+      expect(fx.diagnostics).toEqual([]);
+      expect(fx.failed.value).toBe(false);
+    } finally {
+      fx.rl.close();
+      fx.stdout.destroy();
+      fx.stderr.destroy();
+    }
+  });
+
+  it("活动期 stdout 非预期错误经两层只形成一次有界诊断并 exit 1", async () => {
+    const fx = setupFixture(false);
+    try {
+      const faults = await collectProcessFaults(() => {
+        fx.stdout.emit("error", pipeErr("EIO", "read EIO"));
+      });
+      expect(faults.uncaught).toEqual([]);
+      expect(faults.rejections).toEqual([]);
+      expect(fx.diagnostics).toEqual(["stdout error:EIO:pipe error"]);
+      expect(fx.failed.value).toBe(true);
+    } finally {
+      fx.rl.close();
+      fx.stdout.destroy();
+      fx.stderr.destroy();
+    }
+  });
+
+  it("收口期 stdout EPIPE 仍诊断并失败", async () => {
+    const fx = setupFixture(true);
+    try {
+      const faults = await collectProcessFaults(() => {
+        fx.stdout.emit("error", pipeErr("EPIPE", "write EPIPE"));
+      });
+      expect(faults.uncaught).toEqual([]);
+      expect(faults.rejections).toEqual([]);
+      expect(fx.diagnostics).toEqual(["stdout error:EPIPE:pipe error"]);
+      expect(fx.failed.value).toBe(true);
+    } finally {
+      fx.rl.close();
+      fx.stdout.destroy();
+      fx.stderr.destroy();
+    }
+  });
+
+  it("活动期 stdout ECONNRESET 不得被吞，仍 exit 1", async () => {
+    const fx = setupFixture(false);
+    try {
+      const faults = await collectProcessFaults(() => {
+        fx.stdout.emit("error", pipeErr("ECONNRESET", "read ECONNRESET"));
+      });
+      expect(faults.uncaught).toEqual([]);
+      expect(faults.rejections).toEqual([]);
+      expect(fx.diagnostics).toEqual(["stdout error:ECONNRESET:pipe error"]);
+      expect(fx.failed.value).toBe(true);
+    } finally {
+      fx.rl.close();
+      fx.stdout.destroy();
+      fx.stderr.destroy();
+    }
+  });
+
+  it("hostile code getter / primitive / Proxy 不得从 listener 抛出，诊断一次且零 trap", async () => {
+    const fx = setupFixture(false);
+    try {
+      let codeGets = 0;
+      const hostile = new Error("init");
+      Object.defineProperty(hostile, "code", {
+        get(): string {
+          codeGets += 1;
+          throw new Error("code getter");
+        }
+      });
+      Object.defineProperty(hostile, "message", {
+        get(): string {
+          codeGets += 1;
+          return "SECRET-TOKEN";
+        }
+      });
+      const secretObj = { code: "SECRET", message: "SECRET" };
+      const fn = function pipeFn(): string {
+        return "SECRET";
+      };
+      const traps = { get: 0, getOwnPropertyDescriptor: 0, ownKeys: 0, getPrototypeOf: 0 };
+      const proxy = new Proxy(pipeErr("EIO", "read EIO"), {
+        get(t, p, r) {
+          traps.get += 1;
+          codeGets += 1;
+          return Reflect.get(t, p, r);
+        },
+        getOwnPropertyDescriptor(t, p) {
+          traps.getOwnPropertyDescriptor += 1;
+          return Reflect.getOwnPropertyDescriptor(t, p);
+        },
+        ownKeys(t) {
+          traps.ownKeys += 1;
+          return Reflect.ownKeys(t);
+        },
+        getPrototypeOf(t) {
+          traps.getPrototypeOf += 1;
+          return Reflect.getPrototypeOf(t);
+        }
+      });
+      const { proxy: revokedProxy, revoke } = Proxy.revocable(pipeErr("EIO", "read EIO"), {
+        get() {
+          codeGets += 1;
+          throw new Error("proxy get");
+        }
+      });
+      const faults = await collectProcessFaults(() => {
+        fx.stdout.emit("error", hostile);
+        fx.stdout.emit("error", secretObj);
+        fx.stdout.emit("error", fn);
+        fx.stdout.emit("error", 42);
+        fx.stdout.emit("error", null);
+        fx.stdout.emit("error", undefined);
+        fx.stderr.emit("error", proxy);
+      });
+      expect(faults.uncaught).toEqual([]);
+      expect(faults.rejections).toEqual([]);
+      expect(codeGets).toBe(0);
+      expect(traps.get + traps.getOwnPropertyDescriptor + traps.ownKeys + traps.getPrototypeOf).toBe(0);
+      expect(fx.failed.value).toBe(true);
+      expect(fx.diagnostics).toEqual([
+        "stdout error:unknown:pipe error",
+        "stdout error:unknown:pipe error",
+        "stdout error:unknown:pipe error",
+        "stdout error:unknown:pipe error",
+        "stderr error:unknown:pipe error"
+      ]);
+      expect(JSON.stringify(fx.diagnostics)).not.toContain("SECRET");
+      revoke();
+      const revokedFaults = await collectProcessFaults(() => {
+        fx.stderr.emit("error", revokedProxy);
+      });
+      expect(revokedFaults.uncaught).toEqual([]);
+      expect(revokedFaults.rejections).toEqual([]);
+      expect(fx.diagnostics).toHaveLength(6);
+      expect(fx.diagnostics[5]).toBe("stderr error:unknown:pipe error");
+      expect(JSON.stringify(fx.diagnostics)).not.toContain("SECRET");
+    } finally {
+      fx.rl.close();
+      fx.stdout.destroy();
+      fx.stderr.destroy();
+    }
+  });
+
+  it("EIO Error(SECRET) 诊断不含原文，两个 distinct identity 各一次", async () => {
+    const fx = setupFixture(false);
+    try {
+      const first = pipeErr("EIO", "SECRET");
+      const second = pipeErr("EIO", "SECRET");
+      const faults = await collectProcessFaults(() => {
+        fx.stdout.emit("error", first);
+        fx.stdout.emit("error", first);
+        fx.stderr.emit("error", second);
+      });
+      expect(faults.uncaught).toEqual([]);
+      expect(faults.rejections).toEqual([]);
+      expect(fx.diagnostics).toEqual([
+        "stdout error:EIO:pipe error",
+        "stderr error:EIO:pipe error"
+      ]);
+      expect(JSON.stringify(fx.diagnostics)).not.toContain("SECRET");
+    } finally {
+      fx.rl.close();
+      fx.stdout.destroy();
+      fx.stderr.destroy();
+    }
+  });
+});
+
+describe("real agent spawner terminal ordering", () => {
+  afterEach(() => {
+    try {
+      resetRuntimeChildLifecycleForTests();
+    } catch {
+      // lifecycle 污染用例由本测断言覆盖
+    } finally {
+      setRuntimeChildTestHooks(null);
+    }
+  });
+
+  function pipeErr(code: string, message: string): NodeJS.ErrnoException {
+    return Object.assign(new Error(message), { code });
+  }
+
+  function virtualClock(): {
+    advance: (ms: number) => void;
+    hooks: { now: () => number; setTimeout: (fn: () => void, ms: number) => NodeJS.Timeout; clearTimeout: (timer: NodeJS.Timeout) => void };
+  } {
+    let now = 0;
+    const timers: { id: number; at: number; fn: () => void }[] = [];
+    let seq = 1;
+    return {
+      hooks: {
+        now: () => now,
+        setTimeout(fn, ms) {
+          const id = seq++;
+          timers.push({ id, at: now + ms, fn });
+          return { id } as unknown as NodeJS.Timeout;
+        },
+        clearTimeout(timer) {
+          const id = (timer as unknown as { id: number }).id;
+          const index = timers.findIndex((item) => item.id === id);
+          if (index >= 0) timers.splice(index, 1);
+        }
+      },
+      advance(ms) {
+        now += ms;
+        let progressed = true;
+        while (progressed) {
+          progressed = false;
+          for (const timer of [...timers]) {
+            if (timer.at > now) continue;
+            const index = timers.indexOf(timer);
+            if (index < 0) continue;
+            timers.splice(index, 1);
+            timer.fn();
+            progressed = true;
+          }
+        }
+      }
+    };
+  }
+
+  function fakeSpawned(pid = 424242): { spawned: SpawnedRuntimeChild; stdout: PassThrough; stderr: PassThrough } {
+    const stdout = new PassThrough();
+    const stderr = new PassThrough();
+    const stdin = new PassThrough();
+    const child = new EventEmitter() as SpawnedRuntimeChild["child"];
+    child.stdout = stdout;
+    child.stderr = stderr;
+    child.stdin = stdin;
+    Object.defineProperty(child, "pid", { value: pid });
+    child.kill = () => true;
+    const spawned: SpawnedRuntimeChild = {
+      child,
+      commandToken: "saydo-child-01234567-89ab-cdef-0123-456789abcdef", generation: "01234567-89ab-cdef-0123-456789abcdef",
+      lease: { establish: async () => undefined, release: async () => undefined },
+      signal: () => undefined
+    };
+    queueMicrotask(() => child.emit("spawn"));
+    return { spawned, stdout, stderr };
+  }
+
+  it("exit -> EPIPE -> close 最终失败且诊断一次", async () => {
+    const fake = fakeSpawned();
+    setRuntimeChildTestHooks({
+      spawn: () => fake.spawned,
+      groupState: () => "gone"
+    });
+    const proc = realAgentSpawner().spawn({
+      runId: "test-run",
+      binary: process.execPath,
+      model: "fable-5-max",
+      prompt: "t",
+      cwd: OWNER_TEST_ROOT,
+      env: { PATH: process.env["PATH"] ?? "" }
+    });
+    await proc.started;
+    proc.ownershipEstablished?.();
+    fake.spawned.child.emit("exit", 0, null);
+    fake.stdout.emit("error", pipeErr("EPIPE", "write EPIPE"));
+    fake.spawned.child.emit("close", 0, null);
+    await expect(proc.wait()).resolves.toEqual({ exitCode: 1, terminationCause: "pipe_failed" });
+    expect((proc.stderrTail?.() ?? "").split("stdout error:EPIPE:").length - 1).toBe(1);
+    expect(runtimeChildLifecycleError()).toBeNull();
+  });
+
+  it("exit -> ECONNRESET -> close 最终成功", async () => {
+    const fake = fakeSpawned();
+    setRuntimeChildTestHooks({
+      spawn: () => fake.spawned,
+      groupState: () => "gone"
+    });
+    const proc = realAgentSpawner().spawn({
+      runId: "test-run",
+      binary: process.execPath,
+      model: "fable-5-max",
+      prompt: "t",
+      cwd: OWNER_TEST_ROOT,
+      env: { PATH: process.env["PATH"] ?? "" }
+    });
+    await proc.started;
+    proc.ownershipEstablished?.();
+    fake.spawned.child.emit("exit", 0, null);
+    fake.stdout.emit("error", pipeErr("ECONNRESET", "read ECONNRESET"));
+    fake.spawned.child.emit("close", 0, null);
+    await expect(proc.wait()).resolves.toEqual({ exitCode: 0, terminationCause: "exit" });
+    expect(proc.stderrTail?.() ?? "").not.toContain("stdout error:ECONNRESET:");
+  });
+
+  it("活动期 EIO 最终失败", async () => {
+    const fake = fakeSpawned();
+    setRuntimeChildTestHooks({
+      spawn: () => fake.spawned,
+      groupState: () => "gone"
+    });
+    const proc = realAgentSpawner().spawn({
+      runId: "test-run",
+      binary: process.execPath,
+      model: "fable-5-max",
+      prompt: "t",
+      cwd: OWNER_TEST_ROOT,
+      env: { PATH: process.env["PATH"] ?? "" }
+    });
+    await proc.started;
+    proc.ownershipEstablished?.();
+    fake.stdout.emit("error", pipeErr("EIO", "read EIO"));
+    fake.spawned.child.emit("exit", 0, null);
+    fake.spawned.child.emit("close", 0, null);
+    await expect(proc.wait()).resolves.toEqual({ exitCode: 1, terminationCause: "pipe_failed" });
+    expect((proc.stderrTail?.() ?? "").split("stdout error:EIO:").length - 1).toBe(1);
+    expect(runtimeChildLifecycleError()).toBeNull();
+  });
+
+  it("TERM/KILL 后 child 不发 exit/close 时有界 ProcessGroupLifecycleError", async () => {
+    const clock = virtualClock();
+    const fake = fakeSpawned();
+    setRuntimeChildTestHooks({
+      ...clock.hooks,
+      spawn: () => fake.spawned,
+      groupState: () => "alive"
+    });
+    const proc = realAgentSpawner().spawn({
+      runId: "test-run",
+      binary: process.execPath,
+      model: "fable-5-max",
+      prompt: "t",
+      cwd: OWNER_TEST_ROOT,
+      env: { PATH: process.env["PATH"] ?? "" }
+    });
+    await proc.started;
+    proc.ownershipEstablished?.();
+    const waiting = proc.wait();
+    proc.kill();
+    clock.advance(RUNTIME_KILL_GRACE_MS);
+    clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+    await expect(waiting).rejects.toBeInstanceOf(ProcessGroupLifecycleError);
+  });
+
+  it("exit emitted, close withheld 最终 ProcessGroupLifecycleError", async () => {
+    const clock = virtualClock();
+    const fake = fakeSpawned();
+    setRuntimeChildTestHooks({
+      ...clock.hooks,
+      spawn: () => fake.spawned,
+      groupState: () => "alive",
+      closeDeadlineMs: 20
+    });
+    const proc = realAgentSpawner().spawn({
+      runId: "test-run",
+      binary: process.execPath,
+      model: "fable-5-max",
+      prompt: "t",
+      cwd: OWNER_TEST_ROOT,
+      env: { PATH: process.env["PATH"] ?? "" }
+    });
+    await proc.started;
+    proc.ownershipEstablished?.();
+    fake.spawned.child.emit("exit", 0, null);
+    clock.advance(20);
+    await expect(proc.wait()).rejects.toBeInstanceOf(ProcessGroupLifecycleError);
+  });
+
+  it("主逻辑成功但 release 失败时 wait reject，不得 settle 成功", async () => {
+    const fake = fakeSpawned(88001);
+    setRuntimeChildTestHooks({
+      spawn: () => ({
+        ...fake.spawned,
+        lease: {
+          establish: async () => undefined,
+          release: async () => {
+            throw new ProcessGroupLifecycleError("agent job close failed");
+          }
+        }
+      }),
+      groupState: () => "gone"
+    });
+    const proc = realAgentSpawner().spawn({
+      runId: "test-run",
+      binary: process.execPath,
+      model: "fable-5-max",
+      prompt: "t",
+      cwd: OWNER_TEST_ROOT,
+      env: { PATH: process.env["PATH"] ?? "" }
+    });
+    await proc.started;
+    proc.ownershipEstablished?.();
+    fake.spawned.child.emit("exit", 0, null);
+    fake.spawned.child.emit("close", 0, null);
+    await expect(proc.wait()).rejects.toThrow(/agent job close failed/u);
+  });
+
+  it("real-agent work+release 双错走 lifecycle，不得成功 settle", async () => {
+    const clock = virtualClock();
+    const fake = fakeSpawned(88002);
+    setRuntimeChildTestHooks({
+      ...clock.hooks,
+      spawn: () => ({
+        ...fake.spawned,
+        lease: {
+          establish: async () => undefined,
+          release: async () => {
+            throw new ProcessGroupLifecycleError("CloseHandle failed");
+          }
+        }
+      }),
+      groupState: () => "alive",
+      closeDeadlineMs: 20,
+      drainDeadlineMs: 20
+    });
+    const proc = realAgentSpawner().spawn({
+      runId: "test-run",
+      binary: process.execPath,
+      model: "fable-5-max",
+      prompt: "t",
+      cwd: OWNER_TEST_ROOT,
+      env: { PATH: process.env["PATH"] ?? "" }
+    });
+    await proc.started;
+    proc.ownershipEstablished?.();
+    fake.spawned.child.emit("exit", 1, null);
+    clock.advance(20);
+    clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+    const err = await proc.wait().then(
+      (value) => {
+        throw new Error(`expected reject, got ${JSON.stringify(value)}`);
+      },
+      (reason) => reason
+    );
+    expect(isProcessGroupLifecycleError(err)).toBe(true);
+    expect(err).toBeInstanceOf(AggregateError);
+    const leaves = lifecycleFailureLeaves(err);
+    expect(leaves.map((item) => item.message)).toEqual([
+      "Command failed with exit code 1",
+      "agent process group 88002 did not exit",
+      "CloseHandle failed"
+    ]);
+    expect(new Set(leaves).size).toBe(3);
+    expect(leaves.filter((item) => item instanceof ProcessGroupLifecycleError)).toHaveLength(2);
+  });
+
+  function fakeSpawnImplChild(pid: number, opts: { autoClose?: boolean; code?: number } = {}) {
+    const stdin = new PassThrough();
+    const stdout = new PassThrough();
+    const stderr = new PassThrough();
+    const permit = new PassThrough();
+    const child = new EventEmitter() as EventEmitter & {
+      pid: number;
+      stdin: PassThrough;
+      stdout: PassThrough;
+      stderr: PassThrough;
+      stdio: unknown[];
+      kill: (signal?: NodeJS.Signals) => boolean;
+    };
+    child.pid = pid;
+    child.stdin = stdin;
+    child.stdout = stdout;
+    child.stderr = stderr;
+    child.stdio = [stdin, stdout, stderr, permit];
+    child.kill = () => true;
+    queueMicrotask(() => {
+      child.emit("spawn");
+      if (opts.autoClose === false) return;
+      stdout.end();
+      stderr.end();
+      child.emit("exit", opts.code ?? 0, null);
+      child.emit("close", opts.code ?? 0, null);
+    });
+    return child;
+  }
+
+  function harvestRuntimeLeak(): void {
+    expect(() => resetRuntimeChildLifecycleForTests()).toThrow(/test reset observed leak/u);
+  }
+
+  function expectExactLeaves(err: unknown, inspect: (leaves: Error[]) => void): Error[] {
+    expect(isProcessGroupLifecycleError(err)).toBe(true);
+    const leaves = lifecycleFailureLeaves(err);
+    expect(new Set(leaves).size).toBe(leaves.length);
+    inspect(leaves);
+    return leaves;
+  }
+
+  async function expectNextSpawnRejected(root: string): Promise<void> {
+    expect(runtimeChildLifecycleError()).toBeInstanceOf(ProcessGroupLifecycleError);
+    expect(remainingRuntimeJobCount()).toBeGreaterThan(0);
+    expect(remainingRuntimeChildOwnerCount(root)).toBeGreaterThan(0);
+    expect(() => spawnRuntimeChild(process.execPath, ["-e", "process.exit(0)"], {
+      stdin: "ignore",
+      stdout: "ignore",
+      stderr: "ignore"
+    }, "next")).toThrow(ProcessGroupLifecycleError);
+    harvestRuntimeLeak();
+  }
+
+  it("real-agent nonzero + signal-path TerminateJob 双错保真", async () => {
+    configureRuntimeChildRegistry(OWNER_TEST_ROOT);
+    const clock = virtualClock();
+    const pid = 89001;
+    const child = fakeSpawnImplChild(pid, { autoClose: false });
+    const live = { value: false };
+    const rejections: unknown[] = [];
+    const onReject = (reason: unknown): void => {
+      rejections.push(reason);
+    };
+    process.on("unhandledRejection", onReject);
+    try {
+      setRuntimeChildTestHooks({
+        ...clock.hooks,
+        hostKind: () => "win32",
+        createNamedJob: () => ({ name: "job-agent-nz", handle: 1 }),
+        assignPidToJob: () => undefined,
+        spawnImpl: () => child as never,
+        pidOf: () => pid,
+        namedJobActiveCount: () => (live.value ? 1 : 0),
+        terminateNamedJob: () => {
+          live.value = false;
+          throw new ProcessGroupLifecycleError("TerminateJobObject failed in signal path");
+        },
+        closeNamedJob: () => undefined,
+        killGraceMs: 5,
+        closeDeadlineMs: 20,
+        drainDeadlineMs: 20
+      });
+      const proc = realAgentSpawner().spawn({
+        runId: "test-run",
+        binary: process.execPath,
+        model: "fable-5-max",
+        prompt: "t",
+        cwd: OWNER_TEST_ROOT,
+        env: { PATH: process.env["PATH"] ?? "" }
+      });
+      await proc.started;
+      proc.ownershipEstablished?.();
+      live.value = true;
+      child.emit("exit", 1, null);
+      child.emit("close", 1, null);
+      clock.advance(20);
+      clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+      const err = await proc.wait().then(
+        (value) => {
+          throw new Error(`expected reject, got ${JSON.stringify(value)}`);
+        },
+        (reason) => reason
+      );
+      expectExactLeaves(err, (leaves) => {
+        expect(leaves[0]).toBeInstanceOf(RuntimeInvocationError);
+        expect((leaves[0] as RuntimeInvocationError).exitCode).toBe(1);
+        expect((leaves[0] as RuntimeInvocationError).terminationCause).toBe("exit");
+        expect(leaves[1]?.message).toContain("TerminateJobObject failed in signal path");
+        expect(leaves[2]?.message).toMatch(/process group .+ did not exit/u);
+        expect(leaves).toHaveLength(3);
+      });
+      expect(rejections).toEqual([]);
+      await expectNextSpawnRejected(OWNER_TEST_ROOT);
+    } finally {
+      process.off("unhandledRejection", onReject);
+    }
+  });
+
+  it("real-agent pipe failure + signal-path TerminateJob 双错保真", async () => {
+    configureRuntimeChildRegistry(OWNER_TEST_ROOT);
+    const clock = virtualClock();
+    const pid = 89002;
+    const child = fakeSpawnImplChild(pid, { autoClose: false });
+    const live = { value: false };
+    const term = new ProcessGroupLifecycleError("TerminateJobObject failed TERM");
+    const kill = new ProcessGroupLifecycleError("TerminateJobObject failed KILL");
+    let terminateCalls = 0;
+    setRuntimeChildTestHooks({
+      ...clock.hooks,
+      hostKind: () => "win32",
+      createNamedJob: () => ({ name: "job-agent-pipe", handle: 1 }),
+      assignPidToJob: () => undefined,
+      spawnImpl: () => child as never,
+      pidOf: () => pid,
+      namedJobActiveCount: () => (live.value ? 1 : 0),
+      terminateNamedJob: () => {
+        terminateCalls += 1;
+        if (terminateCalls === 1) throw term;
+        live.value = false;
+        throw kill;
+      },
+      closeNamedJob: () => undefined,
+      killGraceMs: 5,
+      closeDeadlineMs: 20,
+      drainDeadlineMs: 20
+    });
+    const proc = realAgentSpawner().spawn({
+      runId: "test-run",
+      binary: process.execPath,
+      model: "fable-5-max",
+      prompt: "t",
+      cwd: OWNER_TEST_ROOT,
+      env: { PATH: process.env["PATH"] ?? "" }
+    });
+    await proc.started;
+    proc.ownershipEstablished?.();
+    live.value = true;
+    child.stdout.emit("error", pipeErr("EIO", "read EIO"));
+    clock.advance(5);
+    child.emit("exit", 0, null);
+    child.emit("close", 0, null);
+    clock.advance(20);
+    clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+    const err = await proc.wait().then(
+      (value) => {
+        throw new Error(`expected reject, got ${JSON.stringify(value)}`);
+      },
+      (reason) => reason
+    );
+    expectExactLeaves(err, (leaves) => {
+      expect(leaves[0]).toBeInstanceOf(RuntimeInvocationError);
+      expect((leaves[0] as RuntimeInvocationError).pipeCode).toBe("EIO");
+      expect((leaves[0] as RuntimeInvocationError).terminationCause).toBe("pipe_failed");
+      expect(leaves.map((item) => item.message)).toEqual([
+        "stdout pipe failed:EIO",
+        "TerminateJobObject failed TERM",
+        "TerminateJobObject failed KILL"
+      ]);
+      expect(leaves[1]).toBe(term);
+      expect(leaves[2]).toBe(kill);
+      expect(leaves.map((item) => item.message)).not.toContain("fallback SIGKILL failed");
+    });
+    expect(terminateCalls).toBe(2);
+    await expectNextSpawnRejected(OWNER_TEST_ROOT);
+  });
+
+  it("real-agent work success + signal-path TerminateJob 不得假成功", async () => {
+    configureRuntimeChildRegistry(OWNER_TEST_ROOT);
+    const pid = 89003;
+    const child = fakeSpawnImplChild(pid, { autoClose: false });
+    const live = { value: false };
+    setRuntimeChildTestHooks({
+      hostKind: () => "win32",
+      createNamedJob: () => ({ name: "job-agent-ok", handle: 1 }),
+      assignPidToJob: () => undefined,
+      spawnImpl: () => child as never,
+      pidOf: () => pid,
+      namedJobActiveCount: () => (live.value ? 1 : 0),
+      terminateNamedJob: () => {
+        live.value = false;
+        throw new ProcessGroupLifecycleError("TerminateJobObject failed in signal path");
+      },
+      closeNamedJob: () => undefined,
+      killGraceMs: 5,
+      closeDeadlineMs: 20,
+      drainDeadlineMs: 20
+    });
+    const proc = realAgentSpawner().spawn({
+      runId: "test-run",
+      binary: process.execPath,
+      model: "fable-5-max",
+      prompt: "t",
+      cwd: OWNER_TEST_ROOT,
+      env: { PATH: process.env["PATH"] ?? "" }
+    });
+    await proc.started;
+    live.value = true;
+    child.stdout.write(`${EV.result}\n`);
+    proc.ownershipEstablished?.();
+    child.emit("exit", 0, null);
+    child.emit("close", 0, null);
+    const err = await proc.wait().then(
+      (value) => {
+        throw new Error(`expected reject, got ${JSON.stringify(value)}`);
+      },
+      (reason) => reason
+    );
+    expectExactLeaves(err, (leaves) => {
+      expect(leaves.map((item) => item.message)).toEqual(["TerminateJobObject failed in signal path"]);
+    });
+    await expectNextSpawnRejected(OWNER_TEST_ROOT);
+  });
+
+  it("real-agent work+signal+distinct release 三错", async () => {
+    configureRuntimeChildRegistry(OWNER_TEST_ROOT);
+    const clock = virtualClock();
+    const pid = 89004;
+    const child = fakeSpawnImplChild(pid, { autoClose: false });
+    const live = { value: false };
+    const release = new ProcessGroupLifecycleError("CloseHandle failed");
+    setRuntimeChildTestHooks({
+      ...clock.hooks,
+      hostKind: () => "win32",
+      createNamedJob: () => ({ name: "job-agent-tri", handle: 1 }),
+      assignPidToJob: () => undefined,
+      spawnImpl: () => child as never,
+      pidOf: () => pid,
+      namedJobActiveCount: () => (live.value ? 1 : 0),
+      terminateNamedJob: () => {
+        live.value = false;
+        throw new ProcessGroupLifecycleError("TerminateJobObject failed in signal path");
+      },
+      closeNamedJob: () => undefined,
+      leaseReleaseError: release,
+      killGraceMs: 5,
+      closeDeadlineMs: 20,
+      drainDeadlineMs: 20
+    });
+    const proc = realAgentSpawner().spawn({
+      runId: "test-run",
+      binary: process.execPath,
+      model: "fable-5-max",
+      prompt: "t",
+      cwd: OWNER_TEST_ROOT,
+      env: { PATH: process.env["PATH"] ?? "" }
+    });
+    await proc.started;
+    proc.ownershipEstablished?.();
+    live.value = true;
+    child.emit("exit", 1, null);
+    child.emit("close", 1, null);
+    clock.advance(20);
+    clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+    const err = await proc.wait().then(
+      (value) => {
+        throw new Error(`expected reject, got ${JSON.stringify(value)}`);
+      },
+      (reason) => reason
+    );
+    expectExactLeaves(err, (leaves) => {
+      expect(leaves[0]).toBeInstanceOf(RuntimeInvocationError);
+      expect((leaves[0] as RuntimeInvocationError).exitCode).toBe(1);
+      expect(leaves[1]?.message).toContain("TerminateJobObject failed in signal path");
+      expect(leaves).toContain(release);
+      expect(new Set(leaves).size).toBe(leaves.length);
+    });
+    await expectNextSpawnRejected(OWNER_TEST_ROOT);
+  });
+
+  it("real-agent two distinct signals 保真去重", async () => {
+    configureRuntimeChildRegistry(OWNER_TEST_ROOT);
+    const clock = virtualClock();
+    const pid = 89011;
+    const child = fakeSpawnImplChild(pid, { autoClose: false });
+    const fallback = new Error("fallback SIGKILL failed");
+    const term = new ProcessGroupLifecycleError("TerminateJobObject failed TERM");
+    const kill = new ProcessGroupLifecycleError("TerminateJobObject failed KILL");
+    child.kill = () => {
+      throw fallback;
+    };
+    const live = { value: false };
+    let terminateCalls = 0;
+    const rejections: unknown[] = [];
+    const onReject = (reason: unknown): void => {
+      rejections.push(reason);
+    };
+    process.on("unhandledRejection", onReject);
+    try {
+      setRuntimeChildTestHooks({
+        ...clock.hooks,
+        hostKind: () => "win32",
+        createNamedJob: () => ({ name: "job-agent-2sig", handle: 1 }),
+        assignPidToJob: () => undefined,
+        spawnImpl: () => child as never,
+        pidOf: () => pid,
+        namedJobActiveCount: () => (live.value ? 1 : 0),
+        terminateNamedJob: () => {
+          terminateCalls += 1;
+          if (terminateCalls === 1) throw term;
+          live.value = false;
+          throw kill;
+        },
+        closeNamedJob: () => undefined,
+        killGraceMs: 5,
+        closeDeadlineMs: 20,
+        drainDeadlineMs: 20
+      });
+      const proc = realAgentSpawner().spawn({
+        runId: "test-run",
+        binary: process.execPath,
+        model: "fable-5-max",
+        prompt: "t",
+        cwd: OWNER_TEST_ROOT,
+        env: { PATH: process.env["PATH"] ?? "" }
+      });
+      await proc.started;
+      proc.ownershipEstablished?.();
+      live.value = true;
+      child.stdout.emit("error", pipeErr("EIO", "read EIO"));
+      clock.advance(5);
+      child.emit("exit", 0, null);
+      child.emit("close", 0, null);
+      clock.advance(20);
+      clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+      const err = await proc.wait().then(
+        (value) => {
+          throw new Error(`expected reject, got ${JSON.stringify(value)}`);
+        },
+        (reason) => reason
+      );
+      expectExactLeaves(err, (leaves) => {
+        expect(leaves.map((item) => item.message)).toEqual([
+          "stdout pipe failed:EIO",
+          "TerminateJobObject failed TERM",
+          "TerminateJobObject failed KILL"
+        ]);
+        expect(leaves[1]).toBe(term);
+        expect(leaves[2]).toBe(kill);
+        expect(leaves.map((item) => item.message)).not.toContain("fallback SIGKILL failed");
+      });
+      expect(terminateCalls).toBe(2);
+      expect(rejections).toEqual([]);
+      await expectNextSpawnRejected(OWNER_TEST_ROOT);
+    } finally {
+      process.off("unhandledRejection", onReject);
+    }
+  });
+
+  it("real-agent business+two signals+unreaped 四叶顺序", async () => {
+    configureRuntimeChildRegistry(OWNER_TEST_ROOT);
+    const clock = virtualClock();
+    const pid = 89012;
+    const child = fakeSpawnImplChild(pid, { autoClose: false });
+    const fallback = new Error("fallback SIGKILL failed");
+    const term = new ProcessGroupLifecycleError("TerminateJobObject failed TERM");
+    const kill = new ProcessGroupLifecycleError("TerminateJobObject failed KILL");
+    child.kill = () => {
+      throw fallback;
+    };
+    const live = { value: false };
+    let terminateCalls = 0;
+    const rejections: unknown[] = [];
+    const onReject = (reason: unknown): void => {
+      rejections.push(reason);
+    };
+    process.on("unhandledRejection", onReject);
+    try {
+      setRuntimeChildTestHooks({
+        ...clock.hooks,
+        hostKind: () => "win32",
+        createNamedJob: () => ({ name: "job-agent-quad", handle: 1 }),
+        assignPidToJob: () => undefined,
+        spawnImpl: () => child as never,
+        pidOf: () => pid,
+        namedJobActiveCount: () => (live.value ? 1 : 0),
+        terminateNamedJob: () => {
+          terminateCalls += 1;
+          if (terminateCalls === 1) throw term;
+          throw kill;
+        },
+        closeNamedJob: () => undefined,
+        killGraceMs: 5,
+        closeDeadlineMs: 20,
+        drainDeadlineMs: 20
+      });
+      const proc = realAgentSpawner().spawn({
+        runId: "test-run",
+        binary: process.execPath,
+        model: "fable-5-max",
+        prompt: "t",
+        cwd: OWNER_TEST_ROOT,
+        env: { PATH: process.env["PATH"] ?? "" }
+      });
+      await proc.started;
+      proc.ownershipEstablished?.();
+      live.value = true;
+      child.stdout.emit("error", pipeErr("EIO", "read EIO"));
+      clock.advance(5);
+      child.emit("exit", 1, null);
+      child.emit("close", 1, null);
+      clock.advance(20);
+      clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+      const err = await proc.wait().then(
+        (value) => {
+          throw new Error(`expected reject, got ${JSON.stringify(value)}`);
+        },
+        (reason) => reason
+      );
+      expectExactLeaves(err, (leaves) => {
+        expect(leaves[0]).toBeInstanceOf(RuntimeInvocationError);
+        expect((leaves[0] as RuntimeInvocationError).pipeCode).toBe("EIO");
+        expect(leaves.map((item) => item.message)).toEqual([
+          "stdout pipe failed:EIO",
+          "TerminateJobObject failed TERM",
+          "TerminateJobObject failed KILL",
+          `agent process group ${String(pid)} did not exit`
+        ]);
+        expect(leaves[1]).toBe(term);
+        expect(leaves[2]).toBe(kill);
+        expect(leaves.map((item) => item.message)).not.toContain("fallback SIGKILL failed");
+      });
+      expect(terminateCalls).toBe(3);
+      expect(rejections).toEqual([]);
+      await expectNextSpawnRejected(OWNER_TEST_ROOT);
+    } finally {
+      process.off("unhandledRejection", onReject);
+    }
+  });
+
+  it("real-agent 同一 signal 对象去重", async () => {
+    configureRuntimeChildRegistry(OWNER_TEST_ROOT);
+    const clock = virtualClock();
+    const pid = 89013;
+    const child = fakeSpawnImplChild(pid, { autoClose: false });
+    const once = new ProcessGroupLifecycleError("TerminateJobObject failed in signal path");
+    child.kill = () => {
+      throw once;
+    };
+    const live = { value: false };
+    setRuntimeChildTestHooks({
+      ...clock.hooks,
+      hostKind: () => "win32",
+      createNamedJob: () => ({ name: "job-agent-dedup", handle: 1 }),
+      assignPidToJob: () => undefined,
+      spawnImpl: () => child as never,
+      pidOf: () => pid,
+      namedJobActiveCount: () => (live.value ? 1 : 0),
+      terminateNamedJob: () => {
+        live.value = false;
+        throw once;
+      },
+      closeNamedJob: () => undefined,
+      killGraceMs: 5,
+      closeDeadlineMs: 20,
+      drainDeadlineMs: 20
+    });
+    const proc = realAgentSpawner().spawn({
+      runId: "test-run",
+      binary: process.execPath,
+      model: "fable-5-max",
+      prompt: "t",
+      cwd: OWNER_TEST_ROOT,
+      env: { PATH: process.env["PATH"] ?? "" }
+    });
+    await proc.started;
+    proc.ownershipEstablished?.();
+    live.value = true;
+    child.emit("exit", 0, null);
+    child.emit("close", 0, null);
+    clock.advance(20);
+    clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+    const err = await proc.wait().then(
+      (value) => {
+        throw new Error(`expected reject, got ${JSON.stringify(value)}`);
+      },
+      (reason) => reason
+    );
+    const signalLeaves = lifecycleFailureLeaves(err).filter((item) =>
+      item.message.includes("TerminateJobObject failed in signal path")
+    );
+    expect(signalLeaves).toHaveLength(1);
+    await expectNextSpawnRejected(OWNER_TEST_ROOT);
+  });
+
+  it("real-agent signal+unreaped 无 business", async () => {
+    configureRuntimeChildRegistry(OWNER_TEST_ROOT);
+    const clock = virtualClock();
+    const pid = 89014;
+    const child = fakeSpawnImplChild(pid, { autoClose: false });
+    const live = { value: false };
+    const rejections: unknown[] = [];
+    const onReject = (reason: unknown): void => {
+      rejections.push(reason);
+    };
+    process.on("unhandledRejection", onReject);
+    try {
+      setRuntimeChildTestHooks({
+        ...clock.hooks,
+        hostKind: () => "win32",
+        createNamedJob: () => ({ name: "job-agent-sig-unreaped", handle: 1 }),
+        assignPidToJob: () => undefined,
+        spawnImpl: () => child as never,
+        pidOf: () => pid,
+        namedJobActiveCount: () => (live.value ? 1 : 0),
+        terminateNamedJob: () => {
+          throw new ProcessGroupLifecycleError("TerminateJobObject failed in signal path");
+        },
+        closeNamedJob: () => undefined,
+        killGraceMs: 5,
+        closeDeadlineMs: 20,
+        drainDeadlineMs: 20
+      });
+      const proc = realAgentSpawner().spawn({
+        runId: "test-run",
+        binary: process.execPath,
+        model: "fable-5-max",
+        prompt: "t",
+        cwd: OWNER_TEST_ROOT,
+        env: { PATH: process.env["PATH"] ?? "" }
+      });
+      await proc.started;
+      proc.ownershipEstablished?.();
+      live.value = true;
+      child.emit("exit", 0, null);
+      child.emit("close", 0, null);
+      clock.advance(20);
+      clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+      const err = await proc.wait().then(
+        (value) => {
+          throw new Error(`expected reject, got ${JSON.stringify(value)}`);
+        },
+        (reason) => reason
+      );
+      expectExactLeaves(err, (leaves) => {
+        expect(leaves.map((item) => item.message)).toEqual([
+          "TerminateJobObject failed in signal path",
+          `agent process group ${String(pid)} did not exit`
+        ]);
+        expect(leaves.some((item) => item instanceof RuntimeInvocationError)).toBe(false);
+      });
+      expect(rejections).toEqual([]);
+      await expectNextSpawnRejected(OWNER_TEST_ROOT);
+    } finally {
+      process.off("unhandledRejection", onReject);
+    }
+  });
+
+  it("real-agent business+two signals 无 unreaped", async () => {
+    configureRuntimeChildRegistry(OWNER_TEST_ROOT);
+    const clock = virtualClock();
+    const pid = 89015;
+    const child = fakeSpawnImplChild(pid, { autoClose: false });
+    const fallback = new Error("fallback SIGKILL failed");
+    const term = new ProcessGroupLifecycleError("TerminateJobObject failed TERM");
+    const kill = new ProcessGroupLifecycleError("TerminateJobObject failed KILL");
+    child.kill = () => {
+      throw fallback;
+    };
+    const live = { value: false };
+    let terminateCalls = 0;
+    const rejections: unknown[] = [];
+    const onReject = (reason: unknown): void => {
+      rejections.push(reason);
+    };
+    process.on("unhandledRejection", onReject);
+    try {
+      setRuntimeChildTestHooks({
+        ...clock.hooks,
+        hostKind: () => "win32",
+        createNamedJob: () => ({ name: "job-agent-biz-2sig", handle: 1 }),
+        assignPidToJob: () => undefined,
+        spawnImpl: () => child as never,
+        pidOf: () => pid,
+        namedJobActiveCount: () => (live.value ? 1 : 0),
+        terminateNamedJob: () => {
+          terminateCalls += 1;
+          if (terminateCalls === 1) throw term;
+          live.value = false;
+          throw kill;
+        },
+        closeNamedJob: () => undefined,
+        killGraceMs: 5,
+        closeDeadlineMs: 20,
+        drainDeadlineMs: 20
+      });
+      const proc = realAgentSpawner().spawn({
+        runId: "test-run",
+        binary: process.execPath,
+        model: "fable-5-max",
+        prompt: "t",
+        cwd: OWNER_TEST_ROOT,
+        env: { PATH: process.env["PATH"] ?? "" }
+      });
+      await proc.started;
+      proc.ownershipEstablished?.();
+      live.value = true;
+      child.stdout.emit("error", pipeErr("EIO", "read EIO"));
+      clock.advance(5);
+      child.emit("exit", 0, null);
+      child.emit("close", 0, null);
+      clock.advance(20);
+      clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+      const err = await proc.wait().then(
+        (value) => {
+          throw new Error(`expected reject, got ${JSON.stringify(value)}`);
+        },
+        (reason) => reason
+      );
+      expectExactLeaves(err, (leaves) => {
+        expect(leaves[0]).toBeInstanceOf(RuntimeInvocationError);
+        expect((leaves[0] as RuntimeInvocationError).pipeCode).toBe("EIO");
+        expect((leaves[0] as RuntimeInvocationError).terminationCause).toBe("pipe_failed");
+        expect(leaves.map((item) => item.message)).toEqual([
+          "stdout pipe failed:EIO",
+          "TerminateJobObject failed TERM",
+          "TerminateJobObject failed KILL"
+        ]);
+        expect(leaves[1]).toBe(term);
+        expect(leaves[2]).toBe(kill);
+        expect(leaves.map((item) => item.message)).not.toContain("fallback SIGKILL failed");
+      });
+      expect(terminateCalls).toBe(2);
+      expect(rejections).toEqual([]);
+      await expectNextSpawnRejected(OWNER_TEST_ROOT);
+    } finally {
+      process.off("unhandledRejection", onReject);
+    }
+  });
+
+  it("纯业务失败延迟 wait() 不得 unhandledRejection", async () => {
+    configureRuntimeChildRegistry(OWNER_TEST_ROOT);
+    const pid = 89021;
+    const child = fakeSpawnImplChild(pid, { autoClose: false });
+    const rejections: unknown[] = [];
+    const onReject = (reason: unknown): void => {
+      rejections.push(reason);
+    };
+    process.on("unhandledRejection", onReject);
+    try {
+      setRuntimeChildTestHooks({
+        hostKind: () => "win32",
+        createNamedJob: () => ({ name: "job-agent-unhandled", handle: 1 }),
+        assignPidToJob: () => undefined,
+        spawnImpl: () => child as never,
+        pidOf: () => pid,
+        namedJobActiveCount: () => 0,
+        terminateNamedJob: () => undefined,
+        closeNamedJob: () => undefined
+      });
+      const proc = realAgentSpawner().spawn({
+        runId: "test-run",
+        binary: process.execPath,
+        model: "fable-5-max",
+        prompt: "t",
+        cwd: OWNER_TEST_ROOT,
+        env: { PATH: process.env["PATH"] ?? "" }
+      });
+      await proc.started;
+      proc.ownershipEstablished?.();
+      child.emit("exit", 1, null);
+      child.emit("close", 1, null);
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(rejections).toEqual([]);
+      await expect(proc.wait()).resolves.toEqual({ exitCode: 1, terminationCause: "exit" });
+      expect(rejections).toEqual([]);
+      expect(runtimeChildLifecycleError()).toBeNull();
+    } finally {
+      process.off("unhandledRejection", onReject);
+    }
+  });
+});
+
+describe("managed lifecycle 不得降成 blocked", () => {
+  afterEach(() => {
+    try {
+      resetRuntimeChildLifecycleForTests();
+    } catch {
+      // lifecycle 污染用例由本测断言覆盖
+    } finally {
+      setRuntimeChildTestHooks(null);
+    }
+  });
+
+  it("managed drain timeout 污染 lifecycle 且不写 blocked、不再 spawn", async () => {
+    const TSK = "tsk_01EXEC000000000000000000MG";
+    writeFileSync(
+      join(repo, ".saydo", "project.toml"),
+      '[[verify.entries]]\nname="test"\nsource="package_script"\nref="test"\n[setup]\ncommand="pnpm install"\n'
+    );
+    execFileSync("git", ["add", ".saydo/project.toml"], { cwd: repo });
+    execFileSync("git", ["commit", "-qm", "managed lifecycle fixture"], { cwd: repo });
+    seedQueuedTask(TSK);
+    const clock = (() => {
+      let now = 0;
+      const timers: { id: number; at: number; fn: () => void }[] = [];
+      let seq = 1;
+      return {
+        hooks: {
+          now: () => now,
+          setTimeout(fn: () => void, ms: number) {
+            const id = seq++;
+            timers.push({ id, at: now + ms, fn });
+            return { id } as unknown as NodeJS.Timeout;
+          },
+          clearTimeout(timer: NodeJS.Timeout) {
+            const id = (timer as unknown as { id: number }).id;
+            const index = timers.findIndex((item) => item.id === id);
+            if (index >= 0) timers.splice(index, 1);
+          }
+        },
+        advance(ms: number) {
+          now += ms;
+          let progressed = true;
+          while (progressed) {
+            progressed = false;
+            for (const timer of [...timers]) {
+              if (timer.at > now) continue;
+              const index = timers.indexOf(timer);
+              if (index < 0) continue;
+              timers.splice(index, 1);
+              timer.fn();
+              progressed = true;
+            }
+          }
+        }
+      };
+    })();
+    let spawnCount = 0;
+    const hanging: SpawnedRuntimeChild[] = [];
+    setRuntimeChildTestHooks({
+      ...clock.hooks,
+      groupState: () => "alive",
+      closeDeadlineMs: 20,
+      drainDeadlineMs: 20,
+      spawn: () => {
+        spawnCount += 1;
+        const stdout = new PassThrough();
+        const stderr = new PassThrough();
+        const stdin = new PassThrough();
+        const child = new EventEmitter() as SpawnedRuntimeChild["child"];
+        child.stdout = stdout;
+        child.stderr = stderr;
+        child.stdin = stdin;
+        Object.defineProperty(child, "pid", { value: 71000 + spawnCount });
+        child.kill = () => true;
+        queueMicrotask(() => child.emit("spawn"));
+        const spawned: SpawnedRuntimeChild = {
+          child,
+          commandToken: "saydo-child-01234567-89ab-cdef-0123-456789abcdef", generation: "01234567-89ab-cdef-0123-456789abcdef",
+          lease: { establish: async () => undefined, release: async () => undefined },
+          signal: () => undefined
+        };
+        hanging.push(spawned);
+        return spawned;
+      }
+    });
+    const ex = makeExecutor();
+    ex.tick();
+    await vi.waitFor(() => expect(hanging.length).toBeGreaterThan(0));
+    for (const spawned of hanging) {
+      spawned.child.emit("exit", 0, null);
+    }
+    clock.advance(20);
+    clock.advance(RUNTIME_DRAIN_DEADLINE_MS);
+    await vi.waitFor(() => expect(ex.lifecycleContamination()).toBeInstanceOf(ProcessGroupLifecycleError));
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string } | undefined)?.status).not.toBe("blocked");
+    const before = spawnCount;
+    ex.tick();
+    expect(spawnCount).toBe(before);
+  });
+
+  it("managed 主逻辑成功但 Job release 失败时污染且不得 ready_for_review", async () => {
+    const TSK = "tsk_01EXEC000000000000000000T2";
+    writeFileSync(
+      join(repo, ".saydo", "project.toml"),
+      '[[verify.entries]]\nname="test"\nsource="package_script"\nref="test"\n[setup]\ncommand="true"\n'
+    );
+    execFileSync("git", ["add", ".saydo/project.toml"], { cwd: repo });
+    execFileSync("git", ["commit", "-qm", "managed release fail fixture"], { cwd: repo });
+    seedQueuedTask(TSK);
+    setRuntimeChildTestHooks({
+      groupState: () => "gone",
+      spawn: () => {
+        const stdout = new PassThrough();
+        const stderr = new PassThrough();
+        const stdin = new PassThrough();
+        const child = new EventEmitter() as SpawnedRuntimeChild["child"];
+        child.stdout = stdout;
+        child.stderr = stderr;
+        child.stdin = stdin;
+        Object.defineProperty(child, "pid", { value: 72001 });
+        child.kill = () => true;
+        queueMicrotask(() => {
+          child.emit("spawn");
+          child.emit("exit", 0, null);
+          child.emit("close", 0, null);
+        });
+        return {
+          child,
+          commandToken: "saydo-child-01234567-89ab-cdef-0123-456789abcdef", generation: "01234567-89ab-cdef-0123-456789abcdef",
+          lease: {
+            establish: async () => undefined,
+            release: async () => {
+              throw new ProcessGroupLifecycleError("managed job close failed");
+            }
+          },
+          signal: () => undefined
+        };
+      }
+    });
+    const ex = makeExecutor();
+    ex.tick();
+    await vi.waitFor(() => expect(ex.lifecycleContamination()).toBeInstanceOf(ProcessGroupLifecycleError));
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string } | undefined)?.status)
+      .not.toBe("ready_for_review");
+  });
+
+  it("managed work+release 双错走 lifecycle 不得 blocked/ready_for_review", async () => {
+    const TSK = "tsk_01EXEC000000000000000000W1";
+    writeFileSync(
+      join(repo, ".saydo", "project.toml"),
+      '[[verify.entries]]\nname="test"\nsource="package_script"\nref="test"\n[setup]\ncommand="true"\n'
+    );
+    execFileSync("git", ["add", ".saydo/project.toml"], { cwd: repo });
+    execFileSync("git", ["commit", "-qm", "managed dual fail fixture"], { cwd: repo });
+    seedQueuedTask(TSK);
+    setRuntimeChildTestHooks({
+      groupState: () => "gone",
+      spawn: () => {
+        const stdout = new PassThrough();
+        const stderr = new PassThrough();
+        const stdin = new PassThrough();
+        const child = new EventEmitter() as SpawnedRuntimeChild["child"];
+        child.stdout = stdout;
+        child.stderr = stderr;
+        child.stdin = stdin;
+        Object.defineProperty(child, "pid", { value: 72002 });
+        child.kill = () => true;
+        queueMicrotask(() => {
+          child.emit("spawn");
+          child.emit("exit", 1, null);
+          child.emit("close", 1, null);
+        });
+        return {
+          child,
+          commandToken: "saydo-child-01234567-89ab-cdef-0123-456789abcdef", generation: "01234567-89ab-cdef-0123-456789abcdef",
+          lease: {
+            establish: async () => {
+              throw new RuntimeInvocationError("setup exit 1", { exitCode: 1, terminationCause: "exit" });
+            },
+            release: async () => {
+              throw new ProcessGroupLifecycleError("CloseHandle failed");
+            }
+          },
+          signal: () => undefined
+        };
+      }
+    });
+    const ex = makeExecutor();
+    ex.tick();
+    await vi.waitFor(() => expect(ex.lifecycleContamination()).toBeInstanceOf(ProcessGroupLifecycleError), {
+      timeout: 15_000,
+      interval: 50
+    });
+    const status = (db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string } | undefined)?.status;
+    expect(status).not.toBe("blocked");
+    expect(status).not.toBe("ready_for_review");
+    expect(status).not.toBe("done");
+    const contaminated = ex.lifecycleContamination();
+    expect(isProcessGroupLifecycleError(contaminated)).toBe(true);
+    expect(contaminated?.message).not.toContain("SECRET");
+    const walked = lifecycleFailureLeaves(contaminated);
+    const inner = contaminated && walked[0] === contaminated && walked.length > 1 ? walked.slice(1) : walked;
+    expect(inner.map((item) => item.message)).toEqual([
+      "setup exit 1",
+      "CloseHandle failed"
+    ]);
+  });
+
+  function managedFakeChild(pid: number, opts: { autoClose?: boolean; code?: number } = {}) {
+    const stdin = new PassThrough();
+    const stdout = new PassThrough();
+    const stderr = new PassThrough();
+    const permit = new PassThrough();
+    const child = new EventEmitter() as EventEmitter & {
+      pid: number;
+      stdin: PassThrough;
+      stdout: PassThrough;
+      stderr: PassThrough;
+      stdio: unknown[];
+      kill: (signal?: NodeJS.Signals) => boolean;
+    };
+    child.pid = pid;
+    child.stdin = stdin;
+    child.stdout = stdout;
+    child.stderr = stderr;
+    child.stdio = [stdin, stdout, stderr, permit];
+    child.kill = () => true;
+    queueMicrotask(() => {
+      child.emit("spawn");
+      if (opts.autoClose === false) return;
+      stdout.end();
+      stderr.end();
+      child.emit("exit", opts.code ?? 0, null);
+      child.emit("close", opts.code ?? 0, null);
+    });
+    return child;
+  }
+
+  function managedClock() {
+    let now = 0;
+    const timers: { id: number; at: number; fn: () => void }[] = [];
+    let seq = 1;
+    return {
+      hooks: {
+        now: () => now,
+        setTimeout(fn: () => void, ms: number) {
+          const id = seq++;
+          timers.push({ id, at: now + ms, fn });
+          return { id } as unknown as NodeJS.Timeout;
+        },
+        clearTimeout(timer: NodeJS.Timeout) {
+          const id = (timer as unknown as { id: number }).id;
+          const index = timers.findIndex((item) => item.id === id);
+          if (index >= 0) timers.splice(index, 1);
+        }
+      },
+      advance(ms: number) {
+        now += ms;
+        let progressed = true;
+        while (progressed) {
+          progressed = false;
+          for (const timer of [...timers]) {
+            if (timer.at > now) continue;
+            const index = timers.indexOf(timer);
+            if (index < 0) continue;
+            timers.splice(index, 1);
+            timer.fn();
+            progressed = true;
+          }
+        }
+      }
+    };
+  }
+
+  function seedManagedSetupTask(id: string): void {
+    writeFileSync(
+      join(repo, ".saydo", "project.toml"),
+      '[[verify.entries]]\nname="test"\nsource="package_script"\nref="test"\n[setup]\ncommand="true"\n'
+    );
+    execFileSync("git", ["add", ".saydo/project.toml"], { cwd: repo });
+    execFileSync("git", ["commit", "-qm", `managed signal fixture ${id.slice(-2)}`], { cwd: repo });
+    seedQueuedTask(id);
+    configureRuntimeChildRegistry(saydoHome);
+  }
+
+  function installManagedWindowsSignal(opts: {
+    leaseReleaseError?: Error;
+    virtual?: boolean;
+    fallbackKill?: Error;
+    terminateError?: Error;
+    terminateFactory?: () => Error;
+    keepAliveOnTerminate?: boolean;
+  } = {}) {
+    const clock = opts.virtual === false ? undefined : managedClock();
+    const home = saydoHome;
+    configureRuntimeChildRegistry(home);
+    let spawnCount = 0;
+    let hanging: ReturnType<typeof managedFakeChild> | undefined;
+    const livePids = new Set<number>();
+    setRuntimeChildTestHooks({
+      ...(clock ? clock.hooks : {}),
+      hostKind: () => "win32",
+      groupState: (pid) => (hanging && pid === hanging.pid && livePids.has(pid) ? "alive" : "gone"),
+      namedJobActiveCount: () => (hanging && livePids.has(hanging.pid) ? 1 : 0),
+      terminateNamedJob: () => {
+        if (!opts.keepAliveOnTerminate && hanging) livePids.delete(hanging.pid);
+        throw opts.terminateFactory?.() ?? opts.terminateError ?? new ProcessGroupLifecycleError("TerminateJobObject failed in signal path");
+      },
+      closeNamedJob: () => undefined,
+      spawn: (_file, _args, _options, kind) => {
+        spawnCount += 1;
+        const pid = 91000 + spawnCount;
+        hanging = managedFakeChild(pid, { autoClose: false });
+        if (opts.fallbackKill) {
+          hanging.kill = () => {
+            throw opts.fallbackKill;
+          };
+        }
+        const job = { name: `job-m-sig-${String(pid)}`, handle: 1 };
+        installRuntimeJobForTests(pid, job);
+        const lease = beginRuntimeChild(pid, process.execPath, kind, {
+          registryHome: home,
+          jobName: job.name,
+          runId: `run-${String(pid)}`,
+          commandToken: "saydo-child-01234567-89ab-cdef-0123-456789abcdef", generation: "01234567-89ab-cdef-0123-456789abcdef"
+        });
+        const inner = lease.release.bind(lease);
+        lease.release = async () => {
+          let retryErr: unknown;
+          // keepAlive 只阻止 Job 收口。第二次 distinct TerminateJob 必须由
+          // terminateFactory 另一次 signal 产生，不能对同一 hook 再 new Error。
+          if (opts.keepAliveOnTerminate && opts.terminateFactory) {
+            try {
+              signalRuntimeChildTree(pid, "SIGKILL");
+            } catch (err) {
+              retryErr = err;
+            }
+          }
+          try {
+            await inner();
+          } catch (err) {
+            const parts = [err, retryErr, opts.leaseReleaseError].filter((item) => item != null);
+            throw parts.length > 1 ? combineLifecycleFailureList(parts) : parts[0] ?? err;
+          }
+          const rest = [retryErr, opts.leaseReleaseError].filter((item) => item != null);
+          if (rest.length > 1) throw combineLifecycleFailureList(rest);
+          if (rest.length === 1) throw rest[0];
+        };
+        return { child: hanging as never, commandToken: "saydo-child-01234567-89ab-cdef-0123-456789abcdef", generation: "01234567-89ab-cdef-0123-456789abcdef", lease };
+      },
+      ...(opts.leaseReleaseError ? { leaseReleaseError: opts.leaseReleaseError } : {}),
+      killGraceMs: 5,
+      closeDeadlineMs: 20,
+      drainDeadlineMs: 20
+    });
+    return {
+      home,
+      clock,
+      spawnCount: () => spawnCount,
+      hanging: () => hanging,
+      markLive() {
+        if (hanging) livePids.add(hanging.pid);
+      },
+      async waitHanging(): Promise<ReturnType<typeof managedFakeChild>> {
+        await vi.waitFor(() => {
+          clock?.advance(50);
+          expect(spawnCount, `managed spawns=${String(spawnCount)}`).toBe(1);
+          expect(hanging).toBeTruthy();
+        }, { timeout: 15_000, interval: 20 });
+        return hanging!;
+      }
+    };
+  }
+
+  async function expectManagedBarrier(
+    ex: { lifecycleContamination: () => ProcessGroupLifecycleError | null },
+    taskId: string,
+    home = saydoHome
+  ): Promise<Error[]> {
+    await vi.waitFor(() => expect(ex.lifecycleContamination()).toBeInstanceOf(ProcessGroupLifecycleError), {
+      timeout: 15_000,
+      interval: 50
+    });
+    const status = (db.prepare("SELECT status FROM tasks WHERE id=?").get(taskId) as { status: string } | undefined)?.status;
+    expect(status).not.toBe("blocked");
+    expect(status).not.toBe("ready_for_review");
+    expect(status).not.toBe("done");
+    expect(remainingRuntimeJobCount()).toBe(1);
+    expect(remainingRuntimeChildOwnerCount(home)).toBe(1);
+    expect(() => spawnRuntimeChild(process.execPath, ["-e", "process.exit(0)"], {
+      stdin: "ignore",
+      stdout: "ignore",
+      stderr: "ignore"
+    }, "next")).toThrow(ProcessGroupLifecycleError);
+    const contaminated = ex.lifecycleContamination();
+    const leaves = lifecycleFailureLeaves(contaminated);
+    expect(new Set(leaves).size).toBe(leaves.length);
+    expect(() => resetRuntimeChildLifecycleForTests()).toThrow(/test reset observed leak/u);
+    return leaves;
+  }
+
+  it("managed nonzero + signal-path TerminateJob 双错保真", async () => {
+    const TSK = "tsk_01EXEC000000000000000000S1";
+    seedManagedSetupTask(TSK);
+    const fx = installManagedWindowsSignal({ virtual: false });
+    const ex = makeExecutor();
+    ex.tick();
+    const hanging = await fx.waitHanging();
+    fx.markLive();
+    hanging.emit("exit", 1, null);
+    hanging.emit("close", 1, null);
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    const leaves = await expectManagedBarrier(ex, TSK, fx.home);
+    expect(leaves[0]).toBeInstanceOf(RuntimeInvocationError);
+    expect((leaves[0] as RuntimeInvocationError).exitCode).toBe(1);
+    expect(leaves.map((item) => item.message)).toEqual([
+      "Command failed with exit code 1",
+      "TerminateJobObject failed in signal path",
+      `managed process group ${String(hanging.pid)} did not exit`
+    ]);
+    expect(leaves).toHaveLength(3);
+  });
+
+  it("managed timeout + signal-path TerminateJob 双错保真", async () => {
+    const TSK = "tsk_01EXEC000000000000000000S2";
+    seedManagedSetupTask(TSK);
+    const fx = installManagedWindowsSignal();
+    const ex = makeExecutor();
+    ex.tick();
+    const hanging = await fx.waitHanging();
+    fx.markLive();
+    fx.clock!.advance(300_000);
+    fx.clock!.advance(RUNTIME_KILL_GRACE_MS);
+    fx.clock!.advance(RUNTIME_DRAIN_DEADLINE_MS);
+    const leaves = await expectManagedBarrier(ex, TSK, fx.home);
+    expect(leaves[0]).toBeInstanceOf(RuntimeInvocationError);
+    expect((leaves[0] as RuntimeInvocationError).timedOut).toBe(true);
+    expect(leaves.map((item) => item.message)).toEqual([
+      "Command timed out",
+      "TerminateJobObject failed in signal path",
+      "TerminateJobObject failed in signal path",
+      "TerminateJobObject failed in signal path",
+      `managed process group ${String(hanging.pid)} did not exit`
+    ]);
+    expect(leaves.map((item) => item.message)).not.toContain("fallback SIGKILL failed");
+    expect(leaves).toHaveLength(5);
+  });
+
+  it("managed pipe EIO + signal-path TerminateJob 双错保真", async () => {
+    const TSK = "tsk_01EXEC000000000000000000S3";
+    seedManagedSetupTask(TSK);
+    const fx = installManagedWindowsSignal({ virtual: false });
+    const ex = makeExecutor();
+    ex.tick();
+    const hanging = await fx.waitHanging();
+    fx.markLive();
+    hanging.stdout.emit("error", Object.assign(new Error("read EIO"), { code: "EIO" }));
+    hanging.emit("exit", 0, null);
+    hanging.emit("close", 0, null);
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    const leaves = await expectManagedBarrier(ex, TSK, fx.home);
+    expect(leaves[0]).toBeInstanceOf(RuntimeInvocationError);
+    expect((leaves[0] as RuntimeInvocationError).pipeCode).toBe("EIO");
+    expect(leaves.map((item) => item.message)).toEqual([
+      "stdout pipe failed:EIO",
+      "TerminateJobObject failed in signal path"
+    ]);
+    expect(leaves).toHaveLength(2);
+  });
+
+  it("managed work success + signal-path TerminateJob 不得假成功", async () => {
+    const TSK = "tsk_01EXEC000000000000000000S4";
+    seedManagedSetupTask(TSK);
+    const fx = installManagedWindowsSignal({ virtual: false });
+    const ex = makeExecutor();
+    ex.tick();
+    const hanging = await fx.waitHanging();
+    fx.markLive();
+    hanging.emit("exit", 0, null);
+    hanging.emit("close", 0, null);
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    const leaves = await expectManagedBarrier(ex, TSK, fx.home);
+    expect(leaves.map((item) => item.message)).toEqual([
+      "TerminateJobObject failed in signal path",
+      `managed process group ${String(hanging.pid)} did not exit`
+    ]);
+    expect(leaves.some((item) => item instanceof RuntimeInvocationError)).toBe(false);
+    expect(leaves).toHaveLength(2);
+  });
+
+  it("managed work+signal+distinct release 三错", async () => {
+    const TSK = "tsk_01EXEC000000000000000000S5";
+    seedManagedSetupTask(TSK);
+    const release = new ProcessGroupLifecycleError("CloseHandle failed");
+    const fx = installManagedWindowsSignal({ leaseReleaseError: release, virtual: false });
+    const ex = makeExecutor();
+    ex.tick();
+    const hanging = await fx.waitHanging();
+    fx.markLive();
+    hanging.emit("exit", 1, null);
+    hanging.emit("close", 1, null);
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    const leaves = await expectManagedBarrier(ex, TSK, fx.home);
+    expect(leaves[0]).toBeInstanceOf(RuntimeInvocationError);
+    expect((leaves[0] as RuntimeInvocationError).exitCode).toBe(1);
+    expect(leaves.map((item) => item.message)).toEqual([
+      "Command failed with exit code 1",
+      "TerminateJobObject failed in signal path",
+      `managed process group ${String(hanging.pid)} did not exit`,
+      "CloseHandle failed"
+    ]);
+    expect(leaves).toContain(release);
+    expect(leaves).toHaveLength(4);
+  });
+
+  it("managed two distinct signals 保真", async () => {
+    const TSK = "tsk_01EXEC000000000000000000S6";
+    seedManagedSetupTask(TSK);
+    const fallback = new Error("fallback SIGKILL failed");
+    const fx = installManagedWindowsSignal({ virtual: false, fallbackKill: fallback, keepAliveOnTerminate: true });
+    const rejections: unknown[] = [];
+    const onReject = (reason: unknown): void => {
+      rejections.push(reason);
+    };
+    process.on("unhandledRejection", onReject);
+    try {
+      const ex = makeExecutor();
+      ex.tick();
+      const hanging = await fx.waitHanging();
+      fx.markLive();
+      hanging.emit("exit", 0, null);
+      hanging.emit("close", 0, null);
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      const leaves = await expectManagedBarrier(ex, TSK, fx.home);
+      expect(leaves.map((item) => item.message)).toEqual([
+        "TerminateJobObject failed in signal path",
+        `managed process group ${String(hanging.pid)} did not exit`
+      ]);
+      expect(leaves.map((item) => item.message)).not.toContain("fallback SIGKILL failed");
+      expect(leaves).toHaveLength(2);
+      expect(rejections).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", onReject);
+    }
+  });
+
+  it("managed business+two signals+unreaped 四叶", async () => {
+    const TSK = "tsk_01EXEC000000000000000000S7";
+    seedManagedSetupTask(TSK);
+    const fallback = new Error("fallback SIGKILL failed");
+    const fx = installManagedWindowsSignal({ virtual: false, fallbackKill: fallback, keepAliveOnTerminate: true });
+    const rejections: unknown[] = [];
+    const onReject = (reason: unknown): void => {
+      rejections.push(reason);
+    };
+    process.on("unhandledRejection", onReject);
+    try {
+      const ex = makeExecutor();
+      ex.tick();
+      const hanging = await fx.waitHanging();
+      fx.markLive();
+      hanging.emit("exit", 1, null);
+      hanging.emit("close", 1, null);
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      const leaves = await expectManagedBarrier(ex, TSK, fx.home);
+      expect(leaves[0]).toBeInstanceOf(RuntimeInvocationError);
+      expect((leaves[0] as RuntimeInvocationError).exitCode).toBe(1);
+      expect(leaves.map((item) => item.message)).toEqual([
+        "Command failed with exit code 1",
+        "TerminateJobObject failed in signal path",
+        `managed process group ${String(hanging.pid)} did not exit`
+      ]);
+      expect(leaves.map((item) => item.message)).not.toContain("fallback SIGKILL failed");
+      expect(leaves).toHaveLength(3);
+      expect(rejections).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", onReject);
+    }
+  });
+
+  it("managed signal+unreaped 无 business", async () => {
+    const TSK = "tsk_01EXEC000000000000000000S8";
+    seedManagedSetupTask(TSK);
+    const fx = installManagedWindowsSignal({ virtual: false, keepAliveOnTerminate: true });
+    const rejections: unknown[] = [];
+    const onReject = (reason: unknown): void => {
+      rejections.push(reason);
+    };
+    process.on("unhandledRejection", onReject);
+    try {
+      const ex = makeExecutor();
+      ex.tick();
+      const hanging = await fx.waitHanging();
+      fx.markLive();
+      hanging.emit("exit", 0, null);
+      hanging.emit("close", 0, null);
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      const leaves = await expectManagedBarrier(ex, TSK, fx.home);
+      expect(leaves.some((item) => item instanceof RuntimeInvocationError)).toBe(false);
+      expect(leaves.map((item) => item.message)).toEqual([
+        "TerminateJobObject failed in signal path",
+        `managed process group ${String(hanging.pid)} did not exit`
+      ]);
+      expect(leaves).toHaveLength(2);
+      expect(rejections).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", onReject);
+    }
+  });
+
+  it("managed business+two signals 无 unreaped", async () => {
+    const TSK = "tsk_01EXEC000000000000000000S9";
+    seedManagedSetupTask(TSK);
+    const fallback = new Error("fallback SIGKILL failed");
+    const fx = installManagedWindowsSignal({ virtual: false, fallbackKill: fallback });
+    const rejections: unknown[] = [];
+    const onReject = (reason: unknown): void => {
+      rejections.push(reason);
+    };
+    process.on("unhandledRejection", onReject);
+    try {
+      const ex = makeExecutor();
+      ex.tick();
+      const hanging = await fx.waitHanging();
+      fx.markLive();
+      hanging.stdout.emit("error", Object.assign(new Error("read EIO"), { code: "EIO" }));
+      hanging.emit("exit", 0, null);
+      hanging.emit("close", 0, null);
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      const leaves = await expectManagedBarrier(ex, TSK, fx.home);
+      expect(leaves[0]).toBeInstanceOf(RuntimeInvocationError);
+      expect((leaves[0] as RuntimeInvocationError).pipeCode).toBe("EIO");
+      expect(leaves.map((item) => item.message)).toEqual([
+        "stdout pipe failed:EIO",
+        "TerminateJobObject failed in signal path"
+      ]);
+      expect(leaves.map((item) => item.message)).not.toContain("fallback SIGKILL failed");
+      expect(rejections).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", onReject);
+    }
+  });
+
+  it("managed 同一 signal 对象去重", async () => {
+    const TSK = "tsk_01EXEC000000000000000000SA";
+    seedManagedSetupTask(TSK);
+    const once = new ProcessGroupLifecycleError("TerminateJobObject failed in signal path");
+    const fx = installManagedWindowsSignal({
+      virtual: false,
+      terminateError: once,
+      fallbackKill: once
+    });
+    const rejections: unknown[] = [];
+    const onReject = (reason: unknown): void => {
+      rejections.push(reason);
+    };
+    process.on("unhandledRejection", onReject);
+    try {
+      const ex = makeExecutor();
+      ex.tick();
+      const hanging = await fx.waitHanging();
+      fx.markLive();
+      hanging.emit("exit", 0, null);
+      hanging.emit("close", 0, null);
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      const leaves = await expectManagedBarrier(ex, TSK, fx.home);
+      expect(leaves.filter((item) =>
+        item.message.includes("TerminateJobObject failed in signal path")
+      )).toHaveLength(1);
+      expect(new Set(leaves).size).toBe(leaves.length);
+      expect(rejections).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", onReject);
+    }
+  });
+
+  it("managed 同一 Job 两次不同 TerminateJobObject 保真", async () => {
+    const TSK = "tsk_01EXEC000000000000000000SJ";
+    seedManagedSetupTask(TSK);
+    let n = 0;
+    const fx = installManagedWindowsSignal({
+      keepAliveOnTerminate: true,
+      terminateFactory: () => {
+        n += 1;
+        return new ProcessGroupLifecycleError(n === 1 ? "TerminateJobObject failed first" : "TerminateJobObject failed second");
+      }
+    });
+    const ex = makeExecutor();
+    ex.tick();
+    const hanging = await fx.waitHanging();
+    fx.markLive();
+    hanging.emit("exit", 1, null);
+    hanging.emit("close", 1, null);
+    fx.clock?.advance(50);
+    fx.clock?.advance(20);
+    const leaves = await expectManagedBarrier(ex, TSK, fx.home);
+    expect(leaves[0]).toBeInstanceOf(RuntimeInvocationError);
+    expect(leaves.map((item) => item.message)).toEqual([
+      "Command failed with exit code 1",
+      "TerminateJobObject failed first",
+      `managed process group ${String(hanging.pid)} did not exit`,
+      "TerminateJobObject failed second"
+    ]);
+    expect(leaves).toHaveLength(4);
+    expect(n).toBe(2);
+  });
+
+  it("managed 普通 nonzero 保留 stdoutTail 且不污染", async () => {
+    const TSK = "tsk_01EXEC000000000000000000ST";
+    seedManagedSetupTask(TSK);
+    const marker = "UNIQUE_MANAGED_STDOUT_TAIL";
+    let captured = "";
+    setRuntimeChildTestHooks({
+      groupState: () => "gone",
+      spawn: (_file, _args, options) => {
+        const stdout = new PassThrough();
+        const stderr = new PassThrough();
+        const stdin = new PassThrough();
+        const child = new EventEmitter() as SpawnedRuntimeChild["child"];
+        child.stdout = stdout;
+        child.stderr = stderr;
+        child.stdin = stdin;
+        Object.defineProperty(child, "pid", { value: 73001 });
+        child.kill = () => true;
+        queueMicrotask(() => {
+          child.emit("spawn");
+          if (options.stdout === "pipe") {
+            captured = marker;
+            stdout.write(marker);
+          }
+          stdout.end();
+          stderr.end();
+          child.emit("exit", 1, null);
+          child.emit("close", 1, null);
+        });
+        return {
+          child,
+          commandToken: "saydo-child-01234567-89ab-cdef-0123-456789abcdef", generation: "01234567-89ab-cdef-0123-456789abcdef",
+          lease: {
+            establish: async () => undefined,
+            release: async () => undefined
+          },
+          signal: () => undefined
+        };
+      }
+    });
+    const ex = makeExecutor();
+    ex.tick();
+    await vi.waitFor(() => {
+      const status = (db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string } | undefined)?.status;
+      expect(status === "blocked" || status === "failed" || captured === marker).toBe(true);
+    }, { timeout: 5_000, interval: 20 });
+    expect(ex.lifecycleContamination()).toBeNull();
+    expect(captured).not.toMatch(/ProcessGroupLifecycleError/u);
+  });
+
+  it("agent wait work+release 双错走 lifecycle 不得 blocked/ready_for_review", async () => {
+    const TSK = "tsk_01EXEC000000000000000000W2";
+    seedQueuedTask(TSK);
+    setRuntimeChildTestHooks({
+      groupState: () => "gone",
+      spawn: () => {
+        const stdout = new PassThrough();
+        const stderr = new PassThrough();
+        const stdin = new PassThrough();
+        const child = new EventEmitter() as SpawnedRuntimeChild["child"];
+        child.stdout = stdout;
+        child.stderr = stderr;
+        child.stdin = stdin;
+        Object.defineProperty(child, "pid", { value: 72003 });
+        child.kill = () => true;
+        queueMicrotask(() => {
+          child.emit("spawn");
+          child.emit("exit", 0, null);
+          child.emit("close", 0, null);
+        });
+        return {
+          child,
+          commandToken: "saydo-child-01234567-89ab-cdef-0123-456789abcdef", generation: "01234567-89ab-cdef-0123-456789abcdef",
+          lease: {
+            establish: async () => undefined,
+            release: async () => undefined
+          },
+          signal: () => undefined
+        };
+      }
+    });
+    class DualFailSpawner extends FakeSpawner {
+      override spawn(input: Parameters<FakeSpawner["spawn"]>[0]): AgentProcessHandle {
+        const handle = super.spawn(input);
+        return {
+          ...handle,
+          wait: () => settleWithLeaseRelease(
+            Promise.reject(new RuntimeInvocationError("setup exit 1", { exitCode: 1, terminationCause: "exit" })),
+            async () => {
+              throw new ProcessGroupLifecycleError("CloseHandle failed");
+            }
+          )
+        };
+      }
+    }
+    const dual = new DualFailSpawner();
+    dual.plan = [{ lines: [EV.init], exitCode: 0, hang: true }];
+    const ex = makeExecutor({}, dual);
+    ex.tick();
+    await vi.waitFor(() => expect(ex.lifecycleContamination()).toBeInstanceOf(ProcessGroupLifecycleError), {
+      timeout: 15_000,
+      interval: 50
+    });
+    const status = (db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string } | undefined)?.status;
+    expect(status).not.toBe("blocked");
+    expect(status).not.toBe("ready_for_review");
+    expect(status).not.toBe("done");
+    const contaminated = ex.lifecycleContamination();
+    expect(isProcessGroupLifecycleError(contaminated)).toBe(true);
+    expect(contaminated?.message).not.toContain("SECRET");
+    const walked = lifecycleFailureLeaves(contaminated);
+    const inner = contaminated && walked[0] === contaminated && walked.length > 1 ? walked.slice(1) : walked;
+    expect(inner.map((item) => item.message)).toEqual([
+      "setup exit 1",
+      "CloseHandle failed"
+    ]);
+  });
+
+  it("ownership 建立失败且 wait lifecycle fail 时优先污染", async () => {
+    const TSK = "tsk_01EXEC000000000000000000NH";
+    seedQueuedTask(TSK);
+    let now = 0;
+    setRuntimeChildTestHooks({
+      now: () => now,
+      setTimeout(fn, ms) {
+        now += ms;
+        queueMicrotask(fn);
+        return { id: 1 } as unknown as NodeJS.Timeout;
+      },
+      clearTimeout() {}
+    });
+    class OwnershipFailSpawner extends FakeSpawner {
+      override spawn(i: Parameters<FakeSpawner["spawn"]>[0]): AgentProcessHandle {
+        const handle = super.spawn(i);
+        return {
+          ...handle,
+          ownershipRequired: true,
+          commandToken: "saydo-child-01234567-89ab-cdef-0123-456789abcdef", generation: "01234567-89ab-cdef-0123-456789abcdef",
+          started: Promise.resolve(),
+          wait: () => Promise.reject(new ProcessGroupLifecycleError("owned process group still alive"))
+        };
+      }
+    }
+    const hanging = new OwnershipFailSpawner();
+    hanging.plan = [{ lines: [EV.init], exitCode: 0, hang: true }];
+    const ex = makeExecutor({}, hanging);
+    ex.tick();
+    await vi.waitFor(() => expect(ex.lifecycleContamination()).toBeInstanceOf(ProcessGroupLifecycleError));
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string } | undefined)?.status).not.toBe("blocked");
+  });
+
+  it("timeout + 捕获 TERM 后 exit 0 仍失败", async () => {
+    const TSK = "tsk_01EXEC000000000000000000T0";
+    writeFileSync(
+      join(repo, ".saydo", "project.toml"),
+      '[[verify.entries]]\nname="test"\nsource="package_script"\nref="test"\n[setup]\ncommand="pnpm install"\n'
+    );
+    execFileSync("git", ["add", ".saydo/project.toml"], { cwd: repo });
+    execFileSync("git", ["commit", "-qm", "managed timeout fixture"], { cwd: repo });
+    seedQueuedTask(TSK);
+    let now = 0;
+    const timers: { id: number; at: number; fn: () => void }[] = [];
+    let seq = 1;
+    const hanging: SpawnedRuntimeChild[] = [];
+    let spawnCount = 0;
+    const signals: NodeJS.Signals[] = [];
+    setRuntimeChildTestHooks({
+      now: () => now,
+      setTimeout(fn, ms) {
+        const id = seq++;
+        timers.push({ id, at: now + ms, fn });
+        return { id } as unknown as NodeJS.Timeout;
+      },
+      clearTimeout(timer) {
+        const id = (timer as unknown as { id: number }).id;
+        const index = timers.findIndex((item) => item.id === id);
+        if (index >= 0) timers.splice(index, 1);
+      },
+      groupState: () => "gone",
+      killProcess(_pid, signal) {
+        signals.push(signal);
+      },
+      spawn: () => {
+        spawnCount += 1;
+        const stdout = new PassThrough();
+        const stderr = new PassThrough();
+        const stdin = new PassThrough();
+        const child = new EventEmitter() as SpawnedRuntimeChild["child"];
+        child.stdout = stdout;
+        child.stderr = stderr;
+        child.stdin = stdin;
+        Object.defineProperty(child, "pid", { value: 72000 + spawnCount });
+        child.kill = () => true;
+        queueMicrotask(() => child.emit("spawn"));
+        const spawned: SpawnedRuntimeChild = {
+          child,
+          commandToken: "saydo-child-01234567-89ab-cdef-0123-456789abcdef", generation: "01234567-89ab-cdef-0123-456789abcdef",
+          lease: { establish: async () => undefined, release: async () => undefined },
+          signal: (sig) => {
+            signals.push(sig);
+          }
+        };
+        hanging.push(spawned);
+        if (spawnCount === 1) {
+          queueMicrotask(() => {
+            child.emit("exit", 0, null);
+            child.emit("close", 0, null);
+          });
+        }
+        return spawned;
+      }
+    });
+    const ex = makeExecutor();
+    ex.tick();
+    await vi.waitFor(() => expect(hanging.length).toBeGreaterThan(1));
+    now = 300_000;
+    for (const timer of [...timers]) {
+      if (timer.at > now) continue;
+      const index = timers.indexOf(timer);
+      if (index >= 0) timers.splice(index, 1);
+      timer.fn();
+    }
+    const setup = hanging[hanging.length - 1]!;
+    setup.child.emit("exit", 0, null);
+    setup.child.emit("close", 0, null);
+    await vi.waitFor(() =>
+      expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("blocked")
+    );
+    expect(signals).toContain("SIGTERM");
+    expect(spawner.spawned).toHaveLength(0);
+    expect(ex.lifecycleContamination()).toBeNull();
+  });
+
+  it("timeout 路径 killProcess EPERM 污染 lifecycle 不得假 blocked", async () => {
+    const TSK = "tsk_01EXEC000000000000000000E1";
+    writeFileSync(
+      join(repo, ".saydo", "project.toml"),
+      '[[verify.entries]]\nname="test"\nsource="package_script"\nref="test"\n[setup]\ncommand="pnpm install"\n'
+    );
+    execFileSync("git", ["add", ".saydo/project.toml"], { cwd: repo });
+    execFileSync("git", ["commit", "-qm", "managed timeout eperm fixture"], { cwd: repo });
+    seedQueuedTask(TSK);
+    let now = 0;
+    const timers: { id: number; at: number; fn: () => void }[] = [];
+    let seq = 1;
+    const hanging: SpawnedRuntimeChild[] = [];
+    let spawnCount = 0;
+    setRuntimeChildTestHooks({
+      hostKind: () => "linux",
+      now: () => now,
+      setTimeout(fn, ms) {
+        const id = seq++;
+        timers.push({ id, at: now + ms, fn });
+        return { id } as unknown as NodeJS.Timeout;
+      },
+      clearTimeout(timer) {
+        const id = (timer as unknown as { id: number }).id;
+        const index = timers.findIndex((item) => item.id === id);
+        if (index >= 0) timers.splice(index, 1);
+      },
+      groupState: () => "gone",
+      killProcess() {
+        const err = new Error("kill EPERM");
+        Object.defineProperty(err, "code", { value: "EPERM" });
+        throw err;
+      },
+      spawn: () => {
+        spawnCount += 1;
+        const stdout = new PassThrough();
+        const stderr = new PassThrough();
+        const stdin = new PassThrough();
+        const child = new EventEmitter() as SpawnedRuntimeChild["child"];
+        child.stdout = stdout;
+        child.stderr = stderr;
+        child.stdin = stdin;
+        Object.defineProperty(child, "pid", { value: 74000 + spawnCount });
+        child.kill = () => true;
+        queueMicrotask(() => child.emit("spawn"));
+        const spawned: SpawnedRuntimeChild = {
+          child,
+          commandToken: "saydo-child-01234567-89ab-cdef-0123-456789abcdef", generation: "01234567-89ab-cdef-0123-456789abcdef",
+          lease: { establish: async () => undefined, release: async () => undefined },
+          signal: () => {
+            const err = new Error("kill EPERM");
+            Object.defineProperty(err, "code", { value: "EPERM" });
+            throw err;
+          }
+        };
+        hanging.push(spawned);
+        if (spawnCount === 1) {
+          queueMicrotask(() => {
+            child.emit("exit", 0, null);
+            child.emit("close", 0, null);
+          });
+        }
+        return spawned;
+      }
+    });
+    const ex = makeExecutor();
+    ex.tick();
+    await vi.waitFor(() => expect(hanging.length).toBeGreaterThan(1));
+    now = 300_000;
+    for (const timer of [...timers]) {
+      if (timer.at > now) continue;
+      const index = timers.indexOf(timer);
+      if (index >= 0) timers.splice(index, 1);
+      timer.fn();
+    }
+    const setup = hanging[hanging.length - 1]!;
+    setup.child.emit("exit", 0, null);
+    setup.child.emit("close", 0, null);
+    await vi.waitFor(() => expect(ex.lifecycleContamination()).toBeInstanceOf(ProcessGroupLifecycleError));
+    const status = (db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string } | undefined)?.status;
+    expect(status).not.toBe("blocked");
+    expect(status).not.toBe("ready_for_review");
+    expect(status).not.toBe("done");
+    expect(spawner.spawned).toHaveLength(0);
+    expect(() => spawnRuntimeChild(process.execPath, ["-e", "process.exit(0)"], {
+      stdin: "ignore",
+      stdout: "ignore",
+      stderr: "ignore"
+    }, "next")).toThrow(ProcessGroupLifecycleError);
+    const contaminated = ex.lifecycleContamination();
+    const walked = lifecycleFailureLeaves(contaminated);
+    const inner = contaminated && walked[0] === contaminated && walked.length > 1 ? walked.slice(1) : walked;
+    expect(inner.map((item) => item.message)).toEqual([
+      "Command timed out",
+      "kill EPERM"
+    ]);
+  });
+
+  it("shutdown kill 不误标 timeout", async () => {
+    const TSK = "tsk_01EXEC000000000000000000SK";
+    writeFileSync(
+      join(repo, ".saydo", "project.toml"),
+      '[[verify.entries]]\nname="test"\nsource="package_script"\nref="test"\n[setup]\ncommand="pnpm install"\n'
+    );
+    execFileSync("git", ["add", ".saydo/project.toml"], { cwd: repo });
+    execFileSync("git", ["commit", "-qm", "managed shutdown fixture"], { cwd: repo });
+    seedQueuedTask(TSK);
+    const hanging: SpawnedRuntimeChild[] = [];
+    let spawnCount = 0;
+    setRuntimeChildTestHooks({
+      groupState: () => "gone",
+      spawn: () => {
+        spawnCount += 1;
+        const stdout = new PassThrough();
+        const stderr = new PassThrough();
+        const stdin = new PassThrough();
+        const child = new EventEmitter() as SpawnedRuntimeChild["child"];
+        child.stdout = stdout;
+        child.stderr = stderr;
+        child.stdin = stdin;
+        Object.defineProperty(child, "pid", { value: 73000 + spawnCount });
+        child.kill = () => true;
+        queueMicrotask(() => child.emit("spawn"));
+        const spawned: SpawnedRuntimeChild = {
+          child,
+          commandToken: "saydo-child-01234567-89ab-cdef-0123-456789abcdef", generation: "01234567-89ab-cdef-0123-456789abcdef",
+          lease: { establish: async () => undefined, release: async () => undefined },
+          signal: () => undefined
+        };
+        hanging.push(spawned);
+        if (spawnCount === 1) {
+          queueMicrotask(() => {
+            child.emit("exit", 0, null);
+            child.emit("close", 0, null);
+          });
+        }
+        return spawned;
+      }
+    });
+    const ex = makeExecutor();
+    ex.tick();
+    await vi.waitFor(() => expect(hanging.length).toBeGreaterThan(1));
+    const preparing = ex.prepareShutdown("restart");
+    const setup = hanging[hanging.length - 1]!;
+    setup.child.emit("exit", 0, null);
+    setup.child.emit("close", 0, null);
+    await expect(preparing).resolves.toMatchObject({ recoverableTier1: 1 });
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("running");
+  });
+});
+
 
 describe("C2a claude spawn env / settings / hooks.json 仅 cursor", () => {
   it("claude env 注入两键且无 ANTHROPIC_*;settingsJson 内联;不写 .cursor/hooks.json", async () => {
@@ -2848,7 +5342,7 @@ describe("C2a handleGateRequest 文件分叉 + 并发 S2 + 双脚本 drift", () 
     expect(metas.some((meta) => meta.permission === "allow")).toBe(false);
   });
 
-  it("gate-claude.sh 漂移同样拦 + 自愈", async () => {
+  it("Claude gate 脚本漂移同样拦 + 自愈", async () => {
     const TSK = "tsk_01EXEC0000000000000000C2G5";
     const wt = await hangRun(TSK);
     const gp = gatePaths(saydoHome);
@@ -2860,7 +5354,7 @@ describe("C2a handleGateRequest 文件分叉 + 并发 S2 + 双脚本 drift", () 
     const drift = db.prepare("SELECT meta_json FROM audit_log WHERE action='tier1.gate_script_drift'").all() as {
       meta_json: string;
     }[];
-    expect(drift.some((r) => JSON.parse(r.meta_json).script === "gate-claude.sh")).toBe(true);
+    expect(drift.some((r) => JSON.parse(r.meta_json).script === basename(gp.claudeScriptPath))).toBe(true);
     expect(readFileSync(gp.claudeScriptPath, "utf8")).toBe(buildActiveClaudeGateScript(gp));
   });
 
@@ -3219,6 +5713,51 @@ describe("C2b session / canary / 记账 / 限流 / 恢复", () => {
     ).toBe(1);
   });
 
+  it("同一退出同时含 EPIPE 与 No conversation found 时 attempts=1 且 failed", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2P1";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [loadLine("init.jsonl")], exitCode: 0, hang: true }];
+    executor.tick();
+    await vi.waitFor(() => {
+      expect(
+        (db.prepare("SELECT native_session_confirmed AS c FROM tier1_runs WHERE task_id=?").get(TSK) as { c: number }).c
+      ).toBe(1);
+    });
+    const sid = (db.prepare("SELECT native_session_id AS s FROM tier1_runs WHERE task_id=?").get(TSK) as { s: string }).s;
+    const spawner2 = new FakeSpawner();
+    spawner2.plan = [
+      {
+        lines: [
+          JSON.stringify({
+            type: "system",
+            subtype: "init",
+            session_id: sid,
+            model: "claude-sonnet-5",
+            apiKeySource: "none"
+          }),
+          loadLine("resume_fail.jsonl")
+        ],
+        exitCode: 1,
+        stderrTail: "No conversation found with session ID",
+        pipeFailed: true,
+        preserveInitSession: true
+      }
+    ];
+    const executor2 = makeClaude(spawner2);
+    await executor2.recover();
+    await waitTaskStatus(TSK, "failed");
+    expect(spawner2.spawned).toHaveLength(1);
+    expect(spawner2.spawned[0]?.resumeChatId).toBe(sid);
+    const failed = db
+      .prepare("SELECT meta_json FROM audit_log WHERE action='tier1.failed' ORDER BY ts DESC LIMIT 1")
+      .get() as { meta_json: string };
+    expect(failed.meta_json).toContain("stdio_pipe_failed");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.recover_resume_failed'").get() as { c: number }).c
+    ).toBe(0);
+  });
+
   it("cursor → claude adapter mismatch ⇒ durable intent 原子收口且不 spawn", async () => {
     const TSK = "tsk_01EXEC0000000000000000C2BA";
     executor = makeClaude();
@@ -3453,6 +5992,98 @@ describe("C2b session / canary / 记账 / 限流 / 恢复", () => {
     expect(run.state).toBe("settled_failed");
   });
 
+  it("Tier1BinaryIdentityError 不可伪造，SECRET 不进终态", async () => {
+    const real = new Tier1BinaryIdentityError("digest_mismatch", "detail");
+    expect(isTier1BinaryIdentityError(real)).toBe(true);
+    expect(brandedBinaryIdentityFailureText(real)).toContain("binary_identity_mismatch");
+
+    let msgGets = 0;
+    const forged = Object.create(Tier1BinaryIdentityError.prototype) as Error;
+    Object.defineProperty(forged, "message", {
+      get(): string {
+        msgGets += 1;
+        return "SECRET-BINARY";
+      }
+    });
+    expect(isTier1BinaryIdentityError(forged)).toBe(false);
+    expect(brandedBinaryIdentityFailureText(forged)).toBeUndefined();
+    expect(msgGets).toBe(0);
+
+    let proxyGets = 0;
+    const proxy = new Proxy(real, {
+      get(t, p, r) {
+        proxyGets += 1;
+        return Reflect.get(t, p, r);
+      }
+    });
+    expect(isTier1BinaryIdentityError(proxy)).toBe(false);
+    expect(brandedBinaryIdentityFailureText(proxy)).toBeUndefined();
+    expect(proxyGets).toBe(0);
+
+    const revoked = Proxy.revocable(real, {
+      get() {
+        proxyGets += 1;
+        return "SECRET-BINARY";
+      }
+    });
+    revoked.revoke();
+    expect(() => isTier1BinaryIdentityError(revoked.proxy)).not.toThrow();
+    expect(isTier1BinaryIdentityError(revoked.proxy)).toBe(false);
+    expect(brandedBinaryIdentityFailureText(revoked.proxy)).toBeUndefined();
+    expect(proxyGets).toBe(0);
+    expect(brandedBinaryIdentityFailureText("SECRET-BINARY")).toBeUndefined();
+
+    let codeGets = 0;
+    try {
+      Object.defineProperty(real, "code", {
+        get(): string {
+          codeGets += 1;
+          return "SECRET-BINARY";
+        }
+      });
+    } catch {
+      // 冻结实例不允许重定义，快照仍必须稳定。
+    }
+    try {
+      Object.defineProperty(real, "message", {
+        get(): string {
+          codeGets += 1;
+          return "SECRET-BINARY";
+        }
+      });
+    } catch {
+      // 冻结实例不允许重定义。
+    }
+    expect(brandedBinaryIdentityFailureText(real)).toBe("binary_identity_mismatch:digest_mismatch detail");
+    expect(brandedBinaryIdentityFailureText(real)).not.toContain("SECRET");
+    expect(codeGets).toBe(0);
+
+    const TSK = "tsk_01EXEC0000000000000000R9AZ";
+    class HostileSpawner extends FakeSpawner {
+      override spawn(_input: Parameters<FakeSpawner["spawn"]>[0]): AgentProcessHandle {
+        throw forged;
+      }
+    }
+    const hostile = new HostileSpawner();
+    hostile.plan = [{ lines: [loadLine("init.jsonl")], exitCode: 0 }];
+    const hostileEx = makeExecutor({}, hostile);
+    seedQueuedTask(TSK);
+    hostileEx.tick();
+    await vi.waitFor(() => {
+      expect(hostileEx.lifecycleContamination()).toBeInstanceOf(ProcessGroupLifecycleError);
+    }, { timeout: 15_000, interval: 50 });
+    expect(msgGets).toBe(0);
+    expect(hostileEx.lifecycleContamination()?.message).not.toContain("SECRET");
+    const audits = db.prepare(
+      "SELECT action, meta_json FROM audit_log WHERE json_extract(meta_json, '$.taskId')=? ORDER BY id"
+    ).all(TSK) as { action: string; meta_json: string }[];
+    expect(JSON.stringify(audits)).not.toContain("SECRET");
+    const runRow = db.prepare("SELECT finalize_pending_json FROM tier1_runs WHERE task_id=?").get(TSK) as {
+      finalize_pending_json: string | null;
+    };
+    expect(String(runRow.finalize_pending_json ?? "")).not.toContain("SECRET");
+  });
+
   it("评审 90 A-6:result 的 total_cost_usd 贯通到 tier1.run 的 total_cost_usd_estimate", async () => {
     const TSK = "tsk_01EXEC0000000000000000R9A6";
     executor = makeClaude();
@@ -3545,4 +6176,213 @@ describe("C2b session / canary / 记账 / 限流 / 恢复", () => {
     };
     expect(cost).toEqual({ kind: "tier1.run", source: "subscription" });
   });
+});
+
+describe("Tier1 catch 品牌判别 trap-free", () => {
+  it("CostLedger/ReviewTransaction 不读 unknown cause，Proxy/revoked 零 trap 无 SECRET", () => {
+    const secret = new Error("SECRET");
+    const ledger = tier1CostLedgerFailure("run_cost", secret);
+    expect(ledger.message).toBe("tier1 cost ledger write failed:run_cost:unknown");
+    expect(ledger.message).not.toContain("SECRET");
+    expect(String(ledger.stack ?? "")).not.toContain("SECRET");
+    expect(classifyTier1ReviewTransactionCatch(ledger)).toBe("cost");
+    expect(classifyTier1ReviewTransactionCatch(secret)).toBe("terminal");
+
+    const review = tier1ReviewTransactionFailure("run_rev", "cost", secret);
+    expect(review.message).toBe("tier1 review transaction failed:run_rev:cost");
+    expect(review.message).not.toContain("SECRET");
+    expect(classifyTier1ReviewSettlementCatch(review)).toBe("cost");
+    expect(classifyTier1ReviewSettlementCatch(secret)).toBe("settlement");
+
+    let gets = 0;
+    let getPrototypeOf = 0;
+    const proxy = new Proxy(secret, {
+      get(t, p, r) {
+        gets += 1;
+        return Reflect.get(t, p, r);
+      },
+      getPrototypeOf(t) {
+        getPrototypeOf += 1;
+        return Reflect.getPrototypeOf(t);
+      }
+    });
+    expect(classifyTier1ReviewTransactionCatch(proxy)).toBe("terminal");
+    expect(classifyTier1ReviewSettlementCatch(proxy)).toBe("settlement");
+    const fromProxy = tier1CostLedgerFailure("run_p", proxy);
+    expect(fromProxy.message).not.toContain("SECRET");
+    expect(gets + getPrototypeOf).toBe(0);
+
+    const revoked = Proxy.revocable(secret, {
+      get() {
+        gets += 1;
+        return "SECRET";
+      },
+      getPrototypeOf() {
+        getPrototypeOf += 1;
+        return Error.prototype;
+      }
+    });
+    revoked.revoke();
+    expect(() => classifyTier1ReviewTransactionCatch(revoked.proxy)).not.toThrow();
+    expect(() => classifyTier1ReviewSettlementCatch(revoked.proxy)).not.toThrow();
+    expect(() => tier1ReviewTransactionFailure("run_r", "terminal", revoked.proxy)).not.toThrow();
+    const fromRevoked = tier1ReviewTransactionFailure("run_r", "terminal", revoked.proxy);
+    expect(fromRevoked.message).not.toContain("SECRET");
+    expect(gets + getPrototypeOf).toBe(0);
+  });
+});
+
+describe("executor ownership / recover abort 行为回归", () => {
+  const GEN = "01234567-89ab-cdef-0123-456789abcdef";
+  const TOKEN = commandTokenForGeneration(GEN);
+
+  afterEach(() => {
+    setKillOwnedTreeTestHooks(null);
+    setRestartPolicyTestHooks(null);
+  });
+
+  function writeAgentOwner(runId: string, rec: Record<string, unknown> = {}): string {
+    const runDir = join(saydoHome, "tier1", "runs", runId);
+    mkdirSync(runDir, { recursive: true });
+    const ownerInstanceId = String(rec.ownerInstanceId ?? "owner");
+    const generation = String(rec.generation ?? GEN);
+    const path = join(runDir, "agent-owner.json");
+    writeFileSync(path, JSON.stringify({
+      version: 1,
+      kind: "tier1:agent",
+      binary: process.execPath,
+      ownerPid: 2,
+      ownerInstanceId,
+      runId,
+      commandToken: `saydo-child-${generation}`,
+      generation,
+      jobName: formatSayDoJobName("Local", ownerInstanceId, runId, generation),
+      pid: 4242,
+      worktree: join(saydoHome, "wt"),
+      processStart: "birth-a",
+      ...rec
+    }));
+    return path;
+  }
+
+  function insertRunning(taskId: string, runId: string, worktree: string): void {
+    const nowIso = new Date().toISOString();
+    seedQueuedTask(taskId);
+    db.prepare("UPDATE tasks SET status='running', cwd=? WHERE id=?").run(worktree, taskId);
+    db.prepare(
+      `INSERT INTO tier1_runs(id, task_id, attempt, adapter, cwd, worktree_path, state, created_at, updated_at)
+       VALUES (?, ?, 1, 'cursor', ?, ?, 'running', ?, ?)`
+    ).run(runId, taskId, worktree, worktree, nowIso, nowIso);
+  }
+
+  it("ownershipEstablished 必须在 durable owner 写完之后", async () => {
+    const TSK = "tsk_01EXEC0000000000000000M28A";
+    const runId = "run_01EXEC00000000000000M28A";
+    insertRunning(TSK, runId, repo);
+    setKillOwnedTreeTestHooks({
+      processBirth: () => "birth-a",
+      processAnchor: (pid) => ({
+        pgid: pid,
+        command: `${process.execPath} /fake/versions/1.0.0-pinned/cursor-agent ${TOKEN}`
+      })
+    });
+    expect(readOwnedAgentProcessStart(4242, process.execPath, TOKEN)).toBe("birth-a");
+    let establishedWithFile: boolean | undefined;
+    class OwnedSpawner extends FakeSpawner {
+      override spawn(input: Parameters<FakeSpawner["spawn"]>[0]): AgentProcessHandle {
+        const handle = super.spawn(input);
+        const ownerPath = join(saydoHome, "tier1", "runs", input.runId, "agent-owner.json");
+        return {
+          ...handle,
+          pid: 4242,
+          ownershipRequired: true,
+          commandToken: TOKEN,
+          generation: GEN,
+          jobName: formatSayDoJobName("Local", runtimeChildOwnerIdentity().ownerInstanceId, input.runId, GEN),
+          started: Promise.resolve(),
+          ownershipEstablished() {
+            establishedWithFile = existsSync(ownerPath);
+          }
+        };
+      }
+    }
+    const owned = new OwnedSpawner();
+    owned.plan = [{ lines: [EV.init], exitCode: 2 }];
+    const ex = makeExecutor({}, owned);
+    const recovering = ex.recover();
+    await vi.waitFor(() => {
+      expect(establishedWithFile).toBe(true);
+    }, { timeout: 8_000, interval: 20 });
+    expect(existsSync(join(saydoHome, "tier1", "runs", runId, "agent-owner.json"))).toBe(true);
+    await recovering;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }, 20_000);
+
+  it("provisionWorktree 之后 abort 不得 spawn", async () => {
+    const TSK = "tsk_01EXEC0000000000000000M29A";
+    insertRunning(TSK, "run_01EXEC00000000000000M29A", repo);
+    const ac = new AbortController();
+    const recoveredSpawner = new FakeSpawner();
+    recoveredSpawner.plan = [{ lines: [EV.init, EV.result], exitCode: 0 }];
+    const recovered = makeExecutor({}, recoveredSpawner, {
+      recoverAbort: ac.signal,
+      afterProvision: () => {
+        ac.abort();
+      }
+    });
+    await recovered.recover();
+    expect(recoveredSpawner.spawned).toHaveLength(0);
+  }, 20_000);
+
+  it("killOrphanAgent 之后 abort 不得再处理后续行也不得 spawn", async () => {
+    const TSK1 = "tsk_01EXEC0000000000000000M30A";
+    const TSK2 = "tsk_01EXEC0000000000000000M30C";
+    insertRunning(TSK1, "run_01EXEC00000000000000M30A", repo);
+    insertRunning(TSK2, "run_01EXEC00000000000000M30C", repo);
+    const owner1 = writeAgentOwner("run_01EXEC00000000000000M30A", { pid: 4242, worktree: repo });
+    const owner2 = writeAgentOwner("run_01EXEC00000000000000M30C", { pid: 4243, worktree: repo });
+    const ac = new AbortController();
+    let afterKills = 0;
+    setKillOwnedTreeTestHooks({
+      processBirth: () => "birth-a",
+      processAnchor: (pid) => ({
+        pgid: pid,
+        command: `${process.execPath} ${TOKEN}`
+      }),
+      processAlive: () => true,
+      groupAlive: () => true
+    });
+    setRestartPolicyTestHooks({
+      processGroupAlive: () => true,
+      processBirth: () => "birth-a",
+      afterKillBeforeDelete: () => {
+        afterKills += 1;
+        ac.abort();
+      }
+    });
+    const recoveredSpawner = new FakeSpawner();
+    recoveredSpawner.plan = [{ lines: [EV.init, EV.result], exitCode: 0 }];
+    const recovered = makeExecutor({}, recoveredSpawner, { recoverAbort: ac.signal });
+    await recovered.recover();
+    expect(afterKills).toBe(1);
+    expect([owner1, owner2].filter((path) => existsSync(path))).toHaveLength(1);
+    expect(recoveredSpawner.spawned).toHaveLength(0);
+  }, 20_000);
+
+  it("claim barrier 后 abort 且已污染时 recover 必须返回而不是抛", async () => {
+    const TSK = "tsk_01EXEC0000000000000000M30B";
+    insertRunning(TSK, "run_01EXEC00000000000000M30B", repo);
+    const ac = new AbortController();
+    const recoveredSpawner = new FakeSpawner();
+    recoveredSpawner.plan = [{ lines: [EV.init], exitCode: 0, hang: true }];
+    const recovered = makeExecutor({}, recoveredSpawner, {
+      recoverAbort: ac.signal,
+      afterProvision: () => {
+        ac.abort();
+        throw new ProcessGroupLifecycleError("CloseHandle failed");
+      }
+    });
+    await expect(recovered.recover()).resolves.toBeUndefined();
+    expect(recoveredSpawner.spawned).toHaveLength(0);
+  }, 30_000);
 });

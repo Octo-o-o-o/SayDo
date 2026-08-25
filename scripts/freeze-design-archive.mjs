@@ -12,6 +12,7 @@ import {
   unlinkSync,
   writeFileSync
 } from "node:fs";
+import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 
 const [command, archiveArg, targetArg] = process.argv.slice(2);
@@ -24,8 +25,8 @@ const archiveDir = resolve(archiveArg);
 const targetDir = resolve(targetArg);
 const expectedArchiveBasename = "voice-coding.archive-20260729";
 const expectedTargetBasename = "SayDo";
-const expectedArchiveDir = "/Users/wangyixiao/WorkSpace/voice-coding.archive-20260729";
-const expectedTargetDir = "/Users/wangyixiao/WorkSpace/SayDo";
+const expectedArchiveDir = join(homedir(), "WorkSpace", "voice-coding.archive-20260729");
+const expectedTargetDir = join(homedir(), "WorkSpace", "SayDo");
 const expectedBaseline = "838aeea4385a41ec58318437bb36a7db5ede635f";
 const expectedMigrationBranch = "codex/merge-voice-coding-20260729";
 const expectedManifestSha256 = "4f195260f116d2e96dcafd3594080079c13e94ecee119f548d91cfb0747d274a";

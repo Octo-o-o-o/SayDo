@@ -4,7 +4,7 @@
 
 ---
 
-你接手 **SayDo Tier1 生产执行器批**。代码仓 `/Users/wangyixiao/WorkSpace/SayDo`(main 直推);设计库 `/Users/wangyixiao/WorkSpace/voice-coding`(只读,回写走轻量评审)。完成判定 = 故事一真实全闭环:语音派单 → 执行器认领 → cursor-agent 真跑 → S2 语音上浮审批 → settle → 回叫"等你验收" → 验收三态 → 人工合并 → task_done。
+你接手 **SayDo Tier1 生产执行器批**。代码仓 `~/WorkSpace/SayDo`(main 直推);设计库 `~/WorkSpace/voice-coding`(只读,回写走轻量评审)。完成判定 = 故事一真实全闭环:语音派单 → 执行器认领 → cursor-agent 真跑 → S2 语音上浮审批 → settle → 回叫"等你验收" → 验收三态 → 人工合并 → task_done。
 
 ## 0. 坐标核验(先做,漂移即停)
 
@@ -17,7 +17,7 @@
 | `rg -rn "from \"./tier1/adapter" packages/daemon/src --glob '!**/*.test.ts'` | 空(接线前基线;接完不应再空) |
 | `git -C ~/.saydo/hopper-dist rev-parse HEAD` | `bdd1e548…`(路径二资产,本批不动) |
 
-## 1. 必读(以 `/Users/wangyixiao/WorkSpace/` 为根)
+## 1. 必读(以 `~/WorkSpace/` 为根)
 
 1. `SayDo/HANDOFF.md`(§0 硬教训/§4 铁律)+ `SayDo/e2e/evidence/wiring-batch.md` §5/§7(挂账清单=本批输入)
 2. `voice-coding/docs/09-data-contracts.md` §9(tier1_runs 状态机/Tier1SettleProof/Tier1CancelProof/tier1MinimalProof)、§6.3(outbox/settle)、§13(steer/approveAction/explainResult)——照抄源

@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
 import { isWiredCliProvider, jcsDigest, type ModelBinding } from "@saydo/contracts";
+import { projectUntrustedFailureText } from "@saydo/platform";
 import type { AuditSink } from "../obs/audit.js";
 import type { Db } from "../storage/db.js";
 import { familyFromModelName } from "./family.js";
@@ -454,7 +455,7 @@ export function promotePendingCliRuntime(
     return {
       promoted,
       promotedBindings,
-      cleanupError: String(err instanceof Error ? err.message : err).slice(0, 200)
+      cleanupError: projectUntrustedFailureText(err, "cli runtime pending cleanup failed")
     };
   }
 }

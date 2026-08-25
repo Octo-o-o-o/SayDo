@@ -4,7 +4,7 @@
 
 ## 坐标与范围
 
-- 仓库：`/Users/wangyixiao/WorkSpace/SayDo`
+- 仓库：`~/WorkSpace/SayDo`
 - 分支：`chore/status-alignment-20260821`
 - HEAD：`088b8f0cc176bc2be9cf09235a640301dd35cb55`
 - 当前工作树未提交、未推送、未部署。

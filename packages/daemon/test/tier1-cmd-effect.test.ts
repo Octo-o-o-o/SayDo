@@ -471,8 +471,3 @@ const w54aCmdEffect: HardeningCase[] = [
 describe("W5.4-a cmdEffect 收紧(cd/agent CLI/圈外只读 S2)", () => {
   runHardeningTable("w54a cmdEffect", w54aCmdEffect);
 });
-
-
-
-
-

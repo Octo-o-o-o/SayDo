@@ -1,7 +1,7 @@
 # 69 移动外壳战略交叉对抗审
 
 > 日期：2026-08-13；HEAD：`0fe5fe8a9e0bc85b89a2324da77cad5a7710cb97`；只读。  
-> `git status --short` 当前有 17 条未提交或未跟踪项。未采用 `/Users/wangyixiao/WorkSpace/OctoDesk` 审计证据。本轮未跑真机，硬件行为结论标 `[warn]`。
+> `git status --short` 当前有 17 条未提交或未跟踪项。未采用 `~/WorkSpace/OctoDesk` 审计证据。本轮未跑真机，硬件行为结论标 `[warn]`。
 
 ## 终裁
 

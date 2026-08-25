@@ -27,7 +27,7 @@ import {
   ensureGateScript,
   gatePaths
 } from "../src/tier1/gateScript.js";
-import { parseGateWireRequest, startGateServer, type GateWireRequest } from "../src/tier1/gateServer.js";
+import { closeGateServer, parseGateWireRequest, startGateServer, type GateWireRequest } from "../src/tier1/gateServer.js";
 
 function runGate(scriptPath: string, hookInput: object): Promise<{ stdout: string; code: number }> {
   return new Promise((resolve) => {
@@ -40,8 +40,8 @@ function runGate(scriptPath: string, hookInput: object): Promise<{ stdout: strin
 }
 
 let server: Server | null = null;
-afterEach(() => {
-  server?.close();
+afterEach(async () => {
+  await closeGateServer(server);
   server = null;
 });
 
@@ -50,7 +50,7 @@ describe.skipIf(process.platform === "win32")("gate.sh 物理链路(fail-closed 
     const home = mkdtempSync(join(tmpdir(), "saydo-gate-"));
     const p = ensureGateScript(home);
     const seen: GateWireRequest[] = [];
-    server = startGateServer(p.sockPath, (req) => {
+    server = await startGateServer(p.sockPath, (req) => {
       seen.push(req);
       return Promise.resolve({ permission: "allow" as const });
     });
@@ -67,7 +67,7 @@ describe.skipIf(process.platform === "win32")("gate.sh 物理链路(fail-closed 
   it("daemon deny ⇒ 钩子输出 deny + agent_message 透传", async () => {
     const home = mkdtempSync(join(tmpdir(), "saydo-gate-"));
     const p = ensureGateScript(home);
-    server = startGateServer(p.sockPath, () =>
+    server = await startGateServer(p.sockPath, () =>
       Promise.resolve({ permission: "deny" as const, agent_message: "SayDo gate denied (S3): no voice grant" })
     );
     const r = await runGate(p.scriptPath, { command: "git push origin main", cwd: "/tmp/wt" });
@@ -107,7 +107,7 @@ describe.skipIf(process.platform === "win32")("gate.sh 物理链路(fail-closed 
     const home = mkdtempSync(join(tmpdir(), "saydo-gate-"));
     const p = ensureGateScript(home);
     const seen: GateWireRequest[] = [];
-    server = startGateServer(p.sockPath, (req) => {
+    server = await startGateServer(p.sockPath, (req) => {
       seen.push(req);
       return Promise.resolve({ permission: "deny" as const });
     });
@@ -120,7 +120,7 @@ describe.skipIf(process.platform === "win32")("gate.sh 物理链路(fail-closed 
     const home = mkdtempSync(join(tmpdir(), "saydo-gate-"));
     const p = ensureGateScript(home);
     const seen: GateWireRequest[] = [];
-    server = startGateServer(p.sockPath, (req) => {
+    server = await startGateServer(p.sockPath, (req) => {
       seen.push(req);
       return Promise.resolve({ permission: "allow" as const });
     });
@@ -152,7 +152,7 @@ describe.skipIf(process.platform === "win32")("gate.sh 物理链路(fail-closed 
     const p = gatePaths(home);
     const { mkdirSync } = await import("node:fs");
     mkdirSync(p.dir, { recursive: true });
-    server = startGateServer(p.sockPath, () => Promise.resolve({ permission: "allow" as const }));
+    server = await startGateServer(p.sockPath, () => Promise.resolve({ permission: "allow" as const }));
     // 用 curl 直打未知路由与坏 JSON
     const curl = (args: string[]): Promise<string> =>
       new Promise((resolve) => {
@@ -476,7 +476,7 @@ describe("GateWireRequest 判别联合(W5.4-b C2a;无 kind 不注入键)", () =>
     const p = gatePaths(home);
     mkdirSync(p.dir, { recursive: true });
     const seen: GateWireRequest[] = [];
-    server = startGateServer(p.sockPath, (req) => {
+    server = await startGateServer(p.sockPath, (req) => {
       seen.push(req);
       return Promise.resolve({ permission: "allow" as const });
     });
@@ -644,7 +644,7 @@ describe("handleGateRequest 经 unix socket:圈内 allow / 敏感 S2 / 圈外 de
     });
     executor.tick();
     await vi.waitFor(() => expect(hang.spawned).toBe(1));
-    server = startGateServer(gp.sockPath, (req) => executor.handleGateRequest(req));
+    server = await startGateServer(gp.sockPath, (req) => executor.handleGateRequest(req));
   });
 
   function postGate(body: object): Promise<{ permission: string; agent_message?: string }> {

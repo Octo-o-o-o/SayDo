@@ -10,7 +10,7 @@
 ## 0. 身份与坐标核验(先做,漂移即停)
 
 用命令核验以下,与描述不符先停下报告 owner,禁止"应该差不多"继续:
-1. 设计库(只读):`/Users/wangyixiao/WorkSpace/voice-coding/`;实现仓:`/Users/wangyixiao/WorkSpace/SayDo/`(远端 `github.com/Octo-o-o-o/SayDo`)。
+1. 设计库(只读):`~/WorkSpace/voice-coding/`;实现仓:`~/WorkSpace/SayDo/`(远端 `github.com/Octo-o-o-o/SayDo`)。
 2. 实现仓 `git log --oneline -5` 确认在 P0+P0.5 收口态;`just ci` 双矩阵当前全绿(以实际输出为准,不锚定固定测试数)。
 3. 关键代码现状(用 rg 核实,这些是计划的前提):`packages/daemon/src/voice/hub.ts` 的 role 仍是 `pipeline|console` 二值;`net/identity.ts` 仅 loopback/localhost 白名单;`callback/engine.ts` 生产未接线(`index.ts` 不 import callback);`session/manager.ts` 挂起/重建未接进 live 对话环。**若这些已变,说明场次②债务已部分完成,按 Phase 0.5 的"核对"分支处理。**
 

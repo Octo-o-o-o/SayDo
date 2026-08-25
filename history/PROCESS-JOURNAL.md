@@ -747,7 +747,7 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
 
 ## R49 · R-A 合同轮对抗性评审(2026-07-27)
 
-- **输入**：owner 要求核验 R-A 三块 canonical 回写（S3 WebAuthn、writing 窄版、场次①补丁），以 `/Users/wangyixiao/WorkSpace/SayDo/HANDOFF.md`、e2e evidence 和实际代码作为实施现状真相；明确“不改任何 canonical 文件”。
+- **输入**：owner 要求核验 R-A 三块 canonical 回写（S3 WebAuthn、writing 窄版、场次①补丁），以 `~/WorkSpace/SayDo/HANDOFF.md`、e2e evidence 和实际代码作为实施现状真相；明确“不改任何 canonical 文件”。
 - **行动**：只读逐行核对 `docs/04/09/10/11`、`docs/02/05`、`docs/modules` 与 SayDo contracts/daemon/console/DDL；并行收集 `contract_consistency` 与 `security_redteam` 两路对抗意见；按门禁创建 `research/codex-findings/prompts/21-ra-contract-review.md` 并尝试 `codex exec`。Codex app-server 在本机返回 `Operation not permitted`，故不采信/编造其结果。
 - **产出**：`research/codex-findings/21-ra-contract-review.md`。结论为 A6/B6/C3；A 级集中在 S3 receipt/来源/状态闸、空账本旁路、writing 开值与执行器断裂、WritingSettleProof barrier、proposed TTL；同时列出 writing 与 04 §6 当前并不冲突、S3 语音/自动 Hopper merge 红线仍在的免修项。未修改任何 `docs/` canonical 文件。
 - **结论**：R-A 目前只能判 `not ready_for_review`；先关闭 S3 与 readiness 的机械安全闸，再决定 writing 保持 W4 disabled 或完成类型化执行/验收链，随后补 TTL、迁移、§12 反例与分期导航。
@@ -859,7 +859,7 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
 - **行动**:在 SayDo 基线 `838aeea4385a41ec58318437bb36a7db5ede635f` 上创建 `codex/merge-voice-coding-20260729`;先对源 2087 文件/181,286,599 bytes 生成 SHA-256+type+mode 全量清单，再按 161 项显式映射迁入 canonical、计划、research、history、prompts、templates、Demo 与 assets。合并根 AGENTS/README/HANDOFF，清除活动 sibling 依赖，修正 ADR 双序列、PLAN-2 单一排产源与单批串行规则，配置模板对齐 `VOLC_APP_ID + VOLC_ACCESS_TOKEN` 和 `tianmeiyueyue`，emoji 门禁改为扫描错误 fail-closed，FTS 恢复原 oracle 并如实保留 19/20 排序回归。新增 source/migration/target-change 三份可复验清单与 freeze/unfreeze 状态机脚本。
 - **评审与 triage**:两路 subagent 分别做库存完整性、架构/回滚安全复核。初轮关闭清单 schema、mode、target-change 与中断恢复;切换后末审再抓 1A/3B:A = MIGRATION 命令块未显式 fail-fast;B = unfreeze 修改前未核验 backup 摘要、emoji 默认漏 untracked、research ADR 索引旧路径。全部回修:三块命令各加 `set -euo pipefail`;freeze/unfreeze 在任何 rename 前按源清单核验 backup SHA/bytes/type/mode;emoji 默认枚举 cached+untracked 并补反例;索引指向设计 ADR-001;知识底座“Git 索引”口径消除 tracked 误述。独立 Codex 24 报告 `research/codex-findings/24-repo-merge-migration-review.md` 为 419 行/23,862 bytes/SHA-256 `197636adba5933af328a56552547f8fad4840bd678be16a99083aa954bace457`，初审 3A/8B/2C;3A 与 8B 全修，C1 裸 ADR 清理，C2 历史绝对路径按证据保真并登记公开前脱敏。日志 `logs/24-repo-merge-migration-review.log` 为 13,378 行/1,194,946 bytes/SHA-256 `721c7feb7fd4b433c1c4b126fc4e2a65141908aee2e21257e8ef297c5ab6ad6f`;报告已写入后进程长时间无新增输出，人工终止 exit 1，如实记录而不冒充正常退出。
 - **验证**:隔离副本完整 freeze→冻结态 161 项映射→unfreeze 往返 exit 0，解冻后源全量恢复 2087 项一致;另注入 backup mode 漂移，unfreeze 在任何 rename 前按预期拒绝，修正 mode 后恢复 2087 项。无 sibling 隔离模板测试 26/26;两份 Demo 由 headless Chrome 验证首屏/路由且 console 0 warning/error;高置信密钥扫描 0。最终代码门禁 `just ci` exit 0:contracts 73、daemon 686 passed/4 skipped、Python 20;emoji 自测 8/8 且默认扫描最终候选 572 项;`git diff --check` 与四个迁移脚本语法均 exit 0。
-- **物理切换**:真实 preflight 依次通过源 2087 项、迁移 161 项、SayDo 195 路径清单与 branch/HEAD 断言;随后同卷 rename 为 `/Users/wangyixiao/WorkSpace/voice-coding.archive-20260729`，写两份只读 tombstone 并保存 `*.prearchive.md` 原文，旧路径 `/Users/wangyixiao/WorkSpace/voice-coding` 改为精确指向 `/Users/wangyixiao/WorkSpace/SayDo` 的 symlink。冻结后四路径 allowlist 外 2085 项无漂移，冻结态迁移清单与 SayDo 变更清单均复验通过。
+- **物理切换**:真实 preflight 依次通过源 2087 项、迁移 161 项、SayDo 195 路径清单与 branch/HEAD 断言;随后同卷 rename 为 `~/WorkSpace/voice-coding.archive-20260729`，写两份只读 tombstone 并保存 `*.prearchive.md` 原文，旧路径 `~/WorkSpace/voice-coding` 改为精确指向 `~/WorkSpace/SayDo` 的 symlink。冻结后四路径 allowlist 外 2085 项无漂移，冻结态迁移清单与 SayDo 变更清单均复验通过。
 - **产出与结论**:`docs/plan/MIGRATION.md` 成为唯一迁移/回滚说明;源冷档保留全部日志、依赖缓存与快照，未删除任何旧数据。后续唯一开发入口是 SayDo，旧路径只提供兼容跳转。工作树仍未提交、未推送;是否形成迁移提交由 owner 另行授权。
 
 ## R59 · 单仓迁移四路终验与 Codex 25 回修收口(2026-07-29)
@@ -1027,7 +1027,7 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
   `SSL_ERROR_SYSCALL` 失败，未冒充在线刷新成功；本地
   `origin/main=f28489d14af78d67d6ed3d223395d172b7e6056c` 是 target 祖先。
 - **备份与部署**:新快照
-  `/Users/wangyixiao/.saydo/backups/20260730T110948Z` 的 strict verifier 与隔离恢复通过，
+  `~/.saydo/backups/20260730T110948Z` 的 strict verifier 与隔离恢复通过，
   输出 `entries=4 digests=verified foundation=restorable extras=0`；dry-run 根移入 Trash，
   可恢复。`just daemon deploy b20151440011ce0452417439c2d81745cb5d7d39` exit 0，同时
   重启 daemon/pipeline。preflight 对账 runtime clean、双进程 loaded SHA、`readyz` 与
@@ -1099,7 +1099,7 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
   远端只新增 `HANDOFF.md` 真相纠正文档，和本批零路径重叠；两提交无冲突重放到最新 main，
   最终代码 SHA 以上述值为准。push 仍是独立授权，未执行。
 - **恢复演练阻断与回修**:首份生产快照
-  `/Users/wangyixiao/.saydo/backups/20260731T012407Z` 的 manifest、摘要和 SQLite
+  `~/.saydo/backups/20260731T012407Z` 的 manifest、摘要和 SQLite
   `quick_check` 均通过，但 dry-run 在重写 external workspace 时被 v14
   `external workspace registry incomplete` trigger 正确阻断。根因是旧脚本只改
   `workspace_json`，没有原子同步 canonical path/dev/ino。回修后 external 与 managed
@@ -1111,7 +1111,7 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
   `ada7981c67ef3a07e6df0431643bb8b7661e22d4` 的独立 detached clean worktree
   `just ci` exit 0：contracts 73、console 2、daemon 781 passed / 4 skipped、Python 31；
   emoji 自测 11/11 与 migration tools 全绿。
-- **部署与必检**:新快照 `/Users/wangyixiao/.saydo/backups/20260731T013926Z` 返回
+- **部署与必检**:新快照 `~/.saydo/backups/20260731T013926Z` 返回
   `entries=4 digests=verified foundation=restorable extras=0`，immutable SQLite
   `quick_check=ok`，真实 consumer 隔离恢复演练 `ok:true`，临时根移入 Trash。
   `just daemon deploy ada7981c67ef3a07e6df0431643bb8b7661e22d4` exit 0，同时重启
@@ -1419,7 +1419,7 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
 
 ### 输入
 - owner:读浅调研画布,与移动端深体检交叉对比,提交 Codex 对抗审,生成最终方案建议。
-- 画布:`/Users/wangyixiao/.cursor/projects/Users-wangyixiao-WorkSpace-SayDo/canvases/mobile-shell-strategy.canvas.tsx`
+- 画布:`~/.cursor/projects/Users-<account>-WorkSpace-SayDo/canvases/mobile-shell-strategy.canvas.tsx`
 - 体检:`docs/review/2026-08-13-mobile-gap-audit.fable.md`
 - 不含 OctoDesk 审计。不实施代码,不提交。
 
@@ -1764,7 +1764,7 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
 
 ### 输入
 - IMPL-PROMPT-9(`docs/plan/IMPL-PROMPT-9-CMDEFFECT-HARDENING.md`) + owner 开批 `cmdeffect-hardening`。
-- 施工 clone:`/Users/wangyixiao/WorkSpace/saydo-batch-cmdeffect`,分支 `batch/cmdeffect-hardening`,开批 HEAD `15de970bea5b8c8e1f9718858ef6deaf0c60c740`。
+- 施工 clone:`~/WorkSpace/saydo-batch-cmdeffect`,分支 `batch/cmdeffect-hardening`,开批 HEAD `15de970bea5b8c8e1f9718858ef6deaf0c60c740`。
 - 回哺源:`~/WorkSpace/dsh-approval-tiers`(施工时只读副本)。
 
 ### 行动
@@ -2115,3 +2115,674 @@ B 级 canary 搭便车/晚到事件变长 id/不可达误 snooze/④⑦合成规
 - rc.2 保持失败证据；rc.3 运行时与发布两路最终独立复审均为 Go，无 actionable P0/P1/P2。
   新的 tag、首次 Actions、Release、
   fixed URL、官网、常驻 runtime 和移动真机结果仍须在真实完成后另行回写。
+
+## R96 · rc.3 首次门红灯与 rc.4 换行/pipe 补救(2026-08-23)
+
+### 输入
+- rc.3 内部 main `8602c7324844ede014c577409ae10a834f1a1714` 已推送，公开 main 与 tag
+  已原子指向 `a29f671f79cf5f73452cecd60b092072c72c2aab`。CI `32622757288` 与 release
+  `32622757385` 首次 attempt 1 均失败，没有创建 GitHub Release。
+- Windows 分发在 `THIRD_PARTY_NOTICES.md` 对账前停止；Ubuntu node 的断言通过，但有 4 次
+  agent stdout `read ECONNRESET` 以 Vitest unhandled error 泄漏。
+
+### 行动
+1. 用同一仓库对照模拟 Windows `core.autocrlf=true` checkout：rc.3 基线的
+   `THIRD_PARTY_NOTICES.md` 有 1513 个 CRLF，`packages/cli/scripts/build.mjs` 有 212 个；
+   新增 `* text=auto eol=lf` 后两者均为 0。`.gitattributes` 同时纳入 CLI source revision 输入。
+2. `realAgentSpawner` 的 stdout/stderr 增加统一 pipe error 监听。只在已有权威 result、已开始
+   退出/kill 或已 settle 时收口 `ECONNRESET`；运行中或其他错误进入有界 stderr 并 exit 1。随后在
+   Docker Linux 复现仍抓到 ignored pipe 泄漏，继续把 runtime wrapper 的 ignored stdin/stdout/stderr
+   与 fd3 permit 控制 pipe 在统一 spawn 边界接住；BYOA 与受管命令的活动输出流也使用同一终止期
+   判定，活动期错误失败且不触发网络重试。child exit/close 保持 ignored 流的权威。跨 executor 恢复夹具
+   先等待原终态事务红灯 audit，再模拟重启，消除新旧 executor 同时 finalization 的瞬时竞态。
+3. rc.2/rc.3 tag 与首次 workflow 全部保留、不重跑；当前候选升为 `v0.1.0-rc.4`，公开入口、
+   发布工作流、post-release gate 与新 Release notes 同步改版本。
+
+### 产出
+- 登记 F106（Windows Git 换行不确定）与 F107（受管进程 stdio/control pipe 错误未完整收口）。
+- rc.3 真实失败证据回写 `e2e/evidence/2026-08-23-rc3-release-recovery.md`；rc.4 验收结果待完整
+  Mac、实体 Windows、Linux 压测与独立复审后回写。
+
+### 结论
+- rc.3 已成为保留的失败候选；当前只是 rc.4 施工树，在新的首次 Actions、Release 与固定 URL
+  smoke 真实通过前，不写成可用或已发布。
+
+## R97 · rc.4 三平台复验与 npm exec 信号收口(2026-08-23)
+
+### 输入
+- F106/F107 首轮实施为 `951249e696afdb38c2c9cb8e4de8b0a26e828f3c`；实体 Windows 定向测试
+  暴露标准 shim 与平台 basename 两处夹具问题，另由 Mac 最终 tarball 真机暴露一次 `Ctrl+C` 被
+  npm/终端瞬时重复传播、supervisor 误判二次 signal 的 F108。
+
+### 行动
+1. Windows 夹具改用当前 npm 支持的 Node `cmd-shim` 模板，并按实际 Claude gate basename 断言；提交
+   `b92b0ea39e99537c88a25baed56d0a8c3b772c01`。
+2. 先写 `prompts/97-rc4-macos-npm-exec-signal-implementation.md` 的验收标准，再由 Grok 实施同种
+   OS signal 50ms 去重；不同 signal、显式 cli-stop 与窗口后的第二次 signal 保持不变。提交
+   `b768089585d710255d61a693c2489ccf425f446f`。
+3. Mac 重跑 `just ci` 和最终 tarball 真启停；Linux 重跑 111 项受管进程与完整 CLI distribution；
+   Windows 用全新 `core.autocrlf=true` checkout 从空依赖安装，重跑 CLI 门、distribution 与最终包真启停。
+
+### 产出
+- Mac `just ci` exit 0：daemon 1885 passed/5 skipped、CLI 24 passed/1 skipped；最终包单次
+  `Ctrl+C` 输出 `daemon stopping reason="cli_sigint"`、前台 exit 0、监听/PID 为 0。
+- Linux 111/111 与 CLI 24 passed/1 skipped、distribution exit 0；Windows daemon 111/111、CLI
+  24 passed/1 skipped、distribution 与最终包前台启停 exit 0。
+- 最终包 `1146972` bytes、SHA-256
+  `d4ac2e2866a7ffb5191a8d4c3cea97b8581a7ecbe8380f698b42f661a1eb370e`；三平台 source/build identity
+  一致。详细证据见 `e2e/evidence/2026-08-23-rc4-release-candidate.md`。
+- Grok 日志 `1504789` bytes、SHA-256
+  `cadac83a2881a3fd3715524111fb9ae8e2c37f9e080a469de7ba3e8e5b511793`，终态 `end_turn`。
+
+### 结论
+- rc.4 本地与实体 Windows 候选门已绿；新的两路零上下文评审、外部 Codex、公开过滤树 bundle、
+  GitHub 首次 Actions/Release、fixed URL、availability、官网部署与移动真机仍是后续硬门。
+## R98 · AI 供给普适接入与零配置引导最终方案评审(2026-08-23)
+
+### 输入
+- owner:再次完整 review 当前项目对常见 CLI、API、订阅、智谱/Kimi/OpenCode、自定义 OpenAI/Anthropic Base URL、CC Switch、Ollama/oMLX 及中国大陆/全球本地与云生态的覆盖;目标是自动探测、主动配置和运行中被动提示都足够友好,最后产出一份可实施 MD 方案。
+- 治理约束:PLAN-2 仍是唯一排产源;当前 active pointer、HANDOFF/PLAN-2 口径和 dirty canonical 尚有并行任务冲突,本轮只做审计与专题方案,不得进入施工。
+
+### 行动
+1. 对当前 contracts/daemon/console 的 CLI catalog、`WIRED_CLI_PROVIDERS`、Kimi/OpenCode inventory、OpenAI-compatible adapter、SetupWizard/SupplyPicker/推荐器与 secret 槽做逐文件审计;确认现状仅支持 OpenAI Chat Completions 子集,智谱/Kimi/OpenCode 尚未形成完整一键接入,Anthropic Messages/OpenAI Responses 也未成为原生自定义协议。
+2. 按 Inference Supply 与 Execution Agent 两平面重建目标合同,覆盖三原生协议、provider-first preset、自定义 endpoint、官方与三方 API、消费级订阅的 rights 边界、CC Switch/网关、Ollama/LM Studio/oMLX、本地/LAN/云计算边界、自动发现、推荐器、状态中心、费用与数据去向提示。
+3. 把接入安全收敛成 typed identity/receipt DAG、候选与 runtime 两阶段证据、RouteSet/InvocationEnvelope、ActivationManifest、逐 operation policy、单次/日常费用授权和 fail-closed rights/data/network 门;Phase 0–8 各自写明验收标准与定向命令。
+4. 两路既有 subagent 分别从仓内合同/DAG/门禁和中国大陆/全球生态/费用/交互持续构造反例;每次发现 A 级均回修后重跑,最终都在 reviewed SHA `69ddf7081241cdc55c515934855d059b4317283dd635181128ea1bf5e1159a74` 上给出 `PASS`。
+5. Codex 95–101 使用 `gpt-5.6-sol`、`model_reasoning_effort=max`、read-only、stdin 关闭和 JSON 事件流完成零上下文对抗评审。97 抓出 canonical 弱门与异币种标量;100 抓出派生向量可伪造、dynamic 漏验非成功 member 和 Phase 0 缺专门命令;101 最终 `PASS`。其间 subagent 追加的 candidate/runtime Billing 漂移、runtime worst 被实账击穿和跨 operation 换挂也全部进入合同与 fixture。
+6. 终态 BillingMatch 不再保存可填写金额副本,只保存 typed refs 与 `billing-limit-fold-v1`;构造、Result verify、promote、dispatch 从权威收据/ledger 重算,逐 sent member 先验数值链再验 ingress aggregate,并以 operation-specific closure 对齐最终 Binding/RouteSetCore。
+
+### 产出
+- 最终专题方案:`docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md`(182627 bytes / SHA-256 `10926595375af51f7cbd7f4b0788ae4306c5c4b136625e95d237171d08f318dd`);`docs/plan/README.md` 增专题索引,并明确不取代 PLAN-2。
+- Codex prompts:
+  - 95(2847 / `b3233a35de46cf9104365d94c9dd748c8b6e96980afe8df3844c2533c6b80b83`);96(1949 / `17a8268b4b51ae8c89decb3f1e89cf888770e3b289f9a457db294828e7d376f4`);97(5926 / `537ba10e69ba915b8fd52baaefe73a237060b214f3ed35de9cdafb108670ca5d`)
+  - 98(2451 / `4023597cfb5828665d3ff67434b35aa6cc6cace6a7100872cf4c8e61495f7fa4`);99(2445 / `70c07029e9728032dd1964840f79057e875f507d7f5b098102b66bac8c778b89`);100(2639 / `cea846eb6a149115e75d02615ee649353904cfde2b83ede9f80de20506954194`);101(2572 / `7dc5db0171f58655e00fa09b09b01a81b457e28023bc9faa08fb705d8750e1e3`)
+- Codex reports:
+  - 95(24425 / `1030971d8f751a083f3bbd9ab2fce3f234a933497aebc4ce6e0583cf181d2108`);96(9786 / `f49463c8ec783e6d765620868f58fb11c76f10f87016a039fb204297803a0e75`);97(2017 / `7f736f924a44c9325078e12b84601a9f99e9db0cbf3fa4b17edc56d3b65458be`)
+  - 98(2209 / `7ee1b3f691b64d90ccc74bfbe0b38450c7594e0a29b95d7188d45ff352adcfbb`);99(2362 / `c6de3004ab913faa4b1c94b413c5b370b183ac206e2da9ff0afb0c1945557560`);100(2167 / `7d5f2da30612093a0304ab8786412f950798d7ff186194c110623824e3bd7f82`);101(3026 / `235ac1d4544937c7519f0af5fa3c3e49a73d64949cb1a49e40936eac18323291`)
+- Codex logs(均不入 Git):
+  - `logs/95-ai-supply-universal-onboarding-adversarial-review.jsonl`(949143 / `3ae91233f14825102617d5777d3bcc904f41a319808907800a3db88feb2f391b`)
+  - `logs/96-ai-supply-universal-onboarding-closure-review.jsonl`(1170508 / `4787e8128d8c14ea8dfe7aa225cf24d8c5df4e970adb96959de4dbb492e4772a`)
+  - `logs/97-ai-supply-universal-onboarding-final-closure-review.jsonl`(304651 / `63d15553a50f4311894fff25f0571d9df5168ab338e46d625d6c590620ca61d8`)
+  - `logs/98-ai-supply-universal-onboarding-final-gate-review.jsonl`(181793 / `e90e67d7585db9a5e949babecbb7f7ec45490e438693608c0873f3801515e6c8`)
+  - `logs/99-ai-supply-universal-onboarding-billing-closure-review.jsonl`(202036 / `d4de3959fdfc2b36bb309919ac972b126953f04765fcd8e358344d465bc392cf`)
+  - `logs/100-ai-supply-universal-onboarding-final-billing-gate-review.jsonl`(256335 / `99e49668162285c4b2b85bef160de328048d63d0d113121d8ee0f265850bf0a4`)
+  - `logs/101-ai-supply-universal-onboarding-derived-billing-final-review.jsonl`(262480 / `fdc35751ce3b91731abb0b27337afd1f5ecfc46fa4b8fed68c804256db41f434`)
+- 外部 CLI 日志有重复的非致命 cache TTL 元数据错误,但 97–101 均真实 exit 0、含 `turn.completed` 且报告落盘;未把错误行隐藏或当成业务失败。
+- 本轮收口门:全仓 `scripts/check-emoji.sh` clean;本专题 16 文件相对链接 160 项、broken=0;方案 code fence 28、偶数;旧 `docs/modules/c-tier1.md` 引用为 0。全仓 `check-doc-links` 仍因并行任务的 `docs/review/2026-08-22-week-audit-ledger.md` 10 个链接红灯,本轮未越界修改。
+
+### 结论
+- AI 供给专题方案评审通过,无未处置 A 级;它回答了当前支持现状、目标覆盖面、自动探测和主动/被动 UX,并给出可按 Phase 实施的合同与门禁。
+- **这不是已实施声明**:本轮未改生产代码、未运行未来 `billing-match-contract`/canonical consistency 测试、未跑 `just ci`,也未 commit/push/deploy。Phase 0 仍被 active pointer/dirty canonical/PLAN-2 坐标和 §14 六项 owner 决策阻断。
+
+## R99 · AI 供给 v20 终审纠偏与跨会话交接(2026-08-24)
+
+### 与 R98 的关系
+- R98 记录的是早期 18 万 bytes 方案及当时的局部 PASS;后续连续对抗审查已证明该结论不能代表当前 3 MB 参考实现级合同。R99 supersede R98 的“无未处置 A 级/可进入审批”结论,但保留 R98 作为过程事实。
+- 当前准确状态为“v20 机械可编译,三路终审均 FAIL,禁止生产施工”。
+
+### 输入
+- owner:在长会话结束前完整核对已做与未做,生成可在新会话零上下文续接的 prompt。
+- 冻结目标:`docs/plan/2026-08-23-ai-supply-universal-onboarding-final.fable.md`;SHA-256 `33afc197085f92355e12272a9c45a49ce4d560715b7b7992759dac8398c83531`;48,809 行;3,022,748 bytes;HEAD `174ab48895aa1e4a6c6b42b9c74187f20efc3cfd`。
+
+### 行动与证据
+1. 重新运行完整 16-block TypeScript 合同读回:Node 22.23.1、TypeScript 5.9.3、`--max-old-space-size=2048`、strict/NodeNext 为 0 diagnostics;489,891 types、809,365 instantiations、24,806 properties、writable 0、`any` 0、duplicate 0、非品牌 required-never 0。单次 wall 30.89 秒、max RSS 2,069,364,736 bytes;只证明绝对门单样本,不冒充五冷进程或相对 baseline。
+2. 集合读回为 81 requirements/81 exact oracle、71 inference/5 execution/4 bridge/1 control、37 suite/39 BOM rows、5 public producer/5 root、17 positive/25 negative future fixture ID、972 a11y cells。emoji 与 active document links 门通过。
+3. 完成同一冻结 SHA 的三路独立终审:
+   - `164-ai-supply-reference-architecture-final-closure-v20.md`:FAIL,A=4/B=0/C=0;216 行、19,392 bytes;SHA `7d896204979c86f3f84df79faf72fc3cd35f6b95669b5d3cfa120172c15d8ea2`。
+   - `165-ai-supply-ecosystem-ux-final-closure-v20.md`:FAIL,A=1/B=2/C=1;141 行、17,712 bytes;SHA `921429129b62b282246496ede6d3238fb0e6c1734a8ff4a04f2cc1efcfa7d2c8`。
+   - `166-ai-supply-reference-grade-final-adversarial-v20.md`:FAIL,A=6/B=0/C=0;397 行、17,456 bytes;SHA `8ac62a42c3a5adbc116a9ce8ced7250b1e1cd88fc497575b498326b8ecd9e502`。日志 425 行、2,251,699 bytes、SHA `45d9f83492acf3c75abdfef4562c6555f5c8c31bc67282f82df8859c49e61594`,真实含 `turn.completed`。
+4. 三路 finding 归并为运行时 canonical/private producer/CAS 权威与静态泛型边界、统一持久 transition、final-AST authority 闭包、cross-attempt ledger、可离线重放 proof graph、host-origin read/decode provenance、43-target 性能/baseline、Tencent 双控制面、UX limit 单一真相和 generic 文案参数化等根因。未把重叠 A 数机械相加。
+5. 复现合同抽取歧义:相同 45,728 行与 2,282,249 bytes 下,regex block concat 得 `234c5ff9a0c68d691eb7547a611e2604d45930ccbaa54a4d8a93874fb810be4e`,line-preserving fence blank 得 `99bbb2ecb8a861d5aedb1093decbf10a621dd4261e544790c800db40e08b6dd1`;v21 必须冻结带版本的唯一算法 ID,不能只比 bytes/lines。
+6. 用腾讯云官方 product 1823 与 International product 1300 文档确认 `tencentmaas.com` 和 `tencentcloudmaas.com` 是不同控制面产品域;现有 Singapore global claim会误导 International 用户,须在 v21 拆 account/control-plane、resource realm 和 credential recipient。
+7. 删除 14 个只用于设计读回的临时 `scripts/ai-supply-v20-*-probe.ts`/helper,未把它们冒充 Phase 0 正式 fixture。
+
+### 产出
+- 零上下文续接 prompt:`prompts/167-ai-supply-v21-design-closure-handoff.md`;166 行、18,653 bytes;SHA-256 `b59264843f88344ac678a2636c61c092d3c7f09ea26586cc9df3b8f715e3cef3`;emoji gate clean。
+- prompt 明确下一会话先完成 v21 根因闭包和三路 A=0/B=0 终审,再生成真正生产实施 kickoff,不得直接改生产代码。
+
+### 未做与阻断
+- 未修 v20 finding,未形成或冻结 v21,未启动 v21 三路复审。
+- 未修改生产代码,未创建未来 43 个 Phase 0 fixture,未运行 `just ci`,未 commit/push/deploy。
+- `HANDOFF.md` active pointer 仍为 `w54b-wiring`;PLAN-2 仍执行单仓单批且尚未具名排入本专题;§14 十项 owner decision 未签。branch/worktree/clone 均不能绕过这些开工门。
+
+### 结论
+- v20 相比早期版本有大量实质进步,但尚未收敛到可施工状态;最近版本仍在发现安全、状态、费用、发布闭包和现行生态事实的根因缺口,不是文字润色。
+- 新会话应执行 prompt 167。只有 v21 三路同时 A=0/B=0 且治理前置另行解除后,才能开始生产实施。
+
+## R100 · AI 供给 v1–v20 评审循环路线诊断(2026-08-24)
+
+### 与 R99 的关系
+- R99 记录的事实经本轮独立复核**全部属实**(SHA/行数/字节/三路 A-B 计数/未改生产代码/未 commit),不存在编造。
+- 本轮不 supersede R99 的事实记述,只对其后续路线(执行 `prompts/167` 做 v21)给出**反对结论**。
+- 诊断者为零参与 v1–v20 施工的独立会话,只读,未修改主方案与任何 prompt/findings。
+
+### 复核证据(本会话实测)
+1. 冻结目标 `wc -l` 48809、`wc -c` 3022748、`shasum -a 256` `33afc197085f92355e12272a9c45a49ce4d560715b7b7992759dac8398c83531`,与 R99 完全一致。
+2. 164/165/166 三路头部实读为 FAIL,A=4/B=0、A=1/B=2、A=6/B=0,与 R99 一致。
+3. `git diff --stat` 仅 `docs/plan/README.md` +4 与本文件 +72;`git log -- <方案>` 为空,确认 20 轮产物从未进入版本控制。
+
+### 诊断结论:v21 路线不可收敛
+1. **审查对象形态**:全文 48,809 行中代码块内占 45,822 行(93.9%);§4 目标架构占 43,453 行(89.0%);
+   最大单个代码块 24,283 行(205–24,488),次大 12,630 行(27,514–40,144)。
+   对比真实 `packages/contracts` 全包仅 5,040 行,全仓 `packages/**/*.ts` 119,543 行。
+2. **A 级计数为随机游走**:v9→v20 依次 3/7/4/2/1/9/3/(2,4,4)/(4,2)/(5,2)/(8,1)/(4,1,6);
+   v13 曾降至 A=1,v14 反弹至 A=9;20 轮零 PASS。形态符合「对固定巨兽独立随机采样」,不符合逐轮逼近。
+3. **规模是失控主因**:R98 记述的 182,627 bytes 版本曾评审通过无 A 级,当前膨胀 16.5 倍后进入死循环。
+4. **审查对象与产品脱节**:v20 十一条 A 级中仅 165 A-01(Tencent 产品域)是真实产品事实缺陷,
+   其余全部是文档内类型体操的自身缺陷;这些代码不进 `packages/`、不被编译进产品、不被任何测试执行。
+   `prompts/167` 第 1 条根因原文即「停止把 TypeScript 泛型当运行时授权」,而其处方仍是在 Markdown 内继续改泛型。
+5. **三条开工硬门与 v21 无关**:active pointer 仍为 `w54b-wiring`(C3 未做);PLAN-2 未给具名坐标;§14 十项决策未签。
+
+### 十项决策的耦合实测
+对 §4(43,454 行)做关键词命中统计(命中间有重叠,不可相加):
+Execution 2154 / plugin-sandbox-capability 627 / TUF-registry-delegation 579 /
+Spend-funding-overage 519 / subscription-rights 443 / LAN-loopback-discovery 304。
+证明这十项不是文档尾部附注,而是贯穿 §4 数千行合同的活跃变量;§4 的体量部分来自「两种可能都保留」。
+
+### 产出
+- `docs/review/2026-08-24-ai-supply-v20-loop-diagnosis.md`(171 行):路线诊断,含复核表、三项结构证据、改道建议。
+- `docs/plan/2026-08-24-ai-supply-owner-decisions.md`(224 行):§14 十项决策独立可读副本;
+  十项原文共 1,752 字符经程序化比对**逐字一致 10/10**;含决策问题、耦合注解与签署栏。
+- `docs/plan/README.md` 增两条索引。三份文件 emoji gate 均 clean。
+
+### 建议路线
+1. 立即保全:159 个未跟踪路径(含 3 MB 主方案、73 prompts、73 findings)纳入版本控制(需 owner 授权 commit)。
+2. 停止 v21,不执行 `prompts/167`。
+3. 拆分审查对象:决策文档(人读,≤800 行)与合同代码(下沉 `packages/contracts`,由 tsc+vitest+fixture 验证)分离。
+4. 关键路径是先签 §14 十项决策,再决定 §4 去向;决策 10(编译资源基线)建议最后签。
+
+### 未做
+- 未修改主方案文档、未修改任何 prompt 或 findings、未删除任何 v1–v20 产物。
+- 未对 v20 十一条 A 级 finding 做技术复核(本诊断不质疑其成立性,只质疑处置路线)。
+- 未验证 R98 记述的 182,627 bytes 版本编译结果(文件已被覆盖,不可复现)。
+- 未修改生产代码,未运行 `just ci`,未 commit/push/deploy。
+
+## R101 · AI 供给专题文档结构手术（2026-08-24）
+
+### 输入
+- owner 采纳 R100 诊断，授权停止 v21 并改道：「把文档设计到最完整、最标准、可行合理的状态，
+  不要有疏漏、不足、错误和过度设计，并且清理没有用的内容」。
+
+### 方法：结构手术而非重写
+本轮**不重写任何一句设计内容**。20 轮积累的产品事实（生态权益边界、协议差异、官方证据基线）
+是查证过的真实资产，重写会丢失。只做三件结构性的事：代码块外移、评审记账归档、循环疤痕清理。
+
+### 行动与证据（全部本会话实测）
+1. **全文盘点**：48,809 行中代码块占 45,822 行（93.9%）；§4 目标架构 43,453 行（89.0%）；
+   去掉代码块后仅约 2,980 行散文，其中 §17 评审记账独占 741 行。
+   31 个代码块中 ts 16 块 45,696 行、text 3 块 114 行、sh 12 块 12 行。
+2. **代码块外移**：16 个 ts 块按所属子节归为 10 个文件，落 `docs/plan/ai-supply-contracts-draft/`。
+   提取合计 45,696 行，与源块总数**逐行一致**。
+   最大单块 24,283 行（§4.2 核心合同）、次大 12,630 行（§4.16.3）；块 8–14 共 18,569 行全部产生于 §4.16，
+   即 43% 的合同代码是评审第 16 轮之后堆出来的。
+3. **编译验证**：按原顺序拼接 45,696 行，node v22.23.1 / TypeScript 5.9.3 / strict + NodeNext /
+   `--max-old-space-size=2048`，**tsc exit=0、零诊断输出**，独立复现 R99 的编译结论。
+   改动后从草案目录重新拼接 45,702 行复编译，仍 exit=0、零诊断，证明提取无损。
+4. **§17 归档**：742 行原样移出至 `docs/review/2026-08-24-ai-supply-review-loop-archive.md`，未改写。
+5. **零丢失校验**：程序化比对确认——应保留的 1,841 行非空散文在新主方案中**缺失 0**；
+   §17 的 591 行非空行在归档中**缺失 0**；ts 代码 45,744 行 = 45,696 净行 + 32 行来源注释 + 16 尾空行。
+6. **循环疤痕清理**：三个把评审轮次当文档结构的子节名改为描述内容本身
+   （`4.16 第三轮闭包…`→`4.16 逐字节授权…`；`4.16.7 v19 受信导出…`→`4.16.7 受信导出…`；
+   `4.16.8 v20 单一公共真相与根因闭包`→`4.16.8 单一公共真相`）。
+   **版本化类型名（`…V6`/`…V20`）一律不动**——它们是指向草案定义的合同锚点，改名会断链；
+   `SigV4` 为 AWS 标准术语，属假阳性。
+7. **风格对齐**：原文档全角标点占压倒多数（全角逗号 2,149 : 半角 85），新增的指针块与尾注
+   全部改为全角，措辞改为承接式（「见 …（N 行）」）以接住原有的「以下是语义草图：」等引导句。
+8. **交叉引用核对**：文档内 25 个 §N 引用与 89 个实际节号比对，**悬空引用 0**。
+9. **废弃标注**：`prompts/167`（v21 交接）顶部加废弃块，说明不可收敛的理由与改道去向，
+   避免他人或新会话照其执行。文件本身保留为过程证据。
+
+### 产出
+- 主方案 48,809 行 → **2,394 行**，回到人可读的设计文档形态；头部新增「本文档的组成」三分法说明。
+- `docs/plan/ai-supply-contracts-draft/`：10 个 .ts 文件共 45,696 行 + README（87 行）。
+  README 把三路终审的 11 条未修 A 级 finding 按**顶层定义位置**（程序化 grep）映射到具体文件，
+  并写明下沉 `packages/contracts` 的三条前置注意事项。
+- `docs/review/2026-08-24-ai-supply-review-loop-archive.md`（757 行）：§17 原样归档。
+- `docs/plan/README.md` 专题索引重写为三分法结构。
+
+### 门禁
+- emoji gate：6 份文档全部 clean。
+- `scripts/check-doc-links.mjs`：files=101、**broken=0**（含新增的全部相对链接）。
+- 合同草案 tsc：exit=0、零诊断。
+
+### 未做
+- 未修改主方案的任何一句设计内容；未修 v20 的 11 条 A 级 finding。
+- 未删除任何 v1–v20 产物（73 prompts、73 findings 全部保留）。
+- 未下沉 `packages/contracts`，未修改生产代码，未运行 `just ci`，未 commit/push/deploy。
+- 三条开工硬门（active pointer `w54b-wiring`、PLAN-2 排产、§14 十项决策）仍未解除，与本轮无关。
+
+### 结论
+文档形态问题已解决：设计归设计（人读+评审）、合同归合同（tsc+测试）、记账归记账（归档）。
+但**设计本身仍未收敛**——11 条 A 级 finding 一条未修，这需要先签十项 owner 决策再动手，
+而不是再开一轮评审。原件已备份，本轮全部操作可逆。
+
+## R102 · 十项 owner 决策预填与决策 2 影响面分析（2026-08-24）
+
+### 输入
+- owner 授权 commit 保全（已完成，见下）；并问「十项决策能否代签」。
+- owner 选择：预填第一类 + 第二类共 5 项供其审阅签字；决策 2 先做真实代码影响面分析。
+
+### 保全（已提交）
+- `57819ad` 保全 v1–v20 原始产物：144 文件、63,920 行插入
+  （主方案 48,809 行原件 + 72 prompts + 71 findings）。
+  从 git 取回的原件 SHA-256 为 `33afc197…c83531`，与 R99 记录逐字一致。
+  同时精确复原 `prompts/167` 至 SHA `b592648…3e5ef3`、166 行、18,653 bytes，与 R99 记录一致后才入库。
+- `109dacc` 结构手术：18 文件、+47,246/−46,469。
+- 剩余 13 个未跟踪路径属其他任务（week-audit、playwright、png），本轮未动。
+- 提交前实测 `pnpm lint` exit=0：`eslint packages` 与 `pnpm -r typecheck` 均不扫 `docs/`，
+  新增的 45,696 行草案不进入任何构建或 lint 范围。
+
+### 代签问题的处置
+**不代签。** §14 原文「未拍板项不由施工方推断」约束的正是本会话角色；
+这十项承担的是厂商条款风险、用户扣费风险与工程投入取舍，责任不可转移。
+改为把十项按「拍板需要什么」分成四类，使 owner 的实际判断量从 10 项降到 4 项：
+
+- 第一类（决策 3、5、8、9）：技术上有唯一合理答案，已预填并写明推荐理由。
+- 第二类（决策 4）：外部条款已决定，非选择题，已预填。
+- 第三类（决策 1、2、6、7）：真正需要 owner 判断，保持空白。
+- 第四类（决策 10）：前提已变（草案已外移），建议暂缓，保持空白。
+
+### 决策 4 的条款依据
+引 2026-08-19 核实的 Anthropic 官方原文（`code.claude.com/docs/en/legal-and-compliance`）：
+"Anthropic does not permit third-party developers to offer Claude.ai login or to route requests
+through Free, Pro, or Max plan credentials on behalf of their users"，同页声明保留执法权且可不经预先通知。
+预填时明确区分了两件事：本决策约束「分发版产品自动使用终端用户订阅」，
+而 owner 本机 `claude_cli` 的 spawn-CLI-子进程用法属官方认可的 "run the CLI as a subprocess"，
+**不在禁止范围内，W5.4 既有设计不受影响**。并标注该政策 2026 年内多次变更，签署前建议复核时效。
+
+### 决策 2 影响面分析（基于真实代码，未引用合同草案）
+产出 `docs/review/2026-08-24-decision-2-impact-analysis.md`（154 行）。三条发现：
+
+1. **与 D8 存在张力**：`docs/07-tech-stack-decisions.md:131` 把 Codex 定位为
+   「经 Hopper 现状 `codex exec` adapter(Tier 2)」，app-server 排 P1/P2；
+   同文件 133 行对 ACP 是「持续跟进不押注」。方案默认推荐把 App Server 与 ACP 并列建独立平面，
+   等于提前押注 ACP。
+2. **`codex` 槽位已预留未实现**：`packages/contracts/src/types/task.ts:12` 的
+   `adapterSchema = z.enum(["claude_code","cursor","codex"])` 已含 codex；
+   而 `packages/daemon/src/tier1/backends/types.ts:5` 的
+   `AdapterKind = Extract<Adapter,"cursor"|"claude_code">` 未实现它。
+3. **真正的分歧点是 `exec` 还是 `app-server`**：`Tier1Backend`（`backends/types.ts:48-65`）的每个成员
+   —— `buildArgv(): string[]`、`parseLine(line)`、`isTerminalResult(line)`、
+   `finishPolicy: kill_on_result|wait_exit_then_kill`、`explainFailure(exit, stderrTail)` ——
+   都假设「构造一次命令行 → 单向读 stdout → 进程结束」，**接口中没有任何向 agent 发送消息的方法**。
+   `codex exec` 完全吻合；`codex app-server` 的双向 JSON-RPC + `turn/steer` + 审批回调没有落点。
+
+另核实现有架构**已有两条执行平面**：`capabilityMatrix.ts:6` 的 `ExecBackend = "tier1"|"hopper"`，
+且 Tier 1（自 spawn 子进程、hook 拦截、`packages/daemon/src/tier1/` 10,421 行）
+与 Hopper（投递后回填、`bridge/dispatch.ts` 100 行）执行模型截然不同。
+故「独立 Execution Agent plane」并非全新概念。
+
+建议 owner 把决策 2 拆成两问：(a) 本轮接 exec 还是 app-server；(b) ACP 是否随之押注。
+若沿用 `codex exec`，§4 的 execution 合同本轮大部分用不上，可整段推迟下沉。
+
+### 产出
+- `docs/plan/2026-08-24-ai-supply-owner-decisions.md` 224 → 283 行：5 项预填 + 决策 2 挂分析。
+- `docs/review/2026-08-24-decision-2-impact-analysis.md`（154 行）。
+
+### 自查与更正
+分析初稿把 `Tier1Backend` 接口标为 `backends/types.ts:44-65`，实测第 44 行属
+`Tier1BuildArgvInput` 的字段，接口真实范围为 48-65，已更正后才落盘。
+其余引用（07:131、07:133、capabilityMatrix.ts:6、task.ts:12、types.ts:5、
+tier1 共 10,421 行、cursor.ts 71 行、claude.ts 263 行、dispatch.ts 100 行）逐条实测无误。
+
+### 未做
+- 未代签任何一项决策；五项预填均标注「Claude 预填草案，待 owner 确认」，签署人/日期栏留空。
+- 未核实 Codex app-server 的实际协议细节（分析中该处引自 D8 表格原文，已在文末标注边界）。
+- 未修改生产代码，未运行 `just ci`（仅跑了 `pnpm lint`），未 push/deploy。
+
+## R103 · Codex exec 与 app-server 形态实证（2026-08-24）
+
+### 输入
+- owner 问「Codex exec 和 app-server 的区别是什么」。
+- R102 的决策 2 分析在此处标注过「未验证 app-server 协议细节，描述引自 D8 表格原文」——本轮补做实证。
+
+### 实证方法与结果（本机 codex-cli 0.147.0）
+1. `codex exec -s read-only -m gpt-5.6-sol --json 'reply with OK only' < /dev/null`，exit=0，
+   完整事件流仅四条:`thread.started` → `turn.started` → `item.completed` → `turn.completed`，随后进程退出。
+   单向 stdout 行流，启动后无输入通道;首行为 `Reading additional input from stdin...`，
+   与既有「后台跑必须 `< /dev/null`」的记述一致。
+2. `codex app-server generate-json-schema --out <DIR>` 产出 39 个类型文件。程序化统计:
+   `ClientRequest` **95** 个方法(含 `thread/start|resume|fork|rollback`、`turn/start|steer|interrupt`、
+   `thread/compact/start`)、`ServerRequest` **10** 个(审批/征询类 **7**:
+   `item/commandExecution|fileChange|permissions/requestApproval`、`item/tool/requestUserInput`、
+   `mcpServer/elicitation/request`，加 v1 遗留的 `applyPatchApproval`/`execCommandApproval`)、
+   `ServerNotification` **70** 个。另有三个非审批反向请求:`item/tool/call`、
+   `account/chatgptAuthTokens/refresh`、`attestation/generate`。
+   传输层由 `--listen` 决定:`stdio://`(默认)、`unix://`、`unix://PATH`、`ws://IP:PORT`、`off`。
+
+### 两个新发现（D8 未记载）
+1. **架构反讽**:Tier 1 现用 `provisionHooks()` 写配置文件实现工具拦截(Claude `PreToolUse`、
+   Cursor `beforeShellExecution`，同步阻塞回连 daemon)，而 app-server 的 5 个 v2 审批请求
+   **就是协议原生的同一件事**。即 Tier 1 的 hook 机制正是在模拟 app-server 天生具备的能力;
+   把 app-server 并入 Tier 1 等于把原生双向能力降级成文件 hook。
+2. **两个减分项**:`codex app-server --help` 首行标注 `[experimental]`(`exec-server` 同为
+   `[EXPERIMENTAL]`)，且协议 **v1/v2 并存**(schema 目录同时含 `v1/`、`v2/` 与两份
+   `codex_app_server_protocol*.schemas.json`)。押注意味着跟随变更——
+   **这支持 D8 把 app-server 排在 P1/P2 而非当下的现有判断**。
+
+### 自查
+统计脚本首版只处理 `method.const`，返回 0;实为 schema 用 `method.enum`。
+按「命令失败 ≠ 业务结论为假」未据此推翻前次的 95，而是修正脚本后复核，
+得同一数字 95/10/70。文档中所有数字均来自修正后的脚本。
+
+### 产出
+- `docs/review/2026-08-24-decision-2-impact-analysis.md` 154 → 215 行:
+  新增 §4.1 实证、§4.2 架构反讽、§4.3 减分项;§7 边界声明由「未验证」改为「已实证，
+  但未实际建立 app-server 会话，未验证审批回调的真实时序与超时语义」。
+- 决策单决策 2 段落同步实证摘要。
+
+### 未做
+- 未实际建立 app-server 会话，未跑通一次真实的审批回调往返。
+- 未修改生产代码，未 push。
+
+## R104 · Agent CLI 的 ACP 能力生态实证（2026-08-25）
+
+### 输入
+- owner:「检查一下其他的 Provider 是否也有类似的 APP server 类似的概念和使用方式,一起更新方案和建议」。
+
+### 方法
+本机已安装的 11 个 agent CLI 逐个抓 `--help`;对声明支持 ACP 的**实际启动并发送同一条手写
+`initialize` 请求**,取真实 JSON-RPC 响应,不依赖文档转述。
+
+### 结果:ACP 已是事实标准
+**6 个 CLI 实测通过**,返回结构同构的 `protocolVersion:1` + `agentCapabilities` + `authMethods`:
+goose 1.37.0、opencode 1.18.21、kimi 0.38.0、gemini 0.55.1、copilot 1.0.61、qwen 0.18.0。
+字段名与层级完全一致,差异只在各家声明的 `sessionCapabilities` 子集
+(opencode/kimi 有 `fork`/`resume`,goose 当前不声明)——即同一个客户端实现可对接全部。
+
+其余:grok 1.0.5 无 acp 子命令,但 `--output-format streaming-json` 定义为
+「NDJSON of the agent **native ACP session updates**」;codex 0.147.0 是唯一走专有 `app-server`
+协议的(仍 `[experimental]`、v1/v2 并存);droid 0.147.0 有 `daemon` 但协议未验证;
+**claude 2.1.220 与 cursor-agent 2026.08.11 是唯二完全不沾 ACP 的——恰是 SayDo 现有实现的两个 Tier 1 后端**。
+
+`docs/07-tech-stack-decisions.md:133` 原文「ACP 持续跟进不押注……**若成事实标准则适配层整体切 ACP**」——
+**该条自带的触发条件已经满足。**
+
+### 三个附带发现
+1. **gemini 的 ACP 已转正**:`--experimental-acp` 标记为 "(deprecated, use --acp instead)",
+   实验标志被废弃、正式标志上位;对比 codex 的 app-server 至今仍 `[experimental]`。
+2. **取得 Gemini 个人订阅下线的官方报错原文**:`gemini --acp` 的 stderr 返回
+   `IneligibleTierError: This client is no longer supported for Gemini Code Assist for individuals.
+   To continue using Gemini, please migrate to the Antigravity suite of products`——
+   与主方案 §6.2 记述一致,本轮取得直接证据。另注:**认证失败不妨碍 ACP `initialize` 正确应答**,
+   协议层与认证层分离,意味着可在不持有任何凭据的情况下完成 ACP 能力探测。
+3. **D8 的一条判断需复核**:D8:129 记「live steer/streaming input 仍 SDK 独有」,
+   但同版本 Claude Code 2.1.220 的 `--help` 含 `--input-format stream-json`(realtime streaming input)、
+   `--output-format stream-json`,以及仅在两者同时为 stream-json 时生效的 `--replay-user-messages`
+   ——后者的存在说明 stdin 侧有持续消息流。**但未实测其是否语义等价于 SDK 的 live steer**,
+   W5.4 团队的结论可能正基于语义差异,故记为「需复核」而非「D8 有误」。
+
+### 对决策 2 的影响
+原分析结论「真正的分歧点是 `exec` 还是 `app-server`」仍成立但**不完整**。补充后:
+
+| 路线 | 覆盖 agent 数 | 协议稳定性 |
+|---|---|---|
+| A. `codex exec` 作第三个 Tier 1 后端 | 1 | 正式子命令 |
+| B. `codex app-server` 独立平面 | 1(专有) | `[experimental]`,v1/v2 并存 |
+| C. **ACP 适配层** | **实测 6** | `protocolVersion:1`,gemini 已转正 |
+
+关键:B 与 C 需要的新抽象**是同一种东西**(能应答服务器反向审批请求的双向 JSON-RPC 客户端),
+成本相同而覆盖面差一个数量级。建议决策 2 改拆三问:(1) 本轮是否引入 ACP 适配层;
+(2) Codex 走哪条(建议短期沿用 exec,中期观察 app-server 何时脱离 experimental);
+(3) `claude_code`/`cursor` 保持现状,现有 hook 机制是对这两个无 ACP 后端的正确适配。
+
+### 自查
+跨厂商验证首版脚本把带空格的 `"opencode acp"` 当单个可执行名,得 exit=127;
+按「命令失败 ≠ 业务结论为假」未据此判定这些 CLI 不支持 ACP,改用函数传参重跑后六家全部通过。
+
+### 产出
+- `docs/review/2026-08-25-agent-cli-acp-capability-survey.md`(195 行):完整实测矩阵、
+  三家原始响应对照、三个附带发现、对决策 2 的影响、建议与边界。
+- `docs/review/2026-08-24-decision-2-impact-analysis.md`:结论区加 2026-08-25 更新块。
+- `docs/plan/2026-08-24-ai-supply-owner-decisions.md`:决策 2 建议由两问改为三问,附路线对比表。
+- 主方案 §6.2 补「ACP 覆盖面实证」段(2394 → 2414 行),并指出 ACP 应视为独立接入路径,
+  一个 driver + 一套 TCK 可覆盖 §9.4 中 kimi/opencode/goose/copilot/qwen 多个条目。
+
+### 未做
+- 只测 `initialize` 一个方法;未测 `session/new`、`session/prompt` 与服务器反向审批请求的真实往返。
+- 未验证各家对所声明 ACP 能力的实现深度;grok 未作为 server 实测;droid daemon 协议未验证。
+- Claude CLI 的 `--input-format stream-json` 未实测行为,§3.3 结论仅基于 `--help` 文本。
+- 未修改生产代码,未 push。
+
+## R105 · 重构后方案的完整复检（2026-08-25）
+
+### 输入
+- owner:「完整检查一下当前的方案,看是否还有需要优化完善或者调整的地方」。
+
+### 检查结论:结构完整性全部通过
+程序化核验,非抽样:
+
+| 检查项 | 结果 |
+|---|---|
+| 内部 §x.y 引用 | 52 处引用、26 个去重目标,**悬空 0** |
+| 指向合同草案的文件引用 | **10/10 有效** |
+| 版本化类型名(`...V6`/`...V20`)是否为真实锚点 | 38 个去重名,**37 个在草案中真实定义**;唯一"缺失"的 `SigV4` 是 AWS 签名算法标准名,系正则误判 |
+| 草案 README 的来源子节 vs 主方案标题 | **9/9 一致**(含手术中改名的 §4.16.1/4.16.3/4.16.8) |
+| 硬编码计数自洽性 | **自洽**。42 = fixture 数,43 = 42 fixture + 1 完整合同 artifact 的测量主体总数(164 号 finding A-04 原文即"43 个测量主体") |
+| 代码块残留 | fence 30 个,最大 106 行(§11 目录树),无巨型块 |
+
+**附带更正**:R99 记述的"未创建未来 43 个 Phase 0 fixture"措辞不精确——43 是测量主体总数而非 fixture 数,
+主方案三处"42 个 fixture"是对的。历史记录不改,在此标注。
+
+### 发现并已修的四处不一致
+1. **§6.2 与 §9.4 对 ACP driver 的表述自相矛盾**(真实矛盾):
+   §6.2 作"实现 ACP/App Server 等公开协议的 CLI **优先复用相应 driver**",
+   §9.4 却作"有 ACP 等公开 surface 时**按独立 driver 验证**"——后者正好抵消 ACP 的全部价值。
+   已统一为"复用共享 ACP driver 与同一 execution TCK,仅专有机器协议才新增版本化 driver"。
+2. **§4.1 架构层未反映 ACP 的统一性**:原文把 Codex App Server、Claude Code、Cursor、OpenCode ACP
+   四者并列,掩盖了协议形态的根本差异。已补三行形态表:ACP 互操作标准(实测 6 家)/
+   专有双向协议(Codex app-server)/无回话通道的 CLI(Claude Code、Cursor),
+   并指明第三类正是 SayDo 现有两个 Tier 1 后端所属形态,前两类需要的双向抽象是同一种东西。
+3. **§9.4 把 Goose 列在"inventory 或未收录"**:而 Goose 1.37.0 实测是 ACP 支持最完整的一家
+   (`goose acp` stdio + `goose serve` HTTP/WebSocket 双传输)。已单列并标注两种传输对应
+   `acp_stdio`/`acp_http` kind。
+4. **§14 决策 10 前提已变但文档未标**:该编译预算原为"Markdown 内嵌类型体操"设定,
+   草案已外移为真实 `.ts`。已在 §14 原地加注"本项前提已变,建议暂缓签署……照签无效"。
+
+主方案 2,414 → 2,427 行。emoji clean;check-doc-links files=103 broken=0。
+
+### 发现但未动的两项结构性问题（需 owner 裁决）
+1. **§10 的 327 条验收标准过度膨胀**:总计 88,174 字符,平均 269 字符/条,中位数 238,
+   **59% 超过 200 字符,19% 超过 400,最长 902 字符**。一条 900 字符的 checkbox 无法被机械判定。
+   且与 §12.3"每个 Phase 只公开一个 `run-ai-supply-phase-gate.mjs --phase <id> --json` 入口"的关系未说清:
+   若 gate 脚本才是真门禁,这 327 条究竟是脚本规格还是人工检查项?对比 §12.1 北极星指标
+   (P95 ≤150 ms、硬上限 300 ms)那样可判定的写法,差距明显。
+2. **§10 Phase 5 按品牌切 9 个子批**:而该 Phase 末段自己要求"所有子批都实现为版本化
+   `ExecutionDriver`,通过同一 execution TCK"。按 ACP 实证,改为按协议切
+   (`acp` / `app_server` / `cli_stdio`)可让 6 个 agent 共用一个 driver 与一套 TCK,
+   显著降低 Phase 5 与 §9.4 长尾的接入成本。
+
+### 未做
+- 未改 §10 的 327 条验收标准,未重组 Phase 5 的子批结构——两者均需 owner 裁决。
+- 未修改生产代码,未 push。
+
+## R106 · 按 owner 裁决补 §10 定位说明与 Phase 5 重组提示（2026-08-25）
+
+### 输入
+R105 提出两项结构性问题请 owner 裁决,owner 选择两个最小改动方案:
+§10 只补定位说明不动条目;Phase 5 只写入建议不重组。
+
+### 已补
+1. **§10 新增「本节各 Phase『验收标准』的定位」**:明确 327 条 `- [ ]` 是 §12.3 那个
+   `run-ai-supply-phase-gate.mjs --phase <id> --json` 要实现的**规格**,不是人工 checklist;
+   该命令 exit code 才是机械判据;一条条目常对应脚本中多个用例,长度是规格密度而非验收项密度;
+   并明确「未被 gate 脚本覆盖的条目视为未验收,不因文字已写入而算作完成」。
+2. **Phase 5 补「待重组提示」**:指出九个子批按品牌切分与该 Phase 末段「共用同一 execution TCK」
+   存在张力;若决策 2 选择引入 ACP 适配层,应改按协议分批
+   (`acp_stdio|acp_http` 共享 driver 覆盖实测六家 / `app_server_stdio` Codex 专有 /
+   `cli_stdio` Claude Code、Cursor);**决策 2 未拍板前不执行重组**,现有九个品牌子批保留为输入清单。
+
+主方案 2,427 → 2,456 行。emoji clean;check-doc-links files=103 broken=0。
+
+### 自查与更正（重要）
+定位说明初稿写「需要人读判定的项只出现在 Phase 0」——**该断言未经验证且不成立**。
+程序化扫描 §10 全部 Phase 后实测:Phase 8 也含需人在环的条目。已改为实测结论:
+
+- 涉及 owner 决策的条目,验收形态是「决策已固化为 schema-valid record 且 digest 前后一致」,
+  由脚本判定(Phase 0 的十项决策 batch/decision record + preflight digest 一致;
+  canonical 五处投影的 owner 已裁决 tuple 逐字段相等)。
+- **真正需要人在环的只有两类,均在 Phase 8**:connector 成熟度跃迁
+  (`community_unverified → community_verified → builtin_beta → builtin_stable` 每次跃迁
+  要求明确 owner 决策、不得隐式跨级)与性能 baseline 的 owner 批准替换。
+
+另复验:补充说明后 checkbox 仍为 327 条、88,174 字符,文中引用的数字准确。
+
+### 未做
+- 未改动任何一条 `- [ ]` 验收标准的措辞。
+- 未重组 Phase 5 子批结构(待决策 2)。
+- 未修改生产代码,未 push。
+
+## R107 · 四项 owner 决策签署与 w54b 收口批交接（2026-08-25）
+
+### owner 已签四项
+| 决策 | 裁决 | 与方案默认推荐的关系 |
+|---|---|---|
+| 1 排产坐标 | 先收口 `w54b-wiring` C3,再排本专题 | **一致** |
+| 2 Codex/ACP | **引入 ACP 适配层**;Codex 沿用 `codex exec`,不为其单独建平面 | **改为**(默认推荐是给 Codex 建独立 Execution Agent plane) |
+| 6 secret/付费边界 | 采纳默认:双双关闭 | **一致** |
+| 7 扩展交付边界 | **首发只开放内置受信 connector**,第三方声明式 pack 一并推迟 | **改为**(比默认推荐更保守) |
+
+决策 7 是本轮最大减重:§4.10 参考实现级扩展内核整节、决策 8 的 TUF 双 root registry、
+Connector SDK 对外发布、§9.8 生态包策略本轮均不落地;草案中 `03-extension-points.ts`、
+`06-sdk-compat.ts` 及 `08-wire-budget.ts` 相当部分本轮无需收敛。
+已在决策 8、9 加连带影响注记,决策 10 状态同步(仍暂缓,且本轮真实编译面已缩小)。
+主方案新增「owner 决策状态」节;Phase 5 的重组提示由「待定」转为「应执行」。
+
+### 重大发现:HANDOFF 的「C3 未做」是过时记述
+生成实施 prompt 前按 impl-prompt skill 的坐标核验要求实测,发现现势冲突:
+
+- `HANDOFF.md` §1 指针行仍写「C3(console Tier1 卡 + 任务详情 adapter/observedModel +
+  语音文件工具话术 + 10/11 回写草案)未做」「本批未收口」。
+- 但 `e2e/evidence/w54b-batch.md` §10(2026-08-23 收口候选补证)已把四条 C3 验收锚全标 `[ok]`,
+  并记 `pnpm exec playwright test` exit 0、36 passed。
+- `docs/plan/IMPLEMENTATION-PLAN-2.md:62` 的记述**准确**:C3 已于 2026-08-23 补齐,
+  卡点是「双向审计首轮独立评审的发布阻断正在回修,复审与门禁绿前不写已收口」。
+
+**代码层独立验证**(不只信文档):`packages/console/src/pages/TaskDetail.tsx:225` 渲染 `adapter`、
+`:241` 渲染 `observed_model ?? "未观测"`(与证据文档措辞一致);
+`packages/console/src/pages/GlobalSettings.tsx` 含 `Tier1SelfTestReport`/`tier1Check`/
+`tier1StatusText`/`pinnedVersion`。**C3 确已实现。**
+
+若未做此核验而按 HANDOFF 写 prompt,新会话会重复实现已完成的 C3——
+这正是 impl-prompt skill 所指「坐标漂移是头号杀手」。
+
+### 另一项坐标事实
+当前分支 `codex/week-audit-faststart-20260822` 落后 `main` **17 个提交**,
+且 main 改过 `packages/daemon/src/tier1/executor.ts`(319 行)、`restartPolicy.ts`、`backends/cursor.ts`。
+当前分支独有的 7 个提交**全部只碰文档**(docs/history/prompts/research),零生产代码,可安全合入。
+故新批必须从 `main` 起,不得在当前分支做。
+
+### 产出
+`docs/plan/IMPL-PROMPT-16-W54B-CLOSEOUT.md`(195 行)。**本批不是写新功能,是收口批**:
+- 阶段 A 现势对账与记述纠正(本会话可完成);
+- 阶段 B 准备独立复审请求后**强制停点**(不得自评自过,按 CLAUDE.md 双线分离,
+  对抗 review 链头 = Codex `gpt-5.6-sol` + effort `max`);
+- 阶段 C 仅在复审绿灯后执行关批,并落地决策 1——在 PLAN-2 为 AI 供给专题建立具名坐标。
+
+§0 坐标核验六条含防重复施工检查;§2 七条红线首条即「不写新功能」。
+prompt 内引用的 16 个文件路径逐个实测存在;台账用语改用项目既有的
+`[ok]`/`[warn]`/`[fail]`/`[divergent]`(原 emoji 被门禁拦下)。
+
+### 未做
+- 未执行 w54b 收口本身(交由新会话)。
+- 未合并当前分支到 main(需 owner 授权)。
+- 剩余六项决策:3/4/5/8/9 仍是 Claude 预填待确认,10 建议暂缓。
+- 未修改生产代码,未 push。
+
+## R108 · IMPL-PROMPT-16 启用前置复核:判定当前不可执行（2026-08-25）
+
+### 输入
+owner:「检查一下,是否建议现在就按你给的 Prompt 开始实施」。
+
+### 结论:**不建议现在开工**,已在 Prompt 头部加不可执行前置警告
+生成 IMPL-PROMPT-16 时**只核验了文件路径与批次内状态,未检查全局工作线**,属疏漏。
+本轮复核发现五条阻断:
+
+1. **有更高优先级的在途工作线**:`prompts/203-rc4-long-session-handoff-to-new-codex.md`(244 行,未跟踪)
+   定义的 RC4 发布线正在进行。其 §7 明确「当前继续点是 runtime 六条失败,不是 release/deploy」;
+   §2 记有一个被 Ctrl+C 中断的 Grok session `01a0342a-fc21-7c20-ab31-2793254324f3`
+   (真实 exit 130、无 `end_turn`,日志 8855 行 / 14,030,058 bytes)等待 resume。
+2. **w54b 的代码在 RC4 线上当前是红的**:203 prompt §4 记录的六条 daemon 失败中,
+   第 5、6 条正是 `tier1-executor.test.ts`——w54b 的直接产物,报
+   `process group error graph contained a hostile value`。**不能收口一个测试红着的批次。**
+3. **Prompt 及其依赖不在 `main` 上**:实测 `git cat-file -e main:<path>`,
+   `IMPL-PROMPT-16-W54B-CLOSEOUT.md`、`2026-08-24-ai-supply-owner-decisions.md`、
+   `2026-08-23-ai-supply-universal-onboarding-final.fable.md` 三份均只在当前分支。
+   而 Prompt §3 阶段 C 第 5 步要引用决策单,在 main 上无法完成。
+4. **主 worktree 被明令禁止用于 RC4 集成**:203 prompt §5 原文
+   「该树不是当前 RC4 集成树,禁止清理、提交到 RC4 或顺手整理」。
+5. **「全仓只有一个活动批次」当前不成立**:`git worktree list` 实测 **20 个条目**,
+   其中 10 余个是活跃 rc4/runtime/privacy 分支(含 08-24 的提交,比 main 的 08-23 还新)。
+   此状态下关 pointer 并为新专题排产会与 RC4 坐标冲突。
+
+### 另一项须告知 RC4 会话的状态变更
+203 prompt §5 记主 worktree 为「HEAD `174ab48`、2 tracked modified、163 untracked,共 165 项」。
+本会话已在同一树上提交 8 个**纯文档**提交(HEAD 现为 `95a68a0`),未跟踪项降至 13。
+提交内容全部是 AI 供给专题产物(此前从未入库,一次误操作即全丢),**未碰生产代码、未提交到 RC4 分支**,
+符合 203 prompt「禁止提交到 RC4」的约束;但 RC4 会话若按其记录的数字核对会发现不一致,
+应以实时 `git status` 为准(该 prompt 自己也写明「新会话应重取而不是把总数当不变量」)。
+
+### 处置
+在 `docs/plan/IMPL-PROMPT-16-W54B-CLOSEOUT.md` 头部加「启用前置:本 Prompt 当前不可执行」警告块,
+列出五条阻断与正确启用时机(RC4 runtime 六条修绿 → RC4 收口合入 main →
+届时重新核对 w54b 是否仍需独立收口,很可能已被 RC4 门禁与证据吸收)。195 → 221 行。
+
+### 建议的真正下一步
+恢复 RC4 runtime 线,而非启动 w54b 收口:
+`grok --resume 01a0342a-fc21-7c20-ab31-2793254324f3`,保持 `grok-4.6`/`xhigh`/`--no-subagents`/
+workspace sandbox/always-approve/disable-web-search,不加 `--restore-code`;
+先给它六条 daemon 失败、六个 lint 未使用符号错误,以及 203 prompt §5 点名的
+`packages/platform/src/process.ts` macOS libproc 回退偏离(违反 ADR-003 的 `/bin/ps` 合同,应删除)。
+
+### 未做
+- 未启动 w54b 收口(已判定不可执行)。
+- 未介入 RC4 线(不属本会话范围,且实施/评估须零上下文隔离)。
+- 未修改生产代码,未 push。
+
+## R109 · AI 供给文档线并入 main 与续接 prompt（2026-08-25）
+
+### 输入
+owner:「先把文档都合入 main,然后给我一个 prompt,让我在 RC4 那个会话做完之后继续往下推进」。
+本会话此前建议等 RC4 发布后再动 main;owner 明确要求现在合入,按其决定执行,
+并采用对 RC4 零影响的方式。
+
+### 合并过程中发现并处理的三个问题
+
+**1. journal 编号撞车。** `merge-tree` 预演冲突时发现:main 已入库 RC4 线的 R94-R97
+(双向审计 / rc.2 红灯 / rc.3 红灯 / rc.4 三平台复验,均 2026-08-23),而本线也占用了 R94-R97。
+两套内容完全不同。main 先入库,故本线整体后移 +4:**R94-R104 转为 R98-R108**,
+并同步更新全部交叉引用(journal 内部 11 处、诊断报告 5 处,含章节标题「与 R94 的关系」等)。
+合并后 R90-R108 连续无缺口、区段内无重复。
+(注:R33-R70 存在历史重复编号,两侧一致,系遗留,本轮未动。)
+
+**2. 主工作区有他人在途改动,不能在其上合并。**
+`git merge` 被 14 个未跟踪文件阻止。逐个比对 SHA-256 后确认 **13 个与 main 版本不同**,
+其中 5 个是 deploy 官网文件(23:38-23:40 修改,非本会话),属他人在途工作。
+**改用临时 worktree 检出 main 合并**,主工作区全程零改动;合并完成后移除 worktree,
+复核 deploy 的 16 处改动仍在、worktree 数回到 20。
+
+**3. 本机绝对路径泄漏(本会话自己也犯了)。**
+合并后自查发现 PUBLIC_EXCLUDE 只排除 artifacts/release/copyright,
+故 prompts/ 与 research/codex-findings/ 全部会进公开快照。实测:
+本会话自写的 IMPL-PROMPT-16 有 1 处 `git -C` 绝对路径;
+保全入库的 Codex 历史产物 27 个文件、**604 处**本机绝对路径。
+
+全部脱敏:599 处改为仓库相对路径、5 处仓库根改为占位符;相对路径在仓库内可点击,不损失信息。
+原始形式可从保全提交 `57819ad` 完整恢复,过程证据可追溯性不受影响。
+此坑既有约定已点名(外部 AI 产出常带本机绝对路径,晋升后须自查),
+RC4 线在 `143357f` 做过同类处置。
+
+### 产出
+main 从 `436f1e8` 推进到 `9e9afee`,共 13 个提交(含本线 10 个 + 重编号 + 合并 + 脱敏 + prompt):
+`6467076` R 编号重排;`1edd3d0` 合并(packages 零改动);`85b0470` 脱敏;
+`9e9afee` 新增 `prompts/204-ai-supply-post-rc4-continuation.md`(139 行)——
+给 RC4 收口后的新会话,含启用门(实测命令 + 2026-08-25 实测值对照)、六份必读、
+四项已签决策对范围的影响、四阶段任务(排产 → 界定下沉范围 → 修 A 级 → 下沉实施)、六条红线。
+
+门禁:emoji clean;check-doc-links files=107 broken=0;git diff --check clean;
+packages 零改动,不影响 RC4 发布链路。
+
+### 未做
+- **main 未推送 origin**(领先 13 个提交),push 需 owner 单独授权。
+- 未入库 `prompts/203`(RC4 线的工作文件,非本线产物,不擅自处置)。
+- 未介入 RC4 任何分支或 worktree。

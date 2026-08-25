@@ -6,7 +6,7 @@
 
 ## 0. 坐标
 
-- 工作目录:`/Users/wangyixiao/WorkSpace/saydo-batch-cmdeffect`
+- 工作目录:`~/WorkSpace/saydo-batch-cmdeffect`
 - 开批 HEAD:`15de970bea5b8c8e1f9718858ef6deaf0c60c740`(`docs(plan): DSH 插件线评估与 IMPL-PROMPT-9 cmdEffect 加固准备稿入库`)
 - 开批提交:`de6d68539fceeadf9022b984aa023afcce4e1358`(`chore(handoff): 开批 cmdeffect-hardening`)
 - 代码提交(本文件记录此 SHA,不自指):`e79d1d8101be11e3bd6051841e6a37574cd38d37`
@@ -114,8 +114,8 @@
 `just ci` 的 `ci-python` 原文:
 
 ```
-error: Failed to initialize cache at `/Users/wangyixiao/.cache/uv`
-  Caused by: failed to open file `/Users/wangyixiao/.cache/uv/sdists-v9/.git`: Operation not permitted (os error 1)
+error: Failed to initialize cache at `~/.cache/uv`
+  Caused by: failed to open file `~/.cache/uv/sdists-v9/.git`: Operation not permitted (os error 1)
 error: recipe `ci-python` failed on line 28 with exit code 2
 ```
 

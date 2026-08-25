@@ -62,7 +62,7 @@ P0 `voiced` / `saydo up` 手动启动(开发迭代快);macOS P1 launchd 常驻 +
 `npx @saydo/cli@<version>`。Homebrew/Scoop/winget 当前只会重复包装 Node 与同一 tarball、增加撤回
 和签名维护面,留到常驻安装器成形后再做；Docker 会隔开本机仓库、登录态 CLI、审批 hooks 与
 localhost 控制台,不适合作为默认桌面入口；原生 `.dmg/.msi/.deb` 则等菜单栏/常驻服务和代码签名
-一起设计。rc.2 包只含 daemon + Web 控制台,Windows/Linux 前台运行；语音 pipeline 与系统常驻
+一起设计。当前预发布包只含 daemon + Web 控制台,Windows/Linux 前台运行；语音 pipeline 与系统常驻
 不在该包内。
 
 ## 3. 语音链路

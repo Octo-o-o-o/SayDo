@@ -119,7 +119,7 @@ xcodebuild -project SayDo.xcodeproj -scheme SayDo -configuration Debug \
 输出摘录：
 
 ```text
-Created project at /Users/wangyixiao/WorkSpace/SayDo/apps/ios/SayDo.xcodeproj
+Created project at ~/WorkSpace/SayDo/apps/ios/SayDo.xcodeproj
 ** BUILD SUCCEEDED **
 ```
 

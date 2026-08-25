@@ -5,7 +5,7 @@ import { chmodSync, copyFileSync, existsSync, mkdtempSync, readFileSync, unlinkS
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { buildSetupProbe, pendingCliSelfTestGate, runSetupTest } from "../src/api/setup.js";
 import { recordCliSubscriptionInvocation } from "../src/cost/ledger.js";
 import type { CliCapability, CliName } from "../src/config/cliCapability.js";
@@ -27,6 +27,10 @@ import type { AuditEvent, AuditSink } from "../src/obs/audit.js";
 import { resolveEvaluatorProvider } from "../src/providers/slotResolvers.js";
 import { openDb } from "../src/storage/db.js";
 import { createSqliteAuditSink } from "../src/storage/dao/misc.js";
+import {
+  configureRuntimeChildRegistry,
+  resetRuntimeChildLifecycleForTests
+} from "../src/runtimeChildRegistry.js";
 
 const sourceFakeCli = fileURLToPath(new URL("./fixtures/fake-byoa-cli.mjs", import.meta.url));
 
@@ -41,11 +45,20 @@ function makeHome(): {
   runtimeAudit: ReturnType<typeof auditCollector>;
 } {
   const home = mkdtempSync(join(tmpdir(), "saydo-t18a-slots-"));
+  configureRuntimeChildRegistry(home);
   const cli = join(home, "fake-byoa-cli.mjs");
   copyFileSync(sourceFakeCli, cli);
   chmodSync(cli, 0o755);
   return { home, cli, digest: sha256(cli), runtimeAudit: auditCollector() };
 }
+
+afterEach(() => {
+  try {
+    resetRuntimeChildLifecycleForTests();
+  } catch {
+    // 污染由本测断言覆盖
+  }
+});
 
 function capability(name: CliName, cli: string, digest: string): CliCapability {
   return {

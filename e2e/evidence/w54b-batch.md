@@ -219,7 +219,7 @@ Claude 每次 spawn 强制重算二进制身份、Windows `.cmd` 真入口、Rel
   2 files、104 tests passed、exit 0。
 - `pnpm --filter @saydo/daemon typecheck`:exit 0。
 - `/private/tmp` 施工 worktree 首跑因项目 workspace 政策要求 owner home 子目录而红，不计为业务失败；
-  同一提交移入 `/Users/wangyixiao/WorkSpace/` 后上述全量定向门绿。
+  同一提交移入 `~/WorkSpace/` 后上述全量定向门绿。
 
 同一独立评审会话已对 `81760a4` 判三条 `CONFIRMED_FIXED`、最终 Go,并独立复跑聚焦反例 8 项、
 daemon 1883/5 skipped、typecheck 与差量门。发布独立复审确认 F89–F94,唯一 No-Go 是旧 audit bundle；

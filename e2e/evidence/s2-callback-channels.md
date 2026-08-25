@@ -6,7 +6,7 @@
 
 ## 0. 坐标
 
-- 工作目录:`/Users/wangyixiao/WorkSpace/saydo-batch-s2-callback-channels`
+- 工作目录:`~/WorkSpace/saydo-batch-s2-callback-channels`
 - 开批 HEAD:`33c5cf134f08942457f9bc7f5589eeef88c0fbce`(prompt 写 `354b028`;本 clone 多一个 docs 提交 `33c5cf1`,属允许的其后 docs 提交)
 - 分支:`batch/s2-callback-channels`
 - 代码提交 A(本文件记录此 SHA,不自指):`dedd327671bac6db72dae11b048083676bf69560`

@@ -1,6 +1,6 @@
 # Codex 25 · SayDo 单仓迁移第二轮终验
 
-你是独立对抗性审查者。请在 `/Users/wangyixiao/WorkSpace/SayDo` 对已经执行的
+你是独立对抗性审查者。请在 `~/WorkSpace/SayDo` 对已经执行的
 `voice-coding → SayDo` 单仓迁移做第二轮终验。不要相信 MIGRATION、journal、上一轮 Codex 或
 subagent 的自报，所有事实必须亲自读文件或运行只读命令核验。
 
@@ -13,11 +13,11 @@ subagent 的自报，所有事实必须亲自读文件或运行只读命令核�
 
 ## 冻结坐标
 
-- Git 根:`/Users/wangyixiao/WorkSpace/SayDo`
+- Git 根:`~/WorkSpace/SayDo`
 - 分支:`codex/merge-voice-coding-20260729`
 - HEAD/基线:`838aeea4385a41ec58318437bb36a7db5ede635f`
-- 旧兼容路径:`/Users/wangyixiao/WorkSpace/voice-coding`
-- 冻结目录:`/Users/wangyixiao/WorkSpace/voice-coding.archive-20260729`
+- 旧兼容路径:`~/WorkSpace/voice-coding`
+- 冻结目录:`~/WorkSpace/voice-coding.archive-20260729`
 - source manifest:
   `docs/plan/migration/source-prearchive-manifest.tsv`
   SHA-256 `4f195260f116d2e96dcafd3594080079c13e94ecee119f548d91cfb0747d274a`

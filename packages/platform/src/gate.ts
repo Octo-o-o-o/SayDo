@@ -4,6 +4,10 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { restrictOwnerOnly } from "./fs.js";
 import { hostKind } from "./host.js";
+import { projectUntrustedFailureText } from "./jobIdentity.js";
+
+export const GATE_HTTP_BIND_FAILED = "gate bind failed";
+export const GATE_HTTP_REQUEST_FAILED = "gate request failed";
 
 export const GATE_HMAC_HEADER = "x-saydo-gate";
 
@@ -64,8 +68,10 @@ export type GateHttpHandler = (
   json: unknown
 ) => Promise<{ permission: "allow" | "deny" | "no_decision"; agent_message?: string }>;
 
+export type GateHttpServer = Server & { failed: Promise<Error> };
+
 export interface GateHttpListen {
-  server: Server;
+  server: GateHttpServer;
   bind: GateBind;
   secret: Buffer;
 }
@@ -85,7 +91,11 @@ function writeGateDeny(res: ServerResponse, message: string, status = 200): void
  * Windows 生产审批门:绑定 127.0.0.1 临时端口,HMAC 失败一律 deny。
  * 禁止复用 G1 47100。POSIX 生产路径仍走 unix socket,不调用本函数。
  */
-export function listenGateHttp(saydoHome: string, handler: GateHttpHandler): Promise<GateHttpListen> {
+export function listenGateHttp(
+  saydoHome: string,
+  handler: GateHttpHandler,
+  options?: { signal?: AbortSignal }
+): Promise<GateHttpListen> {
   const secret = newGateSecret();
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     if (req.method !== "POST" || (req.url ?? "").split("?")[0] !== "/gate") {
@@ -115,7 +125,7 @@ export function listenGateHttp(saydoHome: string, handler: GateHttpHandler): Pro
         try {
           json = JSON.parse(body.toString("utf8"));
         } catch (err) {
-          writeGateDeny(res, `SayDo gate error (fail-closed): ${String(err).slice(0, 120)}`);
+          writeGateDeny(res, `SayDo gate error (fail-closed): ${projectUntrustedFailureText(err, GATE_HTTP_REQUEST_FAILED)}`);
           return;
         }
         try {
@@ -123,40 +133,79 @@ export function listenGateHttp(saydoHome: string, handler: GateHttpHandler): Pro
           res.writeHead(200, { "content-type": "application/json" });
           res.end(JSON.stringify(out));
         } catch (err) {
-          writeGateDeny(res, `SayDo gate error (fail-closed): ${String(err).slice(0, 120)}`);
+          writeGateDeny(res, `SayDo gate error (fail-closed): ${projectUntrustedFailureText(err, GATE_HTTP_REQUEST_FAILED)}`);
         }
       })();
     });
   });
   return new Promise((resolve, reject) => {
-    const onError = (err: Error): void => {
-      server.off("error", onError);
-      reject(err);
+    let settled = false;
+    let failSettled = false;
+    let reportFail!: (err: Error) => void;
+    const failed = new Promise<Error>((resolveFail) => {
+      reportFail = resolveFail;
+    });
+    failed.then(() => undefined, () => undefined);
+    const listened = server as GateHttpServer;
+    Object.defineProperty(listened, "failed", { value: failed, enumerable: false });
+    const projectBind = (err: unknown): Error =>
+      new Error(projectUntrustedFailureText(err, GATE_HTTP_BIND_FAILED));
+    server.on("error", (err) => {
+      if (failSettled) return;
+      failSettled = true;
+      reportFail(projectBind(err));
+    });
+    const finish = (err?: unknown): void => {
+      if (settled) return;
+      settled = true;
+      options?.signal?.removeEventListener("abort", onAbort);
+      server.off("listening", onListening);
+      server.off("error", onListenError);
+      if (err) {
+        server.close(() => {
+          reject(projectBind(err));
+        });
+        return;
+      }
     };
-    server.once("error", onError);
-    server.listen(0, "127.0.0.1", () => {
-      server.off("error", onError);
+    const onAbort = (): void => {
+      finish(new Error(GATE_HTTP_BIND_FAILED));
+    };
+    const onListenError = (err: Error): void => {
+      finish(err);
+    };
+    const onListening = (): void => {
+      if (options?.signal?.aborted) {
+        finish(new Error(GATE_HTTP_BIND_FAILED));
+        return;
+      }
       const addr = server.address();
       if (!addr || typeof addr === "string") {
-        server.close();
-        reject(new Error("gate listen address unavailable"));
+        finish(new Error(GATE_HTTP_BIND_FAILED));
         return;
       }
       if (addr.port === 47100) {
-        server.close();
-        reject(new Error("gate loopback must not reuse G1 port 47100"));
+        finish(new Error("gate loopback must not reuse G1 port 47100"));
         return;
       }
       const bind: GateBind = { host: "127.0.0.1", port: addr.port };
       try {
         writeGateBindAndSecret(saydoHome, bind, secret);
       } catch (err) {
-        server.close();
-        reject(err);
+        finish(err);
         return;
       }
+      finish();
       server.unref();
-      resolve({ server, bind, secret });
-    });
+      resolve({ server: listened, bind, secret });
+    };
+    server.once("listening", onListening);
+    server.once("error", onListenError);
+    if (options?.signal?.aborted) {
+      onAbort();
+      return;
+    }
+    options?.signal?.addEventListener("abort", onAbort, { once: true });
+    server.listen(0, "127.0.0.1");
   });
 }

@@ -1,7 +1,7 @@
 你是对抗评审。只读,不改文件。
 
-评审对象:/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-08-13-向导快速配置UX重构方案-v1.md
-实施仓:/Users/wangyixiao/WorkSpace/SayDo(main aa8034e)
+评审对象:~/WorkSpace/OctoAgent/docs/product/2026-08-13-向导快速配置UX重构方案-v1.md
+实施仓:~/WorkSpace/SayDo(main aa8034e)
 
 背景:owner 首开实测给出七条反馈(方案 §0 对位表),核心=画像区从检测全景清单改为可用供给选择器。上一批(65 号评审+批 A/B)刚交付列表即菜单+推荐槽,本方案将部分推翻重构(推荐卡取消/确认弹窗取消/测一下移位)。
 

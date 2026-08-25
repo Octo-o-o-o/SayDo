@@ -1,7 +1,7 @@
 # DSH 插件线评估：泳道插件合适性 · SayDo（除语音）能否成为 DSH 插件 · 插件开发助手是否值得做
 
 > 产出：Claude Fable 5（本会话实读三仓 + 6 路子代理：3 路本地探索、4 路互联网调研；下文标"实测"者为本会话独立命令核验，标"调研"者为子代理带 URL 的返回，标"推断"者为未验证判断）
-> 评估对象：`/Users/wangyixiao/WorkSpace/dsh-workflow-lanes` v0.6.0（HEAD `7256bfe`）；`/Users/wangyixiao/WorkSpace/Reference/deepseek-harness`（`origin` = 官方 `deepseek-ai/deepseek-harness`，checkout 为 owner 桌面壳 fork，HEAD `d190efd6f7`；已装 profile 为 `~/.dsh/profiles/web`）；SayDo `main` @ `26d32e8`；类比对象 `~/WorkSpace/HarmonyOS_DevSpace`（`harmonyos-ai-workspace` v0.5.1）
+> 评估对象：`~/WorkSpace/dsh-workflow-lanes` v0.6.0（HEAD `7256bfe`）；`~/WorkSpace/Reference/deepseek-harness`（`origin` = 官方 `deepseek-ai/deepseek-harness`，checkout 为 owner 桌面壳 fork，HEAD `d190efd6f7`；已装 profile 为 `~/.dsh/profiles/web`）；SayDo `main` @ `26d32e8`；类比对象 `~/WorkSpace/HarmonyOS_DevSpace`（`harmonyos-ai-workspace` v0.5.1）
 > 关系声明：本文**不 supersede** `2026-08-13-deepseek-harness-borrowing-assessment.fable.md`（方向：SayDo 借鉴 DSH，SayDo 为宿主）与 `2026-08-15-default-runner-decision.md`（方向：DSH 作 SayDo 执行器，已否决）。本文回答的是第三个方向：**把 SayDo 的机制搬进 DSH 做插件（DSH 为宿主）**。三文并存，各答一问。`docs/review/2026-08-16-now-vs-later.md:55` 已把"DSH 插件线（dshp / 今日泳道插件）"定为仓外实验、不占 SayDo 批次指针——本文遵守该边界，不改 PLAN-2、不改 HANDOFF 指针。
 > 文档纪律：本文遵守仓内零 emoji 门禁（`scripts/check-emoji.sh`），不使用勾叉符与图形符号。
 

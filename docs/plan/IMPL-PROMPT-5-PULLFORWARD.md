@@ -4,7 +4,7 @@
 
 ---
 
-你接手 **SayDo 提前批**。代码仓 `/Users/wangyixiao/WorkSpace/SayDo`(main 直推);设计库 `/Users/wangyixiao/WorkSpace/voice-coding`(只读,回写走轻量评审)。完成判定 = 阶段 A–D 逐项验收绿 + evidence 落盘;阶段 E 若合同未就绪则如实登记顺延,不算失败。
+你接手 **SayDo 提前批**。代码仓 `~/WorkSpace/SayDo`(main 直推);设计库 `~/WorkSpace/voice-coding`(只读,回写走轻量评审)。完成判定 = 阶段 A–D 逐项验收绿 + evidence 落盘;阶段 E 若合同未就绪则如实登记顺延,不算失败。
 
 ## 0. 坐标核验(先做,漂移即停)
 
@@ -17,7 +17,7 @@
 | `rg -n "提前批" ~/WorkSpace/voice-coding/docs/05-roadmap.md` | §4 提前批表存在(六项) |
 | `cursor-agent status` | 登录态正常 |
 
-## 1. 必读(以 `/Users/wangyixiao/WorkSpace/` 为根,按序)
+## 1. 必读(以 `~/WorkSpace/` 为根,按序)
 
 1. `SayDo/HANDOFF.md`(§0 硬教训 / §4 铁律)+ `SayDo/AGENTS.md`
 2. `voice-coding/docs/05-roadmap.md` §4 提前批(六项范围口径,唯一分期源)

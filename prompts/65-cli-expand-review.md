@@ -1,7 +1,7 @@
 你是对抗评审。只读任务,不改任何文件。
 
-评审对象:/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-08-13-CLI供给扩容与画像融合方案-v1.md
-实施仓:/Users/wangyixiao/WorkSpace/SayDo(main HEAD 4196613)
+评审对象:~/WorkSpace/OctoAgent/docs/product/2026-08-13-CLI供给扩容与画像融合方案-v1.md
+实施仓:~/WorkSpace/SayDo(main HEAD 4196613)
 
 方案要点:把 gemini/qwen/kimi/opencode/copilot 五家 CLI 从"仅识别"升级为可选进推理槽的真实供给(cage/parser/slotResolvers/cliRuntime/contracts/探测策略五件套),前端把画像列表改为"列表即菜单"(detected 全列+行内「全用它」直达确认卡),方案卡区收窄为推荐位。
 

@@ -3,7 +3,7 @@
 你是独立对抗审查者。只读复核当前工作区未提交改动，不要修改任何文件。
 
 基线为 `main` HEAD `415df2a86a5208c1f68672bab0c75618f3070594`。任务规格仍以
-`/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-08-11-SayDo移动端完整方案-v1.md`
+`~/WorkSpace/OctoAgent/docs/product/2026-08-11-SayDo移动端完整方案-v1.md`
 的 v3.2、v3.3（冲突以后者为准）为正本，canonical 为本仓 `docs/09-data-contracts.md`、
 `docs/11-ui-spec.md`。前轮报告是
 `research/codex-findings/49-m1-mobile-web-review.md`，判为 6A/8B No-Go；实现已逐项回修。

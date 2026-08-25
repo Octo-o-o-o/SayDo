@@ -1,4 +1,4 @@
-你是严格的技术评审员。SayDo(语音高级助手,设计库 /Users/wangyixiao/WorkSpace/voice-coding/)的"BYOA 模型供给"设计(07 D18 / 09 §11)在 2026-07-23 下午做了第二轮修订,请对**修订后全量设计**做对抗性复评(上一轮复评进程中断未产出,本轮覆盖其全部范围 + 新增改动)。
+你是严格的技术评审员。SayDo(语音高级助手,设计库 ~/WorkSpace/voice-coding/)的"BYOA 模型供给"设计(07 D18 / 09 §11)在 2026-07-23 下午做了第二轮修订,请对**修订后全量设计**做对抗性复评(上一轮复评进程中断未产出,本轮覆盖其全部范围 + 新增改动)。
 
 评审对象(以文件现状为准):
 1. docs/07-tech-stack-decisions.md D18 节:槽位矩阵、**对话档 BYOA 判死结案表(新)**、**本机开发 profile(新)**、OctoDesk 复用路径(含 **cursor_cli 适配注意项,新**)、四条纪律 + 刻意不做
@@ -16,7 +16,7 @@ A. 笼子有效性:codex -s read-only 挡什么;claude --tools "" allow 式;评�
 B. 评估档调用频率与订阅时窗挤兑(04 §2.2 分层后"低频"是否成立)
 C. 成本契约:source='subscription' known=0 与"unknown 永不显示为 0"、maxCost 熔断兼容性
 D. 降级链 agent_cli→api 的确认语义(限流停下询问,绝不静默转计费)是否闭合
-E. OctoDesk 四件套移植工作量与依赖传染(实读 /Users/wangyixiao/WorkSpace/OctoDesk/electron/services/engines/bridge/)
+E. OctoDesk 四件套移植工作量与依赖传染(实读 ~/WorkSpace/OctoDesk/electron/services/engines/bridge/)
 F. 模板缺省对"无订阅只有 1 个 key"新用户的失败路径(处方化报错是否可达)
 G. **profile="dev" 是否构成安全后门**:放宽面是否真的只有 evaluator 供给白名单一条;横幅+审计是否足以防"dev 配置漂到生产";要不要加"dev 下禁 route=hopper dispatch"之类的硬约束?
 H. **cursor_cli 笼等级**:--mode ask 只读但可读盘、无零工具旗标——评估档 dev 放宽下,tripwire(tool_call 即作废)对"读 ~/.saydo/ 转写"类破笼是否可观测(ask 模式读文件是否产生可检测的 tool_call 事件?实测 cursor-agent --output-format stream-json 的事件形状)?若不可观测,dev 放宽的诚实声明是否足够?

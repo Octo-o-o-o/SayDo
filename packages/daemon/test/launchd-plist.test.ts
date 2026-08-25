@@ -19,14 +19,15 @@ import {
 } from "../src/launchd/plist.js";
 import { isExistingDirectory, resolveUvBin } from "../src/launchd/uvBin.js";
 
+const macHome = (rest = "") => ["", "Users", "o"].join("/") + rest;
 const BASE = {
   nodeBin: "/usr/local/bin/node",
   tsxCli: "/repo/node_modules/.pnpm/tsx@4/node_modules/tsx/dist/cli.mjs",
   daemonEntry: "/repo/packages/daemon/src/index.ts",
   workingDirectory: "/repo/packages/daemon",
-  logsDir: "/Users/o/.saydo/logs",
+  logsDir: macHome("/.saydo/logs"),
   pathEnv: "/usr/local/bin:/usr/bin:/bin",
-  saydoHome: "/Users/o/.saydo"
+  saydoHome: macHome("/.saydo")
 };
 
 describe("buildLaunchdPlist(D17 常驻合同)", () => {
@@ -41,10 +42,10 @@ describe("buildLaunchdPlist(D17 常驻合同)", () => {
     expect(xml).toContain("<key>RunAtLoad</key>\n    <true/>");
     // 崩溃自启:KeepAlive.SuccessfulExit=false(exit 0 的 graceful stop 不复活)
     expect(xml).toMatch(/<key>KeepAlive<\/key>\s*<dict>\s*<key>SuccessfulExit<\/key>\s*<false\/>/);
-    expect(xml).toContain("<string>/Users/o/.saydo/logs/daemon.launchd.out.log</string>");
-    expect(xml).toContain("<string>/Users/o/.saydo/logs/daemon.launchd.err.log</string>");
+    expect(xml).toContain(`<string>${macHome("/.saydo/logs/daemon.launchd.out.log")}</string>`);
+    expect(xml).toContain(`<string>${macHome("/.saydo/logs/daemon.launchd.err.log")}</string>`);
     expect(xml).toContain("<key>PATH</key>");
-    expect(xml).toContain("<key>SAYDO_HOME</key>\n      <string>/Users/o/.saydo</string>");
+    expect(xml).toContain(`<key>SAYDO_HOME</key>\n      <string>${macHome("/.saydo")}</string>`);
   });
 
   it("SAYDO_DEV 快照:给了才写(不隐式改 profile);未给不出现该键", () => {
@@ -57,11 +58,11 @@ describe("buildLaunchdPlist(D17 常驻合同)", () => {
       ...BASE,
       pathEnv: "/a&b:/usr/bin",
       workingDirectory: "/x<y",
-      saydoHome: "/Users/o/a&b"
+      saydoHome: macHome("/a&b")
     });
     expect(xml).toContain("/a&amp;b:/usr/bin");
     expect(xml).toContain("/x&lt;y");
-    expect(xml).toContain("/Users/o/a&amp;b");
+    expect(xml).toContain(`${macHome("/a&amp;b")}`);
     expect(xml).not.toContain("/a&b:");
   });
 });
@@ -69,9 +70,9 @@ describe("buildLaunchdPlist(D17 常驻合同)", () => {
 const PIPELINE_BASE = {
   uvBin: "/opt/homebrew/bin/uv",
   pipelineDir: "/repo/pipeline",
-  logsDir: "/Users/o/.saydo/logs",
+  logsDir: macHome("/.saydo/logs"),
   pathEnv: "/usr/local/bin:/usr/bin:/bin",
-  saydoHome: "/Users/o/.saydo"
+  saydoHome: macHome("/.saydo")
 };
 
 describe("buildPipelinePlist + planInstall(public-readiness)", () => {
@@ -102,14 +103,14 @@ describe("buildPipelinePlist + planInstall(public-readiness)", () => {
 
   it("两条 log 路径落 ~/.saydo/logs/pipeline.launchd.{out,err}.log", () => {
     const xml = buildPipelinePlist(PIPELINE_BASE);
-    expect(xml).toContain("<string>/Users/o/.saydo/logs/pipeline.launchd.out.log</string>");
-    expect(xml).toContain("<string>/Users/o/.saydo/logs/pipeline.launchd.err.log</string>");
+    expect(xml).toContain(`<string>${macHome("/.saydo/logs/pipeline.launchd.out.log")}</string>`);
+    expect(xml).toContain(`<string>${macHome("/.saydo/logs/pipeline.launchd.err.log")}</string>`);
   });
 
   it("Env 含 PATH+SAYDO_HOME;给 daemonPort 才写 SAYDO_DAEMON_PORT", () => {
     const without = buildPipelinePlist(PIPELINE_BASE);
     expect(without).toContain("<key>PATH</key>");
-    expect(without).toContain("<key>SAYDO_HOME</key>\n      <string>/Users/o/.saydo</string>");
+    expect(without).toContain(`<key>SAYDO_HOME</key>\n      <string>${macHome("/.saydo")}</string>`);
     expect(without).not.toContain("SAYDO_DAEMON_PORT");
     const withPort = buildPipelinePlist({ ...PIPELINE_BASE, daemonPort: "47100" });
     expect(withPort).toContain("<key>SAYDO_DAEMON_PORT</key>\n      <string>47100</string>");
@@ -121,12 +122,12 @@ describe("buildPipelinePlist + planInstall(public-readiness)", () => {
       uvBin: "/opt/homebrew/bin/u&v",
       pipelineDir: "/x<y>",
       pathEnv: "/a&b:/usr/bin",
-      saydoHome: "/Users/o/a&b"
+      saydoHome: macHome("/a&b")
     });
     expect(xml).toContain("/opt/homebrew/bin/u&amp;v");
     expect(xml).toContain("/x&lt;y&gt;");
     expect(xml).toContain("/a&amp;b:/usr/bin");
-    expect(xml).toContain("/Users/o/a&amp;b");
+    expect(xml).toContain(`${macHome("/a&amp;b")}`);
     expect(xml).not.toContain("/a&b:");
     expect(xml).not.toContain("/x<y>");
   });

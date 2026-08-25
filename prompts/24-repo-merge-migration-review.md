@@ -1,6 +1,6 @@
 # Codex 评审 24：双目录合并迁移终审
 
-你是独立对抗性评审者。请在 `/Users/wangyixiao/WorkSpace/SayDo` 中只读检查当前未提交工作树相对
+你是独立对抗性评审者。请在 `~/WorkSpace/SayDo` 中只读检查当前未提交工作树相对
 `838aeea` 的迁移改动，并将完整评审写入：
 
 `research/codex-findings/24-repo-merge-migration-review.md`

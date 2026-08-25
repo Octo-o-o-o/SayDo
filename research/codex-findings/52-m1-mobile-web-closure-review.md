@@ -8,48 +8,48 @@
 
 ### A-1：`processing` 重放会重复 Brain，并可重复持久副作用
 
-当前顺序是：写 `processing`、默认档 ACK、运行完整 Brain/tool loop，最后才写 `processed`：[dialog.ts:520](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:520)、[dialog.ts:531](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:531)、[dialog.ts:540](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:540)。启动又会重跑全部 `accepted|processing`：[dialog.ts:554](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:554)。
+当前顺序是：写 `processing`、默认档 ACK、运行完整 Brain/tool loop，最后才写 `processed`：[dialog.ts:520](~/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:520)、[dialog.ts:531](~/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:531)、[dialog.ts:540](~/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:540)。启动又会重跑全部 `accepted|processing`：[dialog.ts:554](~/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:554)。
 
 可复现反例：
 
 1. T1 收到 ACK，scripted provider 返回 `remember`。
-2. `remember` 已执行 `ledger.add`：[liveTools.ts:1236](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/brain/liveTools.ts:1236)。
+2. `remember` 已执行 `ledger.add`：[liveTools.ts:1236](~/WorkSpace/SayDo/packages/daemon/src/brain/liveTools.ts:1236)。
 3. 在 `markAcceptedUserTurnProcessed` 前 SIGKILL，或让该方法注入异常。
 4. 重启执行 `recoverPendingMobileTurns`。
-5. Brain 与 `remember` 再执行一次，`MemoryLedger.add` 每次生成新 `memId` 并再次插入：[ledger.ts:98](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/memory/ledger.ts:98)。
+5. Brain 与 `remember` 再执行一次，`MemoryLedger.add` 每次生成新 `memId` 并再次插入：[ledger.ts:98](~/WorkSpace/SayDo/packages/daemon/src/memory/ledger.ts:98)。
 
-Provider 请求没有 idempotency key，[types.ts:27](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/providers/types.ts:27)、[openaiCompat.ts:88](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/providers/openaiCompat.ts:88)。因此这是实际的重复计费、重复 Brain、重复工具副作用窗口。
+Provider 请求没有 idempotency key，[types.ts:27](~/WorkSpace/SayDo/packages/daemon/src/providers/types.ts:27)、[openaiCompat.ts:88](~/WorkSpace/SayDo/packages/daemon/src/providers/openaiCompat.ts:88)。因此这是实际的重复计费、重复 Brain、重复工具副作用窗口。
 
-现有“崩溃窗”测试把首个 provider 永久挂起，只证明 Brain 尚未产出时能恢复：[live-wiring.e2e.test.ts:301](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/test/live-wiring.e2e.test.ts:301)。
+现有“崩溃窗”测试把首个 provider 永久挂起，只证明 Brain 尚未产出时能恢复：[live-wiring.e2e.test.ts:301](~/WorkSpace/SayDo/packages/daemon/test/live-wiring.e2e.test.ts:301)。
 
 ### A-2：同 session 新轮可把旧轮误记为 `processed`
 
-`mobileTurnRuns` 只合并同 `(sessionId,turnId)`，不串行化同 session 的不同轮：[dialog.ts:483](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:483)。手机收到早期 ACK 后立即解除 `pendingSend`，可以发送 T2：[MobileApp.tsx:43](/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/mobile/MobileApp.tsx:43)。
+`mobileTurnRuns` 只合并同 `(sessionId,turnId)`，不串行化同 session 的不同轮：[dialog.ts:483](~/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:483)。手机收到早期 ACK 后立即解除 `pendingSend`，可以发送 T2：[MobileApp.tsx:43](~/WorkSpace/SayDo/packages/console/src/mobile/MobileApp.tsx:43)。
 
 可复现反例：
 
 1. T1 收到 ACK，provider 暂停。
 2. 发送不同 `turnId` 的 T2。
-3. T2 覆盖 `currentUserTurn`：[voiceSessions.ts:168](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/live/voiceSessions.ts:168)。
-4. T1 返回后命中 stale 检查，输出被丢弃：[dialog.ts:868](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:868)。
-5. 外层仍无条件把 T1 写成 `processed`：[dialog.ts:540](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:540)。
-6. T1 后续重试只回 ACK，不再处理：[dialog.ts:510](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:510)。
+3. T2 覆盖 `currentUserTurn`：[voiceSessions.ts:168](~/WorkSpace/SayDo/packages/daemon/src/live/voiceSessions.ts:168)。
+4. T1 返回后命中 stale 检查，输出被丢弃：[dialog.ts:868](~/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:868)。
+5. 外层仍无条件把 T1 写成 `processed`：[dialog.ts:540](~/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:540)。
+6. T1 后续重试只回 ACK，不再处理：[dialog.ts:510](~/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:510)。
 
-启动时也先 `listen`，再以未等待的异步任务恢复：[index.ts:2372](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/index.ts:2372)、[index.ts:2391](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/index.ts:2391)。客户端重连发 T2 能触发相同竞态。这是数据丢失与假终态。
+启动时也先 `listen`，再以未等待的异步任务恢复：[index.ts:2372](~/WorkSpace/SayDo/packages/daemon/src/index.ts:2372)、[index.ts:2391](~/WorkSpace/SayDo/packages/daemon/src/index.ts:2391)。客户端重连发 T2 能触发相同竞态。这是数据丢失与假终态。
 
 ## B 级
 
 ### B-1：桌面 `turn.text` 被扩散了新的 ACK 协议行为
 
-durable outbox 已限制在 `mobileTurn`，本地 ASR 也仍走旧入口；但候选对所有非 mobile 桌面文本轮仍传入 ACK callback：[index.ts:2206](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/index.ts:2206)。随后 `turn.accepted` 按 session 广播：[hub.ts:713](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/voice/hub.ts:713)。
+durable outbox 已限制在 `mobileTurn`，本地 ASR 也仍走旧入口；但候选对所有非 mobile 桌面文本轮仍传入 ACK callback：[index.ts:2206](~/WorkSpace/SayDo/packages/daemon/src/index.ts:2206)。随后 `turn.accepted` 按 session 广播：[hub.ts:713](~/WorkSpace/SayDo/packages/daemon/src/voice/hub.ts:713)。
 
 反例：两个 local console peer 绑定同 session，其中一个发送桌面 `turn.text`，两端都会收到基线不存在且没有 outbox 重放保证的 `turn.accepted`。
 
-桌面当前忽略该消息，故未发现直接 UI 回归；但这是可观察协议变化，违反 [docs/09:1145](/Users/wangyixiao/WorkSpace/SayDo/docs/09-data-contracts.md:1145) 的桌面文本轮隔离要求。
+桌面当前忽略该消息，故未发现直接 UI 回归；但这是可观察协议变化，违反 [docs/09:1145](~/WorkSpace/SayDo/docs/09-data-contracts.md:1145) 的桌面文本轮隔离要求。
 
 ### B-2：隐私配置跨重启时，ACK 策略不再对应该轮的可恢复性
 
-`ackOnAccept` 只读取当前全局配置：[dialog.ts:521](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:521)，outbox 行没有记录该轮是否有 transcript，恢复路径也不补写原文：[voiceSessions.ts:176](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/live/voiceSessions.ts:176)。
+`ackOnAccept` 只读取当前全局配置：[dialog.ts:521](~/WorkSpace/SayDo/packages/daemon/src/live/dialog.ts:521)，outbox 行没有记录该轮是否有 transcript，恢复路径也不补写原文：[voiceSessions.ts:176](~/WorkSpace/SayDo/packages/daemon/src/live/voiceSessions.ts:176)。
 
 反例：
 
@@ -58,11 +58,11 @@ durable outbox 已限制在 `mobileTurn`，本地 ASR 也仍走旧入口；但�
 3. 手机同键重试时会按新配置提前 ACK，但 resume 路径仍没有持久正文。
 4. 再次在 `processed` 前崩溃，手机已清草稿，daemon 无正文恢复。
 
-反方向 `true→false` 也会因启动恢复被全局条件直接跳过，见 [index.ts:2391](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/index.ts:2391)。
+反方向 `true→false` 也会因启动恢复被全局条件直接跳过，见 [index.ts:2391](~/WorkSpace/SayDo/packages/daemon/src/index.ts:2391)。
 
 ### B-3：fresh first-run HOME 会把 token、数据库和转写留在工作树
 
-`.gitignore` 只忽略 `.pw-home/`，没有忽略 `.pw-first-run-home/`：[.gitignore:21](/Users/wangyixiao/WorkSpace/SayDo/.gitignore:21)。setup 创建该目录，但 teardown 不删除：[global-setup.ts:54](/Users/wangyixiao/WorkSpace/SayDo/e2e/console/global-setup.ts:54)、[global-setup.ts:122](/Users/wangyixiao/WorkSpace/SayDo/e2e/console/global-setup.ts:122)。
+`.gitignore` 只忽略 `.pw-home/`，没有忽略 `.pw-first-run-home/`：[.gitignore:21](~/WorkSpace/SayDo/.gitignore:21)。setup 创建该目录，但 teardown 不删除：[global-setup.ts:54](~/WorkSpace/SayDo/e2e/console/global-setup.ts:54)、[global-setup.ts:122](~/WorkSpace/SayDo/e2e/console/global-setup.ts:122)。
 
 当前 `git status` 已显示：
 
@@ -74,7 +74,7 @@ durable outbox 已限制在 `mobileTurn`，本地 ASR 也仍走旧入口；但�
 
 ### B-4：终局证据仍不能覆盖真实 AI 回复及两个 A 窗口
 
-文本浏览器用例只断言 ACK、草稿清空和用户气泡：[console.spec.ts:188](/Users/wangyixiao/WorkSpace/SayDo/e2e/console/console.spec.ts:188)。让 provider 在 ACK 后永久挂起，该测试仍不要求出现 AI 回复，因此七项验收③没有被证明。
+文本浏览器用例只断言 ACK、草稿清空和用户气泡：[console.spec.ts:188](~/WorkSpace/SayDo/e2e/console/console.spec.ts:188)。让 provider 在 ACK 后永久挂起，该测试仍不要求出现 AI 回复，因此七项验收③没有被证明。
 
 同时缺少：
 
@@ -95,7 +95,7 @@ durable outbox 已限制在 `mobileTurn`，本地 ASR 也仍走旧入口；但�
 
 outbox 的其他子项源码上成立：
 
-- DDL 确有 digest-only `accepted→processing→processed`：[ddl.ts:768](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/storage/ddl.ts:768)。
+- DDL 确有 digest-only `accepted→processing→processed`：[ddl.ts:768](~/WorkSpace/SayDo/packages/daemon/src/storage/ddl.ts:768)。
 - 已 `processed` 同文重试只回 ACK。
 - `store_transcript=false` 单一配置正常路径不落 transcript，且先 `processed` 后 ACK。
 - transcript/index 写失败路径不发 ACK。
@@ -103,11 +103,11 @@ outbox 的其他子项源码上成立：
 
 ## 其余专项裁决
 
-- `untrusted_source`：只回源 socket，[hub.ts:443](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/voice/hub.ts:443)；手机禁 accept/reject、保留 withdraw，[CardPage.tsx:109](/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/mobile/pages/CardPage.tsx:109)、[CardPage.tsx:141](/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/mobile/pages/CardPage.tsx:141)。真实终态仍由 [index.ts:1818](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/index.ts:1818) 按 session 广播。
-- Focus 轨迹：`title` 与字符串 `revision` 都脱敏，[console.ts:694](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/api/console.ts:694)；测试输入直接包含完整路径与 token，[console-api.test.ts:84](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/test/console-api.test.ts:84)。
-- first-run：独立 fresh HOME、第二个真实 daemon 在 [global-setup.ts:72](/Users/wangyixiao/WorkSpace/SayDo/e2e/console/global-setup.ts:72)；真实浏览器直接访问 RFC1918 daemon 与既有端点，[console.spec.ts:159](/Users/wangyixiao/WorkSpace/SayDo/e2e/console/console.spec.ts:159)。该用例没有 route mock；后面的 mock 是另一条重挂测试。
-- 合同与白名单：Attention、Focus、confirm outcome 共用 [mobile.ts:23](/Users/wangyixiao/WorkSpace/SayDo/packages/contracts/src/types/mobile.ts:23)，console 仅作类型别名；未发现 DTO 分叉。除 B-1 外，daemon 改动可映射到 v3.3 四项白名单。
-- 桌面源码隔离：既有 console 源码相对基线只改 [App.tsx:136](/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/App.tsx:136)；Provider 位于分树外，移动 CSS 未发现全局 selector。源码树隔离成立，协议隔离因 B-1 不成立。
+- `untrusted_source`：只回源 socket，[hub.ts:443](~/WorkSpace/SayDo/packages/daemon/src/voice/hub.ts:443)；手机禁 accept/reject、保留 withdraw，[CardPage.tsx:109](~/WorkSpace/SayDo/packages/console/src/mobile/pages/CardPage.tsx:109)、[CardPage.tsx:141](~/WorkSpace/SayDo/packages/console/src/mobile/pages/CardPage.tsx:141)。真实终态仍由 [index.ts:1818](~/WorkSpace/SayDo/packages/daemon/src/index.ts:1818) 按 session 广播。
+- Focus 轨迹：`title` 与字符串 `revision` 都脱敏，[console.ts:694](~/WorkSpace/SayDo/packages/daemon/src/api/console.ts:694)；测试输入直接包含完整路径与 token，[console-api.test.ts:84](~/WorkSpace/SayDo/packages/daemon/test/console-api.test.ts:84)。
+- first-run：独立 fresh HOME、第二个真实 daemon 在 [global-setup.ts:72](~/WorkSpace/SayDo/e2e/console/global-setup.ts:72)；真实浏览器直接访问 RFC1918 daemon 与既有端点，[console.spec.ts:159](~/WorkSpace/SayDo/e2e/console/console.spec.ts:159)。该用例没有 route mock；后面的 mock 是另一条重挂测试。
+- 合同与白名单：Attention、Focus、confirm outcome 共用 [mobile.ts:23](~/WorkSpace/SayDo/packages/contracts/src/types/mobile.ts:23)，console 仅作类型别名；未发现 DTO 分叉。除 B-1 外，daemon 改动可映射到 v3.3 四项白名单。
+- 桌面源码隔离：既有 console 源码相对基线只改 [App.tsx:136](~/WorkSpace/SayDo/packages/console/src/App.tsx:136)；Provider 位于分树外，移动 CSS 未发现全局 selector。源码树隔离成立，协议隔离因 B-1 不成立。
 
 ## 用户七项验收
 

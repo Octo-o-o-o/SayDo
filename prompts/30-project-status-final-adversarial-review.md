@@ -1,7 +1,7 @@
 # SayDo 迁移/实施状态最终对抗性复评
 
 你是只读的发布前对抗性审计员。仓库位于
-`/Users/wangyixiao/WorkSpace/SayDo`。禁止修改任何仓库文件、运行时、数据库、快照或 Git
+`~/WorkSpace/SayDo`。禁止修改任何仓库文件、运行时、数据库、快照或 Git
 状态；禁止 commit/push/deploy/restart。不要启动 subagent。
 
 背景：
@@ -10,7 +10,7 @@
 - Codex 27 初审、Codex 28 迟到报告和 Codex 29 窄复评均已落
   `research/codex-findings/`。其中 28 的四项 A 级是本轮主要关闭目标，29 不覆盖 28。
 - 当前真实恢复候选点是
-  `/Users/wangyixiao/.saydo/backups/20260729T163416Z`。
+  `~/.saydo/backups/20260729T163416Z`。
 - 当前 runtime 仍是旧的 clean `838aeea`，未获授权部署；因此新 preflight 对旧 runtime
   失败是预期，不得误判成新实现已部署。
 

@@ -74,10 +74,25 @@
   已把 SYSTEM 判定前移，所有 Win32 BOOL 统一为 32-bit `int32` ABI，并以原始指针解码后在 finally
   释放；实体 Windows platform 13 项与完整 distribution 复验通过。
 - `rc3_release_review` 对 `23c2251` 首轮判 No-Go：实施提交尚未重生 rc.3 bundle，且 rc.2 被误写为
-  技术不可移动。证据提交将以最终实施 SHA 重生 bundle；文案已改为“按发布纪律不得移动”。
+  技术不可移动。最终证据提交 `8602c73` 已以 `57d3e10` 为实施边界重生 bundle，并把文案改为
+  “按发布纪律不得移动”。运行时与发布两路同一评审会话最终均判 Go，无 actionable P0/P1/P2。
 
-## 6. 尚未完成
+## 6. 首次公开运行结果
 
-- `v0.1.0-rc.3` tag、公开首次 Actions、GitHub Release、Mac/Windows 固定 URL 复验与官网部署。
+- 内部 main `8602c7324844ede014c577409ae10a834f1a1714` 已推送；公开 main 与
+  `v0.1.0-rc.3` 已原子指向 `a29f671f79cf5f73452cecd60b092072c72c2aab`。
+- CI run `32622757288` 与 release run `32622757385` 均为 attempt 1 / failure。Windows 分发在
+  `THIRD_PARTY_NOTICES.md` 对账处失败：Windows Git checkout 把跟踪文本转为 CRLF，而受控生成值为 LF。
+  Ubuntu node 的所有测试断言本身通过，但主 agent 进程组终止时有 4 次 stdout
+  `read ECONNRESET` 未被监听，Vitest 以 unhandled errors 判红。
+- macOS 与 Ubuntu 分发、Python 与 fresh-origin Playwright 为成功；因前置质量门失败，publish 与
+  fixed URL smoke 均 skipped，没有创建 GitHub Release。该 tag 与两个首次 run 保留，按发布纪律不移动、不重跑。
+
+## 7. 后续边界
+
+- 换行合同与受管进程 pipe 错误收口改由 `v0.1.0-rc.4` 候选验收；后续 Linux 复现证明只补
+  agent stdout/stderr 仍不完整，BYOA/受管命令的活动输出流及 runtime wrapper 的 ignored stdio 与
+  permit 控制 pipe 都必须按各自合同收口。rc.3 不再尝试发布。
+- Mac/Windows 固定 URL 复验与官网部署只能在新标签首次 Actions、GitHub Release 及六项 smoke 全绿后执行。
 - iPhone、Android、HarmonyOS 本轮候选包真机验证；HarmonyOS 仍受设备在线与签名 Profile 约束。
 - npm registry、商店发布、Windows system service 与 Linux systemd。

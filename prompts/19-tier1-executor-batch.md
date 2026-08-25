@@ -6,7 +6,7 @@
 
 ## 背景
 
-SayDo(`/Users/wangyixiao/WorkSpace/SayDo`,main HEAD=602aa09,基线 2f657ed)把已就绪的 Tier1 库层
+SayDo(`~/WorkSpace/SayDo`,main HEAD=602aa09,基线 2f657ed)把已就绪的 Tier1 库层
 (adapter/gate/verifyFreeze/operations)接成**生产执行循环**:15s scheduler 认领 `queued∧route=tier1`
 任务 → git worktree 供给 → 起真实 `cursor-agent`(`-p --force --trust --output-format stream-json`,
 worktree 内 `.cursor/hooks.json` 的 beforeShellExecution 钩子回连 daemon unix socket 审批门)→ 事件流

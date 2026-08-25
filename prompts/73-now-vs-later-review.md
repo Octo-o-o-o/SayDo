@@ -4,7 +4,7 @@
 对抗性评审《现在做 / 可后置 · 2026-08-16 更新建议》:
 docs/review/2026-08-16-now-vs-later.md
 
-实施仓:/Users/wangyixiao/WorkSpace/SayDo
+实施仓:~/WorkSpace/SayDo
 HEAD 以 git rev-parse 为准(预期 3197fd8)。工作树可能含本建议未提交文件,只读。
 
 裁决对象:这份建议主张「唯一现在该实施的工程批 = LAN remote-mobile 第 0 步」,并把 native_api / Claude SDK / 四场验收 / R-B / DSH / W6-W9 全部后置。

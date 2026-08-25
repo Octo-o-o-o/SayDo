@@ -6,7 +6,7 @@
 
 ### A1｜hard-forget 对快照及派生副本没有闭合
 
-- **位置**：[09 §4 L183](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:183)、[L195](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:195)、[§4.1 L212](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:212)、[DDL L478](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:478)、[§12-11 L686](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:686)、[§14-A6 L759](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:759)、[10 #38](/Users/wangyixiao/WorkSpace/voice-coding/docs/10-voice-ux-spec.md:80)。
+- **位置**：[09 §4 L183](~/WorkSpace/voice-coding/docs/09-data-contracts.md:183)、[L195](~/WorkSpace/voice-coding/docs/09-data-contracts.md:195)、[§4.1 L212](~/WorkSpace/voice-coding/docs/09-data-contracts.md:212)、[DDL L478](~/WorkSpace/voice-coding/docs/09-data-contracts.md:478)、[§12-11 L686](~/WorkSpace/voice-coding/docs/09-data-contracts.md:686)、[§14-A6 L759](~/WorkSpace/voice-coding/docs/09-data-contracts.md:759)、[10 #38](~/WorkSpace/voice-coding/docs/10-voice-ux-spec.md:80)。
 - **问题**：当前只承诺删除 `bodyPath`，但活动存储里还可能保留明文：
   - `source_snapshots.source_json` 含 `SourceRef.quote/ref`；
   - `readiness_assessments.dims_json` 承载 `Claim.text/source`；
@@ -22,7 +22,7 @@
 
 ### A2｜critical claim 验证目前是 fail-open，stale 与注入语义不闭合
 
-- **位置**：[ClaimSourceVerification L225–239](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:225)、[04 §2.2-5](/Users/wangyixiao/WorkSpace/voice-coding/docs/04-key-mechanisms.md:69)、[09 §13](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:748)、[10 #37](/Users/wangyixiao/WorkSpace/voice-coding/docs/10-voice-ux-spec.md:79)。
+- **位置**：[ClaimSourceVerification L225–239](~/WorkSpace/voice-coding/docs/09-data-contracts.md:225)、[04 §2.2-5](~/WorkSpace/voice-coding/docs/04-key-mechanisms.md:69)、[09 §13](~/WorkSpace/voice-coding/docs/09-data-contracts.md:748)、[10 #37](~/WorkSpace/voice-coding/docs/10-voice-ux-spec.md:79)。
 - **问题**：
   - `semanticSupport` 是可选字段且包含 `unclear`，消费谓词却只拒绝 `unsupported`；因此 `undefined/unclear` 都能穿过。
   - `freshness="stale"` 不在拒绝谓词中；“触发重快照”只是 prose，没有不可消费中间态，也未定义重快照失败、源删除或不可达的终局。
@@ -39,14 +39,14 @@
 
 ### A3｜D4 已定档，但路线权威仍会把实施卡回“待选型”
 
-- **位置**：[07 D4 L68–69](/Users/wangyixiao/WorkSpace/voice-coding/docs/07-tech-stack-decisions.md:68)、[07 §10-4](/Users/wangyixiao/WorkSpace/voice-coding/docs/07-tech-stack-decisions.md:246)、[IMPLEMENTATION-PLAN Phase -1](/Users/wangyixiao/WorkSpace/voice-coding/IMPLEMENTATION-PLAN.md:18)、[Plan 1.0](/Users/wangyixiao/WorkSpace/voice-coding/IMPLEMENTATION-PLAN.md:69)、[modules/a A1](/Users/wangyixiao/WorkSpace/voice-coding/docs/modules/a-dialogue.md:10)、[05 权威声明](/Users/wangyixiao/WorkSpace/voice-coding/docs/05-roadmap.md:5)。
+- **位置**：[07 D4 L68–69](~/WorkSpace/voice-coding/docs/07-tech-stack-decisions.md:68)、[07 §10-4](~/WorkSpace/voice-coding/docs/07-tech-stack-decisions.md:246)、[IMPLEMENTATION-PLAN Phase -1](~/WorkSpace/voice-coding/IMPLEMENTATION-PLAN.md:18)、[Plan 1.0](~/WorkSpace/voice-coding/IMPLEMENTATION-PLAN.md:69)、[modules/a A1](~/WorkSpace/voice-coding/docs/modules/a-dialogue.md:10)、[05 权威声明](~/WorkSpace/voice-coding/docs/05-roadmap.md:5)。
 - **问题**：
   - D4 说单家定档、第二家非阻塞；Plan 却仍要求“≥2 家 key”为 P0 硬门并要求两家跑分。
   - 07 自己的 P0 spike 清单仍写“300–500 条、两家对比后定 D4”。
   - modules/a 仍写“ASR 待 1.0 spike”。
   - 05 明定 Plan 管分期，因此实施者应按 Plan 停工，而不是按 D4 开工。
-  - [ADR-101 L19–20](/Users/wangyixiao/WorkSpace/SayDo/docs/adr/ADR-101-asr-volc.md:19)把“PTT 整段识别”放 P0、实时分片放 P1；但 [05 P0](/Users/wangyixiao/WorkSpace/voice-coding/docs/05-roadmap.md:76)仍承诺流式 ASR。
-  - [05 风险表](/Users/wangyixiao/WorkSpace/voice-coding/docs/05-roadmap.md:130)仍依赖“复述确认”，而 [10 #7](/Users/wangyixiao/WorkSpace/voice-coding/docs/10-voice-ux-spec.md:33)已停用缺省触发器。
+  - [ADR-101 L19–20](~/WorkSpace/SayDo/docs/adr/ADR-101-asr-volc.md:19)把“PTT 整段识别”放 P0、实时分片放 P1；但 [05 P0](~/WorkSpace/voice-coding/docs/05-roadmap.md:76)仍承诺流式 ASR。
+  - [05 风险表](~/WorkSpace/voice-coding/docs/05-roadmap.md:130)仍依赖“复述确认”，而 [10 #7](~/WorkSpace/voice-coding/docs/10-voice-ux-spec.md:33)已停用缺省触发器。
 - **建议措辞**：
 
   > D4 已于 2026-07-24 结项：P0 使用火山 sauc 单家起步；第二家对比和 300–500 条真实 golden 是换 provider 门禁，不是 Phase -1/P0 开工门。
@@ -55,7 +55,7 @@
 
 ### B1｜TOCTOU 只写了目标，没有可执行的捕获与提交纪律
 
-- **位置**：[09 L206–215](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:206)、[DDL L482](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:482)、[文件布局 L549](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:549)。
+- **位置**：[09 L206–215](~/WorkSpace/voice-coding/docs/09-data-contracts.md:206)、[DDL L482](~/WorkSpace/voice-coding/docs/09-data-contracts.md:482)、[文件布局 L549](~/WorkSpace/voice-coding/docs/09-data-contracts.md:549)。
 - **问题**：
   - `realpath(禁 symlink 穿越)`不成立：`realpath` 会跟随 symlink；未定义 `O_NOFOLLOW/openat/fstat`。
   - Web 缺 redirect 上限、scheme/content-type/大小、私网地址策略。
@@ -68,7 +68,7 @@
 
 ### B2｜`no_quote` 的安全意图合理，但状态和证据模型过强且自相矛盾
 
-- **位置**：[09 L209](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:209)、[L232–236](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:232)、[Claim L244](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:244)、[06 术语表](/Users/wangyixiao/WorkSpace/voice-coding/docs/06-references.md:85)。
+- **位置**：[09 L209](~/WorkSpace/voice-coding/docs/09-data-contracts.md:209)、[L232–236](~/WorkSpace/voice-coding/docs/09-data-contracts.md:232)、[Claim L244](~/WorkSpace/voice-coding/docs/09-data-contracts.md:244)、[06 术语表](~/WorkSpace/voice-coding/docs/06-references.md:85)。
 - **判断**：让 `no_quote` **阻塞 ready 是合理的 fail-closed 选择**；但把它直接变成 `conflicting`，并要求所有正常 critical claim 都自带单条原文 quote，过强。
 - **问题**：
   - 综合多个转写/文件得出的正常 critical claim 无法用单条原文 quote 表达。
@@ -81,7 +81,7 @@
 
 ### B3｜DDL 可解析，但 round-trip/replay 约束不足
 
-- **位置**：[source_snapshots DDL](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:482)、[readiness DDL](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:478)、[replay 声明](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:239)、[assessReadiness](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:697)。
+- **位置**：[source_snapshots DDL](~/WorkSpace/voice-coding/docs/09-data-contracts.md:482)、[readiness DDL](~/WorkSpace/voice-coding/docs/09-data-contracts.md:478)、[replay 声明](~/WorkSpace/voice-coding/docs/09-data-contracts.md:239)、[assessReadiness](~/WorkSpace/voice-coding/docs/09-data-contracts.md:697)。
 - **依据**：DDL 送入 `sqlite3 ':memory:'` 可执行；但实际探针结果：
   - 插入 `source_snapshots.id=NULL` 成功，查询输出 `1|1`；
   - 只写 assessment id 也成功，`evaluator_model/prompt_digest/source_verifications_json` 均空，输出 `r|1|1|1`。
@@ -98,9 +98,9 @@
 
 ### C1｜引用锚点和证据归属有残留
 
-- [04 L69](/Users/wangyixiao/WorkSpace/voice-coding/docs/04-key-mechanisms.md:69)的“§3.2 加反例”在本文件不存在，应写成 `IMPLEMENTATION-PLAN Phase 3 / step 3.2` 或 `09 §12-11`。
-- [09 L226](/Users/wangyixiao/WorkSpace/voice-coding/docs/09-data-contracts.md:226)引用“§0 textDigest 口径”，§0 没有 `textDigest` 定义。
-- D4 所引 [ADR-101](/Users/wangyixiao/WorkSpace/SayDo/docs/adr/ADR-101-asr-volc.md:1)和 [RESULT](/Users/wangyixiao/WorkSpace/SayDo/e2e/spikes/asr-1.0/RESULT.md:14)确实存在，60 条与 55.4%→65.3% 能对上；但两份文档都没有“sauc 不回 confidence”的实测记录。该事实应补到 ADR/RESULT，或换成真实证据锚点。
+- [04 L69](~/WorkSpace/voice-coding/docs/04-key-mechanisms.md:69)的“§3.2 加反例”在本文件不存在，应写成 `IMPLEMENTATION-PLAN Phase 3 / step 3.2` 或 `09 §12-11`。
+- [09 L226](~/WorkSpace/voice-coding/docs/09-data-contracts.md:226)引用“§0 textDigest 口径”，§0 没有 `textDigest` 定义。
+- D4 所引 [ADR-101](~/WorkSpace/SayDo/docs/adr/ADR-101-asr-volc.md:1)和 [RESULT](~/WorkSpace/SayDo/e2e/spikes/asr-1.0/RESULT.md:14)确实存在，60 条与 55.4%→65.3% 能对上；但两份文档都没有“sauc 不回 confidence”的实测记录。该事实应补到 ADR/RESULT，或换成真实证据锚点。
 - 用户给出的 SOL 依据行 78–94/165 与当前文件内容能对上。
 
 ## Go/No-Go 与必修清单

@@ -1,89 +1,105 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
-import { hostKind, killOwnedTree, nativeSync, processAlive, processBirth } from "@saydo/platform";
+import {
+  appendReapAudit,
+  classifyKillProbe,
+  commitOwnerReapIfIdentity,
+  effectiveKillHostKind,
+  hostKind,
+  isKillOwnedTreeError,
+  killOwnedTree,
+  nativeSync,
+  observeVerifiedOwnedJob,
+  observedProcessAlive,
+  parseAgentOwnerRecord,
+  agentOwnerIdentity,
+  isOwnerIdentityCasError,
+  parseAnyRuntimeOwnerRecord,
+  runtimeOwnerIdentity,
+  withHomeOwnerBoundary,
+  PROCESS_KILL_UNKNOWN,
+  PROCESS_PROBE_UNKNOWN,
+  projectUntrustedFailureText,
+  readOwnedProcessBirth,
+  win32JobIdentityOk,
+  type ParsedAgentOwner,
+  type ParsedPendingRuntimeOwner,
+  type ParsedRuntimeOwner
+} from "@saydo/platform";
 
-interface AgentOwner {
-  version: 1;
-  runId: string;
-  pid: number;
-  binary: string;
-  processStart: string;
-  ownerPid?: number;
-  ownerInstanceId?: string;
-  jobName?: string;
+const reaperErrors = new WeakSet<object>();
+
+function reaperError(message: string): Error {
+  const err = new Error(message);
+  reaperErrors.add(err);
+  return err;
 }
 
-interface RuntimeChildOwner {
-  version: 1;
-  pid: number;
-  kind: string;
-  binary: string;
-  processStart: string | null;
-  ownerPid: number;
-  ownerInstanceId?: string;
-  commandToken?: string;
-  jobName?: string;
+function isReaperError(err: unknown): boolean {
+  return typeof err === "object" && err !== null && reaperErrors.has(err);
 }
 
-function groupAlive(pid: number): boolean {
-  if (hostKind() === "win32") return processAlive(pid);
+function projectReaperFailure(err: unknown, fallback: string): Error {
+  if (isReaperError(err) || isKillOwnedTreeError(err)) {
+    return err as Error;
+  }
+  return reaperError(projectUntrustedFailureText(err, fallback));
+}
+
+function leaderAlive(pid: number): boolean {
   try {
-    process.kill(-pid, 0);
-    return true;
+    return observedProcessAlive(pid);
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ESRCH") return false;
-    if ((err as NodeJS.ErrnoException).code === "EPERM") return true;
-    throw err;
+    const kind = classifyKillProbe(err);
+    if (kind === "gone") return false;
+    if (kind === "alive") return true;
+    throw reaperError(PROCESS_PROBE_UNKNOWN);
   }
 }
 
-async function killGroupAndWait(pid: number, timeoutMessage: string, expectedBirth: string, jobName?: string): Promise<void> {
-  await killOwnedTree({ pid, expectedBirth, ...(jobName ? { jobName } : {}) });
-  const deadline = Date.now() + 5_000;
-  while (groupAlive(pid)) {
-    if (Date.now() >= deadline) throw new Error(timeoutMessage);
-    await new Promise((resolve) => setTimeout(resolve, 20));
-  }
+function killIdentity(owner: {
+  jobName?: string;
+  ownerInstanceId?: string;
+  runId?: string;
+  generation?: string;
+}): {
+  jobName?: string;
+  ownerInstanceId?: string;
+  runId?: string;
+  generation?: string;
+} {
+  return {
+    ...(owner.jobName !== undefined ? { jobName: owner.jobName } : {}),
+    ...(owner.ownerInstanceId !== undefined ? { ownerInstanceId: owner.ownerInstanceId } : {}),
+    ...(owner.runId !== undefined ? { runId: owner.runId } : {}),
+    ...(owner.generation !== undefined ? { generation: owner.generation } : {})
+  };
 }
 
-function processStart(pid: number, _binary?: string, _commandToken?: string): string | null {
-  return processBirth(pid);
-}
-
-function posixCommandContains(pid: number, binary: string, commandToken: string): boolean {
-  try {
-    const ps = existsSync("/bin/ps") ? "/bin/ps" : existsSync("/usr/bin/ps") ? "/usr/bin/ps" : "ps";
-    const command = execFileSync(ps, ["-o", "command=", "-p", String(pid)], {
-      encoding: "utf8",
-      timeout: 2_000
-    }).trim();
-    if (command.includes(commandToken) && (command.includes(binary) || command.includes(binary.split("/").pop() ?? binary))) {
-      return true;
-    }
-  } catch {
-    // macOS sandbox 常禁 setuid ps，回退 pgrep 命令行身份。
-  }
-  try {
-    const raw = execFileSync("pgrep", ["-lf", commandToken], { encoding: "utf8", timeout: 2_000 });
-    return raw
-      .split("\n")
-      .map((item) => item.trim())
-      .some((item) => item === String(pid) || item.startsWith(`${String(pid)} `));
-  } catch {
-    return false;
-  }
-}
-
-async function reapWin32DeadLeaderJob(
+async function killOwned(
   pid: number,
   expectedBirth: string,
-  jobName: string | undefined,
-  timeoutMessage: string
-): Promise<boolean> {
-  if (!jobName) return false;
-  await killGroupAndWait(pid, timeoutMessage, expectedBirth, jobName);
-  return true;
+  owner: { jobName?: string; ownerInstanceId?: string; runId?: string; generation?: string }
+): Promise<void> {
+  try {
+    await killOwnedTree({
+      pid,
+      expectedBirth,
+      ...(effectiveKillHostKind() === "win32" ? killIdentity(owner) : {})
+    });
+  } catch (err) {
+    throw projectReaperFailure(err, PROCESS_KILL_UNKNOWN);
+  }
+}
+
+function assertWin32JobIdentity(
+  owner: { jobName?: string; ownerInstanceId?: string; runId?: string; generation?: string },
+  label: string
+): void {
+  if (effectiveKillHostKind() !== "win32") return;
+  if (!win32JobIdentityOk(owner)) {
+    throw reaperError(`${label} missing jobName`);
+  }
 }
 
 function readLegacyPid(runDir: string): number | null {
@@ -95,175 +111,347 @@ function readLegacyPid(runDir: string): number | null {
   }
 }
 
-function readOwner(runDir: string, runId: string): AgentOwner | null {
+type OwnerRead<T> =
+  | { status: "absent" }
+  | { status: "invalid" }
+  | { status: "missing-job"; record: T }
+  | { status: "valid"; record: T };
+
+function ownerFileExists(path: string): boolean {
   try {
-    const value = JSON.parse(readFileSync(join(runDir, "agent-owner.json"), "utf8")) as Partial<AgentOwner>;
-    if (
-      value.version !== 1 || value.runId !== runId || !Number.isInteger(value.pid) || (value.pid ?? 0) <= 1 ||
-      typeof value.binary !== "string" || !isAbsolute(value.binary) ||
-      typeof value.processStart !== "string" || value.processStart === ""
-    ) return null;
-    return value as AgentOwner;
+    return existsSync(path);
   } catch {
-    return null;
+    return false;
   }
 }
 
-/** supervisor 强退兜底：只回收仍能以 birth identity 证明属于本 HOME 的 agent 进程组。 */
+function readJson(path: string): unknown {
+  return JSON.parse(readFileSync(path, "utf8")) as unknown;
+}
+
+function win32JobNameAbsent(raw: unknown): boolean {
+  if (typeof raw !== "object" || raw === null) return true;
+  if (!Object.prototype.hasOwnProperty.call(raw, "jobName")) return true;
+  const jobName = (raw as { jobName?: unknown }).jobName;
+  return jobName === undefined || jobName === null || jobName === "";
+}
+
+function readAgentOwner(runDir: string, runId: string): OwnerRead<ParsedAgentOwner> {
+  const path = join(runDir, "agent-owner.json");
+  if (!ownerFileExists(path)) return { status: "absent" };
+  try {
+    const raw = readJson(path);
+    if (effectiveKillHostKind() === "win32" && win32JobNameAbsent(raw)) {
+      return { status: "missing-job", record: raw as ParsedAgentOwner };
+    }
+    const parsed = parseAgentOwnerRecord(raw, runId);
+    if (parsed.status !== "valid") return { status: "invalid" };
+    if (!isAbsolute(parsed.record.binary)) return { status: "invalid" };
+    if (effectiveKillHostKind() === "win32" && !win32JobIdentityOk(parsed.record)) {
+      return { status: "missing-job", record: parsed.record };
+    }
+    return { status: "valid", record: parsed.record };
+  } catch {
+    return { status: "invalid" };
+  }
+}
+
+function readRuntimeOwner(path: string): OwnerRead<ParsedRuntimeOwner | ParsedPendingRuntimeOwner> {
+  if (!ownerFileExists(path)) return { status: "absent" };
+  try {
+    const raw = readJson(path);
+    if (effectiveKillHostKind() === "win32" && win32JobNameAbsent(raw)) {
+      return { status: "missing-job", record: raw as ParsedRuntimeOwner };
+    }
+    const parsed = parseAnyRuntimeOwnerRecord(raw);
+    if (parsed.status === "invalid") return { status: "invalid" };
+    if (effectiveKillHostKind() === "win32" && !win32JobIdentityOk(parsed.record)) {
+      return { status: "missing-job", record: parsed.record };
+    }
+    return { status: "valid", record: parsed.record };
+  } catch {
+    return { status: "invalid" };
+  }
+}
+
+function commitAgentDelete(
+  home: string,
+  ownerPath: string,
+  owner: ParsedAgentOwner,
+  rec: Record<string, string | number | boolean | null>
+): void {
+  commitOwnerReapIfIdentity(
+    ownerPath,
+    agentOwnerIdentity(owner),
+    () => {
+      appendReapAudit(home, rec);
+    },
+    () => {
+      rmSync(ownerPath, { force: true });
+    }
+  );
+}
+
+function commitDelete(
+  home: string,
+  ownerPath: string,
+  identity: ReturnType<typeof runtimeOwnerIdentity>,
+  rec: Record<string, string | number | boolean | null>
+): void {
+  commitOwnerReapIfIdentity(
+    ownerPath,
+    identity,
+    () => {
+      appendReapAudit(home, rec);
+    },
+    () => {
+      rmSync(ownerPath, { force: true });
+    }
+  );
+}
+
+function assertConfirmedDeadAndDrained(
+  owner: {
+    jobName?: string;
+    ownerInstanceId?: string;
+    runId?: string;
+    generation?: string;
+    pid: number;
+    processStart?: string | null;
+  },
+  label: string
+): void {
+  if (effectiveKillHostKind() === "win32") {
+    if (!win32JobIdentityOk(owner)) {
+      throw reaperError(`${label} identity incomplete`);
+    }
+    const expectedBirth = typeof owner.processStart === "string" && owner.processStart.length > 0
+      ? owner.processStart
+      : "pending-unestablished";
+    let observed;
+    try {
+      observed = observeVerifiedOwnedJob({
+        jobName: owner.jobName as string,
+        ownerInstanceId: owner.ownerInstanceId as string,
+        runId: owner.runId as string,
+        generation: owner.generation as string,
+        pid: owner.pid,
+        expectedBirth
+      });
+    } catch (err) {
+      throw projectReaperFailure(err, PROCESS_KILL_UNKNOWN);
+    }
+    if (observed.kind !== "already_exited") {
+      throw reaperError(`${label} job not proven drained`);
+    }
+    return;
+  }
+  if (posixGroupAlive(owner.pid)) {
+    throw reaperError(`${label} process group alive after leader death`);
+  }
+}
+
+function posixGroupAlive(pid: number): boolean {
+  try {
+    process.kill(-pid, 0);
+    return true;
+  } catch (err) {
+    const kind = classifyKillProbe(err);
+    if (kind === "alive") return true;
+    if (kind === "gone") return false;
+    throw reaperError(PROCESS_PROBE_UNKNOWN);
+  }
+}
+
 export interface OwnedDaemonGeneration {
   pid: number;
   instanceId: string;
 }
 
+export interface ReapOwnedAgentGroupsOptions {
+  afterKillBeforeDelete?: () => Promise<void> | void;
+}
+
 export async function reapOwnedAgentGroups(
   home: string,
-  generation?: OwnedDaemonGeneration
+  generation?: OwnedDaemonGeneration,
+  options: ReapOwnedAgentGroupsOptions = {}
 ): Promise<number> {
   if (hostKind() === "win32") nativeSync();
+  return reapOwnedAgentGroupsLocked(home, generation, options);
+}
+
+async function reapOwnedAgentGroupsLocked(
+  home: string,
+  generation: OwnedDaemonGeneration | undefined,
+  options: ReapOwnedAgentGroupsOptions
+): Promise<number> {
   const runsRoot = join(home, "tier1", "runs");
   let reaped = 0;
   const deferredLegacy: { runId: string; pid: number }[] = [];
   for (const entry of existsSync(runsRoot) ? readdirSync(runsRoot, { withFileTypes: true }) : []) {
     if (!entry.isDirectory()) continue;
     const runDir = join(runsRoot, entry.name);
-    const owner = readOwner(runDir, entry.name);
+    const ownerPath = join(runDir, "agent-owner.json");
+    const ownerFile = readAgentOwner(runDir, entry.name);
     const legacyPid = readLegacyPid(runDir);
-    if (!owner) {
-      if (legacyPid !== null && groupAlive(legacyPid)) {
-        if (!generation) throw new Error(`live agent ownership unverified:${entry.name}`);
+    if (ownerFile.status === "invalid") {
+      throw reaperError(`agent ownership record invalid:${entry.name}`);
+    }
+    if (ownerFile.status === "missing-job") {
+      throw reaperError(`agent ownership missing jobName:${entry.name}`);
+    }
+    if (ownerFile.status === "absent") {
+      if (legacyPid !== null && leaderAlive(legacyPid)) {
+        if (!generation) throw reaperError(`live agent ownership unverified:${entry.name}`);
         deferredLegacy.push({ runId: entry.name, pid: legacyPid });
       }
       continue;
     }
+    const owner = ownerFile.record;
     if (generation && (owner.ownerPid !== generation.pid || owner.ownerInstanceId !== generation.instanceId)) {
       continue;
     }
     if (legacyPid !== null && legacyPid !== owner.pid) {
-      if (groupAlive(legacyPid) || groupAlive(owner.pid)) {
-        throw new Error(`agent ownership records disagree:${entry.name}`);
+      if (leaderAlive(legacyPid) || leaderAlive(owner.pid)) {
+        throw reaperError(`agent ownership records disagree:${entry.name}`);
       }
       continue;
     }
-    const observedStart = processStart(owner.pid, owner.binary);
+    assertWin32JobIdentity(owner, "agent ownership");
+    const observedStart = readOwnedProcessBirth(owner.pid, owner.binary, owner.commandToken);
     if (observedStart === null) {
-      if (processAlive(owner.pid)) throw new Error(`agent ownership identity unverified:${entry.name}`);
-      if (hostKind() === "win32") {
-        if (await reapWin32DeadLeaderJob(
-          owner.pid,
-          owner.processStart,
-          owner.jobName,
-          `agent process group drain timeout:${entry.name}`
-        )) {
-          reaped += 1;
-        }
-        continue;
+      if (leaderAlive(owner.pid)) throw reaperError(`agent ownership identity unverified:${entry.name}`);
+      assertConfirmedDeadAndDrained(owner, `agent ownership:${entry.name}`);
+      try {
+        await withHomeOwnerBoundary(home, () => {
+          commitAgentDelete(home, ownerPath, owner, {
+            action: "tier1.orphan_agent_reaped",
+            runId: owner.runId,
+            pid: owner.pid
+          });
+        });
+      } catch (err) {
+        if (isOwnerIdentityCasError(err)) continue;
+        throw projectReaperFailure(err, PROCESS_KILL_UNKNOWN);
       }
-      // A4: dead leader 后不得仅凭数值 PGID kill；无法证明成员 birth identity 时 fail-closed。
-      if (groupAlive(owner.pid)) {
-        throw new Error(`agent process group alive after leader death:${entry.name}`);
-      }
+      reaped += 1;
       continue;
     }
     if (observedStart !== owner.processStart) {
-      throw new Error(`agent ownership identity mismatch:${entry.name}`);
+      throw reaperError(`agent ownership identity mismatch:${entry.name}`);
     }
-    await killGroupAndWait(owner.pid, `agent process group drain timeout:${entry.name}`, owner.processStart, owner.jobName);
+    await killOwned(owner.pid, owner.processStart, owner);
+    if (options.afterKillBeforeDelete) await options.afterKillBeforeDelete();
+    try {
+      await withHomeOwnerBoundary(home, () => {
+        commitAgentDelete(home, ownerPath, owner, {
+          action: "tier1.orphan_agent_reaped",
+          runId: owner.runId,
+          pid: owner.pid
+        });
+      });
+    } catch (err) {
+      if (isOwnerIdentityCasError(err)) continue;
+      throw projectReaperFailure(err, PROCESS_KILL_UNKNOWN);
+    }
     reaped += 1;
   }
   const childrenRoot = join(home, "runtime", "children");
   for (const entry of existsSync(childrenRoot) ? readdirSync(childrenRoot, { withFileTypes: true }) : []) {
     if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
     const path = join(childrenRoot, entry.name);
-    let owner: RuntimeChildOwner;
-    try {
-      const parsed = JSON.parse(readFileSync(path, "utf8")) as Partial<RuntimeChildOwner>;
-      if (
-        parsed.version !== 1 || !Number.isInteger(parsed.pid) || (parsed.pid ?? 0) <= 1 ||
-        typeof parsed.kind !== "string" || typeof parsed.binary !== "string" ||
-        !(typeof parsed.processStart === "string" || parsed.processStart === null) ||
-        !Number.isInteger(parsed.ownerPid) ||
-        !(parsed.commandToken === undefined || typeof parsed.commandToken === "string") ||
-        !(parsed.jobName === undefined || typeof parsed.jobName === "string")
-      ) throw new Error("invalid runtime child owner");
-      owner = parsed as RuntimeChildOwner;
-    } catch {
-      throw new Error(`runtime child ownership record invalid:${entry.name}`);
+    const ownerFile = readRuntimeOwner(path);
+    if (ownerFile.status === "invalid" || ownerFile.status === "absent") {
+      throw reaperError(`runtime child ownership record invalid:${entry.name}`);
     }
+    if (ownerFile.status === "missing-job") {
+      throw reaperError(`runtime child ownership missing jobName:${entry.name}`);
+    }
+    const owner = ownerFile.record;
     if (generation && (owner.ownerPid !== generation.pid || owner.ownerInstanceId !== generation.instanceId)) {
       continue;
     }
-    if (!groupAlive(owner.pid)) {
-      if (hostKind() === "win32" && owner.jobName) {
-        const birth = owner.processStart ?? `gone:${String(owner.pid)}`;
-        if (await reapWin32DeadLeaderJob(
-          owner.pid,
-          birth,
-          owner.jobName,
-          `runtime child process group drain timeout:${owner.kind}`
-        )) {
-          rmSync(path, { force: true });
-          reaped += 1;
-          continue;
-        }
-      }
-      rmSync(path, { force: true });
-      continue;
-    }
+    assertWin32JobIdentity(owner, "runtime child ownership");
     if (owner.processStart === null) {
-      const observedPending = processStart(owner.pid, owner.binary, owner.commandToken);
-      if (!owner.commandToken || observedPending === null) {
-        throw new Error(`live runtime child ownership pending:${owner.kind}:${String(owner.pid)}`);
-      }
-      if (hostKind() === "win32") {
-        if (!owner.jobName) {
-          throw new Error(`live runtime child missing jobName:${owner.kind}:${String(owner.pid)}`);
+      const observedPending = readOwnedProcessBirth(owner.pid, owner.binary, owner.commandToken);
+      if (observedPending === null) {
+        if (leaderAlive(owner.pid)) {
+          throw reaperError(`live runtime child ownership pending:${owner.kind}:${String(owner.pid)}`);
         }
-        if (!owner.jobName.includes(owner.commandToken)) {
-          throw new Error(`live runtime child ownership pending:${owner.kind}:${String(owner.pid)}`);
+        assertConfirmedDeadAndDrained(owner, `runtime child ownership:${owner.kind}:${String(owner.pid)}`);
+        try {
+          await withHomeOwnerBoundary(home, () => {
+            commitDelete(home, path, runtimeOwnerIdentity(owner), {
+              action: "runtime.orphan_child_reaped",
+              kind: owner.kind,
+              pid: owner.pid
+            });
+          });
+        } catch (err) {
+          if (isOwnerIdentityCasError(err)) continue;
+          throw projectReaperFailure(err, PROCESS_KILL_UNKNOWN);
         }
-      } else if (!posixCommandContains(owner.pid, owner.binary, owner.commandToken)) {
-        throw new Error(`live runtime child ownership pending:${owner.kind}:${String(owner.pid)}`);
+        reaped += 1;
+        continue;
       }
-      await killGroupAndWait(
-        owner.pid,
-        `pending runtime child drain timeout:${owner.kind}`,
-        observedPending,
-        owner.jobName
-      );
-      rmSync(path, { force: true });
+      await killOwned(owner.pid, observedPending, killIdentity(owner));
+      if (options.afterKillBeforeDelete) await options.afterKillBeforeDelete();
+      try {
+        await withHomeOwnerBoundary(home, () => {
+          commitDelete(home, path, runtimeOwnerIdentity(owner), {
+            action: "runtime.orphan_child_reaped",
+            kind: owner.kind,
+            pid: owner.pid
+          });
+        });
+      } catch (err) {
+        if (isOwnerIdentityCasError(err)) continue;
+        throw projectReaperFailure(err, PROCESS_KILL_UNKNOWN);
+      }
       reaped += 1;
       continue;
     }
-    const observedStart = processStart(owner.pid, owner.binary, owner.commandToken);
-    if (observedStart === null && !processAlive(owner.pid)) {
-      if (hostKind() === "win32") {
-        if (await reapWin32DeadLeaderJob(
-          owner.pid,
-          owner.processStart,
-          owner.jobName,
-          `runtime child process group drain timeout:${owner.kind}`
-        )) {
-          rmSync(path, { force: true });
-          reaped += 1;
-        }
-        continue;
+    const observedStart = readOwnedProcessBirth(owner.pid, owner.binary, owner.commandToken);
+    if (observedStart === null) {
+      if (leaderAlive(owner.pid)) throw reaperError(`runtime child ownership identity unverified:${owner.kind}:${String(owner.pid)}`);
+      assertConfirmedDeadAndDrained(owner, `runtime child ownership:${owner.kind}:${String(owner.pid)}`);
+      try {
+        await withHomeOwnerBoundary(home, () => {
+          commitDelete(home, path, runtimeOwnerIdentity(owner), {
+            action: "runtime.orphan_child_reaped",
+            kind: owner.kind,
+            pid: owner.pid
+          });
+        });
+      } catch (err) {
+        if (isOwnerIdentityCasError(err)) continue;
+        throw projectReaperFailure(err, PROCESS_KILL_UNKNOWN);
       }
-      // A4: leader 已死、组仍可能存活时禁止数值 PGID 盲杀。
-      if (groupAlive(owner.pid)) {
-        throw new Error(`runtime child process group alive after leader death:${owner.kind}:${String(owner.pid)}`);
-      }
-      rmSync(path, { force: true });
+      reaped += 1;
       continue;
     }
     if (observedStart !== owner.processStart) {
-      throw new Error(`runtime child ownership identity mismatch:${owner.kind}:${String(owner.pid)}`);
+      throw reaperError(`runtime child ownership identity mismatch:${owner.kind}:${String(owner.pid)}`);
     }
-    await killGroupAndWait(owner.pid, `runtime child process group drain timeout:${owner.kind}`, owner.processStart, owner.jobName);
-    rmSync(path, { force: true });
+    await killOwned(owner.pid, owner.processStart, killIdentity(owner));
+    if (options.afterKillBeforeDelete) await options.afterKillBeforeDelete();
+    try {
+      await withHomeOwnerBoundary(home, () => {
+        commitDelete(home, path, runtimeOwnerIdentity(owner), {
+          action: "runtime.orphan_child_reaped",
+          kind: owner.kind,
+          pid: owner.pid
+        });
+      });
+    } catch (err) {
+      if (isOwnerIdentityCasError(err)) continue;
+      throw projectReaperFailure(err, PROCESS_KILL_UNKNOWN);
+    }
     reaped += 1;
   }
   for (const legacy of deferredLegacy) {
-    if (groupAlive(legacy.pid)) throw new Error(`live agent ownership unverified:${legacy.runId}`);
+    if (leaderAlive(legacy.pid)) throw reaperError(`live agent ownership unverified:${legacy.runId}`);
   }
   return reaped;
 }

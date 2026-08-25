@@ -1,6 +1,6 @@
 # Codex 攒批评审 prompt:canonical 回写批 2(外部评审 M1-M11 文档侧,2026-07-25)
 
-你是独立评审员。评审 /Users/wangyixiao/WorkSpace/voice-coding 设计文档库刚完成的一批 canonical 回写(外部评审必做清单 M1-M11 的文档侧),只读、找硬伤,不改文件。
+你是独立评审员。评审 ~/WorkSpace/voice-coding 设计文档库刚完成的一批 canonical 回写(外部评审必做清单 M1-M11 的文档侧),只读、找硬伤,不改文件。
 
 ## 本批回写内容
 

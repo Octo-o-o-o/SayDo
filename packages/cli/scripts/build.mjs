@@ -25,6 +25,7 @@ const snapshot = {
     "packages/contracts",
     "packages/daemon",
     "packages/platform",
+    ".gitattributes",
     "package.json",
     "pnpm-lock.yaml",
     "pnpm-workspace.yaml",

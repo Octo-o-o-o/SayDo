@@ -3,7 +3,7 @@
     "start": "2026-08-16T17:50:06+08:00",
     "head": "bc2ac87",
     "pid": 49749,
-    "lan": "192.168.31.132"
+    "lan": "<private-ip>"
   },
   "counts": {
     "PASS": 26,
@@ -235,7 +235,7 @@
       "status": "PASS",
       "id": "D9",
       "title": "项目设置",
-      "summary": "说到 SayDo 开口聊 今天 全景看板 正在持续的事 暂无 记录 记忆库 产物 成本 设置 旧版 与手机配对 单用户 · 本机 daemon localhost:47100 语音就绪 项目设置 名称 未命名草稿 类型 pending 状态 draft 工作区 /Users/wangyixiao/.saydo/proj",
+      "summary": "说到 SayDo 开口聊 今天 全景看板 正在持续的事 暂无 记录 记忆库 产物 成本 设置 旧版 与手机配对 单用户 · 本机 daemon localhost:47100 语音就绪 项目设置 名称 未命名草稿 类型 pending 状态 draft 工作区 ~/.saydo/proj",
       "evidence": "screenshots/09-D9_20260816-175011_PASS.png"
     },
     {

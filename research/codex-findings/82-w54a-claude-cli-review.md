@@ -130,7 +130,7 @@ stderr 从丢弃改为 64KB 环形缓冲；cursor 路径仍不读 `stderrTail`�
 
 - HANDOFF「当前批次指针」为 `(空)`，并写了 spike/fixture 路径 [ok]。
 - evidence 自称 SHA 链 `0649107`→`ed8b0f3`→`5195164`→`0ae8692`→`16d24eb`→`f1a5d28`→`70ef24a`；本会话未 `git log` 核对这些哈希。
-- 本机路径泄漏：`e2e/evidence/w54a-claude-cli.md:9` `/Users/wangyixiao/WorkSpace/saydo-batch-w54a-claude-cli`；`:139-140` `/Users/wangyixiao/.cache/uv`。RESULT 声称摘录已脱敏。fixture 用 `/tmp/saydo-fixture/`，未见真实 HOME。
+- 本机路径泄漏：`e2e/evidence/w54a-claude-cli.md:9` `~/WorkSpace/saydo-batch-w54a-claude-cli`；`:139-140` `~/.cache/uv`。RESULT 声称摘录已脱敏。fixture 用 `/tmp/saydo-fixture/`，未见真实 HOME。
 - `EXPECTED.md:30` 含凭据形态字面量 `ANTHROPIC_API_KEY=sk-invalid-spike`（spike 说明，不在 golden fixture）。
 - `init.jsonl` 的 `permissionMode` 仍是 `acceptEdits`，生产 argv 已是 `default`。
 

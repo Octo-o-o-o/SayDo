@@ -19,8 +19,8 @@ A=2、B=3、C=1。审计 36 的 8 项中，3 项关闭、4 项部分关闭、1 �
 同时绕过分类器和 handler：
 
 ```text
-把 RSS feed 接上，路径是 /Users/wangyixiao/WorkSpace/SayDo
-无需采用这个目录，路径是 /Users/wangyixiao/WorkSpace/SayDo
+把 RSS feed 接上，路径是 ~/WorkSpace/SayDo
+无需采用这个目录，路径是 ~/WorkSpace/SayDo
 ```
 
 行动：删除 denylist 与后缀式提前放行，改为残余文本完整匹配的正向归属 allowlist；

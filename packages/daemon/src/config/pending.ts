@@ -18,7 +18,10 @@ import {
 } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
-import { fsyncFile, restrictOwnerOnly } from "@saydo/platform";
+import { fsyncFile, projectUntrustedFailureText, restrictOwnerOnly } from "@saydo/platform";
+
+const ACTIVATION_PROMOTE_FAILED = "activation promote failed";
+const ACTIVATION_ROLLBACK_FAILED = "activation rollback failed";
 
 export const PENDING_SUFFIX = ".pending";
 export const BAK_SUFFIX = ".bak";
@@ -88,7 +91,7 @@ export function promotePendingFile(
       ok: false,
       promoted: false,
       stage: "validate",
-      error: String(err).slice(0, 300),
+      error: projectUntrustedFailureText(err, ACTIVATION_PROMOTE_FAILED),
       activePath: active,
       pendingPath: pending
     };
@@ -114,7 +117,7 @@ export function promotePendingFile(
       ok: false,
       promoted: false,
       stage: "bak",
-      error: String(err).slice(0, 300),
+      error: projectUntrustedFailureText(err, ACTIVATION_PROMOTE_FAILED),
       activePath: active,
       pendingPath: pending
     };
@@ -132,7 +135,7 @@ export function promotePendingFile(
       ok: false,
       promoted: false,
       stage: "rename",
-      error: String(err).slice(0, 300),
+      error: projectUntrustedFailureText(err, ACTIVATION_PROMOTE_FAILED),
       activePath: active,
       pendingPath: pending
     };
@@ -198,7 +201,7 @@ function rollbackPromotedFile(saydoHome: string, baseName: string, status: Promo
       ok: false,
       promoted: false,
       stage: "activation_rollback_failed",
-      error: String(err).slice(0, 300),
+      error: projectUntrustedFailureText(err, ACTIVATION_PROMOTE_FAILED),
       activePath: paths.active,
       pendingPath: paths.pending
     };
@@ -237,7 +240,7 @@ export function rollbackActivationFiles(
     fsyncDir(saydoHome);
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: String(err).slice(0, 300) };
+    return { ok: false, error: projectUntrustedFailureText(err, ACTIVATION_ROLLBACK_FAILED) };
   }
 }
 
@@ -257,7 +260,7 @@ export function promoteAllPending(
     try {
       opts.validateActivation();
     } catch (err) {
-      const error = String(err).slice(0, 300);
+      const error = projectUntrustedFailureText(err, ACTIVATION_PROMOTE_FAILED);
       return {
         config: blockedStatus(saydoHome, "config.toml", "activation_preflight", error),
         env: blockedStatus(saydoHome, ".env", "activation_preflight", error)

@@ -1,6 +1,6 @@
 # Codex 28 · 项目状态归档发布前回修复评
 
-请对 `/Users/wangyixiao/WorkSpace/SayDo` 做只读对抗性复评，不修改文件。
+请对 `~/WorkSpace/SayDo` 做只读对抗性复评，不修改文件。
 
 ## 背景
 
@@ -17,7 +17,7 @@ A/B/C 发现和两路独立评审意见做回修，重点包括：
 - 修正文档中 writing effective、A3 provider 形状、当前 runtime、已实施/未实施及授权边界；
 - 新增 `history/2026-07-29-migration-and-implementation-status.md`。
 
-真实生产快照 `/Users/wangyixiao/.saydo/backups/20260729T143851Z` 已生成；只读核对
+真实生产快照 `~/.saydo/backups/20260729T143851Z` 已生成；只读核对
 manifest v2 completed、SQLite quick_check、session 与 OctoDesk knowledge 逐文件 diff。
 
 ## 复评范围

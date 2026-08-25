@@ -1,6 +1,6 @@
 # 18 · 对抗性评审:新增 writing(正式文章/论文)业务流
 
-你是对抗性评审员。仓库 `/Users/wangyixiao/WorkSpace/voice-coding` 是 SayDo 项目的设计文档仓(docs/01–11 + modules/ + adr/ 是唯一 canonical;09 是实施照抄源)。
+你是对抗性评审员。仓库 `~/WorkSpace/voice-coding` 是 SayDo 项目的设计文档仓(docs/01–11 + modules/ + adr/ 是唯一 canonical;09 是实施照抄源)。
 
 ## 本轮变更(2026-07-25,评审对象)
 

@@ -10,11 +10,11 @@ const marker = join(dirname(fileURLToPath(import.meta.url)), "fake-codex-hold.ma
 
 if (args[0] === "--grandchild") {
   const role = args[1] ?? "unknown";
-  appendFileSync(marker, `${role}-started:${process.pid}\n`, "utf8");
   process.on("SIGTERM", () => {
     appendFileSync(marker, `${role}-SIGTERM\n`, "utf8");
     process.exit(0);
   });
+  appendFileSync(marker, `${role}-started:${process.pid}\n`, "utf8");
   setInterval(() => {}, 1000);
 } else {
   if (args.includes("--version")) {
@@ -26,13 +26,15 @@ if (args[0] === "--grandchild") {
     process.exit(0);
   }
 
-  writeFileSync(marker, `started:${process.pid}\n`, "utf8");
   const self = fileURLToPath(import.meta.url);
-  spawn(process.execPath, [self, "--grandchild", "inherit"], { stdio: "inherit" }).unref();
-  spawn(process.execPath, [self, "--grandchild", "ignore"], { stdio: "ignore" }).unref();
+  const inherit = spawn(process.execPath, [self, "--grandchild", "inherit"], { stdio: "inherit" });
+  const ignore = spawn(process.execPath, [self, "--grandchild", "ignore"], { stdio: "ignore" });
   process.on("SIGTERM", () => {
     appendFileSync(marker, "parent-SIGTERM\n", "utf8");
+    try { inherit.kill("SIGTERM"); } catch { /* 已退 */ }
+    try { ignore.kill("SIGTERM"); } catch { /* 已退 */ }
     process.exit(0);
   });
+  writeFileSync(marker, `started:${process.pid}\n`, "utf8");
   setInterval(() => {}, 1000);
 }

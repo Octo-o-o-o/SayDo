@@ -1,6 +1,6 @@
 # 任务:review VoiceLoop P0 实施计划 v2.0 + 本轮契约回修
 
-你是严苛的交付计划评审员。VoiceLoop(`/Users/wangyixiao/WorkSpace/voice-coding/`)设计文档已成体系,现有一份重构后的 P0 实施计划 v2.0,请完整 review,写中文报告。
+你是严苛的交付计划评审员。VoiceLoop(`~/WorkSpace/voice-coding/`)设计文档已成体系,现有一份重构后的 P0 实施计划 v2.0,请完整 review,写中文报告。
 
 ## 背景
 
@@ -17,7 +17,7 @@
 
 - 你自己的 `research/codex-findings/07-contracts-review.md`(逐项核对:哪些 A 级被"真正关闭"、哪些被"诚实推迟到 P0.5 并标注"、哪些仍遗漏)
 - `docs/05-roadmap.md`(P0/Gate0)、`docs/08`(22 模块)、`research/codex-findings/02-hopper-integration.md`(Hopper 现状)
-- 本机 `/Users/wangyixiao/WorkSpace/Hopper/`(只读,如需核对 §14-A4 的真实状态枚举)
+- 本机 `~/WorkSpace/Hopper/`(只读,如需核对 §14-A4 的真实状态枚举)
 
 ## 评审焦点
 
@@ -30,4 +30,4 @@
 
 ## 输出
 
-写入 `/Users/wangyixiao/WorkSpace/voice-coding/research/codex-findings/08-plan-review.md`(中文):① 总评(P0 计划是否达到"可交新会话实施"标准;P0.5 前置清单是否完备);② A/B/C 问题清单(位置+改法);③ 06/07 A 级最终状态表(关闭/P0.5 推迟/遗漏);④ 首日硬卡剩余清单;⑤ 一句话:能不能把实施 prompt 发出去开工。区分【事实】/【judgement】,不改任何文件。
+写入 `~/WorkSpace/voice-coding/research/codex-findings/08-plan-review.md`(中文):① 总评(P0 计划是否达到"可交新会话实施"标准;P0.5 前置清单是否完备);② A/B/C 问题清单(位置+改法);③ 06/07 A 级最终状态表(关闭/P0.5 推迟/遗漏);④ 首日硬卡剩余清单;⑤ 一句话:能不能把实施 prompt 发出去开工。区分【事实】/【judgement】,不改任何文件。

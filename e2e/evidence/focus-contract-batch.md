@@ -121,7 +121,7 @@ Test Files  11 failed | 62 passed | 2 skipped (75)
 `just ci-python` 在本环境失败：
 
 ```
-error: Failed to initialize cache at `/Users/wangyixiao/.cache/uv`
+error: Failed to initialize cache at `~/.cache/uv`
   Caused by: ... Operation not permitted
 ```
 

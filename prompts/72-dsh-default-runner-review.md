@@ -4,8 +4,8 @@
 
 ## 两个仓
 
-- 本产品：`/Users/wangyixiao/WorkSpace/SayDo`（分支 `feat/t20-fusion-layout`）
-- 候选 Runner：`/Users/wangyixiao/WorkSpace/Reference/deepseek-harness`（`origin` = 官方 `deepseek-ai/deepseek-harness`，`0.1.0-rc.5`，MIT，developer preview；该 checkout 是 owner 自己的 fork，仅 `apps/desktop` 与少量 web/session 提交为 fork 新增，`packages/` 为上游内核）
+- 本产品：`~/WorkSpace/SayDo`（分支 `feat/t20-fusion-layout`）
+- 候选 Runner：`~/WorkSpace/Reference/deepseek-harness`（`origin` = 官方 `deepseek-ai/deepseek-harness`，`0.1.0-rc.5`，MIT，developer preview；该 checkout 是 owner 自己的 fork，仅 `apps/desktop` 与少量 web/session 提交为 fork 新增，`packages/` 为上游内核）
 
 ## owner 的提议
 

@@ -22,7 +22,7 @@
 第一次冻结发生于 `2026-07-30 23:51:29 +0800`，写作前复核于 `2026-07-31 00:03:47 +0800`。仓库兼容路径 `SayDo` 解析到实际目录 `saydo`。
 
 ```text
-cwd: /Users/wangyixiao/WorkSpace/saydo
+cwd: ~/WorkSpace/saydo
 current branch: codex/merge-voice-coding-20260729
 HEAD SHA: 1a26b0786a952f8411ed008aa444208d6d6ff945
 audit timestamp: 2026-07-30 23:51:29 +0800
@@ -550,7 +550,7 @@ Artifact 枚举见 `packages/contracts/src/types/artifact.ts:8-17`。当前明�
 | callback / next obligation | task callback 在 daemon；项目义务缺失 | SayDo 持有 durable workstream 与 continuation ledger |
 | artifact/memory/audit | daemon | SayDo 作为长期真相与用户可见投影 |
 
-[proposal] “SayDo 委托前台、Hopper 执行后台”可以作为未来简化叙事，但不能成为唯一拓扑：一是当前 Tier1 已有实质能力；二是 Hopper 主要成熟于 coding；三是 research/marketing/planning 还需要专用 executor 与 effect contract。外部概念笔记自身也承认 Hopper 不能被声称为普适执行器，见 `/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-07-30-四条产品线-委托执行与价值控制-概念笔记.md:213-233`。
+[proposal] “SayDo 委托前台、Hopper 执行后台”可以作为未来简化叙事，但不能成为唯一拓扑：一是当前 Tier1 已有实质能力；二是 Hopper 主要成熟于 coding；三是 research/marketing/planning 还需要专用 executor 与 effect contract。外部概念笔记自身也承认 Hopper 不能被声称为普适执行器，见 `~/WorkSpace/OctoAgent/docs/product/2026-07-30-四条产品线-委托执行与价值控制-概念笔记.md:213-233`。
 
 ## 12. 协作路由、判断空间与三层主动权的逐类型覆盖
 
@@ -567,7 +567,7 @@ Artifact 枚举见 `packages/contracts/src/types/artifact.ts:8-17`。当前明�
 
 Prompt 可以改变 posture 和 continuation owner，但不能自动修改 S0-S3、项目类型、共同责任或全部 judgment authority。`waiting_on=user` 表示当前缺某个输入，不自动表示 continuation initiative 已归还。
 
-[gap] 这些额外轴尚未进入 SayDo canonical/DDL/API。外部正本明确把它们作为待建提案，见 `/Users/wangyixiao/WorkSpace/OctoAgent/docs/research/2026-07-30-Prompt不等于指令-SayDo会话阶段正本.md:150-220`；本报告不得把下表写成当前能力。
+[gap] 这些额外轴尚未进入 SayDo canonical/DDL/API。外部正本明确把它们作为待建提案，见 `~/WorkSpace/OctoAgent/docs/research/2026-07-30-Prompt不等于指令-SayDo会话阶段正本.md:150-220`；本报告不得把下表写成当前能力。
 
 ### 12.2 协作覆盖矩阵
 
@@ -659,21 +659,21 @@ DP 形状见 `docs/09-data-contracts.md:183-203`；Task 状态见 `docs/09-data-
 
 | 图中内容 | 分类 | 审计结论 | 证据 |
 |---|---|---|---|
-| “对话优先，不等于对话唯一” | `[keep]` | 正确纠正旧单线哲学 | `/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-07-30-SayDo-协作路由与主动权改造建议.md:12-26` |
-| direct / explore / delegate | `[keep]` | 可作动态协作范例；应补 independent review | `/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-07-30-SayDo-协作路由与主动权改造建议.md:194-313` |
-| evidence / readiness / initiative / authority 分离 | `[keep]` | 关键概念成立，但目前是 proposal | `/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-07-30-SayDo-协作路由与主动权改造建议.md:95-193` |
-| `waiting_on=user` 不等于主动权归还 | `[keep]` | 对 durable workstream 必要 | `/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-07-30-SayDo-协作路由与主动权改造建议.md:315-360` |
-| 五层竖向串联 | `[misleading]` | 文字称正交，视觉却像串行 pipeline；judgment 轴还缺失 | `/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/figures/saydo-current-to-collaboration-router.svg:114-179` |
-| “行动过 A3” | `[misleading]` | 容易把现有 project readiness 与未来 `Ready(action)` 混用 | `/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/figures/saydo-current-to-collaboration-router.svg:185-250` |
-| “SayDo 接管项目主动权” | `[future]` | 当前无 persistence/scheduler/continuation ledger | `/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/figures/saydo-current-to-collaboration-router.svg:252-302`；`packages/daemon/src/storage/ddl.ts:8-198` |
-| 左侧“当前流程” | `[incomplete]` | 只画共享上游，缺类型与交付层，易被误读为全业务 | `/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/figures/saydo-current-to-collaboration-router.svg:53-108` |
-| 三条用户路径 | `[incomplete]` | 只能是例子；同一 workstream 会动态切换/叠加 | `/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/figures/saydo-current-to-collaboration-router.svg:255-302` |
+| “对话优先，不等于对话唯一” | `[keep]` | 正确纠正旧单线哲学 | `~/WorkSpace/OctoAgent/docs/product/2026-07-30-SayDo-协作路由与主动权改造建议.md:12-26` |
+| direct / explore / delegate | `[keep]` | 可作动态协作范例；应补 independent review | `~/WorkSpace/OctoAgent/docs/product/2026-07-30-SayDo-协作路由与主动权改造建议.md:194-313` |
+| evidence / readiness / initiative / authority 分离 | `[keep]` | 关键概念成立，但目前是 proposal | `~/WorkSpace/OctoAgent/docs/product/2026-07-30-SayDo-协作路由与主动权改造建议.md:95-193` |
+| `waiting_on=user` 不等于主动权归还 | `[keep]` | 对 durable workstream 必要 | `~/WorkSpace/OctoAgent/docs/product/2026-07-30-SayDo-协作路由与主动权改造建议.md:315-360` |
+| 五层竖向串联 | `[misleading]` | 文字称正交，视觉却像串行 pipeline；judgment 轴还缺失 | `~/WorkSpace/OctoAgent/docs/product/figures/saydo-current-to-collaboration-router.svg:114-179` |
+| “行动过 A3” | `[misleading]` | 容易把现有 project readiness 与未来 `Ready(action)` 混用 | `~/WorkSpace/OctoAgent/docs/product/figures/saydo-current-to-collaboration-router.svg:185-250` |
+| “SayDo 接管项目主动权” | `[future]` | 当前无 persistence/scheduler/continuation ledger | `~/WorkSpace/OctoAgent/docs/product/figures/saydo-current-to-collaboration-router.svg:252-302`；`packages/daemon/src/storage/ddl.ts:8-198` |
+| 左侧“当前流程” | `[incomplete]` | 只画共享上游，缺类型与交付层，易被误读为全业务 | `~/WorkSpace/OctoAgent/docs/product/figures/saydo-current-to-collaboration-router.svg:53-108` |
+| 三条用户路径 | `[incomplete]` | 只能是例子；同一 workstream 会动态切换/叠加 | `~/WorkSpace/OctoAgent/docs/product/figures/saydo-current-to-collaboration-router.svg:255-302` |
 | collaboration router | `[future]` | 当前 Brain 是固定采访/任务收敛，没有 router contract | `packages/daemon/src/brain/instructions.ts:4-18` |
 | Project Pulse | `[future]` | 六行数据源并不齐 | 本报告第 13 节 |
 | router 取代 project type | `[conflict]` | 会抹掉类型化 readiness/proof/acceptance | `docs/02-product-definition.md:59-84` |
 | Hopper 成为唯一后台 | `[conflict]` | 与 Tier1/Hopper 双路径及当前 Tier1 live 冲突 | `docs/03-architecture.md:114-119` |
 
-外部产品建议开头已声明它是协作政策层而非 SayDo canonical，见 `/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-07-30-SayDo-协作路由与主动权改造建议.md:1-8`。提案也承认 durable workstream 和 Pulse 需要新增持久化能力，见 `/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-07-30-SayDo-协作路由与主动权改造建议.md:419-436,476-523,585-680`。
+外部产品建议开头已声明它是协作政策层而非 SayDo canonical，见 `~/WorkSpace/OctoAgent/docs/product/2026-07-30-SayDo-协作路由与主动权改造建议.md:1-8`。提案也承认 durable workstream 和 Pulse 需要新增持久化能力，见 `~/WorkSpace/OctoAgent/docs/product/2026-07-30-SayDo-协作路由与主动权改造建议.md:419-436,476-523,585-680`。
 
 对七个核心问题的直接回答：
 
@@ -794,7 +794,7 @@ Quick / Guided / Explore 可影响每段交互密度；execution mode 在合同�
 | D15 | continuation initiative | 无字段/事件/API | 当前 canonical 只有 task callback | runtime callback/run 均为空 | 无明确排期 | 旧图只有提醒/回叫 | waiting_on、ack、blocked 容易被误读成谁负责推进 | durable obligation/continuation ledger 先于 Project Pulse | `packages/daemon/src/storage/ddl.ts:8-198`；`packages/daemon/src/callback/engine.ts:20-43,65-165` |
 | D16 | Project Pulse | Dashboard/Tasks/Artifacts/Memory 分散提供事实；Dashboard 与 Tasks 的“需要你”口径不同 | 无六行 canonical contract；UI spec 要求 paused 置顶待处理 | 数据库足以显示少量计数，不足以投影 owner/next | 外部 proposal | 旧 Dashboard/任务图强调任务态 | 模型摘要可能伪造“正在/下一步”；paused 被错分执行中 | 先统一待处理 query；每行绑定权威事件、source_as_of；无源显示 unknown | `packages/console/src/pages/Dashboard.tsx:47-90`；`packages/console/src/pages/Tasks.tsx:9-13`；`docs/11-ui-spec.md:108-120` |
 | D17 | readiness 主语 | 当前以 project/type checklist + binding 为主 | canonical 明确 readiness 不等于 authority | 只有 1 assessment、0 binding | action readiness 为外部提案，未排期 | 早期设计聚焦项目采访完整性 | 同项目不同动作被一把 gate 处理 | 保留 project gate，新增 action-scoped readiness，不原地改名 | `docs/04-key-mechanisms.md:51-95`；`docs/09-data-contracts.md:1307-1318` |
-| D18 | old vs new SVG | 仓内无新 router 实现 | current canonical 覆盖更多生命周期/类型层 | 无 initiative runtime | 外部 SVG 是 proposal | 旧八图广但过时 | 任一图单独冒充全景都会误导 | 公众协作图与内部三层架构图分开，附现状标记 | `research/business-flows.html:55-510`；`/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/figures/saydo-current-to-collaboration-router.svg:53-302` |
+| D18 | old vs new SVG | 仓内无新 router 实现 | current canonical 覆盖更多生命周期/类型层 | 无 initiative runtime | 外部 SVG 是 proposal | 旧八图广但过时 | 任一图单独冒充全景都会误导 | 公众协作图与内部三层架构图分开，附现状标记 | `research/business-flows.html:55-510`；`~/WorkSpace/OctoAgent/docs/product/figures/saydo-current-to-collaboration-router.svg:53-302` |
 | D19 | execution mode | live 组包固定 `step_confirm`，voice 拒 `direct_to_review`；Task/DDL/run 不存不读 mode | 定义两种模式并要求 checkpoint 语义 | 无 task 可观察 | 无独立收口批次 | 早期设计期待逐步确认与直达验收 | UI/文档会把未消费字段误报成执行行为 | 先决定 mode 的持久化主语，再补 executor pause/resume 与 e2e | `packages/daemon/src/brain/liveTools.ts:674-685,772-778`；`packages/contracts/src/types/task.ts:33-61`；`packages/daemon/src/tier1/executor.ts:691-757` |
 | D20 | Artifact 类型与业务对象 | 正式枚举仅 8 类；SourceSnapshot/VerifiedExcerpt 是独立 schema，image/video 等不存在 | Artifact、evidence、audit 分流 | runtime 只有 plan | research/lineage 后续 | 旧图泛称产物库 | 混表会虚报二进制、来源与版本能力 | UI/文档显示 formal type 与 candidate；分开 evidence ledger | `packages/contracts/src/types/artifact.ts:8-30`；`packages/contracts/src/types/sourceverify.ts:9-74` |
 | D21 | Pulse 状态词 | 候选标签“刚刚完成”可能吸收 settled/ready_for_review | settle 后只说等验收；merge 后才是已交付 | 当前无 Pulse | 外部 proposal | 旧图常用 done 泛称 | 越级宣告完成，破坏验收责任 | 用中性“最近进展”，或只在 `task_done` 投影已交付 | `docs/10-voice-ux-spec.md:12`；`docs/11-ui-spec.md:108-120` |
@@ -888,12 +888,12 @@ Quick / Guided / Explore 可影响每段交互密度；execution mode 在合同�
 
 以下全部仅为 `[proposal]`：
 
-- Prompt、协作合同与三类主动权：`/Users/wangyixiao/WorkSpace/OctoAgent/docs/research/2026-07-30-Prompt不等于指令-SayDo会话阶段正本.md:6-18,87-117,150-220`。
-- readiness 真实会话取证：`/Users/wangyixiao/WorkSpace/OctoAgent/docs/research/2026-07-29-SayDo-readiness-真实会话取证.md`。
-- 混合主动权调研：`/Users/wangyixiao/WorkSpace/OctoAgent/docs/research/2026-07-30-SayDo-协作合同与混合主动权-调研.md`。
-- 协作政策与 durable workstream / Pulse：`/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-07-30-SayDo-协作路由与主动权改造建议.md:1-8,95-193,194-360,419-523,585-680`。
-- 当前协作 SVG：`/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/figures/saydo-current-to-collaboration-router.svg:53-302`。
-- SayDo/Hopper 候选拓扑：`/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-07-30-四条产品线-委托执行与价值控制-概念笔记.md:29-36,55-68,98-178,213-233`。
+- Prompt、协作合同与三类主动权：`~/WorkSpace/OctoAgent/docs/research/2026-07-30-Prompt不等于指令-SayDo会话阶段正本.md:6-18,87-117,150-220`。
+- readiness 真实会话取证：`~/WorkSpace/OctoAgent/docs/research/2026-07-29-SayDo-readiness-真实会话取证.md`。
+- 混合主动权调研：`~/WorkSpace/OctoAgent/docs/research/2026-07-30-SayDo-协作合同与混合主动权-调研.md`。
+- 协作政策与 durable workstream / Pulse：`~/WorkSpace/OctoAgent/docs/product/2026-07-30-SayDo-协作路由与主动权改造建议.md:1-8,95-193,194-360,419-523,585-680`。
+- 当前协作 SVG：`~/WorkSpace/OctoAgent/docs/product/figures/saydo-current-to-collaboration-router.svg:53-302`。
+- SayDo/Hopper 候选拓扑：`~/WorkSpace/OctoAgent/docs/product/2026-07-30-四条产品线-委托执行与价值控制-概念笔记.md:29-36,55-68,98-178,213-233`。
 
 ### 18.6 负证据边界
 

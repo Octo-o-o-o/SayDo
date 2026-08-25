@@ -6,10 +6,10 @@
 
 证据：
 
-- [pending.ts:161](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/config/pending.ts:161) 依次、独立晋升 config 与 `.env`；config gate 不约束 `.env`。
-- [index.ts:177](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/index.ts:177) 启动时先验证，再分别执行文件与 runtime 晋升。
-- [cliRuntime.ts:382](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/config/cliRuntime.ts:382) 对 staged receipt 逐槽跳过失败项、晋升成功子集，随后删除 pending 文件。
-- 这与 [docs/09-data-contracts.md:1175](/Users/wangyixiao/WorkSpace/SayDo/docs/09-data-contracts.md:1175) 的“缺一拒绝晋升、活动配置保持不动”不一致。
+- [pending.ts:161](~/WorkSpace/SayDo/packages/daemon/src/config/pending.ts:161) 依次、独立晋升 config 与 `.env`；config gate 不约束 `.env`。
+- [index.ts:177](~/WorkSpace/SayDo/packages/daemon/src/index.ts:177) 启动时先验证，再分别执行文件与 runtime 晋升。
+- [cliRuntime.ts:382](~/WorkSpace/SayDo/packages/daemon/src/config/cliRuntime.ts:382) 对 staged receipt 逐槽跳过失败项、晋升成功子集，随后删除 pending 文件。
+- 这与 [docs/09-data-contracts.md:1175](~/WorkSpace/SayDo/docs/09-data-contracts.md:1175) 的“缺一拒绝晋升、活动配置保持不动”不一致。
 
 可复现反例：
 
@@ -28,9 +28,9 @@
 
 证据：
 
-- [SetupWizard.tsx:611](/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/components/SetupWizard.tsx:611) 的 `runRestartAndTest` 只判断 `results["dialog"]`。
-- [SetupWizard.tsx:1242](/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/components/SetupWizard.tsx:1242) 的高级步骤直接使用该流程。
-- daemon 的 restart gate 主要补充 CLI receipt 校验，见 [index.ts:865](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/index.ts:865)，无法替 API-only 槽补齐全绿门。
+- [SetupWizard.tsx:611](~/WorkSpace/SayDo/packages/console/src/components/SetupWizard.tsx:611) 的 `runRestartAndTest` 只判断 `results["dialog"]`。
+- [SetupWizard.tsx:1242](~/WorkSpace/SayDo/packages/console/src/components/SetupWizard.tsx:1242) 的高级步骤直接使用该流程。
+- daemon 的 restart gate 主要补充 CLI receipt 校验，见 [index.ts:865](~/WorkSpace/SayDo/packages/daemon/src/index.ts:865)，无法替 API-only 槽补齐全绿门。
 
 可复现反例：配置四个 API 槽，使 `dialog=ok`、`thinking=fail`，在高级步骤执行测试并重启。前端仍请求 restart，结构合法的 pending config 可被启动晋升。
 
@@ -42,10 +42,10 @@
 
 证据：
 
-- [setupApi.test.ts:255](/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/lib/setupApi.test.ts:255) 验证 helper，但没有渲染高级流程或验证实际 restart 调用。
-- [resourcePlans.test.ts:21](/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/lib/resourcePlans.test.ts:21) 只测卡片生成函数。
-- [Chat.test.tsx:50](/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/components/Chat.test.tsx:50) 主要覆盖 availability helper 和独立按钮，没有完整验证模式切换、文本输入及 thinking 呈现。
-- [byoa-fake-cli.e2e.test.ts:114](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/test/byoa-fake-cli.e2e.test.ts:114) 有禁用工具代表例，但未逐类覆盖执行、授权、删除、会话、文件、屏幕工具及 optional-null 往返。
+- [setupApi.test.ts:255](~/WorkSpace/SayDo/packages/console/src/lib/setupApi.test.ts:255) 验证 helper，但没有渲染高级流程或验证实际 restart 调用。
+- [resourcePlans.test.ts:21](~/WorkSpace/SayDo/packages/console/src/lib/resourcePlans.test.ts:21) 只测卡片生成函数。
+- [Chat.test.tsx:50](~/WorkSpace/SayDo/packages/console/src/components/Chat.test.tsx:50) 主要覆盖 availability helper 和独立按钮，没有完整验证模式切换、文本输入及 thinking 呈现。
+- [byoa-fake-cli.e2e.test.ts:114](~/WorkSpace/SayDo/packages/daemon/test/byoa-fake-cli.e2e.test.ts:114) 有禁用工具代表例，但未逐类覆盖执行、授权、删除、会话、文件、屏幕工具及 optional-null 往返。
 
 具体反例：当前 A-2 已存在，却不会被这些 helper 级断言捕获；同理，把 L26 保存 hash 的调用移动到 restart 之后，route helper 测试仍不能发现调用顺序退化。
 
@@ -57,8 +57,8 @@
 
 证据：
 
-- [SetupWizard.tsx:229](/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/components/SetupWizard.tsx:229) 对任意 `logged_in` CLI 都追加“可承担四个推理槽”。
-- [resourcePlans.ts:153](/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/lib/resourcePlans.ts:153) 则正确排除没有非 `auto` 模型的 Cursor。
+- [SetupWizard.tsx:229](~/WorkSpace/SayDo/packages/console/src/components/SetupWizard.tsx:229) 对任意 `logged_in` CLI 都追加“可承担四个推理槽”。
+- [resourcePlans.ts:153](~/WorkSpace/SayDo/packages/console/src/lib/resourcePlans.ts:153) 则正确排除没有非 `auto` 模型的 Cursor。
 
 可复现反例：Cursor 为 `found=true、logged_in=true、models=["auto"]`。资源画像宣称可承担四槽，但卡片生成器不会生成 Cursor 方案。
 
@@ -68,9 +68,9 @@
 
 ## 八项逐项裁决
 
-1. **Canonical：无。** [docs/09-data-contracts.md:1138](/Users/wangyixiao/WorkSpace/SayDo/docs/09-data-contracts.md:1138) 已集中定义 oneshot、恒拒 project override、allowlist、上限、单 pending、await、失败丢 reply、零应用重试、B4 cap 与 self-test 门；旧段落也明确被当前补充取代。
+1. **Canonical：无。** [docs/09-data-contracts.md:1138](~/WorkSpace/SayDo/docs/09-data-contracts.md:1138) 已集中定义 oneshot、恒拒 project override、allowlist、上限、单 pending、await、失败丢 reply、零应用重试、B4 cap 与 self-test 门；旧段落也明确被当前补充取代。
 
-2. **生产运行时：无。** [dialogLoop.ts:47](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/brain/dialogLoop.ts:47) 使用精确 allowlist，[dialogLoop.ts:79](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/brain/dialogLoop.ts:79) 严格校验 envelope/cap，[dialogLoop.ts:493](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/brain/dialogLoop.ts:493) 按序 dispatch，并在失败或 await 后停止。未找到禁用工具进入、部分应用后重跑或真实 pending 不返回 `await_user` 的反例。现有 nullable 可选字段中，`null` 与省略在 handler 内语义相同。
+2. **生产运行时：无。** [dialogLoop.ts:47](~/WorkSpace/SayDo/packages/daemon/src/brain/dialogLoop.ts:47) 使用精确 allowlist，[dialogLoop.ts:79](~/WorkSpace/SayDo/packages/daemon/src/brain/dialogLoop.ts:79) 严格校验 envelope/cap，[dialogLoop.ts:493](~/WorkSpace/SayDo/packages/daemon/src/brain/dialogLoop.ts:493) 按序 dispatch，并在失败或 await 后停止。未找到禁用工具进入、部分应用后重跑或真实 pending 不返回 `await_user` 的反例。现有 nullable 可选字段中，`null` 与省略在 handler 内语义相同。
 
 3. **BYOA：无。** prompt 截断顺序、固定 instructions/current turn/action manifest、逐调用空 cwd、identity/tripwire、脱敏和全调用共享预算均闭合。provider 返回 `attemptsMade`，dialog retry 按剩余预算调用；未发现第三次进程路径。
 
@@ -78,15 +78,15 @@
 
 5. **三形态卡与激活：A-2、C-1。** 实际卡片生成满足 found+logged_in、一家一张、排序、最多三张、Cursor 首个非 auto、双 ack、失败 fallback 和三卡占满时降级。高级全绿门和画像文案存在上述问题。
 
-6. **基础卡、高级槽与 L26：除 A-2 外无。** 基础区置顶三列，高级逐槽仍保留；实际 UI 未显示“接入开发中”；15–25 秒文案正确。[SetupWizard.tsx:593](/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/components/SetupWizard.tsx:593) 在 restart 前保存 hash，失败或重载仍落到错误导航。
+6. **基础卡、高级槽与 L26：除 A-2 外无。** 基础区置顶三列，高级逐槽仍保留；实际 UI 未显示“接入开发中”；15–25 秒文案正确。[SetupWizard.tsx:593](~/WorkSpace/SayDo/packages/console/src/components/SetupWizard.tsx:593) 在 restart 前保存 hash，失败或重载仍落到错误导航。
 
-7. **Chat 与 voice fail-closed：实现无，测试见 B-1。** [Chat.tsx:14](/Users/wangyixiao/WorkSpace/SayDo/packages/console/src/components/Chat.tsx:14) 的固定文案与 canonical 一致；key 缺失、ASR down、peer 离线都会在动作前禁用按钮和模式切换，键盘入口也有 guard，文本输入仍可用。按秒进度只消费既有 thinking/turn 状态，没有伪造 assistant。
+7. **Chat 与 voice fail-closed：实现无，测试见 B-1。** [Chat.tsx:14](~/WorkSpace/SayDo/packages/console/src/components/Chat.tsx:14) 的固定文案与 canonical 一致；key 缺失、ASR down、peer 离线都会在动作前禁用按钮和模式切换，键盘入口也有 guard，文本输入仍可用。按秒进度只消费既有 thinking/turn 状态，没有伪造 assistant。
 
-8. **测试与 smoke：B-1。** fake CLI 已覆盖多数核心分支，包括预算第三发反例。真实 smoke 的代码确实创建真实 Codex provider，并解析其返回 envelope、验证 `remember` action，见 [byoa-smoke.mjs:18](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/test/byoa-smoke.mjs:18)；不是手写 JSON。但本次未实际运行，因此不宣称 smoke 通过。
+8. **测试与 smoke：B-1。** fake CLI 已覆盖多数核心分支，包括预算第三发反例。真实 smoke 的代码确实创建真实 Codex provider，并解析其返回 envelope、验证 `remember` action，见 [byoa-smoke.mjs:18](~/WorkSpace/SayDo/packages/daemon/test/byoa-smoke.mjs:18)；不是手写 JSON。但本次未实际运行，因此不宣称 smoke 通过。
 
 ## OPEN QUESTION
 
-当前测试在 [t18a-cli-slots.test.ts:359](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/test/t18a-cli-slots.test.ts:359) 刻意接受 runtime receipt 的部分晋升，但 canonical 表述是全候选缺一即拒。需要 owner 明确 recovery 是否允许逐槽部分恢复；在 canonical 改写前，本评审按全有或全无判定 A-1。
+当前测试在 [t18a-cli-slots.test.ts:359](~/WorkSpace/SayDo/packages/daemon/test/t18a-cli-slots.test.ts:359) 刻意接受 runtime receipt 的部分晋升，但 canonical 表述是全候选缺一即拒。需要 owner 明确 recovery 是否允许逐槽部分恢复；在 canonical 改写前，本评审按全有或全无判定 A-1。
 
 ## 实际只读验证边界
 

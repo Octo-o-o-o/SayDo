@@ -24,9 +24,9 @@ $ git show f28489d:docs/plan/MIGRATION.md | sed -n '1,8p'
 > 工作树尚未 commit/push。
 ```
 
-当前工作树才回写为“已同步至 origin/main，复核回写未提交”，见 [MIGRATION.md:3](/Users/wangyixiao/WorkSpace/SayDo/docs/plan/MIGRATION.md:3)。`HANDOFF.md` 也仅在工作树把 daemon 基线从 686 修为 687；`f28489d` 中仍为 686，当前为 [HANDOFF.md:24](/Users/wangyixiao/WorkSpace/SayDo/HANDOFF.md:24)。
+当前工作树才回写为“已同步至 origin/main，复核回写未提交”，见 [MIGRATION.md:3](~/WorkSpace/SayDo/docs/plan/MIGRATION.md:3)。`HANDOFF.md` 也仅在工作树把 daemon 基线从 686 修为 687；`f28489d` 中仍为 686，当前为 [HANDOFF.md:24](~/WorkSpace/SayDo/HANDOFF.md:24)。
 
-[PROCESS-JOURNAL.md:854](/Users/wangyixiao/WorkSpace/SayDo/history/PROCESS-JOURNAL.md:854) 至 [PROCESS-JOURNAL.md:870](/Users/wangyixiao/WorkSpace/SayDo/history/PROCESS-JOURNAL.md:870) 的“未 commit、未 push”是 R58/R59 当时的历史事实，不应改写；问题是 journal 到 R59 结束，没有后续轮次记录 owner 授权、提交、push 和本次复核。
+[PROCESS-JOURNAL.md:854](~/WorkSpace/SayDo/history/PROCESS-JOURNAL.md:854) 至 [PROCESS-JOURNAL.md:870](~/WorkSpace/SayDo/history/PROCESS-JOURNAL.md:870) 的“未 commit、未 push”是 R58/R59 当时的历史事实，不应改写；问题是 journal 到 R59 结束，没有后续轮次记录 owner 授权、提交、push 和本次复核。
 
 影响：当前工作树的状态表述基本准确，但 `origin/main` 和过程 journal 尚未形成一致的提交后记录，会误导只读远端文件的后续审计。
 
@@ -51,7 +51,7 @@ extra_paths=docs/plan/migration/target-change-manifest.tsv
 baseline_metadata_mismatch=0 target_metadata_mismatch=0
 ```
 
-即 201 条清单记录，加上明确排除的清单自身，严格等于提交的 202 个变化路径。但 [MIGRATION.md:223](/Users/wangyixiao/WorkSpace/SayDo/docs/plan/MIGRATION.md:223) 仍写“三个 `check` 均 exit 0”，没有限定为“`f28489d` 静止点”；清单首行也没有目标提交字段。
+即 201 条清单记录，加上明确排除的清单自身，严格等于提交的 202 个变化路径。但 [MIGRATION.md:223](~/WorkSpace/SayDo/docs/plan/MIGRATION.md:223) 仍写“三个 `check` 均 exit 0”，没有限定为“`f28489d` 静止点”；清单首行也没有目标提交字段。
 
 门禁不能自动发现这一漂移：
 
@@ -63,7 +63,7 @@ $ rg 'test-migration-tools' Justfile .github/workflows/ci.yml
 Justfile:23:    bash scripts/test-migration-tools.sh
 ```
 
-本地 `just ci` 包含工具自测，但不包含三份真实清单检查；GitHub Actions 连工具自测也未包含，见 [Justfile:14](/Users/wangyixiao/WorkSpace/SayDo/Justfile:14) 和 [ci.yml:22](/Users/wangyixiao/WorkSpace/SayDo/.github/workflows/ci.yml:22)。
+本地 `just ci` 包含工具自测，但不包含三份真实清单检查；GitHub Actions 连工具自测也未包含，见 [Justfile:14](~/WorkSpace/SayDo/Justfile:14) 和 [ci.yml:22](~/WorkSpace/SayDo/.github/workflows/ci.yml:22)。
 
 影响：不是迁移数据损坏，而是清单作用域和“当前已通过”表述不稳定。应把它明确钉在 `f28489d`，或在提交后回写静止点重新生成并复验。
 
@@ -88,7 +88,7 @@ owner-writable directories: 156
 archive_immutable_paths=0
 ```
 
-`0644`、`0755` 均允许 owner 写入，目录也允许新增、删除和 rename；没有 `uchg/schg`。冻结脚本只把 tombstone 固定为 `0644`，[freeze-design-archive.mjs:43](/Users/wangyixiao/WorkSpace/SayDo/scripts/freeze-design-archive.mjs:43)、[freeze-design-archive.mjs:222](/Users/wangyixiao/WorkSpace/SayDo/scripts/freeze-design-archive.mjs:222)，没有递归物理加固。
+`0644`、`0755` 均允许 owner 写入，目录也允许新增、删除和 rename；没有 `uchg/schg`。冻结脚本只把 tombstone 固定为 `0644`，[freeze-design-archive.mjs:43](~/WorkSpace/SayDo/scripts/freeze-design-archive.mjs:43)、[freeze-design-archive.mjs:222](~/WorkSpace/SayDo/scripts/freeze-design-archive.mjs:222)，没有递归物理加固。
 
 影响：当前摘要可检测漂移，但不能阻止漂移。“只读历史档案”应改成“制度冻结、文件系统仍可写”，或者另行采用物理只读、不可变标志或独立备份。
 
@@ -114,7 +114,7 @@ archive_immutable_paths=0
 1   com.apple.macl
 ```
 
-[MIGRATION.md:54](/Users/wangyixiao/WorkSpace/SayDo/docs/plan/MIGRATION.md:54) 已披露目录 mode 不受清单证明，但未披露 xattr。当前 xattr 仍物理存在，没有发现内容丢失；只是三份 TSV 无法证明或监控其迁前一致性。
+[MIGRATION.md:54](~/WorkSpace/SayDo/docs/plan/MIGRATION.md:54) 已披露目录 mode 不受清单证明，但未披露 xattr。当前 xattr 仍物理存在，没有发现内容丢失；只是三份 TSV 无法证明或监控其迁前一致性。
 
 ### C-2：`.saydo/knowledge` 是被外层忽略、无远端的本地嵌套 Git
 
@@ -190,7 +190,7 @@ path=.../voice-coding type=Symbolic Link inode=486766399
 path=.../voice-coding.archive-20260729 type=Directory inode=409294432
 
 $ readlink .../voice-coding
-/Users/wangyixiao/WorkSpace/SayDo
+~/WorkSpace/SayDo
 
 followed=.../SayDo inode=450641874
 followed=.../voice-coding inode=450641874
@@ -242,7 +242,7 @@ d43b1b17... README.prearchive.md
 7297 644 README.prearchive.md
 ```
 
-冻结 README 指向唯一活动仓并明确两份原文位置，见冷档 [README.md:3](/Users/wangyixiao/WorkSpace/voice-coding.archive-20260729/README.md:3)；制度规则见冷档 [AGENTS.md:3](/Users/wangyixiao/WorkSpace/voice-coding.archive-20260729/AGENTS.md:3)。除“物理只读”措辞外，入口和备份声明正确。
+冻结 README 指向唯一活动仓并明确两份原文位置，见冷档 [README.md:3](~/WorkSpace/voice-coding.archive-20260729/README.md:3)；制度规则见冷档 [AGENTS.md:3](~/WorkSpace/voice-coding.archive-20260729/AGENTS.md:3)。除“物理只读”措辞外，入口和备份声明正确。
 
 ### 提交拓扑正确
 
@@ -308,7 +308,7 @@ git ls-remote origin/main: network/proxy failure
 - `bash scripts/test-migration-tools.sh` 的运行时自测
 - `unfreeze` 或任何实际回滚演练
 
-原因是用户要求“禁止修改任何文件”。`just ci` 会执行 `uv sync`，[Justfile:25](/Users/wangyixiao/WorkSpace/SayDo/Justfile:25)；工具自测会 `mktemp`、创建 Git 仓、写文件、建 symlink/FIFO，[test-migration-tools.sh:5](/Users/wangyixiao/WorkSpace/SayDo/scripts/test-migration-tools.sh:5)。本报告没有把历史文档中的 CI/self-test 结果冒充成本会话实跑。
+原因是用户要求“禁止修改任何文件”。`just ci` 会执行 `uv sync`，[Justfile:25](~/WorkSpace/SayDo/Justfile:25)；工具自测会 `mktemp`、创建 Git 仓、写文件、建 symlink/FIFO，[test-migration-tools.sh:5](~/WorkSpace/SayDo/scripts/test-migration-tools.sh:5)。本报告没有把历史文档中的 CI/self-test 结果冒充成本会话实跑。
 
 ## 最终判定
 

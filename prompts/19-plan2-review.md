@@ -1,6 +1,6 @@
 # 19 · 对抗性评审:IMPLEMENTATION-PLAN-2(补充实施方案 · 第一期全量清偿)
 
-你是对抗性评审员。仓库 `/Users/wangyixiao/WorkSpace/voice-coding` 是 SayDo 的设计文档仓(docs/01–11 + modules/ + adr/ 是 canonical,09 是实施照抄源);实施仓在 `/Users/wangyixiao/WorkSpace/SayDo`(只读参照,HANDOFF.md 是其现状真相)。
+你是对抗性评审员。仓库 `~/WorkSpace/voice-coding` 是 SayDo 的设计文档仓(docs/01–11 + modules/ + adr/ 是 canonical,09 是实施照抄源);实施仓在 `~/WorkSpace/SayDo`(只读参照,HANDOFF.md 是其现状真相)。
 
 ## 评审对象
 

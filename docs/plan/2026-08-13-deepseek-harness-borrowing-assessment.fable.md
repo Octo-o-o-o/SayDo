@@ -1,6 +1,6 @@
 # DeepSeek Harness 借鉴评估
 
-> 对方 repo:`/Users/wangyixiao/WorkSpace/Reference/deepseek-harness`  
+> 对方 repo:`~/WorkSpace/Reference/deepseek-harness`
 > 对方版本:git `47f943859bef60e4160492346772ded9b24f765a`(`0.1.0-rc.5`, 2026-08-13, `Merge pull request #2519 ... feat/npm-public`)  
 > 对方 license:**MIT**(`LICENSE` 原文, Copyright (c) 2026 DeepSeek);第三方声明见对方 `THIRD_PARTY_NOTICES.md`(Cordis 全家 MIT;ACP SDK Apache-2.0;Claude Agent SDK 见其 README)。  
 > 本产品基线:SayDo `c5148ab597ba08bd07aff7045418326ce263a180`(`feat/t20-fusion-layout`, 与 `main` 同 tip)  

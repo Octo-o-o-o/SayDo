@@ -6,7 +6,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync, existsSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { jcsDigest, newId, textDigest, writingSettleStructuralViolations, type AcceptanceCheck } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
 import { createSqliteAuditSink } from "../src/storage/dao/misc.js";
@@ -19,17 +19,33 @@ import { enabledProjectTypes } from "../src/config/types.js";
 import { parseConfigText } from "../src/config/load.js";
 import { getTaskDetail } from "../src/api/console.js";
 import { normalizeWritingArticlePath } from "../src/tier1/projectConfig.js";
+import {
+  configureRuntimeChildRegistry,
+  resetRuntimeChildLifecycleForTests,
+  setRuntimeChildTestHooks
+} from "../src/runtimeChildRegistry.js";
+import { setKillOwnedTreeTestHooks } from "@saydo/platform";
 
 let home: string;
 let db: Db;
 let audit: ReturnType<typeof createSqliteAuditSink>;
-const CODING = newId("prj");
-const WRITING = newId("prj");
+let CODING: string;
+let WRITING: string;
 const clock = new Date("2026-07-27T12:00:00.000Z");
 const OWNER_TEST_ROOT = mkdtempSync(join(process.cwd(), ".saydo-writing-narrow-"));
 
 beforeEach(() => {
+  setKillOwnedTreeTestHooks(null);
+  setRuntimeChildTestHooks(null);
+  try {
+    resetRuntimeChildLifecycleForTests();
+  } catch {
+    // 上一文件 contamination 不得串入
+  }
+  CODING = newId("prj");
+  WRITING = newId("prj");
   home = mkdtempSync(join(tmpdir(), "saydo-writing-"));
+  configureRuntimeChildRegistry(home);
   db = openDb(join(home, "saydo.db"));
   audit = createSqliteAuditSink(db);
   for (const [id, type] of [
@@ -46,6 +62,14 @@ beforeEach(() => {
       createdAt: clock.toISOString(),
       updatedAt: clock.toISOString()
     });
+  }
+});
+
+afterEach(() => {
+  try {
+    db.close();
+  } catch {
+    // 已关
   }
 });
 
@@ -414,19 +438,25 @@ describe("§12-14 writing 全链 e2e(真 git;settle → approve → content_done
       END`);
     const exec = buildExecutor(repo);
     exec.tick();
-    await vi.waitFor(() => {
-      const run = db
-        .prepare("SELECT state, finalize_pending_json FROM tier1_runs WHERE task_id=?")
-        .get(taskId) as { state: string; finalize_pending_json: string | null };
-      expect(run.state).toBe("running");
-      expect(JSON.parse(run.finalize_pending_json ?? "null")).toMatchObject({
-        kind: "review",
-        writingArtifact: { articleVersion: 1 }
-      });
-      expect(
-        (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.finalize_transaction_failed'").get() as { c: number }).c
-      ).toBeGreaterThanOrEqual(1);
-    });
+    // writingArtifact 是在 review intent 落库后由第二次 UPDATE 补上的,中间要跑真 git
+    // 取 articleDigest/treeSha;vi.waitFor 默认只等 1s,重并发下(pnpm test 全 workspace)
+    // 不够,会停在只有 kind:"review" 的中间态上假失败。与本文件 waitStatus 用同一档超时。
+    await vi.waitFor(
+      () => {
+        const run = db
+          .prepare("SELECT state, finalize_pending_json FROM tier1_runs WHERE task_id=?")
+          .get(taskId) as { state: string; finalize_pending_json: string | null };
+        expect(run.state).toBe("running");
+        expect(JSON.parse(run.finalize_pending_json ?? "null")).toMatchObject({
+          kind: "review",
+          writingArtifact: { articleVersion: 1 }
+        });
+        expect(
+          (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.finalize_transaction_failed'").get() as { c: number }).c
+        ).toBeGreaterThanOrEqual(1);
+      },
+      { timeout: 10_000, interval: 30 }
+    );
     const first = db.prepare("SELECT id, version FROM artifacts WHERE project_id=? AND type='article'").all(WRITING) as Array<{
       id: string;
       version: number;
@@ -434,11 +464,14 @@ describe("§12-14 writing 全链 e2e(真 git;settle → approve → content_done
     expect(first).toHaveLength(1);
 
     exec.tick();
-    await vi.waitFor(() => {
-      expect(
-        (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.finalize_transaction_failed'").get() as { c: number }).c
-      ).toBeGreaterThanOrEqual(2);
-    });
+    await vi.waitFor(
+      () => {
+        expect(
+          (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.finalize_transaction_failed'").get() as { c: number }).c
+        ).toBeGreaterThanOrEqual(2);
+      },
+      { timeout: 10_000, interval: 30 }
+    );
     expect(db.prepare("SELECT id, version FROM artifacts WHERE project_id=? AND type='article'").all(WRITING)).toEqual(first);
 
     db.exec("DROP TRIGGER writing_outbox_injected_failure");

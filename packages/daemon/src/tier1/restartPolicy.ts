@@ -1,10 +1,47 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
 import { verifiedProjectWorkspace } from "../storage/dao/projects.js";
 import { classifyActiveWork } from "./activeWorkClassifier.js";
-import { hostKind, killOwnedTree, processAlive, processAnchor, processBirth } from "@saydo/platform";
+import {
+  agentOwnerIdentity,
+  appendReapAudit,
+  classifyKillProbe,
+  commitOwnerReapIfIdentity,
+  hostKind,
+  isOwnerIdentityCasError,
+  isSayDoIdentityToken,
+  killOwnedTree,
+  observeVerifiedOwnedJob,
+  parseAgentOwnerRecord,
+  processAlive,
+  PROCESS_KILL_UNKNOWN,
+  PROCESS_PROBE_UNKNOWN,
+  readOwnErrnoCode,
+  readOwnedProcessBirth,
+  sayDoJobNameMatchesIdentity,
+  withHomeOwnerBoundary,
+  type HostKind,
+  type OwnerImmutableIdentity
+} from "@saydo/platform";
+
+interface RestartPolicyTestHooks {
+  hostKind?: () => HostKind;
+  processGroupAlive?: (pid: number) => boolean;
+  processBirth?: (pid: number) => string | null;
+  afterKillBeforeDelete?: () => void | Promise<void>;
+}
+
+let restartPolicyTestHooks: RestartPolicyTestHooks = {};
+
+export function setRestartPolicyTestHooks(hooks: RestartPolicyTestHooks | null): void {
+  restartPolicyTestHooks = hooks ?? {};
+}
+
+function effectiveHostKind(): HostKind {
+  return restartPolicyTestHooks.hostKind?.() ?? hostKind();
+}
 
 export const RESTART_RECOVERABLE_STATES = "('reserved','running','step_paused')";
 const DRAINABLE_TIER1_STATES = "('reserved','running','step_paused','cancel_requested')";
@@ -27,13 +64,15 @@ export interface AgentOwnershipRecord {
   binary: string;
   worktree: string;
   processStart: string;
-  commandToken?: string;
-  ownerPid?: number;
-  ownerInstanceId?: string;
-  jobName?: string;
+  kind: string;
+  commandToken: string;
+  generation: string;
+  ownerPid: number;
+  ownerInstanceId: string;
+  jobName: string;
 }
 
-export type OrphanAgentReapOutcome = "absent" | "already_exited" | "reaped";
+export type OrphanAgentReapOutcome = "absent" | "already_exited" | "reaped" | "identity_changed";
 
 function drainCandidates(db: Db): RestartCandidate[] {
   return db.prepare(
@@ -71,25 +110,50 @@ export function recoverableTier1Count(db: Db): number {
   return restartCandidates(db).filter((row) => isTier1RestartRecoverable(db, row)).length;
 }
 
-function readOwnedAgent(saydoHome: string, row: RestartCandidate): AgentOwnershipRecord | null {
+type OwnerFile =
+  | { status: "absent" }
+  | { status: "invalid" }
+  | { status: "valid"; record: AgentOwnershipRecord };
+
+const restartPolicyErrors = new WeakSet<object>();
+
+function policyError(message: string): Error {
+  const err = new Error(message);
+  restartPolicyErrors.add(err);
+  return err;
+}
+
+function jobBoundToOwner(jobName: string, record: AgentOwnershipRecord): boolean {
+  return sayDoJobNameMatchesIdentity(jobName, record.ownerInstanceId, record.runId, record.generation);
+}
+
+function projectReapFailure(err: unknown): Error {
+  if (typeof err === "object" && err !== null && restartPolicyErrors.has(err)) return err as Error;
+  return policyError(PROCESS_KILL_UNKNOWN);
+}
+
+function win32JobNameAbsent(raw: unknown): boolean {
+  if (typeof raw !== "object" || raw === null) return true;
+  if (!Object.prototype.hasOwnProperty.call(raw, "jobName")) return true;
+  const jobName = (raw as { jobName?: unknown }).jobName;
+  return jobName === undefined || jobName === null || jobName === "";
+}
+
+function readOwnedAgentFile(saydoHome: string, row: RestartCandidate): OwnerFile {
+  const ownerPath = join(saydoHome, "tier1", "runs", row.run_id, "agent-owner.json");
+  if (!existsSync(ownerPath)) return { status: "absent" };
   try {
-    const parsed = JSON.parse(
-      readFileSync(join(saydoHome, "tier1", "runs", row.run_id, "agent-owner.json"), "utf8")
-    ) as Partial<AgentOwnershipRecord>;
-    if (
-      parsed.version !== 1 ||
-      parsed.runId !== row.run_id ||
-      parsed.worktree !== row.worktree_path ||
-      !Number.isInteger(parsed.pid) ||
-      (parsed.pid ?? 0) <= 1 ||
-      typeof parsed.binary !== "string" ||
-      parsed.binary.length === 0 ||
-      typeof parsed.processStart !== "string" ||
-      parsed.processStart.length === 0
-    ) return null;
-    return parsed as AgentOwnershipRecord;
-  } catch {
-    return null;
+    const raw = JSON.parse(readFileSync(ownerPath, "utf8")) as unknown;
+    if (effectiveHostKind() === "win32" && win32JobNameAbsent(raw)) {
+      throw policyError(`tier1 agent job name missing:${row.run_id}`);
+    }
+    const parsed = parseAgentOwnerRecord(raw, row.run_id);
+    if (parsed.status !== "valid") return { status: "invalid" };
+    if (parsed.record.worktree !== row.worktree_path) return { status: "invalid" };
+    return { status: "valid", record: parsed.record as AgentOwnershipRecord };
+  } catch (err) {
+    if (typeof err === "object" && err !== null && restartPolicyErrors.has(err)) throw err;
+    return { status: "invalid" };
   }
 }
 
@@ -103,27 +167,25 @@ function readOwnedAgent(saydoHome: string, row: RestartCandidate): AgentOwnershi
  * 二进制 / 一次性 commandToken。任一不成立即返回 null,由调用方走 fail-closed 分支。
  */
 export function readOwnedAgentProcessStart(pid: number, binary?: string, commandToken?: string): string | null {
-  if (hostKind() === "win32") return processBirth(pid);
-  const anchor = processAnchor(pid);
-  if (!anchor || anchor.pgid !== pid) return null;
-  if (binary !== undefined || commandToken !== undefined) {
-    const command = anchor.command;
-    if (command === null) return null;
-    if (binary !== undefined && !command.includes(binary)) return null;
-    if (commandToken !== undefined && !command.includes(commandToken)) return null;
-  }
-  return processBirth(pid);
+  return readOwnedProcessBirth(pid, binary, commandToken);
 }
 
-function processGroupAlive(pgid: number): boolean {
-  if (hostKind() === "win32") return processAlive(pgid);
+function processGroupAlive(pgid: number, jobName?: string): boolean {
+  if (restartPolicyTestHooks.processGroupAlive) return restartPolicyTestHooks.processGroupAlive(pgid);
+  if (effectiveHostKind() === "win32") {
+    if (jobName) {
+      throw policyError(PROCESS_PROBE_UNKNOWN);
+    }
+    return processAlive(pgid);
+  }
   try {
     process.kill(-pgid, 0);
     return true;
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ESRCH") return false;
-    if ((err as NodeJS.ErrnoException).code === "EPERM") return true;
-    throw err;
+    const kind = classifyKillProbe(err);
+    if (kind === "gone") return false;
+    if (kind === "alive") return true;
+    throw policyError(PROCESS_PROBE_UNKNOWN);
   }
 }
 
@@ -137,32 +199,70 @@ function legacyPid(saydoHome: string, row: RestartCandidate): number | null {
 }
 
 function verifiedOwnedAgent(saydoHome: string, row: RestartCandidate, audit: AuditSink): AgentOwnershipRecord | null {
-  const record = readOwnedAgent(saydoHome, row);
+  const file = readOwnedAgentFile(saydoHome, row);
+  if (file.status === "invalid") throw policyError(`tier1 agent ownership record invalid:${row.run_id}`);
   const pid = legacyPid(saydoHome, row);
-  if (!record) {
+  if (file.status === "absent") {
     if (pid && (processGroupAlive(pid) || (() => {
       try {
         process.kill(pid, 0);
         return true;
       } catch (err) {
-        if ((err as NodeJS.ErrnoException).code === "ESRCH") return false;
-        throw err;
+        const kind = classifyKillProbe(err);
+        if (kind === "gone") return false;
+        if (kind === "alive") return true;
+        throw policyError(PROCESS_PROBE_UNKNOWN);
       }
     })())) {
-      throw new Error(`tier1 live legacy agent ownership unverified:${row.run_id}`);
+      throw policyError(`tier1 live legacy agent ownership unverified:${row.run_id}`);
     }
     audit.record({ actor: "daemon", action: "tier1.orphan_agent_reap_skipped", meta: { runId: row.run_id, reason: "ownership_unverified" } });
     return null;
   }
+  const record = file.record;
   if (pid !== null && pid !== record.pid) {
-    if (processGroupAlive(pid) || processGroupAlive(record.pid)) {
-      throw new Error(`tier1 agent ownership records disagree:${row.run_id}`);
+    if (processGroupAlive(pid, record.jobName) || processGroupAlive(record.pid, record.jobName)) {
+      throw policyError(`tier1 agent ownership records disagree:${row.run_id}`);
     }
     return null;
   }
+  if (effectiveHostKind() === "win32") {
+    if (
+      !record.jobName ||
+      !isSayDoIdentityToken(record.ownerInstanceId) ||
+      !isSayDoIdentityToken(record.runId) ||
+      !jobBoundToOwner(record.jobName, record)
+    ) {
+      throw policyError(`tier1 agent job name missing:${row.run_id}`);
+    }
+    let observed;
+    try {
+      observed = observeVerifiedOwnedJob({
+        jobName: record.jobName,
+        ownerInstanceId: record.ownerInstanceId,
+        runId: record.runId,
+        generation: record.generation,
+        pid: record.pid,
+        expectedBirth: record.processStart
+      });
+    } catch (err) {
+      throw projectReapFailure(err);
+    }
+    if (observed.kind === "fail-closed") {
+      if (observed.reason.includes("mismatch")) {
+        throw policyError(`tier1 agent ownership identity mismatch:${row.run_id}`);
+      }
+      if (observed.reason.includes("empty while process alive")) {
+        throw policyError(`tier1 agent job empty while process alive:${row.run_id}`);
+      }
+      throw policyError(`tier1 agent ownership identity unverified:${row.run_id}`);
+    }
+    if (observed.kind === "already_exited") return null;
+    return record;
+  }
   const observedStart = readOwnedAgentProcessStart(record.pid, record.binary, record.commandToken);
   if (observedStart !== null && observedStart !== record.processStart) {
-    throw new Error(`tier1 agent ownership identity mismatch:${row.run_id}`);
+    throw policyError(`tier1 agent ownership identity mismatch:${row.run_id}`);
   }
   if (observedStart === null) {
     let leaderAlive = false;
@@ -170,21 +270,20 @@ function verifiedOwnedAgent(saydoHome: string, row: RestartCandidate, audit: Aud
       process.kill(record.pid, 0);
       leaderAlive = true;
     } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== "ESRCH") throw err;
+      const kind = classifyKillProbe(err);
+      if (kind === "gone") leaderAlive = false;
+      else if (kind === "alive") leaderAlive = true;
+      else throw policyError(PROCESS_PROBE_UNKNOWN);
     }
-    if (leaderAlive) throw new Error(`tier1 agent ownership identity unverified:${row.run_id}`);
-    if (hostKind() === "win32") {
-      if (!record.jobName) return null;
-      return record;
-    }
+    if (leaderAlive) throw policyError(`tier1 agent ownership identity unverified:${row.run_id}`);
     // A4: leader 已死时不得仅凭数值 PGID 收口——PID/PGID 复用可误杀无关组。
     // 无法证明存活成员的 birth identity 时保留 owner、fail-closed。
-    if (processGroupAlive(record.pid)) {
-      throw new Error(`tier1 agent process group alive after leader death:${row.run_id}`);
+    if (processGroupAlive(record.pid, record.jobName)) {
+      throw policyError(`tier1 agent process group alive after leader death:${row.run_id}`);
     }
     return null;
   }
-  if (!processGroupAlive(record.pid)) return null;
+  if (!processGroupAlive(record.pid, record.jobName)) return null;
   return record;
 }
 
@@ -200,24 +299,125 @@ export async function reapOwnedTier1Agent(
   // 仍是“本 run 曾启动过 agent”的 durable tombstone，恢复时不得误判为 absent 再 spawn。
   const hadLegacyPid = legacyPid(saydoHome, row) !== null;
   const record = verifiedOwnedAgent(saydoHome, row, audit);
-  if (!record) return hadDurableOwner || hadLegacyPid ? "already_exited" : "absent";
+  if (!record) {
+    return hadDurableOwner || hadLegacyPid ? "already_exited" : "absent";
+  }
   try {
-    if (hostKind() === "win32") {
-      if (!record.jobName) throw new Error(`tier1 agent job name missing:${row.run_id}`);
-      await killOwnedTree({ pid: record.pid, expectedBirth: record.processStart, jobName: record.jobName });
-    } else {
-      process.kill(-record.pid, "SIGKILL");
-    }
+    await killOwnedTree({
+      pid: record.pid,
+      expectedBirth: record.processStart,
+      ...(effectiveHostKind() === "win32"
+        ? {
+            jobName: record.jobName,
+            ownerInstanceId: record.ownerInstanceId,
+            runId: record.runId,
+            generation: record.generation
+          }
+        : {})
+    });
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "ESRCH") throw err;
+    const code = readOwnErrnoCode(err);
+    if (code === "ESRCH") {
+      // own-data ESRCH：目标已不在，可继续删 owner。
+    } else if (code === "EPERM") {
+      throw policyError(PROCESS_KILL_UNKNOWN);
+    } else {
+      throw projectReapFailure(err);
+    }
   }
-  const deadline = Date.now() + 2_000;
-  while (processGroupAlive(record.pid)) {
-    if (Date.now() >= deadline) throw new Error(`tier1 agent process group drain timeout:${row.run_id}`);
-    await new Promise((resolve) => setTimeout(resolve, 20));
+  if (restartPolicyTestHooks.afterKillBeforeDelete) {
+    await restartPolicyTestHooks.afterKillBeforeDelete();
   }
-  audit.record({ actor: "daemon", action: "tier1.orphan_agent_reaped", meta: { runId: row.run_id, pid: record.pid } });
-  return "reaped";
+  let casMismatch = false;
+  try {
+    await withHomeOwnerBoundary(saydoHome, () => {
+      try {
+        commitOwnerReapIfIdentity(
+          ownerPath,
+          agentOwnerIdentity(record),
+          () => {
+            audit.record({ actor: "daemon", action: "tier1.orphan_agent_reaped", meta: { runId: row.run_id, pid: record.pid } });
+          },
+          () => {
+            if (existsSync(ownerPath)) rmSync(ownerPath);
+          }
+        );
+      } catch (err) {
+        if (isOwnerIdentityCasError(err)) {
+          casMismatch = true;
+          return;
+        }
+        throw err;
+      }
+    });
+  } catch (err) {
+    throw projectReapFailure(err);
+  }
+  return casMismatch ? "identity_changed" : "reaped";
+}
+
+/**
+ * 正常清除路径：HOME boundary 内按 captured identity CAS unlink + durable audit。
+ * 无 captured identity 时不得删现存 owner（可能已是 successor）。
+ */
+export function shouldClearAgentOwnershipAfterDurable(
+  row: { state: string; finalize_pending_json: string | null; restart_pending_at: string | null } | undefined
+): boolean {
+  return !row ||
+    !["reserved", "running", "step_paused", "cancel_requested"].includes(row.state) ||
+    row.finalize_pending_json !== null ||
+    row.restart_pending_at !== null;
+}
+
+export async function releaseAgentOwnershipAfterDurable(
+  saydoHome: string,
+  runId: string,
+  expected: OwnerImmutableIdentity | undefined,
+  row: { state: string; finalize_pending_json: string | null; restart_pending_at: string | null } | undefined
+): Promise<boolean> {
+  if (!shouldClearAgentOwnershipAfterDurable(row)) return false;
+  await releaseAgentOwnershipIfIdentity(saydoHome, runId, expected);
+  return true;
+}
+
+export async function releaseAgentOwnershipIfIdentity(
+  saydoHome: string,
+  runId: string,
+  expected: OwnerImmutableIdentity | undefined
+): Promise<void> {
+  const runDir = join(saydoHome, "tier1", "runs", runId);
+  const ownerPath = join(runDir, "agent-owner.json");
+  const pidPath = join(runDir, "agent.pid");
+  await withHomeOwnerBoundary(saydoHome, () => {
+    try {
+      if (!existsSync(ownerPath)) {
+        rmSync(pidPath, { force: true });
+        return;
+      }
+      if (!expected) return;
+      commitOwnerReapIfIdentity(
+        ownerPath,
+        expected,
+        () => {
+          appendReapAudit(saydoHome, {
+            action: "tier1.agent_owner_released",
+            kind: expected.kind,
+            pid: expected.pid,
+            ownerInstanceId: expected.ownerInstanceId,
+            runId: expected.runId,
+            generation: expected.generation
+          });
+        },
+        () => {
+          rmSync(ownerPath, { force: true });
+          rmSync(pidPath, { force: true });
+        }
+      );
+    } catch (err) {
+      if (isOwnerIdentityCasError(err)) return;
+      throw err;
+    }
+  });
 }
 
 /** 执行器未武装时仍按同一 durable predicate 标记，并清理已验证 ownership 的旧 agent。 */

@@ -313,6 +313,7 @@ describe.skipIf(!LIVE)("真 cursor-agent 端到端(SAYDO_LIVE_E2E)", () => {
       const collect = async (input: { prompt: string; resumeChatId?: string }): Promise<string[]> => {
         const lines: string[] = [];
         const proc = spawner.spawn({
+          runId: "test-run",
           binary: BIN,
           model: MODEL,
           prompt: input.prompt,

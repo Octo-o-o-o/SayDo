@@ -1,7 +1,7 @@
 # SayDo 最近一周双向审计与快速发布冻结候选对抗评审
 
 你是零上下文、只读的对抗性评审者。仓库位于
-`/Users/wangyixiao/WorkSpace/SayDo`。评审对象是当前分支 `codex/week-audit-faststart-20260822`
+`~/WorkSpace/SayDo`。评审对象是当前分支 `codex/week-audit-faststart-20260822`
 的 `HEAD` 加工作树中本轮周审计/快速发布候选改动；仓内同时存在另一条 AI-supply 文档工作流的并发未提交
 文件，不属于本轮候选。不得修改文件，不得把仓内既有 review、自述、测试名称或先前评审结论当作正确性
 证据；必须以 canonical、代码和本次真实只读命令结果为准。

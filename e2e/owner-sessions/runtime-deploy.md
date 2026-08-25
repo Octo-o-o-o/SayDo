@@ -125,7 +125,7 @@ launchctl kickstart -k "gui/$(id -u)/com.saydo.pipeline"
 |---|---|
 | origin/main baseline | `97b01f767f3eeb80b3ca0b2d641dfbd33388a75a`；是 target 祖先 |
 | target clean CI | 独立 detached clean worktree；`just ci` exit 0；contracts 73、console 2、daemon 781 passed / 4 skipped、Python 31，emoji 自测 11/11 |
-| snapshot | `/Users/wangyixiao/.saydo/backups/20260731T013926Z`；`entries=4 digests=verified foundation=restorable extras=0` |
+| snapshot | `~/.saydo/backups/20260731T013926Z`；`entries=4 digests=verified foundation=restorable extras=0` |
 | dry-run restore | 外部 workspace 四字段原子重写、managed 分支、路径穿越拒绝与失败清理回归通过；真实 consumer 隔离恢复探针通过，临时根移入 Trash |
 | deployed runtime SHA | `ada7981c67ef3a07e6df0431643bb8b7661e22d4`，runtime clean |
 | release config digest | `90e35db971e7006303dbbfdb99b6d186e7e8beb5132be760d19531c8acf90207` |
@@ -142,7 +142,7 @@ launchctl kickstart -k "gui/$(id -u)/com.saydo.pipeline"
 | origin/main baseline | 本地引用 `f28489d14af78d67d6ed3d223395d172b7e6056c`；是 target 祖先 |
 | 远端刷新 | `git fetch origin main` 两次均因 GitHub TLS `SSL_ERROR_SYSCALL` 失败；未冒充在线刷新成功 |
 | target clean CI | 独立 detached clean worktree；`just ci` exit 0；contracts 73、daemon 700 passed / 4 skipped、Python 25、emoji 自测 11/11 |
-| snapshot | `/Users/wangyixiao/.saydo/backups/20260730T110948Z`；`entries=4 digests=verified foundation=restorable extras=0` |
+| snapshot | `~/.saydo/backups/20260730T110948Z`；`entries=4 digests=verified foundation=restorable extras=0` |
 | dry-run restore | 隔离恢复、真实 `FoundationBuilder`/`SessionManager` 消费探针通过；临时根移入 Trash，可恢复 |
 | deployed runtime SHA | `b20151440011ce0452417439c2d81745cb5d7d39`，runtime clean |
 | release config digest | `522e07160563a3de2afafa5517dd6b5a8b418c8e38a76fdd7fad1baf9b3c4660` |

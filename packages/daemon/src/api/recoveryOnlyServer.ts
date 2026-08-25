@@ -20,6 +20,12 @@ import type { AuditSink } from "../obs/audit.js";
 import type { Db } from "../storage/db.js";
 import { recordCliSubscriptionInvocation } from "../cost/ledger.js";
 import { abortAllByoaInvocations, activeByoaInvocationCount } from "../providers/byoa/provider.js";
+import { assertShutdownExactEmpty, raceWithMonotonicDeadline } from "../shutdownDeadline.js";
+import {
+  LifecycleDisposition,
+  afterClientGone,
+  shutdownReasonOf
+} from "../lifecycleDisposition.js";
 import {
   buildSetupProbe,
   confirmCliCapability,
@@ -39,6 +45,10 @@ import { getDesktopSummary } from "./desktop.js";
 import { consoleDistDirectory } from "../runtimeAssets.js";
 import { markDurableTier1RestartPending } from "../tier1/restartPolicy.js";
 import { runtimeOwnershipProof } from "../runtimeOwnership.js";
+import { projectUntrustedFailureText } from "@saydo/platform";
+import { publishSupervisorReady, sendSupervisorFrameAndWait } from "../supervisorIpc.js";
+import { DAEMON_SHUTDOWN_FAILED, projectDatabaseCloseFailure } from "../startupFailure.js";
+import { readJsonBody } from "../httpJsonBody.js";
 
 interface RecoveryOnlyServerInput {
   saydoHome: string;
@@ -61,32 +71,6 @@ interface RecoveryOnlyServerInput {
 function json(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { "content-type": "application/json" });
   res.end(JSON.stringify(body));
-}
-
-function readJsonBody(req: IncomingMessage, res: ServerResponse): Promise<unknown> {
-  return new Promise((resolveBody, reject) => {
-    let body = "";
-    let overflow = false;
-    req.on("data", (chunk: Buffer) => {
-      if (overflow) return;
-      if (body.length + chunk.length > 65_536) {
-        overflow = true;
-        json(res, 413, { ok: false, code: "payload_too_large", message: "body exceeds 64KB", retryable: false });
-        req.destroy();
-        return;
-      }
-      body += chunk.toString();
-    });
-    req.on("end", () => {
-      if (overflow) return;
-      try {
-        resolveBody(body.trim() === "" ? {} : JSON.parse(body));
-      } catch (err) {
-        reject(err);
-      }
-    });
-    req.on("error", reject);
-  });
 }
 
 function serveConsoleStatic(urlPath: string, res: ServerResponse, daemonDir: string): boolean {
@@ -161,30 +145,19 @@ export function startRecoveryOnlyServer(input: RecoveryOnlyServerInput): void {
   >();
   let draining = false;
   let drainPromise: Promise<{ aborted: number }> | undefined;
-  let stopPromise: Promise<void> | undefined;
-  let fatalPromise: Promise<never> | undefined;
+  let lifecycleOnce: Promise<never> | undefined;
   let dbClosed = false;
-  let exitIntent: "restart" | "signal" | undefined;
+  const disposition = new LifecycleDisposition();
   let tier1DrainPromise: Promise<{ recoverableTier1: number }> | undefined;
   let bindPromise: Promise<void> | undefined;
   const setupJobs = new Set<Promise<void>>();
   const setupJobAbort = new AbortController();
 
-  const sendFrame = (frame: SupervisorFrame): void => {
-    void sendFrameAndWait(frame);
-  };
-
   const sendFrameAndWait = (frame: SupervisorFrame): Promise<void> => {
-    if (typeof process.send !== "function") return Promise.resolve();
-    return new Promise((resolveSend) => {
-      try {
-        process.send?.(frame, (err) => {
-          if (err) input.log.warn("recovery supervisor IPC send failed", { t: frame.t, error: String(err).slice(0, 160) });
-          resolveSend();
-        });
-      } catch (err) {
-        input.log.warn("recovery supervisor IPC send failed", { t: frame.t, error: String(err).slice(0, 160) });
-        resolveSend();
+    return sendSupervisorFrameAndWait(frame, {
+      supervised: input.supervised,
+      log: (msg, fields) => {
+        input.log.warn(msg, fields);
       }
     });
   };
@@ -217,7 +190,11 @@ export function startRecoveryOnlyServer(input: RecoveryOnlyServerInput): void {
     const byoaDrain = beginDrain();
     const tier1Drain = beginTier1Drain(reason);
     const [byoa, tier1] = await Promise.all([byoaDrain, tier1Drain]);
-    await bindPromise;
+    try {
+      await bindPromise;
+    } catch {
+      // bind/ready 失败仍继续关 listener，避免与 fatal drain 死锁
+    }
     const listenerClosed = server.listening
       ? new Promise<void>((resolveClosed, rejectClosed) =>
           server.close((err) => (err ? rejectClosed(err) : resolveClosed()))
@@ -227,6 +204,7 @@ export function startRecoveryOnlyServer(input: RecoveryOnlyServerInput): void {
     // 活跃 self-test 已结算后终止其 HTTP keep-alive，避免 server.close 永久等待。
     server.closeAllConnections();
     await listenerClosed;
+    assertShutdownExactEmpty(input.saydoHome);
     return { recoverableTier1: tier1.recoverableTier1, abortedUnrecoverable: byoa.aborted };
   };
 
@@ -250,26 +228,129 @@ export function startRecoveryOnlyServer(input: RecoveryOnlyServerInput): void {
     }
   };
 
-  const fatal = (code: string, error: unknown): Promise<never> => {
-    if (fatalPromise) return fatalPromise;
-    const message = String(error instanceof Error ? error.message : error).slice(0, 500);
-    input.log.error("recovery-only shutdown failed", { code, message });
-    fatalPromise = (async (): Promise<never> => {
-      await waitForCleanupWithin([
-        closeAfterDrain("supervisor_stop").then(() => undefined)
-      ], 5_000);
-      server.closeAllConnections();
+  const claimRecoveryIntent = (next: Parameters<LifecycleDisposition["claim"]>[0]): boolean => {
+    return disposition.claim(next);
+  };
+
+  const ensureRecoveryLifecycle = (label: string): Promise<never> => {
+    if (lifecycleOnce) return lifecycleOnce;
+    draining = true;
+    setupJobAbort.abort();
+    input.log.info("recovery lifecycle drain", { intent: disposition.peek()?.kind, label });
+    lifecycleOnce = raceWithMonotonicDeadline((async () => {
+      const peeked = disposition.peek();
+      const drainReason: PrepareShutdownReason = peeked ? shutdownReasonOf(peeked) : "supervisor_stop";
+      input.log.info("recovery lifecycle close", { intent: peeked?.kind, label });
+      const stats = await closeAfterDrain(drainReason);
+      await disposition.waitRestartOverrideGrace();
+      let reason: PrepareShutdownReason = shutdownReasonOf(
+        disposition.peek() ?? { kind: "signal", reason: drainReason }
+      );
+      try {
+        input.audit.record({
+          actor: "daemon",
+          action: "runtime.prepare_shutdown",
+          meta: {
+            reason,
+            recoverableTier1: stats.recoverableTier1,
+            abortedUnrecoverable: stats.abortedUnrecoverable,
+            recoveryOnly: true
+          }
+        });
+        if (disposition.peek()?.kind === "restart") {
+          input.audit.record({
+            actor: "daemon",
+            action: "setup.self_restart",
+            meta: { generation: (disposition.peek() as { generation: number }).generation, pid: process.pid }
+          });
+        }
+      } catch (err) {
+        claimRecoveryIntent({
+          kind: "fatal",
+          code: "shutdown_failed",
+          message: projectUntrustedFailureText(err, DAEMON_SHUTDOWN_FAILED)
+        });
+      }
       try {
         closeDb();
       } catch (closeError) {
-        input.log.error("recovery-only database close failed", { error: String(closeError).slice(0, 200) });
+        claimRecoveryIntent({
+          kind: "fatal",
+          code: "shutdown_failed",
+          message: projectDatabaseCloseFailure(closeError)
+        });
       }
-      await waitForCleanupWithin([
-        sendFrameAndWait({ v: 1, t: "fatal", code, message })
-      ], 500);
-      process.exit(1);
-    })();
-    return fatalPromise;
+      const intent = disposition.freeze();
+      reason = shutdownReasonOf(intent);
+      if (intent.kind === "restart") {
+        input.onReleaseLock?.();
+        if (input.supervised) {
+          await sendFrameAndWait({ v: 1, t: "restartRequested", reason: "setup_recovery", generation: intent.generation });
+          await sendFrameAndWait({
+            v: 1,
+            t: "stopped",
+            reason: "restart",
+            recoverableTier1: stats.recoverableTier1,
+            abortedUnrecoverable: stats.abortedUnrecoverable
+          });
+          process.exit(0);
+          return;
+        }
+        const child = spawn(process.execPath, [...process.execArgv, ...process.argv.slice(1)], {
+          detached: true,
+          stdio: "inherit",
+          env: { ...process.env },
+          cwd: process.cwd()
+        });
+        child.unref();
+        process.exit(0);
+        return;
+      }
+      if (intent.kind === "fatal") {
+        await sendFrameAndWait({
+          v: 1,
+          t: "fatal",
+          code: intent.code,
+          message: (intent.message ?? intent.code).slice(0, 500)
+        });
+        process.exit(1);
+        return;
+      }
+      await sendFrameAndWait({
+        v: 1,
+        t: "stopped",
+        reason,
+        recoverableTier1: stats.recoverableTier1,
+        abortedUnrecoverable: stats.abortedUnrecoverable
+      });
+      process.exit(0);
+    })(), label).then(
+      () => undefined as never,
+      async (err) => {
+        const message = projectUntrustedFailureText(err, DAEMON_SHUTDOWN_FAILED);
+        input.log.error("recovery-only shutdown failed", { code: "shutdown_failed", message });
+        try {
+          closeDb();
+        } catch (closeError) {
+          input.log.error("recovery-only database close failed", {
+            error: projectDatabaseCloseFailure(closeError)
+          });
+        }
+        await waitForCleanupWithin([
+          sendFrameAndWait({ v: 1, t: "fatal", code: "shutdown_failed", message })
+        ], 500);
+        process.exit(1);
+        return undefined as never;
+      }
+    );
+    return lifecycleOnce;
+  };
+
+  const fatal = (code: string, error: unknown): Promise<never> => {
+    const message = projectUntrustedFailureText(error, DAEMON_SHUTDOWN_FAILED);
+    input.log.error("recovery-only shutdown failed", { code, message });
+    claimRecoveryIntent({ kind: "fatal", code, message });
+    return ensureRecoveryLifecycle("fatal");
   };
 
   const checkIdentity = (req: IncomingMessage): { ok: boolean; via?: IdentityVia; code?: string } => {
@@ -290,37 +371,13 @@ export function startRecoveryOnlyServer(input: RecoveryOnlyServerInput): void {
   };
 
   const restart = (generation: number): void => {
-    if (exitIntent !== "restart") return;
-    input.audit.record({ actor: "daemon", action: "setup.self_restart", meta: { generation, pid: process.pid } });
-    if (input.supervised) {
-      if (typeof process.send !== "function") {
-        void fatal("supervisor_ipc_missing", new Error("supervised restart requires IPC"));
-        return;
-      }
-      sendFrame({ v: 1, t: "restartRequested", reason: "setup_recovery", generation });
+    const intent = disposition.peek();
+    if (intent?.kind !== "restart" || intent.generation !== generation) return;
+    if (input.supervised && typeof process.send !== "function") {
+      void fatal("supervisor_ipc_missing", new Error("supervised restart requires IPC"));
       return;
     }
-    void closeAfterDrain("restart")
-      .then((stats) => {
-        if (exitIntent !== "restart") return;
-        input.audit.record({
-          actor: "daemon",
-          action: "runtime.prepare_shutdown",
-          meta: { reason: "restart", ...stats, recoveryOnly: true }
-        });
-        // B4: 先关闭 DB / 释放资源，再 spawn；不再固定延迟 200ms 放大锁冲突窗口。
-        closeDb();
-        input.onReleaseLock?.();
-        const child = spawn(process.execPath, [...process.execArgv, ...process.argv.slice(1)], {
-          detached: true,
-          stdio: "inherit",
-          env: { ...process.env },
-          cwd: process.cwd()
-        });
-        child.unref();
-        process.exit(0);
-      })
-      .catch((err) => fatal("restart_failed", err));
+    void ensureRecoveryLifecycle("restart");
   };
 
   const server = input.preboundServer ?? createServer();
@@ -420,13 +477,13 @@ export function startRecoveryOnlyServer(input: RecoveryOnlyServerInput): void {
           voice: { pipelinePeer: false, asr: "down", tts: "down" }
         }))
           .then((probe) => json(res, 200, probe))
-          .catch((err) => json(res, 500, { ok: false, code: "setup_error", message: String(err).slice(0, 200) }));
+          .catch((err) => json(res, 500, { ok: false, code: "setup_error", message: projectUntrustedFailureText(err, "setup_error") }));
         return;
       }
       if (req.method === "GET" && pathname === "/api/setup/cli-capability") {
         void trackSetupJob((signal) => probeAllCliCapabilities({ signal }))
           .then((clis) => json(res, 200, { ok: true, clis }))
-          .catch((err) => json(res, 500, { ok: false, code: "cli_probe_failed", message: String(err).slice(0, 200) }));
+          .catch((err) => json(res, 500, { ok: false, code: "cli_probe_failed", message: projectUntrustedFailureText(err, "cli_probe_failed") }));
         return;
       }
       if (req.method === "GET" && pathname === "/api/setup/project-overrides/invalid") {
@@ -482,7 +539,9 @@ export function startRecoveryOnlyServer(input: RecoveryOnlyServerInput): void {
       }
 
       void readJsonBody(req, res)
-        .then(async (body) => {
+        .then(async (parsed) => {
+          if (parsed.status === "failed") return;
+          const body = parsed.value;
           if (pathname === "/api/setup/project-overrides/clear-invalid") {
             const record = body as Record<string, unknown> | null;
             const projectIds = record?.["projectIds"];
@@ -661,7 +720,7 @@ export function startRecoveryOnlyServer(input: RecoveryOnlyServerInput): void {
             return;
           }
           if (pathname === "/api/setup/restart") {
-            if (draining || exitIntent) {
+            if (draining || disposition.peek()) {
               json(res, 503, {
                 ok: false,
                 code: "daemon_draining",
@@ -684,11 +743,22 @@ export function startRecoveryOnlyServer(input: RecoveryOnlyServerInput): void {
               });
               return;
             }
-            exitIntent = "restart";
-            void beginDrain();
             const generation = randomInt(1, 2_147_483_647);
-            json(res, 200, { ok: true, restarting: true, generation, pipelineAcked: false });
-            setImmediate(() => restart(generation));
+            if (!claimRecoveryIntent({ kind: "restart", generation })) {
+              json(res, 503, {
+                ok: false,
+                code: "daemon_draining",
+                message: "daemon 正在退出,不能重复发起 restart",
+                retryable: true
+              });
+              return;
+            }
+            draining = true;
+            setupJobAbort.abort();
+            res.writeHead(200, { "content-type": "application/json", connection: "close" });
+            res.end(JSON.stringify({ ok: true, restarting: true, generation, pipelineAcked: false }));
+            disposition.armRestartOverrideGrace();
+            afterClientGone(req.socket, () => restart(generation));
             return;
           }
           json(res, 404, { ok: false, code: "not_found", message: "unknown setup route", retryable: false });
@@ -716,33 +786,41 @@ export function startRecoveryOnlyServer(input: RecoveryOnlyServerInput): void {
 
   const listen = (): Promise<void> => {
     if (server.listening) {
-      bindPromise ??= Promise.resolve().then(() => {
+      bindPromise ??= Promise.resolve().then(async () => {
         if (draining) return;
         input.log.warn("daemon running in recovery-only mode", {
           port: input.port,
           listen: t2Cfg.listen,
           violations: input.violations.map((violation) => ({ code: violation.code, slot: violation.slot }))
         });
-        sendFrame({
-          v: 1,
-          t: "ready",
-          identity: input.identity,
-          port: input.port,
-          stateRootDigest: input.stateRootDigest,
-          readiness: {
-            version: 1,
-            coreReady: false,
-            voiceReady: false,
-            voice: { enabled: false, reason: "pipeline_absent" }
-          }
-        });
+        try {
+          await publishSupervisorReady({
+            v: 1,
+            t: "ready",
+            identity: input.identity,
+            port: input.port,
+            stateRootDigest: input.stateRootDigest,
+            readiness: {
+              version: 1,
+              coreReady: false,
+              voiceReady: false,
+              voice: { enabled: false, reason: "pipeline_absent" }
+            }
+          }, sendFrameAndWait);
+        } catch (err) {
+          void fatal("supervisor_ipc_failed", err);
+          throw err;
+        }
       });
       return bindPromise;
     }
     bindPromise ??= new Promise((resolveListen, rejectListen) => {
       const onError = (err: NodeJS.ErrnoException) => {
         server.off("error", onError);
-        input.log.error("recovery-only listen failed", { error: String(err), port: input.port });
+        input.log.error("recovery-only listen failed", {
+          error: projectUntrustedFailureText(err, "listen_failed"),
+          port: input.port
+        });
         rejectListen(err);
       };
       server.once("error", onError);
@@ -757,20 +835,27 @@ export function startRecoveryOnlyServer(input: RecoveryOnlyServerInput): void {
           listen: t2Cfg.listen,
           violations: input.violations.map((violation) => ({ code: violation.code, slot: violation.slot }))
         });
-        sendFrame({
-          v: 1,
-          t: "ready",
-          identity: input.identity,
-          port: input.port,
-          stateRootDigest: input.stateRootDigest,
-          readiness: {
-            version: 1,
-            coreReady: false,
-            voiceReady: false,
-            voice: { enabled: false, reason: "pipeline_absent" }
+        void (async () => {
+          try {
+            await publishSupervisorReady({
+              v: 1,
+              t: "ready",
+              identity: input.identity,
+              port: input.port,
+              stateRootDigest: input.stateRootDigest,
+              readiness: {
+                version: 1,
+                coreReady: false,
+                voiceReady: false,
+                voice: { enabled: false, reason: "pipeline_absent" }
+              }
+            }, sendFrameAndWait);
+            resolveListen();
+          } catch (err) {
+            void fatal("supervisor_ipc_failed", err);
+            rejectListen(err);
           }
-        });
-        resolveListen();
+        })();
       });
     });
     return bindPromise;
@@ -780,33 +865,8 @@ export function startRecoveryOnlyServer(input: RecoveryOnlyServerInput): void {
     .catch((err) => fatal("tier1_reap_failed", err));
 
   function stop(reason: PrepareShutdownReason): Promise<void> {
-    if (stopPromise) return stopPromise;
-    if (!exitIntent) exitIntent = reason === "restart" ? "restart" : "signal";
-    stopPromise = Promise.race([
-      closeAfterDrain(reason),
-      new Promise<never>((_, rejectTimeout) => {
-        const timer = setTimeout(() => rejectTimeout(new Error("recovery shutdown deadline exceeded")), 25_000);
-        timer.unref();
-      })
-    ])
-      .then(async (tier1) => {
-        input.audit.record({
-          actor: "daemon",
-          action: "runtime.prepare_shutdown",
-          meta: { reason, recoverableTier1: tier1.recoverableTier1, abortedUnrecoverable: tier1.abortedUnrecoverable, recoveryOnly: true }
-        });
-        closeDb();
-        await sendFrameAndWait({
-          v: 1,
-          t: "stopped",
-          reason,
-          recoverableTier1: tier1.recoverableTier1,
-          abortedUnrecoverable: tier1.abortedUnrecoverable
-        });
-        process.exit(0);
-      })
-      .catch((err) => fatal("shutdown_failed", err));
-    return stopPromise;
+    claimRecoveryIntent({ kind: "signal", reason });
+    return ensureRecoveryLifecycle("shutdown");
   }
   process.on("message", (message: unknown) => {
     const parsed = supervisorFrameSchema.safeParse(message);

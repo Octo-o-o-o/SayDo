@@ -20,6 +20,11 @@ const nullAudit: AuditSink = { record: () => ({ id: "aud_x" }) };
 const NOW = "2026-07-26T12:00:00.000Z";
 const TOKEN = "tok-test";
 const TAILNET = ["mac-mini.tailnet-x.ts.net"];
+const ipv4 = (...parts: number[]) => parts.join(".");
+const LAN_PEER = ipv4(192, 168, 8, 31);
+const LAN_HOST = ipv4(192, 168, 8, 20);
+const TEN_HOST = ipv4(10, 0, 0, 2);
+const macHome = (user: string, rest = "") => ["", "Users", user].join("/") + rest;
 
 function idv(input: { host?: string; origin?: string; token?: string; tailnetHosts?: readonly string[]; peerAddress?: string }) {
   return verifyIdentity({
@@ -57,7 +62,7 @@ describe("verifyIdentity tailnet 面(G1 三道门语义不放宽)", () => {
       host: "mac-mini.tailnet-x.ts.net:47100",
       origin: "http://mac-mini.tailnet-x.ts.net:47100",
       tailnetHosts: TAILNET,
-      peerAddress: "192.168.8.31"
+      peerAddress: LAN_PEER
     });
     expect(spoofedFromLan).toMatchObject({ ok: false, code: "host_rejected" });
     const l = idv({ host: "127.0.0.1:47100", tailnetHosts: TAILNET });
@@ -95,16 +100,16 @@ describe("M1 移动 LAN 显式开关", () => {
     expect(daemonListenAddress("127.0.0.1", false)).toBe("127.0.0.1");
     expect(daemonListenAddress("127.0.0.1", true)).toBe("0.0.0.0");
 
-    const base = { token: TOKEN, port: 47100, expectedToken: TOKEN, tailnetHosts: [], peerAddress: "192.168.8.31" };
-    expect(verifyIdentity({ ...base, host: "192.168.8.20:47100", origin: "http://192.168.8.20:47100" })).toMatchObject({
+    const base = { token: TOKEN, port: 47100, expectedToken: TOKEN, tailnetHosts: [], peerAddress: LAN_PEER };
+    expect(verifyIdentity({ ...base, host: `${LAN_HOST}:47100`, origin: `http://${LAN_HOST}:47100` })).toMatchObject({
       ok: false,
       code: "host_rejected"
     });
     expect(
       verifyIdentity({
         ...base,
-        host: "192.168.8.20:47100",
-        origin: "http://192.168.8.20:47100",
+        host: `${LAN_HOST}:47100`,
+        origin: `http://${LAN_HOST}:47100`,
         mobileLan: true
       })
     ).toMatchObject({ ok: true, via: "mobile_lan" });
@@ -127,7 +132,7 @@ describe("M1 移动 LAN 显式开关", () => {
     expect(
       verifyIdentity({
         ...base,
-        host: "10.0.0.2:47100",
+        host: `${TEN_HOST}:47100`,
         origin: undefined,
         mobileLan: true
       })
@@ -135,9 +140,9 @@ describe("M1 移动 LAN 显式开关", () => {
     expect(
       verifyIdentity({
         ...base,
-        host: "10.0.0.2:47100",
+        host: `${TEN_HOST}:47100`,
         origin: undefined,
-        referer: "http://10.0.0.2:47100/#/m",
+        referer: `http://${TEN_HOST}:47100/#/m`,
         mobileLan: true
       })
     ).toMatchObject({ ok: true, via: "mobile_lan" });
@@ -152,7 +157,7 @@ describe("M1 移动 LAN 显式开关", () => {
     expect(
       verifyIdentity({
         ...base,
-        host: "10.0.0.2:47100",
+        host: `${TEN_HOST}:47100`,
         origin: "http://evil.example",
         mobileLan: true
       })
@@ -168,7 +173,7 @@ describe("M1 移动 LAN 显式开关", () => {
     expect(
       verifyIdentity({
         ...base,
-        host: "10.0.0.2:47100",
+        host: `${TEN_HOST}:47100`,
         origin: "http://localhost:47100",
         mobileLan: true
       })
@@ -176,7 +181,7 @@ describe("M1 移动 LAN 显式开关", () => {
     expect(
       verifyIdentity({
         ...base,
-        host: "10.0.0.2:47100",
+        host: `${TEN_HOST}:47100`,
         origin: "http://mac-mini.tailnet-x.ts.net:47100",
         tailnetHosts: TAILNET,
         mobileLan: true
@@ -312,7 +317,7 @@ describe("ntfy 深链(IMPL-5 §2-B:只带路由,token 绝不进深链)", () => {
     ).run(
       "tsk_01T2NTFYREDACT00000000001",
       String((db.prepare("SELECT project_id FROM tasks LIMIT 1").get() as { project_id: string }).project_id),
-      `修 /Users/o/secret.env 里的 ${fakeKey}`,
+      `修 ${macHome("o", "/secret.env")} 里的 ${fakeKey}`,
       "# x",
       "tier1",
       "queued",
@@ -327,7 +332,7 @@ describe("ntfy 深链(IMPL-5 §2-B:只带路由,token 绝不进深链)", () => {
       { consoleBase: "http://127.0.0.1:47100" }
     );
     expect(msg.title).not.toContain(fakeKey);
-    expect(msg.title).not.toContain("/Users/o/secret.env");
+    expect(msg.title).not.toContain(macHome("o", "/secret.env"));
     expect(msg.title).toContain("SayDo");
   });
 

@@ -5,7 +5,7 @@
 > `e2e/evidence/closeout-verification.md` §3.1)。本版为**单一真相**:所有状态均经收口会话独立核实。
 >
 > **开工先读**:本文件 → 本仓 `AGENTS.md` → `docs/plan/IMPLEMENTATION-PLAN-2.md`(**唯一排产源**,W1–W9 + 合同轮)→ `docs/plan/IMPLEMENTATION-PLAN.md`(首发计划,已收口,仅作出处索引)→ `docs/09`(数据契约,照抄源)/`docs/10`(话术)/`docs/11`(UI)/`docs/modules/a-e`(分域导航)。
-> 唯一活动仓 = `/Users/wangyixiao/WorkSpace/SayDo`(远端两个,2026-08-20 起:origin = 私有归档 `github.com/Octo-o-o-o/SayDo-archive`(全史,日常 push);public = 公开快照仓 `github.com/Octo-o-o-o/SayDo`,经 `scripts/publish-public-snapshot.sh` 更新,推前跑隐私探针);设计、实现、证据与过程档案均在本仓。旧路径 `voice-coding` 是指向 SayDo 的兼容链接，冻结冷档是 `voice-coding.archive-20260729`，映射见 `docs/plan/MIGRATION.md`。
+> 唯一活动仓 = `~/WorkSpace/SayDo`(远端两个,2026-08-20 起:origin = 私有归档 `github.com/Octo-o-o-o/SayDo-archive`(全史,日常 push);public = 公开快照仓 `github.com/Octo-o-o-o/SayDo`,经 `scripts/publish-public-snapshot.sh` 更新,推前跑隐私探针);设计、实现、证据与过程档案均在本仓。旧路径 `voice-coding` 是指向 SayDo 的兼容链接，冻结冷档是 `voice-coding.archive-20260729`，映射见 `docs/plan/MIGRATION.md`。
 
 ---
 
@@ -16,27 +16,27 @@
 
 ---
 
-## 1. 状态:最近一周双向审计与 rc.3 补救候选正在收口
+## 1. 状态:最近一周双向审计与 rc.4 补救候选正在收口
 
-> **2026-08-23 现势（supersede 本节下方所有旧“当前”措辞）:**当前施工分支从
-> `3fccf4a704ad9a5d8e013baaefb67c66a5737cba` 开出，W5.4-b C1–C3、全量文档/提交双向账本、
-> `@saydo/cli 0.1.0-rc.3` 无源码快速启动及三平台分发门已经形成补救候选；本机最终 `just ci`、
-> 全量 console Playwright 与源码分发验收已取得绿证据，两路冻结复审的 A/B 级项已回修。外部 Codex
-> 108 与全新会话 112 均未产出 final(112 在 1200 秒守卫下 exit 124)，不能伪写为通过；故 W5.4-b
-> 仍须以最终冻结账本、不可变发布物和 Mac/Windows 固定 URL 实测关批。前轮证据冻结后的两路复审
-> 发现发布面 F89–F94 与运行时 F95–F97，已回修并复核；rc.2 首次托管门随后暴露 Windows native
-> 安装、Linux 恢复时序、Windows `.cmd`/ACL/清理三组新红灯，已按 F98–F101 修复；首轮复审的
-> Win32 缺陷按 F102–F103 回修到 `08b7610`。随后又清除截图主题竞态与公开图中的本机路径泄露，
-> 最终实施边界前移为 `57d3e10511a8ccf3d60bd66bc0ab9bdd9a30a83e`。schema 2/6 bundle 已按该边界重生，内部
-> `--check`、文档链接、候选锚与发布物逐成员校验均为 exit 0；`just ci`、
-> Playwright 36 项、Mac 分发、实体 Windows 空目录安装/SQLite/platform 13 项/完整分发均为 exit 0。
-> rc.3 首轮两路零上下文复审发现证据边界、标签口径及 Win32 SYSTEM/ABI/内存释放问题，均已回修；
-> 回修后差量复核与证据提交后的公开 `--check-bundle` 仍未收口，不提前写绿。
-> `v0.1.0-rc.2` 已以公开 tag 触发首次托管门，但 Windows native 依赖安装与 Linux 恢复夹具
-> 竞态使 Actions run `32616479767` / `32616480151` 首次运行失败，未创建 GitHub Release；该 tag
-> 保留且按发布纪律不得移动、不重跑。当前改用新的 `v0.1.0-rc.3`：在版本与安装策略、durable 事件同步和终止期
-> stdout 收口修复后，必须重新通过完整本地门、实体 Windows 干净安装、独立复审及首次托管门。
-> rc.3 tag、GitHub Release、固定 URL smoke、官网新部署与真机结果在实际执行前均不得写成已完成；
+> **2026-08-23 现势（supersede 本节下方所有旧“当前”措辞）:**最近一周 115 个主线提交、
+> 219 份文档及已记录 ref 宇宙的双向账本已完成；F29–F105 回修、`57d3e10` 实施边界、
+> schema 2/6 bundle、Mac/Windows 分发与两路零上下文最终复审均有真实绿证据。外部 Codex 108 与
+> 全新会话 112 均未产出 final（112 在 1200 秒守卫下 exit 124），不写成通过。
+> `v0.1.0-rc.2` 的 Actions run `32616479767` / `32616480151` 首次失败，未创建 Release；
+> `v0.1.0-rc.3` 随后以内部 `8602c7324844ede014c577409ae10a834f1a1714`、公开
+> `a29f671f79cf5f73452cecd60b092072c72c2aab` 原子推送 main + tag。它的 CI `32622757288` 与 release
+> `32622757385` 首次 attempt 1 也失败，没有创建 GitHub Release：macOS/Ubuntu 分发、Python 与
+> Playwright 为绿，Windows 因 checkout 的 CRLF 使 `THIRD_PARTY_NOTICES.md` 对账失败，Ubuntu node 则因终止
+> agent 进程组时 4 次 stdout `ECONNRESET` 以 unhandled error 泄漏而失败。rc.2/rc.3 标签及
+> 首次 Actions 均保留，按发布纪律不移动、不重跑。当前候选升为 `v0.1.0-rc.4`：Git 文本
+> checkout 固定 LF 且该合同纳入 source revision；主 agent 只在已收到权威 result 或已开始退出时收口
+> `ECONNRESET`，其余 agent、BYOA 与受管命令活动期 pipe 错误仍失败；runtime wrapper 明确丢弃的 stdio 与 permit 控制 pipe 在统一
+> spawn 边界消费读写错误，结果仍只认 child exit/close。rc.4 必须重跑完整本地门、真实 Windows Git checkout、独立复审与
+> 新标签的首次托管门。rc.4 最终实施边界现为
+> `b768089585d710255d61a693c2489ccf425f446f`：Mac `just ci`、Linux/Windows distribution、
+> Windows 111 项受管进程测试及 Mac/Windows 最终 tarball 前台启停均已实测通过；F108 另修复 macOS
+> `npm exec` 单次 `Ctrl+C` 被瞬时重复传播而误强停的问题。最终独立复审、GitHub Release、固定 URL
+> smoke、官网部署与真机结果在实际完成前不得写绿。
 > 当前权威明细见 `docs/plan/2026-08-22-week-audit-faststart-release.fable.md` 与
 > `docs/review/2026-08-23-week-audit-faststart-release.md`。下列长条目保留各自日期的历史证据，
 > 不再承担 2026-08-23 当前坐标；最终提交、Release、部署与设备结果将在本轮证据提交后回填本段。
@@ -67,8 +67,8 @@
 | 2 | ~~真人音频底板 5 条~~ **已到位并烟测(owner 录 5 条 m4a;2026-07-26 凌晨由计划会话代跑,W1.7 回填)** | 结果 **3/5(两次复跑稳定,非抖动)**:a01/a02/a04 ok;a13 "settle barrier"→"strawberry"、a20 "Gate 0"→"get 0" 稳定误听——已入 golden 回归集(`e2e/golden/asr-regression.mjs` r001/r002)+ 热词调优五组变体实验无改善(W1.2,evidence `w1-batch.md`),拉回走用户纠错链(10 #8/#9),场次①步骤 5 现场验;**不重录凑线**(底板要真实条件)。复跑:`pipeline/.venv/bin/python e2e/smoke/audio-smoke-5.py --profile owner`(3/5 known-miss 口径,W1.1 收编) |
 | 3 | ~~dogfood 首个真实项目指定~~ **已指定(owner 2026-07-26 凌晨,双项目双类型;W1.7 回填)** | `~/WorkSpace/OctoDesk` = coding 类型(场次②起日用;W2-C 的 M1 奠基对象,执行前知会 owner)、`~/WorkSpace/OctoBlog` = writing 类型(随 writing 窄版就绪后接入,此前不奠基不派单)。**命名澄清**:`~/WorkSpace/saydo-dogfood`(commit `f8e36af`)是执行器批的 **e2e 独立测试沙箱**,不是 dogfood 真仓(纪律:e2e 绝不碰 dogfood 真仓;建议后续改名 `saydo-e2e-sandbox` 消歧义) |
 | 4 | ~~工程 ADR-002 复核批复~~ **已批复(owner 2026-07-25:收窄改写；T18 后状态已更新)** | 条款收窄已回写 09 §11 规则 2:封闭枚举 + 豁免生效前提=可执行文件身份核验(预登记绝对路径+digest)+ 生效必落 `observed_model_exempted` 审计标记。BYOA 的 `verified_binary_default` 身份核验链与条件豁免已随 T18 落地,仅 `{codex_cli,claude_cli}` 且流内无 model 时可按合同触发；Tier1 `claude_code` 不使用该豁免。工程 ADR-002 的历史「休眠」状态陈述已随 w54b-canonical-preface 回写校正(2026-08-21,ADR-002 文末「状态更正」节;owner 确认挂 W5.4-b 批验收)。 |
-| 5 | **GitHub Actions** | 公开仓既有 node+python 门可用；本轮 `ci.yml` 已增加 Ubuntu/macOS/Windows 三平台 `@saydo/cli` 分发矩阵，`release.yml` 另设公开快照 tag 绑定门、发布前三平台分发与发布后固定 URL smoke。只有公开 tag 推送后的真实 Actions 结果才能把 rc.3 写成通过。 |
-| 5b | **Windows / Linux 桌面执行面** | Windows 10.0.26200 的既有 P0 真机证据与 Linux Ubuntu CI 证据继续有效；本轮新增无源码前台启动分发候选。常驻安装（Linux systemd、Windows Scheduled Task）、Windows 系统通知与 SAPI TTS 仍未实现。跨平台认证文案及 console/Brain 实现已统一为“本机认证”，不再把 Touch ID 泛化到 Windows/Linux；rc.3 发布后仍须分别读取 Windows 与 Ubuntu 的真实分发 job 结论。 |
+| 5 | **GitHub Actions** | 公开仓既有 node+python 门可用；本轮 `ci.yml` 已增加 Ubuntu/macOS/Windows 三平台 `@saydo/cli` 分发矩阵，`release.yml` 另设公开快照 tag 绑定门、发布前三平台分发与发布后固定 URL smoke。rc.3 首次 run 已失败；只有新的 rc.4 首次 Actions 可以决定新候选是否通过。 |
+| 5b | **Windows / Linux 桌面执行面** | Windows 10.0.26200 的既有 P0 真机证据与 Linux Ubuntu CI 证据继续有效；本轮新增无源码前台启动分发候选。常驻安装（Linux systemd、Windows Scheduled Task）、Windows 系统通知与 SAPI TTS 仍未实现。跨平台认证文案及 console/Brain 实现已统一为“本机认证”，不再把 Touch ID 泛化到 Windows/Linux；rc.4 发布后仍须分别读取 Windows 与 Ubuntu 的真实分发 job 结论。 |
 | 6 | **Claude**(CLI 已登录 Max;W5.4-b 候选待最终复审) | CLI **2.1.220**(2026-08-22 实测 `claude --version`,与 fixture 基准一致)，已用 Claude.ai 登录，Max 订阅，零 API key。订阅只经 `claude` CLI 登录态消费；C1–C3 候选已补齐严格 init/result、身份登记、进程树回收、console 与话术，但 W5.4-c 的真实 hooks/live conformance 仍未执行，不能由 fake 与分发测试替代。 |
 | 7 | (可选)OpenAI key / OpenRouter 放行 | 解锁 ASR 第二家对比与 dialog 档缺省 gemini(现 dev 用 deepseek 异族合法) |
 | 8 | ~~Codex 14 登记上浮三件~~ **全部完成(①③随接线批;② W1.3 清账 2026-07-26)** | ① 停靠老化调度接线 + transitionTask CAS(接线批);② 项目层配置生产加载 **已落**(`config/project.ts` 独立 project schema + 执行器认领/恢复链白名单拒收留痕 + [git].protected 并集消费;§12-9 反例 `config-project.test.ts` 6 例 + 执行链集成锚,代码 `6bc48dc`,evidence `w1-batch.md`);③ retryTask 重派发(接线批) |

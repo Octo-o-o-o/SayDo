@@ -1,6 +1,6 @@
 # 最近一周双向审计、快速启动与发布收口对抗评审
 
-你是零上下文、只读的对抗评审方。仓库为 `/Users/wangyixiao/WorkSpace/SayDo`。
+你是零上下文、只读的对抗评审方。仓库为 `~/WorkSpace/SayDo`。
 不要修改文件，不要提交，不要部署。先完整阅读仓库 `AGENTS.md`，再用真实 Git 与代码命令独立核验；
 不要把现有 review、evidence 或报告中的断言当成证据。
 

@@ -2,7 +2,7 @@
   "schemaVersion": 6,
   "adjudication": {
     "mode": "exhaustive_bidirectional_readback",
-    "reviewedAt": "2026-08-22T20:36:00.485Z",
+    "reviewedAt": "2026-08-23T17:53:51.222Z",
     "reviewer": "Codex root",
     "method": "逐 SHA 从真实 diff 读取文档/实现/测试锚，逐文档对每个触及提交记录 blob、bytes、内容 SHA-256、非空真实变更行或二进制/确无非空文本差异的同一性身份。findingIds 仅表示与人工报告 finding 的可追溯链接；空 findingIds 明确不等于人工判定正确。mechanicalIdentityClaim/mechanicalEvidenceSummary 与 correlations 均不宣称语义相关或正确性。脚本不产生 finding 或裁决。",
     "manualBasis": "docs/review/2026-08-23-week-audit-faststart-release.md §3–§5；人工部分仅限该报告明确登记的 F18–F28 finding 及 anchor 中的非空逐项映射。",
@@ -15,13 +15,17 @@
     "refsFrozenAt": "2026-08-22T22:30:44+08:00",
     "base": "8a8247a347238b6bf6ad649f1162f1934540eafd",
     "rangeEnd": "3fccf4a704ad9a5d8e013baaefb67c66a5737cba",
+    "remediationEnd": "b768089585d710255d61a693c2489ccf425f446f",
     "markdownOutput": "docs/review/2026-08-22-week-audit-ledger.md",
     "jsonOutput": "research/week-audit/2026-08-22-ledger.json",
     "semanticOutput": "research/week-audit/2026-08-22-semantic-review.json",
     "integrityOutput": "research/week-audit/2026-08-22-bundle-integrity.json",
     "refManifest": "research/week-audit/2026-08-22-ref-manifest.json",
     "publicationManifest": "research/week-audit/2026-08-23-publication-manifest.json",
-    "reviewFindingAnchor": "research/week-audit/2026-08-23-review-finding-anchor.json"
+    "reviewFindingAnchor": "research/week-audit/2026-08-23-review-finding-anchor.json",
+    "crossLinks": "research/week-audit/2026-08-23-remediation-cross-links.json",
+    "remediationJsonOutput": "research/week-audit/2026-08-23-remediation-ledger.json",
+    "remediationMarkdownOutput": "docs/review/2026-08-23-remediation-ledger.md"
   },
   "coverageRule": "commitDecisions/documentDecisions 键集合精确覆盖 115/219，但这里只证明机械证据覆盖；commit assertion 路径必须属于该 SHA，document assertion 的 commit 集必须等于 commitRefs；私有 --check 反查 blob/bytes/内容及真实 diff hunk，公开 --check-bundle 验结构、review finding 映射与 bundle 摘要。",
   "findings": [
@@ -13365,8 +13369,8 @@
           "bytes": 7724,
           "contentSha256": "887aa4c666a9a15fe916e1618c0cd4572f677dcf1dbf05bf409bbb02f33e6049",
           "line": 2,
-          "excerpt": "\"_comment\": \"SayDo listing draft. Chinese main name 说到 (owner 2026-08-13). App Store en-US name locked 2026-08-22 to 'SayDo - You Say, AI Do' (exact SayDo occupied; 千手-style Brand - tagline). Validate: node /Users/wan...",
-          "excerptSha256": "a69755883cfc80c7d48150a42d6564310d3c75c635a24ae9f85283f3266775f0"
+          "excerpt": "\"_comment\": \"SayDo listing draft. Chinese main name 说到 (owner 2026-08-13). App Store en-US name locked 2026-08-22 to 'SayDo - You Say, AI Do' (exact SayDo occupied; 千手-style Brand - tagline). Validate: node ~/WorkSpac...",
+          "excerptSha256": "cb24f5f5fbe6d5c2167fc9e1d60a343b89f8743900d7e5bc761b24c03b060103"
         },
         {
           "commit": "4d2824ef896e5ace49cb8f86e48b3c7a64bf7602",
@@ -13377,12 +13381,12 @@
           "bytes": 7724,
           "contentSha256": "887aa4c666a9a15fe916e1618c0cd4572f677dcf1dbf05bf409bbb02f33e6049",
           "line": 2,
-          "excerpt": "\"_comment\": \"SayDo listing draft. Chinese main name 说到 (owner 2026-08-13). App Store en-US name locked 2026-08-22 to 'SayDo - You Say, AI Do' (exact SayDo occupied; 千手-style Brand - tagline). Validate: node /Users/wan...",
-          "excerptSha256": "a69755883cfc80c7d48150a42d6564310d3c75c635a24ae9f85283f3266775f0"
+          "excerpt": "\"_comment\": \"SayDo listing draft. Chinese main name 说到 (owner 2026-08-13). App Store en-US name locked 2026-08-22 to 'SayDo - You Say, AI Do' (exact SayDo occupied; 千手-style Brand - tagline). Validate: node ~/WorkSpac...",
+          "excerptSha256": "cb24f5f5fbe6d5c2167fc9e1d60a343b89f8743900d7e5bc761b24c03b060103"
         }
       ],
       "mechanicalIdentityClaim": "docs/release/metadata.json 的冻结类型为 supporting_doc，由 3 个主线提交触及；finding 链接与机械身份描述分离。",
-      "mechanicalEvidenceSummary": "docs/release/metadata.json 的 3 个触及提交已逐一绑定 blob/行锚（aac3d60/479634c/4d2824e）；末次为 4d2824e 的 docs/release/metadata.json commit:2 的「\"_comment\": \"SayDo listing draft. Chinese main name 说到 (owner 2026-08-13). App Store en-US name locked 2026-08-22 to 'SayDo - You Say, AI Do' (exact SayDo occupied; 千手-style Brand - tagline). Validate: node /Users/wan...」。correlations 只列同提交候选路径,不构成语义相关性或人工裁决。",
+      "mechanicalEvidenceSummary": "docs/release/metadata.json 的 3 个触及提交已逐一绑定 blob/行锚（aac3d60/479634c/4d2824e）；末次为 4d2824e 的 docs/release/metadata.json commit:2 的「\"_comment\": \"SayDo listing draft. Chinese main name 说到 (owner 2026-08-13). App Store en-US name locked 2026-08-22 to 'SayDo - You Say, AI Do' (exact SayDo occupied; 千手-style Brand - tagline). Validate: node ~/WorkSpac...」。correlations 只列同提交候选路径,不构成语义相关性或人工裁决。",
       "evidenceStatus": "mechanically_evidenced",
       "remediationLinkStatus": "no_manual_disposition_recorded"
     },
@@ -17720,8 +17724,8 @@
           "bytes": 27513,
           "contentSha256": "ca10a672d24ad4b0165604c0511afaedbe23f8d4a595e7f340f7d7aa7afadc50",
           "line": 8,
-          "excerpt": "> 唯一活动仓 = `/Users/wangyixiao/WorkSpace/SayDo`(远端两个,2026-08-20 起:origin = 私有归档 `github.com/Octo-o-o-o/SayDo-archive`(全史,日常 push);public = 公开快照仓 `github.com/Octo-o-o-o/SayDo`,经 `scripts/publish-public-snapshot.sh` 更新,推前...",
-          "excerptSha256": "58c59dd7ec9308684dde30cbb080bf9dc9bbb2f17416398c57b4afd02efd814c"
+          "excerpt": "> 唯一活动仓 = `~/WorkSpace/SayDo`(远端两个,2026-08-20 起:origin = 私有归档 `github.com/Octo-o-o-o/SayDo-archive`(全史,日常 push);public = 公开快照仓 `github.com/Octo-o-o-o/SayDo`,经 `scripts/publish-public-snapshot.sh` 更新,推前跑隐私探针);设计、实现、证据与...",
+          "excerptSha256": "cedca940161075a3b8d7e95d61a2a8517e55b98e3f8a4d0da3757aaa929f04b4"
         },
         {
           "commit": "1679078bdd44ef9b8034e3f926c990e39b8825a8",

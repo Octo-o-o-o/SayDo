@@ -4,7 +4,7 @@
 
 ---
 
-你接手 **SayDo 接线增量批**(场次②–④共同前置)。任务清单的单一真相 = SayDo `HANDOFF.md` §2-9(六项);canonical 已先行更新(09 §6.1 新增 failed→queued 边、§11 规则 2 收窄条款、§13 retryTask 语义注——2026-07-25)。代码仓 `/Users/wangyixiao/WorkSpace/SayDo`(main 直推);设计库 `/Users/wangyixiao/WorkSpace/voice-coding`(只读,回写走轻量评审)。
+你接手 **SayDo 接线增量批**(场次②–④共同前置)。任务清单的单一真相 = SayDo `HANDOFF.md` §2-9(六项);canonical 已先行更新(09 §6.1 新增 failed→queued 边、§11 规则 2 收窄条款、§13 retryTask 语义注——2026-07-25)。代码仓 `~/WorkSpace/SayDo`(main 直推);设计库 `~/WorkSpace/voice-coding`(只读,回写走轻量评审)。
 
 ## 0. 坐标核验(先做,漂移即停)
 
@@ -16,7 +16,7 @@
 | `rg -n "expected_version" ~/.saydo/config.toml` | `bdd1e548…`(baseline.2) |
 | `rg -rn "from \"./bridge" packages/daemon/src --glob '!**/*.test.ts'` | 空(接线前基线;接完不应再空) |
 
-## 1. 必读(以 `/Users/wangyixiao/WorkSpace/` 为根)
+## 1. 必读(以 `~/WorkSpace/` 为根)
 
 1. `SayDo/HANDOFF.md`(§2-9 = 你的任务清单;§0 两条硬教训;§4 铁律)
 2. `voice-coding/docs/09-data-contracts.md` §6.1(failed→queued 新边)/§11 规则 2(收窄条款)/§13(工具契约;retryTask 语义注)——**照抄源**

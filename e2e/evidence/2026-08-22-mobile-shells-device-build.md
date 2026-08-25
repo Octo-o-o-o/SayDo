@@ -32,7 +32,7 @@ Android 首次执行 `build-and-install.sh` **失败**(exit 1):
 ```
 SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable
 or by setting the sdk.dir path in your project's local properties file at
-'/Users/wangyixiao/WorkSpace/SayDo/apps/android/local.properties'
+'~/WorkSpace/SayDo/apps/android/local.properties'
 ```
 
 根因 = 环境未导出 `ANDROID_HOME`,`local.properties` 不入仓(本机产物)。补 `ANDROID_HOME=~/Library/Android/sdk`

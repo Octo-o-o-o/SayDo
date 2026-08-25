@@ -3,6 +3,7 @@
 // 启动期 => 拒启动(与 [params] 非法同律);运行期 Gate 0 => enabled:false(拒 dispatch),
 // 防 config.toml 被改坏后 daemon 带宽松缺省继续跑(G6 同意翻转 / Gate 0 放行)。
 
+import { projectUntrustedFailureText } from "@saydo/platform";
 import { loadConfigFile, paramValue } from "./load.js";
 import { PARAM_DEFAULTS } from "./types.js";
 
@@ -13,7 +14,7 @@ function isEnoent(err: unknown): boolean {
 /** 错误摘要脱原文(回收批 2 复审 A1):TomlError 的 message 含 config 原文 codeblock(\n\n 之后)——
  *  审计 append-only 永不可清,原文进去就出不来;只取首行(静态短语),截 160。 */
 export function sanitizedConfigErrorSummary(err: unknown): string {
-  return String(err).split("\n")[0]!.slice(0, 160);
+  return projectUntrustedFailureText(err, "config error").split("\n")[0]!.slice(0, 160);
 }
 
 export interface StartupLiveConfig {
@@ -35,7 +36,7 @@ export function readStartupLiveConfig(path: string): StartupLiveConfig {
     }
     throw new Error(
       `config.toml 存在但解析失败,拒启动(fail-closed,与 [params] 非法同律;impl-readback B4)。` +
-        `修复 ${path} 后重启。原始错误:${String(err).slice(0, 200)}`
+        `修复 ${path} 后重启。原始错误:${projectUntrustedFailureText(err, "config error").slice(0, 200)}`
     );
   }
 }

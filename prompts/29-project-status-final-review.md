@@ -1,6 +1,6 @@
 # Codex 29 · 项目状态归档最终窄复评
 
-对 `/Users/wangyixiao/WorkSpace/SayDo` 做只读复评，不修改文件，不启动 subagent，不读取 skill，
+对 `~/WorkSpace/SayDo` 做只读复评，不修改文件，不启动 subagent，不读取 skill，
 不重复全仓调研。Codex 28 已做完整取证但输出阶段停滞；本次只基于当前文件与下列已落证据给结论。
 
 ## 只读范围

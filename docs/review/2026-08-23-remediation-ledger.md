@@ -1,7 +1,7 @@
 # 最近一周回修双向账本
 
-- 范围：`3fccf4a..57d3e10`。证据载体提交因 SHA 自引用不可能性排除在范围外。
-- 覆盖：23 个回修提交、183 个路径、56 份关联文档。
+- 范围：`3fccf4a..b768089`。证据载体提交因 SHA 自引用不可能性排除在范围外。
+- 覆盖：29 个回修提交、189 个路径、59 份关联文档。
 
 ## 提交 -> 文档
 
@@ -30,15 +30,21 @@
 | `23c2251` | fix(release): 修复跨平台首发红灯并升级 rc3 | `paired` | `deploy/saydo-octoooo-com/docs/index.html`<br>`deploy/saydo-octoooo-com/en/docs/index.html`<br>`deploy/saydo-octoooo-com/en/index.html`<br>`deploy/saydo-octoooo-com/index.html`<br>`docs/plan/2026-08-22-week-audit-faststart-release.fable.md`<br>`docs/release/v0.1.0-rc.3.md`<br>`docs/site/2026-08-20-docs-page-content.fable.md`<br>`docs/site/2026-08-20-homepage-structure-copy.fable.md`<br>`HANDOFF.md`<br>`packages/cli/README.md`<br>`packages/cli/THIRD_PARTY_NOTICES.md`<br>`README.md` | `.github/workflows/release.yml`<br>`package.json`<br>`packages/cli/package.json`<br>`packages/cli/scripts/verify-distribution.mjs`<br>`packages/daemon/package.json`<br>`packages/daemon/src/tier1/executor.ts`<br>`packages/platform/src/win32.ts`<br>`pnpm-lock.yaml`<br>`scripts/post-release-gate.mjs`<br>`scripts/run-release-verifier-windows.ps1`<br>`scripts/verify-release-url.mjs`<br>`scripts/week-audit.mjs`<br>`packages/daemon/test/tier1-executor.test.ts`<br>`packages/platform/test/fs.test.ts`<br>`scripts/test-release-physical-evidence.mjs` |
 | `08b7610` | fix(platform): 修正 Windows ACL 身份与 ABI 边界 | `paired` | `docs/release/v0.1.0-rc.3.md` | `packages/platform/src/win32.ts`<br>`scripts/publish-public-snapshot.sh`<br>`packages/platform/test/fs.test.ts` |
 | `57d3e10` | fix(test): 稳定亮暗截图并移除本机路径泄露 | `implementation_only` | `docs/plan/2026-08-22-week-audit-faststart-release.fable.md`<br>`docs/review/2026-08-23-week-audit-faststart-release.md`<br>`e2e/evidence/2026-08-23-rc3-release-recovery.md` | `e2e/console/console.spec.ts`<br>`e2e/console/global-setup.ts` |
+| `7996311` | chore(evidence): 冻结 rc3 最终发布候选 | `paired` | `docs/review/2026-08-23-remediation-ledger.md`<br>`docs/review/2026-08-23-week-audit-faststart-release.md`<br>`e2e/evidence/2026-08-23-rc3-release-recovery.md`<br>`HANDOFF.md`<br>`history/PROCESS-JOURNAL.md`<br>`research/week-audit/2026-08-22-bundle-integrity.json`<br>`research/week-audit/2026-08-22-ledger.json`<br>`research/week-audit/2026-08-23-publication-manifest.json`<br>`research/week-audit/2026-08-23-remediation-cross-links.json`<br>`research/week-audit/2026-08-23-remediation-ledger.json` | `scripts/week-audit.mjs`<br>`e2e/screenshots/dark/approvals.png`<br>`e2e/screenshots/dark/artifacts.png`<br>`e2e/screenshots/dark/chat.png`<br>`e2e/screenshots/dark/cost.png`<br>`e2e/screenshots/dark/dashboard.png`<br>`e2e/screenshots/dark/memory.png`<br>`e2e/screenshots/dark/notify.png`<br>`e2e/screenshots/dark/psettings.png`<br>`e2e/screenshots/dark/settings.png`<br>`e2e/screenshots/dark/task-detail.png`<br>`e2e/screenshots/dark/tasks.png`<br>`e2e/screenshots/light/approvals.png`<br>`e2e/screenshots/light/artifacts.png`<br>`e2e/screenshots/light/chat.png`<br>`e2e/screenshots/light/cost.png`<br>`e2e/screenshots/light/memory.png`<br>`e2e/screenshots/light/notify.png`<br>`e2e/screenshots/light/psettings.png`<br>`e2e/screenshots/light/settings.png`<br>`e2e/screenshots/light/task-detail.png`<br>`e2e/screenshots/light/tasks.png` |
+| `07c253d` | chore(evidence): 修正 rc3 发布状态残留口径 | `document_only` | `docs/review/2026-08-23-week-audit-faststart-release.md`<br>`HANDOFF.md`<br>`history/PROCESS-JOURNAL.md`<br>`research/week-audit/2026-08-22-bundle-integrity.json`<br>`research/week-audit/2026-08-23-publication-manifest.json` | - |
+| `8602c73` | chore(evidence): 回写 rc3 独立复审结论 | `document_only` | `docs/review/2026-08-23-week-audit-faststart-release.md`<br>`history/PROCESS-JOURNAL.md`<br>`research/week-audit/2026-08-22-bundle-integrity.json`<br>`research/week-audit/2026-08-23-publication-manifest.json` | - |
+| `951249e` | fix(release): 修复 RC4 换行与受管进程边界 | `paired` | `deploy/saydo-octoooo-com/docs/index.html`<br>`deploy/saydo-octoooo-com/en/docs/index.html`<br>`deploy/saydo-octoooo-com/en/index.html`<br>`deploy/saydo-octoooo-com/index.html`<br>`docs/plan/2026-08-22-week-audit-faststart-release.fable.md`<br>`docs/release/v0.1.0-rc.4.md`<br>`docs/review/2026-08-23-week-audit-faststart-release.md`<br>`docs/site/2026-08-20-docs-page-content.fable.md`<br>`docs/site/2026-08-20-homepage-structure-copy.fable.md`<br>`e2e/evidence/2026-08-23-rc3-release-recovery.md`<br>`e2e/evidence/2026-08-23-rc4-release-candidate.md`<br>`packages/cli/README.md`<br>`README.md` | `.gitattributes`<br>`.github/workflows/release.yml`<br>`packages/cli/package.json`<br>`packages/cli/scripts/build.mjs`<br>`packages/daemon/src/providers/byoa/runner.ts`<br>`packages/daemon/src/runtimeChildRegistry.ts`<br>`packages/daemon/src/tier1/executor.ts`<br>`scripts/post-release-gate.mjs`<br>`scripts/run-release-verifier-windows.ps1`<br>`scripts/week-audit.mjs`<br>`packages/daemon/test/runtime-child-registry.test.ts`<br>`packages/daemon/test/tier1-executor.test.ts`<br>`scripts/test-release-physical-evidence.mjs` |
+| `b92b0ea` | test(daemon): 修正 Windows 受管进程夹具 | `implementation_only` | `docs/plan/2026-08-22-week-audit-faststart-release.fable.md`<br>`docs/review/2026-08-23-week-audit-faststart-release.md`<br>`e2e/evidence/2026-08-23-rc4-release-candidate.md` | `packages/daemon/test/tier1-executor.test.ts` |
+| `b768089` | fix(cli): 合并 npm exec 瞬时重复信号 | `implementation_only` | `docs/plan/2026-08-22-week-audit-faststart-release.fable.md`<br>`docs/review/2026-08-23-week-audit-faststart-release.md`<br>`e2e/evidence/2026-08-23-rc4-release-candidate.md`<br>`prompts/97-rc4-macos-npm-exec-signal-implementation.md` | `packages/cli/src/supervisor.ts`<br>`packages/cli/test/supervisor.test.ts` |
 
 ## 文档 -> 提交
 
 | 文档 | 同提交触及 | 关联实施提交 |
 |---|---|---|
-| `deploy/saydo-octoooo-com/docs/index.html` | `a15b5de`<br>`23c2251` | `a15b5de`<br>`23c2251` |
-| `deploy/saydo-octoooo-com/en/docs/index.html` | `a15b5de`<br>`23c2251` | `a15b5de`<br>`23c2251` |
-| `deploy/saydo-octoooo-com/en/index.html` | `a15b5de`<br>`8048268`<br>`23c2251` | `a15b5de`<br>`8048268`<br>`23c2251` |
-| `deploy/saydo-octoooo-com/index.html` | `a15b5de`<br>`8048268`<br>`23c2251` | `a15b5de`<br>`8048268`<br>`23c2251` |
+| `deploy/saydo-octoooo-com/docs/index.html` | `a15b5de`<br>`23c2251`<br>`951249e` | `a15b5de`<br>`23c2251`<br>`951249e` |
+| `deploy/saydo-octoooo-com/en/docs/index.html` | `a15b5de`<br>`23c2251`<br>`951249e` | `a15b5de`<br>`23c2251`<br>`951249e` |
+| `deploy/saydo-octoooo-com/en/index.html` | `a15b5de`<br>`8048268`<br>`23c2251`<br>`951249e` | `a15b5de`<br>`8048268`<br>`23c2251`<br>`951249e` |
+| `deploy/saydo-octoooo-com/index.html` | `a15b5de`<br>`8048268`<br>`23c2251`<br>`951249e` | `a15b5de`<br>`8048268`<br>`23c2251`<br>`951249e` |
 | `deploy/saydo-octoooo-com/site.css` | `a15b5de`<br>`8048268` | `a15b5de`<br>`8048268` |
 | `docs/03-architecture.md` | `a15b5de` | `a15b5de` |
 | `docs/04-key-mechanisms.md` | `a15b5de` | `a15b5de` |
@@ -52,22 +58,24 @@
 | `docs/adr/design/ADR-004-windows-platform.md` | `a15b5de` | `a15b5de` |
 | `docs/modules/c-control-bridge.md` | `a15b5de` | `a15b5de` |
 | `docs/plan/2026-08-19-w54-claude-cli-tier1.fable.md` | `174ab48` | `174ab48` |
-| `docs/plan/2026-08-22-week-audit-faststart-release.fable.md` | `a15b5de`<br>`4f04c03`<br>`174ab48`<br>`8048268`<br>`8d0027f`<br>`81760a4`<br>`23c2251` | `a15b5de`<br>`4f04c03`<br>`174ab48`<br>`8048268`<br>`e9bfb26`<br>`3f8be93`<br>`8d0027f`<br>`877c875`<br>`3e74a5a`<br>`23c2251`<br>`57d3e10` |
+| `docs/plan/2026-08-22-week-audit-faststart-release.fable.md` | `a15b5de`<br>`4f04c03`<br>`174ab48`<br>`8048268`<br>`8d0027f`<br>`81760a4`<br>`23c2251`<br>`951249e` | `a15b5de`<br>`4f04c03`<br>`174ab48`<br>`8048268`<br>`e9bfb26`<br>`3f8be93`<br>`8d0027f`<br>`877c875`<br>`3e74a5a`<br>`23c2251`<br>`57d3e10`<br>`951249e`<br>`b92b0ea`<br>`b768089` |
 | `docs/plan/IMPLEMENTATION-PLAN-2.md` | `a15b5de` | `a15b5de` |
 | `docs/release/v0.1.0-rc.2.md` | `a15b5de`<br>`8048268` | `a15b5de`<br>`8048268` |
 | `docs/release/v0.1.0-rc.3.md` | `23c2251`<br>`08b7610` | `23c2251`<br>`08b7610` |
+| `docs/release/v0.1.0-rc.4.md` | `951249e` | `951249e` |
 | `docs/review/2026-08-22-week-audit-ledger.md` | `e95fe2a`<br>`9199d36` | `e95fe2a`<br>`9199d36` |
-| `docs/review/2026-08-23-remediation-ledger.md` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36` |
-| `docs/review/2026-08-23-week-audit-faststart-release.md` | `174ab48`<br>`8048268`<br>`e95fe2a`<br>`cdaa5ed`<br>`1987b54`<br>`8d0027f`<br>`81760a4`<br>`9199d36` | `174ab48`<br>`8048268`<br>`e95fe2a`<br>`e9bfb26`<br>`3f8be93`<br>`cdaa5ed`<br>`1987b54`<br>`8d0027f`<br>`877c875`<br>`3e74a5a`<br>`9199d36`<br>`57d3e10` |
-| `docs/site/2026-08-20-docs-page-content.fable.md` | `a15b5de`<br>`174ab48`<br>`23c2251` | `a15b5de`<br>`174ab48`<br>`23c2251` |
-| `docs/site/2026-08-20-homepage-structure-copy.fable.md` | `a15b5de`<br>`8048268`<br>`23c2251` | `a15b5de`<br>`8048268`<br>`23c2251` |
-| `e2e/evidence/2026-08-23-rc3-release-recovery.md` | - | `57d3e10` |
+| `docs/review/2026-08-23-remediation-ledger.md` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36`<br>`7996311` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36`<br>`7996311` |
+| `docs/review/2026-08-23-week-audit-faststart-release.md` | `174ab48`<br>`8048268`<br>`e95fe2a`<br>`cdaa5ed`<br>`1987b54`<br>`8d0027f`<br>`81760a4`<br>`9199d36`<br>`7996311`<br>`07c253d`<br>`8602c73` | `174ab48`<br>`8048268`<br>`e95fe2a`<br>`e9bfb26`<br>`3f8be93`<br>`cdaa5ed`<br>`1987b54`<br>`8d0027f`<br>`877c875`<br>`3e74a5a`<br>`9199d36`<br>`57d3e10`<br>`7996311`<br>`951249e`<br>`b92b0ea`<br>`b768089` |
+| `docs/site/2026-08-20-docs-page-content.fable.md` | `a15b5de`<br>`174ab48`<br>`23c2251`<br>`951249e` | `a15b5de`<br>`174ab48`<br>`23c2251`<br>`951249e` |
+| `docs/site/2026-08-20-homepage-structure-copy.fable.md` | `a15b5de`<br>`8048268`<br>`23c2251`<br>`951249e` | `a15b5de`<br>`8048268`<br>`23c2251`<br>`951249e` |
+| `e2e/evidence/2026-08-23-rc3-release-recovery.md` | `7996311` | `57d3e10`<br>`7996311`<br>`951249e` |
+| `e2e/evidence/2026-08-23-rc4-release-candidate.md` | - | `951249e`<br>`b92b0ea`<br>`b768089` |
 | `e2e/evidence/w54b-batch.md` | `174ab48`<br>`e95fe2a`<br>`cdaa5ed`<br>`81760a4`<br>`9199d36` | `174ab48`<br>`e95fe2a`<br>`e9bfb26`<br>`3f8be93`<br>`cdaa5ed`<br>`877c875`<br>`3e74a5a`<br>`9199d36` |
-| `HANDOFF.md` | `174ab48`<br>`81760a4`<br>`9199d36`<br>`23c2251` | `174ab48`<br>`9199d36`<br>`23c2251` |
-| `history/PROCESS-JOURNAL.md` | `9199d36` | `9199d36` |
+| `HANDOFF.md` | `174ab48`<br>`81760a4`<br>`9199d36`<br>`23c2251`<br>`7996311`<br>`07c253d` | `174ab48`<br>`9199d36`<br>`23c2251`<br>`7996311` |
+| `history/PROCESS-JOURNAL.md` | `9199d36`<br>`7996311`<br>`07c253d`<br>`8602c73` | `9199d36`<br>`7996311` |
 | `history/reviews/2026-08-23-final-freeze-delta-review.md` | `9199d36` | `9199d36` |
 | `NOTICE` | `a15b5de` | `a15b5de` |
-| `packages/cli/README.md` | `a15b5de`<br>`23c2251` | `a15b5de`<br>`23c2251` |
+| `packages/cli/README.md` | `a15b5de`<br>`23c2251`<br>`951249e` | `a15b5de`<br>`23c2251`<br>`951249e` |
 | `packages/cli/THIRD_PARTY_NOTICES.md` | `a15b5de`<br>`23c2251` | `a15b5de`<br>`23c2251` |
 | `prompts/102-week-audit-faststart-final-adversarial-review.md` | `174ab48` | `174ab48` |
 | `prompts/108-week-audit-faststart-final-code-review.md` | `174ab48` | `174ab48` |
@@ -77,17 +85,18 @@
 | `prompts/93a7-w54b-c1-init-probe-implement-command.md` | `174ab48` | `174ab48` |
 | `prompts/94-week-audit-faststart-adversarial-review.md` | `174ab48` | `174ab48` |
 | `prompts/96-week-audit-faststart-closeout-review.md` | `174ab48` | `174ab48` |
-| `README.md` | `a15b5de`<br>`23c2251` | `a15b5de`<br>`23c2251` |
+| `prompts/97-rc4-macos-npm-exec-signal-implementation.md` | - | `b768089` |
+| `README.md` | `a15b5de`<br>`23c2251`<br>`951249e` | `a15b5de`<br>`23c2251`<br>`951249e` |
 | `research/codex-findings/102-week-audit-faststart-final-adversarial-review.md` | `174ab48` | `174ab48` |
 | `research/codex-findings/108-week-audit-faststart-final-code-review.md` | `174ab48` | `174ab48` |
 | `research/codex-findings/112-week-audit-faststart-freeze-adversarial-review.md` | `174ab48` | `174ab48` |
 | `research/codex-findings/94-week-audit-faststart-adversarial-review.md` | `174ab48` | `174ab48` |
 | `research/codex-findings/96-week-audit-faststart-closeout-review.md` | `174ab48` | `174ab48` |
-| `research/week-audit/2026-08-22-bundle-integrity.json` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36` |
-| `research/week-audit/2026-08-22-ledger.json` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36` |
+| `research/week-audit/2026-08-22-bundle-integrity.json` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36`<br>`7996311`<br>`07c253d`<br>`8602c73` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36`<br>`7996311` |
+| `research/week-audit/2026-08-22-ledger.json` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36`<br>`7996311` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36`<br>`7996311` |
 | `research/week-audit/2026-08-22-ref-manifest.json` | `e95fe2a`<br>`8d0027f` | `e95fe2a`<br>`8d0027f` |
 | `research/week-audit/2026-08-22-semantic-review.json` | `e95fe2a` | `e95fe2a` |
-| `research/week-audit/2026-08-23-publication-manifest.json` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36` |
-| `research/week-audit/2026-08-23-remediation-cross-links.json` | `174ab48`<br>`cdaa5ed`<br>`81760a4` | `174ab48`<br>`cdaa5ed` |
-| `research/week-audit/2026-08-23-remediation-ledger.json` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36` |
+| `research/week-audit/2026-08-23-publication-manifest.json` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36`<br>`7996311`<br>`07c253d`<br>`8602c73` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36`<br>`7996311` |
+| `research/week-audit/2026-08-23-remediation-cross-links.json` | `174ab48`<br>`cdaa5ed`<br>`81760a4`<br>`7996311` | `174ab48`<br>`cdaa5ed`<br>`7996311` |
+| `research/week-audit/2026-08-23-remediation-ledger.json` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36`<br>`7996311` | `e95fe2a`<br>`cdaa5ed`<br>`9199d36`<br>`7996311` |
 | `research/week-audit/2026-08-23-review-finding-anchor.json` | `e95fe2a` | `e95fe2a` |

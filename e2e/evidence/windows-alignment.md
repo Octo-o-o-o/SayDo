@@ -10,7 +10,7 @@
 
 - OS: Windows 10.0.26200 x64, PowerShell, Node v22.22.0
 - 包管理: pnpm 10.33.1
-- 命令在 `C:\Users\satan\WorkSpace\SayDo` 执行,无 WSL 替身
+- 命令在 `~\WorkSpace\SayDo` 执行,无 WSL 替身
 
 ## 2. 本机命令与数字(收口复跑)
 
@@ -106,7 +106,7 @@ Phase 末 code-review subagent:[Review](c550279c-445b-41a1-ae41-6c310a535131)。
 | Linux | [ok] GitHub Actions `ubuntu-latest` node + python 全绿(本仓 CI 首次绿,见 `d427716`) |
 | Windows | [ok] typecheck / lint 绿;全量以第 2 节本机数字 + win32 分支逐字符等价性论证覆盖 |
 
-> [warn] Windows 全量未经本会话复跑:可用的 SSH 通道登录的是 `WangYixiao` 账户且**提权**,
+> [warn] Windows 全量未经本会话复跑:可用的 SSH 通道登录的是 `<account>` 账户且**提权**,
 > 而项目在 `satan` 目录下——提权会话新建文件 owner 为 `BUILTIN\Administrators`,
 > `assertOwnedByCurrentUser` 会在 `test/setup.ts` 阶段即拒,测试套件根本进不去。
 > 这同时说明一件产品级事实:**以管理员身份运行 SayDo 会被状态根 owner 校验挡下**(设计如此)。

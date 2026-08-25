@@ -13,8 +13,8 @@
 
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { createInterface } from "node:readline";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { createInterface, type Interface } from "node:readline";
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   newId,
@@ -34,7 +34,19 @@ import type { AuditSink } from "../obs/audit.js";
 import type { Logger } from "../obs/logger.js";
 import type { CallbackEngine } from "../callback/engine.js";
 import { buildCursorHooksJson } from "./adapter.js";
-import { runtimeChildJobName, runtimeChildOwnerIdentity, runtimeProcessGroupState, signalRuntimeChildTree, spawnRuntimeChild, execAgentFileSync } from "../runtimeChildRegistry.js";
+import {
+  execAgentFileSync,
+  runtimeChildOwnerIdentity,
+  runtimeClearTimeout,
+  runtimeCloseDeadlineMs,
+  runtimeDrainDeadlineMs,
+  runtimeKillGraceMs,
+  runtimeNow,
+  runtimeProcessGroupState,
+  runtimeSetTimeout,
+  shouldIgnoreTerminatingPipeError,
+  spawnRuntimeChild
+} from "../runtimeChildRegistry.js";
 import {
   confirmTier1RunNativeSession,
   insertTier1Run,
@@ -76,7 +88,7 @@ import { verifyClaudeIdentity } from "./claudeIdentity.js";
 import { familyFromModelName } from "../config/family.js";
 import type { RuntimeApprovalFlow } from "./approvalFlow.js";
 import type { GateWireRequest, GateWireResponse } from "./gateServer.js";
-import { hostKind, processBirth } from "@saydo/platform";
+import { hostKind, processBirthFromHandle, withHomeOwnerBoundary, writeDurableJson, type OwnerImmutableIdentity } from "@saydo/platform";
 import { verifiedProjectWorkspace } from "../storage/dao/projects.js";
 import { strippedAgentEnv } from "./agentEnv.js";
 export { AGENT_ENV_ALLOWLIST, strippedAgentEnv } from "./agentEnv.js";
@@ -84,6 +96,7 @@ import {
   RESTART_RECOVERABLE_STATES,
   readOwnedAgentProcessStart,
   reapOwnedTier1Agent,
+  releaseAgentOwnershipAfterDurable,
   isTier1RestartRecoverable,
   tier1RecoveryPrerequisite,
   type AgentOwnershipRecord,
@@ -94,9 +107,50 @@ import { classifyActiveWork } from "./activeWorkClassifier.js";
 import { readRegularWritingFile, readWritingTreeBlob } from "./writingArtifact.js";
 import {
   ProcessGroupLifecycleError,
+  appendLifecycleFailure,
   asProcessGroupLifecycleError,
-  isProcessGroupLifecycleError
+  combineLifecycleFailureList,
+  combinePipeBusinessFailures,
+  contaminateSharedLifecycle,
+  inspectUntrustedPipeFailure,
+  isProcessGroupLifecycleError,
+  invocationBusinessFailure,
+  projectTrustedKillFailure,
+  projectUnknownFailure,
+  safeFailureText,
+  settleWithLeaseRelease,
+  type PipeFailureRecord
 } from "../processGroupLifecycle.js";
+import { raceWithMonotonicDeadline, TIER1_EMERGENCY_CLEANUP_DEADLINE_MS } from "../independentDeadline.js";
+
+function latchSignalFailure(current: Error | undefined, err: unknown): Error {
+  const typed = appendLifecycleFailure(undefined, err);
+  contaminateSharedLifecycle(typed);
+  return appendLifecycleFailure(current, typed);
+}
+
+function finalizeInvocationWait<T>(opts: {
+  settled: boolean;
+  markSettled: () => void;
+  signalFailure: Error | undefined;
+  business: Error | undefined;
+  unreaped: ProcessGroupLifecycleError | undefined;
+  resolved: T;
+  resolve: (value: T) => void;
+  reject: (err: Error) => void;
+}): void {
+  if (opts.settled) return;
+  opts.markSettled();
+  const lifecycleParts: unknown[] = [];
+  if (opts.signalFailure) lifecycleParts.push(opts.signalFailure);
+  if (opts.unreaped) lifecycleParts.push(opts.unreaped);
+  if (lifecycleParts.length === 0) {
+    opts.resolve(opts.resolved);
+    return;
+  }
+  const parts = opts.business ? [opts.business, ...lifecycleParts] : lifecycleParts;
+  opts.reject(combineLifecycleFailureList(parts));
+}
 
 const FILE_WRITE_TOOLS = new Set(["Write", "Edit", "NotebookEdit"]);
 
@@ -114,12 +168,22 @@ function wireReceiptCommand(req: GateWireRequest): string {
 
 // ---------- 可注入进程层(测试 fake;真实现走 nodeSpawn) ----------
 
+export type AgentTerminationCause = "exit" | "pipe_failed";
+
+export interface AgentWaitResult {
+  exitCode: number;
+  terminationCause?: AgentTerminationCause;
+}
+
 export interface AgentProcessHandle {
   pid: number;
   /** 真实 detached agent 必须落 durable ownership；测试 fake 可省略。 */
   ownershipRequired?: boolean;
   /** wrapper 的不可复用 command token（ps 截断时作 identity 回退）。 */
   commandToken?: string;
+  generation?: string;
+  jobName?: string;
+  processHandle?: unknown;
   /** 子进程已由 OS 接受；恢复 marker 至少等到这个边界后才可清。 */
   started?: Promise<void>;
   /** durable owner 原子发布后才允许 stream result 主动结束常驻 agent。 */
@@ -127,7 +191,7 @@ export interface AgentProcessHandle {
   /** NDJSON stdout 逐行回调(实现方保证行序);返回 exit 承诺 */
   onLine(cb: (line: string) => void): void;
   kill(): void;
-  wait(): Promise<{ exitCode: number }>;
+  wait(): Promise<AgentWaitResult>;
   /** 有界 stderr 尾(≤64KB);测试 fake 可不实现 */
   stderrTail?(): string;
 }
@@ -141,6 +205,7 @@ export interface AgentSpawner {
     prompt: string;
     cwd: string;
     env: Record<string, string>;
+    runId: string;
     resumeChatId?: string;
     settingsJson?: string;
     sessionId?: string;
@@ -179,6 +244,37 @@ export function verifyEnv(source: NodeJS.ProcessEnv, isolatedHome: string): Reco
   return out;
 }
 
+/** stdout error 会被 readline.Interface 再 emit 一次；同一 identity 只诊断/收口一次。 */
+export function bindAgentStdioPipeErrors(opts: {
+  stdout: NodeJS.ReadableStream;
+  stderr: NodeJS.ReadableStream;
+  rl: Interface;
+  isTerminating: () => boolean;
+  onDiagnostic: (stream: "stdout" | "stderr", err: { code?: string; message: string }) => void;
+  onPipeFailure: () => void;
+}): void {
+  const seen = new WeakSet<object>();
+  const handle = (stream: "stdout" | "stderr", err: unknown): void => {
+    try {
+      const inspection = inspectUntrustedPipeFailure(err);
+      if (seen.has(inspection.projected)) return;
+      seen.add(inspection.projected);
+      if (shouldIgnoreTerminatingPipeError(inspection.trustedCode, opts.isTerminating())) return;
+      opts.onDiagnostic(stream, {
+        code: inspection.diagnostic.code,
+        message: inspection.diagnostic.message
+      });
+      opts.onPipeFailure();
+    } catch {
+      opts.onDiagnostic(stream, { code: "unknown", message: "pipe error" });
+      opts.onPipeFailure();
+    }
+  };
+  opts.stdout.on("error", (err: unknown) => handle("stdout", err));
+  opts.stderr.on("error", (err: unknown) => handle("stderr", err));
+  opts.rl.on("error", (err: unknown) => handle("stdout", err));
+}
+
 export function realAgentSpawner(backend: Tier1Backend = cursorBackend()): AgentSpawner {
   return {
     version(binary) {
@@ -199,9 +295,14 @@ export function realAgentSpawner(backend: Tier1Backend = cursorBackend()): Agent
         env: i.env,
         stdin: "ignore",
         stdout: "pipe",
-        stderr: "pipe"
+        stderr: "pipe",
+        runId: i.runId
       }, "tier1:agent");
       const { child, lease: childLease } = spawned;
+      const signalCaptured = spawned.signal;
+      if (!signalCaptured) {
+        throw new ProcessGroupLifecycleError("runtime job identity missing");
+      }
       child.stdin.end();
       const rl = createInterface({ input: child.stdout });
       const lineCbs: ((line: string) => void)[] = [];
@@ -214,9 +315,9 @@ export function realAgentSpawner(backend: Tier1Backend = cursorBackend()): Agent
       let waitExitTimer: NodeJS.Timeout | undefined;
       const STDERR_CAP = 64 * 1024;
       let stderrAcc = "";
-      let resolveExit!: (v: { exitCode: number }) => void;
+      let resolveExit!: (v: AgentWaitResult) => void;
       let rejectExit!: (err: Error) => void;
-      const exitP = new Promise<{ exitCode: number }>((r, reject) => {
+      const exitP = new Promise<AgentWaitResult>((r, reject) => {
         resolveExit = r;
         rejectExit = reject;
       });
@@ -224,58 +325,138 @@ export function realAgentSpawner(backend: Tier1Backend = cursorBackend()): Agent
         child.once("spawn", () => void childLease.establish().then(resolveStarted, rejectStarted));
         child.once("error", rejectStarted);
       });
-      const hardKill = (): void => {
+      let childExited = false;
+      let childClosed = false;
+      let childExitCode: number | null = null;
+      let pipeFailure = false;
+      const pipeRecords: PipeFailureRecord[] = [];
+      let signalFailure: Error | undefined;
+      let drainDeadlineAt: number | undefined;
+      let closeDeadlineAt: number | undefined;
+      let drainTimer: NodeJS.Timeout | undefined;
+      const signalTree = (signal: NodeJS.Signals): void => {
         try {
-          if (child.pid) signalRuntimeChildTree(child.pid, "SIGKILL");
-        } catch {
-          child.kill("SIGKILL");
+          signalCaptured(signal);
+        } catch (err) {
+          signalFailure = latchSignalFailure(signalFailure, projectTrustedKillFailure(signal, err, "primary"));
         }
+      };
+      const hardKill = (): void => signalTree("SIGKILL");
+      const isTerminating = (): boolean =>
+        childExited ||
+        pendingResultExitCode !== null ||
+        finishing ||
+        settled ||
+        escalationTimer !== undefined ||
+        waitExitTimer !== undefined;
+      const knownBusiness = (): Error | undefined => {
+        if (pipeRecords.length > 0) return combinePipeBusinessFailures(pipeRecords);
+        return invocationBusinessFailure({
+          exitCode: childExitCode ?? 1,
+          terminationCause: "exit",
+          knownExit: childExitCode !== null || pendingResultExitCode !== null || finishing
+        });
+      };
+      const finishWait = (unreaped?: ProcessGroupLifecycleError): void => {
+        const resolved: AgentWaitResult = {
+          exitCode: pipeFailure ? 1 : (childExitCode ?? 1),
+          ...(pipeFailure ? { terminationCause: "pipe_failed" as const } : { terminationCause: "exit" as const })
+        };
+        finalizeInvocationWait({
+          settled,
+          markSettled: () => {
+            settled = true;
+            runtimeClearTimeout(escalationTimer);
+            runtimeClearTimeout(waitExitTimer);
+            runtimeClearTimeout(drainTimer);
+          },
+          signalFailure,
+          business: knownBusiness(),
+          unreaped,
+          resolved,
+          resolve: resolveExit,
+          reject: rejectExit
+        });
+      };
+      const failLifecycle = (state: ReturnType<typeof runtimeProcessGroupState>): void => {
+        finishWait(new ProcessGroupLifecycleError(
+          state === "unknown"
+            ? `agent process group ${String(child.pid)} state unknown`
+            : `agent process group ${String(child.pid)} did not exit`
+        ));
+      };
+      const trySettle = (): void => {
+        if (settled) return;
+        const state = child.pid ? runtimeProcessGroupState(child.pid) : "gone";
+        if (childClosed && state === "gone") {
+          finishWait();
+          return;
+        }
+        if (!childClosed && closeDeadlineAt !== undefined && runtimeNow() >= closeDeadlineAt) {
+          hardKill();
+          drainDeadlineAt ??= runtimeNow() + runtimeDrainDeadlineMs();
+          failLifecycle(state);
+          return;
+        }
+        if (drainDeadlineAt !== undefined && runtimeNow() >= drainDeadlineAt) {
+          hardKill();
+          failLifecycle(state);
+          return;
+        }
+        runtimeClearTimeout(drainTimer);
+        drainTimer = runtimeSetTimeout(trySettle, 10);
+      };
+      const armDrainDeadline = (): void => {
+        drainDeadlineAt ??= runtimeNow() + runtimeDrainDeadlineMs();
+        trySettle();
       };
       const armWaitExitThenKill = (): void => {
         if (waitExitTimer || settled || finishing) return;
-        waitExitTimer = setTimeout(() => {
-          if (settled || finishing) return;
-          try {
-            if (child.pid) signalRuntimeChildTree(child.pid, "SIGTERM");
-          } catch {
-            child.kill("SIGTERM");
-          }
+        waitExitTimer = runtimeSetTimeout(() => {
+          if (settled) return;
+          signalTree("SIGTERM");
           if (!escalationTimer) {
-            escalationTimer = setTimeout(() => {
-              if (!settled && !finishing) hardKill();
-            }, 5_000);
-            escalationTimer.unref();
+            escalationTimer = runtimeSetTimeout(() => {
+              if (settled) return;
+              hardKill();
+              armDrainDeadline();
+            }, runtimeKillGraceMs());
           }
-        }, 5_000);
-        waitExitTimer.unref();
+        }, runtimeKillGraceMs());
       };
-      const finish = (exitCode: number): void => {
+      const beginFinish = (exitCode: number): void => {
         if (settled || finishing) return;
         finishing = true;
-        if (escalationTimer) clearTimeout(escalationTimer);
-        if (waitExitTimer) clearTimeout(waitExitTimer);
-        hardKill(); // stream-json 模式 cursor-agent 发完 result 常不自退,主动收(释放进程组)
-        const deadline = Date.now() + 5_000;
-        const drain = (): void => {
-          const state = child.pid ? runtimeProcessGroupState(child.pid) : "gone";
-          if (state === "gone") {
-            settled = true;
-            resolveExit({ exitCode });
-            return;
-          }
-          if (Date.now() >= deadline) {
-            settled = true;
-            rejectExit(new ProcessGroupLifecycleError(
-              state === "unknown"
-                ? `agent process group ${String(child.pid)} state unknown`
-                : `agent process group ${String(child.pid)} did not exit`
-            ));
-            return;
-          }
-          setTimeout(drain, 10);
-        };
-        drain();
+        childExitCode ??= exitCode;
+        runtimeClearTimeout(escalationTimer);
+        runtimeClearTimeout(waitExitTimer);
+        hardKill();
+        armDrainDeadline();
       };
+      const requestKill = (): void => {
+        if (settled || finishing || escalationTimer) return;
+        closeDeadlineAt ??= runtimeNow() + runtimeCloseDeadlineMs();
+        signalTree("SIGTERM");
+        escalationTimer = runtimeSetTimeout(() => {
+          if (settled) return;
+          hardKill();
+          armDrainDeadline();
+        }, runtimeKillGraceMs());
+      };
+      bindAgentStdioPipeErrors({
+        stdout: child.stdout,
+        stderr: child.stderr,
+        rl,
+        isTerminating,
+        onDiagnostic: (stream, err) => {
+          stderrAcc = `${stderrAcc}\n${stream} error:${err.code ?? "unknown"}:${err.message}`.slice(-STDERR_CAP);
+          pipeRecords.push({ stream, code: err.code ?? "unknown" });
+        },
+        onPipeFailure: () => {
+          pipeFailure = true;
+          if (!isTerminating()) requestKill();
+        }
+      });
       rl.on("line", (l) => {
         if (lineCbs.length === 0) pendingLines.push(l);
         else for (const cb of lineCbs) cb(l);
@@ -285,7 +466,7 @@ export function realAgentSpawner(backend: Tier1Backend = cursorBackend()): Agent
           const resultEv = parsed.find((e) => e.kind === "result");
           const resultExitCode = resultEv && resultEv.isError !== true ? 0 : 1;
           if (backend.finishPolicy === "kill_on_result") {
-            if (ownershipEstablished) finish(resultExitCode);
+            if (ownershipEstablished) beginFinish(resultExitCode);
             else pendingResultExitCode = resultExitCode;
           } else {
             pendingResultExitCode = resultExitCode;
@@ -297,19 +478,40 @@ export function realAgentSpawner(backend: Tier1Backend = cursorBackend()): Agent
         const s = typeof chunk === "string" ? chunk : chunk.toString("utf8");
         stderrAcc = (stderrAcc + s).slice(-STDERR_CAP);
       });
-      child.on("exit", (code) => finish(code ?? 1));
-      child.on("error", () => finish(127));
-      exitP.finally(() => childLease.release()).catch(() => undefined);
+      child.on("exit", (code, signal) => {
+        childExited = true;
+        childExitCode ??= code ?? (signal ? 143 : 1);
+        closeDeadlineAt ??= runtimeNow() + runtimeCloseDeadlineMs();
+        armDrainDeadline();
+      });
+      child.on("close", () => {
+        childClosed = true;
+        trySettle();
+      });
+      child.on("error", () => beginFinish(127));
+      const waited = settleWithLeaseRelease(exitP, () => childLease.release(), (value) => {
+        if (pipeRecords.length > 0) return combinePipeBusinessFailures(pipeRecords);
+        return invocationBusinessFailure({
+          exitCode: value.exitCode,
+          ...(value.terminationCause ? { terminationCause: value.terminationCause } : {}),
+          knownExit: true
+        });
+      });
+      void waited.catch(() => undefined);
+      const captured = typeof spawned.generation === "object" ? spawned.generation : undefined;
       return {
         pid: child.pid ?? -1,
         ownershipRequired: true,
         commandToken: spawned.commandToken,
+        ...(captured?.id ? { generation: captured.id } : {}),
+        ...(captured?.jobName ? { jobName: captured.jobName } : {}),
+        ...(captured?.processHandle !== undefined ? { processHandle: captured.processHandle } : {}),
         started,
         ownershipEstablished() {
           ownershipEstablished = true;
           if (pendingResultExitCode === null) return;
           if (backend.finishPolicy === "kill_on_result") {
-            finish(pendingResultExitCode);
+            beginFinish(pendingResultExitCode);
           } else {
             armWaitExitThenKill();
           }
@@ -319,18 +521,9 @@ export function realAgentSpawner(backend: Tier1Backend = cursorBackend()): Agent
           for (const line of pendingLines.splice(0)) cb(line);
         },
         kill() {
-          if (settled || finishing || escalationTimer) return;
-          try {
-            if (child.pid) signalRuntimeChildTree(child.pid, "SIGTERM");
-          } catch {
-            child.kill("SIGTERM");
-          }
-          escalationTimer = setTimeout(() => {
-            if (!settled && !finishing) hardKill();
-          }, 5000);
-          escalationTimer.unref();
+          requestKill();
         },
-        wait: () => exitP,
+        wait: () => waited,
         stderrTail: () => stderrAcc
       };
     }
@@ -378,6 +571,11 @@ export interface ExecutorDeps {
   /** 产物库(W4 3.2 writing:成稿落 type="article" artifact,WritingSettleProof 绑其 id/version) */
   artifacts?: ArtifactStore;
   now?: () => Date;
+  recoverAbort?: AbortSignal;
+  onRecoverEntered?: () => void;
+  onRecoverAttempt?: () => void;
+  recoverHold?: Promise<void>;
+  afterProvision?: () => void | Promise<void>;
 }
 
 interface FailureFinalizationIntent {
@@ -578,9 +776,11 @@ interface ActiveRun {
   authViolation: boolean;
   resumeNotFoundRetryUsed: boolean;
   agentOwnershipEstablished: boolean;
+  capturedAgentOwner?: OwnerImmutableIdentity;
   nativeResumeAudited: boolean;
   /** 进程组已明确 ESRCH；未验证前禁止写 processExited proof。 */
   processGroupVerifiedExited: boolean;
+  terminationCause: AgentTerminationCause | null;
   /** 认领 barrier：owner+session 或 terminal/unrecoverable 后 resolve。 */
   claimReady: (() => void) | null;
   claimPromise: Promise<void> | null;
@@ -625,25 +825,65 @@ function streamRuntimeFields(): Pick<
   };
 }
 
+const binaryIdentityErrors = new WeakSet<object>();
+const binaryIdentitySnapshots = new WeakMap<object, { code: string; text: string }>();
+
 /** spawn 前二进制身份核验不通过(09 §11:不符 ⇒ binary_identity_mismatch 不认领) */
 export class Tier1BinaryIdentityError extends Error {
   constructor(
     readonly code: string,
     detail: string
   ) {
-    super(`binary_identity_mismatch:${code} ${detail}`);
+    const text = `binary_identity_mismatch:${code} ${detail}`;
+    super(text);
     this.name = "Tier1BinaryIdentityError";
+    binaryIdentityErrors.add(this);
+    binaryIdentitySnapshots.set(this, { code, text });
+    try {
+      Object.defineProperties(this, {
+        code: { value: code, writable: false, configurable: false, enumerable: true },
+        message: { value: text, writable: false, configurable: false, enumerable: false },
+        name: { value: "Tier1BinaryIdentityError", writable: false, configurable: false, enumerable: false }
+      });
+      Object.freeze(this);
+    } catch {
+      // 冻结失败仍以私有快照为准。
+    }
   }
 }
+
+export function isTier1BinaryIdentityError(err: unknown): err is Tier1BinaryIdentityError {
+  return typeof err === "object" && err !== null && binaryIdentityErrors.has(err);
+}
+
+export async function publishAgentOwnerUnderHomeLock(home: string, ownerPath: string, record: unknown): Promise<void> {
+  await withHomeOwnerBoundary(home, () => {
+    const dirFsync = writeDurableJson(ownerPath, record);
+    if (dirFsync !== "synced" && dirFsync !== "unsupported") {
+      throw new Error("agent owner dir fsync result invalid");
+    }
+  });
+}
+
+/** 只读构造时私有快照；不读可变公开字段，不调用 getter。 */
+export function brandedBinaryIdentityFailureText(err: unknown): string | undefined {
+  if (typeof err !== "object" || err === null) return undefined;
+  const snap = binaryIdentitySnapshots.get(err);
+  return snap?.text;
+}
+
+const costLedgerErrors = new WeakSet<object>();
+const reviewTransactionErrors = new WeakSet<object>();
 
 /** 成本行是终态事务的一部分；写失败保留原 review/failure marker，等待同一 run 幂等重试。 */
 class Tier1CostLedgerError extends Error {
   constructor(
     readonly runId: string,
-    cause: unknown
+    _cause: unknown
   ) {
-    super(`tier1 cost ledger write failed:${runId}:${String(cause).slice(0, 120)}`);
+    super(`tier1 cost ledger write failed:${runId}:unknown`);
     this.name = "Tier1CostLedgerError";
+    costLedgerErrors.add(this);
   }
 }
 
@@ -652,11 +892,41 @@ class Tier1ReviewTransactionError extends Error {
   constructor(
     readonly runId: string,
     readonly stage: "cost" | "terminal",
-    cause: unknown
+    _cause: unknown
   ) {
-    super(`tier1 review transaction failed:${runId}:${String(cause).slice(0, 120)}`);
+    super(`tier1 review transaction failed:${runId}:${stage}`);
     this.name = "Tier1ReviewTransactionError";
+    reviewTransactionErrors.add(this);
   }
+}
+
+function isCostLedgerError(err: unknown): err is Tier1CostLedgerError {
+  return typeof err === "object" && err !== null && costLedgerErrors.has(err);
+}
+
+function isReviewTransactionError(err: unknown): err is Tier1ReviewTransactionError {
+  return typeof err === "object" && err !== null && reviewTransactionErrors.has(err);
+}
+
+/** catch 分类：内部品牌，不对 unknown 做 instanceof。 */
+export function classifyTier1ReviewTransactionCatch(err: unknown): "cost" | "terminal" {
+  return isCostLedgerError(err) ? "cost" : "terminal";
+}
+
+export function classifyTier1ReviewSettlementCatch(err: unknown): "cost" | "terminal" | "settlement" {
+  return isReviewTransactionError(err) ? err.stage : "settlement";
+}
+
+export function tier1CostLedgerFailure(runId: string, cause: unknown): Error {
+  return new Tier1CostLedgerError(runId, cause);
+}
+
+export function tier1ReviewTransactionFailure(
+  runId: string,
+  stage: "cost" | "terminal",
+  cause: unknown
+): Error {
+  return new Tier1ReviewTransactionError(runId, stage, cause);
 }
 
 const ACTIVE_RUN_STATES = "('reserved','running','step_paused','cancel_requested')";
@@ -686,14 +956,15 @@ export class Tier1Executor {
   }
 
   private contaminateLifecycle(err: unknown): ProcessGroupLifecycleError {
-    const contamination = asProcessGroupLifecycleError(err);
-    this.lifecycleContaminated ??= contamination;
+    const typed = asProcessGroupLifecycleError(err);
+    this.lifecycleContaminated ??= typed;
+    contaminateSharedLifecycle(typed);
     this.d.audit.record({
       actor: "daemon",
       action: "tier1.process_group_lifecycle_contaminated",
-      meta: { message: contamination.message.slice(0, 200) }
+      meta: { message: safeFailureText(this.lifecycleContaminated, 200) }
     });
-    return contamination;
+    return this.lifecycleContaminated;
   }
 
   private resolveClaim(run: ActiveRun): void {
@@ -807,11 +1078,11 @@ export class Tier1Executor {
         this.d.audit.record({
           actor: "daemon",
           action: "tier1.gate_self_heal_failed",
-          meta: { script: basename(surface.path), path: surface.path.slice(-120), error: String(err).slice(0, 160) }
+          meta: { script: basename(surface.path), path: surface.path.slice(-120), error: safeFailureText(err, 160) }
         });
         this.d.log.error("gate integrity self-heal failed", {
           path: surface.path.slice(-120),
-          error: String(err).slice(0, 160)
+          error: safeFailureText(err, 160)
         });
       }
     }
@@ -1186,13 +1457,14 @@ export class Tier1Executor {
 
   tick(): void {
     try {
+      if (this.lifecycleContaminated) return;
       this.reapCancellations();
       this.retryPendingFinalizations();
       this.checkCanaries();
       this.enforceBudgets();
       if (this.acceptingWork && !this.hasPendingFinalization()) this.claimNext();
     } catch (err) {
-      this.d.log.error("tier1 executor tick failed", { error: String(err).slice(0, 200) });
+      this.d.log.error("tier1 executor tick failed", { error: safeFailureText(err, 200) });
     }
   }
 
@@ -1335,6 +1607,7 @@ export class Tier1Executor {
    *   原子,不存在"正认领中被误捞"窗口)。
    */
   private claimNext(): void {
+    if (this.lifecycleContaminated) return;
     const row = this.d.db
       .prepare(
         `SELECT t.id, t.project_id, t.title, t.status, t.package_digest, t.package_rev, t.budget_json,
@@ -1401,12 +1674,12 @@ export class Tier1Executor {
         });
         tx();
       } catch (err) {
-        this.d.log.error("claim degrade to blocked failed", { taskId: row.id, error: String(err).slice(0, 160) });
+        this.d.log.error("claim degrade to blocked failed", { taskId: row.id, error: safeFailureText(err, 160) });
         try {
           this.d.audit.record({
             actor: "daemon",
             action: "tier1.claim_block_transaction_failed",
-            meta: { taskId: row.id, projectId: row.project_id, error: String(err).slice(0, 120) }
+            meta: { taskId: row.id, projectId: row.project_id, error: safeFailureText(err, 120) }
           });
         } catch {
           // 审计存储自身不可写时只留日志,不得再次改变任务状态。
@@ -1442,13 +1715,13 @@ export class Tier1Executor {
         bindLedgerRefIfPresent(this.d.db, row.id, nowIso);
       } catch (err) {
         // binding 缺失=正常(无 Focus 包);其它错误上抛让认领事务回滚
-        if (!String(err).includes("no_binding")) throw err;
+        if (!safeFailureText(err).includes("no_binding")) throw err;
       }
     });
     try {
       tx();
     } catch (err) {
-      this.d.log.warn("claim race lost", { taskId: row.id, error: String(err).slice(0, 120) });
+      this.d.log.warn("claim race lost", { taskId: row.id, error: safeFailureText(err, 120) });
       return;
     }
     this.d.audit.record({
@@ -1501,6 +1774,7 @@ export class Tier1Executor {
       agentOwnershipEstablished: false,
       nativeResumeAudited: false,
       processGroupVerifiedExited: false,
+      terminationCause: null,
       claimReady: null,
       claimPromise: null,
       abort: null,
@@ -1508,15 +1782,17 @@ export class Tier1Executor {
       hooksJsonPath: null
     };
     this.active.set(runId, active);
-    active.completion = this.runAttempt(active).catch((err) => {
-      this.d.log.error("tier1 runAttempt crashed", { runId, error: String(err).slice(0, 200) });
+    active.completion = this.runAttempt(active).catch((err: unknown) => {
       if (active.restartPending) return;
       if (isProcessGroupLifecycleError(err)) {
         this.contaminateLifecycle(err);
+        this.d.log.error("tier1 runAttempt crashed", { runId, error: safeFailureText(err) });
         this.resolveClaim(active);
         return;
       }
-      this.finalizeFailure(active, `executor_crash:${String(err).slice(0, 120)}`, "failed");
+      const text = safeFailureText(err);
+      this.d.log.error("tier1 runAttempt crashed", { runId, error: text });
+      this.finalizeFailure(active, `executor_crash:${text.slice(0, 120)}`, "failed");
     });
   }
 
@@ -1584,18 +1860,34 @@ export class Tier1Executor {
       stdin: "ignore",
       stdout: options.captureStdout ? "pipe" : "ignore",
       stderr: "ignore",
-      registryHome: this.d.cfg.saydoHome
+      registryHome: this.d.cfg.saydoHome,
+      runId: randomUUID()
     }, `tier1:${run.runId}:managed`);
     const { child, lease: childLease } = spawned;
+    const signalCaptured = spawned.signal;
+    if (!signalCaptured) {
+      throw new ProcessGroupLifecycleError("runtime job identity missing");
+    }
     child.stdin.end();
     let stdoutTail = "";
-    child.stdout?.on("data", (chunk: Buffer) => {
-      stdoutTail = (stdoutTail + chunk.toString("utf8")).slice(-2_000);
-    });
+    if (options.captureStdout) {
+      child.stdout.on("data", (chunk: Buffer) => {
+        stdoutTail = (stdoutTail + chunk.toString("utf8")).slice(-2_000);
+      });
+    }
     let finishRequested = false;
     let settled = false;
+    let childExited = false;
+    let childClosed = false;
     let exitCode = 1;
+    let pipeFailure = false;
+    const pipeRecords: PipeFailureRecord[] = [];
+    let timedOut = false;
+    let signalFailure: Error | undefined;
     let escalationTimer: NodeJS.Timeout | undefined;
+    let drainDeadlineAt: number | undefined;
+    let closeDeadlineAt: number | undefined;
+    let drainTimer: NodeJS.Timeout | undefined;
     let resolveWait!: (value: { exitCode: number }) => void;
     let rejectWait!: (err: Error) => void;
     const wait = new Promise<{ exitCode: number }>((resolveResult, rejectResult) => {
@@ -1608,82 +1900,175 @@ export class Tier1Executor {
     });
     const signalTree = (signal: NodeJS.Signals): void => {
       try {
-        if (child.pid) signalRuntimeChildTree(child.pid, signal);
-      } catch {
-        // 后续 group probe 给出权威结果。
+        signalCaptured(signal);
+      } catch (err) {
+        signalFailure = latchSignalFailure(signalFailure, projectTrustedKillFailure(signal, err, "primary"));
       }
     };
-    const finishAfterDrain = (code: number): void => {
+    const isTerminating = (): boolean =>
+      childExited || finishRequested || settled || escalationTimer !== undefined;
+    const knownBusiness = (): Error | undefined => {
+      if (timedOut) {
+        return invocationBusinessFailure({
+          exitCode: 1,
+          timedOut: true,
+          knownExit: childExited || finishRequested
+        });
+      }
+      if (pipeRecords.length > 0) return combinePipeBusinessFailures(pipeRecords);
+      return invocationBusinessFailure({
+        exitCode,
+        terminationCause: "exit",
+        knownExit: childExited || finishRequested
+      });
+    };
+    const finishWait = (unreaped?: ProcessGroupLifecycleError): void => {
+      const resolved = { exitCode: pipeFailure || timedOut ? 1 : exitCode };
+      finalizeInvocationWait({
+        settled,
+        markSettled: () => {
+          settled = true;
+          runtimeClearTimeout(escalationTimer);
+          runtimeClearTimeout(drainTimer);
+        },
+        signalFailure,
+        business: knownBusiness(),
+        unreaped,
+        resolved,
+        resolve: resolveWait,
+        reject: rejectWait
+      });
+    };
+    const failLifecycle = (state: ReturnType<typeof runtimeProcessGroupState>): void => {
+      const err = new ProcessGroupLifecycleError(
+        state === "unknown"
+          ? `managed process group ${String(child.pid)} state unknown`
+          : `managed process group ${String(child.pid)} did not exit`
+      );
+      finishWait(err);
+    };
+    const trySettle = (): void => {
+      if (settled) return;
+      const state = child.pid ? runtimeProcessGroupState(child.pid) : "gone";
+      if (childClosed && state === "gone") {
+        finishWait();
+        return;
+      }
+      if (!childClosed && closeDeadlineAt !== undefined && runtimeNow() >= closeDeadlineAt) {
+        signalTree("SIGKILL");
+        drainDeadlineAt ??= runtimeNow() + runtimeDrainDeadlineMs();
+        failLifecycle(state);
+        return;
+      }
+      if (drainDeadlineAt !== undefined && runtimeNow() >= drainDeadlineAt) {
+        signalTree("SIGKILL");
+        failLifecycle(state);
+        return;
+      }
+      runtimeClearTimeout(drainTimer);
+      drainTimer = runtimeSetTimeout(trySettle, 10);
+    };
+    const armDrainDeadline = (): void => {
+      drainDeadlineAt ??= runtimeNow() + runtimeDrainDeadlineMs();
+      trySettle();
+    };
+    const beginFinish = (code: number): void => {
       if (finishRequested || settled) return;
       finishRequested = true;
       exitCode = code;
-      if (escalationTimer) clearTimeout(escalationTimer);
+      runtimeClearTimeout(escalationTimer);
       signalTree("SIGKILL");
-      const deadline = Date.now() + 5_000;
-      const poll = (): void => {
-        const state = child.pid ? runtimeProcessGroupState(child.pid) : "gone";
-        if (state === "gone") {
-          settled = true;
-          resolveWait({ exitCode });
-          return;
-        }
-        if (Date.now() >= deadline) {
-          settled = true;
-          rejectWait(new ProcessGroupLifecycleError(
-            state === "unknown"
-              ? `managed process group ${String(child.pid)} state unknown`
-              : `managed process group ${String(child.pid)} did not exit`
-          ));
-          return;
-        }
-        setTimeout(poll, 10);
-      };
-      poll();
+      armDrainDeadline();
     };
-    child.once("exit", (code, signal) => finishAfterDrain(code ?? (signal ? 143 : 1)));
-    child.once("error", () => finishAfterDrain(127));
-    // 终止期 stdout 读端 ECONNRESET 不得变成 unhandled；其它 stream error 记日志并令命令失败。
-    child.stdout?.on("error", (err: NodeJS.ErrnoException) => {
-      const terminating = finishRequested || settled || escalationTimer !== undefined;
-      if (err.code === "ECONNRESET" && terminating) return;
-      this.d.log.error("managed command stdout error", {
-        taskId: run.taskId,
-        runId: run.runId,
-        argv0: argv[0] ?? "",
-        code: err.code ?? "unknown",
-        error: String(err.message).slice(0, 160)
-      });
-      if (!terminating) finishAfterDrain(1);
+    child.once("exit", (code, signal) => {
+      childExited = true;
+      exitCode = code ?? (signal ? 143 : 1);
+      closeDeadlineAt ??= runtimeNow() + runtimeCloseDeadlineMs();
+      armDrainDeadline();
     });
+    child.once("close", () => {
+      childClosed = true;
+      trySettle();
+    });
+    child.once("error", () => beginFinish(127));
+    const seenManagedPipe = new WeakSet<object>();
+    const handleManagedPipe = (stream: "stdout" | "stderr", err: unknown): void => {
+      try {
+        const inspection = inspectUntrustedPipeFailure(err);
+        if (shouldIgnoreTerminatingPipeError(inspection.trustedCode, isTerminating())) return;
+        if (seenManagedPipe.has(inspection.projected)) return;
+        seenManagedPipe.add(inspection.projected);
+        this.d.log.error(`managed command ${stream} error`, {
+          taskId: run.taskId,
+          runId: run.runId,
+          argv0: argv[0] ?? "",
+          code: inspection.diagnostic.code
+        });
+        pipeFailure = true;
+        pipeRecords.push({ stream, code: inspection.diagnostic.code });
+        if (!isTerminating()) beginFinish(1);
+      } catch {
+        pipeFailure = true;
+        pipeRecords.push({ stream, code: "unknown" });
+        if (!isTerminating()) beginFinish(1);
+      }
+    };
+    child.stdout.on("error", (err: unknown) => handleManagedPipe("stdout", err));
+    child.stderr.on("error", (err: unknown) => handleManagedPipe("stderr", err));
     const handle: AgentProcessHandle = {
       pid: child.pid ?? -1,
       started,
       onLine() {},
       kill() {
         if (settled || finishRequested || escalationTimer) return;
+        closeDeadlineAt ??= runtimeNow() + runtimeCloseDeadlineMs();
         signalTree("SIGTERM");
-        escalationTimer = setTimeout(() => {
-          if (!settled && !finishRequested) signalTree("SIGKILL");
-        }, 5_000);
-        escalationTimer.unref();
+        escalationTimer = runtimeSetTimeout(() => {
+          if (settled) return;
+          signalTree("SIGKILL");
+          armDrainDeadline();
+        }, runtimeKillGraceMs());
       },
       wait: () => wait
     };
     run.proc = handle;
-    const timeout = setTimeout(() => handle.kill(), options.timeoutMs);
-    try {
-      await started;
-      await childLease.establish();
-      const result = await wait;
-      return { ...result, stdoutTail };
-    } catch (err) {
+    const timeout = runtimeSetTimeout(() => {
+      timedOut = true;
       handle.kill();
-      await wait.catch(() => undefined);
-      throw err;
+    }, options.timeoutMs);
+    try {
+      const managed = settleWithLeaseRelease((async () => {
+        try {
+          await started;
+          await childLease.establish();
+          const result = await wait;
+          return { ...result, stdoutTail, ...(timedOut ? { timedOut: true } : {}) };
+        } catch (err) {
+          handle.kill();
+          await wait.catch(() => undefined);
+          throw err;
+        }
+      })(), () => childLease.release(), (value) => {
+        if (value.timedOut === true) {
+          return invocationBusinessFailure({
+            exitCode: 1,
+            timedOut: true,
+            knownExit: true
+          });
+        }
+        if (pipeRecords.length > 0) return combinePipeBusinessFailures(pipeRecords);
+        return invocationBusinessFailure({
+          exitCode: value.exitCode,
+          terminationCause: "exit",
+          knownExit: true
+        });
+      });
+      void managed.catch(() => undefined);
+      return await managed;
     } finally {
-      clearTimeout(timeout);
-      if (escalationTimer) clearTimeout(escalationTimer);
-      childLease.release();
+      runtimeClearTimeout(timeout);
+      runtimeClearTimeout(escalationTimer);
+      runtimeClearTimeout(drainTimer);
       if (run.proc === handle) run.proc = null;
     }
   }
@@ -1718,7 +2103,7 @@ export class Tier1Executor {
       pcfg = readProjectExecConfig(run.repoPath);
       this.applyProjectFullConfig(run);
     } catch (err) {
-      this.finalizeFailure(run, `project_toml_invalid:${String(err).slice(0, 100)}`, "blocked", "项目配置文件解析不了,需要你看一眼 .saydo/project.toml");
+      this.finalizeFailure(run, `project_toml_invalid:${safeFailureText(err, 100)}`, "blocked", "项目配置文件解析不了,需要你看一眼 .saydo/project.toml");
       return;
     }
     run.registry = pcfg.registry;
@@ -1728,7 +2113,7 @@ export class Tier1Executor {
     try {
       run.frozen = pcfg.verifyRefs.map((ref) => freezeVerify(run.repoPath, ref, pcfg.registry));
     } catch (err) {
-      this.finalizeFailure(run, `verify_freeze_failed:${String(err).slice(0, 100)}`, "blocked", "验证命令冻结失败,登记项和仓库现状对不上");
+      this.finalizeFailure(run, `verify_freeze_failed:${safeFailureText(err, 100)}`, "blocked", "验证命令冻结失败,登记项和仓库现状对不上");
       return;
     }
     writeFileSync(join(this.runDir(run.runId), "frozen-verify.json"), JSON.stringify(run.frozen, null, 2));
@@ -1749,8 +2134,9 @@ export class Tier1Executor {
         d.audit.record({ actor: "daemon", action: "tier1.setup_rejected", meta: { taskId: run.taskId, reason: pcfg.rejectedSetupReason } });
       }
     } catch (err) {
+      if (isProcessGroupLifecycleError(err)) throw this.contaminateLifecycle(err);
       if (run.restartPending) throw err;
-      this.finalizeFailure(run, `provision_failed:${String(err).slice(0, 100)}`, "blocked", "工作区供给失败(worktree/依赖安装)");
+      this.finalizeFailure(run, `provision_failed:${safeFailureText(err, 100)}`, "blocked", "工作区供给失败(worktree/依赖安装)");
       return;
     }
     if (run.restartPending) return;
@@ -1775,11 +2161,11 @@ export class Tier1Executor {
       this.discardUnqualifiedTerminalResult(run);
       proc = this.spawnAgent(run, prompt, keys.resumeChatId, keys.sessionId);
     } catch (err) {
-      if (err instanceof Tier1BinaryIdentityError) {
+      if (isTier1BinaryIdentityError(err)) {
         this.finalizeBinaryIdentityFailure(run, err);
         return;
       }
-      throw err;
+      throw projectUnknownFailure(err);
     }
     run.proc = proc;
     const eventsPath = join(this.runDir(run.runId), "events.jsonl");
@@ -1789,14 +2175,15 @@ export class Tier1Executor {
     this.markRestartResumed(run);
     this.resolveClaim(run);
     try {
-      const { exitCode } = await proc.wait();
+      const waited = await proc.wait();
       this.captureProcTail(run, proc);
       run.proc = null;
       run.processGroupVerifiedExited = true;
+      run.terminationCause = waited.terminationCause ?? "exit";
       try {
-        await this.settleAttempt(run, exitCode);
+        await this.settleAttempt(run, waited.exitCode);
       } finally {
-        this.clearAgentOwnershipAfterDurable(run);
+        await this.clearAgentOwnershipAfterDurable(run);
       }
     } catch (err) {
       run.proc = null;
@@ -1852,9 +2239,10 @@ export class Tier1Executor {
    */
   /** spawn 前身份核验失败的统一结算:不起进程、blocked 叫人(09 §11「不符 ⇒ 不认领」) */
   private finalizeBinaryIdentityFailure(run: ActiveRun, err: unknown): void {
+    const text = brandedBinaryIdentityFailureText(err) ?? "binary_identity_mismatch";
     this.finalizeFailure(
       run,
-      String((err as Error).message ?? "binary_identity_mismatch").slice(0, 160),
+      text.slice(0, 160),
       "blocked",
       "执行器二进制和登记的身份对不上,先重跑一次 Tier1 自检再继续"
     );
@@ -1879,6 +2267,7 @@ export class Tier1Executor {
       prompt,
       cwd: run.worktree,
       env,
+      runId: run.runId,
       ...(resumeChatId ? { resumeChatId } : {}),
       ...(sessionId ? { sessionId } : {}),
       ...(settingsJson ? { settingsJson } : {}),
@@ -1990,7 +2379,7 @@ export class Tier1Executor {
     try {
       appendFileSync(eventsPath, line + "\n");
     } catch (err) {
-      run.eventPersistenceError = String(err).slice(0, 160);
+      run.eventPersistenceError = safeFailureText(err, 160);
       this.d.log.error("tier1 event persistence failed", {
         taskId: run.taskId,
         runId: run.runId,
@@ -2220,6 +2609,10 @@ export class Tier1Executor {
         this.finalizeFailure(run, `budget:${run.abort.detail}`, "blocked", "预算熔断停了,要继续得你来处置");
         return;
       }
+      if (run.terminationCause === "pipe_failed") {
+        this.finalizeFailure(run, "stdio_pipe_failed", "failed", "执行输出管道断了,这轮作废");
+        return;
+      }
       if (this.backend.adapter === "claude_code" && !run.restartPending) {
         if (run.authViolation) {
           this.finalizeFailure(run, "subscription_auth_violation", "failed", "执行流报了非订阅登录态,这轮作废");
@@ -2368,7 +2761,7 @@ export class Tier1Executor {
           );
         }
       } catch (err) {
-        this.d.log.error("tier1 review settlement failed", { runId: run.runId, error: String(err).slice(0, 200) });
+        this.d.log.error("tier1 review settlement failed", { runId: run.runId, error: safeFailureText(err, 200) });
         if (this.settleCancellationPriority(run)) return;
         try {
           this.d.audit.record({
@@ -2378,7 +2771,7 @@ export class Tier1Executor {
               taskId: run.taskId,
               runId: run.runId,
               wanted: "ready_for_review",
-              stage: err instanceof Tier1ReviewTransactionError ? err.stage : "settlement"
+              stage: classifyTier1ReviewSettlementCatch(err)
             }
           });
         } catch {
@@ -2541,7 +2934,7 @@ export class Tier1Executor {
     } catch (err) {
       this.finalizeFailure(
         run,
-        `article_invalid:${String(err).slice(0, 100)}`,
+        `article_invalid:${safeFailureText(err, 100)}`,
         "blocked",
         `成稿文件缺失、不是常规文件或不是规范 UTF-8(${run.articlePath})`
       );
@@ -2559,7 +2952,7 @@ export class Tier1Executor {
       if (this.reviewSettlementInterrupted(run)) return;
       treeArticle = readWritingTreeBlob(run.worktree, treeSha, run.articlePath);
     } catch (err) {
-      this.finalizeFailure(run, `article_tree_invalid:${String(err).slice(0, 100)}`, "blocked", "提交树里的成稿不是可批准的常规 UTF-8 文件");
+      this.finalizeFailure(run, `article_tree_invalid:${safeFailureText(err, 100)}`, "blocked", "提交树里的成稿不是可批准的常规 UTF-8 文件");
       return;
     }
     if (treeArticle.text.trim() === "") {
@@ -2657,8 +3050,9 @@ export class Tier1Executor {
       }
       return { ok: true, treeSha };
     } catch (err) {
+      if (isProcessGroupLifecycleError(err)) throw this.contaminateLifecycle(err);
       if (run.restartPending) throw err;
-      this.finalizeFailure(run, `tree_snapshot_failed:${String(err).slice(0, 100)}`, "failed", "工作区快照失败");
+      this.finalizeFailure(run, `tree_snapshot_failed:${safeFailureText(err, 100)}`, "failed", "工作区快照失败");
       return { ok: false };
     }
   }
@@ -2767,7 +3161,7 @@ export class Tier1Executor {
     } catch (err) {
       throw new Tier1ReviewTransactionError(
         run.runId,
-        err instanceof Tier1CostLedgerError ? "cost" : "terminal",
+        classifyTier1ReviewTransactionCatch(err),
         err
       );
     }
@@ -2788,8 +3182,9 @@ export class Tier1Executor {
         captureStdout: true
       });
     } catch (err) {
+      if (isProcessGroupLifecycleError(err)) throw this.contaminateLifecycle(err);
       if (run.restartPending) throw err;
-      return { exitCode: 1, stdoutTail: String(err).slice(-2_000) };
+      return { exitCode: 1, stdoutTail: safeFailureText(err, 2_000) };
     }
   }
 
@@ -2967,12 +3362,12 @@ export class Tier1Executor {
       run.pendingFinalization = durable;
     } catch (err) {
       if (this.settleCancellationPriority(run)) return;
-      d.log.error("finalizeFailure marker write failed", { runId: run.runId, error: String(err).slice(0, 160) });
+      d.log.error("finalizeFailure marker write failed", { runId: run.runId, error: safeFailureText(err, 160) });
       try {
         d.audit.record({
           actor: "daemon",
           action: "tier1.finalize_transaction_failed",
-          meta: { taskId: run.taskId, runId: run.runId, wanted: intent.taskState, stage: "marker", error: String(err).slice(0, 120) }
+          meta: { taskId: run.taskId, runId: run.runId, wanted: intent.taskState, stage: "marker", error: safeFailureText(err, 120) }
         });
       } catch {
         // DB/audit 均不可写时保留内存闩并拒绝新认领；不得伪造已持久化。
@@ -3062,7 +3457,7 @@ export class Tier1Executor {
       tx();
     } catch (err) {
       if (this.settleCancellationPriority(run)) return;
-      d.log.error("finalizeFailure transaction failed", { runId: run.runId, error: String(err).slice(0, 160) });
+      d.log.error("finalizeFailure transaction failed", { runId: run.runId, error: safeFailureText(err, 160) });
       try {
         d.audit.record({
           actor: "daemon",
@@ -3072,7 +3467,7 @@ export class Tier1Executor {
             runId: run.runId,
             wanted: intent.taskState,
             stage: "terminal",
-            error: String(err).slice(0, 120)
+            error: safeFailureText(err, 120)
           }
         });
       } catch {
@@ -3141,7 +3536,7 @@ export class Tier1Executor {
       });
       tx();
     } catch (err) {
-      this.d.log.error("settleCancel failed", { runId: run.runId, error: String(err).slice(0, 160) });
+      this.d.log.error("settleCancel failed", { runId: run.runId, error: safeFailureText(err, 160) });
       this.resolveClaim(run);
       return;
     }
@@ -3205,7 +3600,7 @@ export class Tier1Executor {
         this.settleCancelledRun(run);
         return;
       }
-      this.d.log.error("settleSteerResume failed", { runId: run.runId, error: String(err).slice(0, 160) });
+      this.d.log.error("settleSteerResume failed", { runId: run.runId, error: safeFailureText(err, 160) });
       this.resolveClaim(run);
       return;
     }
@@ -3217,6 +3612,40 @@ export class Tier1Executor {
   // ---------- §12-7 恢复(daemon 重启:按 (adapter,nativeSessionId,cwd) 恢复或降级新会话) ----------
 
   async recover(): Promise<void> {
+    const abort = this.d.recoverAbort;
+    const throwIfAborted = (): void => {
+      if (abort?.aborted) throw new ProcessGroupLifecycleError("runtime recover aborted");
+    };
+    if (abort?.aborted) return;
+    this.d.onRecoverEntered?.();
+    try {
+      await withHomeOwnerBoundary(this.d.cfg.saydoHome, async () => {
+        throwIfAborted();
+        if (!this.d.recoverHold) return;
+        if (!abort) {
+          await this.d.recoverHold;
+          throwIfAborted();
+          return;
+        }
+        await Promise.race([
+          this.d.recoverHold,
+          new Promise<void>((resolve) => {
+            if (abort.aborted) {
+              resolve();
+              return;
+            }
+            abort.addEventListener("abort", () => resolve(), { once: true });
+          })
+        ]);
+        throwIfAborted();
+      }, abort ? { signal: abort } : {});
+      throwIfAborted();
+      this.d.onRecoverAttempt?.();
+      throwIfAborted();
+    } catch (err) {
+      if (abort?.aborted) return;
+      throw err;
+    }
     let rows = this.d.db
       .prepare(`SELECT * FROM tier1_runs WHERE state IN ${ACTIVE_RUN_STATES}`)
       .all() as Record<string, unknown>[];
@@ -3227,7 +3656,9 @@ export class Tier1Executor {
       try {
         const runId = raw["id"] as string;
         reapOutcomes.set(runId, await this.killOrphanAgent(runId));
+        throwIfAborted();
       } catch (err) {
+        if (abort?.aborted) return;
         // 旧组未 ESRCH：污染 lifecycle 并阻断 ready（A1/A3）。
         throw this.contaminateLifecycle(err);
       }
@@ -3351,6 +3782,14 @@ export class Tier1Executor {
     const runnable: Array<{ active: ActiveRun; wasReserved: boolean; settleOnly: boolean }> = [];
     for (const item of preflight) {
       const { raw, runId, taskId, state, task, repoPath, budget, pendingFinalization: preflightPending } = item;
+      if (reapOutcomes.get(runId) === "identity_changed") {
+        this.d.audit.record({
+          actor: "daemon",
+          action: "tier1.recover_owner_identity_changed",
+          meta: { runId, taskId }
+        });
+        continue;
+      }
       let pendingFinalization = preflightPending;
       const nowIso = this.now().toISOString();
       const recordedAdapter = raw["adapter"] === "claude_code" ? "claude_code" : raw["adapter"] === "cursor" ? "cursor" : null;
@@ -3418,7 +3857,7 @@ export class Tier1Executor {
               .run(nowIso, runId);
           }
         } catch (err) {
-          this.d.log.error("recover reap inconsistent run failed", { runId, error: String(err).slice(0, 160) });
+          this.d.log.error("recover reap inconsistent run failed", { runId, error: safeFailureText(err, 160) });
         }
         this.d.audit.record({
           actor: "daemon",
@@ -3478,6 +3917,7 @@ export class Tier1Executor {
         agentOwnershipEstablished: settlesAfterRecovery && state !== "reserved",
         nativeResumeAudited: false,
         processGroupVerifiedExited: settlesAfterRecovery,
+        terminationCause: null,
         claimReady: null,
         claimPromise: null,
         abort:
@@ -3504,8 +3944,10 @@ export class Tier1Executor {
       runnable.push({ active, wasReserved: state === "reserved", settleOnly: settlesAfterRecovery });
     }
 
+    if (abort?.aborted) return;
     for (const { active } of runnable) this.active.set(active.runId, active);
     for (const { active, wasReserved, settleOnly } of runnable) {
+      if (abort?.aborted) return;
       const { runId } = active;
       if (settleOnly) {
         if (active.abort?.kind === "cancel") this.settleCancelledRun(active);
@@ -3518,23 +3960,30 @@ export class Tier1Executor {
         }
         continue;
       }
-      active.completion = this.recoverAttempt(active, wasReserved).catch((err) => {
-        this.d.log.error("tier1 recover crashed", { runId, error: String(err).slice(0, 200) });
+      active.completion = this.recoverAttempt(active, wasReserved).catch((err: unknown) => {
         this.resolveClaim(active);
         if (active.restartPending) return;
         if (isProcessGroupLifecycleError(err)) {
           this.contaminateLifecycle(err);
+          this.d.log.error("tier1 recover crashed", { runId, error: safeFailureText(err, 200) });
           return;
         }
-        this.finalizeFailure(active, `recover_crash:${String(err).slice(0, 120)}`, "failed");
+        const text = safeFailureText(err, 200);
+        this.d.log.error("tier1 recover crashed", { runId, error: text });
+        this.finalizeFailure(active, `recover_crash:${text.slice(0, 120)}`, "failed");
       });
     }
     // A3: recover 返回认领 barrier——每条非终态 run 完成 owner/session 或 terminal 分类。
     await Promise.all(runnable.map(({ active }) => active.claimPromise ?? Promise.resolve()));
+    if (abort?.aborted) return;
     if (this.lifecycleContaminated) throw this.lifecycleContaminated;
   }
 
   private async recoverAttempt(run: ActiveRun, wasReserved: boolean): Promise<void> {
+    if (this.d.recoverAbort?.aborted) {
+      this.resolveClaim(run);
+      return;
+    }
     // recover() 已在登记本轮 active/spawn 前等待旧进程组 ESRCH，防同 worktree 双 agent。
     if (run.restartPending) {
       this.resolveClaim(run);
@@ -3552,7 +4001,7 @@ export class Tier1Executor {
       pcfg = readProjectExecConfig(run.repoPath);
       this.applyProjectFullConfig(run); // 恢复链同样消费项目层保护面(不消费则恢复 run 丢 [git].protected = 安全回退)
     } catch (err) {
-      this.finalizeFailure(run, `project_toml_invalid:${String(err).slice(0, 100)}`, "blocked");
+      this.finalizeFailure(run, `project_toml_invalid:${safeFailureText(err, 100)}`, "blocked");
       return;
     }
     run.registry = pcfg.registry;
@@ -3562,18 +4011,27 @@ export class Tier1Executor {
         run.frozen = pcfg.verifyRefs.map((ref) => freezeVerify(run.repoPath, ref, pcfg.registry));
         d.audit.record({ actor: "daemon", action: "tier1.recover_refroze_verify", meta: { runId: run.runId } });
       } catch (err) {
-        this.finalizeFailure(run, `verify_freeze_failed:${String(err).slice(0, 100)}`, "blocked");
+        this.finalizeFailure(run, `verify_freeze_failed:${safeFailureText(err, 100)}`, "blocked");
         return;
       }
     }
     try {
       await this.provisionWorktree(run); // 幂等(worktree 已存在只补 hooks.json)
+      await this.d.afterProvision?.();
+      if (this.d.recoverAbort?.aborted) {
+        this.resolveClaim(run);
+        return;
+      }
     } catch (err) {
+      if (isProcessGroupLifecycleError(err)) {
+        this.resolveClaim(run);
+        throw this.contaminateLifecycle(err);
+      }
       if (run.restartPending) {
         this.resolveClaim(run);
         throw err;
       }
-      this.finalizeFailure(run, `provision_failed:${String(err).slice(0, 100)}`, "blocked");
+      this.finalizeFailure(run, `provision_failed:${safeFailureText(err, 100)}`, "blocked");
       return;
     }
     if (run.restartPending) {
@@ -3629,11 +4087,11 @@ export class Tier1Executor {
       this.discardUnqualifiedTerminalResult(run);
       proc = this.spawnAgent(run, prompt, resumeChatId, sessionId);
     } catch (err) {
-      if (err instanceof Tier1BinaryIdentityError) {
+      if (isTier1BinaryIdentityError(err)) {
         this.finalizeBinaryIdentityFailure(run, err);
         return;
       }
-      throw err;
+      throw projectUnknownFailure(err);
     }
     run.proc = proc;
     const eventsPath = join(this.runDir(run.runId), "events.jsonl");
@@ -3645,15 +4103,19 @@ export class Tier1Executor {
       this.resolveClaim(run);
     } else {
       // 等 system.init 确认 exact session，或新 prepare 挂起 / 终局 abort。
-      const claimDeadline = Date.now() + 30_000;
+      const claimStartedAt = runtimeNow();
+      const claimDeadlineAt = claimStartedAt + 30_000;
       while (
         !run.resumeSessionConfirmed &&
         !run.resumeSessionError &&
         !run.restartPending &&
-        !run.abort &&
-        Date.now() < claimDeadline
+        !run.abort
       ) {
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        const now = runtimeNow();
+        if (now >= claimDeadlineAt || now < claimStartedAt) break;
+        await new Promise((resolve) => {
+          runtimeSetTimeout(() => resolve(undefined), 10);
+        });
       }
       // A2: proc.wait 前先尊重新的 shutdown suspension。
       if (run.restartPending) {
@@ -3678,21 +4140,22 @@ export class Tier1Executor {
           "failed",
           "恢复进程没有确认原生会话身份,这轮结果作废"
         );
-        this.clearAgentOwnershipAfterDurable(run);
+        await this.clearAgentOwnershipAfterDurable(run);
         return;
       }
     }
     try {
-      const { exitCode } = await proc.wait();
+      const waited = await proc.wait();
       this.captureProcTail(run, proc);
       run.proc = null;
       run.processGroupVerifiedExited = true;
+      run.terminationCause = waited.terminationCause ?? "exit";
       // A2: wait 返回后再次优先处理新 suspension / abort，再看 session。
       if (run.restartPending || run.abort) {
         try {
-          await this.settleAttempt(run, exitCode);
+          await this.settleAttempt(run, waited.exitCode);
         } finally {
-          this.clearAgentOwnershipAfterDurable(run);
+          await this.clearAgentOwnershipAfterDurable(run);
         }
         return;
       }
@@ -3703,14 +4166,14 @@ export class Tier1Executor {
           "failed",
           "恢复进程没有确认原生会话身份,这轮结果作废"
         );
-        this.clearAgentOwnershipAfterDurable(run);
+        await this.clearAgentOwnershipAfterDurable(run);
         return;
       }
-      if (await this.retryResumeNotFoundOnce(run, exitCode, eventsPath)) return;
+      if (await this.retryResumeNotFoundOnce(run, waited, eventsPath)) return;
       try {
-        await this.settleAttempt(run, exitCode);
+        await this.settleAttempt(run, waited.exitCode);
       } finally {
-        this.clearAgentOwnershipAfterDurable(run);
+        await this.clearAgentOwnershipAfterDurable(run);
       }
     } catch (err) {
       run.proc = null;
@@ -3727,27 +4190,29 @@ export class Tier1Executor {
     }
   }
 
-  private clearAgentOwnership(run: ActiveRun): void {
-    const runDir = this.runDir(run.runId);
-    rmSync(join(runDir, "agent.pid"), { force: true });
-    rmSync(join(runDir, "agent-owner.json"), { force: true });
+  private async clearAgentOwnership(run: ActiveRun): Promise<void> {
+    const cleared = await this.clearAgentOwnershipAfterDurable(run);
+    if (!cleared) {
+      await releaseAgentOwnershipAfterDurable(this.d.cfg.saydoHome, run.runId, run.capturedAgentOwner, undefined);
+      delete run.capturedAgentOwner;
+    }
   }
 
   /** ownership 只能在 marker/restart/终态至少一个已 durable 后清除，避免退出后崩溃被恢复为二次 spawn。 */
-  private clearAgentOwnershipAfterDurable(run: ActiveRun): void {
+  private async clearAgentOwnershipAfterDurable(run: ActiveRun): Promise<boolean> {
     const row = this.d.db
       .prepare("SELECT state, finalize_pending_json, restart_pending_at FROM tier1_runs WHERE id=?")
       .get(run.runId) as
       | { state: string; finalize_pending_json: string | null; restart_pending_at: string | null }
       | undefined;
-    if (
-      !row ||
-      !["reserved", "running", "step_paused", "cancel_requested"].includes(row.state) ||
-      row.finalize_pending_json !== null ||
-      row.restart_pending_at !== null
-    ) {
-      this.clearAgentOwnership(run);
-    }
+    const cleared = await releaseAgentOwnershipAfterDurable(
+      this.d.cfg.saydoHome,
+      run.runId,
+      run.capturedAgentOwner,
+      row
+    );
+    if (cleared) delete run.capturedAgentOwner;
+    return cleared;
   }
 
   private markRestartResumed(run: ActiveRun): void {
@@ -3800,21 +4265,32 @@ export class Tier1Executor {
   private async establishAgentOwnership(run: ActiveRun, proc: AgentProcessHandle): Promise<void> {
     const runDir = this.runDir(run.runId);
     try {
-      writeFileSync(join(runDir, "agent.pid"), String(proc.pid), { mode: 0o600 });
+      await withHomeOwnerBoundary(this.d.cfg.saydoHome, () => {
+        writeFileSync(join(runDir, "agent.pid"), String(proc.pid), { mode: 0o600 });
+      });
       await proc.started;
       if (proc.ownershipRequired !== true) {
         // 注入式测试/内存 spawner 没有可由 OS 复核的进程身份，不能把占位 PID 留成 durable 假锚。
         rmSync(join(runDir, "agent.pid"), { force: true });
         return;
       }
-      const deadline = Date.now() + 2_000;
+      const startedAt = runtimeNow();
+      const deadline = startedAt + 2_000;
       let processStart: string | null = null;
-      while (processStart === null && Date.now() < deadline) {
+      while (processStart === null) {
+        const t = runtimeNow();
+        if (t >= deadline || t < startedAt) break;
         processStart = hostKind() === "win32"
-          ? processBirth(proc.pid)
+          ? (proc.processHandle !== undefined
+            ? processBirthFromHandle(proc.processHandle, proc.pid)
+            : null)
           : (readOwnedAgentProcessStart(proc.pid, process.execPath, proc.commandToken) ??
             readOwnedAgentProcessStart(proc.pid, this.d.cfg.lockedBinary, proc.commandToken));
-        if (processStart === null) await new Promise((resolve) => setTimeout(resolve, 20));
+        if (processStart === null) {
+          await new Promise((resolve) => {
+            runtimeSetTimeout(() => resolve(undefined), 20);
+          });
+        }
       }
       if (processStart === null && run.terminalResultReceived) {
         await proc.wait();
@@ -3822,35 +4298,53 @@ export class Tier1Executor {
       }
       if (!processStart) throw new Error("agent process ownership identity unavailable");
       const ownerPath = join(runDir, "agent-owner.json");
-      const temporary = `${ownerPath}.${process.pid}.tmp`;
-      const jobName = runtimeChildJobName(proc.pid);
-      try {
-        writeFileSync(
-          temporary,
-          JSON.stringify({
-            version: 1,
-            runId: run.runId,
-            pid: proc.pid,
-            binary: this.d.cfg.lockedBinary,
-            worktree: run.worktree,
-            processStart,
-            ...(jobName ? { jobName } : {}),
-            ...runtimeChildOwnerIdentity()
-          } satisfies AgentOwnershipRecord),
-          { mode: 0o600 }
-        );
-        renameSync(temporary, ownerPath);
-        proc.ownershipEstablished?.();
-      } finally {
-        rmSync(temporary, { force: true });
+      const jobName = proc.jobName;
+      const generation = proc.generation;
+      const commandToken = proc.commandToken;
+      if (!jobName || !generation || !commandToken) {
+        throw new Error("agent process ownership identity unavailable");
       }
+      const identity = runtimeChildOwnerIdentity();
+      const record: AgentOwnershipRecord = {
+        version: 1,
+        runId: run.runId,
+        pid: proc.pid,
+        binary: this.d.cfg.lockedBinary,
+        worktree: run.worktree,
+        processStart,
+        kind: "tier1:agent",
+        jobName,
+        commandToken,
+        generation,
+        ownerPid: identity.ownerPid,
+        ownerInstanceId: identity.ownerInstanceId
+      };
+      await publishAgentOwnerUnderHomeLock(this.d.cfg.saydoHome, ownerPath, record);
+      run.capturedAgentOwner = {
+        version: 1,
+        pid: record.pid,
+        processStart: record.processStart,
+        ownerPid: record.ownerPid,
+        ownerInstanceId: record.ownerInstanceId,
+        runId: record.runId,
+        jobName: record.jobName,
+        binary: record.binary,
+        kind: record.kind,
+        commandToken: record.commandToken,
+        generation: record.generation
+      };
+      proc.ownershipEstablished?.();
     } catch (err) {
       try {
         proc.kill();
       } catch {
         // proc.wait 是最终收口判据。
       }
-      await proc.wait().catch(() => undefined);
+      try {
+        await proc.wait();
+      } catch (waitErr) {
+        if (isProcessGroupLifecycleError(waitErr)) throw this.contaminateLifecycle(waitErr);
+      }
       throw err;
     }
   }
@@ -3994,9 +4488,10 @@ export class Tier1Executor {
   }
 
   /** resume_not_found:清 ownership 后新会话只重试一次。已重试或非 resume 则交给 settle。 */
-  private async retryResumeNotFoundOnce(run: ActiveRun, exitCode: number, eventsPath: string): Promise<boolean> {
+  private async retryResumeNotFoundOnce(run: ActiveRun, waited: AgentWaitResult, eventsPath: string): Promise<boolean> {
+    if (waited.terminationCause === "pipe_failed") return false;
     if (this.backend.adapter !== "claude_code" || !run.isResume || run.resumeNotFoundRetryUsed) return false;
-    const disp = this.claudeDisposition(run, exitCode);
+    const disp = this.claudeDisposition(run, waited.exitCode);
     if (!(disp.action === "failed" && disp.reason === "resume_not_found")) return false;
     run.resumeNotFoundRetryUsed = true;
     this.d.audit.record({
@@ -4009,7 +4504,7 @@ export class Tier1Executor {
         isResume: true
       }
     });
-    this.clearAgentOwnership(run);
+    await this.clearAgentOwnership(run);
     run.resultEvent = null;
     run.terminalResultReceived = false;
     run.rateLimitEvents = [];
@@ -4026,11 +4521,11 @@ export class Tier1Executor {
     try {
       proc = this.spawnAgent(run, prompt, undefined, sessionId);
     } catch (err) {
-      if (err instanceof Tier1BinaryIdentityError) {
+      if (isTier1BinaryIdentityError(err)) {
         this.finalizeBinaryIdentityFailure(run, err);
         return true;
       }
-      throw err;
+      throw projectUnknownFailure(err);
     }
     run.proc = proc;
     proc.onLine((line) => this.consumeEventLine(run, line, eventsPath));
@@ -4038,14 +4533,15 @@ export class Tier1Executor {
     run.agentOwnershipEstablished = true;
     this.markRestartResumed(run);
     this.resolveClaim(run);
-    const waited = await proc.wait();
+    const retried = await proc.wait();
     this.captureProcTail(run, proc);
     run.proc = null;
     run.processGroupVerifiedExited = true;
+    run.terminationCause = retried.terminationCause ?? "exit";
     try {
-      await this.settleAttempt(run, waited.exitCode);
+      await this.settleAttempt(run, retried.exitCode);
     } finally {
-      this.clearAgentOwnershipAfterDurable(run);
+      await this.clearAgentOwnershipAfterDurable(run);
     }
     return true;
   }
@@ -4378,13 +4874,16 @@ export class Tier1Executor {
       if (run.completion) completions.push(run.completion);
       else this.active.delete(run.runId);
     }
-    await Promise.all(completions);
-    await Promise.all(processDrains);
+    await raceWithMonotonicDeadline(
+      Promise.all([...completions, ...processDrains]),
+      "tier1-emergency-shutdown",
+      TIER1_EMERGENCY_CLEANUP_DEADLINE_MS
+    );
   }
 
   /** 旧调用兼容；正常退出必须走 prepareShutdown。 */
   shutdown(): void {
-    void this.emergencyShutdown();
+    void this.emergencyShutdown().catch(() => undefined);
   }
 
   /** 观测(测试/console 用) */

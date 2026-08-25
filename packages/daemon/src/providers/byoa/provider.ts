@@ -21,13 +21,24 @@ import { isolatedHomeEnv, isolatedProviderSecrets, prepareIsolatedHome } from ".
 import { parsePlaintextBlock, parseStructuredOutput, parserFor } from "./parsers.js";
 import { consumeByoaEvents, type ConsumeResult } from "./consume.js";
 import {
+  assertByoaShutdownAllowsStopped,
   ByoaBusyError,
   defaultByoaConcurrencyLimiter,
+  getByoaLifecycleContamination,
+  resetByoaLifecycleForTests,
   runSpawnTurn,
   type ByoaConcurrencyLimiter,
   type SpawnAttemptResult,
   type SpawnTurnResult
 } from "./runner.js";
+
+export { assertByoaShutdownAllowsStopped, getByoaLifecycleContamination, resetByoaLifecycleForTests } from "./runner.js";
+
+export function resetByoaProviderForTests(): void {
+  byoaDraining = false;
+  byoaShutdown = false;
+  resetByoaLifecycleForTests();
+}
 
 // W5.4-b C1:VerifiedBinaryIdentity 与 verifyBinaryIdentity 提升为共享模块
 // providers/binaryIdentity.ts(Tier1 claude 登记核验同源消费);此处 re-export 保持既有导出面。
@@ -154,6 +165,7 @@ export async function abortAllByoaInvocations(options: { permanent?: boolean } =
   } finally {
     if (!byoaShutdown) byoaDraining = false;
   }
+  assertByoaShutdownAllowsStopped();
   return { aborted };
 }
 
@@ -164,6 +176,9 @@ export function createByoaProvider(opts: ByoaProviderOptions): LlmProvider {
     kind,
     model: opts.model,
     async chat(req, signal): Promise<ChatResult> {
+      if (getByoaLifecycleContamination()) {
+        return failure("process_group_not_reaped", "CLI 进程组未能在时限内收口", false);
+      }
       if (byoaDraining || byoaShutdown) return failure("cancelled", "CLI 调用已取消", false);
       let markSettled!: () => void;
       const settlement = new Promise<void>((resolve) => {
@@ -367,25 +382,29 @@ export function createByoaProvider(opts: ByoaProviderOptions): LlmProvider {
               !parseStructuredOutput(attemptConsumed.text, req.jsonSchema).ok;
             const rateLimited = isCliSubscriptionRateLimit(opts.provider, attempt);
             const processVoidReason =
-              (attempt.safetyStop && attempt.safetyStop !== "unknown_event" ? attempt.safetyStop : undefined) ??
-              (rateLimited ? "subscription_rate_limited" : undefined) ??
-              attempt.safetyStop ??
-              (attempt.aborted
-                ? "cancelled"
-                : attempt.timedOut
-                  ? `timeout_${attempt.timeoutKind ?? "wall"}`
-                  : attempt.outputLimitExceeded
-                    ? "output_limit"
-                    : attempt.spawnError
-                      ? "spawn_failed"
-                      : attempt.exitCode !== 0
-                        ? "process_exit"
-                        : attempt.lines.every((line) => !line.trim()) ||
-                            (attemptConsumed.ok && attemptConsumed.text.trim() === "")
-                          ? "empty_output"
-                          : structuredInvalid
-                            ? "invalid_structured_output"
-                            : undefined);
+              attempt.pipeError
+                ? "pipe_failed"
+                : (attempt.safetyStop && attempt.safetyStop !== "unknown_event" ? attempt.safetyStop : undefined) ??
+                  (rateLimited ? "subscription_rate_limited" : undefined) ??
+                  attempt.safetyStop ??
+                  (attempt.aborted
+                    ? "cancelled"
+                    : attempt.timedOut
+                      ? `timeout_${attempt.timeoutKind ?? "wall"}`
+                      : attempt.outputLimitExceeded
+                        ? "output_limit"
+                        : attempt.lifecycleError
+                          ? "process_group_not_reaped"
+                          : attempt.spawnError
+                            ? "spawn_failed"
+                            : attempt.exitCode !== 0
+                              ? "process_exit"
+                              : attempt.lines.every((line) => !line.trim()) ||
+                                  (attemptConsumed.ok && attemptConsumed.text.trim() === "")
+                                ? "empty_output"
+                                : structuredInvalid
+                                  ? "invalid_structured_output"
+                                  : undefined);
             if (attemptConsumed.observedModelExempted && verifiedIdentity) {
               opts.audit.record({
                 actor: "daemon",
@@ -486,7 +505,8 @@ export function createByoaProvider(opts: ByoaProviderOptions): LlmProvider {
         let safetyRetried = false;
         let invocation = await invoke(invocationPrompt(false));
         let retriesUsed = invocation.turn.attempts - 1;
-        const canUseSafetyRetry = retriesUsed === 0 && requestRetryLimit > 0 && !accountingFailed;
+        const canUseSafetyRetry =
+          retriesUsed === 0 && requestRetryLimit > 0 && !accountingFailed && !invocation.turn.pipeError;
         const isUnknownEventVoid = (current: InvocationResult): boolean => {
           if (current.turn.safetyStop === "family_mismatch" || current.consumed.voidReason === "family_mismatch") {
             return false;
@@ -519,6 +539,7 @@ export function createByoaProvider(opts: ByoaProviderOptions): LlmProvider {
           const voided = (code: string, message: string): ChatResult =>
             failure(code, withTriggerContent(message, triggerLine, secretValues), false);
           if (accountingFailed) return failure("cost_ledger_failed", "CLI 调用记账失败,结果不下发", true);
+          if (current.turn.pipeError) return failure("pipe_failed", "CLI 输出管道失败", false);
           if (current.turn.safetyStop && current.turn.safetyStop !== "unknown_event") {
             return voided(
               `voided_${current.turn.safetyStop}`,
@@ -540,6 +561,7 @@ export function createByoaProvider(opts: ByoaProviderOptions): LlmProvider {
             return failure("timeout", `CLI ${current.turn.timeoutKind ?? "wall"} 超时`, true);
           }
           if (current.turn.outputLimitExceeded) return failure("output_limit", "CLI 输出超过配置上限", false);
+          if (current.turn.lifecycleError) return failure("process_group_not_reaped", "CLI 进程组未能在时限内收口", false);
           if (current.turn.spawnError || current.turn.exitCode === null) return failure("spawn_failed", "CLI 进程未能启动", true);
           if (current.turn.exitCode !== 0) {
             const explained = explainCliProcessFailure(opts.provider, current.turn);

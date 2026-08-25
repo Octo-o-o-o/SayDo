@@ -1,7 +1,7 @@
 # 71 阶段缺口分析对抗审
 
 > 日期：2026-08-13（当前运行环境）  
-> 目标文件：`/Users/wangyixiao/WorkSpace/SayDo/docs/review/2026-08-14-saydo-phase-gap-analysis.md`  
+> 目标文件：`~/WorkSpace/SayDo/docs/review/2026-08-14-saydo-phase-gap-analysis.md`
 > HEAD：无法取得  
 > 范围：只读；未运行 lint、测试，也未修改仓库文件
 
@@ -37,7 +37,7 @@ sandbox-exec: sandbox_apply: Operation not permitted
 $ git rev-parse HEAD
 sandbox-exec: sandbox_apply: Operation not permitted
 
-$ nl -ba /Users/wangyixiao/WorkSpace/SayDo/docs/review/2026-08-14-saydo-phase-gap-analysis.md | sed -n '1,260p'
+$ nl -ba ~/WorkSpace/SayDo/docs/review/2026-08-14-saydo-phase-gap-analysis.md | sed -n '1,260p'
 sandbox-exec: sandbox_apply: Operation not permitted
 
 $ git status --short --branch

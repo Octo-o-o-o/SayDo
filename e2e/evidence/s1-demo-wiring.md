@@ -7,7 +7,7 @@
 
 ## 0. 坐标
 
-- 工作目录:`/Users/wangyixiao/WorkSpace/saydo-batch-s1-demo-wiring`
+- 工作目录:`~/WorkSpace/saydo-batch-s1-demo-wiring`
 - 分支:`batch/s1-demo-wiring`
 - 开批 HEAD:`33c5cf134f08942457f9bc7f5589eeef88c0fbce`(`docs(plan,site): 官网 Docs/首页内容稿 v2...`)。prompt 写 `354b028`;本 clone 多一个其后 docs 提交,属允许漂移。
 - `assemble` 行号:prompt 写 `:66` 附近,本树 `factory.ts:67`(函数体,非 `async`);`sign` `:174` 起(施工后;开批时 `:130`);`revise` `:90`(开批 `:87`)。结构未漂,仅行号随本批增长。

@@ -1,6 +1,6 @@
 你是对抗评审。只读,不改文件。
-评审对象:/Users/wangyixiao/WorkSpace/OctoAgent/docs/product/2026-08-13-向导快速配置UX重构方案-v1.md 的「v3.0 追加」节(左右分栏融合布局+中文名)。
-实施仓:/Users/wangyixiao/WorkSpace/SayDo(当前 checked-out 分支 ui/standardize-tokens=main=946cc68;工作树有另一会话未提交改动,勿动)。
+评审对象:~/WorkSpace/OctoAgent/docs/product/2026-08-13-向导快速配置UX重构方案-v1.md 的「v3.0 追加」节(左右分栏融合布局+中文名)。
+实施仓:~/WorkSpace/SayDo(当前 checked-out 分支 ui/standardize-tokens=main=946cc68;工作树有另一会话未提交改动,勿动)。
 背景:owner 构想=左栏 Provider 列表、右栏五用途区,由此融合快速/高级两视图,高级视图(SupplyPicker 四步流)退役。
 重点核验:
 1. 融合语义:右栏单槽换家=mixed。现 validate/SLOT_POLICY/双 ack 的 mixed 规则(哪些组合要哪些 ack、dialog=CLI 的 oneshot 限制、evaluator 同族判定)在"任意逐槽混搭"下的完整矩阵——UI 动态显隐 ack 的判定来源在哪(setupApi 契约表?);有没有"UI 让配但 validate 必拒"的死角组合(例:evaluator 换到与 thinking 异家的 CLI 需要什么 ack;dialog 换 API 时 key 来源)。

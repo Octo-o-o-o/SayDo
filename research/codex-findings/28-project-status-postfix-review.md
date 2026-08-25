@@ -8,35 +8,35 @@
 
 ### A-R1：快照仍遗漏 authoritative foundation 状态
 
-- 事实：生产源只纳入 `.saydo/knowledge` 和可选 `.saydo/sessions`，未纳入 `.saydo/foundation`。[snapshot.ts:212](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/backup/snapshot.ts:212)
-- 证据：`FoundationBuilder` 从 `.saydo/foundation/current.json` 取得当前 generation；缺失时返回 0，且代码明确该文件是唯一真相源。[foundation.ts:269](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/memory/foundation.ts:269)、[foundation.ts:378](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/memory/foundation.ts:378)。OctoDesk 当前为 generation 3，而真实快照没有 `foundation` 条目或目录。
+- 事实：生产源只纳入 `.saydo/knowledge` 和可选 `.saydo/sessions`，未纳入 `.saydo/foundation`。[snapshot.ts:212](~/WorkSpace/SayDo/packages/daemon/src/backup/snapshot.ts:212)
+- 证据：`FoundationBuilder` 从 `.saydo/foundation/current.json` 取得当前 generation；缺失时返回 0，且代码明确该文件是唯一真相源。[foundation.ts:269](~/WorkSpace/SayDo/packages/daemon/src/memory/foundation.ts:269)、[foundation.ts:378](~/WorkSpace/SayDo/packages/daemon/src/memory/foundation.ts:378)。OctoDesk 当前为 generation 3，而真实快照没有 `foundation` 条目或目录。
 - 影响：恢复后虽有 knowledge 文档，但 generation、manifest、inventory 和 readiness generation 绑定丢失，不能称为完整 active workspace 恢复。
 - 最小修法：把 `.saydo/foundation` 作为 required、带 `projectId` 的角色备份；隔离恢复后实际断言 `currentGeneration()=3`、`currentManifest()` 可读及 `knowledge/current` 一致。
 
 ### A-R2：保留期在备份失败或崩溃时不能兑现“最多 N 天”
 
-- 事实：旧快照清理只在新快照成功发布后运行；任何必需源缺失、复制错误或磁盘错误都会跳过清理。[snapshot.ts:118](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/backup/snapshot.ts:118)、[snapshot.ts:186](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/backup/snapshot.ts:186)
+- 事实：旧快照清理只在新快照成功发布后运行；任何必需源缺失、复制错误或磁盘错误都会跳过清理。[snapshot.ts:118](~/WorkSpace/SayDo/packages/daemon/src/backup/snapshot.ts:118)、[snapshot.ts:186](~/WorkSpace/SayDo/packages/daemon/src/backup/snapshot.ts:186)
 - 证据：
   - `parseStamp()` 不识别 `.partial`，进程被 kill 或掉电留下的半成品不会过期。
   - `retentionDays=0` 仍合法，时间戳丢毫秒而 cutoff 保留毫秒，新快照会立即被自己清掉。
-  - 手工与定时路径把所有配置解析/健全性异常静默降为默认 30 天。[cli.ts:17](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/backup/cli.ts:17)、[index.ts:1150](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/index.ts:1150)。例如运行中配置从合法 365 天改成坏 TOML，下一轮可按 30 天误删原本应保留的快照。
+  - 手工与定时路径把所有配置解析/健全性异常静默降为默认 30 天。[cli.ts:17](~/WorkSpace/SayDo/packages/daemon/src/backup/cli.ts:17)、[index.ts:1150](~/WorkSpace/SayDo/packages/daemon/src/index.ts:1150)。例如运行中配置从合法 365 天改成坏 TOML，下一轮可按 30 天误删原本应保留的快照。
 - 影响：含 hard-forget 数据的旧 final/partial 副本可能无限超过合同保留期；配置异常又可能反向造成不可预期删除。
 - 最小修法：把 retention reconciliation 从“新建成功”中拆出，在启动和每轮无论备份成败都执行；治理 stale partial；要求 `retentionDays>0` 或明确定义 0；区分“配置不存在”与“现有配置非法”，非法时拒绝 prune 或使用持久化的 last-good 值。补失败清旧、crash partial、0 值和坏配置反例。
 
 ### A-R3：active workspace 清单与 SQLite 快照存在时间竞态
 
-- 事实：CLI/timer 先从 live DB 调 `productionBackupSources()`，之后才执行 SQLite 在线备份。[cli.ts:29](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/backup/cli.ts:29)、[snapshot.ts:119](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/backup/snapshot.ts:119)
+- 事实：CLI/timer 先从 live DB 调 `productionBackupSources()`，之后才执行 SQLite 在线备份。[cli.ts:29](~/WorkSpace/SayDo/packages/daemon/src/backup/cli.ts:29)、[snapshot.ts:119](~/WorkSpace/SayDo/packages/daemon/src/backup/snapshot.ts:119)
 - 证据：发布前没有从备份出来的 DB 重新派生或复核 active workspace 列表。
 - 影响：并发 activate/reanchor 时，SQLite 可能记录新 workspace，但 manifest 复制旧 workspace，最终仍标 `completed:true`。本次真实快照未观察到该错配，但代码允许该竞态。
 - 最小修法：SQLite 备份完成后，从备份 DB 派生 active workspace 清单并在发布前对账；补并发 activate/reanchor 测试。
 
 ### A-R4：preflight 不能证明 daemon/pipeline 实际加载了目标 SHA
 
-- 事实：deploy 只重启 daemon，pipeline 依靠原进程重连。[runtime-deploy.md:3](/Users/wangyixiao/WorkSpace/SayDo/e2e/owner-sessions/runtime-deploy.md:3)
+- 事实：deploy 只重启 daemon，pipeline 依靠原进程重连。[runtime-deploy.md:3](~/WorkSpace/SayDo/e2e/owner-sessions/runtime-deploy.md:3)
 - 证据：
-  - preflight 验证磁盘 HEAD、clean、launchd cwd；pipeline 连 ProgramArguments 都未核对。[runtime-preflight.sh:15](/Users/wangyixiao/WorkSpace/SayDo/scripts/runtime-preflight.sh:15)
-  - daemon `/health` 只有 `ok/service/ts`，没有启动时 SHA。[index.ts:122](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/index.ts:122)
-  - pipeline hello/health 不携带 loaded SHA。[hub_client.py:110](/Users/wangyixiao/WorkSpace/SayDo/pipeline/src/saydo_pipeline/hub_client.py:110)
+  - preflight 验证磁盘 HEAD、clean、launchd cwd；pipeline 连 ProgramArguments 都未核对。[runtime-preflight.sh:15](~/WorkSpace/SayDo/scripts/runtime-preflight.sh:15)
+  - daemon `/health` 只有 `ok/service/ts`，没有启动时 SHA。[index.ts:122](~/WorkSpace/SayDo/packages/daemon/src/index.ts:122)
+  - pipeline hello/health 不携带 loaded SHA。[hub_client.py:110](~/WorkSpace/SayDo/pipeline/src/saydo_pipeline/hub_client.py:110)
 - 影响：checkout 后仍在内存运行旧 Python 模块的 pipeline 可以通过当前 preflight，owner 可能验错 runtime。
 - 最小修法：部署时无条件重启两服务；daemon 与 pipeline 启动时固化 SHA，pipeline hello 上报 SHA；增加带双方 SHA、WS freshness、ASR/TTS 状态的 `/readyz`，preflight 与目标 SHA 精确对账。
 
@@ -45,34 +45,34 @@
 ### B-R1：manifest 能验证“所列条目”，不能验证“应有条目”或恢复可行性
 
 - 事实：`completed:true` 只表示循环完成；生产 CLI 在 DB 不存在时仍能发布无 SQLite 的完成快照。
-- 证据：真实 manifest 三项 fingerprint 均复算一致，但其 `sha256` 是带 `file\0/directory\0` 前缀的私有算法；例如 DB manifest 值为 `81b7…`，普通文件 SHA-256 为 `f1f3…`。测试没有断言 `schemaVersion/sha256/bytes`，也未做隔离恢复。[backup.test.ts:67](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/test/backup.test.ts:67)
+- 证据：真实 manifest 三项 fingerprint 均复算一致，但其 `sha256` 是带 `file\0/directory\0` 前缀的私有算法；例如 DB manifest 值为 `81b7…`，普通文件 SHA-256 为 `f1f3…`。测试没有断言 `schemaVersion/sha256/bytes`，也未做隔离恢复。[backup.test.ts:67](~/WorkSpace/SayDo/packages/daemon/test/backup.test.ts:67)
 - 影响：外部恢复者无法仅凭 schema 判断缺项、算法或目标映射。
 - 最小修法：提供严格 v2 verifier、`digestAlgorithm`、expected/required role 集及 dry-run restore plan；生产模式要求 SQLite 存在。
 
 ### B-R2：真人主路径、fallback 与自动化仍可能在记录层混账
 
-- 事实：场次②正文已明确 Touch ID 与人工 fallback 不得互相替代，但运行记录仍只有一个 `status` 和一个证据栏。[session-2.md:53](/Users/wangyixiao/WorkSpace/SayDo/e2e/owner-sessions/session-2.md:53)、[session-2.md:71](/Users/wangyixiao/WorkSpace/SayDo/e2e/owner-sessions/session-2.md:71)
-- 证据：场次④自身写成“唯一真人验收点”并以单场 pass 解锁 tag，没有在该记录中机械绑定①②③均 pass 及同一 release SHA。[session-4.md:1](/Users/wangyixiao/WorkSpace/SayDo/e2e/owner-sessions/session-4.md:1)、[session-4.md:73](/Users/wangyixiao/WorkSpace/SayDo/e2e/owner-sessions/session-4.md:73)
+- 事实：场次②正文已明确 Touch ID 与人工 fallback 不得互相替代，但运行记录仍只有一个 `status` 和一个证据栏。[session-2.md:53](~/WorkSpace/SayDo/e2e/owner-sessions/session-2.md:53)、[session-2.md:71](~/WorkSpace/SayDo/e2e/owner-sessions/session-2.md:71)
+- 证据：场次④自身写成“唯一真人验收点”并以单场 pass 解锁 tag，没有在该记录中机械绑定①②③均 pass 及同一 release SHA。[session-4.md:1](~/WorkSpace/SayDo/e2e/owner-sessions/session-4.md:1)、[session-4.md:73](~/WorkSpace/SayDo/e2e/owner-sessions/session-4.md:73)
 - 影响：fallback 或自动化证据可能被误记为真人主路径通过，或孤立场次④被误读为足够发布。
 - 最小修法：增加 `overall_status`、`touch_id_main_status`、`manual_fallback_status`、`evidence_origin` 和各自证据；发布收据绑定四场 pass 与同一 target SHA。
 
 ### B-R3：阶段与 commit 时序仍有文字冲突
 
-- 事实：状态归档一处写“工程侧已可约”，另一处又正确写明门禁、commit、deploy 后才进入验收。[状态归档:118](/Users/wangyixiao/WorkSpace/SayDo/history/2026-07-29-migration-and-implementation-status.md:118)、[状态归档:152](/Users/wangyixiao/WorkSpace/SayDo/history/2026-07-29-migration-and-implementation-status.md:152)
-- 证据：归档第 189 行把 commit/push 放在场次④之后，但部署前显然先需要一个经过授权的精确 commit。[状态归档:182](/Users/wangyixiao/WorkSpace/SayDo/history/2026-07-29-migration-and-implementation-status.md:182)
+- 事实：状态归档一处写“工程侧已可约”，另一处又正确写明门禁、commit、deploy 后才进入验收。[状态归档:118](~/WorkSpace/SayDo/history/2026-07-29-migration-and-implementation-status.md:118)、[状态归档:152](~/WorkSpace/SayDo/history/2026-07-29-migration-and-implementation-status.md:152)
+- 证据：归档第 189 行把 commit/push 放在场次④之后，但部署前显然先需要一个经过授权的精确 commit。[状态归档:182](~/WorkSpace/SayDo/history/2026-07-29-migration-and-implementation-status.md:182)
 - 影响：owner/Codex 分工和发布步骤存在操作歧义。
 - 最小修法：改成“运行册已备、当前仍受封账与部署阻塞”；拆分“发布前修复 commit 授权”和“验收证据/tag/push 授权”。
 
 ### B-R4：定时备份没有启动 catch-up
 
-- 事实：只有 `setInterval(..., 24h)`，首次启动后要连续运行 24 小时才执行。[index.ts:1159](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/index.ts:1159)
+- 事实：只有 `setInterval(..., 24h)`，首次启动后要连续运行 24 小时才执行。[index.ts:1159](~/WorkSpace/SayDo/packages/daemon/src/index.ts:1159)
 - 影响：若 daemon 经常在 24 小时内重启，自动备份可以长期不发生。
 - 最小修法：启动时读取最近有效 completed manifest，逾期即补跑；将创建调度与 retention reconciliation 分离。
 
 ## C 级发现
 
-- C-R1：未使用的导出 `defaultSources()` 仍保留，是重新引入“漏传 workspace”的脚枪。[snapshot.ts:202](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/backup/snapshot.ts:202)。最小修法：删除或改成测试私有 helper。
-- C-R2：PLAN-2 的 W4 状态行仍把“翻 writing 值”列为 owner 触点，与同文件后文及现场有效配置冲突。[PLAN-2:49](/Users/wangyixiao/WorkSpace/SayDo/docs/plan/IMPLEMENTATION-PLAN-2.md:49)。最小修法：改为“已翻值；真人 writing 全链待验”。
+- C-R1：未使用的导出 `defaultSources()` 仍保留，是重新引入“漏传 workspace”的脚枪。[snapshot.ts:202](~/WorkSpace/SayDo/packages/daemon/src/backup/snapshot.ts:202)。最小修法：删除或改成测试私有 helper。
+- C-R2：PLAN-2 的 W4 状态行仍把“翻 writing 值”列为 owner 触点，与同文件后文及现场有效配置冲突。[PLAN-2:49](~/WorkSpace/SayDo/docs/plan/IMPLEMENTATION-PLAN-2.md:49)。最小修法：改为“已翻值；真人 writing 全链待验”。
 
 ## Codex 27 A-1 至 A-5
 
@@ -88,7 +88,7 @@ Codex 27 其余项：B-1/B-2/B-3/B-6 已关闭；B-4 部分关闭（运行册补
 
 ## 快照和运行现场结论
 
-- 快照 `/Users/wangyixiao/.saydo/backups/20260729T143851Z`：
+- 快照 `~/.saydo/backups/20260729T143851Z`：
   - 操作层可识别为已发布：schema v2、`completed:true`，当前 backup root 无 `.partial`。
   - SQLite immutable `quick_check=ok`；全局 sessions 与 OctoDesk knowledge 当前逐文件一致；三项自定义 fingerprint/bytes 均匹配。
   - 语义层不能判完整：缺 `.saydo/foundation`、没有 expected role 集、没有恢复 verifier；加上本轮意外 sidecar，不能继续作为首发回滚点。

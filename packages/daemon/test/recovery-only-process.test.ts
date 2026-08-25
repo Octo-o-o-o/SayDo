@@ -292,26 +292,280 @@ describe("recovery-only 真实进程组合根", () => {
       expect(processPids).toHaveLength(3);
       if (process.platform !== "win32") {
         const marker = await waitForFileText(installed.marker, "ignore-SIGTERM");
-        expect(marker).toContain("parent-SIGTERM");
-        expect(marker).toContain("inherit-SIGTERM");
+        await waitForFileText(installed.marker, "parent-SIGTERM");
+        await waitForFileText(installed.marker, "inherit-SIGTERM");
+        expect(marker).toContain("ignore-SIGTERM");
       }
+      // 重并发下(pnpm test 全 workspace)整组进程退出与随后的 audit 落库都会明显变慢：
+      // 默认 1s 与原先的 8s 都不够,实测曾在 9986ms 处以 "audit missing" 假失败。
+      await vi.waitFor(
+        () => {
+          for (const pid of processPids) expect(() => process.kill(pid, 0)).toThrow();
+        },
+        { timeout: 8_000, interval: 50 }
+      );
       await vi.waitFor(() => {
-        for (const pid of processPids) expect(() => process.kill(pid, 0)).toThrow();
-      });
+        const auditDb = openDb(join(home, "saydo.db"));
+        try {
+          const shutdownAudit = auditDb
+            .prepare("SELECT meta_json FROM audit_log WHERE action='runtime.prepare_shutdown' ORDER BY ts DESC LIMIT 1")
+            .get() as { meta_json: string } | undefined;
+          if (!shutdownAudit) throw new Error("runtime.prepare_shutdown audit missing");
+          expect(JSON.parse(shutdownAudit.meta_json)).toMatchObject({
+            recoverableTier1: 0,
+            abortedUnrecoverable: 1
+          });
+        } finally {
+          auditDb.close();
+        }
+      }, { timeout: 15_000, interval: 50 });
       const auditDb = openDb(join(home, "saydo.db"));
-      const shutdownAudit = auditDb
-        .prepare("SELECT meta_json FROM audit_log WHERE action='runtime.prepare_shutdown' ORDER BY ts DESC LIMIT 1")
-        .get() as { meta_json: string };
-      expect(JSON.parse(shutdownAudit.meta_json)).toMatchObject({
-        recoverableTier1: 0,
-        abortedUnrecoverable: 1
-      });
       expect(
         (auditDb.prepare("SELECT COUNT(*) AS c FROM tier1_runs WHERE restart_pending_at IS NOT NULL").get() as { c: number }).c
       ).toBe(0);
       auditDb.close();
     } finally {
       if (mode === "restart") await daemon.stop();
+    }
+  }, 40_000);
+
+  it("restart 后同步 signal：drain/close 各一次、spawn=0、signal 优先", async () => {
+    const home = realpathSync(mkdtempSync(join(tmpdir(), "saydo-recovery-restart-signal-")));
+    writeFileSync(join(home, "config.toml"), "[models\ninvalid =", { mode: 0o600 });
+    const daemon = await startDaemonProcess({
+      home,
+      port: await reservePort()
+    });
+    try {
+      writeFileSync(join(home, "config.toml.pending"), cliCandidateConfig(), { mode: 0o600 });
+      const pendingConfig = parseConfigText(cliCandidateConfig());
+      const activation = {
+        configDigest: createHash("sha256").update(readFileSync(join(home, "config.toml.pending"))).digest("hex")
+      };
+      const binDir = join(home, "fake-bin");
+      mkdirSync(binDir, { recursive: true });
+      const binaryPath = join(binDir, "codex.mjs");
+      writeFileSync(binaryPath, "console.log('ok')\n");
+      const db = openDb(join(home, "saydo.db"));
+      registerCliSelfTest(
+        home,
+        pendingConfig.models.thinking,
+        {
+          slot: "thinking",
+          provider: "codex_cli",
+          binaryPath,
+          binaryDigest: createHash("sha256").update(readFileSync(binaryPath)).digest("hex"),
+          expectedFamily: "gpt",
+          requestedModel: "gpt-5.6-luna",
+          observedModelSource: "verified_binary_default",
+          observedModelExempted: true,
+          testedAt: "2026-08-12T00:00:00.000Z"
+        },
+        createSqliteAuditSink(db, () => new Date("2026-08-12T00:00:00.000Z")),
+        "pending",
+        activation
+      );
+      db.close();
+      const before = await daemon.health();
+      const exited = new Promise<{ code: number | null }>((resolve) => {
+        daemon.child.once("exit", (code) => resolve({ code }));
+      });
+      const restart = await daemon.api("/api/setup/restart", { method: "POST", body: "{}" });
+      expect(restart.status).toBe(200);
+      daemon.child.kill("SIGTERM");
+      const exit = await exited;
+      expect(exit.code).toBe(0);
+      const logs = daemon.output();
+      expect([...logs.matchAll(/recovery lifecycle drain/g)]).toHaveLength(1);
+      expect([...logs.matchAll(/recovery lifecycle close/g)]).toHaveLength(1);
+      expect(logs).not.toMatch(/self-restart spawned/u);
+      try {
+        process.kill(before.pid, 0);
+        throw new Error("restart 后仍残留原 daemon");
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== "ESRCH") throw err;
+      }
+      await expect(
+        fetch(`http://127.0.0.1:${daemon.port}/health`, { signal: AbortSignal.timeout(500) })
+      ).rejects.toThrow();
+      const auditDb = openDb(join(home, "saydo.db"));
+      const shutdowns = auditDb
+        .prepare("SELECT meta_json FROM audit_log WHERE action='runtime.prepare_shutdown'")
+        .all() as { meta_json: string }[];
+      expect(shutdowns).toHaveLength(1);
+      expect(JSON.parse(shutdowns[0]?.meta_json ?? "{}")).toMatchObject({
+        reason: "supervisor_stop",
+        recoveryOnly: true
+      });
+      auditDb.close();
+    } finally {
+      try { daemon.child.kill("SIGKILL"); } catch { /* 已退 */ }
+    }
+  }, 20_000);
+
+  it("supervised restart 后同步 prepareShutdown：唯一 lifecycle、无 restartRequested、signal 优先", async () => {
+    const home = realpathSync(mkdtempSync(join(tmpdir(), "saydo-recovery-sup-signal-")));
+    writeFileSync(join(home, "config.toml"), "[models\ninvalid =", { mode: 0o600 });
+    const daemon = await startDaemonProcess({
+      home,
+      port: await reservePort(),
+      supervised: true
+    });
+    try {
+      writeFileSync(join(home, "config.toml.pending"), cliCandidateConfig(), { mode: 0o600 });
+      const pendingConfig = parseConfigText(cliCandidateConfig());
+      const activation = {
+        configDigest: createHash("sha256").update(readFileSync(join(home, "config.toml.pending"))).digest("hex")
+      };
+      const binDir = join(home, "fake-bin");
+      mkdirSync(binDir, { recursive: true });
+      const binaryPath = join(binDir, "codex.mjs");
+      writeFileSync(binaryPath, "console.log('ok')\n");
+      const db = openDb(join(home, "saydo.db"));
+      registerCliSelfTest(
+        home,
+        pendingConfig.models.thinking,
+        {
+          slot: "thinking",
+          provider: "codex_cli",
+          binaryPath,
+          binaryDigest: createHash("sha256").update(readFileSync(binaryPath)).digest("hex"),
+          expectedFamily: "gpt",
+          requestedModel: "gpt-5.6-luna",
+          observedModelSource: "verified_binary_default",
+          observedModelExempted: true,
+          testedAt: "2026-08-12T00:00:00.000Z"
+        },
+        createSqliteAuditSink(db, () => new Date("2026-08-12T00:00:00.000Z")),
+        "pending",
+        activation
+      );
+      db.close();
+      const exited = new Promise<{ code: number | null }>((resolve) => {
+        daemon.child.once("exit", (code) => resolve({ code }));
+      });
+      const restart = await daemon.api("/api/setup/restart", { method: "POST", body: "{}" });
+      expect(restart.status).toBe(200);
+      daemon.sendSupervisor({ v: 1, t: "prepareShutdown", reason: "supervisor_stop" });
+      const exit = await exited;
+      expect(exit.code).toBe(0);
+      const types = daemon.frames.map((frame) => (frame as { t?: string }).t);
+      expect(types).not.toContain("restartRequested");
+      expect(types.filter((type) => type === "stopped")).toHaveLength(1);
+      expect(daemon.frames.some((frame) => {
+        const item = frame as { t?: string; reason?: string };
+        return item.t === "stopped" && item.reason === "supervisor_stop";
+      })).toBe(true);
+      const logs = daemon.output();
+      expect([...logs.matchAll(/recovery lifecycle drain/g)]).toHaveLength(1);
+      expect(logs).not.toMatch(/self-restart spawned/u);
+      const auditDb = openDb(join(home, "saydo.db"));
+      const shutdowns = auditDb
+        .prepare("SELECT meta_json FROM audit_log WHERE action='runtime.prepare_shutdown'")
+        .all() as { meta_json: string }[];
+      expect(shutdowns).toHaveLength(1);
+      expect(JSON.parse(shutdowns[0]?.meta_json ?? "{}")).toMatchObject({ reason: "supervisor_stop" });
+      expect(
+        (auditDb.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='setup.self_restart'").get() as { c: number }).c
+      ).toBe(0);
+      auditDb.close();
+    } finally {
+      try { daemon.child.kill("SIGKILL"); } catch { /* 已退 */ }
+    }
+  }, 20_000);
+
+  it("supervised restart 胜出：唯一 restartRequested 与 stopped(restart)，不 spawn", async () => {
+    const home = realpathSync(mkdtempSync(join(tmpdir(), "saydo-recovery-sup-restart-")));
+    writeFileSync(join(home, "config.toml"), "[models\ninvalid =", { mode: 0o600 });
+    const daemon = await startDaemonProcess({
+      home,
+      port: await reservePort(),
+      supervised: true
+    });
+    try {
+      writeFileSync(join(home, "config.toml.pending"), cliCandidateConfig(), { mode: 0o600 });
+      const pendingConfig = parseConfigText(cliCandidateConfig());
+      const activation = {
+        configDigest: createHash("sha256").update(readFileSync(join(home, "config.toml.pending"))).digest("hex")
+      };
+      const binDir = join(home, "fake-bin");
+      mkdirSync(binDir, { recursive: true });
+      const binaryPath = join(binDir, "codex.mjs");
+      writeFileSync(binaryPath, "console.log('ok')\n");
+      const db = openDb(join(home, "saydo.db"));
+      registerCliSelfTest(
+        home,
+        pendingConfig.models.thinking,
+        {
+          slot: "thinking",
+          provider: "codex_cli",
+          binaryPath,
+          binaryDigest: createHash("sha256").update(readFileSync(binaryPath)).digest("hex"),
+          expectedFamily: "gpt",
+          requestedModel: "gpt-5.6-luna",
+          observedModelSource: "verified_binary_default",
+          observedModelExempted: true,
+          testedAt: "2026-08-12T00:00:00.000Z"
+        },
+        createSqliteAuditSink(db, () => new Date("2026-08-12T00:00:00.000Z")),
+        "pending",
+        activation
+      );
+      db.close();
+      const exited = new Promise<{ code: number | null }>((resolve) => {
+        daemon.child.once("exit", (code) => resolve({ code }));
+      });
+      const restart = await daemon.api("/api/setup/restart", { method: "POST", body: "{}" });
+      expect(restart.status).toBe(200);
+      const exit = await exited;
+      expect(exit.code).toBe(0);
+      const types = daemon.frames.map((frame) => (frame as { t?: string }).t);
+      expect(types.filter((type) => type === "restartRequested")).toHaveLength(1);
+      expect(types.filter((type) => type === "stopped")).toHaveLength(1);
+      expect(daemon.frames.some((frame) => {
+        const item = frame as { t?: string; reason?: string };
+        return item.t === "stopped" && item.reason === "restart";
+      })).toBe(true);
+      expect(daemon.output()).not.toMatch(/self-restart spawned/u);
+      const auditDb = openDb(join(home, "saydo.db"));
+      expect(
+        (auditDb.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='setup.self_restart'").get() as { c: number }).c
+      ).toBe(1);
+      auditDb.close();
+    } finally {
+      try { daemon.child.kill("SIGKILL"); } catch { /* 已退 */ }
+    }
+  }, 20_000);
+
+  it("主 daemon unsupervised restart 后同步 SIGTERM：signal 优先、spawn=0", async () => {
+    const home = realpathSync(mkdtempSync(join(tmpdir(), "saydo-main-restart-signal-")));
+    writeFileSync(join(home, "config.toml"), validConfig(), { mode: 0o600 });
+    const daemon = await startDaemonProcess({
+      home,
+      port: await reservePort(),
+      env: { OPENROUTER_API_KEY: "process-test-key" }
+    });
+    try {
+      const exited = new Promise<{ code: number | null }>((resolve) => {
+        daemon.child.once("exit", (code) => resolve({ code }));
+      });
+      const restart = await daemon.api("/api/setup/restart", { method: "POST", body: "{}" });
+      expect(restart.status).toBe(200);
+      daemon.child.kill("SIGTERM");
+      const exit = await exited;
+      expect(exit.code).toBe(0);
+      const logs = daemon.output();
+      expect([...logs.matchAll(/daemon lifecycle drain/g)]).toHaveLength(1);
+      expect(logs).not.toMatch(/self-restart spawned/u);
+      const auditDb = openDb(join(home, "saydo.db"));
+      const shutdowns = auditDb
+        .prepare("SELECT meta_json FROM audit_log WHERE action='runtime.prepare_shutdown'")
+        .all() as { meta_json: string }[];
+      expect(shutdowns).toHaveLength(1);
+      expect(JSON.parse(shutdowns[0]?.meta_json ?? "{}")).toMatchObject({ reason: "supervisor_stop" });
+      auditDb.close();
+    } finally {
+      try { daemon.child.kill("SIGKILL"); } catch { /* 已退 */ }
     }
   }, 20_000);
 
@@ -393,7 +647,7 @@ describe("recovery-only 真实进程组合根", () => {
     const daemon = await startDaemonProcess({
       home,
       port: await reservePort(),
-      importBeforeTsx: [join(import.meta.dirname, "fixtures", "controlled-runtime.mjs")],
+      importAfterTsxLoader: [join(import.meta.dirname, "fixtures", "controlled-runtime.mjs")],
       env: {
         OPENROUTER_API_KEY: "process-test-key",
         NTFY_SERVER: `http://127.0.0.1:${trapPort}`,

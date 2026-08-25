@@ -46,11 +46,13 @@ xcodebuild \
 
 ## 真机构建与安装
 
-连接并解锁名为 `WangYixiao` 的设备，确认 Xcode 已完成开发者签名准备后执行：
+连接并解锁真机，确认 Xcode 已完成开发者签名准备。脚本不内置设备名或设备 id，必须先导出
+`SAYDO_IOS_DEVICE_ID`（`xcrun devicectl list devices` 给出的 CoreDevice id），同一变量同时用于
+`xcodebuild -destination platform=iOS,id=...` 与 `devicectl --device`：
 
 ```bash
-./build-and-install.sh
+SAYDO_IOS_DEVICE_ID=00000000-0000-0000-0000-000000000000 ./build-and-install.sh
 ```
 
-脚本会依次生成 Xcode 工程、为指定真机构建，再通过 `devicectl` 安装应用。真机推装由验收人执行；
+未设置该变量时脚本在任何 generate/build/install 之前以退出码 2 失败。真机推装由验收人执行；
 施工自证不运行此脚本。

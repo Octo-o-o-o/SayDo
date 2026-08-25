@@ -74,7 +74,7 @@ secure context。
 - `WebContainer`:持久化 website data store、inline media、无用户动作 autoplay 限制、当前
   origin 媒体权限、下拉刷新及固定人话失败态齐全。
 - `RootView`:无 profile 引导;有 profile 显示 36 pt 顶栏;sheet 可切换、添加和删除多个桌面。
-- `build-and-install.sh`:依序运行 XcodeGen、指定 `WangYixiao` 真机构建,再按指定 CoreDevice
+- `build-and-install.sh`:依序运行 XcodeGen、指定 `<account>` 真机构建,再按指定 CoreDevice
   UUID 安装 `Debug-iphoneos/SayDo.app`;本轮未执行脚本。
 - README 已如实记录 dev LAN+token、无 Noise、FQDN 限制、HTTP secure-context 阻断与 M2
   正批边界。

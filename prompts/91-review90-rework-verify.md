@@ -1,6 +1,6 @@
 # 评审 91 · 评审 90 回修的复核(零上下文;只验回修,不重复原审)
 
-你是独立复核方。只读仓库 `/Users/wangyixiao/WorkSpace/SayDo`,分支 `main`,HEAD = `1d6680c`。
+你是独立复核方。只读仓库 `~/WorkSpace/SayDo`,分支 `main`,HEAD = `1d6680c`。
 
 上一轮(评审 90,报告在 `research/codex-findings/90-week-crosscheck-review.md`)裁决 **No-Go**,
 列了 A 级 8 条 / B 级 14 条 / C 级 2 条 / O 级 2 条。本轮**只做一件事**:验证这些条目的回修是否真的成立,

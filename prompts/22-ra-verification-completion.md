@@ -2,7 +2,7 @@
 
 ## 背景(事实,均可实读验证)
 
-- 项目 canonical = `/Users/wangyixiao/WorkSpace/voice-coding/docs/`(01–11 + modules/ + adr/);过程档案 = `history/PROCESS-JOURNAL.md`;实施仓(只读参照)= `/Users/wangyixiao/WorkSpace/SayDo`(以 `HANDOFF.md` 与 e2e evidence 为实施现状真相)。
+- 项目 canonical = `~/WorkSpace/voice-coding/docs/`(01–11 + modules/ + adr/);过程档案 = `history/PROCESS-JOURNAL.md`;实施仓(只读参照)= `~/WorkSpace/SayDo`(以 `HANDOFF.md` 与 e2e evidence 为实施现状真相)。
 - 2026-07-27 凌晨 R-A 合同轮:某会话把三块合同(S3 卡 WebAuthn / writing 窄版 / 场次①补丁)回写 canonical。该会话期间多次在文本中臆想工具执行结果,今晨由无污染新会话完成独立核验,结论见 journal 的「R50 · R-A 落盘状态独立核验」段(约 753 行起)。
 - 你(Codex)上一轮的对抗评审报告 = `research/codex-findings/21-ra-contract-review.md`(结论 A6/B6/C3,`not ready_for_review`)。本轮将以它的 A1–A6 为唯一补完清单继续实施。
 - `docs.bak-r-a-20260727/` 是今晨核验前的 docs 快照(与当前 docs 应一致,可用于 diff 佐证「核验过程未改文件」)。

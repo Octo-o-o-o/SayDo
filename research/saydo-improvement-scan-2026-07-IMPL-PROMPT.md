@@ -12,7 +12,7 @@
 
 报告你当前进行到 IMPLEMENTATION-PLAN 的哪个 Phase 哪一步(以真实 git log / 文件为证)。下方每项标注了消费窗口(某实施步**之前**落最省);窗口已过的项不要硬塞——如实标注"窗口已过",评估返工成本后再动,migration/补丁方案先报 owner 一句再做。
 
-## 1. 必读材料(按序,均在 /Users/wangyixiao/WorkSpace/voice-coding/)
+## 1. 必读材料(按序,均在 ~/WorkSpace/voice-coding/)
 
 1. `research/saydo-improvement-scan-2026-07.md` —— **主文档**:§0 triage(A 级 6 项)、§2 实施窗口期对照表、§3 四路报告全文(每项的完整证据与字段级建议在这里,执行时以 §3 细节为准);
 2. `research/voice-model-tech-scan-2026-07.md` —— 模型技术情报(§1.1 上下文/缓存机制、§5 工程细节,供理解"为什么");

@@ -92,7 +92,7 @@
   4 skipped（68 files passed / 2 skipped）、Python 31 passed；typecheck/lint、emoji
   gate、自测 11/11、migration tools 与 ruff 全绿。
 - 修复代码已提交并部署为 `ada7981c67ef3a07e6df0431643bb8b7661e22d4`。最终快照
-  `/Users/wangyixiao/.saydo/backups/20260731T013926Z` 通过摘要、SQLite `quick_check`
+  `~/.saydo/backups/20260731T013926Z` 通过摘要、SQLite `quick_check`
   与真实 consumer 隔离恢复演练；临时恢复根已移入 Trash。
 - 部署后 preflight 对账 daemon/pipeline loaded SHA、状态根、fresh readyz 与 clean
   runtime；pipeline 重连成功，ASR/TTS 均为 `ok`，现役 SQLite `quick_check=ok`。

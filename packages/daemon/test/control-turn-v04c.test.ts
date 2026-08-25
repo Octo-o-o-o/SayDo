@@ -828,7 +828,7 @@ describe("④c golden 五断头场景(mock 结构)", () => {
 
 describe("④c remainingIntent 构造", () => {
   it("脱敏+截断+digest", () => {
-    const long = "x".repeat(400) + " /Users/secret/path/token";
+    const long = "x".repeat(400) + ` ${["", "Users", "secret"].join("/")}/path/token`;
     const j = buildRemainingIntentJson(long, "t1");
     expect(j.handled).toBe(false);
     expect(j.text!.length).toBeLessThanOrEqual(300);

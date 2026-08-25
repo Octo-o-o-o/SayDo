@@ -3,9 +3,9 @@
 <task>
 裁决「SayDo 移动外壳第 0 步还要不要加东西一起做」。不要重开战略辩论(薄壳/CallKit/Capacitor 已由 69 号审裁过,除非代码证明 69 错了)。
 
-实施仓:/Users/wangyixiao/WorkSpace/SayDo
+实施仓:~/WorkSpace/SayDo
 HEAD 以 git rev-parse 为准(预期在 e987f05 附近)。工作树可能有未提交终稿,只读。
-不要把 /Users/wangyixiao/WorkSpace/OctoDesk 当证据。
+不要把 ~/WorkSpace/OctoDesk 当证据。
 
 材料(方案建议 SoT):
 docs/review/2026-08-13-mobile-shell-strategy-final.fable.md

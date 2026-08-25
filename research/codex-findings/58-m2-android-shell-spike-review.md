@@ -55,7 +55,7 @@ Gradle 工程、扫码解析、Keystore 包裹 token、多桌面切换、WebView
 
 ## 实际验证
 
-- `ANDROID_HOME=/Users/wangyixiao/Library/Android/sdk ./gradlew --offline --no-daemon
+- `ANDROID_HOME=~/Library/Android/sdk ./gradlew --offline --no-daemon
   --console=plain clean :app:assembleDebug :app:lintDebug`:exit 0;45 个任务全部实际执行;输出
   `BUILD SUCCESSFUL in 19s`。lint 为 0 errors/5 warnings:1 个 `targetSdk 34` 旧目标提示是任务
   指定值,其余 4 个为可选 KTX 写法建议,无功能或安全 finding。

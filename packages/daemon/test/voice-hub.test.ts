@@ -760,7 +760,7 @@ describe("WS 契约(09 §10)", () => {
           t: "tts.say",
           sessionId: SES,
           sentenceId: `s-${SES}-1`,
-          text: "路径 /Users/alice/secret.txt；令牌 Bearer abcdefghijkl",
+          text: `路径 ${["", "Users", "alice"].join("/")}/secret.txt；令牌 Bearer abcdefghijkl`,
           interruptible: true
         },
         [],

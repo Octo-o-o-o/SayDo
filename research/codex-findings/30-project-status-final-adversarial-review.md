@@ -6,7 +6,7 @@
 
 ### A-1：恢复候选点有效，但自动备份的语义闭包仍不完整
 
-当前候选点 `/Users/wangyixiao/.saydo/backups/20260729T163416Z` 本身通过了严格校验：
+当前候选点 `~/.saydo/backups/20260729T163416Z` 本身通过了严格校验：
 
 - `verify-snapshot.mjs` exit 0：`entries=4 digests=verified foundation=restorable extras=0`。
 - SQLite immutable `quick_check=ok`。
@@ -17,9 +17,9 @@
 
 但一般化恢复保证仍有缺口：
 
-- foundation 与 knowledge 是先后独立复制，随后直接发布 `completed:true` manifest；发布路径没有调用 strict verifier 做跨目录语义对账。[snapshot.ts](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/backup/snapshot.ts:169)
-- `FoundationBuilder` 明确存在 `current.json` 与 `knowledge/current` 两次 rename 之间的崩溃窗口。[foundation.ts](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/memory/foundation.ts:377)
-- 最新 verifier 已检查 active ID、SQLite、manifest status、generation 和 `gen-N` 目录，但仍不检查 `gen-N` 中四份必需知识文档，也不核对 SQLite session 行与 global session JSONL 的双向映射。[verify-snapshot.mjs](/Users/wangyixiao/WorkSpace/SayDo/scripts/verify-snapshot.mjs:121)
+- foundation 与 knowledge 是先后独立复制，随后直接发布 `completed:true` manifest；发布路径没有调用 strict verifier 做跨目录语义对账。[snapshot.ts](~/WorkSpace/SayDo/packages/daemon/src/backup/snapshot.ts:169)
+- `FoundationBuilder` 明确存在 `current.json` 与 `knowledge/current` 两次 rename 之间的崩溃窗口。[foundation.ts](~/WorkSpace/SayDo/packages/daemon/src/memory/foundation.ts:377)
+- 最新 verifier 已检查 active ID、SQLite、manifest status、generation 和 `gen-N` 目录，但仍不检查 `gen-N` 中四份必需知识文档，也不核对 SQLite session 行与 global session JSONL 的双向映射。[verify-snapshot.mjs](~/WorkSpace/SayDo/scripts/verify-snapshot.mjs:121)
 
 因此，本次真实候选点可判定为结构性恢复候选，但不能把生产备份机制整体写成已形成持续的 fail-closed 恢复闭包。
 
@@ -33,9 +33,9 @@
 - foundation/knowledge generation 语义闭合；
 - global session 映射。
 
-现存 `20260729T163307Z` 是直接反例：它通过了 verifier 的角色和摘要阶段，仅因额外 WAL/SHM 被 strict verifier 拒绝；而 [isSnapshotBackupDue()](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/backup/snapshot.ts:334) 没有 extras 检查，会把它当作近期成功快照，从而跳过启动补跑。
+现存 `20260729T163307Z` 是直接反例：它通过了 verifier 的角色和摘要阶段，仅因额外 WAL/SHM 被 strict verifier 拒绝；而 [isSnapshotBackupDue()](~/WorkSpace/SayDo/packages/daemon/src/backup/snapshot.ts:334) 没有 extras 检查，会把它当作近期成功快照，从而跳过启动补跑。
 
-其余 A-R2 子项已经闭合：备份失败仍执行 retention reconciliation，stale partial 会过期，symlink 不会被递归删除，`retentionDays<=0` 在任何创建或清理前拒绝，坏配置拒绝该轮备份和清理，daemon 启动会立即检查 catch-up。[index.ts](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/index.ts:1223)、[docs/09](/Users/wangyixiao/WorkSpace/SayDo/docs/09-data-contracts.md:986)
+其余 A-R2 子项已经闭合：备份失败仍执行 retention reconciliation，stale partial 会过期，symlink 不会被递归删除，`retentionDays<=0` 在任何创建或清理前拒绝，坏配置拒绝该轮备份和清理，daemon 启动会立即检查 catch-up。[index.ts](~/WorkSpace/SayDo/packages/daemon/src/index.ts:1223)、[docs/09](~/WorkSpace/SayDo/docs/09-data-contracts.md:986)
 
 ### A-3：loaded SHA 身份链已闭合，但 readyz 可对失效的 ASR/TTS 报假绿
 
@@ -44,15 +44,15 @@ daemon/pipeline 的 SHA 证明链已正确落地：
 - 两进程分别从实际加载源码所在 Git 树固化 40 位 SHA。
 - pipeline hello/health 携带 SHA；daemon 对 hello、health 和自身 SHA三方精确校验。
 - `/health`、`/readyz` 和 preflight 对双方 SHA、连接状态及 45 秒 freshness 对账。
-- deploy 重启两个进程并等待相同 SHA ready。[launchd/cli.ts](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/launchd/cli.ts:253)
+- deploy 重启两个进程并等待相同 SHA ready。[launchd/cli.ts](~/WorkSpace/SayDo/packages/daemon/src/launchd/cli.ts:253)
 
 但 ASR/TTS readiness 不足以解锁真人场次：
 
-- pipeline 仅凭 provider 对象是否构造就上报 `asr:"ok"`、`tts:"ok"`。[hub_client.py](/Users/wangyixiao/WorkSpace/SayDo/pipeline/src/saydo_pipeline/hub_client.py:141)
+- pipeline 仅凭 provider 对象是否构造就上报 `asr:"ok"`、`tts:"ok"`。[hub_client.py](~/WorkSpace/SayDo/pipeline/src/saydo_pipeline/hub_client.py:141)
 - ASR/TTS 构造函数只保存凭据；真正的网络、鉴权和供应商可用性直到首次识别或合成才验证。
 - 运行中识别/合成失败只记日志，不会把后续 health 降为 degraded/down。
-- 因此，错误凭据、供应商故障或最近一次真实调用失败时，`/readyz` 与 preflight 仍可能为绿。[index.ts](/Users/wangyixiao/WorkSpace/SayDo/packages/daemon/src/index.ts:156)
-- preflight 的 `release-config` 只摘要 `config.toml` 和两个 plist，未纳入实际控制 ASR/TTS 的 `.env` 或进程环境；四场可能记录相同 digest，但实际有效凭据已改变。[runtime-preflight.sh](/Users/wangyixiao/WorkSpace/SayDo/scripts/runtime-preflight.sh:67)
+- 因此，错误凭据、供应商故障或最近一次真实调用失败时，`/readyz` 与 preflight 仍可能为绿。[index.ts](~/WorkSpace/SayDo/packages/daemon/src/index.ts:156)
+- preflight 的 `release-config` 只摘要 `config.toml` 和两个 plist，未纳入实际控制 ASR/TTS 的 `.env` 或进程环境；四场可能记录相同 digest，但实际有效凭据已改变。[runtime-preflight.sh](~/WorkSpace/SayDo/scripts/runtime-preflight.sh:67)
 
 所以 A-R4 的“同一目标 SHA”已关闭，“真人语音可用性及有效配置证据”仍未关闭。
 
@@ -68,10 +68,10 @@ daemon/pipeline 的 SHA 证明链已正确落地：
 
 与此冲突的是：
 
-- 状态归档称 Codex 28 问题“均已回修”、实现“通过本轮最终门禁”、派生清单“已统一刷新”。[状态归档](/Users/wangyixiao/WorkSpace/SayDo/history/2026-07-29-migration-and-implementation-status.md:16)
-- 同文件称最终 `just ci` 为 daemon 698，并说最终数字见 journal R61 收口段。[状态归档](/Users/wangyixiao/WorkSpace/SayDo/history/2026-07-29-migration-and-implementation-status.md:115)
-- R61 实际只记录“第一次门禁”daemon 691，随后记录 Codex 28 回修和恢复点，文件到第 967 行结束，没有最终 698、最终清单或最终 emoji 门收口。[PROCESS-JOURNAL.md](/Users/wangyixiao/WorkSpace/SayDo/history/PROCESS-JOURNAL.md:946)
-- HANDOFF 也直接写入了未在 R61 中闭环的 698 基线。[HANDOFF.md](/Users/wangyixiao/WorkSpace/SayDo/HANDOFF.md:24)
+- 状态归档称 Codex 28 问题“均已回修”、实现“通过本轮最终门禁”、派生清单“已统一刷新”。[状态归档](~/WorkSpace/SayDo/history/2026-07-29-migration-and-implementation-status.md:16)
+- 同文件称最终 `just ci` 为 daemon 698，并说最终数字见 journal R61 收口段。[状态归档](~/WorkSpace/SayDo/history/2026-07-29-migration-and-implementation-status.md:115)
+- R61 实际只记录“第一次门禁”daemon 691，随后记录 Codex 28 回修和恢复点，文件到第 967 行结束，没有最终 698、最终清单或最终 emoji 门收口。[PROCESS-JOURNAL.md](~/WorkSpace/SayDo/history/PROCESS-JOURNAL.md:946)
+- HANDOFF 也直接写入了未在 R61 中闭环的 698 基线。[HANDOFF.md](~/WorkSpace/SayDo/HANDOFF.md:24)
 
 这不代表 698 一定没有运行过，但它不是当前审计可复核的最终工作树证据；当前两份派生清单明确为红，不能写成“审计、清单与完整门禁均已收口”。
 
@@ -84,8 +84,8 @@ daemon/pipeline 的 SHA 证明链已正确落地：
 剩余问题：
 
 - 场次①、③、④仍只有泛化“证据”字段，没有强制 `evidence_origin`。
-- 场次③正文要求 Touch ID 主路径、fallback 另记，但运行记录没有分别承载两条路径。[session-3.md](/Users/wangyixiao/WorkSpace/SayDo/e2e/owner-sessions/session-3.md:43)
-- 场次④标题和正文仍称“唯一真人验收点”“final-readback + 本场次通过”，与四场必须全部 pass 的发布锁存在文字冲突。[session-4.md](/Users/wangyixiao/WorkSpace/SayDo/e2e/owner-sessions/session-4.md:1)
+- 场次③正文要求 Touch ID 主路径、fallback 另记，但运行记录没有分别承载两条路径。[session-3.md](~/WorkSpace/SayDo/e2e/owner-sessions/session-3.md:43)
+- 场次④标题和正文仍称“唯一真人验收点”“final-readback + 本场次通过”，与四场必须全部 pass 的发布锁存在文字冲突。[session-4.md](~/WorkSpace/SayDo/e2e/owner-sessions/session-4.md:1)
 - 所有记录当前均为 `not_run`；场次①只有历史 failed/partial，不能算通过。
 
 ### B-2：dry-run 是低层文件映射演练，不是完整产品恢复演练
@@ -97,20 +97,20 @@ daemon/pipeline 的 SHA 证明链已正确落地：
 - 启动 daemon 验证恢复后运行；
 - 自动清理临时根。
 
-因此运行册可称其为“隔离文件恢复演练”，不宜单独作为完整应用恢复证明。[dry-run-restore-snapshot.mjs](/Users/wangyixiao/WorkSpace/SayDo/scripts/dry-run-restore-snapshot.mjs:27)
+因此运行册可称其为“隔离文件恢复演练”，不宜单独作为完整应用恢复证明。[dry-run-restore-snapshot.mjs](~/WorkSpace/SayDo/scripts/dry-run-restore-snapshot.mjs:27)
 
 ### B-3：canonical 主体基本一致，但状态源仍有局部张力
 
 - `docs/09` 对产品缺省、当前实例 effective 值和非法备份配置的口径与代码一致。
-- PLAN-2 当前顺序已正确写成“发布前回修 commit/deploy → 四场 → v0.1.0”。[PLAN-2](/Users/wangyixiao/WorkSpace/SayDo/docs/plan/IMPLEMENTATION-PLAN-2.md:145)
+- PLAN-2 当前顺序已正确写成“发布前回修 commit/deploy → 四场 → v0.1.0”。[PLAN-2](~/WorkSpace/SayDo/docs/plan/IMPLEMENTATION-PLAN-2.md:145)
 - HANDOFF、状态归档对旧 runtime、未提交、未部署、无真人通过、无 `v0.1.0` 的主结论正确。
-- 但 PLAN-2 开头仍写 P0/P0.5“工程侧已收口、只剩 owner 场次”，与当前尚有发布前 A 级工程阻断的事实不够严谨。[PLAN-2](/Users/wangyixiao/WorkSpace/SayDo/docs/plan/IMPLEMENTATION-PLAN-2.md:4)
+- 但 PLAN-2 开头仍写 P0/P0.5“工程侧已收口、只剩 owner 场次”，与当前尚有发布前 A 级工程阻断的事实不够严谨。[PLAN-2](~/WorkSpace/SayDo/docs/plan/IMPLEMENTATION-PLAN-2.md:4)
 
 ## C 级发现
 
 ### C-1：场次④升级仪式后的 CI 命令缺少 runtime cwd
 
-场次④前置明确使用 `(cd ~/.saydo/runtime && just ci)`，但升级仪式步骤只写“演练后 `just ci` 仍绿”，可能误从活动开发树运行。[session-4.md](/Users/wangyixiao/WorkSpace/SayDo/e2e/owner-sessions/session-4.md:67)
+场次④前置明确使用 `(cd ~/.saydo/runtime && just ci)`，但升级仪式步骤只写“演练后 `just ci` 仍绿”，可能误从活动开发树运行。[session-4.md](~/WorkSpace/SayDo/e2e/owner-sessions/session-4.md:67)
 
 ## Codex 28 四项 A 关闭表
 

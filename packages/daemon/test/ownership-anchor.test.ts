@@ -5,7 +5,7 @@ import { once } from "node:events";
 import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { hostKind } from "@saydo/platform";
 import { readOwnedAgentProcessStart } from "../src/tier1/restartPolicy.js";
 import {
@@ -18,10 +18,18 @@ import {
 const spawned = new Set<number>();
 function reap(): void {
   for (const pid of spawned) {
+    try {
+      if (process.platform === "win32") process.kill(pid, "SIGKILL");
+      else process.kill(-pid, "SIGKILL");
+    } catch { /* 已退出 */ }
     try { process.kill(pid, "SIGKILL"); } catch { /* 已退出 */ }
   }
   spawned.clear();
 }
+
+afterEach(() => {
+  reap();
+});
 
 describe("readOwnedAgentProcessStart 身份锚(A4)", () => {
   it("组长 + 命令行匹配:给出 birth", async () => {
@@ -48,6 +56,7 @@ describe("readOwnedAgentProcessStart 身份锚(A4)", () => {
     });
     await once(member, "spawn");
     const pid = member.pid as number;
+    spawned.add(pid);
     try {
       expect(readOwnedAgentProcessStart(pid, process.execPath)).toBeNull();
     } finally {

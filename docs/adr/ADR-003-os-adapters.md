@@ -40,12 +40,26 @@ pipeline(Python)不引该包。Python 侧用对等函数写在 `pipeline/src/say
 **进程树**:
 
 - POSIX:process group + `kill(-pid, SIGKILL)`,且必须 `expectedBirth === processBirth(pid)`。
-- Windows:具名 Job `Global\\SayDoJob-<ownerInstanceId>-<runId>`(用户会话内 `Local\\` 即可)。
+- Windows:具名 Job,用户会话内 `Local\\`、需要跨会话时 `Global\\`。名字绑定 generation,禁止
+  把 `ownerInstanceId`/`runId` 原文拼进 Job 名(字段拼接会让 `(a-b,c)` 与 `(a,b-c)` 碰撞)。
+  唯一 grammar:
+
+  ```
+  <scope>\\SayDoJob-v1-<digest>
+  scope  = Local | Global
+  digest = lowercase hex SHA-256(
+    UTF-8("saydo-job-v1\\0" + ownerInstanceId + "\\0" + runId + "\\0" + generation)
+  )
+  ```
+
+  `ownerInstanceId` / `runId` 继续走 ASCII identity token;generation 必须是完整 UUID;三者都不允许
+  NUL,因此该编码无歧义。相同 owner/run 的不同 generation 必须得到不同名。
   `CreateJobObjectW` → `SetInformationJobObject(JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE)` →
   spawn → `AssignProcessToJobObject` **成功后**才写 permit。
-  ownership 记录持久化 **job 名** 而非匿名 HANDLE。
-  `killOwnedTree({ pid, expectedBirth, jobName })`:birth 不匹配则拒绝;用 `OpenJobObjectW` +
-  `TerminateJobObject`。koffi 探测失败 ⇒ 拒起执行器。
+  ownership 记录持久化 **job 名** 而非匿名 HANDLE,并同步写入同一 generation。
+  `killOwnedTree({ pid, expectedBirth, jobName, ownerInstanceId, runId, generation })`:
+  birth 或 generation 不匹配则拒绝;用 `OpenJobObjectW` + `TerminateJobObject`。
+  koffi 探测失败 ⇒ 拒起执行器。
   `taskkill /T` 禁止进入 `killOwnedTree`;`scripts/dev.mjs` 只杀本脚本 spawn 的三进程,不得复用该函数。
 
 `spawn` 在 win32 必须入 Job,不得 `if (win32) return []`。

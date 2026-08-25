@@ -3,18 +3,18 @@
 <task>
 交叉评审两份移动端材料,裁决「最终该加什么工作、按什么顺序」,不要做摘要合并。
 
-实施仓:/Users/wangyixiao/WorkSpace/SayDo
+实施仓:~/WorkSpace/SayDo
 HEAD 以 git rev-parse 为准。工作树可能有未提交文件,只读。
 
 材料 A(浅战略,画布;不是 markdown):
-/Users/wangyixiao/.cursor/projects/Users-wangyixiao-WorkSpace-SayDo/canvases/mobile-shell-strategy.canvas.tsx
+~/.cursor/projects/Users-<account>-WorkSpace-SayDo/canvases/mobile-shell-strategy.canvas.tsx
 主张:保持薄壳;不要三套原生产品 UI;加码堆在生产配对、iOS CallKit/PushKit、Android 原生语音、4.2 演示夹具、鸿蒙权限对齐;相对工时 20 份=配对5+来电5+安卓语音4+上架夹具3+鸿蒙2+原生UI0。当前态写成「能真机看页面、iOS 能按住说话」。
 
 材料 B(深体检):
-/Users/wangyixiao/WorkSpace/SayDo/docs/review/2026-08-13-mobile-gap-audit.fable.md
+~/WorkSpace/SayDo/docs/review/2026-08-13-mobile-gap-audit.fable.md
 主张:远程 console(mobile_lan + tailnet)被 SetupBootstrapBoundary 永久挡住是唯一 Critical;本周只修 setup 旁路+回前台双击重连;CallKit/Android 语音/生产配对/演示模式现在做回报不完整;不要 Capacitor 重写、不要三套 Today。
 
-不要把 /Users/wangyixiao/WorkSpace/OctoDesk 的审计当 SayDo 证据。
+不要把 ~/WorkSpace/OctoDesk 的审计当 SayDo 证据。
 </task>
 
 <grounding_rules>

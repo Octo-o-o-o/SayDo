@@ -1,6 +1,6 @@
 # 21 · 对抗性评审：R-A 合同轮
 
-审查对象：`docs/01–11`（canonical）与 `/Users/wangyixiao/WorkSpace/SayDo`（只读实施参照）。
+审查对象：`docs/01–11`（canonical）与 `~/WorkSpace/SayDo`（只读实施参照）。
 审查日期：2026-07-27。行号均按本轮实际读取结果记录。
 
 ## 一句话结论

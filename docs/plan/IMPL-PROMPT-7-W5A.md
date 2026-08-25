@@ -4,7 +4,7 @@
 
 ---
 
-你接手 **SayDo W5 前段批(W5a)**。代码仓 `/Users/wangyixiao/WorkSpace/SayDo`(main 直推);设计库 `/Users/wangyixiao/WorkSpace/voice-coding`(只读;canonical 回写见 §2 特别红线)。完成判定 = §3 各项验收锚绿 + evidence `e2e/evidence/w5a-batch.md` 落盘 + HANDOFF 回填(批次指针开批写 `W5a`、收口清除)。
+你接手 **SayDo W5 前段批(W5a)**。代码仓 `~/WorkSpace/SayDo`(main 直推);设计库 `~/WorkSpace/voice-coding`(只读;canonical 回写见 §2 特别红线)。完成判定 = §3 各项验收锚绿 + evidence `e2e/evidence/w5a-batch.md` 落盘 + HANDOFF 回填(批次指针开批写 `W5a`、收口清除)。
 
 ## 0. 坐标核验(先做,漂移即停;期望值 2026-07-26 22:55 实测)
 

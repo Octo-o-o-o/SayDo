@@ -62,7 +62,7 @@
 
 - [B] `docs/modules/c:24` | 仍把完整 selected-adapter conformance 归 4.0，与修复后的计划倒置 | `IMPLEMENTATION-PLAN.md:105-106` | 同步为 4.0 脚本预检、4.1 完整 conformance/E2E。
 
-- [B] `IMPLEMENTATION-PLAN.md:20,25`；`IMPL-PROMPT.md:5,9,23` | 交接要求本地 SayDo clone 已可用，但本轮实测 `/Users/wangyixiao/WorkSpace/SayDo` 不是 Git 仓库，新会话会在 Phase -1 阻塞 | `git -C …/SayDo rev-parse` 本轮结果为 `SayDo: not a git repo`；远端仓是否存在、现有 key 是否有效均**未证实** | 发送 Prompt 前完成本地 clone 和基本 auth/smoke 证据，或明确授权新会话先自办 clone。
+- [B] `IMPLEMENTATION-PLAN.md:20,25`；`IMPL-PROMPT.md:5,9,23` | 交接要求本地 SayDo clone 已可用，但本轮实测 `~/WorkSpace/SayDo` 不是 Git 仓库，新会话会在 Phase -1 阻塞 | `git -C …/SayDo rev-parse` 本轮结果为 `SayDo: not a git repo`；远端仓是否存在、现有 key 是否有效均**未证实** | 发送 Prompt 前完成本地 clone 和基本 auth/smoke 证据，或明确授权新会话先自办 clone。
 
 ## [C]
 

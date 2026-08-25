@@ -32,7 +32,7 @@
 
 ## 4. 本会话命令证据
 
-工作目录:`/Users/wangyixiao/WorkSpace/SayDo`。基线 HEAD `3197fd8a2b60e4cd948ef2efe9e8fa3a7c5853ca`。
+工作目录:`~/WorkSpace/SayDo`。基线 HEAD `3197fd8a2b60e4cd948ef2efe9e8fa3a7c5853ca`。
 
 1. `pnpm --filter @saydo/console typecheck` → exit 0
 2. `just ci`(清偿 HEAD 既有 7 条 eslint 后复跑)→ **exit 0 / 45398ms**。摘录:`contracts` Tests 103 passed;`console` Test Files 30 / Tests 253 passed;`cli` Tests 19 passed;`daemon` Test Files 105 passed | 2 skipped, Tests 1300 passed | 4 skipped;`emoji-gate self-test: pass=11 fail=0`;color gate `[summary] pass=21 fail=0`;python ruff + pytest **33 passed**;尾句 `[ok] just ci: node + python matrices green`。

@@ -8,7 +8,7 @@
 
 ## 1. 结论与边界
 
-后续唯一活动开发仓为 `/Users/wangyixiao/WorkSpace/SayDo`。原 `voice-coding` 的设计、计划、证据、
+后续唯一活动开发仓为 `~/WorkSpace/SayDo`。原 `voice-coding` 的设计、计划、证据、
 过程档案、模板、Demo 与品牌资产进入 SayDo;可再生依赖、运行日志、浏览器会话与重复快照不进入 Git，
 随原目录整体冻结为冷档。
 
@@ -117,9 +117,9 @@ symlink、backup 或 frozen copy。
 
 ```bash
 set -euo pipefail
-migration_source=/Users/wangyixiao/WorkSpace/voice-coding
-migration_archive=/Users/wangyixiao/WorkSpace/voice-coding.archive-20260729
-migration_target=/Users/wangyixiao/WorkSpace/SayDo
+migration_source=~/WorkSpace/voice-coding
+migration_archive=~/WorkSpace/voice-coding.archive-20260729
+migration_target=~/WorkSpace/SayDo
 migration_baseline=838aeea4385a41ec58318437bb36a7db5ede635f
 migration_branch=codex/merge-voice-coding-20260729
 
@@ -156,9 +156,9 @@ S0 = source 普通目录、archive 不存在。S1 = source 不存在、archive �
 
 ```bash
 set -euo pipefail
-migration_source=/Users/wangyixiao/WorkSpace/voice-coding
-migration_archive=/Users/wangyixiao/WorkSpace/voice-coding.archive-20260729
-migration_target=/Users/wangyixiao/WorkSpace/SayDo
+migration_source=~/WorkSpace/voice-coding
+migration_archive=~/WorkSpace/voice-coding.archive-20260729
+migration_target=~/WorkSpace/SayDo
 migration_baseline=838aeea4385a41ec58318437bb36a7db5ede635f
 
 test ! -e "$migration_source"
@@ -277,9 +277,9 @@ S2 回到迁前 S0 的精确顺序:
 
 ```bash
 set -euo pipefail
-migration_source=/Users/wangyixiao/WorkSpace/voice-coding
-migration_archive=/Users/wangyixiao/WorkSpace/voice-coding.archive-20260729
-migration_target=/Users/wangyixiao/WorkSpace/SayDo
+migration_source=~/WorkSpace/voice-coding
+migration_archive=~/WorkSpace/voice-coding.archive-20260729
+migration_target=~/WorkSpace/SayDo
 
 test -L "$migration_source"
 test "$(readlink "$migration_source")" = "$migration_target"

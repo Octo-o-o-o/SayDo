@@ -1,6 +1,6 @@
 # Codex 27 · 单仓迁移与项目状态归档对抗性评审
 
-请对 `/Users/wangyixiao/WorkSpace/SayDo` 做只读对抗性评审，不修改文件。
+请对 `~/WorkSpace/SayDo` 做只读对抗性评审，不修改文件。
 
 ## 目标
 

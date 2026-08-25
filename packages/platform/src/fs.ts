@@ -1,6 +1,7 @@
-import { chmodSync, closeSync, fsyncSync, lstatSync, openSync, realpathSync, statSync } from "node:fs";
+import { chmodSync, closeSync, fsyncSync as nodeFsyncSync, lstatSync, openSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
-import { hostKind } from "./host.js";
+import { readOwnErrnoCode } from "./errno.js";
+import { hostKind, type HostKind } from "./host.js";
 import {
   assertLocalFixedNtfs,
   currentUserSid,
@@ -95,13 +96,51 @@ function restrictOwnerOnlyProduction(absPath: string, kind: "file" | "dir"): voi
   chmodSync(absPath, kind === "dir" ? 0o700 : 0o600);
 }
 
+export type FsyncKind = "file" | "dir";
+export type FsyncDirResult = "synced" | "unsupported";
+
+let fsyncSyncImpl: (fd: number) => void = nodeFsyncSync;
+
+export function setFsyncSyncImplForTests(impl: ((fd: number) => void) | null): void {
+  fsyncSyncImpl = impl ?? nodeFsyncSync;
+}
+
+/** Windows 对只读句柄 fsync 返回 EPERM，文件与目录都带写权限打开。 */
+export function fsyncOpenFlagForHost(_kind: FsyncKind, host: HostKind): "r" | "r+" {
+  return host === "win32" ? "r+" : "r";
+}
+
+function dirFsyncUnsupported(err: unknown): boolean {
+  const code = readOwnErrnoCode(err);
+  if (code === undefined) return false;
+  // 结构性：目录不能 fsync。EPERM/EACCES/EBADF 是真实故障，必须 fail-closed。
+  return code === "EINVAL" ||
+    code === "ENOTSUP" ||
+    code === "ENOTTY" ||
+    code === "EISDIR";
+}
+
 export function fsyncFile(absPath: string): void {
-  // Windows 对只读句柄 fsync 返回 EPERM;必须带写权限。
-  const fd = openSync(absPath, hostKind() === "win32" ? "r+" : "r");
+  const fd = openSync(absPath, fsyncOpenFlagForHost("file", hostKind()));
   try {
-    fsyncSync(fd);
+    fsyncSyncImpl(fd);
   } finally {
     closeSync(fd);
+  }
+}
+
+export function fsyncDir(absPath: string): FsyncDirResult {
+  try {
+    const fd = openSync(absPath, fsyncOpenFlagForHost("dir", hostKind()));
+    try {
+      fsyncSyncImpl(fd);
+    } finally {
+      closeSync(fd);
+    }
+    return "synced";
+  } catch (err) {
+    if (dirFsyncUnsupported(err)) return "unsupported";
+    throw err;
   }
 }
 

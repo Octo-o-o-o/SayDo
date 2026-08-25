@@ -5,19 +5,58 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   existsSync,
   lstatSync,
-  mkdirSync,
+  mkdtempSync,
   readFileSync,
   realpathSync,
-  renameSync,
   rmSync,
-  statSync,
-  writeFileSync
+  statSync
 } from "node:fs";
-import { dirname, resolve, sep } from "node:path";
+import { tmpdir } from "node:os";
+import { join, resolve, sep } from "node:path";
+import {
+  assertAssetsMatchTrackedManifest,
+  assertIdentityMatchesTrackedManifest,
+  assertReleaseApiAssetsMatchManifest,
+  inspectAssetBytes,
+  loadTrackedReleaseAssetManifest
+} from "./release-asset-manifest.mjs";
+import { applyAvailabilityReplacementsFromSnapshot } from "./release-availability.mjs";
+import {
+  getPagesProject,
+  listPagesDeployments,
+  requireCloudflareCredentials
+} from "./release-cloudflare-pages.mjs";
+import {
+  WEEK_AUDIT_WRITE_OUTPUTS,
+  runMutationsWithRollback,
+  writeFileAtomic
+} from "./release-file-transaction.mjs";
+import {
+  acquireDeployEvidenceLease,
+  persistClaimedDeployEvidence,
+  runPagesDeployStateMachine
+} from "./release-pages-deploy.mjs";
 import {
   validatePhysicalReleaseEvidence,
   validatePhysicalReleaseRun
 } from "./release-physical-evidence.mjs";
+import {
+  assertClosureFingerprints,
+  assertPhysicalToolFingerprints,
+  assertSafeRemoteVerifierPath,
+  hashClosureFiles,
+  materializeClosure,
+  physicalToolClosure,
+  WINDOWS_VERIFIER_RELATIVE_PATH,
+  WINDOWS_WRAPPER_RELATIVE_PATH,
+  windowsRemoteRootName,
+  windowsVerifierClosure
+} from "./release-physical-closure.mjs";
+import {
+  collectPushRuns,
+  createGhWorkflowRunPageFetcher,
+  evaluateTagWorkflowHistory
+} from "./release-tag-guard.mjs";
 
 const repo = resolve(import.meta.dirname, "..");
 const repository = "Octo-o-o-o/SayDo";
@@ -36,9 +75,9 @@ const windowsHost = optionValue("--windows-host");
 const windowsKnownHosts = optionValue("--windows-known-hosts");
 const windowsNode = optionValue("--windows-node");
 
-if (!["--check-candidate", "--verify", "--write-availability", "--deploy"].includes(mode) || tag !== "v0.1.0-rc.3") {
+if (!["--check-candidate", "--verify", "--write-availability", "--deploy"].includes(mode) || tag !== "v0.1.0-rc.4") {
   console.error(
-    "用法:node scripts/post-release-gate.mjs <--check-candidate|--verify|--write-availability|--deploy> v0.1.0-rc.3 [--evidence <path>] [--physical-evidence-dir <path> --windows-host <user@literal-ip> --windows-known-hosts <path> --windows-node <absolute-node.exe>]"
+    "用法:node scripts/post-release-gate.mjs <--check-candidate|--verify|--write-availability|--deploy> v0.1.0-rc.4 [--evidence <path>] [--physical-evidence-dir <path> --windows-host <user@literal-ip> --windows-known-hosts <path> --windows-node <absolute-node.exe>]"
   );
   process.exit(2);
 }
@@ -75,79 +114,79 @@ const availabilityReplacements = [
   {
     path: "README.md",
     before:
-      "普通用户无需克隆源码。下面是 v0.1.0-rc.3 的发布候选固定 URL；仅当\n[GitHub Release 页面](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.3)\n已经出现且发布检查全绿后，命令才可用：",
+      "普通用户无需克隆源码。下面是 v0.1.0-rc.4 的发布候选固定 URL；仅当\n[GitHub Release 页面](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.4)\n已经出现且发布检查全绿后，命令才可用：",
     after:
-      "普通用户无需克隆源码。v0.1.0-rc.3 固定 URL 已由不可变\n[GitHub Release](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.3)\n及 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证，可直接使用："
+      "普通用户无需克隆源码。v0.1.0-rc.4 固定 URL 已由不可变\n[GitHub Release](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.4)\n及 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证，可直接使用："
   },
   {
     path: "docs/site/2026-08-20-docs-page-content.fable.md",
     before:
-      "**推荐 · 不克隆源码:**下面是 v0.1.0-rc.3 的发布候选固定 URL;仅当 GitHub Release 页面已经出现且发布检查全绿后才可用。尚未发布到 npm registry 或 Homebrew。",
+      "**推荐 · 不克隆源码:**下面是 v0.1.0-rc.4 的发布候选固定 URL;仅当 GitHub Release 页面已经出现且发布检查全绿后才可用。尚未发布到 npm registry 或 Homebrew。",
     after:
-      "**推荐 · 不克隆源码:**v0.1.0-rc.3 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证,可直接使用。尚未发布到 npm registry 或 Homebrew。"
+      "**推荐 · 不克隆源码:**v0.1.0-rc.4 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证,可直接使用。尚未发布到 npm registry 或 Homebrew。"
   },
   {
     path: "docs/site/2026-08-20-docs-page-content.fable.md",
     before:
-      "源码形态已经可运行;v0.1.0-rc.3 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效。npm registry / Homebrew",
+      "源码形态已经可运行;v0.1.0-rc.4 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效。npm registry / Homebrew",
     after:
-      "源码形态已经可运行;v0.1.0-rc.3 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证。npm registry / Homebrew"
+      "源码形态已经可运行;v0.1.0-rc.4 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证。npm registry / Homebrew"
   },
   {
     path: "docs/site/2026-08-20-homepage-structure-copy.fable.md",
     before:
-      "macOS / Windows / Linux 的 daemon 与 Web 控制台源码形态已经可运行;v0.1.0-rc.3 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效,届时可一条命令启动、无需克隆源码。",
+      "macOS / Windows / Linux 的 daemon 与 Web 控制台源码形态已经可运行;v0.1.0-rc.4 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效,届时可一条命令启动、无需克隆源码。",
     after:
-      "macOS / Windows / Linux 的 daemon 与 Web 控制台源码形态已经可运行;v0.1.0-rc.3 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证,可一条命令启动、无需克隆源码。"
+      "macOS / Windows / Linux 的 daemon 与 Web 控制台源码形态已经可运行;v0.1.0-rc.4 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证,可一条命令启动、无需克隆源码。"
   },
   {
     path: "docs/site/2026-08-20-homepage-structure-copy.fable.md",
     before:
-      "The v0.1.0-rc.3 fixed URL becomes active only after the GitHub Release appears and all release checks are green; it then starts with one command and no source checkout.",
+      "The v0.1.0-rc.4 fixed URL becomes active only after the GitHub Release appears and all release checks are green; it then starts with one command and no source checkout.",
     after:
-      "The immutable v0.1.0-rc.3 GitHub Release has passed all six fixed-URL installation smokes across macOS, Windows, and Linux; it starts with one command and no source checkout."
+      "The immutable v0.1.0-rc.4 GitHub Release has passed all six fixed-URL installation smokes across macOS, Windows, and Linux; it starts with one command and no source checkout."
   },
   {
     path: "deploy/saydo-octoooo-com/docs/index.html",
     before:
-      "<p><strong>推荐 · 不克隆源码:</strong>下面是 v0.1.0-rc.3 的发布候选固定 URL;仅当 GitHub Release 页面已经出现且发布检查全绿后才可用。尚未发布到 npm registry 或 Homebrew。</p>",
+      "<p><strong>推荐 · 不克隆源码:</strong>下面是 v0.1.0-rc.4 的发布候选固定 URL;仅当 GitHub Release 页面已经出现且发布检查全绿后才可用。尚未发布到 npm registry 或 Homebrew。</p>",
     after:
-      "<p><strong>推荐 · 不克隆源码:</strong>v0.1.0-rc.3 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证,可直接使用。尚未发布到 npm registry 或 Homebrew。</p>"
+      "<p><strong>推荐 · 不克隆源码:</strong>v0.1.0-rc.4 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证,可直接使用。尚未发布到 npm registry 或 Homebrew。</p>"
   },
   {
     path: "deploy/saydo-octoooo-com/docs/index.html",
     before:
-      "源码形态已经可运行;v0.1.0-rc.3 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效。npm registry / Homebrew",
+      "源码形态已经可运行;v0.1.0-rc.4 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效。npm registry / Homebrew",
     after:
-      "源码形态已经可运行;v0.1.0-rc.3 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证。npm registry / Homebrew"
+      "源码形态已经可运行;v0.1.0-rc.4 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证。npm registry / Homebrew"
   },
   {
     path: "deploy/saydo-octoooo-com/en/docs/index.html",
     before:
-      "<p><strong>Recommended · no source checkout:</strong> this is the candidate fixed URL for v0.1.0-rc.3. Use it only after the GitHub Release page appears and all release checks are green. It is not published to the npm registry or Homebrew yet.</p>",
+      "<p><strong>Recommended · no source checkout:</strong> this is the candidate fixed URL for v0.1.0-rc.4. Use it only after the GitHub Release page appears and all release checks are green. It is not published to the npm registry or Homebrew yet.</p>",
     after:
-      "<p><strong>Recommended · no source checkout:</strong> the immutable v0.1.0-rc.3 GitHub Release has passed one-off and global-install smokes on macOS, Windows, and Linux. It is ready to use and is not published to the npm registry or Homebrew yet.</p>"
+      "<p><strong>Recommended · no source checkout:</strong> the immutable v0.1.0-rc.4 GitHub Release has passed one-off and global-install smokes on macOS, Windows, and Linux. It is ready to use and is not published to the npm registry or Homebrew yet.</p>"
   },
   {
     path: "deploy/saydo-octoooo-com/en/docs/index.html",
     before:
-      "The source form already runs; the v0.1.0-rc.3 fixed URL becomes active only after the GitHub Release appears and all release checks are green. npm registry / Homebrew",
+      "The source form already runs; the v0.1.0-rc.4 fixed URL becomes active only after the GitHub Release appears and all release checks are green. npm registry / Homebrew",
     after:
-      "The source form already runs; the immutable v0.1.0-rc.3 GitHub Release has passed all six cross-platform installation smokes. npm registry / Homebrew"
+      "The source form already runs; the immutable v0.1.0-rc.4 GitHub Release has passed all six cross-platform installation smokes. npm registry / Homebrew"
   },
   {
     path: "deploy/saydo-octoooo-com/index.html",
     before:
-      "这是 v0.1.0-rc.3 发布候选固定 URL，仅在 GitHub Release 页面出现且发布检查全绿后可用；语音 pipeline 与系统常驻安装不包含在内。",
+      "这是 v0.1.0-rc.4 发布候选固定 URL，仅在 GitHub Release 页面出现且发布检查全绿后可用；语音 pipeline 与系统常驻安装不包含在内。",
     after:
-      "v0.1.0-rc.3 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的六项安装 smoke 验证，可直接使用；语音 pipeline 与系统常驻安装不包含在内。"
+      "v0.1.0-rc.4 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的六项安装 smoke 验证，可直接使用；语音 pipeline 与系统常驻安装不包含在内。"
   },
   {
     path: "deploy/saydo-octoooo-com/en/index.html",
     before:
-      "This is the candidate fixed URL for v0.1.0-rc.3 and works only after the GitHub Release page appears and all release checks are green; it does not include the voice pipeline or service installation.",
+      "This is the candidate fixed URL for v0.1.0-rc.4 and works only after the GitHub Release page appears and all release checks are green; it does not include the voice pipeline or service installation.",
     after:
-      "The immutable v0.1.0-rc.3 GitHub Release has passed all six installation smokes across macOS, Windows, and Linux and is ready to use; it does not include the voice pipeline or service installation."
+      "The immutable v0.1.0-rc.4 GitHub Release has passed all six installation smokes across macOS, Windows, and Linux and is ready to use; it does not include the voice pipeline or service installation."
   }
 ];
 
@@ -179,16 +218,6 @@ async function fetchBytes(url) {
   throw lastError;
 }
 
-async function fetchUntil(url, predicate, message) {
-  let lastBody = Buffer.alloc(0);
-  for (let attempt = 1; attempt <= 12; attempt += 1) {
-    lastBody = await fetchBytes(url);
-    if (predicate(lastBody)) return lastBody;
-    if (attempt < 12) await new Promise((resolve) => setTimeout(resolve, 5_000));
-  }
-  throw new Error(`${message};lastBytes=${lastBody.length}`);
-}
-
 async function verifyRelease() {
   const tagLine = gitText(["ls-remote", publicUrl, `refs/tags/${tag}`]);
   const tagSha = tagLine.split(/\s+/)[0];
@@ -209,29 +238,24 @@ async function verifyRelease() {
   const expectedBody = readFileSync(resolve(repo, `docs/release/${tag}.md`), "utf8").trimEnd();
   invariant(release.name === expectedTitle, `Release 标题 readback 不一致:${release.name ?? ""}`);
   invariant((release.body ?? "").trimEnd() === expectedBody, "Release 正文 readback 与冻结 release notes 不一致");
+  const tracked = loadTrackedReleaseAssetManifest(repo, tag);
   const assetNames = release.assets.map((asset) => asset.name).sort();
   invariant(JSON.stringify(assetNames) === JSON.stringify([...expectedAssets].sort()), `Release asset exact-set 异常:${assetNames.join(",")}`);
-  invariant(release.assets.every((asset) => Number.isInteger(asset.size) && asset.size > 0), "Release 含空 asset");
+  assertReleaseApiAssetsMatchManifest(release, tracked);
 
-  const runs = ghJson([
-    "run",
-    "list",
-    "--repo",
-    repository,
-    "--workflow",
-    "release.yml",
-    "--event",
-    "push",
-    "--limit",
-    "50",
-    "--json",
-    "databaseId,headSha,headBranch,status,conclusion,url"
-  ]);
-  const run = runs.find((row) => row.headSha === tagSha && row.headBranch === tag);
-  invariant(run, `未找到精确绑定 ${tagSha} 的 release workflow`);
-  invariant(run.status === "completed" && run.conclusion === "success", `release workflow 未全绿:${run.status}/${run.conclusion}`);
+  const collected = await collectPushRuns(
+    createGhWorkflowRunPageFetcher({ repo: repository, workflow: "release.yml", execText })
+  );
+  const unique = evaluateTagWorkflowHistory({
+    ...collected,
+    tag,
+    requirement: { mode: "exactly-one", headSha: tagSha, requireCompleted: true }
+  });
+  const run = unique.run;
   const runDetail = ghJson(["api", `repos/${repository}/actions/runs/${run.databaseId}`]);
   invariant(runDetail.run_attempt === 1, `release workflow 曾重跑(run_attempt=${runDetail.run_attempt});该 tag 永久不可用`);
+  invariant(String(runDetail.id ?? run.databaseId) === String(run.databaseId), "workflow run id readback 不一致");
+  invariant(runDetail.head_sha === tagSha, "workflow run head_sha readback 与公开 tag SHA 不一致");
   const runView = ghJson(["run", "view", String(run.databaseId), "--repo", repository, "--json", "jobs"]);
   const jobs = new Map(runView.jobs.map((job) => [job.name, job.conclusion]));
   const requiredJobs = [
@@ -267,6 +291,11 @@ async function verifyRelease() {
       metadata.reproducibleBuilds === 2 &&
       /^[0-9a-f]{64}$/.test(metadata.sourceRevision),
     "线上 metadata 与 tag/tgz 身份不一致"
+  );
+  assertIdentityMatchesTrackedManifest(metadata, tracked);
+  assertAssetsMatchTrackedManifest(
+    expectedAssets.map((name, index) => inspectAssetBytes(name, [checksum, metadataRaw, tarball][index])),
+    tracked
   );
   return {
     tag,
@@ -312,12 +341,7 @@ function trustedPhysicalTools(releaseTagSha) {
     cwd: repo,
     stdio: ["ignore", "ignore", "pipe"]
   });
-  const toolPaths = [
-    "scripts/post-release-gate.mjs",
-    "scripts/release-physical-evidence.mjs",
-    "scripts/run-release-verifier-windows.ps1",
-    "scripts/verify-release-url.mjs"
-  ];
+  const toolPaths = physicalToolClosure(repo);
   try {
     execFileSync("git", ["diff", "--quiet", releaseTagSha, "HEAD", "--", ...toolPaths], {
       cwd: repo,
@@ -339,14 +363,24 @@ function trustedPhysicalTools(releaseTagSha) {
   } catch {
     throw new Error("availability HEAD 不包含已审实施边界");
   }
-  const fingerprints = Object.fromEntries(
+  const worktreeHashes = hashClosureFiles(repo, toolPaths);
+  const tagHashes = Object.fromEntries(
     toolPaths.map((path) => {
-      const digest = sha256(readFileSync(resolve(repo, path)));
-      const entry = manifest.entries.find((candidate) => candidate.path === path);
-      invariant(entry?.kind === "file" && entry.sha256 === digest, `实体门工具未绑定 publication manifest:${path}`);
-      return [path, digest];
+      let bytes;
+      try {
+        bytes = execFileSync("git", ["show", `${releaseTagSha}:${path}`], { cwd: repo, maxBuffer: 32 * 1024 * 1024 });
+      } catch {
+        throw new Error(`immutable tag 缺实体门闭包:${path}`);
+      }
+      return [path, sha256(bytes)];
     })
   );
+  const fingerprints = assertPhysicalToolFingerprints({
+    files: toolPaths,
+    worktreeHashes,
+    tagHashes,
+    publicationEntries: manifest.entries ?? []
+  });
   return { implementationBoundary: manifest.implementationBoundary, fingerprints };
 }
 
@@ -485,22 +519,68 @@ function pinnedSshConfig() {
   };
 }
 
+function sshText(sshConfig, command, options = {}) {
+  return execFileSync("/usr/bin/ssh", [...sshConfig.options, sshConfig.host, command], {
+    env: sshClientEnv(),
+    encoding: "utf8",
+    timeout: options.timeout ?? 60_000,
+    maxBuffer: 8 * 1024 * 1024,
+    stdio: options.stdio ?? ["ignore", "pipe", "pipe"]
+  });
+}
+
+function parseRemoteHashes(output) {
+  const hashes = {};
+  for (const line of output.split(/\r?\n/u).map((item) => item.trim()).filter(Boolean)) {
+    const match = /^([A-Za-z0-9./_-]+)=([0-9a-f]{64})$/i.exec(line);
+    invariant(match, `远端闭包 digest 行非法:${line}`);
+    hashes[match[1].replaceAll("\\", "/")] = match[2].toLowerCase();
+  }
+  return hashes;
+}
+
 function runWindowsPhysical(releaseEvidence, tools, specs, gateRunId, sshConfig) {
-  const remoteVerifier = `saydo-release-verify-${gateRunId}.mjs`;
-  const remoteWrapper = `saydo-release-verify-${gateRunId}.ps1`;
-  const verifierPath = resolve(repo, "scripts/verify-release-url.mjs");
-  const wrapperPath = resolve(repo, "scripts/run-release-verifier-windows.ps1");
+  const root = windowsRemoteRootName(gateRunId);
+  const files = windowsVerifierClosure(repo);
+  const expectedHashes = Object.fromEntries(
+    files.map((path) => {
+      invariant(tools.fingerprints[path], `Windows 闭包未进入 toolFingerprints:${path}`);
+      return [path, tools.fingerprints[path]];
+    })
+  );
+  assertClosureFingerprints(hashClosureFiles(repo, files), expectedHashes, "local windows verifier");
+  const stagingParent = mkdtempSync(join(tmpdir(), "saydo-win-verifier-"));
+  const staging = join(stagingParent, root);
+  let runError;
+  let results;
   try {
-    for (const [localPath, remotePath] of [[verifierPath, remoteVerifier], [wrapperPath, remoteWrapper]]) {
-      execFileSync("/usr/bin/scp", [...sshConfig.options, localPath, `${sshConfig.host}:${remotePath}`], {
-        env: sshClientEnv(),
-        timeout: 60_000,
-        stdio: ["ignore", "ignore", "inherit"]
-      });
-    }
-    return specs.map((spec) => {
+    materializeClosure(repo, files, staging, { failIfExists: true });
+    sshText(
+      sshConfig,
+      `powershell.exe -NoLogo -NoProfile -NonInteractive -Command "if (Test-Path -LiteralPath '${root}') { throw 'remote root exists' }; New-Item -ItemType Directory -Path '${root}' | Out-Null"`
+    );
+    execFileSync("/usr/bin/scp", [...sshConfig.options, "-r", `${staging}/.`, `${sshConfig.host}:${root}/`], {
+      env: sshClientEnv(),
+      timeout: 60_000,
+      stdio: ["ignore", "ignore", "inherit"]
+    });
+    const hashCommand = files
+      .map((relative) => {
+        const win = relative.replaceAll("/", "\\\\");
+        return `Write-Output ('${relative}=' + ((Get-FileHash -Algorithm SHA256 -LiteralPath '${win}').Hash.ToLower()))`;
+      })
+      .join("; ");
+    const remoteHashes = parseRemoteHashes(
+      sshText(
+        sshConfig,
+        `powershell.exe -NoLogo -NoProfile -NonInteractive -Command "Set-Location -LiteralPath '${root}'; ${hashCommand}"`
+      )
+    );
+    assertClosureFingerprints(remoteHashes, expectedHashes, "remote windows verifier");
+    results = specs.map((spec) => {
       const challenge = createHash("sha256").update(`${gateRunId}\0${spec.key}\0${randomUUID()}`).digest("hex");
       const expected = physicalExpected(releaseEvidence, tools, spec, challenge, spec.path, gateRunId);
+      const verifierPath = assertSafeRemoteVerifierPath(WINDOWS_VERIFIER_RELATIVE_PATH);
       const request = Buffer.from(JSON.stringify({
         schemaVersion: 1,
         tag,
@@ -508,10 +588,10 @@ function runWindowsPhysical(releaseEvidence, tools, specs, gateRunId, sshConfig)
         installMode: spec.installMode,
         challenge,
         nodePath: sshConfig.node,
-        verifierPath: remoteVerifier
+        verifierPath
       }), "utf8").toString("base64url");
       invariant(/^[A-Za-z0-9_-]+$/.test(request), "Windows verifier 请求编码非法");
-      const remoteCommand = [
+      const powershell = [
         "powershell.exe",
         "-NoLogo",
         "-NoProfile",
@@ -519,60 +599,53 @@ function runWindowsPhysical(releaseEvidence, tools, specs, gateRunId, sshConfig)
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        remoteWrapper,
+        WINDOWS_WRAPPER_RELATIVE_PATH.replaceAll("/", "\\"),
         request
-      ].join(" ");
-      const output = execFileSync(
-        "/usr/bin/ssh",
-        [...sshConfig.options, sshConfig.host, remoteCommand],
-        {
-          env: sshClientEnv(),
-          encoding: "utf8",
-          timeout: 20 * 60_000,
-          maxBuffer: 8 * 1024 * 1024,
-          stdio: ["ignore", "pipe", "inherit"]
-        }
-      );
+      ];
+      const remoteCommand = ["cmd.exe", "/d", "/c", `cd /d ${root} && ${powershell.join(" ")}`].join(" ");
+      const output = sshText(sshConfig, remoteCommand, { timeout: 20 * 60_000, stdio: ["ignore", "pipe", "inherit"] });
       const raw = parseVerifierOutput(output, spec.key);
       validatePhysicalReleaseRun(raw, expected);
       return wrapPhysicalEvidence(raw, expected, {
         targetFingerprint: sshConfig.targetFingerprint,
-        sshHostKeyFingerprint: sshConfig.hostKeyFingerprint
+        sshHostKeyFingerprint: sshConfig.hostKeyFingerprint,
+        remoteRoot: root,
+        closureFingerprints: expectedHashes
       });
     });
+  } catch (error) {
+    runError = error;
   } finally {
+    let cleanupError;
     try {
-      execFileSync(
-        "/usr/bin/ssh",
-        [
-          ...sshConfig.options,
-          sshConfig.host,
-          `cmd.exe /d /c del /f /q ${remoteVerifier} ${remoteWrapper}`
-        ],
-        { env: sshClientEnv(), timeout: 30_000, stdio: "ignore" }
+      sshText(
+        sshConfig,
+        `cmd.exe /d /c "if exist ${root} rmdir /s /q ${root} & if exist ${root} exit 8"`,
+        { timeout: 30_000 }
       );
-    } catch {
-      process.stderr.write("[warn] Windows 临时 verifier 未能自动清理\n");
+    } catch (error) {
+      cleanupError = error;
+    }
+    rmSync(stagingParent, { recursive: true, force: true });
+    if (cleanupError) {
+      throw runError
+        ? new AggregateError([runError, cleanupError], "Windows verifier 运行失败且远端闭包未清理")
+        : cleanupError;
     }
   }
+  if (runError) throw runError;
+  return results;
 }
 
-function persistPhysicalEvidence(records) {
+function persistPhysicalEvidence(records, writeDir) {
   const outputDir = resolve(repo, physicalEvidenceDir);
   invariant(!existsSync(outputDir), `实体证据目录已存在,拒绝覆盖:${physicalEvidenceDir}`);
-  mkdirSync(dirname(outputDir), { recursive: true });
-  const stagingDir = `${outputDir}.partial-${records[0].evidence.provenance.gateRunId}`;
-  mkdirSync(stagingDir, { recursive: false });
-  try {
-    for (const { spec, evidence } of records) {
-      const filename = spec.path.split("/").at(-1);
-      invariant(filename && !filename.includes(".."), `实体证据文件名非法:${spec.path}`);
-      writeFileSync(resolve(stagingDir, filename), `${JSON.stringify(evidence, null, 2)}\n`, { flag: "wx" });
-    }
-    renameSync(stagingDir, outputDir);
-  } finally {
-    rmSync(stagingDir, { recursive: true, force: true });
-  }
+  const files = records.map(({ spec, evidence }) => {
+    const filename = spec.path.split("/").at(-1);
+    invariant(filename && !filename.includes("..") && !filename.includes("/"), `实体证据文件名非法:${spec.path}`);
+    return { name: filename, content: Buffer.from(`${JSON.stringify(evidence, null, 2)}\n`) };
+  });
+  writeDir(outputDir, files);
 }
 
 function verifyPhysicalEvidence(releaseEvidence) {
@@ -599,23 +672,32 @@ function verifyPhysicalEvidence(releaseEvidence) {
   invariant(records[0].evidence.hostFingerprint === records[1].evidence.hostFingerprint, "Mac exec/global 不是同一主机");
   invariant(records[2].evidence.hostFingerprint === records[3].evidence.hostFingerprint, "Windows exec/global 不是同一 SSH 主机");
   invariant(records[0].evidence.hostFingerprint !== records[2].evidence.hostFingerprint, "Mac/Windows 主机指纹异常相同");
-  persistPhysicalEvidence(records);
-  return records.map(({ spec, evidence }) => validatePhysicalReleaseEvidence(
+  return records.map(({ spec, evidence }) => ({
+    spec,
     evidence,
-    physicalExpected(releaseEvidence, tools, spec, evidence.challenge, spec.path, gateRunId)
-  ));
+    validated: validatePhysicalReleaseEvidence(
+      evidence,
+      physicalExpected(releaseEvidence, tools, spec, evidence.challenge, spec.path, gateRunId)
+    )
+  }));
 }
 
-function writeAvailability() {
-  availabilityState("candidate");
-  const byPath = new Map();
-  for (const replacement of availabilityReplacements) {
-    const current = byPath.get(replacement.path) ?? readFileSync(resolve(repo, replacement.path), "utf8");
-    invariant(current.includes(replacement.before), `availability 写入锚缺失:${replacement.path}`);
-    byPath.set(replacement.path, current.replace(replacement.before, replacement.after));
-  }
-  for (const [path, content] of byPath) writeFileSync(resolve(repo, path), content);
-  return availabilityState("available");
+function availabilitySnapshotPaths() {
+  return [
+    ...new Set(availabilityReplacements.map((item) => resolve(repo, item.path))),
+    resolve(repo, evidencePath),
+    resolve(repo, physicalEvidenceDir),
+    ...WEEK_AUDIT_WRITE_OUTPUTS.map((path) => resolve(repo, path))
+  ];
+}
+
+function assertAvailabilityWorkspace(expectedHead) {
+  invariant(gitText(["branch", "--show-current"]) === "main", "availability 事务前 branch 不是 main");
+  invariant(gitText(["rev-parse", "HEAD"]) === expectedHead, "availability 事务前 HEAD 漂移");
+  invariant(
+    gitText(["status", "--porcelain=v1", "--untracked-files=all"]) === "",
+    "availability 事务前工作树或 index 不干净"
+  );
 }
 
 function exactPublicMain(releaseTagSha) {
@@ -722,29 +804,14 @@ function verifyPublicCi(publicMain) {
   return { workflowRunId: run.databaseId, workflowUrl: run.url, headSha: publicMain, nodeJob: nodeJob.name };
 }
 
-async function verifyProduction() {
-  const checks = [
-    ["https://saydo.octoooo.com/", "v0.1.0-rc.3 固定 URL 已由不可变 GitHub Release"],
-    ["https://saydo.octoooo.com/docs/", "不可变 GitHub Release 与 macOS、Windows、Linux"],
-    ["https://saydo.octoooo.com/en/", "immutable v0.1.0-rc.3 GitHub Release"],
-    ["https://saydo.octoooo.com/en/docs/", "immutable v0.1.0-rc.3 GitHub Release"]
+function officialPages() {
+  return [
+    { project: "saydo", host: "saydo.octoooo.com", url: "https://saydo.octoooo.com/", marker: "v0.1.0-rc.4 固定 URL 已由不可变 GitHub Release" },
+    { project: "saydo", host: "saydo.octoooo.com", url: "https://saydo.octoooo.com/docs/", marker: "不可变 GitHub Release 与 macOS、Windows、Linux" },
+    { project: "saydo", host: "saydo.octoooo.com", url: "https://saydo.octoooo.com/en/", marker: "immutable v0.1.0-rc.4 GitHub Release" },
+    { project: "saydo", host: "saydo.octoooo.com", url: "https://saydo.octoooo.com/en/docs/", marker: "immutable v0.1.0-rc.4 GitHub Release" },
+    { project: "saydo-link", host: "link.saydo.octoooo.com", url: "https://link.saydo.octoooo.com/", marker: "https://saydo.octoooo.com" }
   ];
-  const results = [];
-  for (const [url, marker] of checks) {
-    const body = await fetchUntil(
-      url,
-      (value) => value.toString("utf8").includes(marker),
-      `生产站缺 availability 标记:${url}`
-    );
-    results.push({ url, marker, bytes: body.length });
-  }
-  const linkBody = await fetchUntil(
-    "https://link.saydo.octoooo.com/",
-    (value) => value.toString("utf8").includes("https://saydo.octoooo.com"),
-    "link 站缺官网回退链接"
-  );
-  results.push({ url: "https://link.saydo.octoooo.com/", marker: "https://saydo.octoooo.com", bytes: linkBody.length });
-  return results;
 }
 
 async function deploySites(releaseEvidence) {
@@ -755,44 +822,75 @@ async function deploySites(releaseEvidence) {
   const originMain = gitText(["ls-remote", originUrl, "refs/heads/main"]).split(/\s+/u)[0];
   invariant(/^[0-9a-f]{40}$/.test(originMain), "实时 origin/main 不存在");
   invariant(gitText(["rev-parse", "HEAD"]) === originMain, "部署 HEAD 尚未推送到实时 origin/main");
+  const { accountId, apiToken } = requireCloudflareCredentials(process.env);
   const publicMain = exactPublicMain(releaseEvidence.tagSha);
   const publicCi = verifyPublicCi(publicMain);
-  const deployments = [];
-  for (const item of [
-    { directory: "deploy/saydo-octoooo-com", project: "saydo" },
-    { directory: "deploy/link-saydo-octoooo-com", project: "saydo-link" }
-  ]) {
-    const output = execText("pnpm", [
-      "exec",
-      "wrangler",
-      "pages",
-      "deploy",
-      item.directory,
-      "--project-name",
-      item.project,
-      "--branch",
-      "main",
-      "--commit-hash",
-      publicMain,
-      "--commit-message",
-      `availability ${tag}`,
-      "--commit-dirty=false"
-    ]);
-    const deploymentUrl = output.match(/https:\/\/[0-9a-f]+\.[a-z0-9-]+\.pages\.dev/i)?.[0];
-    invariant(deploymentUrl, `无法从 Wrangler 输出确认部署 URL:${item.project}`);
-    const response = await fetch(deploymentUrl, { redirect: "follow", cache: "no-store" });
-    invariant(response.ok, `${item.project} 部署 URL HTTP ${response.status}`);
-    deployments.push({ ...item, deploymentUrl });
-  }
-  return { ...releaseEvidence, publicMain, publicCi, deployments, productionChecks: await verifyProduction() };
+  const evidenceAbsolute = resolve(repo, evidencePath);
+  const lease = acquireDeployEvidenceLease(evidenceAbsolute);
+  const sites = [
+    {
+      directory: "deploy/saydo-octoooo-com",
+      project: "saydo",
+      previewBranch: `preview-${tag}`,
+      productionBranch: "main"
+    },
+    {
+      directory: "deploy/link-saydo-octoooo-com",
+      project: "saydo-link",
+      previewBranch: `preview-${tag}`,
+      productionBranch: "main"
+    }
+  ];
+  return runPagesDeployStateMachine({
+    evidenceSeed: { release: releaseEvidence, publicMain, publicCi },
+    sites,
+    wrangler: async ({ directory, project, branch, commitHash, stage }) =>
+      execText("pnpm", [
+        "exec",
+        "wrangler",
+        "pages",
+        "deploy",
+        directory,
+        "--project-name",
+        project,
+        "--branch",
+        branch,
+        "--commit-hash",
+        commitHash,
+        "--commit-message",
+        `${stage} ${tag}`,
+        "--commit-dirty=false"
+      ]),
+    listDeployments: async ({ project, environment }) =>
+      listPagesDeployments({ accountId, apiToken, project, environment }),
+    readProject: async ({ project }) => getPagesProject({ accountId, apiToken, project }),
+    fetchHttp: async (url) => {
+      const body = await fetchBytes(url);
+      return { ok: true, status: 200, url, body: body.toString("utf8") };
+    },
+    persist: async (evidence) => {
+      persistDeployEvidence(evidence, lease);
+    },
+    audit: refreshAuditBundle,
+    officialPages: officialPages(),
+    lease
+  });
 }
 
-function persistEvidence(evidence) {
-  const result = { schemaVersion: 1, verifiedAt: new Date().toISOString(), ...evidence };
+function persistDeployEvidence(evidence, lease) {
+  const snapshot = persistClaimedDeployEvidence(lease, evidence);
+  const text = JSON.stringify(snapshot, null, 2);
+  if (/Bearer/i.test(text) || /ghp_[A-Za-z0-9]+/.test(text) || /github_pat_[A-Za-z0-9_]+/.test(text)) {
+    throw new Error("部署证据含不可信字段");
+  }
+  console.log(text);
+  return snapshot;
+}
+
+function persistEvidence(evidence, writeAtomic = writeFileAtomic) {
+  const result = { schemaVersion: 1, verifiedAt: evidence.verifiedAt ?? new Date().toISOString(), ...evidence };
   if (evidencePath) {
-    const absolute = resolve(repo, evidencePath);
-    mkdirSync(dirname(absolute), { recursive: true });
-    writeFileSync(absolute, `${JSON.stringify(result, null, 2)}\n`);
+    writeAtomic(resolve(repo, evidencePath), Buffer.from(`${JSON.stringify(result, null, 2)}\n`));
   }
   console.log(JSON.stringify(result, null, 2));
   return result;
@@ -810,17 +908,46 @@ function refreshAuditBundle() {
 }
 
 if (mode === "--check-candidate") {
-  persistEvidence({ tag, availability: availabilityState("candidate") });
+  const tracked = loadTrackedReleaseAssetManifest(repo, tag);
+  persistEvidence({
+    tag,
+    availability: availabilityState("candidate"),
+    trackedManifest: {
+      schema: tracked.schema,
+      tag: tracked.tag,
+      package: tracked.package,
+      version: tracked.version
+    }
+  });
 } else {
   const releaseEvidence = await verifyRelease();
   if (mode === "--verify") {
     persistEvidence({ ...releaseEvidence, availability: availabilityState("candidate") });
   } else if (mode === "--write-availability") {
-    const physicalEvidence = verifyPhysicalEvidence(releaseEvidence);
-    persistEvidence({ ...releaseEvidence, physicalEvidence, availability: writeAvailability() });
-    refreshAuditBundle();
+    const physicalRecords = verifyPhysicalEvidence(releaseEvidence);
+    const expectedHead = gitText(["rev-parse", "HEAD"]);
+    await runMutationsWithRollback({
+      snapshotPaths: availabilitySnapshotPaths(),
+      preflight: ({ snapshot }) => {
+        assertAvailabilityWorkspace(expectedHead);
+        applyAvailabilityReplacementsFromSnapshot(snapshot, availabilityReplacements, repo);
+      },
+      mutate: async ({ snapshot, writeAtomic, writeDirAtomic }) => {
+        const { writes } = applyAvailabilityReplacementsFromSnapshot(snapshot, availabilityReplacements, repo);
+        persistPhysicalEvidence(physicalRecords, writeDirAtomic);
+        for (const item of writes) writeAtomic(item.path, item.content);
+        persistEvidence(
+          {
+            ...releaseEvidence,
+            physicalEvidence: physicalRecords.map((row) => row.validated),
+            availability: availabilityState("available")
+          },
+          writeAtomic
+        );
+        refreshAuditBundle();
+      }
+    });
   } else {
-    persistEvidence(await deploySites(releaseEvidence));
-    refreshAuditBundle();
+    await deploySites(releaseEvidence);
   }
 }

@@ -179,7 +179,7 @@
 
 ## 免修确认清单（已核过、当前没有问题）
 
-- **Tier1 执行器批与接线批确实已完成**：Plan2 的 `HEAD 602aa09` 与 `git -C /Users/wangyixiao/WorkSpace/SayDo log` 一致；`SayDo/e2e/evidence/executor-batch.md:9-25`、`HANDOFF.md:23,39` 证明 66 contracts/451 daemon、认领→真 cursor-agent→S2→settle→人工合并链已落地。Plan2 将其作为现状锚；W1.4/W5.3 仍需按下方 W1.4 免修项和 B-2 拆成“已完成能力 + 尚欠增量”，不能重复收口。
+- **Tier1 执行器批与接线批确实已完成**：Plan2 的 `HEAD 602aa09` 与 `git -C ~/WorkSpace/SayDo log` 一致；`SayDo/e2e/evidence/executor-batch.md:9-25`、`HANDOFF.md:23,39` 证明 66 contracts/451 daemon、认领→真 cursor-agent→S2→settle→人工合并链已落地。Plan2 将其作为现状锚；W1.4/W5.3 仍需按下方 W1.4 免修项和 B-2 拆成“已完成能力 + 尚欠增量”，不能重复收口。
 - **W1.3 仍是未完成项而非误列**：`HANDOFF.md:38` 的 Codex 14 #8-②确实要求 dogfood 第一周做 project-level config production load，Plan2:29 的独立 project schema/白名单反例方向正确。
 - **W1.4 已列的三个差距引用属实**：`executor-batch.md:59-63` 明确 `--resume` 精确恢复、live deep readiness 和 seedTerms 仍有 warn；Plan2:30 以“核实/缺则补”表达，没有把这三项虚报为已完成。该证据前两条安全债未被 W1.4 收入，已单列 B-13。
 - **提前批四项的范围与红线基本一致**：launchd、T2 薄版、M1、VAD/EOU/AEC 对应 `docs/05-roadmap.md:97-102` 和 `IMPL-PROMPT-5-PULLFORWARD.md:38-42`；T2 手机浏览器不放行 S3、PTT 保留、consolidation 人工批准等边界也有出处。

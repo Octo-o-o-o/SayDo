@@ -21,7 +21,7 @@
 
 证据：
 
-- `git -C /Users/wangyixiao/WorkSpace/voice-coding status` 返回：
+- `git -C ~/WorkSpace/voice-coding status` 返回：
 
   ```text
   fatal: not a git repository (or any of the parent directories): .git
@@ -120,7 +120,7 @@ git grep -n -I voice-coding
 
 证据：
 
-- `SayDo/AGENTS.md:3-6` 仍把 `/Users/wangyixiao/WorkSpace/voice-coding/` 定义为 canonical，并要求先回写设计文档再改代码。
+- `SayDo/AGENTS.md:3-6` 仍把 `~/WorkSpace/voice-coding/` 定义为 canonical，并要求先回写设计文档再改代码。
 - `SayDo/AGENTS.md:30-31` 要求两提交法。
 
 合并后只有在以下条件同时满足时，才真的能把文档和实现放进同一审查面：
@@ -291,7 +291,7 @@ prompts 2
 实测：
 
 ```text
-cd /Users/wangyixiao/WorkSpace/SayDo
+cd ~/WorkSpace/SayDo
 bash scripts/check-emoji.sh
 [ok] emoji gate: clean
 ```
@@ -491,7 +491,7 @@ incoming 的 `ADR-001-execution-layer.md` 文件名本身不冲突，但编号�
 - `.saydo/knowledge/core.md:18-31`
 - `.saydo/knowledge/conventions.md:7-20`
 
-其中仍指向 `/Users/wangyixiao/WorkSpace/voice-coding/`，并写“设计层 ADR 留 voice-coding”。这不是 git 文件冲突，却是 agent 上下文冲突，必须在迁移后重建。
+其中仍指向 `~/WorkSpace/voice-coding/`，并写“设计层 ADR 留 voice-coding”。这不是 git 文件冲突，却是 agent 上下文冲突，必须在迁移后重建。
 
 ---
 
@@ -772,7 +772,7 @@ IMPL-PROMPT-4-EXECUTOR.md
 
 ### 6.6 本地绝对路径与远端可见性
 
-候选文件中有 **29 个文件**包含 `/Users/wangyixiao/WorkSpace/...` 绝对路径。`IMPLEMENTATION-PLAN.md:20` 称 SayDo 为 GitHub 私有仓，但本轮没有验证远端可见性或权限。
+候选文件中有 **29 个文件**包含 `~/WorkSpace/...` 绝对路径。`IMPLEMENTATION-PLAN.md:20` 称 SayDo 为 GitHub 私有仓，但本轮没有验证远端可见性或权限。
 
 **裁决：B/C（条件性隐私风险）。**
 

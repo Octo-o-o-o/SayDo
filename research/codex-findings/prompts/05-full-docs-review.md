@@ -4,7 +4,7 @@
 
 ## 待评审文档(全部,按序读)
 
-工作目录:`/Users/wangyixiao/WorkSpace/voice-coding/`
+工作目录:`~/WorkSpace/voice-coding/`
 
 1. `README.md`(入口)
 2. `docs/01-vision-and-problem.md`(背景与问题)
@@ -32,7 +32,7 @@
 
 ## 输出要求
 
-- 把完整评审报告写入 `/Users/wangyixiao/WorkSpace/voice-coding/research/codex-findings/05-docs-review.md`(中文)。
+- 把完整评审报告写入 `~/WorkSpace/voice-coding/research/codex-findings/05-docs-review.md`(中文)。
 - 报告结构:① 总评(一段话 + 是否达到"可交人工验证"标准);② 问题清单,按严重度分级:**A 硬伤**(事实错误/丢失关键内容/自相矛盾)、**B 应改**(逻辑/一致性/链接问题)、**C 建议**(表述优化)。每条问题给出:文件 + 章节位置、问题描述、修改建议。③ 遗漏对照表(v1.14 或调研报告中有、新文档没有且应该有的内容)。
 - 区分【事实】(你核对过对照材料)与【judgement】(你的主观评审意见)。
 - 不要修改任何文档,只写评审报告。

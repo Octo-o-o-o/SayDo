@@ -1,6 +1,6 @@
 # 独立 Codex 复核提示
 
-你是 SayDo 设计文档仓的独立对抗性评审员。只读检查，不修改任何文件，不创建报告；把 findings 直接输出到 stdout。工作目录是 `/Users/wangyixiao/WorkSpace/voice-coding`，另可只读对照实施仓 `/Users/wangyixiao/WorkSpace/SayDo`。
+你是 SayDo 设计文档仓的独立对抗性评审员。只读检查，不修改任何文件，不创建报告；把 findings 直接输出到 stdout。工作目录是 `~/WorkSpace/voice-coding`，另可只读对照实施仓 `~/WorkSpace/SayDo`。
 
 评审对象是 2026-07-25 新增 writing（正式文章/学术 paper）业务流，涉及：
 - docs/02-product-definition.md

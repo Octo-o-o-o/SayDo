@@ -35,4 +35,4 @@ SayDo 接线增量批(HANDOFF §2-9 六项)已完成实现(SayDo 仓 main,提交
 - 结尾给"事实前提核验表"(你实读了哪些文件、哪些结论来自推断);
 - 全部结论必须来自实读代码/文档,不许臆测;读不到的如实标注。
 
-仓库路径:设计库 `/Users/wangyixiao/WorkSpace/voice-coding`(canonical);实现仓 `/Users/wangyixiao/WorkSpace/SayDo`。
+仓库路径:设计库 `~/WorkSpace/voice-coding`(canonical);实现仓 `~/WorkSpace/SayDo`。
