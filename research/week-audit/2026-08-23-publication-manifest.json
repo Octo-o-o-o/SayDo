@@ -49,8 +49,8 @@
       "path": ".github/workflows/release.yml",
       "kind": "file",
       "mode": 420,
-      "bytes": 20121,
-      "sha256": "9b91d79551334cbb541103eec96419bf704b33c3bc308f46be5fe1d6bc3da814"
+      "bytes": 20122,
+      "sha256": "146852d505daf7440c225c23a561e38d6eab4e29f2d6c830afdab4bde2ec98cf"
     },
     {
       "path": ".gitignore",
@@ -903,22 +903,22 @@
       "path": "deploy/saydo-octoooo-com/docs/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 125964,
-      "sha256": "45e29e2815b30a6c90423efb93d7fa67fb57e11b601c05734b9e734c4c3f399a"
+      "bytes": 125970,
+      "sha256": "6e4091ac47783ccd44a0fdc95333feec35e77d9374919890d0e4e80d7c5383b0"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/docs/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 147073,
-      "sha256": "77cbfb476b08d762f0a01bbcc9b18d06ef09d7d766ad2e07ee85ff7e6f329740"
+      "bytes": 147079,
+      "sha256": "bb89a1c08d10352ee5c258195b72a966c07e56329d4693ffa13bbf30f7f35300"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 47635,
-      "sha256": "f14892f5cc5309d8e9b8bec138a358a104aabedc9ce8f7e81bbd7c99e6809b33"
+      "bytes": 47639,
+      "sha256": "f3d83fd1fef4e8384c99a4d672efd590c0f6dc0e4aae9aae50fc620b54b53741"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/privacy/index.html",
@@ -966,8 +966,8 @@
       "path": "deploy/saydo-octoooo-com/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 46456,
-      "sha256": "73819b039bd03225ffcd1a4b6d1dd24824f70cefc2f4d34b146fd3d5494f7e38"
+      "bytes": 46460,
+      "sha256": "f42958839d4617faccd2b96861c7311d52bc51041956aa5f5190359db75697f6"
     },
     {
       "path": "deploy/saydo-octoooo-com/privacy/index.html",
@@ -1586,6 +1586,20 @@
       "sha256": "1b57518e093ddaebe11cbaf2a0b8e2055eeed2d2430389b20c51dfaebc844270"
     },
     {
+      "path": "docs/release/v0.1.0-rc.10-assets.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 593,
+      "sha256": "d7c7c5938e71b811ceb3fdbafefb8888b56e619257dba9b8393b78381c6f68db"
+    },
+    {
+      "path": "docs/release/v0.1.0-rc.10.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2444,
+      "sha256": "f1dd8d733fd2661503d73731d095867fc3aa33bc8237c117ea436c945c738702"
+    },
+    {
       "path": "docs/release/v0.1.0-rc.2.md",
       "kind": "file",
       "mode": 420,
@@ -1605,20 +1619,6 @@
       "mode": 420,
       "bytes": 2519,
       "sha256": "10b592ed60eee6e7812f30c507ebc05a1e94c3c87f2ba14a6ee87330db5f5a13"
-    },
-    {
-      "path": "docs/release/v0.1.0-rc.9-assets.json",
-      "kind": "file",
-      "mode": 420,
-      "bytes": 589,
-      "sha256": "ad4a824aca9fd3437a5421400a7f6007b2f64bcd880fbe5c67af84e7f68f00b6"
-    },
-    {
-      "path": "docs/release/v0.1.0-rc.9.md",
-      "kind": "file",
-      "mode": 420,
-      "bytes": 2437,
-      "sha256": "20db6a9c13c32e8541ea6621d0ad508c69fd861faaa02905037981988343331f"
     },
     {
       "path": "docs/review/2026-08-13-mobile-gap-audit.fable.md",
@@ -1708,22 +1708,22 @@
       "path": "docs/review/2026-08-25-rc4-runtime-final-reimplementation-readback.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 37801,
-      "sha256": "40528f6f2769b5a5ab479d4d7e3c7fc3d75e4a9d117020da0030ec3f6ba090ee"
+      "bytes": 39068,
+      "sha256": "48080a74e5e8ecb2f2a8544267de2ee8fb8748a310bdeb32ba3a98e72b77a69a"
     },
     {
       "path": "docs/site/2026-08-20-docs-page-content.fable.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 109654,
-      "sha256": "cfb8f5416bd42047fefaa6df0467f04110f8c959e2e83e5f9f6a93fce3939635"
+      "bytes": 109660,
+      "sha256": "c938dee69d92779bca416ee39bf5d16b2a733c316141cdb179d40b9570ba3476"
     },
     {
       "path": "docs/site/2026-08-20-homepage-structure-copy.fable.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 23198,
-      "sha256": "be8aa49372470bdada779b1959962dc35b68127df579f63f612a2c279cc1bb37"
+      "bytes": 23200,
+      "sha256": "68b62eba00eac479d2a7ac313d73440c97bf07e21facb0e05793951c7b89dda4"
     },
     {
       "path": "docs/site/archive/2026-08-20-docs-page-content-v1-glm53.md",
@@ -3038,15 +3038,15 @@
       "path": "packages/cli/package.json",
       "kind": "file",
       "mode": 420,
-      "bytes": 957,
-      "sha256": "e01fc7e1c2a7554e28334771274ecfa1b684b5165775ecc972174e128555805e"
+      "bytes": 958,
+      "sha256": "75c071acbcf30e2f835ca85e50ab088bac4cb4657b1b2402487062e9a927ecfb"
     },
     {
       "path": "packages/cli/README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 1037,
-      "sha256": "463d66620a57dd3ec6c1f69b1477fcf1c27bf0762d524065cab17acfd527b20c"
+      "bytes": 1041,
+      "sha256": "e293bb165953614e0e1343d1157ebeb6f805c5538853f49ae32df12dde2924c4"
     },
     {
       "path": "packages/cli/scripts/build.mjs",
@@ -9065,8 +9065,8 @@
       "path": "README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 4181,
-      "sha256": "c66e66d70f7fae14641c33f63a1fdca5a9b058a9315124d79d8edfda84df0be6"
+      "bytes": 4187,
+      "sha256": "76f60747ab7eb539b9df1368502b86aabf801c76a5a48dfc5dc25748852d6ead"
     },
     {
       "path": "research/2026-07-25-saydo-closeout-impl-readback.fable.md",
@@ -10885,8 +10885,8 @@
       "path": "scripts/post-release-gate.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 41430,
-      "sha256": "5b5816789fe4a866501ba67ef2f39d75788870c71034a0a0cb8264fdbdf1f91f"
+      "bytes": 41459,
+      "sha256": "9f507d5d642251c60a88905999afe180dbc63869966f3b421843ce911a0275fe"
     },
     {
       "path": "scripts/public-text-redaction.mjs",
@@ -10913,8 +10913,8 @@
       "path": "scripts/release-asset-manifest.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 14398,
-      "sha256": "f0b1d7c131c97d424dcf3b9540762c05dae97424eedae47130b9029c677117de"
+      "bytes": 14400,
+      "sha256": "5ffc22d533023a11729e97bfc55efde2481803198ab126be9c76353fe057dea8"
     },
     {
       "path": "scripts/release-availability.mjs",
@@ -10962,8 +10962,8 @@
       "path": "scripts/release-physical-closure.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 5935,
-      "sha256": "20551cc88ab0373cb18e01b5dce56344fc2acabfe7d007ac3c2fbaee2b2c2596"
+      "bytes": 5936,
+      "sha256": "182f08afa89ecab31023188348dc4c04f71809110bf6a263315e75a67c856c31"
     },
     {
       "path": "scripts/release-physical-evidence.mjs",
@@ -10983,8 +10983,8 @@
       "path": "scripts/run-release-verifier-windows.ps1",
       "kind": "file",
       "mode": 420,
-      "bytes": 2602,
-      "sha256": "1dbc5d6de85b93127517ab318cb0c687b73664d9bdff032b86a7b77d99e33615"
+      "bytes": 2603,
+      "sha256": "b8bbb204ee1a77720aae5102324bbf93e0d351882d221c7b473fffa9dd941ac2"
     },
     {
       "path": "scripts/runtime-preflight.sh",
@@ -11067,15 +11067,15 @@
       "path": "scripts/test-release-physical-evidence.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 6448,
-      "sha256": "78d15ab3527bc03eb99c5859e94dac33a4e1d1d01a81ad37493de7965391126e"
+      "bytes": 6452,
+      "sha256": "2dedbd0e5e90d0552f9bce71ed06667eebff09a359bda6729a0eca07729ed5ff"
     },
     {
       "path": "scripts/test-release-provenance.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 198591,
-      "sha256": "287b9acb7c7aca98acd0acc9b41ce71e8807f860e02b88d5663f7a007003b0ec"
+      "bytes": 198647,
+      "sha256": "e138473c6b63ab19b35113ebec3d8cf0f3a19ee1859070facadbd999d97289cb"
     },
     {
       "path": "scripts/third-party-notices.mjs",
@@ -11095,8 +11095,8 @@
       "path": "scripts/verify-release-url.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 17885,
-      "sha256": "bab7abb79cc577fa3347bc8980354369dead355613613cb4f9544eec4fa77760"
+      "bytes": 18591,
+      "sha256": "ecdc490fff21ffb60da2f294f935771f44084f1d6920c831b297b9b4ec7c80c9"
     },
     {
       "path": "scripts/verify-snapshot.mjs",
@@ -11116,8 +11116,8 @@
       "path": "scripts/week-audit.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 58096,
-      "sha256": "5abdc7bc55317824e3cd2d2e696b03249e21856e36d539875ab03a0a2a1f5e81"
+      "bytes": 58098,
+      "sha256": "b50d5d4467516039774b1403c63a138244c5c5a7bacf56948671bf02e2640d02"
     },
     {
       "path": "SECURITY.md",

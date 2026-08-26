@@ -629,3 +629,21 @@ Release 与三资产真实存在),六项 fixed URL smoke 首次执行——3 过
 
 rc.9 流程:代码修复 → bump → freeze(v2) → 容器预检(linux/amd64+CI 同 node 跑
 --write&&--check) → 23 项门禁 → 原子推送。
+
+## 16. rc.9:5/6 smoke,ubuntu exec 定界为 linux npm 不转发 SIGINT,修复经容器闭环验证
+
+rc.9 证实 Windows tar 修复生效(双模式过),仅 ubuntu exec 再挂——这次是 waitForExit
+**超时**(rc.8 同点位是 130 退出码,同根因两种表现)。
+
+**容器复现闭环**(本轮方法论的关键升级):
+1. linux/amd64 + npm 10.9.8 + **rc.9 真实已发布资产**,修复前稳定复现 CI 失败——
+   `kill(npm.pid, SIGINT)` 在 linux 上既不让 npm 退出、也不把信号递给 saydo。
+   **确定性失败,非 flake**(macOS 同版本 npm 则会转发——平台行为差异)。
+2. 修法:exec 模式 POSIX 对**进程组**发 SIGINT(spawn 已 detached,组长即包装进程),
+   等价终端 Ctrl+C,saydo supervisor 直接收信号,彻底解除对 npm 转发行为的依赖;
+   global 模式三平台实证稳定,保持直发。
+3. 修复后同容器同资产完整通过(`SMOKE_EXIT=0`, gracefulStop/noOrphans true)。
+   这是 rc 链首次对 smoke 失败做到「失败环境直接验证修复」,而非"本地跑过碰巧没事"。
+
+另修可诊断性:waitForExit 两处超时共用一条消息导致 CI 上无法定位调用点,已加标签。
+rc.10 携带此修复,发布前照例过容器 publish 预检 + 23 项门禁。

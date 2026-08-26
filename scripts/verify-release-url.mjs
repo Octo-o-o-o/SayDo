@@ -234,10 +234,10 @@ async function waitForReady(proc, output, mode, timeoutMs = 30_000) {
   }
 }
 
-async function waitForExit(proc, timeoutMs = 30_000) {
+async function waitForExit(proc, timeoutMs = 30_000, label = "saydo up") {
   if (proc.exitCode !== null || proc.signalCode !== null) return { code: proc.exitCode, signal: proc.signalCode };
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("saydo up 优雅退出超时")), timeoutMs);
+    const timer = setTimeout(() => reject(new Error(`${label} 优雅退出超时`)), timeoutMs);
     proc.once("exit", (code, signal) => {
       clearTimeout(timer);
       resolve({ code, signal });
@@ -276,6 +276,22 @@ function alive(pid) {
   } catch (error) {
     return error?.code !== "ESRCH";
   }
+}
+
+function sendGracefulSigint(proc) {
+  // 容器实测(linux/amd64, npm 10.9.8, 对 rc.9 真实资产):kill(npm.pid, SIGINT) 在 linux 上
+  // 既不会让 npm 退出、也不会把信号递给 saydo,attach/stop 的 waitForExit 必然超时——
+  // 确定性失败,非 flake(macOS 同版本 npm 则会转发)。spawn 已 detached:true,
+  // 组长即包装进程:对整组发 SIGINT 等价终端 Ctrl+C 语义,saydo supervisor 直接收到信号。
+  if (installMode === "exec") {
+    try {
+      process.kill(-proc.pid, "SIGINT");
+      return;
+    } catch {
+      // 组已消亡等场景回退为直发
+    }
+  }
+  proc.kill("SIGINT");
 }
 
 function wrapperExitGraceful(ended) {
@@ -387,9 +403,9 @@ try {
     mkdirSync(join(saydoHome, "runtime"), { recursive: true });
     writeFileSync(join(saydoHome, "runtime", `cli-stop-${attached.supervisorPid}`), "cli_sigint\n");
   } else {
-    attachedChild.kill("SIGINT");
+    sendGracefulSigint(attachedChild);
   }
-  const attachedEnded = await waitForExit(attachedChild, process.platform === "win32" ? 45_000 : 30_000);
+  const attachedEnded = await waitForExit(attachedChild, process.platform === "win32" ? 45_000 : 30_000, "attach detach");
   invariant(
     wrapperExitGraceful(attachedEnded),
     `重复 up attach 未优雅退出:${JSON.stringify(attachedEnded)}:${attachOutput.slice(-400)}`
@@ -402,9 +418,9 @@ try {
     mkdirSync(join(saydoHome, "runtime"), { recursive: true });
     writeFileSync(join(saydoHome, "runtime", `cli-stop-${ready.supervisorPid}`), "cli_sigint\n");
   } else {
-    child.kill("SIGINT");
+    sendGracefulSigint(child);
   }
-  const ended = await waitForExit(child, process.platform === "win32" ? 45_000 : 30_000);
+  const ended = await waitForExit(child, process.platform === "win32" ? 45_000 : 30_000, "owner stop");
   invariant(
     wrapperExitGraceful(ended),
     `固定 URL CLI 非优雅退出:${JSON.stringify(ended)}:${output.slice(-400)}`

@@ -168,14 +168,14 @@
 
 ### 4.2 安装
 
-**推荐 · 不克隆源码:**下面是 v0.1.0-rc.9 的发布候选固定 URL;仅当 GitHub Release 页面已经出现且发布检查全绿后才可用。尚未发布到 npm registry 或 Homebrew。
+**推荐 · 不克隆源码:**下面是 v0.1.0-rc.10 的发布候选固定 URL;仅当 GitHub Release 页面已经出现且发布检查全绿后才可用。尚未发布到 npm registry 或 Homebrew。
 
 ```bash
 # 一次运行:下载到 npm 缓存后直接启动
-npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.9/saydo-cli-0.1.0-rc.9.tgz -- saydo up
+npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.10/saydo-cli-0.1.0-rc.10.tgz -- saydo up
 
 # 常用安装:安装一次,以后直接用 saydo
-npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.9/saydo-cli-0.1.0-rc.9.tgz
+npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.10/saydo-cli-0.1.0-rc.10.tgz
 saydo up
 ```
 
@@ -722,7 +722,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 
 | 能力 | 状态 | 备注 |
 |---|---|---|
-| 桌面服务(daemon + 控制台)· macOS / Windows / Linux | 现在可用 | 源码形态已经可运行;v0.1.0-rc.9 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效。npm registry / Homebrew 与桌面 App 壳仍规划中;常驻安装(launchd)与系统通知目前只有 macOS 实现 |
+| 桌面服务(daemon + 控制台)· macOS / Windows / Linux | 现在可用 | 源码形态已经可运行;v0.1.0-rc.10 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效。npm registry / Homebrew 与桌面 App 壳仍规划中;常驻安装(launchd)与系统通知目前只有 macOS 实现 |
 | 四推理槽 API 供给(OpenAI 兼容 / OpenRouter) | 现在可用 | |
 | 四推理槽 CLI 订阅供给(Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot) | 现在可用 | 对话档走 CLI 为慢速文本模式 |
 | 首跑资源画像向导(三种方案卡 + 高级逐槽) | 现在可用 | |

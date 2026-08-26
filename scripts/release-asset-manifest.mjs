@@ -307,7 +307,7 @@ function main() {
   const repo = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   if (mode === "--check-dir") {
     const dir = process.argv[3];
-    const tag = process.argv[4] ?? "v0.1.0-rc.9";
+    const tag = process.argv[4] ?? "v0.1.0-rc.10";
     invariant(dir && !dir.startsWith("--"), "用法:node scripts/release-asset-manifest.mjs --check-dir <dir> [tag]");
     const manifest = loadTrackedReleaseAssetManifest(repo, tag);
     const actual = inspectReleaseAssetDir(dir, manifest.version);
@@ -318,7 +318,7 @@ function main() {
     return;
   }
   if (mode === "--check-release-json") {
-    const tag = process.argv[3] ?? process.env.GITHUB_REF_NAME ?? "v0.1.0-rc.9";
+    const tag = process.argv[3] ?? process.env.GITHUB_REF_NAME ?? "v0.1.0-rc.10";
     const raw = process.env.RELEASE_JSON;
     invariant(raw, "RELEASE_JSON 为空");
     const manifest = loadTrackedReleaseAssetManifest(repo, tag);
