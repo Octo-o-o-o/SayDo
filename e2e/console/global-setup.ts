@@ -3,7 +3,7 @@
 // token/pid 落 .runtime.json 给各 worker(worker 重启不重复起 daemon)。
 
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { networkInterfaces, tmpdir } from "node:os";
 
@@ -32,17 +32,27 @@ function privateLanAddress(): string {
   throw new Error("M1 Playwright requires an RFC 1918 interface");
 }
 
-async function waitOk(url: string, what: string): Promise<void> {
+async function waitOk(url: string, what: string, logPath?: string): Promise<void> {
+  let lastError = "";
   for (let i = 0; i < 60; i++) {
     try {
       const r = await fetch(url);
       if (r.ok) return;
-    } catch {
-      // starting
+      lastError = `HTTP ${r.status}`;
+    } catch (err) {
+      lastError = String((err as { message?: unknown })?.message ?? err);
     }
     await new Promise((r) => setTimeout(r, 500));
   }
-  throw new Error(`${what} did not become ready: ${url}`);
+  let tail = "";
+  if (logPath && existsSync(logPath)) {
+    try {
+      tail = `\n--- ${logPath} (tail) ---\n${readFileSync(logPath, "utf8").slice(-4000)}`;
+    } catch {
+      tail = `\n(日志不可读:${logPath})`;
+    }
+  }
+  throw new Error(`${what} did not become ready: ${url} lastError=${lastError}${tail}`);
 }
 
 function killTree(child: ChildProcess): void {
@@ -68,6 +78,8 @@ export default async function globalSetup(): Promise<() => void> {
   let vite: ChildProcess | null = null;
   try {
     const lanAddress = privateLanAddress();
+    const daemonLogPath = join(HOME, "daemon-e2e.log");
+    const daemonLogFd = openSync(daemonLogPath, "a");
     execFileSync("pnpm", ["--filter", "@saydo/console", "build"], { cwd: ROOT, stdio: "ignore" });
     daemon = spawn("pnpm", ["--filter", "@saydo/daemon", "start"], {
       cwd: ROOT,
@@ -79,10 +91,13 @@ export default async function globalSetup(): Promise<() => void> {
         VOLC_APP_ID: "e2e",
         VOLC_ACCESS_TOKEN: "e2e"
       },
-      stdio: "ignore",
+      // 不得用 stdio:"ignore":daemon 起不来时会一点诊断都不剩,CI 上只会看到
+      // 一句 "did not become ready"(2026-08-26 rc.6 实遇)。落到 HOME 下的日志文件,
+      // 超时时连同尾部一起抛出。
+      stdio: ["ignore", daemonLogFd, daemonLogFd],
       detached: true
     });
-    await waitOk(`http://127.0.0.1:${PORT}/health`, "daemon");
+    await waitOk(`http://127.0.0.1:${PORT}/health`, "daemon", daemonLogPath);
     const token = readFileSync(join(HOME, ".cap-token"), "utf8").trim();
     const seed = await fetch(`http://127.0.0.1:${PORT}/dev/seed-fixture?token=${token}`, { method: "POST" });
     const out = (await seed.json()) as { seeded: boolean; reason?: string };

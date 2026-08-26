@@ -1806,8 +1806,8 @@
       "path": "e2e/console/global-setup.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 5341,
-      "sha256": "cba22b8a5e7679f167b1e70c0b70e48bfa258e8254a6dc060abfc669f2e419c4"
+      "bytes": 6155,
+      "sha256": "a3b06e15f88acac33dbcf738875aeac837841b32701844aa331fafa9f8024ff4"
     },
     {
       "path": "e2e/evidence/2026-08-16-full-acceptance/board.html",
@@ -2604,8 +2604,8 @@
       "path": "e2e/screenshots/light/tasks.png",
       "kind": "file",
       "mode": 420,
-      "bytes": 108850,
-      "sha256": "ca390b1344db72de1a9d95b263201f4a4a2b12fe6f93c8bc771d4d3585aa078e"
+      "bytes": 108838,
+      "sha256": "e02549b787b0491da72749b4a4d16115005a5cf45fb3961ce192e193e9ecc017"
     },
     {
       "path": "e2e/smoke/asr-loop.mjs",
