@@ -50,7 +50,7 @@
       "kind": "file",
       "mode": 420,
       "bytes": 19600,
-      "sha256": "a7484bd66de3004348eaf00395699230e88788db4ce0dfff3b8ceab106d4fada"
+      "sha256": "3af91391cff4d123fac3754cbaba7f8909c400151b8a4c7446c5493011975aa8"
     },
     {
       "path": ".gitignore",
@@ -1600,18 +1600,25 @@
       "sha256": "b15effd0df2bbd28444a7171465b955fe7d25e09cabf2fbf888f03d6ae5a7c52"
     },
     {
-      "path": "docs/release/v0.1.0-rc.4-assets.json",
-      "kind": "file",
-      "mode": 420,
-      "bytes": 934,
-      "sha256": "323631019fb0400fef4f1a52abc02f4f7ec29eba2fcab051c317a531b3d085ed"
-    },
-    {
       "path": "docs/release/v0.1.0-rc.4.md",
       "kind": "file",
       "mode": 420,
       "bytes": 2437,
       "sha256": "e0971aeec9a30afeab09bab0c407a1348299eb894b99d13166a5f2c96dfaa06f"
+    },
+    {
+      "path": "docs/release/v0.1.0-rc.5-assets.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 934,
+      "sha256": "264b6dc92fae5b1e99f0d1da69cd845388f804cfd207401e81d7efe00b5e0558"
+    },
+    {
+      "path": "docs/release/v0.1.0-rc.5.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2437,
+      "sha256": "edde3967bb9283157e3a2546675fdb24f743a9560347c0364e22e6022732cbc7"
     },
     {
       "path": "docs/review/2026-08-13-mobile-gap-audit.fable.md",
@@ -3032,14 +3039,14 @@
       "kind": "file",
       "mode": 420,
       "bytes": 957,
-      "sha256": "e070292b29959906c06dc985e18cf5eaeb2e7d85e4215388de835801985d1c1d"
+      "sha256": "3a6af626d75e4055fe45173b2e3dfab779a2f5624d05a91a01d5c024c77d6977"
     },
     {
       "path": "packages/cli/README.md",
       "kind": "file",
       "mode": 420,
       "bytes": 1037,
-      "sha256": "a57f5abe4f86f172d7f4212cacd900cac816b1dedf7c50767f15c884aa43244c"
+      "sha256": "8d051a99a0e937d9bbdf228cb5288496a4962551ee42b4f69d7732f84eb2a152"
     },
     {
       "path": "packages/cli/scripts/build.mjs",
@@ -10879,7 +10886,7 @@
       "kind": "file",
       "mode": 420,
       "bytes": 41430,
-      "sha256": "127713a1a8ee69c480511975c8751f0d26341c961cd20aa705cf07ee37801c9e"
+      "sha256": "6c3827b1871eb7b9704f78f6e72d134f70213a3a5aba13dc4d669fe4a9d0cfab"
     },
     {
       "path": "scripts/public-text-redaction.mjs",
@@ -10907,7 +10914,7 @@
       "kind": "file",
       "mode": 420,
       "bytes": 11412,
-      "sha256": "c89720fc558b9c2e3542259ceb426c3169b6d54c929cc9593f7d6ed112797d67"
+      "sha256": "570b511fae4451e076b2e046f2fe34d19d40365e41ec22069fead1423ed108e0"
     },
     {
       "path": "scripts/release-availability.mjs",
@@ -10956,7 +10963,7 @@
       "kind": "file",
       "mode": 420,
       "bytes": 5935,
-      "sha256": "c6b6184c2618fed725116a0684e23cbc5b408ebb3d799a9bab6ff1c5a277f218"
+      "sha256": "f08ead860b342c90608bbbfefa615ac3d8d23841e2bef4738a1995a20517bd3c"
     },
     {
       "path": "scripts/release-physical-evidence.mjs",
@@ -10977,7 +10984,7 @@
       "kind": "file",
       "mode": 420,
       "bytes": 2602,
-      "sha256": "6e141cb7f430c089e3a70c9ea21a3c73d4b785acc31ec921e3eb3365580dd8a2"
+      "sha256": "6ddc9e78a23a8a74aa252618ae259a7cfc8aac0239acb37b889defa76ae26d45"
     },
     {
       "path": "scripts/runtime-preflight.sh",
@@ -11061,14 +11068,14 @@
       "kind": "file",
       "mode": 420,
       "bytes": 6448,
-      "sha256": "496b392ba047eb31b2f075f3e07bc3b6df17591818df98e9c6c3f96446ebf009"
+      "sha256": "09c54bc2aee974a057e410023852cdf877b67d1e5c02a8764d1005eb71218613"
     },
     {
       "path": "scripts/test-release-provenance.mjs",
       "kind": "file",
       "mode": 420,
       "bytes": 197483,
-      "sha256": "f5bf65d1cc7f98a85bfe8746ac965bda8ba9df6e20267b78ccb2f464a06e2e45"
+      "sha256": "5d4db1bffbe706b8895d894201e020b85e09a7388d05a51c5d609046566c17cf"
     },
     {
       "path": "scripts/third-party-notices.mjs",
@@ -11110,7 +11117,7 @@
       "kind": "file",
       "mode": 420,
       "bytes": 58096,
-      "sha256": "79701fd2e3f2e060d57b8048093455ff0da3f4b14ebf63eccd3493e240363e3e"
+      "sha256": "7e3a3e1676094ec0a19ccdce02366de32a33510a3345a6864cf5e660a2349247"
     },
     {
       "path": "SECURITY.md",
