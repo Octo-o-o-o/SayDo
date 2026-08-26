@@ -1071,6 +1071,106 @@ describe("W2 阶段 D:免手档消息(09 §10 additive:voice.mode / vad.speech)"
   });
 });
 
+describe("capture ingress 评审 B-5(2026-08-26):pipeline (re)join 采集模式重放", () => {
+  /** 握手前先挂收集器:重放紧跟 hello.ack(可同 tick 到达),connect()+nextJson 会竞态漏收 */
+  function connectCollecting(
+    role: "pipeline" | "console"
+  ): Promise<{ ws: WebSocket; messages: Array<Record<string, unknown>> }> {
+    const messages: Array<Record<string, unknown>> = [];
+    return new Promise((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws/voice`);
+      ws.on("message", (d, isBinary) => {
+        if (isBinary) return;
+        try {
+          const m = JSON.parse(String(d)) as Record<string, unknown>;
+          messages.push(m);
+          if (m["t"] === "hello.ack") resolve({ ws, messages });
+        } catch {
+          // 忽略非 JSON
+        }
+      });
+      ws.on("open", () =>
+        ws.send(
+          JSON.stringify({ v: VOICE_WS_PROTOCOL_VERSION, role, ...(role === "pipeline" ? { identity: RUNTIME_IDENTITY } : {}) })
+        )
+      );
+      ws.on("close", (code) => reject(new Error(`closed ${code}`)));
+      ws.on("error", reject);
+    });
+  }
+
+  it("console 保持连接、仅 pipeline 重连:join 后收到最近生效 voice.mode 重放(免手档恢复)", async () => {
+    const consoleWs = await connect("console");
+    const pipeline1 = await connect("pipeline");
+    const got1 = nextJson(pipeline1, (m) => m["t"] === "voice.mode");
+    consoleWs.send(JSON.stringify({ t: "voice.mode", sessionId: SES, mode: "hands_free" }));
+    expect(await got1).toMatchObject({ t: "voice.mode", sessionId: SES, mode: "hands_free" });
+
+    // 仅 pipeline 断开重连;console 不再发任何消息(重连侧 _reset_connection_tasks 已把 _mode 清回 ptt,
+    // 无重放则免手 mic 帧全部积压 _mic_buf 且永无 done_speaking 触发 finalize——B-5 哑死形态)
+    const closed = once(pipeline1, "close");
+    pipeline1.close();
+    await closed;
+    const { ws: pipeline2, messages } = await connectCollecting("pipeline");
+    await vi.waitFor(() =>
+      expect(
+        messages.some((m) => m["t"] === "voice.mode" && m["mode"] === "hands_free" && m["sessionId"] === SES)
+      ).toBe(true)
+    );
+    consoleWs.close();
+    pipeline2.close();
+  });
+
+  it("生产形态(HOME 门):重放在首个 health 过门后到达,门前不泄漏", async () => {
+    await hub.close();
+    const digest = "e".repeat(64);
+    let modeSeen = 0;
+    hub = new VoiceHub(
+      server,
+      silentLog,
+      { onVoiceMode: () => { modeSeen += 1; } },
+      RUNTIME_IDENTITY.protocolVersion,
+      digest
+    );
+    const consoleWs = await connect("console");
+    consoleWs.send(JSON.stringify({ t: "voice.mode", sessionId: SES, mode: "hands_free" }));
+    await vi.waitFor(() => expect(modeSeen).toBe(1));
+
+    const { ws: pipeline, messages } = await connectCollecting("pipeline");
+    await new Promise((r) => setTimeout(r, 50));
+    expect(messages.some((m) => m["t"] === "voice.mode")).toBe(false);
+
+    pipeline.send(
+      JSON.stringify({ t: "pipeline.health", asr: "ok", tts: "ok", identity: RUNTIME_IDENTITY, stateRootDigest: digest })
+    );
+    await vi.waitFor(() =>
+      expect(
+        messages.some((m) => m["t"] === "voice.mode" && m["mode"] === "hands_free" && m["sessionId"] === SES)
+      ).toBe(true)
+    );
+    consoleWs.close();
+    pipeline.close();
+  });
+
+  it("mobile_lan 的 voice.mode 不留档:pipeline join 无重放(登记消息不得改采集模式)", async () => {
+    let modeSeen = 0;
+    hub.setEvents({
+      verifyUpgrade: () => ({ ok: true, via: "mobile_lan" }),
+      onVoiceMode: () => { modeSeen += 1; }
+    });
+    const mobile = await connect("console");
+    mobile.send(JSON.stringify({ t: "voice.mode", sessionId: SES, mode: "hands_free" }));
+    await vi.waitFor(() => expect(modeSeen).toBe(1));
+
+    hub.setEvents({}); // 清 verifyUpgrade:pipeline 是 local-only,带 mobile_lan via 会被拒连
+    const { ws: pipeline, messages } = await connectCollecting("pipeline");
+    await new Promise((r) => setTimeout(r, 50));
+    expect(messages.some((m) => m["t"] === "voice.mode")).toBe(false);
+    mobile.close();
+    pipeline.close();
+  });
+});
+
 describe("W2 迟到评审 A1 回收:console peer via 标注(语音工具环 S3 门的探测面)", () => {
   it("verifyUpgrade 返回 via=tailnet 的 console 在连 ⇒ hasTailnetConsole()=true;断开归 false", async () => {
     await hub.close();

@@ -59,7 +59,7 @@
 - **macOS 桌面服务**(守护进程 daemon + Web 控制台 + 可选语音管线):现在可用,开源免费(见 §18 开源与参与)。
 - **驱动你已有的 AI**:推理槽位可用 Claude Code / Codex / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI 的**订阅登录态**或任意 OpenAI 兼容 API(§5);**稳定执行器路径当前为 Cursor CLI**,Claude Code 已接入生产主流程、最终 live conformance 收口中,Codex 执行路线规划中(§6)。
 - **项目记忆与四色账本**:现在可用。
-- **iOS / Android / HarmonyOS App**:工程壳存在,均未提审上架;手机当前可经局域网用 App 壳或手机浏览器连接桌面服务(§13)。
+- **iOS / Android / HarmonyOS App**:工程壳存在,均未提审上架、无公开下载。当前可用的是移动浏览器 LAN dogfood;三端 App 壳均是开发候选(iOS 待本轮真机复测,Android 无当前设备证据,HarmonyOS 2026-08-22 曾出现物理目标、本轮无在线目标证据,仅有 unsigned HAP、缺签名 Profile)(§13)。
 - **来电式语音汇报**:规划中。
 
 ### 1.5 费用一句话
@@ -98,7 +98,7 @@
 人(说 / 听 / 偶尔看屏;拍板 / 审批)
    │ 语音或文字(浏览器、手机)                回叫(语音 / 桌面通知 / 手机推送)
 ┌──▽────────────────────────────────────────────────────────────┐
-│ 沟通面:Web 控制台(桌面浏览器)/ 手机(App 壳或手机浏览器,局域网)     │
+│ 沟通面:Web 控制台(桌面浏览器)/ 手机浏览器(局域网 dogfood)          │
 │   · 语音引擎(可选 Python 语音管线:ASR → 文本模型 → TTS)           │
 │   · Brain:采访 / 就绪自省 / 决策包 / 口播;无直接执行权              │
 ├────────────────────────────────────────────────────────────────┤
@@ -239,7 +239,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
 
 ### 4.7 可选:手机连接(局域网)
 
-手机 App 均未上架;当前可经局域网用**手机浏览器**(或自行构建的 App 壳)连到桌面服务:
+手机 App 均未上架、无公开下载。当前可用的是移动浏览器 LAN dogfood。iOS 壳仅开发签名候选且待本轮真机复测;Android 壳仅构建/单测候选且无当前设备证据;HarmonyOS 壳 2026-08-22 曾出现物理目标、本轮无在线目标证据,仅有 unsigned HAP、缺签名 Profile。三端 App 壳都不是已验收可获得路径。开发签名包与 unsigned 包都不是商店包,不得放入 GitHub Release。
 
 1. 启动 daemon 时加 `SAYDO_MOBILE_LAN=1`(监听 `0.0.0.0`,只接受内网 RFC1918 来源 + 能力令牌 + Host/Origin 校验三道门);
 2. 查本机内网 IP(`ipconfig getifaddr en0`),把 `http://<内网IP>:47100/?token=<cap-token>` 做成二维码(令牌不要贴进第三方在线工具)给手机扫;手机浏览器直接打开该 URL 也行(移动壳路由 `#/m`);
@@ -673,7 +673,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 
 ### 13.1 今天能做什么
 
-- **局域网直连**(`SAYDO_MOBILE_LAN=1`,§4.7):手机浏览器或自行构建的 App 壳打开 `http://<内网IP>:47100/?token=…`(桌面控制台可出二维码;**只对 RFC1918 私网地址出码**,公网 / CGNAT 不出)。手机面是移动壳路由(`#/m`):今天四色、一件事详情、最近对话回放、最近记忆;发文字 / 原生语音转文字进对话;对立账 / 记账类确认卡点头 / 撤回。LAN 面 HTTP 路由白名单极窄(只读投影 + 首跑开场白),写口、设置写口、S3、全文屏幕文本一律拒。
+- **局域网直连**(`SAYDO_MOBILE_LAN=1`,§4.7):当前可用的是**手机浏览器**打开 `http://<内网IP>:47100/?token=…`(桌面控制台可出二维码;**只对 RFC1918 私网地址出码**,公网 / CGNAT 不出)。自行构建的 App 壳仍是开发候选,不是已验收可获得路径。手机面是移动壳路由(`#/m`):今天四色、一件事详情、最近对话回放、最近记忆;发文字 / 原生语音转文字进对话;对立账 / 记账类确认卡点头 / 撤回。LAN 面 HTTP 路由白名单极窄(只读投影 + 首跑开场白),写口、设置写口、S3、全文屏幕文本一律拒。
 - **tailnet(Tailscale)面,进行中**:目标合同是 `config.toml` `[t2].tailnet_hosts = [...]`(纯主机名 / IP 显式白名单,**禁通配**,含任一非法项整面不开)+ `[t2].listen`;`just t2-pair` 出配对 URL(一次性注入手机本地会话,深链之后不带令牌)。目标 tailnet 面可看任务、批 S2 级审批(review / decide / 记忆候选批准),合并链动作与 `/dev/*` 注入通道 403 引导回桌面。开发机的 Tailscale / MagicDNS 底座已就绪,但当前 HEAD 的 setup probe 仍会拒绝 tailnet 配置,尚不能作为受支持入口。
 - **S3 永远不在手机**:四重断言(socket 必须本机回环、Origin 精确 `http://localhost:<port>`、来源面 `local`、rpId 固定 `localhost`),拒绝文案「S3 操作只在本机受信终端完成——回到桌面屏幕操作」;S3 工具也不进对话模型的工具面。
 - **诚实边界**:当前 LAN 面是「局域网明文 HTTP + 长期能力令牌」的 dogfood 临时边界,**没有设备配对 / 逐设备身份 / 端到端加密**;删令牌重启即全员掉线。不要暴露到不受信网络。
@@ -682,9 +682,9 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 
 | 端 | 状态 | 说明 |
 |---|---|---|
-| iOS | 未提审 | 原生 SwiftUI 壳(扫码配对、原生语音识别 / 合成、Web 容器)工程存在;App Store 记录已建(中文店名「说到」),无可提审包 |
-| Android | 未提审 | Kotlin 壳可构建;Play 应用记录已建(`com.octoooo.saydo`),无可提审包 |
-| HarmonyOS | 未提审 | HarmonyOS NEXT ArkTS 壳;AppGallery 记录与发布证书已就绪,Profile 未建 |
+| iOS | 未提审 | 开发签名候选,待本轮真机复测;App Store 记录已建,无可提审包,无公开下载 |
+| Android | 未提审 | 构建/单测候选,无当前设备证据;Play 记录已建,release 未接线签名,无公开下载 |
+| HarmonyOS | 未提审 | 历史曾出现物理目标、本轮无在线目标证据;仅有 unsigned HAP;发布证书不等于 Profile,签名 Profile 缺失,无公开下载 |
 
 三端共同的不可提审原因:无生产配对 / 信任层、明文 LAN、审核夹具未执行。上架前要做的:设备配对(一次性票据 + Noise XX 互认证 + 桌面人工确认 + 信任设备免确认重连)、推送隐私合同(payload 只带 opaque id)、来电式汇报(PushKit 唤醒 + CallKit 来电 UI)。这些都是规划中。
 
@@ -739,7 +739,10 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 | coding 类型 | 现在可用 | |
 | writing 类型(窄版) | 现在可用(需开能力门) | 引证 / 归属合同等全量规划中;真人全链待验 |
 | research / marketing / planning / general 执行合同 | 规划中 | 上游采访 / 立账 / 调研可用 |
-| 局域网手机面(浏览器 / 壳) | 现在可用(dogfood 边界) | 无配对 / 无 E2E |
+| 局域网手机面(浏览器) | 现在可用(dogfood 边界) | 明文 LAN + 长期 token;无配对 / 无 E2E;App 未上架、无公开下载 |
+| iOS 壳 | 进行中 | 开发签名候选,待本轮真机复测;不是 App Store 包,不得放入 GitHub Release |
+| Android 壳 | 进行中 | 构建/单测候选,无当前设备证据;Debug dogfood ≠ Play 可发布包 |
+| HarmonyOS 壳 | 进行中 | 历史曾出现物理目标、本轮无在线目标证据;仅有 unsigned HAP;签名 Profile 缺失;unsigned 不能安装 |
 | tailnet 薄版 | 进行中 | Tailscale / MagicDNS 底座已就绪；当前 HEAD 的 setup probe 仍拒绝 tailnet 配置，尚不能作为受支持入口 |
 | Claude Code 执行器 | 收口中 | 生产执行主流程、审批门、恢复、记账、自检与控制台已接线;最终 live conformance 尚未收口 |
 | Codex 执行器 / Hopper 批式路线 | 规划中 / 休眠 | |

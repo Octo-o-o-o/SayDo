@@ -27,6 +27,8 @@ importers:
         specifier: 4.112.0
         version: 4.112.0
 
+  apps/android: {}
+
   e2e:
     dependencies:
       ws:

@@ -138,13 +138,8 @@ final class ScannerViewController: UIViewController, AVCaptureMetadataOutputObje
             return
         }
 
-        guard let url = URL(string: value) else {
-            rejectInvalidCode()
-            return
-        }
-
         do {
-            let profile = try DesktopProfile(pairingURL: url)
+            let profile = try DesktopProfile(pairingURLString: value)
             acceptsScan = false
             stopSession()
             onResult(.success(profile))

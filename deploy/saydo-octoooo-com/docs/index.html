@@ -157,7 +157,7 @@
           <li><strong>macOS 桌面服务</strong>(守护进程 daemon + Web 控制台 + 可选语音管线):现在可用,开源免费(见 §18 开源与参与)。</li>
           <li><strong>驱动你已有的 AI</strong>:推理槽位可用 Claude Code / Codex / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI 的<strong>订阅登录态</strong>或任意 OpenAI 兼容 API(§5);<strong>稳定执行器路径当前为 Cursor CLI</strong>,Claude Code 已接入生产主流程、最终 live conformance 收口中,Codex 执行路线规划中(§6)。</li>
           <li><strong>项目记忆与四色账本</strong>:现在可用。</li>
-          <li><strong>iOS / Android / HarmonyOS App</strong>:工程壳存在,均未提审上架;手机当前可经局域网用 App 壳或手机浏览器连接桌面服务(§13)。</li>
+          <li><strong>iOS / Android / HarmonyOS App</strong>:工程壳存在,均未提审上架、无公开下载。当前可用的是移动浏览器 LAN dogfood;三端 App 壳均是开发候选(iOS 待本轮真机复测,Android 无当前设备证据,HarmonyOS 2026-08-22 曾出现物理目标、本轮无在线目标证据,仅有 unsigned HAP、缺签名 Profile)(§13)。</li>
           <li><strong>来电式语音汇报</strong>:规划中。</li>
         </ul>
         <h3>1.5 费用一句话</h3>
@@ -198,7 +198,7 @@
         <pre class="fig"><code>人(说 / 听 / 偶尔看屏;拍板 / 审批)
    │ 语音或文字(浏览器、手机)          回叫(语音 / 桌面通知 / 手机推送)
 ┌──▽───────────────────────────────────────────────────────────────────┐
-│ 沟通面:Web 控制台(桌面浏览器)/ 手机(App 壳或手机浏览器,局域网)       │
+│ 沟通面:Web 控制台(桌面浏览器)/ 手机浏览器(局域网 dogfood)            │
 │   · 语音引擎(可选 Python 语音管线:ASR → 文本模型 → TTS)              │
 │   · Brain:采访 / 就绪自省 / 决策包 / 口播;无直接执行权               │
 ├──────────────────────────────────────────────────────────────────────┤
@@ -328,7 +328,7 @@ saydo open      # 打开控制台</code></pre>
 SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pipeline &gt;&gt; ~/.saydo/pipeline.log 2&gt;&amp;1 &amp;</code></pre>
         <p>配好后控制台自动切到云端;管线缺席时 <code>/readyz</code> 报 <code>voiceReady=false</code>(文本与控制面照常可用,不算启动失败)。细节见 §12。</p>
         <h3>4.7 可选:手机连接(局域网)</h3>
-        <p>手机 App 均未上架;当前可经局域网用<strong>手机浏览器</strong>(或自行构建的 App 壳)连到桌面服务:</p>
+        <p>手机 App 均未上架、无公开下载。当前可用的是移动浏览器 LAN dogfood。iOS 壳仅开发签名候选且待本轮真机复测;Android 壳仅构建/单测候选且无当前设备证据;HarmonyOS 壳 2026-08-22 曾出现物理目标、本轮无在线目标证据,仅有 unsigned HAP、缺签名 Profile。三端 App 壳都不是已验收可获得路径。开发签名包与 unsigned 包都不是商店包,不得放入 GitHub Release。</p>
         <ol>
           <li>启动 daemon 时加 <code>SAYDO_MOBILE_LAN=1</code>(监听 <code>0.0.0.0</code>,只接受内网 RFC1918 来源 + 能力令牌 + Host/Origin 校验三道门);</li>
           <li>查本机内网 IP(<code>ipconfig getifaddr en0</code>),把 <code>http://&lt;内网IP&gt;:47100/?token=&lt;cap-token&gt;</code> 做成二维码(令牌不要贴进第三方在线工具)给手机扫;手机浏览器直接打开该 URL 也行(移动壳路由 <code>#/m</code>);</li>
@@ -787,7 +787,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         <h2 id="s13">13. 手机与远程</h2>
         <h3>13.1 今天能做什么</h3>
         <ul>
-          <li><strong>局域网直连</strong>(<code>SAYDO_MOBILE_LAN=1</code>,§4.7):手机浏览器或自行构建的 App 壳打开 <code>http://&lt;内网IP&gt;:47100/?token=…</code>(桌面控制台可出二维码;<strong>只对 RFC1918 私网地址出码</strong>,公网 / CGNAT 不出)。手机面是移动壳路由(<code>#/m</code>):今天四色、一件事详情、最近对话回放、最近记忆;发文字 / 原生语音转文字进对话;对立账 / 记账类确认卡点头 / 撤回。LAN 面 HTTP 路由白名单极窄(只读投影 + 首跑开场白),写口、设置写口、S3、全文屏幕文本一律拒。</li>
+          <li><strong>局域网直连</strong>(<code>SAYDO_MOBILE_LAN=1</code>,§4.7):当前可用的是<strong>手机浏览器</strong>打开 <code>http://&lt;内网IP&gt;:47100/?token=…</code>(桌面控制台可出二维码;<strong>只对 RFC1918 私网地址出码</strong>,公网 / CGNAT 不出)。自行构建的 App 壳仍是开发候选,不是已验收可获得路径。手机面是移动壳路由(<code>#/m</code>):今天四色、一件事详情、最近对话回放、最近记忆;发文字 / 原生语音转文字进对话;对立账 / 记账类确认卡点头 / 撤回。LAN 面 HTTP 路由白名单极窄(只读投影 + 首跑开场白),写口、设置写口、S3、全文屏幕文本一律拒。</li>
           <li><strong>tailnet(Tailscale)面,进行中</strong>:目标合同是 <code>config.toml</code> <code>[t2].tailnet_hosts = [...]</code>(纯主机名 / IP 显式白名单,<strong>禁通配</strong>,含任一非法项整面不开)+ <code>[t2].listen</code>;<code>just t2-pair</code> 出配对 URL(一次性注入手机本地会话,深链之后不带令牌)。目标 tailnet 面可看任务、批 S2 级审批(review / decide / 记忆候选批准),合并链动作与 <code>/dev/*</code> 注入通道 403 引导回桌面。开发机的 Tailscale / MagicDNS 底座已就绪,但当前 HEAD 的 setup probe 仍会拒绝 tailnet 配置,尚不能作为受支持入口。</li>
           <li><strong>S3 永远不在手机</strong>:四重断言(socket 必须本机回环、Origin 精确 <code>http://localhost:&lt;port&gt;</code>、来源面 <code>local</code>、rpId 固定 <code>localhost</code>),拒绝文案「S3 操作只在本机受信终端完成——回到桌面屏幕操作」;S3 工具也不进对话模型的工具面。</li>
           <li><strong>诚实边界</strong>:当前 LAN 面是「局域网明文 HTTP + 长期能力令牌」的 dogfood 临时边界,<strong>没有设备配对 / 逐设备身份 / 端到端加密</strong>;删令牌重启即全员掉线。不要暴露到不受信网络。</li>
@@ -799,9 +799,9 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><th>端</th><th>状态</th><th>说明</th></tr>
           </thead>
           <tbody>
-            <tr><td>iOS</td><td>未提审</td><td>原生 SwiftUI 壳(扫码配对、原生语音识别 / 合成、Web 容器)工程存在;App Store 记录已建(中文店名「说到」),无可提审包</td></tr>
-            <tr><td>Android</td><td>未提审</td><td>Kotlin 壳可构建;Play 应用记录已建(<code>com.octoooo.saydo</code>),无可提审包</td></tr>
-            <tr><td>HarmonyOS</td><td>未提审</td><td>HarmonyOS NEXT ArkTS 壳;AppGallery 记录与发布证书已就绪,Profile 未建</td></tr>
+            <tr><td>iOS</td><td>未提审</td><td>开发签名候选,待本轮真机复测;App Store 记录已建,无可提审包,无公开下载</td></tr>
+            <tr><td>Android</td><td>未提审</td><td>构建/单测候选,无当前设备证据;Play 记录已建,release 未接线签名,无公开下载</td></tr>
+            <tr><td>HarmonyOS</td><td>未提审</td><td>历史曾出现物理目标、本轮无在线目标证据;仅有 unsigned HAP;发布证书不等于 Profile,签名 Profile 缺失,无公开下载</td></tr>
           </tbody>
         </table>
         </div>
@@ -867,7 +867,10 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td>coding 类型</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
             <tr><td>writing 类型(窄版)</td><td><span class="badge badge-live">现在可用</span>(需开能力门)</td><td>引证 / 归属合同等全量规划中;真人全链待验</td></tr>
             <tr><td>research / marketing / planning / general 执行合同</td><td><span class="badge badge-soon">规划中</span></td><td>上游采访 / 立账 / 调研可用</td></tr>
-            <tr><td>局域网手机面(浏览器 / 壳)</td><td><span class="badge badge-live">现在可用</span>(dogfood 边界)</td><td>无配对 / 无 E2E</td></tr>
+            <tr><td>局域网手机面(浏览器)</td><td><span class="badge badge-live">现在可用</span>(dogfood 边界)</td><td>明文 LAN + 长期 token;无配对 / 无 E2E;App 未上架、无公开下载</td></tr>
+            <tr><td>iOS 壳</td><td><span class="badge badge-progress">进行中</span></td><td>开发签名候选,待本轮真机复测;不是 App Store 包,不得放入 GitHub Release</td></tr>
+            <tr><td>Android 壳</td><td><span class="badge badge-progress">进行中</span></td><td>构建/单测候选,无当前设备证据;Debug dogfood ≠ Play 可发布包</td></tr>
+            <tr><td>HarmonyOS 壳</td><td><span class="badge badge-progress">进行中</span></td><td>历史曾出现物理目标、本轮无在线目标证据;仅有 unsigned HAP;签名 Profile 缺失;unsigned 不能安装</td></tr>
             <tr><td>tailnet 薄版</td><td><span class="badge badge-progress">进行中</span></td><td>Tailscale / MagicDNS 底座已就绪；当前 HEAD 的 setup probe 仍拒绝 tailnet 配置，尚不能作为受支持入口</td></tr>
             <tr><td>Claude Code 执行器</td><td><span class="badge badge-progress">收口中</span></td><td>生产执行主流程、审批门、恢复、记账、自检与控制台已接线;最终 live conformance 尚未收口</td></tr>
             <tr><td>Codex 执行器 / Hopper 批式路线</td><td><span class="badge badge-soon">规划中</span> / 休眠</td><td></td></tr>

@@ -1,0 +1,7 @@
+{
+  "name": "@saydo/android",
+  "private": true,
+  "scripts": {
+    "test": "./gradlew --no-daemon :app:testDebugUnitTest"
+  }
+}

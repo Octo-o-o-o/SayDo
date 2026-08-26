@@ -1,0 +1,375 @@
+{
+  "comment": "Canonical pairing URL grammar corpus. Hosts are stored as parts so committed files never contain a full RFC1918 or ULA address. Generated fixtures are byte-checked by scripts/test-pairing-url-corpus.mjs.",
+  "hosts": {
+    "lan4": {
+      "kind": "ipv4",
+      "parts": ["192", "168", "1", "8"]
+    },
+    "ula": {
+      "kind": "ipv6",
+      "parts": ["fd12", "3456", "789a", "1", "", "1"]
+    },
+    "fwdigits": {
+      "kind": "ipv4",
+      "parts": ["\uff11\uff19\uff12", "\uff11\uff16\uff18", "\uff11", "\uff18"]
+    },
+    "fwdot": {
+      "kind": "ipv4",
+      "sep": "\uff0e",
+      "parts": ["192", "168", "1", "8"]
+    },
+    "ideodot": {
+      "kind": "ipv4",
+      "sep": "\u3002",
+      "parts": ["192", "168", "1", "8"]
+    },
+    "circled": {
+      "kind": "ipv4",
+      "parts": ["\u2460\u2468\u2461", "\u2460\u2465\u2467", "\u2460", "\u2467"]
+    },
+    "zwsp": {
+      "kind": "ipv4",
+      "parts": ["192", "\u200b168", "1", "8"]
+    },
+    "ula-short": {
+      "kind": "ipv6",
+      "parts": ["fd12", "", "1"]
+    },
+    "ula-trail-colon": {
+      "kind": "ipv6",
+      "parts": ["fd12", "", "1", ""]
+    },
+    "ula-lead-colon": {
+      "kind": "ipv6",
+      "parts": ["", "fd12", "", "1"]
+    },
+    "ula-triple-colon": {
+      "kind": "ipv6",
+      "parts": ["fd12", "", "", "1"]
+    }
+  },
+  "cases": [
+    {
+      "id": "accept-ipv4",
+      "accept": true,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc",
+      "token": "abc",
+      "expectPort": "47100"
+    },
+    {
+      "id": "accept-ascii-trim",
+      "accept": true,
+      "host": "lan4",
+      "prefix": "\n\t http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc",
+      "suffix": " \r\n",
+      "token": "abc",
+      "expectPort": "47100"
+    },
+    {
+      "id": "accept-trim-cr",
+      "accept": true,
+      "host": "lan4",
+      "prefix": "\rhttp://",
+      "port": "47100",
+      "pathQuery": "/?token=abc",
+      "suffix": "\r",
+      "token": "abc",
+      "expectPort": "47100"
+    },
+    {
+      "id": "accept-trim-lf",
+      "accept": true,
+      "host": "lan4",
+      "prefix": "\nhttp://",
+      "port": "47100",
+      "pathQuery": "/?token=abc",
+      "suffix": "\n",
+      "token": "abc",
+      "expectPort": "47100"
+    },
+    {
+      "id": "accept-trim-crlf",
+      "accept": true,
+      "host": "lan4",
+      "prefix": "\r\nhttp://",
+      "port": "47100",
+      "pathQuery": "/?token=abc",
+      "suffix": "\r\n",
+      "token": "abc",
+      "expectPort": "47100"
+    },
+    {
+      "id": "accept-trim-mixed",
+      "accept": true,
+      "host": "lan4",
+      "prefix": "\r\n\t http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc",
+      "suffix": " \t\r\n",
+      "token": "abc",
+      "expectPort": "47100"
+    },
+    {
+      "id": "accept-leading-zero-port",
+      "accept": true,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "047100",
+      "pathQuery": "/?token=abc",
+      "token": "abc",
+      "expectPort": "47100"
+    },
+    {
+      "id": "accept-ula",
+      "accept": true,
+      "host": "ula",
+      "bracket": true,
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc",
+      "token": "abc",
+      "expectPort": "47100"
+    },
+    {
+      "id": "accept-percent-reserved",
+      "accept": true,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=a%2Fb%20c%2Bd",
+      "token": "a/b c+d",
+      "expectPort": "47100"
+    },
+    {
+      "id": "accept-percent-bmp",
+      "accept": true,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=%E4%BD%A0%E5%A5%BD",
+      "token": "你好",
+      "expectPort": "47100"
+    },
+    {
+      "id": "accept-percent-non-bmp",
+      "accept": true,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=%F0%90%80%80",
+      "token": "\ud800\udc00",
+      "expectPort": "47100"
+    },
+    {
+      "id": "reject-bom",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "\ufeffhttp://",
+      "port": "47100",
+      "pathQuery": "/?token=abc"
+    },
+    {
+      "id": "reject-nbsp",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "\u00a0http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc"
+    },
+    {
+      "id": "reject-raw-space",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc def"
+    },
+    {
+      "id": "reject-raw-tab",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc\tdef"
+    },
+    {
+      "id": "reject-raw-nul",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc\u0000"
+    },
+    {
+      "id": "reject-raw-at",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc@x"
+    },
+    {
+      "id": "reject-raw-brackets",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc[x]"
+    },
+    {
+      "id": "reject-raw-non-bmp",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc\ud800\udc00"
+    },
+    {
+      "id": "reject-bad-percent-zz",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=%zz"
+    },
+    {
+      "id": "reject-truncated-percent",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=%2"
+    },
+    {
+      "id": "reject-overlong",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=%C0%AF"
+    },
+    {
+      "id": "reject-surrogate-utf8",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=%ED%A0%80"
+    },
+    {
+      "id": "reject-truncated-utf8",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=%E4%BD"
+    },
+    {
+      "id": "reject-empty-fragment",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc#"
+    },
+    {
+      "id": "reject-userinfo",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://user@",
+      "port": "47100",
+      "pathQuery": "/?token=abc"
+    },
+    {
+      "id": "reject-duplicate-token",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=one&token=two"
+    },
+    {
+      "id": "reject-fullwidth-digit-authority",
+      "accept": false,
+      "host": "fwdigits",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc"
+    },
+    {
+      "id": "reject-fullwidth-dot-authority",
+      "accept": false,
+      "host": "fwdot",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc"
+    },
+    {
+      "id": "reject-ideographic-dot-authority",
+      "accept": false,
+      "host": "ideodot",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc"
+    },
+    {
+      "id": "reject-circled-digit-authority",
+      "accept": false,
+      "host": "circled",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc"
+    },
+    {
+      "id": "reject-zwsp-authority",
+      "accept": false,
+      "host": "zwsp",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc"
+    },
+    {
+      "id": "accept-ula-compressed-short",
+      "accept": true,
+      "host": "ula-short",
+      "bracket": true,
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc",
+      "token": "abc",
+      "expectPort": "47100"
+    },
+    {
+      "id": "reject-ula-trailing-single-colon",
+      "accept": false,
+      "host": "ula-trail-colon",
+      "bracket": true,
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc"
+    },
+    {
+      "id": "reject-ula-leading-single-colon",
+      "accept": false,
+      "host": "ula-lead-colon",
+      "bracket": true,
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc"
+    },
+    {
+      "id": "reject-ula-triple-colon",
+      "accept": false,
+      "host": "ula-triple-colon",
+      "bracket": true,
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=abc"
+    }
+  ]
+}

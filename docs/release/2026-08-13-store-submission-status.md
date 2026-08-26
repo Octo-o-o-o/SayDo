@@ -21,7 +21,7 @@ Previous campaign: 无(SayDo 首次)。可复用的邻产品战役:`OctoDesk/doc
 | Android | Google Play | package-reserved | title「说到」,包名 `com.octoooo.saydo`,Play 应用 ID `4975182458667142159`。Dashboard 未见 12 人内测门横幅(账号已有正式应用)。勿传 spike AAB | `[occupy-0813]` |
 | HarmonyOS / Android channel | AppGallery | app-id-and-release-cer | App ID `6917613548237019987`, listing `9249519184596237673`,手机-only,发布证书 `SayDo Release` 至 2029-08-13。Profile `.p7b` 未建。勿传 spike HAP | `[occupy-0813]` |
 
-Shared: bundle/package id `com.octoooo.saydo`(工程+三店均已占) · version `spike 0.1`(不可提审) · version SoT 未建 · 深链域已挂 · 审核夹具策略已定(家里 Mac mini,未执行)
+Shared: bundle/package id `com.octoooo.saydo`(工程+三店均已占) · 三端壳 `0.1.0 (1)`(不可提审) · version SoT [`version-matrix.md`](version-matrix.md) · 深链域已挂 · 审核夹具策略已定(家里 Mac mini,未执行)
 
 平台可行性(skill Phase 0 门):
 

@@ -22,6 +22,9 @@ ci-node:
     node scripts/test-public-text-redaction.mjs
     node scripts/test-public-tree-privacy.mjs
     node scripts/test-ios-build-and-install.mjs
+    node scripts/test-pairing-url-corpus.mjs
+    node scripts/test-mobile-installers.mjs
+    node scripts/test-mobile-release-contract.mjs
 
 ci-python:
     uv --directory pipeline sync --quiet

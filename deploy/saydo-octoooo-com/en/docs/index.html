@@ -158,7 +158,7 @@
           <li><strong>macOS desktop service</strong> (daemon + Web console + optional voice pipeline): available now, open source and free (see §18 Open source &amp; contributing).</li>
           <li><strong>Drives the AI you already have</strong>: reasoning slots can use the <strong>subscription login</strong> of Claude Code / Codex / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI, or any OpenAI-compatible API (§5); <strong>Cursor CLI is currently the stable executor path</strong>, Claude Code is wired into production and undergoing final live conformance, and the Codex execution route is planned (§6).</li>
           <li><strong>Project memory &amp; the four-color ledger</strong>: available now.</li>
-          <li><strong>iOS / Android / HarmonyOS apps</strong>: engineering shells exist; none submitted to stores. Today a phone can connect to the desktop service over the LAN via an app shell or the mobile browser (§13).</li>
+          <li><strong>iOS / Android / HarmonyOS apps</strong>: engineering shells exist; none submitted to stores, and there is no public download. What is available today is mobile-browser LAN dogfood. The three app shells are development candidates (iOS pending this-round on-device retest, Android has no current device evidence, HarmonyOS historically had a physical target (2026-08-22); this round has no online target evidence, only an unsigned HAP and no signing Profile) (§13).</li>
           <li><strong>Call-style voice briefings</strong>: planned.</li>
         </ul>
         <h3>1.5 Cost in one breath</h3>
@@ -201,8 +201,9 @@ You (speak / listen / occasionally look at the screen; sign off / approve)
    │ voice or text (browser, phone)
    │ callback (voice / desktop notification / phone push)
 ┌──▽─────────────────────────────────────────────────────────────────┐
-│ Communication surface: Web console (desktop browser) / phone        │
-│   (app shell or mobile browser, LAN)                                │
+│ Communication surface: Web console (desktop browser) /              │
+│   mobile browser (LAN dogfood); app shells are development          │
+│   candidates                                                        │
 │   · Voice engine (optional Python voice pipeline: ASR → LLM → TTS)  │
 │   · Brain: interview / readiness self-check / decision packs /      │
 │     spoken summaries; no direct execution power                     │
@@ -345,7 +346,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
 </code></pre>
         <p>Once configured, the console switches to cloud voice automatically; when the pipeline is absent, <code>/readyz</code> reports <code>voiceReady=false</code> (text and the control plane keep working — not a startup failure). Details in §12.</p>
         <h3>4.7 Optional: phone connection (LAN)</h3>
-        <p>The phone apps are not in stores; today you can connect to the desktop service over the LAN using a <strong>mobile browser</strong> (or a self-built app shell):</p>
+        <p>The phone apps are not in stores and have no public download. What is available today is mobile-browser LAN dogfood. The iOS shell is only a development-signed candidate pending this-round on-device retest; the Android shell is only a build/unit-test candidate with no current device evidence; the HarmonyOS shell historically had a physical target (2026-08-22); this round has no online target evidence, only an unsigned HAP and no signing Profile. None of the three app shells is an accepted, obtainable path. Development-signed and unsigned packages are not store packages and must not be added to a GitHub Release.</p>
         <ol>
           <li>Start the daemon with <code>SAYDO_MOBILE_LAN=1</code> (listens on <code>0.0.0.0</code>, behind three gates: RFC1918 private-network sources only + capability token + Host/Origin checks);</li>
           <li>Find your LAN IP (<code>ipconfig getifaddr en0</code>), turn <code>http://&lt;LAN-IP&gt;:47100/?token=&lt;cap-token&gt;</code> into a QR code (don't paste the token into third-party online tools) and scan it with the phone; opening the URL directly in the mobile browser works too (mobile shell route <code>#/m</code>);</li>
@@ -809,7 +810,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
         <h2 id="s13">13. Phone &amp; remote</h2>
         <h3>13.1 What you can do today</h3>
         <ul>
-          <li><strong>Direct LAN connection</strong> (<code>SAYDO_MOBILE_LAN=1</code>, §4.7): a mobile browser or self-built app shell opens <code>http://&lt;LAN-IP&gt;:47100/?token=…</code> (the desktop console can show a QR code; <strong>codes are only offered for RFC1918 private addresses</strong> — never for public / CGNAT addresses). The phone surface is the mobile shell route (<code>#/m</code>): Today's four colors, Focus item details, recent conversation replay, recent memory; send text / native speech-to-text into the conversation; nod or retract ledger-type confirmation cards. The LAN surface's HTTP route whitelist is extremely narrow (read-only projections + the first-run greeting); write endpoints, settings write endpoints, S3, and full-screen text are all refused.</li>
+          <li><strong>Direct LAN connection</strong> (<code>SAYDO_MOBILE_LAN=1</code>, §4.7): what is available today is a <strong>mobile browser</strong> opening <code>http://&lt;LAN-IP&gt;:47100/?token=…</code> (the desktop console can show a QR code; <strong>codes are only offered for RFC1918 private addresses</strong> — never for public / CGNAT addresses). Self-built app shells remain development candidates, not an accepted obtainable path. The phone surface is the mobile shell route (<code>#/m</code>): Today's four colors, Focus item details, recent conversation replay, recent memory; send text / native speech-to-text into the conversation; nod or retract ledger-type confirmation cards. The LAN surface's HTTP route whitelist is extremely narrow (read-only projections + the first-run greeting); write endpoints, settings write endpoints, S3, and full-screen text are all refused.</li>
           <li><strong>The tailnet (Tailscale) surface — in progress</strong>: the target contract uses <code>config.toml</code> <code>[t2].tailnet_hosts = [...]</code> (an explicit whitelist of bare hostnames / IPs — <strong>wildcards banned</strong>, any illegal entry keeps the whole surface closed) + <code>[t2].listen</code>; <code>just t2-pair</code> produces the pairing URL (one-time injection of the phone's local session; deep links carry no token afterwards). The target surface can view tasks and approve S2-level approvals (review / decide / memory candidate approval); merge-chain actions and the <code>/dev/*</code> injection channel get 403 with guidance back to the desktop. Tailscale and MagicDNS are ready on the development machine, but the current HEAD setup probe still rejects tailnet configuration, so this is not yet a supported entry point.</li>
           <li><strong>S3 is never on the phone</strong>: four assertions (socket must be the local loopback, Origin exactly <code>http://localhost:&lt;port&gt;</code>, source surface <code>local</code>, rpId fixed to <code>localhost</code>), with the refusal copy "S3 operations only happen at the local trusted terminal — go back to the desktop screen"; S3 tools aren't in the dialog model's tool surface either.</li>
           <li><strong>Honest boundary</strong>: the LAN surface today is a dogfood-grade temporary boundary of "cleartext LAN HTTP + a long-lived capability token" — <strong>no device pairing / per-device identity / end-to-end encryption</strong>; deleting the token and restarting drops everyone. Do not expose it to untrusted networks.</li>
@@ -821,9 +822,9 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
             <tr><th>Platform</th><th>Status</th><th>Notes</th></tr>
           </thead>
           <tbody>
-            <tr><td>iOS</td><td>Not submitted</td><td>Native SwiftUI shell (QR pairing, native speech recognition / synthesis, web container) engineering exists; App Store record created (Chinese store name "说到"), no submittable build</td></tr>
-            <tr><td>Android</td><td>Not submitted</td><td>Kotlin shell builds; Play app record created (<code>com.octoooo.saydo</code>), no submittable build</td></tr>
-            <tr><td>HarmonyOS</td><td>Not submitted</td><td>HarmonyOS NEXT ArkTS shell; AppGallery record and release certificate ready, Profile not yet created</td></tr>
+            <tr><td>iOS</td><td>Not submitted</td><td>development-signed candidate, pending this-round on-device retest; App Store record created, no submittable build, no public download</td></tr>
+            <tr><td>Android</td><td>Not submitted</td><td>build/unit-test candidate, no current device evidence; Play record created, release signing not wired, no public download</td></tr>
+            <tr><td>HarmonyOS</td><td>Not submitted</td><td>a physical target was seen on 2026-08-22; this round has no online target evidence, and only an unsigned HAP exists; a release certificate is not a signing Profile; the signing Profile is missing, no public download</td></tr>
           </tbody>
         </table>
         </div>
@@ -889,7 +890,10 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
             <tr><td>coding type</td><td><span class="badge badge-live">Available now</span></td><td></td></tr>
             <tr><td>writing type (narrow)</td><td><span class="badge badge-live">Available now</span> (capability gate required)</td><td>Citations / attribution contracts and full scope planned; full human pass pending</td></tr>
             <tr><td>research / marketing / planning / general execution contracts</td><td><span class="badge badge-soon">Planned</span></td><td>Upstream interview / ledger / research usable</td></tr>
-            <tr><td>LAN phone surface (browser / shell)</td><td><span class="badge badge-live">Available now</span> (dogfood boundary)</td><td>No pairing / no E2E</td></tr>
+            <tr><td>LAN phone surface (mobile browser)</td><td><span class="badge badge-live">Available now</span> (dogfood boundary)</td><td>Cleartext LAN + long-lived token; no pairing / no E2E; apps are not in stores and have no public download</td></tr>
+            <tr><td>iOS shell</td><td><span class="badge badge-progress">In progress</span></td><td>development-signed candidate, pending this-round on-device retest; not an App Store package; must not be added to a GitHub Release</td></tr>
+            <tr><td>Android shell</td><td><span class="badge badge-progress">In progress</span></td><td>build/unit-test candidate, no current device evidence; Debug dogfood is not a Play-releasable package</td></tr>
+            <tr><td>HarmonyOS shell</td><td><span class="badge badge-progress">In progress</span></td><td>a physical target was seen on 2026-08-22; this round has no online target evidence, and only an unsigned HAP exists; the signing Profile is missing; unsigned cannot be installed</td></tr>
             <tr><td>tailnet thin version</td><td><span class="badge badge-progress">In progress</span></td><td>Tailscale / MagicDNS are ready; the current HEAD setup probe still rejects tailnet configuration, so it is not yet a supported entry point</td></tr>
             <tr><td>Claude Code executor</td><td><span class="badge badge-progress">Closing out</span></td><td>Production execution, approval, recovery, accounting, self-test, and console are wired; final live conformance remains open</td></tr>
             <tr><td>Codex executor / Hopper batch route</td><td><span class="badge badge-soon">Planned</span> / dormant</td><td></td></tr>

@@ -5,7 +5,7 @@ import { lstatSync, readFileSync, readlinkSync, realpathSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { countPatternHits, countPublicPrivacyHits } from "./public-text-redaction.mjs";
+import { RFC1918_RE, countPatternHits, countPublicPrivacyHits } from "./public-text-redaction.mjs";
 
 const scriptsDir = dirname(fileURLToPath(import.meta.url));
 const publishScriptPath = join(scriptsDir, "publish-public-snapshot.sh");
@@ -143,12 +143,48 @@ function isBinaryBuffer(buffer, path) {
   return buffer.includes(0);
 }
 
+// 三端配对测试语料必须包含 RFC1918 形态地址(被测对象就是私网地址解析),运行时拼接在
+// Kotlin/Swift/ArkTS 三语言上不可行。此处不是放松豁免,而是**收紧为白名单**:这些文件里
+// 出现的每一个 RFC1918 值都必须命中下面的显式示例集合(全为网段边界/文档示例值),
+// 任何白名单之外的值(包括未来误入的真实内网拓扑)照常拦下——新增语料值必须同步改这里,
+// 让变化在 review 中可见。
+const PAIRING_CORPUS_RFC1918_FILES = new Set([
+  "apps/android/app/src/test/java/com/octoooo/saydo/DesktopProfileTest.kt",
+  "apps/harmonyos/entry/src/test/PairingUrl.test.ets",
+  "apps/ios/SayDoTests/DesktopProfileTests.swift"
+]);
+// 白名单值用八位组拼装而非字面量:scanner 自检要求其源码本身 static-clean
+// (不得含任何 RFC1918 形态字面量,防 scanner 成为泄漏载体/自击)。
+const corpusIp = (...octets) => octets.join(".");
+const PAIRING_CORPUS_RFC1918_ALLOWED = new Set([
+  corpusIp(10, 0, 0, 1),
+  corpusIp(10, 255, 255, 254),
+  corpusIp(172, 16, 0, 1),
+  corpusIp(172, 31, 255, 1),
+  corpusIp(192, 168, 0, 1),
+  corpusIp(192, 168, 1, 8)
+]);
+
+function corpusDisallowedRfc1918Count(text) {
+  const re = new RegExp(RFC1918_RE.source, RFC1918_RE.flags);
+  let disallowed = 0;
+  for (const match of text.matchAll(re)) {
+    if (!PAIRING_CORPUS_RFC1918_ALLOWED.has(match[0])) disallowed += 1;
+  }
+  return disallowed;
+}
+
 function scanBuffer(buffer, path, privateProbes) {
   if (isBinaryBuffer(buffer, path)) return { binary: true, hits: [] };
   const text = buffer.toString("utf8");
   const hits = [];
   const builtIn = countPublicPrivacyHits(text);
   for (const [category, count] of Object.entries(builtIn)) {
+    if (category === "rfc1918" && PAIRING_CORPUS_RFC1918_FILES.has(path)) {
+      const disallowed = corpusDisallowedRfc1918Count(text);
+      if (disallowed > 0) hits.push({ category: "rfc1918-corpus-disallowed", count: disallowed });
+      continue;
+    }
     hits.push({ category, count });
   }
   privateProbes.forEach((re, index) => {

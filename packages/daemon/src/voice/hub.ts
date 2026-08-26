@@ -158,6 +158,11 @@ export class VoiceHub {
   private readonly wss: WebSocketServer;
   private readonly peers = new Set<Peer>();
   private currentPipelinePeer: Peer | undefined;
+  /** capture ingress 评审 B-5(2026-08-26):最近一次转发给 pipeline 的采集模式。pipeline 单独
+   *  重连会把自身 _mode 清账回 ptt,而在线 console 只在自己 hello.ack/用户切档时发 voice.mode——
+   *  免手档下 mic 帧会在 pipeline 侧无限积压且永不 finalize。join 完成时由 hub 重放兜住;
+   *  mobile_lan 来源不记录(不得借登记消息改采集模式,同 dispatch 红线)。 */
+  private lastVoiceMode: Extract<PipelineMsg, { t: "voice.mode" }> | undefined;
   private readonly watermarks = new Map<string, { sentenceId: string; watermarkMs: number }>(); // sessionId -> 最新播出水位
   private events: VoiceHubEvents;
   /** first-run onboarding:等 pipeline.restart_ack 的 waiter(generation -> resolvers) */
@@ -374,17 +379,25 @@ export class VoiceHub {
         // 连接所有权已经建立，诊断异常不得反转。
       }
       if (peer.role === "pipeline" && peer.pipelineAuthorized) {
-        try {
-          this.events.onPipelineJoined?.(peer.identity as RuntimeIdentity, peer.generation);
-        } catch (err) {
-          this.safeWarn("voice ws: pipeline joined hook failed", {
-            error: err instanceof Error ? err.name : "unknown"
-          });
-        }
+        this.firePipelineJoined(peer);
       }
     } catch {
       peer.ws.close(4003, "malformed hello");
     }
+  }
+
+  /** pipeline peer 完成接纳(hello 即授权,或首个 health 过 HOME 门):回调 + 采集模式重放。 */
+  private firePipelineJoined(peer: Peer): void {
+    try {
+      this.events.onPipelineJoined?.(peer.identity as RuntimeIdentity, peer.generation);
+    } catch (err) {
+      this.safeWarn("voice ws: pipeline joined hook failed", {
+        error: err instanceof Error ? err.name : "unknown"
+      });
+    }
+    // B-5:重连的 pipeline 采集模式已清账回 ptt,在线 console 不会重发——重放最近生效档位
+    // (含 sessionId 重绑);console 之后自己重连/切档时照常覆盖。
+    if (this.lastVoiceMode) this.broadcast("pipeline", this.lastVoiceMode);
   }
 
   private routeJson(peer: Peer, data: RawData): void {
@@ -431,13 +444,7 @@ export class VoiceHub {
           clearTimeout(peer.pipelineHealthTimer);
           peer.pipelineHealthTimer = undefined;
         }
-        try {
-          this.events.onPipelineJoined?.(peer.identity as RuntimeIdentity, peer.generation);
-        } catch (err) {
-          this.safeWarn("voice ws: pipeline joined hook failed", {
-            error: err instanceof Error ? err.name : "unknown"
-          });
-        }
+        this.firePipelineJoined(peer);
       }
     }
     if (peer.via === "mobile_lan" && !VoiceHub.MOBILE_LAN_UPSTREAM_ALLOWED.has(msg.t)) {
@@ -542,7 +549,10 @@ export class VoiceHub {
         break;
       case "voice.mode":
         // mobile_lan 只用本消息登记 session，不得借 Provider 默认握手改 pipeline 采集模式。
-        if (via !== "mobile_lan") this.broadcast("pipeline", msg);
+        if (via !== "mobile_lan") {
+          this.lastVoiceMode = msg; // B-5:留档供 pipeline (re)join 重放
+          this.broadcast("pipeline", msg);
+        }
         this.events.onVoiceMode?.(msg);
         break;
       case "console.heartbeat":

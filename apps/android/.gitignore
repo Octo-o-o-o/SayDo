@@ -2,3 +2,5 @@
 .kotlin/
 local.properties
 **/build/
+debug.keystore
+debug.keystore.lock

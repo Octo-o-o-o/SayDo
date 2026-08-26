@@ -42,8 +42,8 @@
       "path": ".github/workflows/ci.yml",
       "kind": "file",
       "mode": 420,
-      "bytes": 3288,
-      "sha256": "5c203fa5a8c047d43282129d876cf73f580a3103d78bbfc6c3bbeb53b25b2e4b"
+      "bytes": 6113,
+      "sha256": "9a27b6744f9c3559ebf4362267b81767c5cad855430306ec84e249922b0fc845"
     },
     {
       "path": ".github/workflows/release.yml",
@@ -56,8 +56,8 @@
       "path": ".gitignore",
       "kind": "file",
       "mode": 420,
-      "bytes": 1152,
-      "sha256": "084e74b0781806723db234f40691fb98d6abe307a2b74eeeedb8252eb25bfd6c"
+      "bytes": 1165,
+      "sha256": "6b6e7b8c9fba8b3262e614b7c7439a25a4f991290c1aeca575b57ee28df7304d"
     },
     {
       "path": "AGENTS.md",
@@ -70,15 +70,15 @@
       "path": "apps/android/.gitignore",
       "kind": "file",
       "mode": 420,
-      "bytes": 45,
-      "sha256": "f66867247b8a342de22b21558b3cb04a93f670f97f794baa973fa545c2d1c9c6"
+      "bytes": 80,
+      "sha256": "d70c49f5668e4db211fa331c672b524d6453cf8161f3bb29c9e23e1bc59a51e9"
     },
     {
       "path": "apps/android/app/build.gradle.kts",
       "kind": "file",
       "mode": 420,
-      "bytes": 972,
-      "sha256": "6d0fe23c74acda32a01c79dc04ac581b2ac651a3b524dfcb30e6c4738c20bc1d"
+      "bytes": 2076,
+      "sha256": "2496d22292052930e6ae7f6086eb545ded4ef0d9ca7fce014493468fa65baa51"
     },
     {
       "path": "apps/android/app/proguard-rules.pro",
@@ -105,8 +105,8 @@
       "path": "apps/android/app/src/main/java/com/octoooo/saydo/DesktopProfile.kt",
       "kind": "file",
       "mode": 420,
-      "bytes": 3740,
-      "sha256": "62ae88cfd9a064b8d8ccfb4b6da1dbe878f12588e1b2c010fc0885c28b0390e6"
+      "bytes": 12727,
+      "sha256": "267f3d9f71ef93b8f32cca28c0ee1fc3e89755389ea7e0f137a36f54efff0353"
     },
     {
       "path": "apps/android/app/src/main/java/com/octoooo/saydo/MainActivity.kt",
@@ -249,11 +249,25 @@
       "sha256": "cb029b35db0e976c087100424e16e14a6256b46962398887520e51508c3b5842"
     },
     {
+      "path": "apps/android/app/src/test/java/com/octoooo/saydo/DesktopProfileTest.kt",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 8518,
+      "sha256": "11ec6c55e49db0bd6ea21393b0b94df32af8164b37ff18c8568de4d6577857bb"
+    },
+    {
+      "path": "apps/android/app/src/test/java/com/octoooo/saydo/PairingUrlCorpus.kt",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 11843,
+      "sha256": "3db0d040d1caec33aa9564ca0cc85edc8a291c571ba6b5935a72dbdb0772898a"
+    },
+    {
       "path": "apps/android/build-and-install.sh",
       "kind": "file",
       "mode": 493,
-      "bytes": 226,
-      "sha256": "dd44b36869a4f8e251f0c15ea7e161bb27daa744507d148575ac9e615d825c2a"
+      "bytes": 8853,
+      "sha256": "87f6cc373e30d212e553f4ab4dbd0975c91f66fd380621e0d355ce646533b840"
     },
     {
       "path": "apps/android/build.gradle.kts",
@@ -280,8 +294,8 @@
       "path": "apps/android/gradle/wrapper/gradle-wrapper.properties",
       "kind": "file",
       "mode": 420,
-      "bytes": 253,
-      "sha256": "d7010368a34c1c06df2bae1a85d8b24c39b2499c74ac892fc7e66d005dbd7b8a"
+      "bytes": 340,
+      "sha256": "1b9cd6961ee86eea17b2f912bddb22030492db23fc6dff07da6c30eccaaab0c4"
     },
     {
       "path": "apps/android/gradlew",
@@ -291,11 +305,18 @@
       "sha256": "a3648413b47ef77af21d5ebc36c687c7d103aaef3e17f33de7d4f080a6f300a3"
     },
     {
+      "path": "apps/android/package.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 129,
+      "sha256": "95c6db9bcb8619a98f63434b21165fd03d3faa945e5c2bebfd0b947fce269c16"
+    },
+    {
       "path": "apps/android/README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2213,
-      "sha256": "a9e7782a4b132a70e58de9b56a193fd728f448c77bda7761d63ab55aa71d21f2"
+      "bytes": 3462,
+      "sha256": "d0347a6b3a39b31b9d12e40904c601b14a265971b794239b05a86a585bb83ec8"
     },
     {
       "path": "apps/android/settings.gradle.kts",
@@ -308,8 +329,8 @@
       "path": "apps/harmonyos/.gitignore",
       "kind": "file",
       "mode": 420,
-      "bytes": 58,
-      "sha256": "2aa25a40b9b05fd71ff11579a78bc137d700177503639b220c4e66dcf8cbeb84"
+      "bytes": 97,
+      "sha256": "841bcca43819ce8996127406ff07fdcc79da4ed5eeb7eb91a496f761ec6d07c5"
     },
     {
       "path": "apps/harmonyos/AppScope/app.json5",
@@ -350,8 +371,8 @@
       "path": "apps/harmonyos/build-and-install.sh",
       "kind": "file",
       "mode": 493,
-      "bytes": 1134,
-      "sha256": "1d482eb3021d030bfdac77e243469f8324bdeb4fe049944b4749eb6bec49e7ca"
+      "bytes": 12597,
+      "sha256": "97552b5c5201d6ae8025f632f8d0d8fbfbd85b725ad77d215efbc1fa1819027f"
     },
     {
       "path": "apps/harmonyos/build-profile.json5",
@@ -406,8 +427,15 @@
       "path": "apps/harmonyos/entry/src/main/ets/model/DesktopProfile.ets",
       "kind": "file",
       "mode": 420,
-      "bytes": 4450,
-      "sha256": "addf195fa883019af9252b6fa3b4ad63e719e245d4d3fe6b5e090f4dfe45da0e"
+      "bytes": 1320,
+      "sha256": "16108db6fe7ce50b753b0bc67af282ee5416b0da86a0f7303f5de7dfa1b86690"
+    },
+    {
+      "path": "apps/harmonyos/entry/src/main/ets/model/pairingUrl.ets",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 16837,
+      "sha256": "9f143b57a48be0258593a2c2cc3da8efe676d9129b23d5e63bfe910ca6154613"
     },
     {
       "path": "apps/harmonyos/entry/src/main/ets/pages/Index.ets",
@@ -473,6 +501,27 @@
       "sha256": "6daad2bfa98e557d060a23469b42eaebe033f389b2e6f600c2f2a5bb1c52980d"
     },
     {
+      "path": "apps/harmonyos/entry/src/test/List.test.ets",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 107,
+      "sha256": "6c2a50ea4a13d54f7d67a500c8cd87e176c80781ad4e159eacd8e36072612a52"
+    },
+    {
+      "path": "apps/harmonyos/entry/src/test/PairingUrl.test.ets",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 6661,
+      "sha256": "0873db6e4c539dd8ade613c49b403946ec3534c97a65f3cd7646c1972624ef89"
+    },
+    {
+      "path": "apps/harmonyos/entry/src/test/PairingUrlCorpus.ets",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 13564,
+      "sha256": "170538b06db6f3bd2747f90d6188e21612933277a775e2ac415f7778cac5f7ec"
+    },
+    {
       "path": "apps/harmonyos/hvigor/hvigor-config.json5",
       "kind": "file",
       "mode": 420,
@@ -487,6 +536,13 @@
       "sha256": "2438d9d66674d5cf7d40d426a925f3ccfa2015791f62fa38473c3a27d7474b09"
     },
     {
+      "path": "apps/harmonyos/oh-package-lock.json5",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 975,
+      "sha256": "63261e4afee2280ca28b240d99956d666f0efc6be6b2cc76dd53470c10d3cf71"
+    },
+    {
       "path": "apps/harmonyos/oh-package.json5",
       "kind": "file",
       "mode": 420,
@@ -497,8 +553,8 @@
       "path": "apps/harmonyos/README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3158,
-      "sha256": "01dbf38bb9568669b05ad450cfd4fe3e70f3cd634ec334718e53d9e1fa1bc9fb"
+      "bytes": 5710,
+      "sha256": "d03734d1f12a776358d0d0730ee97c051c10317a71f0d5c1a32badbf38dbc0c8"
     },
     {
       "path": "apps/ios/.gitignore",
@@ -511,22 +567,22 @@
       "path": "apps/ios/build-and-install.sh",
       "kind": "file",
       "mode": 493,
-      "bytes": 885,
-      "sha256": "9b981723ef18f2b3fffcdada245710b5302f2f5f919888e936e2c33729898228"
+      "bytes": 6685,
+      "sha256": "37649ad6604ed12e95dc2a45dce1d37cdd33b07493e5944cc33b08bce3e0403c"
     },
     {
       "path": "apps/ios/project.yml",
       "kind": "file",
       "mode": 420,
-      "bytes": 1246,
-      "sha256": "95ece767c4a2dd603ab247cf97509164be0ef03bedceea9418ff8044e87a30fb"
+      "bytes": 1383,
+      "sha256": "534af63e2e70a05474c9e48581cc1ca6e746d41c9f62c7aff06aa1b69aa663e0"
     },
     {
       "path": "apps/ios/README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2669,
-      "sha256": "19bccaaf7149f5873904b8a8b9a2769094ab219a11b0e1b38f89057d564fa5ab"
+      "bytes": 3352,
+      "sha256": "2eb8a660012b9ce7b270d5b5ab103d45ef74d660a21c3fef3405e54269261850"
     },
     {
       "path": "apps/ios/REVIEW-60.md",
@@ -567,15 +623,15 @@
       "path": "apps/ios/SayDo/DesktopProfile.swift",
       "kind": "file",
       "mode": 420,
-      "bytes": 2625,
-      "sha256": "665fd2ea04c2697ecb0e1512570c03cb7a680453c12adb3fc8817f529167544a"
+      "bytes": 16660,
+      "sha256": "ff8e2171f999adb96fc7867f5a35719c8c1269868e7df14d73eb606786814a14"
     },
     {
       "path": "apps/ios/SayDo/Info.plist",
       "kind": "file",
       "mode": 420,
-      "bytes": 1261,
-      "sha256": "2dcd52cc15db01ecc8bd3a9a870e166473b7d825c4163f0b16abbe86f51a643a"
+      "bytes": 1263,
+      "sha256": "53a66f6026ec263c1d2d2317df49c7f110c3b98aae480d7e05a732e421a42e8a"
     },
     {
       "path": "apps/ios/SayDo/NativeBridge.swift",
@@ -616,8 +672,8 @@
       "path": "apps/ios/SayDo/ScannerView.swift",
       "kind": "file",
       "mode": 420,
-      "bytes": 5182,
-      "sha256": "3f42bbacddf3a0c1eb0ceb69cfac65720a8ec0b1d619715c721ff0419d8a6608"
+      "bytes": 5078,
+      "sha256": "f38edf57b1e353a071a946783e28b7d999472a9ced7519817c5716cb68680e7f"
     },
     {
       "path": "apps/ios/SayDo/VoiceCapsule.swift",
@@ -639,6 +695,20 @@
       "mode": 420,
       "bytes": 9572,
       "sha256": "ce2dd2603b122269acea323563bfbf12a2aff4b5ddcfa460d5ca01f03aade278"
+    },
+    {
+      "path": "apps/ios/SayDoTests/DesktopProfileTests.swift",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 9720,
+      "sha256": "38c13ae17f35b655962c1504a46043a073228393db81a9f8e7f75f6548ef5782"
+    },
+    {
+      "path": "apps/ios/SayDoTests/PairingUrlCorpus.swift",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 15035,
+      "sha256": "bbdeff5d8b38b9305e2f0a249076f8cb629a2e583a8ac943e7493c5c488985aa"
     },
     {
       "path": "apps/ios/SayDoTests/VoiceStateMachineTests.swift",
@@ -903,15 +973,15 @@
       "path": "deploy/saydo-octoooo-com/docs/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 126006,
-      "sha256": "051e23179a24e96cb9929d03d18e3d059496be65262546ddcead0ba71d044838"
+      "bytes": 127290,
+      "sha256": "ee0ac8c23af3045526eab005a9deaca2a89e5a6468097243dc2882ec3bda7f38"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/docs/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 147065,
-      "sha256": "9232a4ab3cf99deb23b41b5aa5a5ef1dd803f4d6a8f80a037cd98d4901b2cbf2"
+      "bytes": 148892,
+      "sha256": "85413b0c2421f37fd5ccda733ec9136e42be1ca3a99b9f3f91f112e2586f1c86"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/index.html",
@@ -1533,8 +1603,8 @@
       "path": "docs/release/2026-08-13-store-submission-status.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 16074,
-      "sha256": "127a36e7e641d92579344f76415c0230177f6f0a1438193d9f8d8f93e606037e"
+      "bytes": 16110,
+      "sha256": "84f7facb8ed3c95c3cc64122627cdea8f33914c594683e25180eeb94972aaeb9"
     },
     {
       "path": "docs/release/2026-08-13-tencent-icp-app-filing.md",
@@ -1575,15 +1645,15 @@
       "path": "docs/release/README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2238,
-      "sha256": "72046415779b4fc6e89c646aac2f2bb35f3335cd1d23e403223fa64a39b9e16d"
+      "bytes": 2413,
+      "sha256": "ff3d39cd7070b708eae99738ab32b5c73d0be1c49131754cb7a58196f1df4d96"
     },
     {
       "path": "docs/release/release-profile.yaml",
       "kind": "file",
       "mode": 420,
-      "bytes": 4967,
-      "sha256": "1b57518e093ddaebe11cbaf2a0b8e2055eeed2d2430389b20c51dfaebc844270"
+      "bytes": 4953,
+      "sha256": "5c3db1cad761d76c243e22e562835ea3201f8f9122ec02f07b65785691a2aa60"
     },
     {
       "path": "docs/release/v0.1.0-rc.12-assets.json",
@@ -1619,6 +1689,13 @@
       "mode": 420,
       "bytes": 2519,
       "sha256": "10b592ed60eee6e7812f30c507ebc05a1e94c3c87f2ba14a6ee87330db5f5a13"
+    },
+    {
+      "path": "docs/release/version-matrix.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4566,
+      "sha256": "b620c2a4893107ea3ed736e1a4ac94badfa4528b9d8143eaf9f2350308c75b78"
     },
     {
       "path": "docs/review/2026-08-13-mobile-gap-audit.fable.md",
@@ -1715,8 +1792,8 @@
       "path": "docs/site/2026-08-20-docs-page-content.fable.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 109696,
-      "sha256": "04df3e301a7965139d0c973a644c5a246fcded5d3bde8f576a6f29e210325739"
+      "bytes": 110751,
+      "sha256": "0d838468827118a104941545b9baaf18bc8407e360e6a831261cc07f4e58db8a"
     },
     {
       "path": "docs/site/2026-08-20-homepage-structure-copy.fable.md",
@@ -2002,8 +2079,8 @@
       "path": "e2e/evidence/2026-08-22-mobile-shells-device-build.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3183,
-      "sha256": "31212ca0e565c3e0883e7bf83c507634d73e135232824232455969af6302b4db"
+      "bytes": 3864,
+      "sha256": "a48021c8409758b4bcc93b1d66b323637baeaf31a7574d2bb7fe3964efac610a"
     },
     {
       "path": "e2e/evidence/2026-08-23-rc3-release-recovery.md",
@@ -3059,8 +3136,8 @@
       "path": "justfile",
       "kind": "file",
       "mode": 420,
-      "bytes": 1395,
-      "sha256": "b36e85fd7c867547be2f07ad39e1fd7fc8fad8aa0f6d28ce3770f74610382e11"
+      "bytes": 1534,
+      "sha256": "c34f072895d81df2045bbcc8d4f594f227728573f54ae55306e8f8ada28dc836"
     },
     {
       "path": "LICENSE",
@@ -3080,8 +3157,8 @@
       "path": "package.json",
       "kind": "file",
       "mode": 420,
-      "bytes": 1161,
-      "sha256": "3d8a2f5bcb7fe6bf2858975234f2679d3d6c7d3a7f4a90ea8ae93478589cd100"
+      "bytes": 1324,
+      "sha256": "8449cd8b2549d7a2ab75c9509b0cfbace843e7eeddc02465f577e598c175f8ce"
     },
     {
       "path": "packages/cli/LICENSE",
@@ -6314,8 +6391,8 @@
       "path": "packages/daemon/src/voice/hub.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 39676,
-      "sha256": "579e68249850e885669559a5b156b47ea3fe99d172dc7182c87b5ef1e6c41c6b"
+      "bytes": 40507,
+      "sha256": "c2985530c94e3f574b186a54e5c62b1b296e3f5159eed546a7ad2282161d1148"
     },
     {
       "path": "packages/daemon/src/voice/redactor.ts",
@@ -7539,8 +7616,8 @@
       "path": "packages/daemon/test/voice-hub.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 45762,
-      "sha256": "b468890d3cc7d300ce37564af321eb5ceefbdbe0c26ac62f1f6e9df960638b21"
+      "bytes": 49939,
+      "sha256": "87e6e7cbc7ae745cc59b759bb82668bd1e2ab97aaf30f0a49614c9237b029376"
     },
     {
       "path": "packages/daemon/test/workspace-identity-remount.test.ts",
@@ -7854,15 +7931,15 @@
       "path": "pnpm-lock.yaml",
       "kind": "file",
       "mode": 420,
-      "bytes": 124500,
-      "sha256": "76a13098af1348d4a6b62fd0f163a0d71e21b7d9a2dcc84558f536ea2c924486"
+      "bytes": 124520,
+      "sha256": "eaa73cf89040a6f7ec8649c4498b863bc21bb86913cb31288ce32c2ada7ea8ec"
     },
     {
       "path": "pnpm-workspace.yaml",
       "kind": "file",
       "mode": 420,
-      "bytes": 33,
-      "sha256": "43a305a2232956711361a89dd4db02f0571bd196e4ea6b1b6dd07f204f7c77b0"
+      "bytes": 50,
+      "sha256": "57853858b847f14492929fd5d6d60307bd34c90fb780735739e44dde51ce888a"
     },
     {
       "path": "prompts/100-ai-supply-universal-onboarding-final-billing-gate-review.md",
@@ -8005,6 +8082,13 @@
       "sha256": "78be4570bfa6c1403846a250da2a112bcf38f7976566fc8535748f0bb70877b7"
     },
     {
+      "path": "prompts/114-rc4-mobile-readiness-remediation.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 7913,
+      "sha256": "35de112c164a42baef8779f5d2a7e7d6e4c3f7dc0f6755445971f1e2ef96d366"
+    },
+    {
       "path": "prompts/115-ai-supply-reference-architecture-final-closure-v4.md",
       "kind": "file",
       "mode": 420,
@@ -8033,6 +8117,13 @@
       "sha256": "09ed7638a58643c88083e40844c4bb73d52cbab4d262fb9f2798b34602a2d8c4"
     },
     {
+      "path": "prompts/117-rc4-mobile-host-gate-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5583,
+      "sha256": "07dc194a4f19984982b7b815ab515e61043505fd7d414c2a586db1d0fcea0ce2"
+    },
+    {
       "path": "prompts/118-ai-supply-reference-architecture-final-closure-v5.md",
       "kind": "file",
       "mode": 420,
@@ -8052,6 +8143,13 @@
       "mode": 420,
       "bytes": 4379,
       "sha256": "323b6da546f477a243b156c83f749a7ee84a80112662da88419c6bcc2aab7c41"
+    },
+    {
+      "path": "prompts/119-rc4-mobile-harmony-ios-host-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5204,
+      "sha256": "e47014cb3cb0f275e8bf5fdd67cd74436552f419e427be1b757c7260b63e173a"
     },
     {
       "path": "prompts/12-canonical-writeback-batch1.md",
@@ -8089,6 +8187,13 @@
       "sha256": "2189ecebdd227118466990c4c1172ebf7de8ad3d7ad62e9e536b3ae3b9da4784"
     },
     {
+      "path": "prompts/122-rc4-mobile-final-host-readback-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5707,
+      "sha256": "365f8b77a7f625073f51db8e23ab87d524051f13454c5909de9534a00f3b8f4a"
+    },
+    {
       "path": "prompts/123-ai-supply-reference-grade-final-adversarial-v6.md",
       "kind": "file",
       "mode": 420,
@@ -8103,6 +8208,13 @@
       "sha256": "819066105b3b95eabfd84049480d415a5b054198c0cd9278082fa4470b6fedc3"
     },
     {
+      "path": "prompts/124-rc4-mobile-ios-malformed-percent-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2010,
+      "sha256": "ff1e61e709f76c8e5251501bd062d2f9e1829f87702883897c344fc4d70c804e"
+    },
+    {
       "path": "prompts/125-ai-supply-ecosystem-ux-final-closure-v7.md",
       "kind": "file",
       "mode": 420,
@@ -8110,11 +8222,25 @@
       "sha256": "c0e6b282ca2a59d480b6b094ea0011b3e72db69ba083125b2f472c191c705a7e"
     },
     {
+      "path": "prompts/125-rc4-mobile-host-green-evidence-align.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2194,
+      "sha256": "9639392eae45befef642372e4b434bd20215c4701682b9ab47224a9578d5b6ec"
+    },
+    {
       "path": "prompts/126-ai-supply-reference-grade-final-adversarial-v7.md",
       "kind": "file",
       "mode": 420,
       "bytes": 2626,
       "sha256": "76d0ce9b8a0dbb495e231e76673bbc8f37a2ed6aeb648eff4a7ff4eab023f8e0"
+    },
+    {
+      "path": "prompts/126-rc4-mobile-precommit-privacy-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2048,
+      "sha256": "5b592ec71d308b1a4d1179ac1df8005d4d2ceeac39f54c3147c176d0f184bd43"
     },
     {
       "path": "prompts/127-ai-supply-reference-architecture-final-closure-v8.md",
@@ -8243,6 +8369,13 @@
       "sha256": "e0418d0210f2bb1996fb2bb247cac6ecbd76cd840e65b1fd04358ae74a3a5ab5"
     },
     {
+      "path": "prompts/143-rc4-mobile-first-readback-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 7276,
+      "sha256": "346a675a224c78ae4ce41a6eb606524bd8520dfe0f8dd7e0bbeabc26774c462f"
+    },
+    {
       "path": "prompts/144-ai-supply-ecosystem-ux-final-closure-v13.md",
       "kind": "file",
       "mode": 420,
@@ -8292,6 +8425,13 @@
       "sha256": "2915f305e622cf35c8041f728b29f09239d0dcf847f36785b5cb38687c3a3989"
     },
     {
+      "path": "prompts/148-rc4-mobile-second-host-readback-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4600,
+      "sha256": "15b27e81795f7cbf96d8d658b7d6b451a66c09d2b9907dc2a0efb3a00dc9ee6b"
+    },
+    {
       "path": "prompts/149-ai-supply-reference-architecture-final-closure-v15.md",
       "kind": "file",
       "mode": 420,
@@ -8320,6 +8460,13 @@
       "sha256": "dd659f590f357eb740d10c48b63f15b484a55866eabb8d1a02019dd2a1aeaf23"
     },
     {
+      "path": "prompts/151-rc4-mobile-ios-ascii-trim-readback-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2119,
+      "sha256": "a08d74880010a329fb7b98b18694e9ba201a05239fad7ad3cae51adc250b91d8"
+    },
+    {
       "path": "prompts/151-rc4-release-final-review-return.md",
       "kind": "file",
       "mode": 420,
@@ -8346,6 +8493,13 @@
       "mode": 420,
       "bytes": 3856,
       "sha256": "70822f67679a6888a8320e79c7b6f23284d04e69473d622ea81024ddb0ca0294"
+    },
+    {
+      "path": "prompts/154-rc4-mobile-final-review-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4449,
+      "sha256": "d2946dc80a9b1edd2c55978b7f6a5c72509a91256f76bec62c70c2f5519abf72"
     },
     {
       "path": "prompts/155-ai-supply-reference-architecture-final-closure-v17.md",
@@ -8432,6 +8586,13 @@
       "sha256": "0e94f8c9809268fb73fb98b32edccc5135f458cf0526186fc2c2d895dd7ec169"
     },
     {
+      "path": "prompts/163-rc4-mobile-final-review-findings-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5115,
+      "sha256": "5aedbdc954566a7b81addbe67150cf6c57dc71128c19dbbe2fc3fb885d266fb5"
+    },
+    {
       "path": "prompts/164-ai-supply-reference-architecture-final-closure-v20.md",
       "kind": "file",
       "mode": 420,
@@ -8460,11 +8621,25 @@
       "sha256": "5116edf673357e008d378056962942d17d7331d72b7b536b9ffa7e112e08e69a"
     },
     {
+      "path": "prompts/166-rc4-mobile-prompt-private-address-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2991,
+      "sha256": "4c8f995085b26662a50bb7d8112e7952166808c7781a7c636caf53bf345c9450"
+    },
+    {
       "path": "prompts/167-ai-supply-v21-design-closure-handoff.md",
       "kind": "file",
       "mode": 420,
       "bytes": 19670,
       "sha256": "791b0f4722edabfc6abbf411b08b96f5e51e3f6548501635ea24333ae43119fc"
+    },
+    {
+      "path": "prompts/167-rc4-mobile-privacy-gate-fresh-reimplementation.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4592,
+      "sha256": "65d83d2482b76f5205664ade9fceec1c15750e14bd4b97ba7f8c3c5176e844bf"
     },
     {
       "path": "prompts/168-rc4-release-failure-envelope-return.md",
@@ -8481,6 +8656,13 @@
       "sha256": "68c5eb24e225bd4dcaa58836ae0a57d56c3ac982a4219ebdd2633a8b1d01dc10"
     },
     {
+      "path": "prompts/171-rc4-mobile-prompt-scan-toctou-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3881,
+      "sha256": "2a868604e5ef866a798370caa98945d88af2cda2522bb7f0d455f7b1b0773a69"
+    },
+    {
       "path": "prompts/172-rc4-release-single-fd-stdin-return.md",
       "kind": "file",
       "mode": 420,
@@ -8488,11 +8670,25 @@
       "sha256": "1b2c2577ac6db0c25d881c0deafd64bbd4ec715cc5bd8ea6f0225d0c48998c87"
     },
     {
+      "path": "prompts/173-rc4-mobile-rename-exchange-test-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2275,
+      "sha256": "f2469ab091e1cc5be21445f998b71166d8c9ad8f853aaa32ad8249f53fe9a807"
+    },
+    {
       "path": "prompts/173-rc4-release-readback-single-fd-return.md",
       "kind": "file",
       "mode": 420,
       "bytes": 3971,
       "sha256": "d5ce529c8b3ba6bfcc815334fbdfd6aecc7ba1a44ceb4b77cd71b5cfd15218d0"
+    },
+    {
+      "path": "prompts/174-rc4-mobile-root-unreadable-fixture-return.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1694,
+      "sha256": "dfb796489ddb8bc9a7f6cf1691e1bb206a356bccce47a216b6db454b43a464f5"
     },
     {
       "path": "prompts/177-rc4-release-fresh-test-lock-implementation.md",
@@ -8542,6 +8738,13 @@
       "mode": 420,
       "bytes": 8386,
       "sha256": "571c2a200e31688acb28aafb9547fedf94fc1f07344613d54831259bbe9cbb68"
+    },
+    {
+      "path": "prompts/205-ai-supply-activation-refresh.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 6046,
+      "sha256": "f2c6d0c53fc8534b9095484ff2a3bac9d51f56ec25df0eddac91c14bc2f5bb68"
     },
     {
       "path": "prompts/21-ra-contract-review.md",
@@ -10906,8 +11109,8 @@
       "path": "scripts/check-public-tree-privacy.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 10214,
-      "sha256": "3b3eb3dd1ae4ec77ed892aa4e71041798e84e55c0993d1a79ba0437ab18a1ea8"
+      "bytes": 11954,
+      "sha256": "c5b15f23cef5f4e9165a2ea2b93518f7f70272cd6bd91ef8db9d3811e52ab114"
     },
     {
       "path": "scripts/design-archive-manifest.mjs",
@@ -10943,6 +11146,27 @@
       "mode": 420,
       "bytes": 3641,
       "sha256": "937804c536708a2b2c2830137f4495c74ddf570fa5d68886e8c51966b7c109c8"
+    },
+    {
+      "path": "scripts/mobile-install-common.sh",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 7676,
+      "sha256": "cd82a577af518a99cead4d2bc59b0dd50ca39ed0d028e5b5202e1d9a3607387d"
+    },
+    {
+      "path": "scripts/pairing-url-corpus.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 8744,
+      "sha256": "070f3096eef5afa52f9920c7823d3c771b2636ac165b0792a24aa9d44858e439"
+    },
+    {
+      "path": "scripts/pairing-url-fixtures.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 17138,
+      "sha256": "e758dc60c498a23910d03fdf93f39dbc1d7d07332fdec21b912de6523463c342"
     },
     {
       "path": "scripts/post-release-gate.mjs",
@@ -11057,6 +11281,13 @@
       "sha256": "e01280267cc02d1c4c17923fe04b3641b33ef8d2e76b8ba0d1bc2e4f5dae9fbe"
     },
     {
+      "path": "scripts/select-ios-simulator.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2732,
+      "sha256": "8f67dfb813f17cb3b7be61040ea639183201f6ca75418363961546fda06d4d4f"
+    },
+    {
       "path": "scripts/target-change-manifest.mjs",
       "kind": "file",
       "mode": 493,
@@ -11111,6 +11342,27 @@
       "mode": 420,
       "bytes": 85,
       "sha256": "475a7b91ba9f028fc46618c1031c35962fed9d2d9feed57d07c15b86aa8841b0"
+    },
+    {
+      "path": "scripts/test-mobile-installers.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 52829,
+      "sha256": "c286547407bad34c8a29d853ef4a12c0e73d6e37bd799341f9db8b6c7a3a5e90"
+    },
+    {
+      "path": "scripts/test-mobile-release-contract.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 48159,
+      "sha256": "972920c013956bf44c19426d1e0a09dc478aeea57bb526698904fa646f06d2b4"
+    },
+    {
+      "path": "scripts/test-pairing-url-corpus.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 11712,
+      "sha256": "a7376c8fd788dd792b28edd91a260ae4778b960c2c94ab43816240bd784bc4bb"
     },
     {
       "path": "scripts/test-public-text-redaction.mjs",

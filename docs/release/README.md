@@ -12,6 +12,7 @@
 | [filing-cheatsheet.md](filing-cheatsheet.md) | **标识符 + 证书指纹/公钥**(可复用抄表) | 不记审核进度 |
 | [metadata.json](metadata.json) | 三店 listing 字段投影 | 不以商店后台实时状态为准 |
 | [release-profile.yaml](release-profile.yaml) | 机器可读坐标(账号/URL/路径) | 不写密钥 |
+| [version-matrix.md](version-matrix.md) | **版本 SoT**:desktop CLI 与三端壳的版本号/签名/测试/真机证据/可分发性 | 不写设备 ID;不替代过程 SoT |
 | [name-occupancy.md](name-occupancy.md) | 定名前占用核验证据;§0 为占用后现状 | §1–§5 占坑前原文勿当现状 |
 | [data-disclosure-matrix.md](data-disclosure-matrix.md) | 三店隐私表单唯一上游 | 未实现的 T2 行禁止提前填商店 |
 

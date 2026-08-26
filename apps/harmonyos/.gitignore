@@ -1,5 +1,10 @@
 .hvigor/
 .idea/
 oh_modules/
+.ohpm/
+build/
 entry/build/
+entry/.test/
 local.properties
+*.hap
+*.app
