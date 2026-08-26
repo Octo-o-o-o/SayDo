@@ -15,18 +15,18 @@
 
 ## 快速运行
 
-普通用户无需克隆源码。下面是 v0.1.0-rc.10 的发布候选固定 URL；仅当
-[GitHub Release 页面](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.10)
+普通用户无需克隆源码。下面是 v0.1.0-rc.11 的发布候选固定 URL；仅当
+[GitHub Release 页面](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.11)
 已经出现且发布检查全绿后，命令才可用：
 
 ```bash
-npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.10/saydo-cli-0.1.0-rc.10.tgz -- saydo up
+npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.11/saydo-cli-0.1.0-rc.11.tgz -- saydo up
 ```
 
 常用安装：
 
 ```bash
-npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.10/saydo-cli-0.1.0-rc.10.tgz
+npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.11/saydo-cli-0.1.0-rc.11.tgz
 saydo up
 ```
 

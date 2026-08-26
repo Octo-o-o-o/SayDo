@@ -32,7 +32,7 @@ try {
   if (Compare-Object -ReferenceObject $expectedProperties -DifferenceObject $actualProperties) {
     throw "request property set is invalid"
   }
-  if ($request.schemaVersion -ne 1 -or $request.tag -ne "v0.1.0-rc.10") {
+  if ($request.schemaVersion -ne 1 -or $request.tag -ne "v0.1.0-rc.11") {
     throw "request release identity is invalid"
   }
   $expectedUrl = "https://github.com/Octo-o-o-o/SayDo/releases/download/$($request.tag)/saydo-cli-$($request.tag.Substring(1)).tgz"

@@ -1,0 +1,22 @@
+{
+  "schema": "saydo-release-assets/v2",
+  "tag": "v0.1.0-rc.11",
+  "package": "@saydo/cli",
+  "version": "0.1.0-rc.11",
+  "sourceRevision": "09f7fc645679a115ecf97a761120fe3f7d66ef735c8b9ec19f8bbb40f6c20f50",
+  "buildId": "0.1.0-rc.11+09f7fc645679.p1-0-0.c09f7fc645679",
+  "protocolVersion": "1.0.0",
+  "assets": [
+    {
+      "filename": "saydo-cli-0.1.0-rc.11.tgz",
+      "entryCount": 17,
+      "contentDigest": "dbc7f02c244b63eaa28b6e963cbaa9b1af759ef8442117c68a67d02665125502"
+    },
+    {
+      "filename": "SHA256SUMS"
+    },
+    {
+      "filename": "release-metadata.json"
+    }
+  ]
+}
