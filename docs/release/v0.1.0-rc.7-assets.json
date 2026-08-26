@@ -1,0 +1,28 @@
+{
+  "schema": "saydo-release-assets/v1",
+  "tag": "v0.1.0-rc.7",
+  "package": "@saydo/cli",
+  "version": "0.1.0-rc.7",
+  "sourceRevision": "df3ba41e504d183c296e57091f048c195c1a7193343263d091ac23cfdb54cb97",
+  "buildId": "0.1.0-rc.7+df3ba41e504d.p1-0-0.cdf3ba41e504d",
+  "protocolVersion": "1.0.0",
+  "assets": [
+    {
+      "filename": "saydo-cli-0.1.0-rc.7.tgz",
+      "bytes": 1201207,
+      "sha256": "4ada5c1b2f576dcc6b31ab9f5225133afd893ac894f3dfa541f696c895b85011",
+      "npmIntegrity": "sha512-YQiBrZmldWfCICVlfq3RJKI1m5yfa1SKprnZBfYQm7niwwnGopd3+fdGRjKwWbIYTsQz2AbKlfPInXzDEvFg3w==",
+      "entryCount": 17
+    },
+    {
+      "filename": "SHA256SUMS",
+      "bytes": 91,
+      "sha256": "1fd18b29d78b719767251e2afdff6845f9bb1bf4a2f7a8d74b3aa453b8754a5c"
+    },
+    {
+      "filename": "release-metadata.json",
+      "bytes": 588,
+      "sha256": "63c2430da219fa00c87a1f237d3cfe882c01c2ba5520c14c44b254bde2105310"
+    }
+  ]
+}

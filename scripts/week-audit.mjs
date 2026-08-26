@@ -432,7 +432,7 @@ if (mode === "--check-bundle") {
     remediationCommits: remediation.commits
   });
   if (integrity.historyDigest !== sha256Text(historyMaterial)) throw new Error("账本历史物化摘要不一致");
-  if (integrity.expectedPublication?.tag !== "v0.1.0-rc.6") throw new Error("账本 bundle 缺预发布 tag 外部锚");
+  if (integrity.expectedPublication?.tag !== "v0.1.0-rc.7") throw new Error("账本 bundle 缺预发布 tag 外部锚");
   if (
     remediation.schemaVersion !== 1 ||
     remediation.base !== ledger.generatedFrom.rangeEnd ||
@@ -1119,7 +1119,7 @@ const integrityContent =
           ),
           expectedPublication: {
             repository: "Octo-o-o-o/SayDo",
-            tag: "v0.1.0-rc.6",
+            tag: "v0.1.0-rc.7",
             rule: "GitHub tag workflow 对本 bundle 运行 --check-bundle 后构成外部不可移动锚"
           },
           files: {
