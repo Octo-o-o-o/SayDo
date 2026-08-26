@@ -37,11 +37,17 @@
    ```bash
    grep -n '当前批次指针' HANDOFF.md | head -1
    ```
-   2026-08-26 实测仍为 `w54b-wiring`（C1/C2 已入库、C3 未做，**本批未收口**）→ 此门**红**。
-   处置按 204 门 2 原指引：读 `docs/plan/IMPL-PROMPT-16-W54B-CLOSEOUT.md` 头部的
-   「当前不可执行」警告块，逐条实测其五条阻断——**任何一条未解除就上浮 owner 裁决**
-   （w54b 收口 vs 释放 pointer 直接排产本专题，是 owner 的排产决定，不是你的）。
-   不要自行收口 w54b，也不要自行改 pointer。
+   2026-08-26 实测仍为 `w54b-wiring`（账面：C1/C2 已入库、C3 未做）→ 此门**红**。
+   处置：执行 `docs/plan/IMPL-PROMPT-16-W54B-CLOSEOUT.md`（w54b 收口批）。
+   其头部「当前不可执行」的五条阻断已于 2026-08-26 复核**基本解除**：
+   ①RC4 线在途→已收口(rc.12)；②w54b 代码红→已修绿(tier1-executor 154 passed)；
+   ③三份依赖文档不在 main→已并入；④主 worktree 禁令→RC4 语境消失(但主工作区仍有
+   他人在途改动,照旧不碰)；⑤多活跃 worktree→各 rc4 线均已并入 main(worktree 目录
+   残留属清理项,不阻塞)。且实测 C3 代码痕迹已在(console Tier1 组件/observedModel
+   18 处/TaskDetail)——IMPL-16 的判断成立:HANDOFF 的「C3 未做」是记述过时,
+   收口批是**对账+记述纠正+关批**的文档工作,不是写功能。
+   开工前仍照 IMPL-16 §0 逐条坐标核验;若发现与本段复核不符,停下上浮。
+   owner 若明示「跳过收口直接释放 pointer」,以 owner 指令为准。
 3. **门禁绿**：`just ci`，退出码显式核查（`echo $?` 紧跟命令，禁止管道取尾）。
    注意 mobile 线并入后 `ci:node` 新增了 `test-pairing-url-corpus` /
    `test-mobile-installers` / `test-mobile-release-contract` 三项，2026-08-26 已全绿。
