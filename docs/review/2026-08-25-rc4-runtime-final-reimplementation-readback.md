@@ -491,3 +491,71 @@ privacy 线自身扫描一直是 `hits=0`，问题都出在我们这条线：
 工作树 clean。main 未在任何 worktree 检出，fast-forward 安全。
 **尚未执行**：并入 main、push 私有归档、生成公开快照、打 tag、GitHub Release、
 官网部署、三桌面快速启动、移动真机。push 及其之后各项需 owner 授权。
+
+## 13. release 线合并、公开仓 CI 全绿与 tag 发布受阻
+
+### RC4 三条线全部收口
+
+`aa3fe34` 并入 release 线（RC4 最后一条）。该线含发布脚本的**凭证泄漏与证据脱敏**边界修复，
+不并入即等于用未修的脚本执行公开快照发布。合并后 prompt 204 的 §0 启用门
+（`git cherry main codex/rc4-release-second-red-rebuild` 的 `+` 计数）由 **8 → 0**。
+
+三处冲突均按语义判断解决，不是选边：
+
+| 冲突 | 处置 |
+|---|---|
+| `scripts/week-audit.mjs` | 两侧改进**都保留**：privacy 的 `safeExcerpt` 共享模块化 + release 的 `assertPublicationExactSet` 等发布安全函数。排除清单取 privacy 的**动态读权威源**而非 release 的独立常量——两处定义迟早漂移，而这份清单决定"哪些路径不进公开树" |
+| 两个 week-audit JSON | 是**生成物**，冲突只是两侧快照 digest 不同。取规则描述更精确的 release 版本，合并后按真实树重新生成 |
+
+### 公开仓 CI 全绿（rc.2 / rc.3 之后首次）
+
+```
+success  node                            success  distribution (windows-latest)
+success  distribution (macos-latest)     success  distribution (ubuntu-latest)
+success  python                          success  console fresh-origin e2e
+```
+
+达到这个结果前修掉两个问题，**都是本会话自己造成的**：
+
+- **`公开发布树内容漂移`**：先生成 week-audit 证据、再改被证据记录的文档，改完未重跑。
+  此错**犯了两次**——第二次就发生在写完"必须在提交前重跑 `--write`"这句 commit message 之后。
+  纪律固化为：**所有代码改动落定后，最后一步才生成证据**。
+- **`ACL readback missing owner SID`**：A5 修复的实现缺陷，**只有 CI 能发现**。
+  SDDL 把知名 SID 写成两字母缩写（`FORBIDDEN_TRUSTEES` 正则本身就是那张缩写表，
+  线索一直在代码里），故"找不到完整 SID 字面量"不等于"DACL 没授权给 owner"。
+  owner 的真实保证来自上一步 `sidToString(verifyOwner)` 的精确比对，那步在 CI 上是通过的。
+  改为校验 DACL 段存在 allow ACE，并把禁止 trustee 判定收敛到 DACL 段；
+  `D:P`(protected) 与"无 world/users ACE"两道硬校验不变，权限边界未放宽。
+
+> **真机绿 ≠ CI 绿。** Windows 真机（普通用户账户）上 platform 86 / verify:distribution
+> 全绿，CI runner 的账户环境却稳定复现 ACL 误报。这类差异本地无法覆盖——
+> 先推 main 不打 tag 的代价只是多推一次，收益是在不可移动的 tag 之前发现它。
+
+### tag 发布受阻于新增的安全门（待 owner 处理）
+
+`v0.1.0-rc.4` 发布被 `release-tag-guard` 拦下：
+
+```
+公开仓缺少覆盖 v0.1.0-rc.4 的 active tag ruleset（无 bypass、禁止 delete 与 update）
+```
+
+实测公开仓**当前无任何 ruleset**。该 guard 由 release 线的 `3bafd53` 引入，
+是刚才那次合并才进入 main 的**新门禁**——rc.2 / rc.3 打 tag 时它尚不存在，故当时未被拦。
+
+这是正确的新增保护：从服务端强制 tag 不可删除 / 不可移动，
+把"rc 标签永不移动"从约定变成机制。需 owner 在 GitHub 创建 tag ruleset：
+
+| 项 | 要求（`evaluateActiveTagRuleset` 逐条校验） |
+|---|---|
+| Target | Tag |
+| Enforcement | Active |
+| Bypass list | **必须为空** |
+| Ref name include | 覆盖 `v0.1.0-rc.4`（如 `refs/tags/v*`） |
+| Rules | 同时含 **Restrict deletions** 与 **Restrict updates** |
+
+### 当前位置
+
+归档仓 `41dc82e`、公开仓 main `638f4f6`（快照），**tag 未打**。
+待 ruleset 就绪后重跑 `publish-public-snapshot.sh public v0.1.0-rc.4 <sha>`，
+该步会重新生成快照并与 tag 一次 atomic push，随后触发 `release.yml`
+（比 `ci.yml` 更严：快照格式硬校验 + tag 唯一性 + ruleset 复核 + release quality）。
