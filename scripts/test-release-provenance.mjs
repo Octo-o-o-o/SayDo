@@ -185,22 +185,20 @@ function deploymentId(project, environment) {
 
 function sampleManifest(overrides = {}) {
   return buildTrackedReleaseAssetManifest({
-    tag: "v0.1.0-rc.7",
+    tag: "v0.1.0-rc.8",
     packageName: "@saydo/cli",
-    version: "0.1.0-rc.7",
+    version: "0.1.0-rc.8",
     sourceRevision: sha("a"),
-    buildId: `0.1.0-rc.7+${"a".repeat(12)}.test`,
+    buildId: `0.1.0-rc.8+${"a".repeat(12)}.test`,
     protocolVersion: "1.0.0",
     assets: [
       {
-        filename: "saydo-cli-0.1.0-rc.7.tgz",
-        bytes: 12,
-        sha256: sha("b"),
-        npmIntegrity: "sha512-abc",
-        entryCount: 4
+        filename: "saydo-cli-0.1.0-rc.8.tgz",
+        entryCount: 4,
+        contentDigest: sha("b")
       },
-      { filename: "SHA256SUMS", bytes: 80, sha256: sha("c") },
-      { filename: "release-metadata.json", bytes: 40, sha256: sha("d") }
+      { filename: "SHA256SUMS" },
+      { filename: "release-metadata.json" }
     ],
     ...overrides
   });
@@ -231,15 +229,31 @@ async function testAssetManifest() {
   const manifest = sampleManifest();
   parseTrackedReleaseAssetManifest(serializeReleaseAssetManifest(manifest));
   assertAssetsMatchTrackedManifest(manifest.assets, manifest);
-  const drifted = structuredClone(manifest.assets);
-  drifted[0] = { ...drifted[0], bytes: drifted[0].bytes + 1 };
-  expectThrow("asset bytes mismatch", () => assertAssetsMatchTrackedManifest(drifted, manifest));
+  // v2 核心语义回归锚:实测记录里的机器相关字段(bytes/sha256/npmIntegrity 属包装层,
+  // 随 node patch/平台漂移——2026-08-26 实测 7098 字节差全在 gzip 层)不参与跨机绑定;
+  // 只要内容摘要与 entryCount 一致,必须通过。
+  const machineVariant = [
+    { ...manifest.assets[0], bytes: 999999, sha256: sha("e"), npmIntegrity: "sha512-other" },
+    { ...manifest.assets[1], bytes: 80, sha256: sha("c") },
+    { ...manifest.assets[2], bytes: 40, sha256: sha("d") }
+  ];
+  assertAssetsMatchTrackedManifest(machineVariant, manifest);
+  // 内容层漂移必须拒绝:contentDigest 与 entryCount 是跨机绑定的主体。
+  const contentDrift = structuredClone(manifest.assets);
+  contentDrift[0] = { ...contentDrift[0], contentDigest: sha("f") };
+  expectThrow("asset contentDigest mismatch", () => assertAssetsMatchTrackedManifest(contentDrift, manifest));
+  const entryDrift = structuredClone(manifest.assets);
+  entryDrift[0] = { ...entryDrift[0], entryCount: entryDrift[0].entryCount + 1 };
+  expectThrow("asset entryCount mismatch", () => assertAssetsMatchTrackedManifest(entryDrift, manifest));
   const extra = JSON.parse(serializeReleaseAssetManifest(manifest));
   extra.note = "nope";
   expectThrow("tracked extra field", () => parseTrackedReleaseAssetManifest(JSON.stringify(extra)));
-  const noIntegrity = JSON.parse(serializeReleaseAssetManifest(manifest));
-  delete noIntegrity.assets[0].npmIntegrity;
-  expectThrow("tgz missing npmIntegrity", () => parseTrackedReleaseAssetManifest(JSON.stringify(noIntegrity)));
+  const noDigest = JSON.parse(serializeReleaseAssetManifest(manifest));
+  delete noDigest.assets[0].contentDigest;
+  expectThrow("tgz missing contentDigest", () => parseTrackedReleaseAssetManifest(JSON.stringify(noDigest)));
+  const machineFieldInTracked = JSON.parse(serializeReleaseAssetManifest(manifest));
+  machineFieldInTracked.assets[1].sha256 = sha("c");
+  expectThrow("tracked manifest 不得含机器相关字段", () => parseTrackedReleaseAssetManifest(JSON.stringify(machineFieldInTracked)));
   const usage = spawnSync(process.execPath, [join(scripts, "build-release-artifacts.mjs")], { encoding: "utf8" });
   if (usage.status !== 2 || !usage.stderr.includes("--freeze") || !usage.stderr.includes("--check") || !usage.stderr.includes("--write")) {
     throw new Error(`build-release-artifacts 用法未包含三模式:${JSON.stringify({ status: usage.status, stderr: usage.stderr })}`);
@@ -247,7 +261,7 @@ async function testAssetManifest() {
 }
 
 async function testUniqueness() {
-  const tag = "v0.1.0-rc.7";
+  const tag = "v0.1.0-rc.8";
   const page1 = Array.from({ length: 100 }, (_, index) => run("v0.1.0-rc.3", sha("1"), { id: index + 1 }));
   const page2 = [
     run("v0.0.9", sha("2"), { id: 201 }),
@@ -319,10 +333,10 @@ function qualifyingRuleset(overrides = {}) {
 }
 
 function testRuleset() {
-  const tag = "v0.1.0-rc.7";
+  const tag = "v0.1.0-rc.8";
   evaluateActiveTagRuleset([qualifyingRuleset()], tag);
-  evaluateActiveTagRuleset([qualifyingRuleset({ conditions: { ref_name: { include: ["refs/tags/v0.1.0-rc.7"], exclude: [] } } })], tag);
-  if (!githubRefPatternMatches("refs/tags/v*", "refs/tags/v0.1.0-rc.7")) throw new Error("v* 应覆盖 rc.5");
+  evaluateActiveTagRuleset([qualifyingRuleset({ conditions: { ref_name: { include: ["refs/tags/v0.1.0-rc.8"], exclude: [] } } })], tag);
+  if (!githubRefPatternMatches("refs/tags/v*", "refs/tags/v0.1.0-rc.8")) throw new Error("v* 应覆盖 rc.5");
   expectThrow("missing deletion", () => evaluateActiveTagRuleset([qualifyingRuleset({ rules: [{ type: "update" }] })], tag));
   expectThrow("missing update", () => evaluateActiveTagRuleset([qualifyingRuleset({ rules: [{ type: "deletion" }] })], tag));
   expectThrow("bypass", () => evaluateActiveTagRuleset([qualifyingRuleset({ bypass_actors: [{ actor_id: 1, actor_type: "OrganizationAdmin" }] })], tag));
@@ -330,7 +344,7 @@ function testRuleset() {
   expectThrow("evaluate mode", () => evaluateActiveTagRuleset([qualifyingRuleset({ enforcement: "evaluate" })], tag));
   expectThrow("exclude tag", () =>
     evaluateActiveTagRuleset(
-      [qualifyingRuleset({ conditions: { ref_name: { include: ["refs/tags/v*"], exclude: ["refs/tags/v0.1.0-rc.7"] } } })],
+      [qualifyingRuleset({ conditions: { ref_name: { include: ["refs/tags/v*"], exclude: ["refs/tags/v0.1.0-rc.8"] } } })],
       tag
     )
   );
@@ -340,9 +354,9 @@ function testRuleset() {
       tag
     )
   );
-  expectThrow("~ALL unsupported", () => githubRefPatternMatches("~ALL", "refs/tags/v0.1.0-rc.7"));
-  expectThrow("character class unsupported", () => githubRefPatternMatches("refs/tags/v[0-9]*", "refs/tags/v0.1.0-rc.7"));
-  expectThrow("double star unsupported", () => githubRefPatternMatches("refs/tags/**", "refs/tags/v0.1.0-rc.7"));
+  expectThrow("~ALL unsupported", () => githubRefPatternMatches("~ALL", "refs/tags/v0.1.0-rc.8"));
+  expectThrow("character class unsupported", () => githubRefPatternMatches("refs/tags/v[0-9]*", "refs/tags/v0.1.0-rc.8"));
+  expectThrow("double star unsupported", () => githubRefPatternMatches("refs/tags/**", "refs/tags/v0.1.0-rc.8"));
   expectThrow("~ALL ruleset", () =>
     evaluateActiveTagRuleset([qualifyingRuleset({ conditions: { ref_name: { include: ["~ALL"], exclude: [] } } })], tag)
   );
@@ -760,21 +774,21 @@ function deploymentRecord({ project, environment, branch, publicMain, url, extra
 }
 
 function currentAvailabilityBody() {
-  return "v0.1.0-rc.7 固定 URL 已由不可变 GitHub Release immutable v0.1.0-rc.7 GitHub Release https://saydo.octoooo.com";
+  return "v0.1.0-rc.8 固定 URL 已由不可变 GitHub Release immutable v0.1.0-rc.8 GitHub Release https://saydo.octoooo.com";
 }
 
 const officialPagesFixture = [
-  { project: "saydo", host: "saydo.octoooo.com", url: "https://saydo.octoooo.com/", marker: "v0.1.0-rc.7 固定 URL 已由不可变 GitHub Release" },
+  { project: "saydo", host: "saydo.octoooo.com", url: "https://saydo.octoooo.com/", marker: "v0.1.0-rc.8 固定 URL 已由不可变 GitHub Release" },
   { project: "saydo-link", host: "link.saydo.octoooo.com", url: "https://link.saydo.octoooo.com/", marker: "https://saydo.octoooo.com" }
 ];
 
 
 async function testDeployStateMachine() {
   const sites = [
-    { project: "saydo", directory: "deploy/saydo-octoooo-com", previewBranch: "preview-v0.1.0-rc.7", productionBranch: "main" },
-    { project: "saydo-link", directory: "deploy/link-saydo-octoooo-com", previewBranch: "preview-v0.1.0-rc.7", productionBranch: "main" }
+    { project: "saydo", directory: "deploy/saydo-octoooo-com", previewBranch: "preview-v0.1.0-rc.8", productionBranch: "main" },
+    { project: "saydo-link", directory: "deploy/link-saydo-octoooo-com", previewBranch: "preview-v0.1.0-rc.8", productionBranch: "main" }
   ];
-  const seed = { release: { tag: "v0.1.0-rc.7" }, publicMain: sha("1").slice(0, 40), publicCi: { workflowRunId: 9 } };
+  const seed = { release: { tag: "v0.1.0-rc.8" }, publicMain: sha("1").slice(0, 40), publicCi: { workflowRunId: 9 } };
 
   async function runCase(name, fail) {
     const handle = makeFreshLease();
@@ -798,7 +812,7 @@ async function testDeployStateMachine() {
             },
             listDeployments: async ({ project, environment }) => {
               calls.push(["listDeployments", project, environment]);
-              const branch = environment === "preview" ? "preview-v0.1.0-rc.7" : "main";
+              const branch = environment === "preview" ? "preview-v0.1.0-rc.8" : "main";
               return [
                 deploymentRecord({
                   project,
@@ -926,8 +940,8 @@ async function testDeployStateMachine() {
   if (
     JSON.stringify(wranglerOrder) !==
     JSON.stringify([
-      "preview:saydo:preview-v0.1.0-rc.7",
-      "preview:saydo-link:preview-v0.1.0-rc.7",
+      "preview:saydo:preview-v0.1.0-rc.8",
+      "preview:saydo-link:preview-v0.1.0-rc.8",
       "production:saydo:main",
       "production:saydo-link:main"
     ])
@@ -1079,7 +1093,7 @@ async function testDeployStateMachine() {
             },
             listDeployments: async ({ project, environment }) => {
               calls.push(["listDeployments", project, environment]);
-              const branch = environment === "preview" ? "preview-v0.1.0-rc.7" : "main";
+              const branch = environment === "preview" ? "preview-v0.1.0-rc.8" : "main";
               return [
                 deploymentRecord({
                   project,
@@ -1175,7 +1189,7 @@ async function testDeployStateMachine() {
   });
   await assertRejectedRecovery("deployment id 漂移", recoverySnapshot("audit_pending"), {
     listDeployments: async ({ project, environment }) => {
-      const branch = environment === "preview" ? "preview-v0.1.0-rc.7" : "main";
+      const branch = environment === "preview" ? "preview-v0.1.0-rc.8" : "main";
       return [
         deploymentRecord({
           project,
@@ -1280,7 +1294,7 @@ async function testDeployStateMachine() {
           },
           listDeployments: async ({ project, environment }) => {
             calls.push(["listDeployments", project, environment]);
-            const branch = environment === "preview" ? "preview-v0.1.0-rc.7" : "main";
+            const branch = environment === "preview" ? "preview-v0.1.0-rc.8" : "main";
             return [
               deploymentRecord({
                 project,
@@ -1482,7 +1496,7 @@ async function testDeployStateMachine() {
           sites,
           wrangler: async (req) => `Deployed to ${previewUrl(req.project)}`,
           listDeployments: async ({ project, environment }) => {
-            const branch = environment === "preview" ? "preview-v0.1.0-rc.7" : "main";
+            const branch = environment === "preview" ? "preview-v0.1.0-rc.8" : "main";
             return [
               deploymentRecord({
                 project,
@@ -1545,7 +1559,7 @@ async function testDeployStateMachine() {
             },
             listDeployments: async ({ project, environment }) => {
               calls.push(["listDeployments"]);
-              const branch = environment === "preview" ? "preview-v0.1.0-rc.7" : "main";
+              const branch = environment === "preview" ? "preview-v0.1.0-rc.8" : "main";
               return [
                 deploymentRecord({
                   project,
@@ -1580,7 +1594,7 @@ async function testDeployStateMachine() {
 
     const selectedAttack = await runFreshAttack("fresh selected Bearer id", {
       listDeployments: async ({ project, environment }) => {
-        const branch = environment === "preview" ? "preview-v0.1.0-rc.7" : "main";
+        const branch = environment === "preview" ? "preview-v0.1.0-rc.8" : "main";
         const rec = deploymentRecord({
           project,
           environment,
@@ -1661,7 +1675,7 @@ async function testDeployStateMachine() {
 
     const recoverSelected = await runRecovery("recovery selected Bearer id", recoverySnapshot("audit_pending"), {
       listDeployments: async ({ project, environment }) => {
-        const branch = environment === "preview" ? "preview-v0.1.0-rc.7" : "main";
+        const branch = environment === "preview" ? "preview-v0.1.0-rc.8" : "main";
         const rec = deploymentRecord({
           project,
           environment,
@@ -1704,7 +1718,7 @@ async function testDeployStateMachine() {
               return `Deployed to ${previewUrl(req.project)}`;
             },
             listDeployments: async ({ project, environment }) => {
-              const branch = environment === "preview" ? "preview-v0.1.0-rc.7" : "main";
+              const branch = environment === "preview" ? "preview-v0.1.0-rc.8" : "main";
               return [
                 deploymentRecord({
                   project,
@@ -1888,14 +1902,14 @@ try {
   try {
     const extraReturned = await runPagesDeployStateMachine({
       evidenceSeed: {
-        release: { tag: "v0.1.0-rc.7", unknownRelease: extraLeak },
+        release: { tag: "v0.1.0-rc.8", unknownRelease: extraLeak },
         publicMain: seed.publicMain,
         publicCi: { workflowRunId: 9, unknownCi: extraLeak }
       },
       sites,
       wrangler: async (req) => `Deployed to ${previewUrl(req.project)}`,
       listDeployments: async ({ project, environment }) => {
-        const branch = environment === "preview" ? "preview-v0.1.0-rc.7" : "main";
+        const branch = environment === "preview" ? "preview-v0.1.0-rc.8" : "main";
         return [
           deploymentRecord({
             project,
@@ -1936,7 +1950,7 @@ try {
     const projected = persistClaimedDeployEvidence(extraRootHandle.lease, {
       schemaVersion: 1,
       status: "started",
-      release: { tag: "v0.1.0-rc.7", unknownRelease: extraLeak },
+      release: { tag: "v0.1.0-rc.8", unknownRelease: extraLeak },
       publicMain: seed.publicMain,
       publicCi: { workflowRunId: 9, unknownCi: extraLeak },
       extraRoot: extraLeak,
@@ -1978,7 +1992,7 @@ try {
   const getterEvidence = {
     schemaVersion: 1,
     status: "started",
-    release: { tag: "v0.1.0-rc.7" },
+    release: { tag: "v0.1.0-rc.8" },
     publicMain: seed.publicMain,
     publicCi: { workflowRunId: 9 },
     sites: sites.map((site) => ({
@@ -2083,7 +2097,7 @@ try {
     {
       schemaVersion: 1,
       status: "started",
-      release: { tag: "v0.1.0-rc.7" },
+      release: { tag: "v0.1.0-rc.8" },
       publicMain: seed.publicMain,
       publicCi: { workflowRunId: 9 },
       sites: getterEvidence.sites,
@@ -2127,7 +2141,7 @@ try {
   const started = {
     schemaVersion: 1,
     status: "started",
-    release: { tag: "v0.1.0-rc.7" },
+    release: { tag: "v0.1.0-rc.8" },
     publicMain: seed.publicMain,
     publicCi: { workflowRunId: 9 },
     sites: cleanSites,
@@ -2137,7 +2151,7 @@ try {
   };
   const illegal = "既有部署证据非法";
   expectStableReject("revoked root", () => projectDurableEvidence(revokedProxy(started)), illegal);
-  expectStableReject("revoked release", () => projectDurableEvidence({ ...started, release: revokedProxy({ tag: "v0.1.0-rc.7" }) }), illegal);
+  expectStableReject("revoked release", () => projectDurableEvidence({ ...started, release: revokedProxy({ tag: "v0.1.0-rc.8" }) }), illegal);
   expectStableReject("revoked publicCi", () => projectDurableEvidence({ ...started, publicCi: revokedProxy({ workflowRunId: 9 }) }), illegal);
   expectStableReject("revoked site", () => projectDurableEvidence({ ...started, sites: [revokedProxy(started.sites[0]), started.sites[1]] }), illegal);
   expectStableReject(
@@ -2167,7 +2181,7 @@ try {
       project_name: "saydo",
       environment: "preview",
       url: previewUrl("saydo"),
-      branch: "preview-v0.1.0-rc.7",
+      branch: "preview-v0.1.0-rc.8",
       commit_hash: seed.publicMain,
       commit_dirty: false,
       latest_stage_status: "success"
@@ -2184,7 +2198,7 @@ try {
   );
   expectStableReject(
     "revoked assets",
-    () => projectDurableEvidence({ ...started, release: { tag: "v0.1.0-rc.7", assets: [revokedProxy({ name: "x", size: 1 })] } }),
+    () => projectDurableEvidence({ ...started, release: { tag: "v0.1.0-rc.8", assets: [revokedProxy({ name: "x", size: 1 })] } }),
     illegal
   );
   expectStableReject(
@@ -2266,10 +2280,10 @@ try {
 
 async function testCloudflareBinding() {
   const sites = [
-    { project: "saydo", directory: "deploy/saydo-octoooo-com", previewBranch: "preview-v0.1.0-rc.7", productionBranch: "main" },
-    { project: "saydo-link", directory: "deploy/link-saydo-octoooo-com", previewBranch: "preview-v0.1.0-rc.7", productionBranch: "main" }
+    { project: "saydo", directory: "deploy/saydo-octoooo-com", previewBranch: "preview-v0.1.0-rc.8", productionBranch: "main" },
+    { project: "saydo-link", directory: "deploy/link-saydo-octoooo-com", previewBranch: "preview-v0.1.0-rc.8", productionBranch: "main" }
   ];
-  const seed = { release: { tag: "v0.1.0-rc.7" }, publicMain: sha("1").slice(0, 40), publicCi: { workflowRunId: 9 } };
+  const seed = { release: { tag: "v0.1.0-rc.8" }, publicMain: sha("1").slice(0, 40), publicCi: { workflowRunId: 9 } };
   if (!isSafePagesDeploymentId(PAGES_IDS.wranglerFixture)) {
     throw new Error("合法 Pages UUID fixture 被拒绝");
   }
@@ -2335,7 +2349,7 @@ async function testCloudflareBinding() {
           sites,
           wrangler: async (req) => `Deployed to ${previewUrl(req.project)}`,
           listDeployments: async ({ project, environment }) => {
-            const branch = environment === "preview" ? "preview-v0.1.0-rc.7" : "main";
+            const branch = environment === "preview" ? "preview-v0.1.0-rc.8" : "main";
             return [
               deploymentRecord({
                 project,
@@ -2372,7 +2386,7 @@ async function testCloudflareBinding() {
       deploymentRecord({
         project,
         environment,
-        branch: environment === "preview" ? "preview-v0.1.0-rc.7" : "main",
+        branch: environment === "preview" ? "preview-v0.1.0-rc.8" : "main",
         publicMain: seed.publicMain,
         url: previewUrl(project),
         extras: { project_name: "other" }
@@ -2384,7 +2398,7 @@ async function testCloudflareBinding() {
       deploymentRecord({
         project,
         environment,
-        branch: environment === "preview" ? "preview-v0.1.0-rc.7" : "main",
+        branch: environment === "preview" ? "preview-v0.1.0-rc.8" : "main",
         publicMain: seed.publicMain,
         url: previewUrl(project),
         extras: { commit_hash: "0".repeat(40) }
@@ -2396,7 +2410,7 @@ async function testCloudflareBinding() {
       deploymentRecord({
         project,
         environment,
-        branch: environment === "preview" ? "preview-v0.1.0-rc.7" : "main",
+        branch: environment === "preview" ? "preview-v0.1.0-rc.8" : "main",
         publicMain: seed.publicMain,
         url: previewUrl(project),
         extras: { branch: "wrong" }
@@ -2408,7 +2422,7 @@ async function testCloudflareBinding() {
       deploymentRecord({
         project,
         environment,
-        branch: environment === "preview" ? "preview-v0.1.0-rc.7" : "main",
+        branch: environment === "preview" ? "preview-v0.1.0-rc.8" : "main",
         publicMain: seed.publicMain,
         url: previewUrl(project),
         extras: { environment: environment === "preview" ? "production" : "preview" }
@@ -2420,7 +2434,7 @@ async function testCloudflareBinding() {
       deploymentRecord({
         project,
         environment,
-        branch: environment === "preview" ? "preview-v0.1.0-rc.7" : "main",
+        branch: environment === "preview" ? "preview-v0.1.0-rc.8" : "main",
         publicMain: seed.publicMain,
         url: previewUrl(project),
         extras: { commit_dirty: true }
@@ -2432,7 +2446,7 @@ async function testCloudflareBinding() {
       deploymentRecord({
         project,
         environment,
-        branch: environment === "preview" ? "preview-v0.1.0-rc.7" : "main",
+        branch: environment === "preview" ? "preview-v0.1.0-rc.8" : "main",
         publicMain: seed.publicMain,
         url: previewUrl(project),
         extras: { stageStatus: "failure" }
@@ -2444,7 +2458,7 @@ async function testCloudflareBinding() {
       const rec = deploymentRecord({
         project,
         environment,
-        branch: environment === "preview" ? "preview-v0.1.0-rc.7" : "main",
+        branch: environment === "preview" ? "preview-v0.1.0-rc.8" : "main",
         publicMain: seed.publicMain,
         url: previewUrl(project)
       });
@@ -3167,7 +3181,7 @@ async function testFinalIndependentReviewRegressions() {
   const durable = {
     schemaVersion: 1,
     status: "started",
-    release: { tag: "v0.1.0-rc.7" },
+    release: { tag: "v0.1.0-rc.8" },
     publicMain,
     publicCi: { workflowRunId: 9 },
     sites: [
@@ -3175,7 +3189,7 @@ async function testFinalIndependentReviewRegressions() {
         project: "saydo",
         directory: "deploy/saydo-octoooo-com",
         planned: {
-          previewBranch: "preview-v0.1.0-rc.7",
+          previewBranch: "preview-v0.1.0-rc.8",
           productionBranch: "main",
           canonicalHost: canonicalHost("saydo")
         },
@@ -3186,7 +3200,7 @@ async function testFinalIndependentReviewRegressions() {
         project: "saydo-link",
         directory: "deploy/link-saydo-octoooo-com",
         planned: {
-          previewBranch: "preview-v0.1.0-rc.7",
+          previewBranch: "preview-v0.1.0-rc.8",
           productionBranch: "main",
           canonicalHost: canonicalHost("saydo-link")
         },
@@ -3505,10 +3519,10 @@ async function testFinalIndependentReviewRegressions() {
   }
 
   const smSites = [
-    { project: "saydo", directory: "deploy/saydo-octoooo-com", previewBranch: "preview-v0.1.0-rc.7", productionBranch: "main" },
-    { project: "saydo-link", directory: "deploy/link-saydo-octoooo-com", previewBranch: "preview-v0.1.0-rc.7", productionBranch: "main" }
+    { project: "saydo", directory: "deploy/saydo-octoooo-com", previewBranch: "preview-v0.1.0-rc.8", productionBranch: "main" },
+    { project: "saydo-link", directory: "deploy/link-saydo-octoooo-com", previewBranch: "preview-v0.1.0-rc.8", productionBranch: "main" }
   ];
-  const smSeed = { release: { tag: "v0.1.0-rc.7" }, publicMain, publicCi: { workflowRunId: 9 } };
+  const smSeed = { release: { tag: "v0.1.0-rc.8" }, publicMain, publicCi: { workflowRunId: 9 } };
   const attackMark = "UNIQUE_ATTACK_TEXT";
   const persistFailedProxy = new Proxy(new Error(attackMark), {
     get(target, property) {
@@ -3598,7 +3612,7 @@ async function testFinalIndependentReviewRegressions() {
         deploymentRecord({
           project,
           environment,
-          branch: environment === "preview" ? "preview-v0.1.0-rc.7" : "main",
+          branch: environment === "preview" ? "preview-v0.1.0-rc.8" : "main",
           publicMain,
           url: previewUrl(project)
         })

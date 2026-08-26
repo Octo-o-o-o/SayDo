@@ -9,7 +9,14 @@ import { fileURLToPath } from "node:url";
 
 import { writeFileAtomic } from "./release-file-transaction.mjs";
 
-export const RELEASE_ASSET_SCHEMA = "saydo-release-assets/v1";
+// v2(2026-08-26,owner 裁决「来源绑定」):tracked manifest 只承载**跨机器成立**的字段。
+// 实测定界:同一 sourceRevision 在 macOS-arm64/node22.23.1 与 linux-x64/node22.23.2 下,
+// tgz 内部 17 个文件逐字节相同,而 tgz 外壳差 7098 字节——差异全部在 npm pack 的
+// tar/gzip 包装层(随 node patch 漂移)。故 tgz 绑定「内容摘要」(解包后逐文件 sha256 的
+// 规范化聚合,机器无关且字节级强度);外壳 sha256/bytes/npmIntegrity 由 CI 构建的
+// SHA256SUMS/release-metadata.json 随 Release 发布并在下载侧做自洽校验,不进跨机合同。
+// SHA256SUMS 与 release-metadata.json 因内嵌外壳哈希,本身机器相关,只绑文件名存在性。
+export const RELEASE_ASSET_SCHEMA = "saydo-release-assets/v2";
 const MANIFEST_TOP_KEYS = [
   "schema",
   "tag",
@@ -20,8 +27,8 @@ const MANIFEST_TOP_KEYS = [
   "protocolVersion",
   "assets"
 ];
-const ASSET_COMMON_KEYS = ["filename", "bytes", "sha256"];
-const TGZ_EXTRA_KEYS = ["npmIntegrity", "entryCount"];
+const ASSET_COMMON_KEYS = ["filename"];
+const TGZ_EXTRA_KEYS = ["entryCount", "contentDigest"];
 
 export function releaseAssetExactSet(version) {
   return [`saydo-cli-${version}.tgz`, "SHA256SUMS", "release-metadata.json"];
@@ -67,6 +74,41 @@ function tarballEntryCount(buffer, tarballPath) {
   }
 }
 
+function walkFilesSorted(root, prefix = "") {
+  return readdirSync(root, { withFileTypes: true })
+    .flatMap((entry) => {
+      const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) return walkFilesSorted(join(root, entry.name), relative);
+      invariant(entry.isFile(), `tarball 含非普通文件:${relative}`);
+      return [relative];
+    })
+    .sort();
+}
+
+/** tgz 的跨机内容摘要:解包后按路径排序,对每个文件 `sha256(bytes)  path` 逐行聚合再 sha256。
+ *  只看文件内容与路径,不看 tar 头(mode/mtime/uid)与 gzip 层——那些随环境漂移。 */
+export function tarballContentDigest(bytes, tarballPath) {
+  let path = tarballPath;
+  let scratch;
+  if (!path) {
+    scratch = mkdtempSync(join(tmpdir(), "saydo-asset-"));
+    path = join(scratch, "package.tgz");
+    writeFileSync(path, bytes);
+  }
+  const extractDir = mkdtempSync(join(tmpdir(), "saydo-asset-x-"));
+  try {
+    execFileSync("tar", ["-xzf", path, "-C", extractDir], { stdio: ["ignore", "ignore", "pipe"] });
+    const lines = walkFilesSorted(extractDir).map(
+      (relative) => `${sha256Bytes(readFileSync(join(extractDir, relative)))}  ${relative}\n`
+    );
+    invariant(lines.length > 0, "tarball 解包为空");
+    return sha256Bytes(Buffer.from(lines.join("")));
+  } finally {
+    rmSync(extractDir, { recursive: true, force: true });
+    if (scratch) rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
 export function inspectAssetBytes(filename, bytes, options = {}) {
   const buffer = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
   const record = {
@@ -77,6 +119,7 @@ export function inspectAssetBytes(filename, bytes, options = {}) {
   if (filename.endsWith(".tgz")) {
     record.npmIntegrity = `sha512-${createHash("sha512").update(buffer).digest("base64")}`;
     record.entryCount = tarballEntryCount(buffer, options.tarballPath);
+    record.contentDigest = tarballContentDigest(buffer, options.tarballPath);
   }
   return record;
 }
@@ -101,9 +144,14 @@ function assertPlainObject(value, message) {
   invariant(value !== null && typeof value === "object" && !Array.isArray(value), message);
 }
 
-function assertExactKeys(value, allowed, message) {
+function assertExactKeys(value, allowed, message, options = {}) {
   const keys = Object.keys(value);
-  invariant(keys.every((key) => allowed.includes(key)) && allowed.every((key) => keys.includes(key)), message);
+  const noUnknown = keys.every((key) => allowed.includes(key));
+  if (options.allowMissing === true) {
+    invariant(noUnknown, message);
+    return;
+  }
+  invariant(noUnknown && allowed.every((key) => keys.includes(key)), message);
 }
 
 export function buildTrackedReleaseAssetManifest({
@@ -128,30 +176,26 @@ export function buildTrackedReleaseAssetManifest({
     JSON.stringify([...byName.keys()].sort()) === JSON.stringify([...expected].sort()),
     `tracked manifest exact-set 漂移:${JSON.stringify({ expected, actual: [...byName.keys()] })}`
   );
+  // 输入既可能是 tracked 文件里的 v2 资产,也可能是 inspectAssetBytes 的实测记录
+  // (后者额外携带 bytes/sha256/npmIntegrity 等机器相关字段,用于同机自洽校验)。
+  // 固化时只取跨机字段;机器相关字段绝不进入 tracked manifest。
+  const KNOWN_INSPECT_KEYS = ["filename", "bytes", "sha256", "npmIntegrity", "entryCount", "contentDigest"];
   const ordered = expected.map((filename) => {
     const asset = byName.get(filename);
     assertPlainObject(asset, `asset 非法:${filename}`);
+    assertExactKeys(asset, KNOWN_INSPECT_KEYS, `asset 含未知字段:${filename}`, { allowMissing: true });
     invariant(asset.filename === filename, `asset filename 不一致:${filename}`);
-    invariant(Number.isInteger(asset.bytes) && asset.bytes > 0, `asset bytes 非法:${filename}`);
-    invariant(isSha256(asset.sha256), `asset sha256 非法:${filename}`);
     if (filename.endsWith(".tgz")) {
-      assertExactKeys(asset, [...ASSET_COMMON_KEYS, ...TGZ_EXTRA_KEYS], `tgz asset 字段集非法:${filename}`);
-      invariant(typeof asset.npmIntegrity === "string" && asset.npmIntegrity.startsWith("sha512-"), `npmIntegrity 非法:${filename}`);
       invariant(Number.isInteger(asset.entryCount) && asset.entryCount > 0, `entryCount 非法:${filename}`);
+      invariant(isSha256(asset.contentDigest), `contentDigest 非法:${filename}`);
       return {
         filename: asset.filename,
-        bytes: asset.bytes,
-        sha256: asset.sha256,
-        npmIntegrity: asset.npmIntegrity,
-        entryCount: asset.entryCount
+        entryCount: asset.entryCount,
+        contentDigest: asset.contentDigest
       };
     }
-    assertExactKeys(asset, ASSET_COMMON_KEYS, `非 tgz asset 不得含 npmIntegrity/entryCount:${filename}`);
-    return {
-      filename: asset.filename,
-      bytes: asset.bytes,
-      sha256: asset.sha256
-    };
+    invariant(asset.entryCount === undefined && asset.contentDigest === undefined, `非 tgz asset 不得含 entryCount/contentDigest:${filename}`);
+    return { filename: asset.filename };
   });
   return {
     schema: RELEASE_ASSET_SCHEMA,
@@ -240,13 +284,13 @@ export function assertReleaseApiAssetsMatchManifest(release, manifest) {
   const actual = [...release.assets]
     .map((asset) => ({ name: asset.name, bytes: asset.size ?? asset.bytes }))
     .sort((a, b) => a.name.localeCompare(b.name, "en"));
-  const expected = manifest.assets
-    .map((asset) => ({ name: asset.filename, bytes: asset.bytes }))
-    .sort((a, b) => a.name.localeCompare(b.name, "en"));
+  const expectedNames = manifest.assets.map((asset) => asset.filename).sort((a, b) => a.localeCompare(b, "en"));
   invariant(
-    JSON.stringify(actual) === JSON.stringify(expected),
-    `Release API exact-set/bytes 与 tracked manifest 不一致:${JSON.stringify({ actual, expected })}`
+    JSON.stringify(actual.map((asset) => asset.name)) === JSON.stringify(expectedNames),
+    `Release API exact-set 与 tracked manifest 不一致:${JSON.stringify({ actual, expectedNames })}`
   );
+  // 字节数属机器相关包装层,不与 tracked manifest 绑定;只做非空健全性。
+  invariant(actual.every((asset) => Number.isInteger(asset.bytes) && asset.bytes > 0), `Release API asset 字节非法:${JSON.stringify(actual)}`);
 }
 
 function launchedAsCli() {
@@ -260,7 +304,7 @@ function main() {
   const repo = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   if (mode === "--check-dir") {
     const dir = process.argv[3];
-    const tag = process.argv[4] ?? "v0.1.0-rc.7";
+    const tag = process.argv[4] ?? "v0.1.0-rc.8";
     invariant(dir && !dir.startsWith("--"), "用法:node scripts/release-asset-manifest.mjs --check-dir <dir> [tag]");
     const manifest = loadTrackedReleaseAssetManifest(repo, tag);
     const actual = inspectReleaseAssetDir(dir, manifest.version);
@@ -271,7 +315,7 @@ function main() {
     return;
   }
   if (mode === "--check-release-json") {
-    const tag = process.argv[3] ?? process.env.GITHUB_REF_NAME ?? "v0.1.0-rc.7";
+    const tag = process.argv[3] ?? process.env.GITHUB_REF_NAME ?? "v0.1.0-rc.8";
     const raw = process.env.RELEASE_JSON;
     invariant(raw, "RELEASE_JSON 为空");
     const manifest = loadTrackedReleaseAssetManifest(repo, tag);

@@ -559,3 +559,55 @@ success  python                          success  console fresh-origin e2e
 待 ruleset 就绪后重跑 `publish-public-snapshot.sh public v0.1.0-rc.4 <sha>`，
 该步会重新生成快照并与 tag 一次 atomic push，随后触发 `release.yml`
 （比 `ci.yml` 更严：快照格式硬校验 + tag 唯一性 + ruleset 复核 + release quality）。
+
+## 14. rc.7 复盘:发布合同的隐藏前提被证伪,升级为 v2(来源+内容摘要绑定)
+
+### 现象与定界
+
+rc.7 七个质量 job 全绿(发布史首次),死在 publish 的
+「Verify source-bound release assets」:`sourceRevision` 两端**完全一致**(`df3ba41e…`),
+tgz 却差 7 098 字节(本地 1 201 207 / CI 1 208 305,entryCount 同为 17)。
+
+容器定界实验(`git archive` 干净树 → linux/amd64 + node 22.23.2,与 CI 同环境):
+
+| 对比 | 结果 |
+|---|---|
+| 容器 tgz vs CI tgz | sha256 逐字节一致(`88645e07…`)——试验台自证有效 |
+| 容器内部 17 文件 vs 本地 macOS 构建 | **全部逐字节相同** |
+
+结论:esbuild/vite 产物**跨平台可复现**;7 098 字节差全部在 npm pack 的 tar/gzip
+包装层(node 22.23.1 vs 22.23.2)。原合同要求"CI 构建与本地冻结的 manifest 逐字节
+吻合",其隐藏前提「跨机字节可复现」对包装层不成立——且该校验点在 rc.2–rc.6 从未
+被走到过(各死在更早的 job;rc.4 走到过但死于漏 freeze 的身份不一致),属首次真实触发。
+
+> 定界过程报废了三次容器实验,全是试验台自伤:`git add -A -f` 把 ignored 的 dist
+> 塞进构建输入、`--exclude artifacts` 误排源码目录、chmod 破坏权限。最终换
+> `git archive` 直灌容器文件系统才拿到干净结果——复现环境本身也要有"最小干预"纪律。
+
+### 合同 v2(owner 2026-08-26 裁决「来源绑定」)
+
+tracked manifest 升 `saydo-release-assets/v2`,只承载**跨机器成立**的字段:
+
+- tgz 绑 `{ filename, entryCount, contentDigest }`——contentDigest 为解包后按路径
+  排序逐文件 sha256 的聚合摘要:机器无关(实测)且保持字节级强度,比退到
+  entryCount 强得多
+- `SHA256SUMS` / `release-metadata.json` 内嵌外壳哈希,属机器相关,只绑文件名存在
+- 外壳 bytes/sha256/npmIntegrity 移出跨机合同:由 CI 构建、随 Release 发布,
+  下载侧自洽校验(SHA256SUMS↔tgz↔metadata)承担
+- Release API 断言改文件名集合 + size>0
+
+配套:verify-release-url(六项 smoke)新增**载荷级来源绑定**——下载 tgz 内嵌的
+`dist/build-metadata.json` 三元组须与 sidecar 一致,再经身份断言传递绑定到仓内冻结
+的 sourceRevision;publish job 增 upload-artifact 审计留痕 30 天。
+
+实现要点:parse 经 builder 往返规范化,schema 改动天然传导到全部四个消费者,调用方
+零修改。provenance 自检加 v2 核心回归锚:机器相关字段不同而内容摘要相同**必须通过**;
+contentDigest/entryCount 漂移、tracked 含机器字段**必须拒绝**。
+
+### 版本消耗账
+
+rc.4(漏 freeze)→ rc.5(doc-links,本地门禁缺口)→ rc.6(e2e 偶发 + 推诊断改动断了重跑
+退路)→ rc.7(合同前提证伪)。前两个是流程缺口(已用 23 项门禁补齐),后两个各买到一个
+结构性认识(间歇性启动超时的诊断通道;合同 v2)。rc.8 发布前增加容器预检
+(linux/amd64 + CI 同 node 跑 --write && --check),等价于 CI publish 校验流,
+容器绿则 CI 必绿——tag 风险在本地清零后才推。

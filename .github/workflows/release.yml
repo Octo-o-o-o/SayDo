@@ -3,7 +3,7 @@ name: release
 on:
   push:
     tags:
-      - "v0.1.0-rc.7"
+      - "v0.1.0-rc.8"
 
 concurrency:
   group: release-${{ github.ref_name }}
@@ -167,6 +167,15 @@ jobs:
           test "v${package_version}" = "${GITHUB_REF_NAME}"
       - name: Build source-bound release assets
         run: node scripts/build-release-artifacts.mjs --write
+      # 审计留痕:无论后续校验成败,CI 构建的资产都可下载比对。
+      # rc.7 的跨机字节差(7098B,gzip 包装层)当时因无 artifact 只能靠容器复现定位。
+      - name: Upload built assets for audit
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-assets-${{ github.ref_name }}
+          path: artifacts/release/github/${{ github.ref_name }}/
+          retention-days: 30
+          if-no-files-found: error
       - name: Verify source-bound release assets
         run: node scripts/build-release-artifacts.mjs --check
       - name: Create, verify, then publish immutable prerelease

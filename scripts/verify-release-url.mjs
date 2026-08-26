@@ -96,6 +96,12 @@ async function verifyPublishedBytes() {
   const archivedPackage = JSON.parse(
     execFileSync("tar", ["-xOf", localTarball, "package/package.json"], { encoding: "utf8" })
   );
+  // 载荷级来源绑定:下载的 tgz **内部**的 build-metadata 必须与 sidecar metadata 同源——
+  // 三元组一致后,经 assertIdentityMatchesTrackedManifest 传递绑定到仓内冻结的 sourceRevision。
+  // 这比只验 sidecar 强:sidecar 可独立生成,内嵌元数据随载荷本体打进包里。
+  const archivedBuild = JSON.parse(
+    execFileSync("tar", ["-xOf", localTarball, "package/dist/build-metadata.json"], { encoding: "utf8" })
+  );
   invariant(checksum === `${digest}  ${filename}\n`, "线上 SHA256SUMS 与 tgz 字节不一致");
   invariant(
     metadata.schemaVersion === 3 &&
@@ -114,7 +120,10 @@ async function verifyPublishedBytes() {
       metadata.buildId.startsWith(`${version}+${metadata.sourceRevision.slice(0, 12)}.`) &&
       /^\d+\.\d+\.\d+$/.test(metadata.protocolVersion) &&
       archivedPackage.name === "@saydo/cli" &&
-      archivedPackage.version === version,
+      archivedPackage.version === version &&
+      archivedBuild.sourceRevision === metadata.sourceRevision &&
+      archivedBuild.buildId === metadata.buildId &&
+      archivedBuild.protocolVersion === metadata.protocolVersion,
     "线上 release-metadata 与 tgz 身份不一致"
   );
   invariant(createHash("sha256").update(readFileSync(localTarball)).digest("hex") === digest, "落盘 tgz 摘要漂移");
