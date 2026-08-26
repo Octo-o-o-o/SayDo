@@ -22,7 +22,7 @@
     })();
   </script>
   <link rel="stylesheet" href="/tokens.css" />
-  <link rel="stylesheet" href="/site.css?v=20260821a" />
+  <link rel="stylesheet" href="/site.css?v=20260825d" />
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to main content</a>
@@ -35,12 +35,13 @@
         <span class="brand-en">说到</span>
       </a>
       <nav class="nav" data-nav aria-label="Primary">
+        <a class="nav-link" href="/en/#why">Why</a>
+        <a class="nav-link" href="/en/#dialogue">A conversation</a>
         <a class="nav-link" href="/en/#how">How it works</a>
-        <a class="nav-link" href="/en/#why">Why different</a>
         <a class="nav-link" href="/en/#status">Status</a>
-        <a class="nav-link" href="/en/#start">Get Started</a>
-        <a class="nav-link" href="/en/docs/" aria-current="page">Docs</a>
+        <a class="nav-link" href="/en/#privacy">Privacy</a>
         <a class="nav-link" href="/en/#faq">FAQ</a>
+        <a class="nav-link" href="/en/docs/" aria-current="page">Docs</a>
       </nav>
       <div class="header-actions">
         <span class="lang-switch" role="navigation" aria-label="Language">
@@ -54,6 +55,7 @@
         <button class="icon-btn menu-toggle" data-menu-toggle type="button" aria-label="Open menu" aria-expanded="false">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
         </button>
+        <a class="go" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GITHUB ↗</a>
       </div>
     </div>
   </header>
@@ -290,12 +292,12 @@ You (speak / listen / occasionally look at the screen; sign off / approve)
         </table>
         </div>
         <h3>4.2 Install</h3>
-        <p><strong>Recommended · no source checkout:</strong> this is the candidate fixed URL for v0.1.0-rc.4. Use it only after the GitHub Release page appears and all release checks are green. It is not published to the npm registry or Homebrew yet.</p>
+        <p><strong>Recommended · no source checkout:</strong> this is the candidate fixed URL for v0.1.0-rc.6. Use it only after the GitHub Release page appears and all release checks are green. It is not published to the npm registry or Homebrew yet.</p>
 <pre><code># One-off run: download into the npm cache and start
-npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.4/saydo-cli-0.1.0-rc.4.tgz -- saydo up
+npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.6/saydo-cli-0.1.0-rc.6.tgz -- saydo up
 
 # Frequent use: install once, then use saydo directly
-npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.4/saydo-cli-0.1.0-rc.4.tgz
+npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.6/saydo-cli-0.1.0-rc.6.tgz
 saydo up
 </code></pre>
         <div class="docs-note"><p>This package contains the daemon + Web console for macOS, Windows, and Linux. It does not include the voice pipeline, macOS launchd service, or source development. Windows/Linux currently run in the foreground. Add <code>--no-open</code> on a remote terminal.</p></div>
@@ -870,7 +872,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
             <tr><th>Capability</th><th>Status</th><th>Notes</th></tr>
           </thead>
           <tbody>
-            <tr><td>Desktop service (daemon + console) · macOS / Windows / Linux</td><td><span class="badge badge-live">Available now</span></td><td>The source form already runs; the v0.1.0-rc.4 fixed URL becomes active only after the GitHub Release appears and all release checks are green. npm registry / Homebrew and a desktop app shell remain planned; service installation and system notifications are macOS-only for now</td></tr>
+            <tr><td>Desktop service (daemon + console) · macOS / Windows / Linux</td><td><span class="badge badge-live">Available now</span></td><td>The source form already runs; the v0.1.0-rc.6 fixed URL becomes active only after the GitHub Release appears and all release checks are green. npm registry / Homebrew and a desktop app shell remain planned; service installation and system notifications are macOS-only for now</td></tr>
             <tr><td>Four reasoning slots on API supply (OpenAI-compatible / OpenRouter)</td><td><span class="badge badge-live">Available now</span></td><td></td></tr>
             <tr><td>Four reasoning slots on CLI subscription supply (Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot)</td><td><span class="badge badge-live">Available now</span></td><td>Dialog slot on CLI is slow text mode</td></tr>
             <tr><td>First-run resource profile wizard (three plan cards + advanced per-slot)</td><td><span class="badge badge-live">Available now</span></td><td></td></tr>
@@ -1032,13 +1034,13 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
         </div>
       </div>
       <div class="footer-meta">
-        <span>© <span data-year>2026</span> SayDo · Developer: Yixiao Wang</span>
+        <span>© <span data-year>2026</span> SayDo · Developed by <a href="https://www.octoooo.com/" target="_blank" rel="noopener">OctoLab</a> · <a href="https://github.com/Octo-o-o-o" target="_blank" rel="noopener">WangYixiao</a></span>
         <a class="icp-beian" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">京ICP备2025153079号-4A</a>
         <span>Local-first · Open source · Privacy-first</span>
       </div>
     </div>
   </footer>
 
-  <script src="/theme.js?v=20260820d" defer></script>
+  <script src="/theme.js?v=20260825b" defer></script>
 </body>
 </html>

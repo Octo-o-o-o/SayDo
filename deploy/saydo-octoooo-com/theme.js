@@ -25,11 +25,12 @@
       });
     });
 
-    // 移动端汉堡菜单
+    // 移动端汉堡菜单:切换开合;展开后点页面任何区域(除菜单按钮本身)都收起
     var menuBtn = document.querySelector("[data-menu-toggle]");
     var nav = document.querySelector("[data-nav]");
     if (menuBtn && nav) {
-      menuBtn.addEventListener("click", function () {
+      menuBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
         var open = nav.classList.toggle("is-open");
         menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
       });
@@ -38,6 +39,17 @@
           nav.classList.remove("is-open");
           menuBtn.setAttribute("aria-expanded", "false");
         });
+      });
+      document.addEventListener("click", function (e) {
+        if (!nav.classList.contains("is-open")) return;
+        if (e.target === menuBtn || menuBtn.contains(e.target)) return;
+        nav.classList.remove("is-open");
+        menuBtn.setAttribute("aria-expanded", "false");
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key !== "Escape" || !nav.classList.contains("is-open")) return;
+        nav.classList.remove("is-open");
+        menuBtn.setAttribute("aria-expanded", "false");
       });
     }
 

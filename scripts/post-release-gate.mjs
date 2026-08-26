@@ -75,9 +75,9 @@ const windowsHost = optionValue("--windows-host");
 const windowsKnownHosts = optionValue("--windows-known-hosts");
 const windowsNode = optionValue("--windows-node");
 
-if (!["--check-candidate", "--verify", "--write-availability", "--deploy"].includes(mode) || tag !== "v0.1.0-rc.5") {
+if (!["--check-candidate", "--verify", "--write-availability", "--deploy"].includes(mode) || tag !== "v0.1.0-rc.6") {
   console.error(
-    "用法:node scripts/post-release-gate.mjs <--check-candidate|--verify|--write-availability|--deploy> v0.1.0-rc.5 [--evidence <path>] [--physical-evidence-dir <path> --windows-host <user@literal-ip> --windows-known-hosts <path> --windows-node <absolute-node.exe>]"
+    "用法:node scripts/post-release-gate.mjs <--check-candidate|--verify|--write-availability|--deploy> v0.1.0-rc.6 [--evidence <path>] [--physical-evidence-dir <path> --windows-host <user@literal-ip> --windows-known-hosts <path> --windows-node <absolute-node.exe>]"
   );
   process.exit(2);
 }
@@ -114,79 +114,79 @@ const availabilityReplacements = [
   {
     path: "README.md",
     before:
-      "普通用户无需克隆源码。下面是 v0.1.0-rc.5 的发布候选固定 URL；仅当\n[GitHub Release 页面](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.5)\n已经出现且发布检查全绿后，命令才可用：",
+      "普通用户无需克隆源码。下面是 v0.1.0-rc.6 的发布候选固定 URL；仅当\n[GitHub Release 页面](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.6)\n已经出现且发布检查全绿后，命令才可用：",
     after:
-      "普通用户无需克隆源码。v0.1.0-rc.5 固定 URL 已由不可变\n[GitHub Release](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.5)\n及 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证，可直接使用："
+      "普通用户无需克隆源码。v0.1.0-rc.6 固定 URL 已由不可变\n[GitHub Release](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.6)\n及 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证，可直接使用："
   },
   {
     path: "docs/site/2026-08-20-docs-page-content.fable.md",
     before:
-      "**推荐 · 不克隆源码:**下面是 v0.1.0-rc.5 的发布候选固定 URL;仅当 GitHub Release 页面已经出现且发布检查全绿后才可用。尚未发布到 npm registry 或 Homebrew。",
+      "**推荐 · 不克隆源码:**下面是 v0.1.0-rc.6 的发布候选固定 URL;仅当 GitHub Release 页面已经出现且发布检查全绿后才可用。尚未发布到 npm registry 或 Homebrew。",
     after:
-      "**推荐 · 不克隆源码:**v0.1.0-rc.5 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证,可直接使用。尚未发布到 npm registry 或 Homebrew。"
+      "**推荐 · 不克隆源码:**v0.1.0-rc.6 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证,可直接使用。尚未发布到 npm registry 或 Homebrew。"
   },
   {
     path: "docs/site/2026-08-20-docs-page-content.fable.md",
     before:
-      "源码形态已经可运行;v0.1.0-rc.5 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效。npm registry / Homebrew",
+      "源码形态已经可运行;v0.1.0-rc.6 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效。npm registry / Homebrew",
     after:
-      "源码形态已经可运行;v0.1.0-rc.5 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证。npm registry / Homebrew"
+      "源码形态已经可运行;v0.1.0-rc.6 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证。npm registry / Homebrew"
   },
   {
     path: "docs/site/2026-08-20-homepage-structure-copy.fable.md",
     before:
-      "macOS / Windows / Linux 的 daemon 与 Web 控制台源码形态已经可运行;v0.1.0-rc.5 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效,届时可一条命令启动、无需克隆源码。",
+      "macOS / Windows / Linux 的 daemon 与 Web 控制台源码形态已经可运行;v0.1.0-rc.6 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效,届时可一条命令启动、无需克隆源码。",
     after:
-      "macOS / Windows / Linux 的 daemon 与 Web 控制台源码形态已经可运行;v0.1.0-rc.5 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证,可一条命令启动、无需克隆源码。"
+      "macOS / Windows / Linux 的 daemon 与 Web 控制台源码形态已经可运行;v0.1.0-rc.6 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证,可一条命令启动、无需克隆源码。"
   },
   {
     path: "docs/site/2026-08-20-homepage-structure-copy.fable.md",
     before:
-      "The v0.1.0-rc.5 fixed URL becomes active only after the GitHub Release appears and all release checks are green; it then starts with one command and no source checkout.",
+      "The v0.1.0-rc.6 fixed URL becomes active only after the GitHub Release appears and all release checks are green; it then starts with one command and no source checkout.",
     after:
-      "The immutable v0.1.0-rc.5 GitHub Release has passed all six fixed-URL installation smokes across macOS, Windows, and Linux; it starts with one command and no source checkout."
+      "The immutable v0.1.0-rc.6 GitHub Release has passed all six fixed-URL installation smokes across macOS, Windows, and Linux; it starts with one command and no source checkout."
   },
   {
     path: "deploy/saydo-octoooo-com/docs/index.html",
     before:
-      "<p><strong>推荐 · 不克隆源码:</strong>下面是 v0.1.0-rc.5 的发布候选固定 URL;仅当 GitHub Release 页面已经出现且发布检查全绿后才可用。尚未发布到 npm registry 或 Homebrew。</p>",
+      "<p><strong>推荐 · 不克隆源码:</strong>下面是 v0.1.0-rc.6 的发布候选固定 URL;仅当 GitHub Release 页面已经出现且发布检查全绿后才可用。尚未发布到 npm registry 或 Homebrew。</p>",
     after:
-      "<p><strong>推荐 · 不克隆源码:</strong>v0.1.0-rc.5 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证,可直接使用。尚未发布到 npm registry 或 Homebrew。</p>"
+      "<p><strong>推荐 · 不克隆源码:</strong>v0.1.0-rc.6 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证,可直接使用。尚未发布到 npm registry 或 Homebrew。</p>"
   },
   {
     path: "deploy/saydo-octoooo-com/docs/index.html",
     before:
-      "源码形态已经可运行;v0.1.0-rc.5 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效。npm registry / Homebrew",
+      "源码形态已经可运行;v0.1.0-rc.6 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效。npm registry / Homebrew",
     after:
-      "源码形态已经可运行;v0.1.0-rc.5 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证。npm registry / Homebrew"
+      "源码形态已经可运行;v0.1.0-rc.6 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证。npm registry / Homebrew"
   },
   {
     path: "deploy/saydo-octoooo-com/en/docs/index.html",
     before:
-      "<p><strong>Recommended · no source checkout:</strong> this is the candidate fixed URL for v0.1.0-rc.5. Use it only after the GitHub Release page appears and all release checks are green. It is not published to the npm registry or Homebrew yet.</p>",
+      "<p><strong>Recommended · no source checkout:</strong> this is the candidate fixed URL for v0.1.0-rc.6. Use it only after the GitHub Release page appears and all release checks are green. It is not published to the npm registry or Homebrew yet.</p>",
     after:
-      "<p><strong>Recommended · no source checkout:</strong> the immutable v0.1.0-rc.5 GitHub Release has passed one-off and global-install smokes on macOS, Windows, and Linux. It is ready to use and is not published to the npm registry or Homebrew yet.</p>"
+      "<p><strong>Recommended · no source checkout:</strong> the immutable v0.1.0-rc.6 GitHub Release has passed one-off and global-install smokes on macOS, Windows, and Linux. It is ready to use and is not published to the npm registry or Homebrew yet.</p>"
   },
   {
     path: "deploy/saydo-octoooo-com/en/docs/index.html",
     before:
-      "The source form already runs; the v0.1.0-rc.5 fixed URL becomes active only after the GitHub Release appears and all release checks are green. npm registry / Homebrew",
+      "The source form already runs; the v0.1.0-rc.6 fixed URL becomes active only after the GitHub Release appears and all release checks are green. npm registry / Homebrew",
     after:
-      "The source form already runs; the immutable v0.1.0-rc.5 GitHub Release has passed all six cross-platform installation smokes. npm registry / Homebrew"
+      "The source form already runs; the immutable v0.1.0-rc.6 GitHub Release has passed all six cross-platform installation smokes. npm registry / Homebrew"
   },
   {
     path: "deploy/saydo-octoooo-com/index.html",
     before:
-      "这是 v0.1.0-rc.5 发布候选固定 URL，仅在 GitHub Release 页面出现且发布检查全绿后可用；语音 pipeline 与系统常驻安装不包含在内。",
+      "这是 v0.1.0-rc.6 发布候选固定 URL，仅在 GitHub Release 页面出现且发布检查全绿后可用；语音 pipeline 与系统常驻安装不包含在内。",
     after:
-      "v0.1.0-rc.5 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的六项安装 smoke 验证，可直接使用；语音 pipeline 与系统常驻安装不包含在内。"
+      "v0.1.0-rc.6 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的六项安装 smoke 验证，可直接使用；语音 pipeline 与系统常驻安装不包含在内。"
   },
   {
     path: "deploy/saydo-octoooo-com/en/index.html",
     before:
-      "This is the candidate fixed URL for v0.1.0-rc.5 and works only after the GitHub Release page appears and all release checks are green; it does not include the voice pipeline or service installation.",
+      "This is the candidate fixed URL for v0.1.0-rc.6 and works only after the GitHub Release page appears and all release checks are green; it does not include the voice pipeline or service installation.",
     after:
-      "The immutable v0.1.0-rc.5 GitHub Release has passed all six installation smokes across macOS, Windows, and Linux and is ready to use; it does not include the voice pipeline or service installation."
+      "The immutable v0.1.0-rc.6 GitHub Release has passed all six installation smokes across macOS, Windows, and Linux and is ready to use; it does not include the voice pipeline or service installation."
   }
 ];
 
@@ -806,10 +806,10 @@ function verifyPublicCi(publicMain) {
 
 function officialPages() {
   return [
-    { project: "saydo", host: "saydo.octoooo.com", url: "https://saydo.octoooo.com/", marker: "v0.1.0-rc.5 固定 URL 已由不可变 GitHub Release" },
+    { project: "saydo", host: "saydo.octoooo.com", url: "https://saydo.octoooo.com/", marker: "v0.1.0-rc.6 固定 URL 已由不可变 GitHub Release" },
     { project: "saydo", host: "saydo.octoooo.com", url: "https://saydo.octoooo.com/docs/", marker: "不可变 GitHub Release 与 macOS、Windows、Linux" },
-    { project: "saydo", host: "saydo.octoooo.com", url: "https://saydo.octoooo.com/en/", marker: "immutable v0.1.0-rc.5 GitHub Release" },
-    { project: "saydo", host: "saydo.octoooo.com", url: "https://saydo.octoooo.com/en/docs/", marker: "immutable v0.1.0-rc.5 GitHub Release" },
+    { project: "saydo", host: "saydo.octoooo.com", url: "https://saydo.octoooo.com/en/", marker: "immutable v0.1.0-rc.6 GitHub Release" },
+    { project: "saydo", host: "saydo.octoooo.com", url: "https://saydo.octoooo.com/en/docs/", marker: "immutable v0.1.0-rc.6 GitHub Release" },
     { project: "saydo-link", host: "link.saydo.octoooo.com", url: "https://link.saydo.octoooo.com/", marker: "https://saydo.octoooo.com" }
   ];
 }

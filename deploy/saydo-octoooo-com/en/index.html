@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SayDo — Say it. Consider it handled.</title>
-  <meta name="description" content="SayDo is a voice-first chief of staff for your projects. Talk it through — it learns your project, keeps a four-color ledger of everything, drives the AI tools already on your machine to do the work, and calls you back when it's ready for your review. No developer-operated backend. Conversations, items, and the ledger stay on your devices." />
+  <title>SayDo — Say it, and it's done</title>
+  <meta name="description" content="SayDo is a senior assistant you can talk to. Talk things through — it studies your project first, and once it understands, it drives the AI already on your computer to do the work, then calls you back to review. No developer-operated cloud backend. Conversations, items, and the ledger stay on your own devices." />
   <meta name="theme-color" content="#f0ede4" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#171410" media="(prefers-color-scheme: dark)" />
 
@@ -15,8 +15,8 @@
 
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="SayDo — Say it. Consider it handled." />
-  <meta property="og:description" content="A voice-first chief of staff for your projects. From conversation to completion — it calls you back when it's ready for your review." />
+  <meta property="og:title" content="SayDo — Say it, and it's done" />
+  <meta property="og:description" content="A senior assistant you can talk to. Talk it through, it does the work, then calls you back to review. No developer-operated cloud backend." />
   <meta property="og:url" content="https://saydo.octoooo.com/en/" />
   <meta property="og:site_name" content="SayDo" />
   <meta property="og:image" content="https://saydo.octoooo.com/icon-1024.png" />
@@ -38,10 +38,18 @@
   </script>
 
   <link rel="stylesheet" href="/tokens.css" />
-  <link rel="stylesheet" href="/site.css?v=20260821a" />
+  <link rel="stylesheet" href="/site.css?v=20260825d" />
+  <noscript><style>[data-pop]{opacity:1;transform:none}</style></noscript>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to main content</a>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <filter id="inkRough">
+      <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" seed="11" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="6"/>
+    </filter>
+  </svg>
 
   <!-- ===================== Header ===================== -->
   <header class="site-header">
@@ -52,447 +60,480 @@
         <span class="brand-en">说到</span>
       </a>
       <nav class="nav" data-nav aria-label="Primary">
+        <a class="nav-link" href="#why">Why</a>
+        <a class="nav-link" href="#dialogue">A conversation</a>
         <a class="nav-link" href="#how">How it works</a>
-        <a class="nav-link" href="#why">Why different</a>
         <a class="nav-link" href="#status">Status</a>
-        <a class="nav-link" href="#start">Get Started</a>
-        <a class="nav-link" href="/en/docs/">Docs</a>
+        <a class="nav-link" href="#privacy">Privacy</a>
         <a class="nav-link" href="#faq">FAQ</a>
+        <a class="nav-link" href="/en/docs/">Docs</a>
       </nav>
       <div class="header-actions">
         <span class="lang-switch" role="navigation" aria-label="Language">
           <a href="/">中文</a>
           <a class="is-active" href="/en/" aria-current="page">EN</a>
         </span>
-        <button class="icon-btn theme-toggle" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <button class="icon-btn theme-toggle" data-theme-toggle type="button" aria-label="Toggle light and dark theme">
           <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
           <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
         </button>
-        <a class="icon-btn" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener" aria-label="GitHub repository">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
-        </a>
         <button class="icon-btn menu-toggle" data-menu-toggle type="button" aria-label="Open menu" aria-expanded="false">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
         </button>
+        <a class="go" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GITHUB ↗</a>
       </div>
     </div>
   </header>
 
   <main id="main">
-    <!-- ===================== Hero ===================== -->
+    <!-- ===================== Hero (poster glyphs × loop map) ===================== -->
     <section class="hero">
-      <div class="container">
-        <p class="hero-eyebrow" data-reveal>VOICE-FIRST · LOCAL-FIRST · OPEN SOURCE</p>
-        <h1 class="hero-title" data-reveal data-reveal-delay="1">Say it. <span class="seal-word">Consider it handled.</span></h1>
-        <p class="hero-sub" data-reveal data-reveal-delay="2">From conversation to completion — it calls you back when it's ready for your review.</p>
-        <p class="hero-desc" data-reveal data-reveal-delay="2">A voice-first chief of staff for your projects. Just talk it through — it studies your project first, keeps a four-color ledger of everything, and once it understands, it drives the AI tools already on your machine. When the run and its checks are done, it calls you back for review.</p>
-        <div class="hero-actions" data-reveal data-reveal-delay="3">
-          <a class="btn btn-seal btn-lg" href="#start">Get Started</a>
-          <a class="btn btn-secondary btn-lg" href="#how">How it works</a>
+      <span class="reg tl"></span><span class="reg tr"></span><span class="reg bl"></span><span class="reg br"></span>
+      <div class="hero-ru" aria-hidden="true">VOICE-DRIVEN<br />LOCAL-FIRST<br />OPEN SOURCE<br />EST. 2026</div>
+      <div class="hero-grid">
+        <div class="hero-left">
+          <h1 class="glyph-field" data-pop>
+            <span class="glyph g1">Say</span><span class="glyph g2">it,</span><span class="glyph g3">it's</span><span class="glyph-br" aria-hidden="true"></span><span class="glyph g4 rough" id="glyph-seal">done</span><span class="glyph g5">.</span>
+          </h1>
+          <p class="hero-sub" data-pop>A senior assistant you can talk to. Just talk things through — <b>it reads your project inside out first, and once it understands, it drives the AI already on your computer to do the work, then calls you back to review.</b> No developer-operated cloud backend.</p>
+          <div class="hero-cta" data-pop>
+            <a href="#start">Get started</a>
+            <a href="#dialogue">Watch it work</a>
+          </div>
+          <p class="hero-note" data-pop>
+            <span><i>●</i> macOS / Windows / Linux available now</span>
+            <span class="wip">◐ iOS / Android / HarmonyOS in development</span>
+            <span>// open source &amp; free · v0.1.0-rc.6</span>
+          </p>
         </div>
-        <p class="hero-aside" data-reveal data-reveal-delay="3">
-          <span>Desktop service · free &amp; open source · <a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">View on GitHub</a></span>
-          <span class="dot-sep"></span>
-          <span>Windows / Linux desktop service now available (residency install and system notifications remain macOS-only for now) · iOS / Android / HarmonyOS in development, not in stores · <a href="mailto:octoooo@octoooo.com?subject=SayDo%20updates">Email for updates</a></span>
-        </p>
 
-        <div class="hero-visual" data-reveal data-reveal-delay="3">
-          <div class="voice-bar">
-            <span class="vb-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-            </span>
-            <span class="vb-text">"Build the export feature — CSV."</span>
-            <span class="vb-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-          </div>
-          <div class="ledger">
-            <div class="ledger-head">
-              <p class="ledger-title">Today</p>
-              <span class="date" data-today>Today</span>
-            </div>
-            <div class="ledger-row" data-tone="ochre">
-              <span class="dot"></span>
-              <div class="body">
-                <div class="t">CSV or Excel for the export? Waiting on your call</div>
-                <div class="meta">Yesterday 10:24 · via voice</div>
-              </div>
-              <span class="chip">Your call</span>
-            </div>
-            <div class="ledger-row" data-tone="indigo">
-              <span class="dot"></span>
-              <div class="body">
-                <div class="t">Reply to the design-review email</div>
-                <div class="meta">Today 09:10 · owed by you</div>
-              </div>
-              <span class="chip">Yours</span>
-            </div>
-            <div class="ledger-row" data-tone="pine">
-              <span class="dot"></span>
-              <div class="body">
-                <div class="t">Refactoring the auth module in an isolated worktree</div>
-                <div class="meta">AI working · 40 min in</div>
-              </div>
-              <span class="chip">AI on it</span>
-            </div>
-            <div class="ledger-row" data-tone="muted">
-              <span class="dot"></span>
-              <div class="body">
-                <div class="t">Third-party API quota approval</div>
-                <div class="meta">Waiting externally · expected tomorrow</div>
-              </div>
-              <span class="chip">Waiting</span>
-            </div>
-          </div>
-          <div class="legend" style="margin-top:var(--space-4)">
-            <span class="legend-item" data-tone="ochre"><span class="swatch"></span>Awaiting your call</span>
-            <span class="legend-item" data-tone="indigo"><span class="swatch"></span>Owed by you</span>
-            <span class="legend-item" data-tone="pine"><span class="swatch"></span>AI working</span>
-            <span class="legend-item" data-tone="muted"><span class="swatch"></span>Waiting externally</span>
+        <div class="hero-right" id="loop" data-pop>
+          <div class="map-card">
+            <svg viewBox="0 0 640 470" role="img" aria-label="SayDo loop map: speak, readiness check, decision pack, you decide, background execution, acceptance">
+              <!-- tracks -->
+              <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M140 80 L500 80" stroke="#3c5f96" stroke-width="7"/>
+                <path d="M500 80 L570 150 L570 225" stroke="#3c5f96" stroke-width="7"/>
+                <path d="M570 225 L570 300 L500 370" stroke="#a8641f" stroke-width="7"/>
+                <path d="M500 370 L140 370" stroke="#41755a" stroke-width="7"/>
+                <path d="M140 370 L70 300 L70 225" stroke="#41755a" stroke-width="7"/>
+                <path d="M70 225 L70 150 L140 80" stroke="#a29b8f" stroke-width="5" stroke-dasharray="2 12"/>
+              </g>
+              <!-- segment notes -->
+              <text class="seg-note" x="320" y="64" text-anchor="middle">TALK IT THROUGH · INTERVIEW</text>
+              <text class="seg-note" x="320" y="392" text-anchor="middle">RUNS UNATTENDED · BACKGROUND</text>
+              <!-- fare zone ring -->
+              <circle cx="320" cy="225" r="126" fill="none" stroke="#a29b8f" stroke-width="1.2" stroke-dasharray="4 6" opacity=".55"/>
+              <text class="seg-note" x="178" y="110" text-anchor="middle" opacity=".7">FLAT FARE · ZONE 1</text>
+              <!-- compass -->
+              <g transform="translate(604,42)">
+                <circle r="15" fill="#faf7ef" stroke="#34332e" stroke-width="1.5"/>
+                <path d="M0 -9 L4.5 5 L0 2 L-4.5 5 Z" fill="#b13a2b"/>
+                <text y="-19" text-anchor="middle" style="font-family:ui-monospace,monospace;font-size:9px;fill:#34332e">N</text>
+              </g>
+              <!-- branch: budget cap -->
+              <path d="M500 388 L500 446" stroke="#a8641f" stroke-width="3.5" stroke-dasharray="3 6" fill="none"/>
+              <circle cx="500" cy="450" r="6.5" fill="#faf7ef" stroke="#a8641f" stroke-width="3"/>
+              <text class="st-name" x="514" y="448" style="font-size:12.5px">Budget cap</text>
+              <text class="st-en" x="514" y="462">预算封顶</text>
+              <!-- loop name -->
+              <text class="loop-name" x="320" y="222" text-anchor="middle">SayDo Loop</text>
+              <text class="loop-en" x="320" y="246" text-anchor="middle">SAY IT · IT'S DONE</text>
+              <!-- legend -->
+              <g>
+                <rect x="238" y="272" width="164" height="82" rx="6" fill="#faf7ef" stroke="#cec6b7"/>
+                <text x="320" y="289" text-anchor="middle" style="font-family:ui-monospace,monospace;font-size:9px;letter-spacing:.2em;fill:#706b61">LEGEND · 图例</text>
+                <line x1="252" y1="301" x2="272" y2="301" stroke="#a8641f" stroke-width="4" stroke-linecap="round"/>
+                <text x="280" y="305" style="font-size:10.5px;fill:#34332e;font-family:'PingFang SC',sans-serif">Ochre · your call</text>
+                <line x1="252" y1="317" x2="272" y2="317" stroke="#3c5f96" stroke-width="4" stroke-linecap="round"/>
+                <text x="280" y="321" style="font-size:10.5px;fill:#34332e;font-family:'PingFang SC',sans-serif">Indigo · owed by you</text>
+                <line x1="252" y1="333" x2="272" y2="333" stroke="#41755a" stroke-width="4" stroke-linecap="round"/>
+                <text x="280" y="337" style="font-size:10.5px;fill:#34332e;font-family:'PingFang SC',sans-serif">Pine · AI at work</text>
+                <line x1="252" y1="349" x2="272" y2="349" stroke="#a29b8f" stroke-width="3" stroke-dasharray="2 4"/>
+                <text x="280" y="353" style="font-size:10.5px;fill:#34332e;font-family:'PingFang SC',sans-serif">Grey · waiting outside</text>
+              </g>
+              <!-- running train -->
+              <circle r="9" fill="#b13a2b" stroke="#faf7ef" stroke-width="3">
+                <animateMotion dur="14s" repeatCount="indefinite"
+                  path="M140 80 L500 80 L570 150 L570 300 L500 370 L140 370 L70 300 L70 150 Z"/>
+              </circle>
+              <!-- stations (names kept clear of the tracks) -->
+              <g>
+                <circle cx="140" cy="80" r="10" fill="#faf7ef" stroke="#34332e" stroke-width="4"/>
+                <text class="st-name" x="140" y="52" text-anchor="middle">Speak</text>
+                <text class="st-en" x="140" y="36" text-anchor="middle">开口聊</text>
+              </g>
+              <g>
+                <circle cx="500" cy="80" r="10" fill="#faf7ef" stroke="#34332e" stroke-width="4"/>
+                <text class="st-name" x="500" y="52" text-anchor="middle">Ready?</text>
+                <text class="st-en" x="500" y="36" text-anchor="middle">就绪决断</text>
+              </g>
+              <g>
+                <circle cx="570" cy="225" r="10" fill="#faf7ef" stroke="#34332e" stroke-width="4"/>
+                <text class="st-name" x="554" y="220" text-anchor="end">Decision pack</text>
+                <text class="st-en" x="554" y="236" text-anchor="end">决策包</text>
+              </g>
+              <g>
+                <circle cx="500" cy="370" r="15" fill="none" stroke="#b13a2b" stroke-width="3.5"/>
+                <circle cx="500" cy="370" r="8" fill="#b13a2b"/>
+                <text class="st-name" x="478" y="388" text-anchor="end" fill="#b13a2b" style="font-weight:700">You decide · transfer</text>
+                <text class="st-en" x="478" y="404" text-anchor="end">你拍板 · 换乘</text>
+              </g>
+              <g>
+                <circle cx="140" cy="370" r="10" fill="#faf7ef" stroke="#34332e" stroke-width="4"/>
+                <text class="st-name" x="140" y="414" text-anchor="middle">Execute</text>
+                <text class="st-en" x="140" y="430" text-anchor="middle">后台执行</text>
+              </g>
+              <g>
+                <circle cx="70" cy="225" r="10" fill="#faf7ef" stroke="#34332e" stroke-width="4"/>
+                <text class="st-name" x="86" y="220">Acceptance</text>
+                <text class="st-en" x="86" y="236">叫你验收</text>
+              </g>
+            </svg>
+            <div class="map-cap"><span>SAYDO TRANSIT · LOOP MAP</span><span>FIRST 06:00 · LAST 23:59</span></div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ===================== Trust strip ===================== -->
-    <div class="strip">
-      <div class="container">
-        <span class="strip-item">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg>
-          FREE &amp; OPEN SOURCE
-        </span>
-        <span class="strip-item">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
-          USES THE AI SUBSCRIPTIONS YOU ALREADY HAVE
-        </span>
-        <span class="strip-item">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
-          NO ACCOUNTS · NO BACKEND OF OURS · ONLY THE SERVICES YOU CONFIGURE
-        </span>
+    <!-- ===================== Marquee ===================== -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track">
+        <span>Open source &amp; free <b>◆</b> Local-first <b>◆</b> Voice-driven <b>◆</b> Nothing counts until you sign off <b>◆</b> Four-color ledger <b>◆</b> Data never leaves your devices <b>◆</b></span>
+        <span>Open source &amp; free <b>◆</b> Local-first <b>◆</b> Voice-driven <b>◆</b> Nothing counts until you sign off <b>◆</b> Four-color ledger <b>◆</b> Data never leaves your devices <b>◆</b></span>
       </div>
     </div>
 
-    <!-- ===================== How it works ===================== -->
-    <section class="section" id="how">
+    <!-- ===================== The problem ===================== -->
+    <section class="sec" id="why" style="padding-bottom:30px">
       <div class="container">
-        <div class="section-head" data-reveal>
-          <span class="eyebrow">FROM ONE SENTENCE TO A CALLBACK</span>
-          <h2 class="section-title">A complete loop</h2>
-          <p class="section-lead">You talk and you decide; it does the heavy lifting. When the run and its checks are done, it calls you back for review — nothing counts as delivered until you sign off.</p>
+        <div class="ph" data-pop>
+          <span class="ph-kick">THE PROBLEM / WHAT IT FIXES</span>
+          <h2 class="ph-title">Said once, <em>never</em> <u>forgotten again</u></h2>
         </div>
-
-        <div class="flow" data-reveal>
-          <div class="flow-step">
-            <div class="flow-num">1</div>
-            <div class="flow-body">
-              <h3><span class="step-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></span>Just talk</h3>
-              <p>Hold to talk, think out loud. A casual "note this for me" lands in the ledger instantly. With your project's context loaded, it interviews you like a good podcast host — one question at a time.</p>
-            </div>
+        <div class="versus" data-pop>
+          <div class="before">
+            <h3>Without it</h3>
+            <p>Things said are forgotten the moment you turn away; things promised go untracked. Who's waiting on whom, who's doing what, how it's going — all kept in your head and dug out of chat threads. AI tools are everywhere, but they stop at "noted"; nobody owns "handled".</p>
           </div>
-          <div class="flow-step is-active">
-            <div class="flow-num">2</div>
-            <div class="flow-body">
-              <h3><span class="step-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></span>Readiness check</h3>
-              <p>It decides when it knows enough and proposes to start — instead of asking you to write a spec up front. The spec is its output, not your input.</p>
-            </div>
-          </div>
-          <div class="flow-step">
-            <div class="flow-num">3</div>
-            <div class="flow-body">
-              <h3><span class="step-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg></span>Decision pack</h3>
-              <p>A decision pack lands in front of you: an outcome preview (what you'll get), a plan (each step marked AI-run or needs-you), the expected cost with a hard cap — plus a lightweight mock: a web preview generated from the same plan, so you can see what "done" looks like first. Saying "yes / no / tweak this" to something concrete is an order of magnitude easier than writing a spec from scratch.</p>
-            </div>
-          </div>
-          <div class="flow-step is-seal">
-            <div class="flow-num">4</div>
-            <div class="flow-body">
-              <h3><span class="step-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>You decide</h3>
-              <p>Look at the preview and say "go". Merging and delivering are always your call — never automatic.</p>
-            </div>
-          </div>
-          <div class="flow-step">
-            <div class="flow-num">5</div>
-            <div class="flow-body">
-              <h3><span class="step-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/></svg></span>Background execution</h3>
-              <p>Runs on your own machine: isolated git worktrees leave your main workspace untouched, with budget, time, and turn circuit-breakers. You can walk away.</p>
-            </div>
-          </div>
-          <div class="flow-step is-active">
-            <div class="flow-num">6</div>
-            <div class="flow-body">
-              <h3><span class="step-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>It calls you back</h3>
-              <p>When the run and its checks finish, it says "ready for your review" — not "done". Callbacks escalate: with voice set up it speaks to you at the console; if you don't answer, it escalates to a desktop notification and a push to your phone (ntfy). During do-not-disturb hours it leaves one quiet push and follows up after.</p>
-            </div>
-          </div>
-          <div class="flow-step is-seal">
-            <div class="flow-num">7</div>
-            <div class="flow-body">
-              <h3><span class="step-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></span>Review &amp; settle</h3>
-              <p>A spoken summary plus an evidence view (diffs, tests, decisions), organized against your acceptance criteria. You approve, the entry is stamped settled, and what it learned stays for next time.</p>
-            </div>
+          <div class="after">
+            <h3>With SayDo →</h3>
+            <p>Everything has an owner and a state, clear at a glance: <b>awaiting your call, owed by you, in the AI's hands, waiting on the outside world</b> — four colors, nothing dropped. It makes "talk it through, start itself, deliver for review" one closed loop.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ===================== Before / After ===================== -->
-    <section class="section section--tight">
+    <!-- ===================== Dialogue (cinema-style auto demo) ===================== -->
+    <section class="sec" id="dialogue">
       <div class="container">
-        <div class="contrast" data-reveal>
-          <div class="contrast-cell">
-            <span class="tag">BEFORE</span>
-            <p style="font-size:var(--text-md);color:var(--text-secondary)">Things said are forgotten; things promised are nowhere to be found. Who's waiting on whom, what's in flight, how it's going — all kept in your head and scattered across chat threads.</p>
+        <div class="ph" data-pop>
+          <span class="ph-kick">ACT II / NO PITCH — JUST WATCH</span>
+          <h2 class="ph-title">One <em>real</em> <u>conversation</u></h2>
+          <p class="ph-lead">A real conversation on autoplay — new messages push the earlier ones out, just like using it for real. <b>Grab the controls anytime.</b></p>
+        </div>
+
+        <div class="chatwin" data-pop>
+          <div class="chatwin-bar">
+            <div class="peerdot">S</div>
+            <div class="pmeta"><b>SayDo</b><span>online locally · auto demo</span></div>
+            <button class="sim-btn" id="sim-replay" type="button">Replay</button>
+            <button class="sim-btn" id="sim-toggle" type="button">Pause</button>
           </div>
-          <div class="contrast-cell is-after">
-            <span class="tag">WITH SAYDO →</span>
-            <p style="font-size:var(--text-md)">Everything has an owner and a state, visible at a glance: awaiting your call, owed by you, in the AI's hands, or waiting on the outside world. Four colors, nothing lost.</p>
+          <div class="chatlive" id="chatlive">
+            <div class="thread" id="sim-thread">
+              <div class="day-divider beat"><b>Today</b> 9:41 AM</div>
+
+              <div class="msg me beat">
+                <div class="avatar">You</div>
+                <div class="bubble">
+                  <div class="voice">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                    <span>"Build the export feature we talked about yesterday — CSV."</span>
+                    <span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+                  </div>
+                  <div class="v-dur" aria-hidden="true"><i></i></div>
+                  <span class="read">Voice 3″ · read 9:41 AM</span>
+                </div>
+              </div>
+
+              <div class="msg saydo beat">
+                <div class="avatar">S</div>
+                <div class="bubble">
+                  <div class="who">SayDo · has read this project inside out</div>
+                  Noted. I've read this project's structure, conventions, and key files — "export" belongs to the reports module, and by the existing conventions it goes in <code>export/</code>. One thing awaits your call:
+                  <div class="bcard">
+                    <div class="ledger-row tone-ochre">
+                      <span class="dot"></span>
+                      <div class="body"><div class="t">UTF-8 with BOM for the CSV? (so Excel opens it clean)</div>
+                      <div class="meta">Awaiting your call · a simple "yes" or "no" does it</div></div>
+                      <span class="chip">Your call</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="msg me beat">
+                <div class="avatar">You</div>
+                <div class="bubble">Yes. And don't touch the main branch.<span class="read">Read 9:44 AM</span></div>
+              </div>
+
+              <div class="sys beat"><span>It knows enough — SayDo proposes to start, instead of making you write a spec</span></div>
+
+              <div class="msg saydo beat">
+                <div class="avatar">S</div>
+                <div class="bubble">
+                  <div class="who">SayDo · decision pack</div>
+                  It's all talked through — I say we start. Here's the decision pack; look at something concrete and say "right / wrong / tweak it":
+                  <div class="bcard">
+                    <div class="stamp-ok">APPROVED</div>
+                    <h4><span class="seal-dot"></span>Decision pack · Export feature (CSV)</h4>
+                    <div class="pkg">
+                      <div class="pkg-item"><b>1 · Outcome preview</b><p>What you'll get: an "Export CSV" button on the reports page, with BOM — plus a web mock generated from the same plan, so you see the final look first.</p></div>
+                      <div class="pkg-item"><b>2 · The plan</b><p>4 steps, each marked AI-run or needs-you. Runs in an isolated git worktree; your main workspace is never touched.</p></div>
+                      <div class="pkg-item"><b>3 · Expected cost &amp; cap</b><p>Runs on the AI you already subscribe to — no extra fees. <span class="cost">Budget ¥3.2 · cap ¥8 · 45-min timeout breaker</span></p></div>
+                    </div>
+                    <div class="approve-row">
+                      <button class="btn btn-seal" type="button" data-approve>Looks right, go</button>
+                      <button class="btn btn-line" type="button">Tweak it</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="day-divider beat"><b>10:02 AM</b> you signed off and headed to a meeting</div>
+
+              <div class="msg saydo beat">
+                <div class="avatar">S</div>
+                <div class="bubble">
+                  <div class="who">SayDo · running in the background</div>
+                  Started. You can walk away — budget, time, and turn circuit-breakers mean no unattended burning. Progress goes into the ledger:
+                  <div class="bcard">
+                    <h4><span class="seal-dot"></span>Today · four-color ledger</h4>
+                    <div class="ledger-row tone-pine" id="row-csv">
+                      <span class="dot"></span>
+                      <div class="body"><div class="t">Export feature (CSV) · running in an isolated worktree</div><div class="meta">AI working · 12 min in</div></div>
+                      <span class="chip">AI on it</span>
+                    </div>
+                    <div class="ledger-row tone-indigo">
+                      <span class="dot"></span>
+                      <div class="body"><div class="t">Reply to the design-review email</div><div class="meta">Owed by you · today 9:10 AM</div></div>
+                      <span class="chip">Yours</span>
+                    </div>
+                    <div class="ledger-row tone-ochre">
+                      <span class="dot"></span>
+                      <div class="body"><div class="t">Site style settled — hybrid no. 11</div><div class="meta">Awaiting your call · just now</div></div>
+                      <span class="chip">Your call</span>
+                    </div>
+                    <div class="ledger-row tone-muted">
+                      <span class="dot"></span>
+                      <div class="body"><div class="t">Third-party API quota approval</div><div class="meta">Waiting externally · expected tomorrow</div></div>
+                      <span class="chip">Waiting</span>
+                    </div>
+                  </div>
+                  Everything has an owner and a state: awaiting your call, owed by you, in the AI's hands, waiting for a reply — four colors, nothing dropped.
+                </div>
+              </div>
+
+              <div class="day-divider beat"><b>10:47 AM</b> the run and its checks finished</div>
+
+              <div class="msg saydo beat">
+                <div class="avatar">S</div>
+                <div class="bubble">
+                  <div class="who">SayDo · calling you to review</div>
+                  Finished — it says "ready for your review", not "done". Tests all green, evidence attached. Merge and delivery count only when you nod.
+                  <div class="approve-row">
+                    <button class="btn btn-seal" type="button" data-accept>Accept &amp; merge</button>
+                    <button class="btn btn-line" type="button">Send it back</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sys beat"><span>One conversation = one full loop · replays automatically</span></div>
+            </div>
           </div>
+          <div class="chatwin-foot"><span>LIVE DEMO · ~40 SEC PER LOOP</span><span id="sim-foot-note">Sign-off and acceptance are auto-demoed — you can click them too</span></div>
         </div>
       </div>
     </section>
 
-    <!-- ===================== Why different ===================== -->
-    <section class="section section--alt" id="why">
+    <!-- ===================== Four tenets (mechanism layer) ===================== -->
+    <section class="sec" id="how" style="padding-top:30px">
       <div class="container">
-        <div class="section-head" data-reveal>
-          <span class="eyebrow">WHY DIFFERENT</span>
-          <h2 class="section-title">Not another voice tool</h2>
-          <p class="section-lead">Every piece of the puzzle has a mature point solution. Nobody has closed the full loop — talk it through, start itself, deliver for review — under one governance model. SayDo does the whole loop.</p>
+        <div class="ph" data-pop>
+          <span class="ph-kick">HOW / WHAT MAKES IT WORK</span>
+          <h2 class="ph-title">Four things, <em>all required</em></h2>
+          <p class="ph-lead">That conversation works because of these four mechanisms. <b>Each has mature point solutions on the market — nobody has made them one closed loop.</b></p>
         </div>
-
-        <div class="features">
-          <div class="card" data-reveal>
-            <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></div>
-            <h3 class="card-title">Said is booked</h3>
-            <p class="card-body">Hold to talk, think out loud. A casual "note this" is booked instantly — no app to open, no wording to polish.</p>
-          </div>
-          <div class="card" data-reveal data-reveal-delay="1">
-            <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></div>
-            <h3 class="card-title">It learns before it works</h3>
-            <p class="card-body">The first conversation about a project starts by reading its structure, conventions, and key files into a persistent knowledge base — every later conversation begins with that understanding. That's the line between SayDo and a fresh chat window.</p>
-          </div>
-          <div class="card" data-reveal data-reveal-delay="2">
-            <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></div>
-            <h3 class="card-title">Real AI, doing real work</h3>
-            <p class="card-body">It plugs into the AI already signed in on your machine — Codex, Claude Code, Cursor, Gemini CLI, Grok and more for thinking and evaluation. Cursor Agent is the stable code-editing path today; Claude Code is wired into production and undergoing final live closure. Whichever you subscribe to, it uses. No extra fees.</p>
-          </div>
-          <div class="card" data-reveal>
-            <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
-            <h3 class="card-title">You stay the decider</h3>
-            <p class="card-body">Work starts only after a decision pack gets your sign-off, and finishes with "ready for your review" — never "done". Merging and delivering are always your call.</p>
-          </div>
-          <div class="card" data-reveal data-reveal-delay="1">
-            <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-            <h3 class="card-title">Your data stays yours</h3>
-            <p class="card-body">No developer-operated backend, no accounts. Conversations, items, and the ledger stay on your devices. Phone and computer talk over your own LAN or an encrypted overlay you configure. The developer cannot access — and does not collect — any of your data.</p>
-          </div>
-          <div class="card" data-reveal data-reveal-delay="2">
-            <div class="card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></div>
-            <h3 class="card-title">One ledger across devices</h3>
-            <p class="card-body">What you say on your phone shows up on your computer; what's booked on your computer is watchable from your phone. Communication is mobile; execution stays put.</p>
-          </div>
+        <div class="tenets" data-pop>
+          <div class="tenet" style="--tc:var(--active-ink)"><span class="tn">01</span><h3>Learn first, then work</h3><p>The first conversation about a project starts by reading its structure, conventions, and key files into a persistent knowledge base — every later chat begins with that understanding. That's the line between SayDo and a fresh chat window.</p></div>
+          <div class="tenet" style="--tc:var(--color-success)"><span class="tn">02</span><h3>Real AI, doing real work</h3><p>It plugs into the AI already signed in on your computer — Codex, Claude Code, Cursor, Gemini CLI, Grok. Whichever you subscribe to, it uses. No extra fees.</p></div>
+          <div class="tenet" style="--tc:var(--brand-seal)"><span class="tn">03</span><h3>Nothing counts until you sign off</h3><p>A three-part decision pack before work starts; "ready for your review" instead of "done" at the end. Merging and delivering always need your nod.</p></div>
+          <div class="tenet" style="--tc:var(--color-warning)"><span class="tn">04</span><h3>One ledger across devices</h3><p>Talk, watch progress, and nod confirmations on your phone; the heavy lifting stays on your computer, and S3 actions live there forever. Communication is mobile; execution stays put.</p></div>
         </div>
       </div>
     </section>
 
     <!-- ===================== Status (honest labels) ===================== -->
-    <section class="section" id="status">
+    <section class="sec section--alt" id="status">
       <div class="container">
-        <div class="section-head" data-reveal>
-          <span class="eyebrow">PROGRESS</span>
-          <h2 class="section-title">Shipped, underway, planned</h2>
-          <p class="section-lead">Each item is labeled by what is true today. Plans are not marked as shipped.</p>
+        <div class="ph" data-pop>
+          <span class="ph-kick">STATUS / COMPLETION</span>
+          <h2 class="ph-title">Shipped, <em>underway</em>, and <u>planned</u></h2>
+          <p class="ph-lead">Each item is labeled by what is true today. <b>Planned work is never pre-marked as available.</b></p>
         </div>
-
-        <div class="status-grid">
-          <div class="status-card" data-reveal>
-            <div class="sc-top"><h3>Drives the AI you already have</h3><span class="badge badge-live">Available now</span></div>
+        <div class="status-grid" data-pop>
+          <div class="status-card">
+            <div class="sc-top"><h3>Drives the AI you already have</h3><span class="badge badge-live">Available</span></div>
             <p>Conversation, reasoning, and evaluation run on the Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot sessions already signed in on your machine, or any OpenAI-compatible API. The executor that edits code is Cursor Agent today.</p>
           </div>
-          <div class="status-card" data-reveal data-reveal-delay="1">
+          <div class="status-card">
             <div class="sc-top"><h3>Claude Code executor</h3><span class="badge badge-progress">Closing out</span></div>
             <p>The production execution path, approval gate, recovery, accounting, self-test, and console are wired. Final live end-to-end conformance remains open, so Cursor stays the stable default path for now.</p>
           </div>
-          <div class="status-card" data-reveal data-reveal-delay="2">
-            <div class="sc-top"><h3>Memory and the four-color ledger</h3><span class="badge badge-live">Available now</span></div>
+          <div class="status-card">
+            <div class="sc-top"><h3>Project memory &amp; four-color ledger</h3><span class="badge badge-live">Available</span></div>
             <p>Project grounding, a persistent knowledge base, the ownership ledger, and evidence views for review. Conversations are booked, inspectable, and retraceable.</p>
           </div>
-          <div class="status-card" data-reveal>
-            <div class="sc-top"><h3>Call-style voice briefings</h3><span class="badge badge-soon">Coming soon</span></div>
+          <div class="status-card">
+            <div class="sc-top"><h3>Call-style voice briefings</h3><span class="badge badge-soon">Planned</span></div>
             <p>When a run finishes, the communication side is woken as a system call and briefs you aloud. PushKit wake-up, CallKit incoming-call UI.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ===================== Architecture ===================== -->
-    <section class="section section--alt">
-      <div class="container">
-        <div class="section-head is-center" data-reveal>
-          <span class="eyebrow">COMMUNICATION ↔ EXECUTION</span>
-          <h2 class="section-title">Talk on your phone, work on your computer</h2>
-          <p class="section-lead">Communication is naturally mobile; execution is naturally stationary. Your phone is for talking, watching progress, and nodding confirmations. A LAN connection cannot approve S2 / S3; a remote surface on your own encrypted overlay caps approvals at S2; merges, deletes, and other S3 actions stay on your computer. The heavy lifting stays on your computer.</p>
+    <!-- ===================== Privacy (assembly blueprint) ===================== -->
+    <section class="sheet" id="privacy">
+      <div class="sheet-inner">
+        <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+        <div class="ph" data-pop>
+          <span class="ph-kick">DWG SAYDO-2026-001 / PRIVACY ASSEMBLY</span>
+          <h2 class="ph-title">Privacy is not a promise — <em>it's</em> <u>architecture</u></h2>
+          <p class="ph-lead">Conversations, items, and the ledger stay on your own devices. <b>No accounts, no analytics, no third-party statistics or ad SDKs</b> — the developer cannot access your data, and does not collect it.</p>
         </div>
-        <div class="arch" data-reveal>
-          <div class="arch-node">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
-            <h3>Communication · your phone</h3>
-            <p>Talk, watch progress, nod confirmations. LAN cannot approve S2 / S3; a remote surface you configure caps approvals at S2; merges and deletes always return to the computer. Always at hand — and if it disconnects, the backend doesn't care.</p>
+        <div class="fig" data-pop>
+          <svg viewBox="0 0 780 340" role="img" aria-label="Privacy assembly: the phone communication side connects to the computer execution side over your LAN; all data stays on your devices">
+            <line class="sl2" x1="40" y1="170" x2="740" y2="170" opacity=".5"/>
+            <!-- phone -->
+            <rect class="sl" x="70" y="95" width="92" height="158" rx="14"/>
+            <line class="sl" x1="104" y1="235" x2="128" y2="235"/>
+            <circle class="sc" cx="116" cy="140" r="16"/>
+            <path class="sc" d="M116 132 a5 5 0 0 1 5 5 v4 a5 5 0 0 1 -10 0 v-4 a5 5 0 0 1 5 -5 M110 142 a6 6 0 0 0 12 0"/>
+            <text class="st" x="116" y="282" text-anchor="middle">Communication · phone</text>
+            <text class="sts" x="116" y="298" text-anchor="middle">talk / watch progress / approve</text>
+            <!-- double-arrow link -->
+            <line class="sl" x1="162" y1="170" x2="612" y2="170"/>
+            <path class="sl" d="M176 162 L162 170 L176 178"/>
+            <path class="sl" d="M598 162 L612 170 L598 178"/>
+            <text class="st" x="387" y="156" text-anchor="middle">Your LAN / encrypted overlay you configure</text>
+            <text class="sts" x="387" y="190" text-anchor="middle">remote approvals capped at S2 · merges/deletes (S3) computer-only</text>
+            <!-- computer -->
+            <rect class="sl" x="612" y="90" width="130" height="96" rx="6"/>
+            <line class="sl" x1="662" y1="186" x2="692" y2="186"/>
+            <line class="sl" x1="677" y1="186" x2="677" y2="198"/>
+            <line class="sl" x1="650" y1="198" x2="704" y2="198"/>
+            <rect class="sc" x="624" y="104" width="106" height="22"/>
+            <text class="st" x="677" y="119" text-anchor="middle" style="font-size:10.5px">SayDo daemon</text>
+            <rect class="sl" x="624" y="132" width="50" height="20"/>
+            <text class="sts" x="649" y="145" text-anchor="middle">AI agent</text>
+            <rect class="sl" x="680" y="132" width="50" height="20"/>
+            <text class="sts" x="705" y="145" text-anchor="middle">Ledger</text>
+            <rect class="sl" x="624" y="158" width="106" height="16"/>
+            <text class="sts" x="677" y="169" text-anchor="middle">100% on-device</text>
+            <text class="st" x="677" y="228" text-anchor="middle">Execution · computer</text>
+            <text class="sts" x="677" y="244" text-anchor="middle">no backend · no accounts</text>
+            <text class="sts" x="677" y="259" text-anchor="middle">no tracking</text>
+            <!-- cloud upstream note -->
+            <circle class="sc" cx="404" cy="282" r="10"/><text class="st" x="404" y="286" text-anchor="middle" style="font-size:11px">i</text>
+            <text class="sts" x="240" y="278">Cloud voice / AI upstreams</text>
+            <text class="sts" x="240" y="294">you enable are called</text>
+            <text class="sts" x="240" y="310">directly by your computer;</text>
+            <text class="sts" x="240" y="326">the developer receives none.</text>
+            <line class="sl2" x1="412" y1="276" x2="600" y2="200"/>
+          </svg>
+        </div>
+        <div class="sheet-cta" data-pop>
+          <a class="btn btn-secondary" href="/en/privacy/">Read the full privacy policy →</a>
+        </div>
+        <div class="sheet-foot" data-pop>
+          <span>TITLE · PRIVACY ASSEMBLY</span>
+          <span>DWG NO. · SAYDO-2026-001</span>
+          <span>APPROVED · YOU (the decider)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== FAQ (conversational) ===================== -->
+    <section class="sec" id="faq">
+      <div class="container">
+        <div class="ph" data-pop>
+          <span class="ph-kick">Q&amp;A / WHAT IT IS NOT, FIRST</span>
+          <h2 class="ph-title">You might <em>wonder</em></h2>
+        </div>
+        <div class="thread">
+          <div class="msg me" data-pop><div class="avatar">You</div><div class="bubble">Whose AI does it use? Do I need another subscription?</div></div>
+          <div class="msg saydo" data-pop>
+            <div class="avatar">S</div>
+            <div class="bubble">No. It plugs into the AI <b>already signed in</b> on your computer — Codex, Claude Code, Cursor, Gemini CLI, Grok and others handle the talking, thinking, and evaluating; the stable code-editing path today is Cursor Agent, with Claude Code in final closure. Whichever you subscribe to, it uses.</div>
           </div>
-          <div class="arch-link" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>
-            <span class="al-label">LAN OR YOUR ENCRYPTED OVERLAY</span>
+          <div class="msg me" data-pop><div class="avatar">You</div><div class="bubble">Is this a voice input method?</div></div>
+          <div class="msg saydo" data-pop>
+            <div class="avatar">S</div>
+            <div class="bubble">No. It doesn't do "speech to text, then paste". It first studies your project's context, books everything into a ledger, and once it understands, proposes to start and gets it done itself. <b>The edge is not which model it uses, but context engineering and the human-AI workflow.</b></div>
           </div>
-          <div class="arch-node">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
-            <h3>Execution · your computer</h3>
-            <p>Studies the project, drives the AI, works in the background, keeps the memory. Step away from your phone — execution goes on.</p>
+          <div class="msg me" data-pop><div class="avatar">You</div><div class="bubble">Do my conversations and project data go to your servers?</div></div>
+          <div class="msg saydo" data-pop>
+            <div class="avatar">S</div>
+            <div class="bubble">We have no servers (that's exactly what the assembly drawing above shows). <b>No developer-operated backend, no accounts, no analytics.</b> Data stays on your own devices; phone and computer talk over your own LAN or an encrypted overlay you configure.</div>
+          </div>
+          <div class="msg me" data-pop><div class="avatar">You</div><div class="bubble">How much can I do from my phone?</div></div>
+          <div class="msg saydo" data-pop>
+            <div class="avatar">S</div>
+            <div class="bubble">Communication is naturally mobile; execution is naturally stationary. Talk, watch progress, and nod confirmations on your phone (approvals capped at S2); merges, deletes, and other S3 actions always stay on your computer. If the phone steps away, execution goes on.</div>
+          </div>
+          <div class="msg me" data-pop><div class="avatar">You</div><div class="bubble">Will it push code or open PRs for me?</div></div>
+          <div class="msg saydo" data-pop>
+            <div class="avatar">S</div>
+            <div class="bubble">No. It edits code only in an isolated worktree on a <code>saydo/&lt;task&gt;</code> branch inside your project; merging into your branches needs your on-machine authenticated confirmation or your own hands; <b>pushing to a remote and opening PRs are always things you do afterwards yourself.</b></div>
+          </div>
+          <div class="msg me" data-pop><div class="avatar">You</div><div class="bubble">Can I use it right now?</div></div>
+          <div class="msg saydo" data-pop>
+            <div class="avatar">S</div>
+            <div class="bubble">The desktop service is open source, free, and available now (macOS / Windows / Linux); the mobile apps are in development and not yet in stores. One command below is all it takes ↓</div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ===================== Privacy ===================== -->
-    <section class="section" id="privacy">
-      <div class="container">
-        <div class="privacy-band" data-reveal>
-          <div class="card-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
-          </div>
-          <div class="pb-body">
-            <span class="eyebrow">PRIVACY-FIRST, LOCAL-FIRST</span>
-            <h2>No servers. Period.</h2>
-            <p>Conversations, items, and ledger data stay on your devices. The product data path between phone and computer is your own LAN or an encrypted overlay you configure. Cloud voice, AI upstreams, and push that you enable yourself are called directly from your computer to those third parties; the developer does not receive that data. No accounts, no analytics, no third-party tracking or ad SDKs.</p>
-            <a class="btn btn-secondary" href="/en/privacy/">Read the full privacy policy
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            </a>
-          </div>
-        </div>
+    <!-- ===================== Reverse marquee ===================== -->
+    <div class="marquee rev" aria-hidden="true">
+      <div class="marquee-track">
+        <span>Say it <b>◆</b> it's done <b>◆</b> Say it <b>◆</b> it's done <b>◆</b> Say it <b>◆</b> it's done <b>◆</b> Say it <b>◆</b> it's done <b>◆</b></span>
+        <span>Say it <b>◆</b> it's done <b>◆</b> Say it <b>◆</b> it's done <b>◆</b> Say it <b>◆</b> it's done <b>◆</b> Say it <b>◆</b> it's done <b>◆</b></span>
       </div>
-    </section>
+    </div>
 
-    <!-- ===================== Get Started ===================== -->
+    <!-- ===================== Finale (full-bleed seal red) ===================== -->
     <span id="download"></span>
-    <section class="section section--alt" id="start">
-      <div class="container">
-        <div class="section-head is-center" data-reveal>
-          <span class="eyebrow">GET STARTED</span>
-          <h2 class="section-title">Open-source desktop, apps on the way</h2>
-          <p class="section-lead">The desktop service is the execution side: the source form runs on macOS, Windows, and Linux today, while residency installation and system notifications remain macOS-only. Mobile apps are in development and are not available in any store. Run the desktop service and choose a signed-in AI CLI that SayDo supports and has passed through self-test; this needs no separate API key, and unsupported CLIs are rejected explicitly. After you enable LAN access as documented, a phone browser can connect by QR code.</p>
-        </div>
-        <div class="quick-run" data-reveal>
-          <strong>Run the daemon + Web console once</strong>
-          <code>npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.4/saydo-cli-0.1.0-rc.4.tgz -- saydo up</code>
-          <strong>Install for regular use</strong>
-          <code>npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.4/saydo-cli-0.1.0-rc.4.tgz</code>
-          <code>saydo up</code>
-          <p>Requires Node.js 22; no source checkout. This is the candidate fixed URL for v0.1.0-rc.4 and works only after the GitHub Release page appears and all release checks are green; it does not include the voice pipeline or service installation.</p>
-        </div>
-        <div class="platform-groups" data-reveal>
-          <div class="platform-group">
-            <h3 class="group-label">Desktop</h3>
-            <div class="platforms">
-              <div class="platform is-open">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
-                <span class="name">macOS desktop service</span>
-                <span class="badge badge-live">Open source · Available now</span>
-                <span class="platform-links">
-                  <a href="/en/docs/#quickstart">Install guide →</a>
-                  <a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub →</a>
-                </span>
-              </div>
-              <div class="platform is-open">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>
-                <span class="name">Windows</span>
-                <span class="badge badge-live">Open source · Available now</span>
-                <span class="platform-links"><a href="/en/docs/#quickstart">Install guide →</a></span>
-              </div>
-              <div class="platform is-open">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
-                <span class="name">Linux</span>
-                <span class="badge badge-live">Open source · Available now</span>
-                <span class="platform-links"><a href="/en/docs/#quickstart">Install guide →</a></span>
-              </div>
-            </div>
-          </div>
-          <div class="platform-group">
-            <h3 class="group-label">Mobile</h3>
-            <div class="platforms">
-              <div class="platform">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
-                <span class="name">iOS</span>
-                <span class="badge badge-progress">In development</span>
-              </div>
-              <div class="platform">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
-                <span class="name">Android</span>
-                <span class="badge badge-progress">In development</span>
-              </div>
-              <div class="platform">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
-                <span class="name">HarmonyOS</span>
-                <span class="badge badge-progress">In development</span>
-              </div>
-            </div>
-          </div>
-          <div class="platform-apply">
-            <p class="apply-note">Windows and Linux desktop service is now available: Windows verified on real hardware, Linux passing the full CI matrix; residency install and system notifications remain macOS-only for now. Mobile apps are in development, not in stores, and there is no downloadable build.</p>
-            <a class="btn btn-secondary" href="mailto:octoooo@octoooo.com?subject=SayDo%20updates">Email for updates</a>
-          </div>
-        </div>
+    <section class="finale" id="start">
+      <h2 data-pop>Connect the saying<br />and the doing.</h2>
+      <p data-pop>Talk it through; it does the work, then calls you to review. Open source and free — data never leaves your devices. Requires Node.js 22, no source checkout needed:</p>
+      <span class="cmd" data-pop><b>$</b> npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.6/saydo-cli-0.1.0-rc.6.tgz -- saydo up</span>
+      <p class="avail" data-pop>This is the candidate fixed URL for v0.1.0-rc.6 and works only after the GitHub Release page appears and all release checks are green; it does not include the voice pipeline or service installation.</p>
+      <div class="plat" data-pop>
+        <span>macOS<i>Available</i></span>
+        <span>Windows<i>Available</i></span>
+        <span>Linux<i>Available</i></span>
+        <span>iOS<i>In dev</i></span>
+        <span>Android<i>In dev</i></span>
+        <span>HarmonyOS<i>In dev</i></span>
       </div>
-    </section>
-
-    <!-- ===================== FAQ ===================== -->
-    <section class="section" id="faq">
-      <div class="container">
-        <div class="section-head is-center" data-reveal>
-          <span class="eyebrow">FAQ</span>
-          <h2 class="section-title">What it is not, first</h2>
-        </div>
-        <div class="faq" data-reveal>
-          <details class="faq-item">
-            <summary>Is this a voice keyboard?<span class="chev"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
-            <div class="answer">No. It isn't "speech-to-text pasted into a box". It studies your project's context first, books everything into a ledger, and once it understands, it proposes to start and does the work itself. The edge isn't which model it uses — it's context engineering and a human-AI collaboration loop.</div>
-          </details>
-          <details class="faq-item">
-            <summary>Does it upload my project to a cloud runner?<span class="chev"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
-            <div class="answer">No. There is no developer-operated cloud backend. The heavy work runs on your own computer. The third-party AI you connect (your CLI subscriptions or API keys) is called directly by your computer — the developer never touches or sees any of it.</div>
-          </details>
-          <details class="faq-item">
-            <summary>What do I need to start?<span class="chev"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
-            <div class="answer">Run the free, open-source SayDo desktop service on your computer (macOS / Windows / Linux). After you explicitly enable LAN access as documented, you can connect with a phone browser by scanning a QR code. For the AI, whatever you already have signed in — Claude Code, Codex, Cursor, Gemini CLI, and more — just works, at no extra cost. Voice works right in the browser, nothing to configure.</div>
-          </details>
-          <details class="faq-item">
-            <summary>Where is my data stored?<span class="chev"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
-            <div class="answer">Conversations, items, and the ledger stay on your own devices. Phone and computer talk over your own LAN or an encrypted overlay you configure. Cloud voice, AI upstreams, and push that you enable yourself are called directly from your computer to those third parties; the developer does not receive that data. Deleting the app removes all phone-side local data; the desktop side is yours to manage.</div>
-          </details>
-          <details class="faq-item">
-            <summary>How does it know when something is finished?<span class="chev"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
-            <div class="answer">When the run and its checks complete, it says "ready for your review" — never "done". It lays out the outcome against your acceptance criteria (diffs, tests, decisions), and only your approval stamps the entry settled. Merging and delivering are always your call.</div>
-          </details>
-          <details class="faq-item">
-            <summary>Does it cost money?<span class="chev"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
-            <div class="answer">The desktop service is free. AI costs go straight to the vendor you choose — your existing subscription (no extra fees within its quota) or your own API key, pay as you go — with per-task cost, time, and turn circuit-breakers. SayDo adds no markup and never handles payment.</div>
-          </details>
-          <details class="faq-item">
-            <summary>Will it push or open PRs for me?<span class="chev"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>
-            <div class="answer">No. It only edits code in an isolated worktree on a saydo/&lt;task&gt; branch inside your project; merging into your branch takes local device authentication or your own hands, and pushing or opening a PR is always something you do afterwards.</div>
-          </details>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===================== CTA ===================== -->
-    <section class="section--tight" style="padding-bottom:var(--space-8)">
-      <div class="container">
-        <div class="cta-band" data-reveal>
-          <h2>Connect the saying to the doing</h2>
-          <p>The desktop service is free and open source, and the apps are on the way. From today, everything you say has a place — and a fate.</p>
-          <div class="hero-actions">
-            <a class="btn btn-seal btn-lg" href="#start">Get Started</a>
-            <a class="btn btn-secondary btn-lg" href="/en/docs/">Read the docs</a>
-            <a class="btn btn-secondary btn-lg" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">Go to GitHub</a>
-          </div>
-        </div>
+      <a class="cta-final" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener" data-pop>Start on GitHub →</a>
+      <div class="alt-links" data-pop>
+        <a href="/en/docs/#quickstart">Install guide</a>
+        <a href="/en/docs/">Read the docs</a>
+        <a href="mailto:octoooo@octoooo.com?subject=SayDo%20updates">Get updates by email</a>
       </div>
     </section>
   </main>
@@ -504,21 +545,21 @@
         <div class="footer-brand-col">
           <span class="footer-brand">
             <img src="/icon-192.png" alt="" width="28" height="28" loading="lazy" />
-            SayDo 说到
+            SayDo
           </span>
-          <p>A voice-first chief of staff for your projects. Local-first, open source, privacy-first.</p>
+          <p>A senior assistant you can talk to. Local-first, open source, privacy above all.</p>
         </div>
         <div class="footer-col">
-          <h4>PRODUCT</h4>
+          <h4>Product</h4>
           <ul>
+            <li><a href="#dialogue">A conversation</a></li>
             <li><a href="#how">How it works</a></li>
-            <li><a href="#why">Why different</a></li>
             <li><a href="#status">Status</a></li>
-            <li><a href="#start">Get Started</a></li>
+            <li><a href="#start">Get started</a></li>
           </ul>
         </div>
         <div class="footer-col">
-          <h4>RESOURCES</h4>
+          <h4>Resources</h4>
           <ul>
             <li><a href="/en/docs/">Docs</a></li>
             <li><a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub</a></li>
@@ -527,7 +568,7 @@
           </ul>
         </div>
         <div class="footer-col">
-          <h4>LEGAL &amp; CONTACT</h4>
+          <h4>Legal &amp; contact</h4>
           <ul>
             <li><a href="/en/privacy/">Privacy policy</a></li>
             <li><a href="/en/terms/">Terms of use</a></li>
@@ -536,13 +577,197 @@
         </div>
       </div>
       <div class="footer-meta">
-        <span>© <span data-year>2026</span> SayDo · Developer: Yixiao Wang</span>
+        <span>© <span data-year>2026</span> SayDo · Developed by <a href="https://www.octoooo.com/" target="_blank" rel="noopener">OctoLab</a> · <a href="https://github.com/Octo-o-o-o" target="_blank" rel="noopener">WangYixiao</a></span>
         <a class="icp-beian" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">京ICP备2025153079号-4A</a>
-        <span>Local-first · Open source · Privacy-first</span>
+        <span>Local-first · open source · privacy-first</span>
       </div>
     </div>
   </footer>
 
-  <script src="/theme.js?v=20260820d" defer></script>
+  <script src="/theme.js?v=20260825b" defer></script>
+  <script>
+    // Homepage only: reveal animation (SayDo messages "type" before appearing) + approve/accept stamping + cinema-style autoplay
+    (function () {
+      // reveal animation
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) {
+          if (!e.isIntersecting) return;
+          var el = e.target;
+          io.unobserve(el);
+          if (el.matches(".msg.saydo")) {
+            var t = document.createElement("div");
+            t.className = "msg saydo typing-msg in";
+            t.innerHTML = '<div class="avatar">S</div><div class="bubble"><span class="typing"><i></i><i></i><i></i></span></div>';
+            el.parentNode.insertBefore(t, el);
+            setTimeout(function () { t.remove(); el.classList.add("in"); }, 680);
+          } else {
+            el.classList.add("in");
+          }
+        });
+      }, { threshold: .12 });
+      document.querySelectorAll("[data-pop]").forEach(function (el) { io.observe(el); });
+
+      // approve: stamp + flash the ledger row
+      document.querySelectorAll("[data-approve]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          btn.textContent = "Approved · started"; btn.classList.add("done");
+          var card = btn.closest(".bcard");
+          var stamp = card && card.querySelector(".stamp-ok");
+          if (stamp) stamp.classList.add("on");
+          var row = document.getElementById("row-csv");
+          if (row) { row.classList.add("flash"); setTimeout(function () { row.classList.remove("flash"); }, 1600); }
+        });
+      });
+
+      // accept: flip the ledger state
+      document.querySelectorAll("[data-accept]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          btn.textContent = "Accepted · merged"; btn.classList.add("done");
+          var row = document.getElementById("row-csv");
+          if (row) {
+            row.className = "ledger-row tone-muted flash";
+            row.querySelector(".chip").textContent = "Accepted";
+            row.querySelector(".meta").textContent = "Today 10:47 AM · tests green, merged & booked";
+            setTimeout(function () { row.classList.remove("flash"); }, 1600);
+          }
+        });
+      });
+
+      // hero seal-glyph parallax (lightweight)
+      var glyphSeal = document.getElementById("glyph-seal");
+      var ticking = false;
+      addEventListener("scroll", function () {
+        if (ticking) return; ticking = true;
+        requestAnimationFrame(function () {
+          var y = scrollY;
+          if (glyphSeal && y < innerHeight)
+            glyphSeal.style.transform = "rotate(" + (-3 - y * 0.008) + "deg) translateY(" + (0.05 + y * 0.0004) + "em)";
+          ticking = false;
+        });
+      }, { passive: true });
+
+      // cinema-style dialogue: autoplay · new messages push old ones out · pause/replay
+      (function () {
+        var live = document.getElementById("chatlive");
+        var simThread = document.getElementById("sim-thread");
+        if (!live || !simThread) return;
+        var beats = Array.prototype.slice.call(simThread.children);
+        var toggleBtn = document.getElementById("sim-toggle");
+        var replayBtn = document.getElementById("sim-replay");
+        var footNote = document.getElementById("sim-foot-note");
+        var reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        // beat order: 0 date / 1 voice / 2 BOM / 3 yes / 4 sys / 5 decision pack / 6 date2 / 7 ledger / 8 date3 / 9 acceptance / 10 sys loop
+        var delays = [700, 1500, 2300, 1400, 1100, 2600, 1100, 2400, 1100, 2500, 1600];
+        var autoAt = { 5: ["[data-approve]", 1400], 9: ["[data-accept]", 1500] };
+        var typingBefore = { 2: true, 5: true, 7: true, 9: true };
+        var playing = false, timer = null, idx = 0, started = false;
+
+        function reveal(el, i) {
+          el.style.display = "";
+          el.classList.add("pre");
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+              el.classList.add("sim-in");
+              el.classList.remove("pre");
+            });
+          });
+          // when it overflows, push the earliest visible beat out
+          var guard = 0;
+          while (live.scrollHeight > live.clientHeight + 6 && guard++ < 12) {
+            var first = beats.find(function (b) { return b.style.display !== "none" && !b.classList.contains("gone") && b !== el; });
+            if (!first) break;
+            first.classList.add("gone");
+            (function (f) {
+              setTimeout(function () { if (f.classList.contains("gone")) f.style.display = "none"; }, 480);
+            })(first);
+          }
+          live.scrollTo({ top: live.scrollHeight, behavior: "smooth" });
+          // auto approve / accept
+          if (autoAt[i]) {
+            var sel = autoAt[i][0], wait = autoAt[i][1];
+            setTimeout(function () {
+              if (!playing) return;
+              var b = el.querySelector(sel);
+              if (b && !b.classList.contains("done")) b.click();
+            }, wait);
+          }
+          schedule(i + 1);
+        }
+
+        function showBeat(i) {
+          var el = beats[i];
+          if (typingBefore[i]) {
+            var t = document.createElement("div");
+            t.className = "msg saydo beat typing-msg-live";
+            t.innerHTML = '<div class="avatar">S</div><div class="bubble"><span class="typing"><i></i><i></i><i></i></span></div>';
+            el.before(t);
+            live.scrollTo({ top: live.scrollHeight, behavior: "smooth" });
+            timer = setTimeout(function () { t.remove(); if (playing) reveal(el, i); }, 800);
+          } else {
+            reveal(el, i);
+          }
+        }
+
+        function schedule(next) {
+          idx = next;
+          if (next < beats.length) {
+            timer = setTimeout(function () { if (playing) showBeat(next); }, delays[next] || 1500);
+          } else {
+            timer = setTimeout(function () { if (playing) restart(); }, 4600);
+          }
+        }
+
+        function resetSim() {
+          var ap = simThread.querySelector("[data-approve]");
+          if (ap) { ap.textContent = "Looks right, go"; ap.classList.remove("done"); }
+          var ac = simThread.querySelector("[data-accept]");
+          if (ac) { ac.textContent = "Accept & merge"; ac.classList.remove("done"); }
+          var stamp = simThread.querySelector(".stamp-ok");
+          if (stamp) stamp.classList.remove("on");
+          var row = document.getElementById("row-csv");
+          if (row) {
+            row.className = "ledger-row tone-pine";
+            row.querySelector(".chip").textContent = "AI on it";
+            row.querySelector(".meta").textContent = "AI working · 12 min in";
+          }
+        }
+
+        function restart() {
+          clearTimeout(timer);
+          resetSim();
+          beats.forEach(function (b) { b.style.display = "none"; b.classList.remove("sim-in", "pre", "gone"); });
+          simThread.querySelectorAll(".typing-msg-live").forEach(function (t) { t.remove(); });
+          live.scrollTop = 0;
+          idx = 0;
+          timer = setTimeout(function () { if (playing) showBeat(0); }, 600);
+        }
+
+        if (reduceMotion) {
+          // system reduced motion: show everything statically, buttons still clickable
+          toggleBtn.style.display = "none";
+          replayBtn.style.display = "none";
+          footNote.textContent = "Shown statically per your system preference · buttons still work";
+        } else {
+          playing = true;
+          // start only when scrolled into view, so nothing is missed
+          var kickoff = new IntersectionObserver(function (es) {
+            if (es[0].isIntersecting && !started) { started = true; kickoff.disconnect(); restart(); }
+          }, { threshold: .25 });
+          kickoff.observe(live);
+          toggleBtn.addEventListener("click", function () {
+            playing = !playing;
+            toggleBtn.textContent = playing ? "Pause" : "Play";
+            if (playing) { if (idx >= beats.length) restart(); else showBeat(idx); }
+            else clearTimeout(timer);
+          });
+          replayBtn.addEventListener("click", function () {
+            if (!playing) { playing = true; toggleBtn.textContent = "Pause"; }
+            restart();
+          });
+        }
+      })();
+    })();
+  </script>
 </body>
 </html>
