@@ -33,7 +33,7 @@
   "historyDigest": "b36484329fa3c2359c7c2d6261f22a6a474f38e7fb06a6a36d3136a97635391e",
   "expectedPublication": {
     "repository": "Octo-o-o-o/SayDo",
-    "tag": "v0.1.0-rc.8",
+    "tag": "v0.1.0-rc.9",
     "rule": "GitHub tag workflow 对本 bundle 运行 --check-bundle 后构成外部不可移动锚"
   },
   "files": {
@@ -41,7 +41,7 @@
     "research/week-audit/2026-08-22-ledger.json": "a989895c421d23ad35966da0cfbd86ac74c1089bf152aa763c38302b7c2b216d",
     "research/week-audit/2026-08-22-semantic-review.json": "905b2806c237bcea81eb8b3f64f66cec3e81ff8d3f5d1d3889c82839073cd1e5",
     "research/week-audit/2026-08-22-ref-manifest.json": "46fc3c9b4b5ac02a9a862ace714d721c9434583fc055f8f5246b58bd7cf0f70d",
-    "research/week-audit/2026-08-23-publication-manifest.json": "5c88a70692dc1b61b7f24da410179d9e58382ad8a378fc6a28acb25b9f9d9600",
+    "research/week-audit/2026-08-23-publication-manifest.json": "2fa9083bd812e099530bdd008611b9f5f7715dd9d636151f0e41c7483c6cc07a",
     "research/week-audit/2026-08-23-review-finding-anchor.json": "03c6ef06fb8f3834e311b06874a869c4e232b4b8f3842f95ef54d6ce388ef378",
     "research/week-audit/2026-08-23-remediation-cross-links.json": "c1cdfebe08cac2adff5ebdd521e9f180210b6a40bac32498fa0cb8ca2022e02e",
     "research/week-audit/2026-08-23-remediation-ledger.json": "2ce58f8c0cea79751ee7968a58d46f7d6a2f4d788100be98b0abe0660f001d2a",

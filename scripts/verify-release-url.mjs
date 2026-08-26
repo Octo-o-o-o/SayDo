@@ -90,17 +90,19 @@ async function verifyPublishedBytes() {
   const metadata = JSON.parse(metadataBytes.toString("utf8"));
   const localTarball = join(scratch, filename);
   writeFileSync(localTarball, tarBytes);
-  const archiveEntries = execFileSync("tar", ["-tzf", localTarball], { encoding: "utf8" })
+  // tar 一律 cwd+相对名传 -f:见 release-asset-manifest.mjs 同注(Windows 冒号/远程主机问题)。
+  const tarCwd = { cwd: scratch, encoding: "utf8" };
+  const archiveEntries = execFileSync("tar", ["-tzf", filename], tarCwd)
     .split(/\r?\n/u)
     .filter((entry) => entry !== "" && !entry.endsWith("/"));
   const archivedPackage = JSON.parse(
-    execFileSync("tar", ["-xOf", localTarball, "package/package.json"], { encoding: "utf8" })
+    execFileSync("tar", ["-xOf", filename, "package/package.json"], tarCwd)
   );
   // 载荷级来源绑定:下载的 tgz **内部**的 build-metadata 必须与 sidecar metadata 同源——
   // 三元组一致后,经 assertIdentityMatchesTrackedManifest 传递绑定到仓内冻结的 sourceRevision。
   // 这比只验 sidecar 强:sidecar 可独立生成,内嵌元数据随载荷本体打进包里。
   const archivedBuild = JSON.parse(
-    execFileSync("tar", ["-xOf", localTarball, "package/dist/build-metadata.json"], { encoding: "utf8" })
+    execFileSync("tar", ["-xOf", filename, "package/dist/build-metadata.json"], tarCwd)
   );
   invariant(checksum === `${digest}  ${filename}\n`, "线上 SHA256SUMS 与 tgz 字节不一致");
   invariant(
@@ -276,6 +278,14 @@ function alive(pid) {
   }
 }
 
+function wrapperExitGraceful(ended) {
+  if (ended.code === 0 && ended.signal === null) return true;
+  // exec 模式的被观测进程是 npm 包装层:SIGINT 下 npm 自身以 130 或信号收场与否
+  // 是 npm 的平台竞态(rc.8 实测 macOS=0 / ubuntu=非0,同版本 npm)。
+  // saydo 侧的优雅收口由紧随其后的 waitGone(supervisorPid) 独立断言。
+  return installMode === "exec" && (ended.code === 130 || ended.signal === "SIGINT");
+}
+
 async function waitGone(pid) {
   for (let attempt = 0; attempt < 100; attempt += 1) {
     if (!alive(pid)) return;
@@ -380,7 +390,12 @@ try {
     attachedChild.kill("SIGINT");
   }
   const attachedEnded = await waitForExit(attachedChild, process.platform === "win32" ? 45_000 : 30_000);
-  invariant(attachedEnded.code === 0 && attachedEnded.signal === null, "重复 up attach 未优雅退出");
+  invariant(
+    wrapperExitGraceful(attachedEnded),
+    `重复 up attach 未优雅退出:${JSON.stringify(attachedEnded)}:${attachOutput.slice(-400)}`
+  );
+  // saydo 侧合同:attach supervisor 必须真实收口(与包装层退出语义解耦)。
+  await waitGone(attached.supervisorPid);
   invariant(alive(ready.pid), "attach 客户端退出误停了 owner daemon");
 
   if (process.platform === "win32") {
@@ -390,7 +405,11 @@ try {
     child.kill("SIGINT");
   }
   const ended = await waitForExit(child, process.platform === "win32" ? 45_000 : 30_000);
-  invariant(ended.code === 0 && ended.signal === null, `固定 URL CLI 非优雅退出:${JSON.stringify(ended)}`);
+  invariant(
+    wrapperExitGraceful(ended),
+    `固定 URL CLI 非优雅退出:${JSON.stringify(ended)}:${output.slice(-400)}`
+  );
+  await waitGone(ready.supervisorPid);
   await waitGone(ready.pid);
   const evidence = {
     schemaVersion: 1,

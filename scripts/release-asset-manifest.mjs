@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { writeFileAtomic } from "./release-file-transaction.mjs";
@@ -63,7 +63,10 @@ function tarballEntryCount(buffer, tarballPath) {
     writeFileSync(path, buffer);
   }
   try {
-    return execFileSync("tar", ["-tzf", path], {
+    // 用 cwd+相对名传 -f:绝对 Windows 路径的冒号会被 GNU tar 当远程主机
+    // (rc.8 smoke 实测 "Cannot connect to C: resolve failed"),--force-local 又不被 bsdtar 认。
+    return execFileSync("tar", ["-tzf", basename(path)], {
+      cwd: dirname(path),
       encoding: "utf8",
       maxBuffer: 16 * 1024 * 1024
     })
@@ -97,7 +100,7 @@ export function tarballContentDigest(bytes, tarballPath) {
   }
   const extractDir = mkdtempSync(join(tmpdir(), "saydo-asset-x-"));
   try {
-    execFileSync("tar", ["-xzf", path, "-C", extractDir], { stdio: ["ignore", "ignore", "pipe"] });
+    execFileSync("tar", ["-xzf", basename(path), "-C", extractDir], { cwd: dirname(path), stdio: ["ignore", "ignore", "pipe"] });
     const lines = walkFilesSorted(extractDir).map(
       (relative) => `${sha256Bytes(readFileSync(join(extractDir, relative)))}  ${relative}\n`
     );
@@ -304,7 +307,7 @@ function main() {
   const repo = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   if (mode === "--check-dir") {
     const dir = process.argv[3];
-    const tag = process.argv[4] ?? "v0.1.0-rc.8";
+    const tag = process.argv[4] ?? "v0.1.0-rc.9";
     invariant(dir && !dir.startsWith("--"), "用法:node scripts/release-asset-manifest.mjs --check-dir <dir> [tag]");
     const manifest = loadTrackedReleaseAssetManifest(repo, tag);
     const actual = inspectReleaseAssetDir(dir, manifest.version);
@@ -315,7 +318,7 @@ function main() {
     return;
   }
   if (mode === "--check-release-json") {
-    const tag = process.argv[3] ?? process.env.GITHUB_REF_NAME ?? "v0.1.0-rc.8";
+    const tag = process.argv[3] ?? process.env.GITHUB_REF_NAME ?? "v0.1.0-rc.9";
     const raw = process.env.RELEASE_JSON;
     invariant(raw, "RELEASE_JSON 为空");
     const manifest = loadTrackedReleaseAssetManifest(repo, tag);

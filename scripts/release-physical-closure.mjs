@@ -7,7 +7,7 @@ import { dirname, join, posix, resolve } from "node:path";
 
 export const WINDOWS_VERIFIER_RELATIVE_PATH = "scripts/verify-release-url.mjs";
 export const WINDOWS_WRAPPER_RELATIVE_PATH = "scripts/run-release-verifier-windows.ps1";
-export const TRACKED_ASSET_MANIFEST_RELATIVE_PATH = "docs/release/v0.1.0-rc.8-assets.json";
+export const TRACKED_ASSET_MANIFEST_RELATIVE_PATH = "docs/release/v0.1.0-rc.9-assets.json";
 export const PHYSICAL_JS_ROOTS = Object.freeze([
   "scripts/post-release-gate.mjs",
   "scripts/verify-release-url.mjs",

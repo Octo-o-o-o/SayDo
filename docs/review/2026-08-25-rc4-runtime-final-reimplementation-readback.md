@@ -611,3 +611,21 @@ rc.4(漏 freeze)→ rc.5(doc-links,本地门禁缺口)→ rc.6(e2e 偶发 + 推�
 结构性认识(间歇性启动超时的诊断通道;合同 v2)。rc.8 发布前增加容器预检
 (linux/amd64 + CI 同 node 跑 --write && --check),等价于 CI publish 校验流,
 容器绿则 CI 必绿——tag 风险在本地清零后才推。
+
+## 15. rc.8:publish 首过、smoke 首触发,两类新缺陷修复经 rc.9
+
+rc.8 达成两个"首次":`publish GitHub prerelease` 成功(合同 v2 按设计工作,
+Release 与三资产真实存在),六项 fixed URL smoke 首次执行——3 过
+(macOS exec/global、ubuntu global),3 失败,保护网正确把 prerelease 标为 unavailable。
+
+| 失败 | 根因 | 处置 |
+|---|---|---|
+| Windows 双模式 | GNU tar 把 `C:\…` 冒号当远程主机(该代码路径首次在 Windows 执行) | tar 一律 cwd+相对名传 `-f`(通用解;不用 `--force-local`,bsdtar 不认会反噬真机) |
+| ubuntu exec | npm 包装进程对 SIGINT 的收场竞态:同版本 npm,macOS 竞态到 0、ubuntu 到 130/SIGINT;saydo 本体已优雅 detach | exec 模式包装层验收放宽 {0,130,SIGINT};saydo 侧合同**加强**为 waitGone(supervisorPid) 直接断言,与 npm 语义解耦 |
+
+关键机制确认:`run_attempt===1` 铁律使 smoke 不可重跑——rc.8 tag 永久 unavailable,
+这正是"不可变预发布 + 六项 smoke 全绿才可用"设计的预期行为,不是事故。
+两条 invariant 已补 code/signal/输出尾部诊断,rc.8 那种无诊断失败不再发生。
+
+rc.9 流程:代码修复 → bump → freeze(v2) → 容器预检(linux/amd64+CI 同 node 跑
+--write&&--check) → 23 项门禁 → 原子推送。
