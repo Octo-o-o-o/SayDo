@@ -15,9 +15,9 @@
 
 ## 快速运行
 
-普通用户无需克隆源码。下面是 v0.1.0-rc.12 的发布候选固定 URL；仅当
-[GitHub Release 页面](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.12)
-已经出现且发布检查全绿后，命令才可用：
+普通用户无需克隆源码。v0.1.0-rc.12 固定 URL 已由不可变
+[GitHub Release](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.12)
+及 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证，可直接使用：
 
 ```bash
 npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.12/saydo-cli-0.1.0-rc.12.tgz -- saydo up

@@ -112,8 +112,8 @@
 ## B.6 产品现状(7 卡)
 
 - 标题 [保留]:eyebrow `产品现状` / H2 `做到哪了,一眼看清` / 引语 `不画饼。已经能用的如实标注「现在可用」,还在路上的如实写 Coming soon。`
-- 桌面服务 · 现在可用 [改 2026-08-23]:`macOS / Windows / Linux 的 daemon 与 Web 控制台源码形态已经可运行;v0.1.0-rc.12 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效,届时可一条命令启动、无需克隆源码。可选语音管线与常驻安装仍走源码说明。`
-  *EN: The source form of the daemon and Web console already runs on macOS, Windows, and Linux. The v0.1.0-rc.12 fixed URL becomes active only after the GitHub Release appears and all release checks are green; it then starts with one command and no source checkout. The optional voice pipeline and service installation still use the source guide.*
+- 桌面服务 · 现在可用 [改 2026-08-23]:`macOS / Windows / Linux 的 daemon 与 Web 控制台源码形态已经可运行;v0.1.0-rc.12 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证,可一条命令启动、无需克隆源码。可选语音管线与常驻安装仍走源码说明。`
+  *EN: The source form of the daemon and Web console already runs on macOS, Windows, and Linux. The immutable v0.1.0-rc.12 GitHub Release has passed all six fixed-URL installation smokes across macOS, Windows, and Linux; it starts with one command and no source checkout. The optional voice pipeline and service installation still use the source guide.*
 - 驱动你已有的 AI · 现在可用 [改]:`对话、思考、评估可用你已登录的 Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot 订阅,或任一 OpenAI 兼容 API;真正动手改代码的执行器当前为 Cursor Agent。`
   *EN: Conversation, reasoning, and evaluation run on your signed-in Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot subscriptions, or any OpenAI-compatible API; the executor that actually edits code is Cursor Agent today.*
 - 项目记忆与四色账本 · 现在可用 [保留]
