@@ -1708,8 +1708,8 @@
       "path": "docs/review/2026-08-25-rc4-runtime-final-reimplementation-readback.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 39068,
-      "sha256": "48080a74e5e8ecb2f2a8544267de2ee8fb8748a310bdeb32ba3a98e72b77a69a"
+      "bytes": 41560,
+      "sha256": "c6289d8e897ecc9017b69f5944a92079657e86e26254b989b9578b2a37ba66de"
     },
     {
       "path": "docs/site/2026-08-20-docs-page-content.fable.md",

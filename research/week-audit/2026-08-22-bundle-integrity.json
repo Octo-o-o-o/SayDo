@@ -41,7 +41,7 @@
     "research/week-audit/2026-08-22-ledger.json": "a989895c421d23ad35966da0cfbd86ac74c1089bf152aa763c38302b7c2b216d",
     "research/week-audit/2026-08-22-semantic-review.json": "905b2806c237bcea81eb8b3f64f66cec3e81ff8d3f5d1d3889c82839073cd1e5",
     "research/week-audit/2026-08-22-ref-manifest.json": "46fc3c9b4b5ac02a9a862ace714d721c9434583fc055f8f5246b58bd7cf0f70d",
-    "research/week-audit/2026-08-23-publication-manifest.json": "735355946065a4ea7542acfc8777cb44f243c03e128d9fb9856d8311f2084f3a",
+    "research/week-audit/2026-08-23-publication-manifest.json": "12bc53d13e069ff102361938fd46949e3e18ca4227b85f92d0fc5be1b86aea72",
     "research/week-audit/2026-08-23-review-finding-anchor.json": "03c6ef06fb8f3834e311b06874a869c4e232b4b8f3842f95ef54d6ce388ef378",
     "research/week-audit/2026-08-23-remediation-cross-links.json": "c1cdfebe08cac2adff5ebdd521e9f180210b6a40bac32498fa0cb8ca2022e02e",
     "research/week-audit/2026-08-23-remediation-ledger.json": "2ce58f8c0cea79751ee7968a58d46f7d6a2f4d788100be98b0abe0660f001d2a",
@@ -51,127 +51,6 @@
     "schemaVersion": 2,
     "implementationBoundary": "b768089585d710255d61a693c2489ccf425f446f",
     "exclusionRule": "七个账本生成物由 files digest/全树 manifest 单独闭环，避免自引用；其余 staged/unstaged 已跟踪文件逐个冻结内容；无关 untracked 不入快照",
-    "entries": [
-      {
-        "path": "deploy/saydo-octoooo-com/docs/index.html",
-        "states": [
-          "unstaged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 126006,
-        "sha256": "051e23179a24e96cb9929d03d18e3d059496be65262546ddcead0ba71d044838"
-      },
-      {
-        "path": "deploy/saydo-octoooo-com/en/docs/index.html",
-        "states": [
-          "unstaged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 147065,
-        "sha256": "9232a4ab3cf99deb23b41b5aa5a5ef1dd803f4d6a8f80a037cd98d4901b2cbf2"
-      },
-      {
-        "path": "deploy/saydo-octoooo-com/en/index.html",
-        "states": [
-          "unstaged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 47638,
-        "sha256": "96115f71a55c3309d27aa1b701dd8a847e0da89dcaf8b099c4431dae610980f7"
-      },
-      {
-        "path": "deploy/saydo-octoooo-com/index.html",
-        "states": [
-          "unstaged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 46480,
-        "sha256": "1d4ef1996c210ea2e102d7a64911f60b1997472f896b6df27bc80870ddfabf5e"
-      },
-      {
-        "path": "docs/site/2026-08-20-docs-page-content.fable.md",
-        "states": [
-          "unstaged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 109696,
-        "sha256": "04df3e301a7965139d0c973a644c5a246fcded5d3bde8f576a6f29e210325739"
-      },
-      {
-        "path": "docs/site/2026-08-20-homepage-structure-copy.fable.md",
-        "states": [
-          "unstaged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 23210,
-        "sha256": "739273f7a21ab3c03d2a0701c4df992dad940bdd26572b4b02e78720d0226206"
-      },
-      {
-        "path": "e2e/evidence/2026-08-26-rc12-availability.json",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 17626,
-        "sha256": "dfbc19c6f11ac7ed0d7d07b8158fed7dc43cba66d26ba3fa7246fb77cd8ff962"
-      },
-      {
-        "path": "e2e/evidence/2026-08-26-rc12-physical/mac-exec.json",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 3888,
-        "sha256": "a0f630db6cc2cf3a49f9b284b0ae5fdddd3450b1e5ba3d4649c3a6dca532e1e0"
-      },
-      {
-        "path": "e2e/evidence/2026-08-26-rc12-physical/mac-global.json",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 3890,
-        "sha256": "022298079d141e948413259cfa1726f6299371320c50361f5aa4f931b3d26333"
-      },
-      {
-        "path": "e2e/evidence/2026-08-26-rc12-physical/windows-exec.json",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 4752,
-        "sha256": "0ce369d3e87020f774a10a2cea53192bf4a2984c7fdcfece1737b6a51abcea08"
-      },
-      {
-        "path": "e2e/evidence/2026-08-26-rc12-physical/windows-global.json",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 4754,
-        "sha256": "92eb9f93df617e0efbc8b50f3218c605bd933d4dce1f34a35d98d41dad5edb98"
-      },
-      {
-        "path": "README.md",
-        "states": [
-          "unstaged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 4203,
-        "sha256": "4ba947eb4490089d03150af4ba0fbfb4e52daa07de7828ec995d40480432d7ab"
-      }
-    ]
+    "entries": []
   }
 }

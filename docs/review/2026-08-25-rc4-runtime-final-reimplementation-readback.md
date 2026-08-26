@@ -647,3 +647,43 @@ rc.9 证实 Windows tar 修复生效(双模式过),仅 ubuntu exec 再挂——�
 
 另修可诊断性:waitForExit 两处超时共用一条消息导致 CI 上无法定位调用点,已加标签。
 rc.10 携带此修复,发布前照例过容器 publish 预检 + 23 项门禁。
+
+## 17. rc.10–rc.12:RC 链收口——available Release、四项真机实体门、官网翻转
+
+| 版本 | 结果 |
+|---|---|
+| rc.10 | **首个全绿 available Release**:15 job 全绿,六项 fixed URL smoke 全过,自动标记可用 |
+| rc.11 | 同样全绿 available;实体门 remoteCommand 引号修复入 tag(rc.10 门被 tag 一致性锁死) |
+| rc.12 | 全绿 available;实体门 mutate 入 index 修复入 tag;**实体门通过** |
+
+### 实体门(--write-availability)的三个首触发缺陷
+
+该门强制从交互式 Mac 发起,CI 从不执行——整条链又一段「写好但零执行」的代码,
+rc.10 首次真实触发,连出三个缺陷,每个都以「先实证再烧版号」的方式修复:
+
+1. **remoteCommand 缺内层引号**(rc.10/rc.11 现形):Windows sshd(DefaultShell=cmd)
+   把无引号命令串交外层 cmd 解析,`&&` 被切开后 cd 只作用于瞬时内层 cmd,
+   powershell 在 home 下找不到 ps1;而 PowerShell -File 目标不存在时退出码为 0,
+   于是 ssh exit=0 + stdout 空。定位靠翻 stderr 正文;修复形态先经真机手动重放实证。
+2. **mutate 证据未入 index 即刷账本**(rc.11 现形):四项真机实跑全绿后,
+   refreshAuditBundle 的 capturePublicationManifest 要求应发布源入 index,门被
+   自家账本卫兵拦下并回滚。修复(add-before-audit + 对称 reset)先经受控彩排实证
+   (untracked 时 exit=1 / add 后 exit=0)再 bump。
+3. **tag 工具一致性锁**(设计如此,非缺陷):门代码必须与 immutable tag 逐字节一致,
+   任何修复只能随新 tag 生效——这正是「审计过的工具才能出具证据」的供应链纪律,
+   也是 rc.11/rc.12 各烧一版的原因。
+
+### rc.12 实体门通过的完整证据链
+
+- 四项真机实跑:Mac exec/global(本机)+ Windows exec/global(pinned ssh,
+  DefaultShell=cmd 真机),45 分钟窗内,主机指纹两两一致且 Mac/Windows 互异
+- 每项从固定 URL 空缓存真实安装、启动、attach、优雅停止、无孤儿,
+  载荷内嵌 build-metadata 三元组绑定仓内冻结 sourceRevision
+- availability 文案(README/docs-site/官网中英四页)翻转为「已由不可变 GitHub Release
+  与六项 fixed URL smoke 验证,可直接使用」,证据与账本同事务落盘
+- 公开仓 main(`ec605d9`)携带翻转文案,ci 全绿
+
+### 剩余
+
+`--deploy`(Cloudflare Pages preview→production)需 owner 持有的
+CLOUDFLARE_ACCOUNT_ID/API_TOKEN,已交 owner 在自己终端执行;其余全部收口。
