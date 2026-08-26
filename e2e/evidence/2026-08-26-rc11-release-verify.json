@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-08-26T11:20:50.637Z",
+  "tag": "v0.1.0-rc.11",
+  "tagSha": "4b5b49085a167ebffc6d232237e556aab6d58a30",
+  "releaseUrl": "https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.11",
+  "publishedAt": "2026-08-26T11:18:58Z",
+  "workflowRunId": 32962334198,
+  "workflowRunAttempt": 1,
+  "workflowUrl": "https://api.github.com/repos/Octo-o-o-o/SayDo/actions/runs/32962334198",
+  "requiredJobs": [
+    "validate public snapshot tag",
+    "release quality (node and audit)",
+    "release quality (python)",
+    "release quality (fresh-origin e2e)",
+    "release distribution (ubuntu-latest)",
+    "release distribution (macos-latest)",
+    "release distribution (windows-latest)",
+    "publish GitHub prerelease",
+    "fixed URL smoke (ubuntu-latest, exec)",
+    "fixed URL smoke (ubuntu-latest, global)",
+    "fixed URL smoke (macos-latest, exec)",
+    "fixed URL smoke (macos-latest, global)",
+    "fixed URL smoke (windows-latest, exec)",
+    "fixed URL smoke (windows-latest, global)"
+  ],
+  "assets": [
+    {
+      "name": "release-metadata.json",
+      "size": 592
+    },
+    {
+      "name": "saydo-cli-0.1.0-rc.11.tgz",
+      "size": 1208298
+    },
+    {
+      "name": "SHA256SUMS",
+      "size": 92
+    }
+  ],
+  "tarballSha256": "98f5691b188b6c74b3f03c1f5c13bed34eac7b9e6139ceb03257fec25f037160",
+  "sourceRevision": "09f7fc645679a115ecf97a761120fe3f7d66ef735c8b9ec19f8bbb40f6c20f50",
+  "buildId": "0.1.0-rc.11+09f7fc645679.p1-0-0.c09f7fc645679",
+  "protocolVersion": "1.0.0",
+  "availability": [
+    {
+      "path": "README.md",
+      "state": "candidate"
+    },
+    {
+      "path": "docs/site/2026-08-20-docs-page-content.fable.md",
+      "state": "candidate"
+    },
+    {
+      "path": "docs/site/2026-08-20-docs-page-content.fable.md",
+      "state": "candidate"
+    },
+    {
+      "path": "docs/site/2026-08-20-homepage-structure-copy.fable.md",
+      "state": "candidate"
+    },
+    {
+      "path": "docs/site/2026-08-20-homepage-structure-copy.fable.md",
+      "state": "candidate"
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/docs/index.html",
+      "state": "candidate"
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/docs/index.html",
+      "state": "candidate"
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/en/docs/index.html",
+      "state": "candidate"
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/en/docs/index.html",
+      "state": "candidate"
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/index.html",
+      "state": "candidate"
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/en/index.html",
+      "state": "candidate"
+    }
+  ]
+}

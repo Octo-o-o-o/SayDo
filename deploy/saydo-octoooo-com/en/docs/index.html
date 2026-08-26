@@ -292,12 +292,12 @@ You (speak / listen / occasionally look at the screen; sign off / approve)
         </table>
         </div>
         <h3>4.2 Install</h3>
-        <p><strong>Recommended · no source checkout:</strong> this is the candidate fixed URL for v0.1.0-rc.11. Use it only after the GitHub Release page appears and all release checks are green. It is not published to the npm registry or Homebrew yet.</p>
+        <p><strong>Recommended · no source checkout:</strong> this is the candidate fixed URL for v0.1.0-rc.12. Use it only after the GitHub Release page appears and all release checks are green. It is not published to the npm registry or Homebrew yet.</p>
 <pre><code># One-off run: download into the npm cache and start
-npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.11/saydo-cli-0.1.0-rc.11.tgz -- saydo up
+npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.12/saydo-cli-0.1.0-rc.12.tgz -- saydo up
 
 # Frequent use: install once, then use saydo directly
-npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.11/saydo-cli-0.1.0-rc.11.tgz
+npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.12/saydo-cli-0.1.0-rc.12.tgz
 saydo up
 </code></pre>
         <div class="docs-note"><p>This package contains the daemon + Web console for macOS, Windows, and Linux. It does not include the voice pipeline, macOS launchd service, or source development. Windows/Linux currently run in the foreground. Add <code>--no-open</code> on a remote terminal.</p></div>
@@ -872,7 +872,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
             <tr><th>Capability</th><th>Status</th><th>Notes</th></tr>
           </thead>
           <tbody>
-            <tr><td>Desktop service (daemon + console) · macOS / Windows / Linux</td><td><span class="badge badge-live">Available now</span></td><td>The source form already runs; the v0.1.0-rc.11 fixed URL becomes active only after the GitHub Release appears and all release checks are green. npm registry / Homebrew and a desktop app shell remain planned; service installation and system notifications are macOS-only for now</td></tr>
+            <tr><td>Desktop service (daemon + console) · macOS / Windows / Linux</td><td><span class="badge badge-live">Available now</span></td><td>The source form already runs; the v0.1.0-rc.12 fixed URL becomes active only after the GitHub Release appears and all release checks are green. npm registry / Homebrew and a desktop app shell remain planned; service installation and system notifications are macOS-only for now</td></tr>
             <tr><td>Four reasoning slots on API supply (OpenAI-compatible / OpenRouter)</td><td><span class="badge badge-live">Available now</span></td><td></td></tr>
             <tr><td>Four reasoning slots on CLI subscription supply (Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot)</td><td><span class="badge badge-live">Available now</span></td><td>Dialog slot on CLI is slow text mode</td></tr>
             <tr><td>First-run resource profile wizard (three plan cards + advanced per-slot)</td><td><span class="badge badge-live">Available now</span></td><td></td></tr>

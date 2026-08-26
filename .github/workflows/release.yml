@@ -3,7 +3,7 @@ name: release
 on:
   push:
     tags:
-      - "v0.1.0-rc.11"
+      - "v0.1.0-rc.12"
 
 concurrency:
   group: release-${{ github.ref_name }}
