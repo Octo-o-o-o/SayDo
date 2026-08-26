@@ -2076,6 +2076,13 @@
       "sha256": "ee7e9c9487fad3a827b1bcd956a078c4e5043b969c05c1ed16719730b4fc9d42"
     },
     {
+      "path": "e2e/evidence/2026-08-26-rc12-site-deploy.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1887,
+      "sha256": "af3dd779622a28393cc0e5937a536718559721a328798029679b0c48017ca30e"
+    },
+    {
       "path": "e2e/evidence/a3-armed-batch.md",
       "kind": "file",
       "mode": 420,
