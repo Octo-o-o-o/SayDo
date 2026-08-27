@@ -7,7 +7,12 @@ import { join } from "node:path";
 import { jcsDigest } from "@saydo/contracts";
 import type { ChatRequest, ChatResult, LlmProvider } from "../types.js";
 import type { AuditSink } from "../../obs/audit.js";
-import { sha256File, verifyBinaryIdentity, type VerifiedBinaryIdentity } from "../binaryIdentity.js";
+import {
+  checkBinaryIdentity,
+  sha256File,
+  type BinaryIdentityCheckOptions,
+  type VerifiedBinaryIdentity
+} from "../binaryIdentity.js";
 import { allowsVerifiedBinaryDefault, requiresIsolatedHome } from "../../config/cliProviders.js";
 import { buildCageArgv, type CageProvider, type CodexReasoning } from "./cage.js";
 import { isCliSubscriptionRateLimit } from "./billing.js";
@@ -75,6 +80,8 @@ export interface ByoaProviderOptions {
   slot?: string;
   /** 可选 warn 日志;缺省不写盘,由 resolver/setup 注入 daemon logger。 */
   log?: { warn(message: string, fields?: Record<string, unknown>): void };
+  /** 测试注入哈希实现,断言 spawn 前身份核验每次真算。生产不传。 */
+  hashFile?: BinaryIdentityCheckOptions["hashFile"];
 }
 
 export const DEFAULT_INPUT_LIMIT_BYTES = 256 * 1024;
@@ -224,12 +231,14 @@ export function createByoaProvider(opts: ByoaProviderOptions): LlmProvider {
         const isolated =
           requiresIsolatedHome(opts.provider) && cwd ? prepareIsolatedHome(opts.provider) : undefined;
         isolatedHomeDir = isolated?.home;
-        const verifiedIdentity = verifyBinaryIdentity(
+        const identityCheck = checkBinaryIdentity(
           opts.binaryPath,
           opts.binaryIdentity,
           opts.familyOf,
-          opts.expectedFamily
+          opts.expectedFamily,
+          { forceRehash: true, hashFile: opts.hashFile ?? sha256File }
         );
+        const verifiedIdentity = identityCheck.ok ? identityCheck.identity : undefined;
         if (opts.binaryIdentity && !verifiedIdentity) {
           let actualBinaryDigest: string | null = null;
           try {

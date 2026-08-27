@@ -52,14 +52,14 @@ launchd 常驻(A)→ T2 薄版切片(B;顺手评估 ntfy X-Call 电话 TTS 作�
 
 S3 卡(console 卡+认证+收据+合并链;requestManualMerge 降级路径)→ writing 窄版(门禁开值+收尾边+话术+迁移+OctoBlog 奠基接入)→ 10 golden 覆盖扩 writing/S3 卡场景 → **双项目最小并行切片**(双 dogfood 项目各一队列/并发 2 + 同项目串行守恒 + 排队可见——防 OctoBlog 长文任务把 OctoDesk 编码任务挡在单队列里;冲突状态机/黑板完整版留 W6)→ E2E:OctoBlog 一篇真实文章"聊→开始写→成稿→逐节验收→定稿"全链(**选材避开外部网页引证依赖**——窄版无引证合同)+ S3 卡真人过一次。
 
-### W5 · 体验完善批(5–8 天;前置=W4;Claude 订阅已就位;合同增量按通则③)——**W5a 前段批已收口(2026-07-27,`086001d→eabc5ac` 12 提交;evidence `w5a-batch.md`;/impl-review 通过,报告 `research/2026-07-27-saydo-w5a-impl-readback.fable.md`;canonical 待回写 8 条已随后落盘)**:5.1 / 5.2 / 5.3(cancel_resume 档+capabilities 分级)/ 5.5 / 5.7 / 5.10 + 5.11 篮内两项(订阅限流 durable 重放、11 §3 紧凑模式)+ TTS 音色落地已交付;**W5.4-a** 纯函数层已收口(2026-08-20),**W5.4-b** 生产执行主流程与 console/话术已形成收口候选(2026-08-23,双向审计与独立复审修复中,复审绿前不关批);**W5 剩余** = **5.4-b 复审收口 → 5.4-c 真 Claude hook 冒烟、live conformance 与 canonical 收口**· 5.6/5.8/5.9(挂 §6 二次确认)· 5.3 尾(Tier2 步序循环挂 §6-10)· 5.11 篮剩余六项(批容量顺延,evidence 登记)
+### W5 · 体验完善批(5–8 天;前置=W4;Claude 订阅已就位;合同增量按通则③)——**W5a 前段批已收口(2026-07-27,`086001d→eabc5ac` 12 提交;evidence `w5a-batch.md`;/impl-review 通过,报告 `research/2026-07-27-saydo-w5a-impl-readback.fable.md`;canonical 待回写 8 条已随后落盘)**:5.1 / 5.2 / 5.3(cancel_resume 档+capabilities 分级)/ 5.5 / 5.7 / 5.10 + 5.11 篮内两项(订阅限流 durable 重放、11 §3 紧凑模式)+ TTS 音色落地已交付;**W5.4-a** 纯函数层已收口(2026-08-20),**W5.4-b** 生产执行主流程与 console/话术**已收口(2026-08-27,收口 SHA `9417b6d`;代码 `8941e1c`)**——经四轮零上下文独立复审(Codex `gpt-5.6-sol`+max)+ 三轮独立返工(Grok `grok-4.6`+xhigh),自身 A 级 0,遗留 6 条 B/C 见 `e2e/evidence/w54b-batch.md` §18.4;**W5 剩余** = **5.4-c 真 Claude hook 冒烟、live conformance 与 canonical 收口**· 5.6/5.8/5.9(挂 §6 二次确认)· 5.3 尾(Tier2 步序循环挂 §6-10)· 5.11 篮剩余六项(批容量顺延,evidence 登记)
 
 | # | 项 | 出处 |
 |---|---|---|
 | 5.1 | decisions[] 摘要层 + `open_on_screen` 打通编辑器 | 05 P1 |
 | 5.2 | edit 审批(第四动作:修改后重签)——09 §3 已有骨架(`decision:"edit"`/`superseded_by_edit`/重签句/§12-3 测试项);refDigest/revision 联动细则若超骨架 ⇒ 回 canonical 文件面(R-B 收) | 09 §3(P1) |
 | 5.3 | steer 矩阵**增量**:`queued_delta` 已 live(执行器批);本项收窄为 cancel_resume 档落地 + Hopper capabilities 握手消费(steer 能力分级)——**Hopper 桥本体已收口(P0.5-B),不重复排**;Hopper `step_confirm` 缺省仍 unsupported(04 §5.4 矩阵),Tier2 步序循环**先做轻决策**(dogfood 中 route=hopper 且需 S2 的任务出现频次)再实施 | 05 P1;03 §5;04 §5.4;`p05.md` |
-| 5.4 | **Claude Code CLI (`claude -p`) Tier1 主档接入**:订阅已就位。**5.4-a**(spike + 审批门纯函数层)已收口。**5.4-b**=生产执行主流程接线——C1/C2 首批入库 `4c4bf96`;2026-08-23 收口候选补齐 C1 真实有界 `system/init` 探针与 C3(console Tier1 卡、任务详情 adapter/observedModel、跨平台话术、backend prompt 保护),双向审计首轮独立评审的发布阻断正在回修,复审与门禁绿前不写“已收口”。**5.4-c** 仍只承接真 Claude hook 冒烟、live conformance 与最终 canonical 收口,不得把自检 init 探针写成 hook 链已验。CLI 方案本轮不实现 streaming input / live steer，仍使用 `queued_delta` / `cancel_resume`；BYOA `claude_cli` 的条件豁免已随 T18 落地，Tier1 `claude_code` 不使用该豁免 | 计划 0.0(b);HANDOFF #4/#6;evidence `w54a-claude-cli.md`、`w54b-batch.md`;方案 `2026-08-19-w54-claude-cli-tier1.fable.md` |
+| 5.4 | **Claude Code CLI (`claude -p`) Tier1 主档接入**:订阅已就位。**5.4-a**(spike + 审批门纯函数层)已收口。**5.4-b**=生产执行主流程接线——**已收口(2026-08-27)**。C1/C2 首批入库 `4c4bf96`;C1 有界 `system/init` 探针与 C3(console Tier1 卡、任务详情 adapter/observedModel、跨平台话术、backend prompt 保护)于 2026-08-23 补齐;2026-08-27 经四轮独立复审 + 三轮返工修完五条 A 级(含两条安全:圈内 symlink 敏感基名降级、BYOA 身份核验被 mtime/size 缓存绕过)与四条 B/C,收口 SHA `9417b6d`,`just ci` exit 0(daemon 2174 passed/6 skipped)、`playwright` 36 passed。**5.4-c** 仍只承接真 Claude hook 冒烟、live conformance 与最终 canonical 收口,不得把自检 init 探针写成 hook 链已验。CLI 方案本轮不实现 streaming input / live steer，仍使用 `queued_delta` / `cancel_resume`；BYOA `claude_cli` 的条件豁免已随 T18 落地，Tier1 `claude_code` 不使用该豁免 | 计划 0.0(b);HANDOFF #4/#6;evidence `w54a-claude-cli.md`、`w54b-batch.md`;方案 `2026-08-19-w54-claude-cli-tier1.fable.md` |
 | 5.5 | 项目级模型/预算覆盖(设置页,08 §6 路由表·项目设置行)——**承载 = daemon 受控设置表,不落 project.toml**(09 §11 白名单:项目层出现 models/providers 等禁键即拒,反例已有,不得放宽)+ `cache_write_input_tokens` 列位;成本三档预设 → §6 二次确认 | 02 §5.1;09 §9 注/§11 白名单 |
 | 5.6 | §14-A6 遗留项处置:hard-forget 独立 deletion job 表/per-store progress——canonical 自注"低价值维护负担(owner 反空壳判据)" → **§6 二次确认**(presentation 完整形态 = §14-A2/A8,**已于 P0.5-A 交付**,不在本期) | 09 §14-A6/§9 注 |
 | 5.7 | 产物库控制面(时间线/diff/子集导出);sqlite-vec → §6 二次确认(FTS5 不足有记录时) | modules/b B4/B5 |
@@ -133,6 +133,55 @@ edit 审批细则(若 5.2 撞缺口)· **共享黑板实体 + 并发预检**(09 
 | review 检错仪式(3–5 个植入已知缺陷任务) | 场次②后第 2 周执行一次 | 独立半日 |
 | **电话形态解锁**(锁定计划 v3 原文触发) | 场次②/③ dogfood 1–2 周 + 离机缺口体感 + 接通率/离机时段数据 | 触发后按锁定计划独立立项(40–55 日另计) |
 | E1/E2 完整实验机器(三臂消融/外部用户轨/预注册非劣检验/盲评,05 §4 登记) | **第二用户出现 或 对外发布前**(05 原文触发) | 触发后立项 |
+
+### ai-supply · AI 供给普适接入与零配置引导(2026-08-27 开坐标;前置 = `w54b-wiring` 已收口)
+
+**开坐标依据**:`docs/plan/2026-08-24-ai-supply-owner-decisions.md` 决策 1
+(owner 2026-08-25 签:「先收口 `w54b-wiring` C3,再排本专题」)。该前置已于 2026-08-27 满足。
+
+**基线锚**(开批时实测,后续会话据此判断坐标是否漂移):
+
+| 锚 | 值 |
+|---|---|
+| 基线 HEAD | `9417b6decd85cd59157a76c6429752e92e6803df` |
+| 主方案 `2026-08-23-ai-supply-universal-onboarding-final.fable.md` SHA-256 | `6641d2b2462fb9e7548f61ad1af9de228dedefcfa7c23b55bd31f0105d69fbd0`(2,484 行) |
+| 决策单 `2026-08-24-ai-supply-owner-decisions.md` SHA-256 | `bb61b24be934eb3307abc9ab1cb173c6dfa9ca850b8ab9aca6e0c339db69c2ea`(349 行) |
+| 合同草案 `docs/plan/ai-supply-contracts-draft/` | 10 个 `.ts` + README,合计 45,734 行 |
+
+**范围**已按 owner 已签的四项决策收缩,**不按方案原文 Phase 0–8 全量排**:
+
+- **决策 2**(引入 ACP 适配层;Codex 沿用 `codex exec`,不为其单独建平面)⇒
+  §10 Phase 5 按协议(`acp` / `app_server` / `cli_stdio`)重组,取代原九个品牌子批。
+- **决策 6**(付费边界双双关闭)⇒ 按方案原文,无额外动作。
+- **决策 7**(首发只开放内置受信 connector;第三方声明式 pack 一并推迟)⇒ **本轮最大减重**,
+  连带推迟:§4.10 参考实现级扩展内核**整节**、决策 8 的 TUF 双 root registry、
+  Connector SDK 对外发布(决策 9 的 `v1alpha1` 顺延)、§9.8 生态包与扩展成本策略,
+  以及草案中 `03-extension-points.ts` / `06-sdk-compat.ts` / `08-wire-budget.ts` 的相当部分。
+  **这些本轮不做,也不收敛其合同。**
+
+**子批**(A/B 为文档与判断工作;C 起才碰代码;D 的子批待 B 的清单产出后细化,此处不预编):
+
+| 子批 | 内容 | 验收 | 前置 |
+|---|---|---|---|
+| `ai-supply-scope` | 逐个判定 `ai-supply-contracts-draft/*.ts` 本轮是否需要下沉;核对 v20 十一条 A 级 finding 中哪些因决策 7 而本轮无关 | 「本轮下沉清单 + 仍需修复的 A 级清单」落盘 `docs/plan/`;每个「本轮不下沉」写明依据的决策号 | 本坐标 |
+| `ai-supply-contracts` | 按上批清单逐条修仍适用的 A 级 finding(**修的是合同草案,不是再写文档评审**) | 草案在 strict/NodeNext 下 `tsc` 零诊断;每条 finding 的修复有类型级反例(负例编译失败)或测试 | `ai-supply-scope` + **owner 确认清单** |
+| `ai-supply-p*` | 下沉 `packages/contracts` 并按方案 §10 各 Phase 实施(Phase 5 按决策 2 重组) | 遵循 §10 各 Phase 的「验收标准」——先读该节开头的定位说明,那 327 条是 gate 脚本规格,不是人工 checklist | `ai-supply-contracts` |
+
+**红线**(摘自 `prompts/204-ai-supply-post-rc4-continuation.md` §4,该文件未入库,故要点在此固化):
+
+1. **不再起新一轮「三路零上下文终审」**——诊断报告 `docs/review/2026-08-24-ai-supply-v20-loop-diagnosis.md`
+   已证明该路线不收敛(20 轮、A 级计数在 1–9 间随机游走、零次 PASS)。需要评审时,
+   评审对象是**真实代码 + 测试**,不是 Markdown 里的类型体操。
+2. **不收敛决策 7 已推迟的部分**(见上「范围」)。
+3. **未签的决策不由施工方推断**:决策 3/4/5/8/9 是 Claude 预填草案、决策 10 建议暂缓,
+   需要时先上浮 owner。
+4. 不动主方案 §17 与 `docs/review/2026-08-24-ai-supply-review-loop-archive.md`(v1–v20 过程存档)。
+
+**必读**(按序):主方案的「本文档的组成」与「owner 决策状态」两节 → 决策单 →
+`docs/review/2026-08-24-ai-supply-v20-loop-diagnosis.md`(为何停止 v21)→
+`docs/plan/ai-supply-contracts-draft/README.md` →
+`docs/review/2026-08-25-agent-cli-acp-capability-survey.md`(ACP 生态实证,决策 2 依据)→
+`docs/review/2026-08-24-decision-2-impact-analysis.md`。过程记录见 `history/PROCESS-JOURNAL.md` R98–R108。
 
 ## 2. 依赖与解锁图
 

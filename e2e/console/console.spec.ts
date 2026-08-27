@@ -144,7 +144,9 @@ test("任务详情:AC 三条 + S3 合并按钮是屏幕强认证样式(语音永
   await open(page, `/p/${PRJ}/task/${TSK_READY}`);
   await expect(page.locator("[data-acceptance-list] li")).toHaveCount(3);
   await expect(page.locator("[data-s3-merge]")).toContainText("去屏幕强认证");
-  await expect(page.locator("[data-observed-model]")).toContainText("cursor-grok-4.6-high-fast");
+  const runRow = page.locator("tr").filter({ has: page.locator("[data-observed-model]") });
+  await expect(runRow.locator("[data-observed-model]")).toContainText("cursor-grok-4.6-high-fast");
+  await expect(runRow.locator("[data-adapter]")).toContainText("cursor");
 });
 
 test("W5.4-b C3 设置页展示 Tier1 六项且未测试不伪造登录与额度", async ({ page }) => {
@@ -156,6 +158,8 @@ test("W5.4-b C3 设置页展示 Tier1 六项且未测试不伪造登录与额度
   await expect(card).toContainText("版本");
   await expect(card.locator("[data-tier1-login]")).toContainText("未测试");
   await expect(card.locator("[data-tier1-self-test]")).toContainText("未测试");
+  await expect(card.locator("[data-tier1-version]")).toContainText("未测试");
+  await expect(card.locator("[data-tier1-pinned-version]")).toBeVisible();
   await expect(card.locator("[data-tier1-window]")).toContainText("没有已知限流记录");
   await expect(card).not.toContainText("额度充足");
 });

@@ -1,8 +1,8 @@
 // 二进制身份核验共享模块(W5.4-b C1;方案 D12/§3.7)。
-// 从 providers/byoa/provider.ts 提升:BYOA 四槽与 Tier1 claude 登记共用同一核验语义,
-// 行为对 byoa 原调用点不变(verifyBinaryIdentity 签名与判定结论保持)。
-// BYOA 缺省仍按 mtime/size 缓存；Tier1 claude 在每次 spawn 前显式 forceRehash，安全门不接受
-// “内容替换但 mtime/size 保持”的身份绕过。
+// 从 providers/byoa/provider.ts 提升:BYOA 四槽与 Tier1 claude 登记共用同一核验内核。
+// sha256FileCached 按 mtime/size 缓存,只给不承担安全职责的调用点。
+// 安全门必须 forceRehash 每次真算:BYOA 四槽 spawn 前、Tier1 claude spawn 前。
+// 不传 forceRehash 时 mtime/size 未变会命中缓存——"内容替换但 mtime/size 保持"会被误判通过。
 
 import { createHash } from "node:crypto";
 import { readFileSync, statSync, type Stats } from "node:fs";
@@ -90,8 +90,8 @@ export function checkBinaryIdentity(
 }
 
 /**
- * 原 byoa 私有函数的共享导出(签名与判定结论不变:通过回 identity,不通过回 undefined)。
- * spawn 前核验走这里即天然带 mtime/size 缓存。
+ * 原 byoa 私有函数的共享导出(通过回 identity,不通过回 undefined)。
+ * 安全门调用必须传 forceRehash:true;省略则走 mtime/size 缓存,不得用于 spawn 前身份核验。
  */
 export function verifyBinaryIdentity(
   binaryPath: string | undefined,

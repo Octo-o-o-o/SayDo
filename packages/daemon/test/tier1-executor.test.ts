@@ -5641,6 +5641,65 @@ describe("C2b session / canary / 记账 / 限流 / 恢复", () => {
     expect(spawner.spawned[1]?.sessionId).toBeUndefined();
   });
 
+  it("cancel_resume 续跑 attempt 在 init 对上后必须持久化 native_session_id 并确认", async () => {
+    const TSK = "tsk_01EXEC0000000000000000C2BE";
+    executor = makeClaude();
+    seedQueuedTask(TSK);
+    const wt = join(repo, ".saydo", "worktrees", TSK);
+    mkdirSync(join(repo, ".saydo", "worktrees"), { recursive: true });
+    execFileSync("git", ["worktree", "add", "-b", `saydo/${TSK}`, wt, "HEAD"], { cwd: repo });
+    spawner.plan = [{ lines: [loadLine("init.jsonl")], exitCode: 0, hang: true }];
+    executor.tick();
+    await vi.waitFor(() => expect(spawner.spawned).toHaveLength(1), { timeout: 15_000, interval: 50 });
+    await vi.waitFor(
+      () => {
+        expect(
+          (db.prepare("SELECT native_session_confirmed AS c FROM tier1_runs WHERE task_id=?").get(TSK) as { c: number }).c
+        ).toBe(1);
+      },
+      { timeout: 15_000, interval: 50 }
+    );
+    const sid = (db.prepare("SELECT native_session_id AS s FROM tier1_runs WHERE task_id=?").get(TSK) as { s: string }).s;
+    steerTask(db, audit, { taskId: TSK, instruction: "改用 fetch" }, new Date().toISOString());
+    executor.tick();
+    await vi.waitFor(() => {
+      expect(
+        (db.prepare("SELECT state FROM tier1_runs WHERE task_id=? AND attempt=1").get(TSK) as { state: string }).state
+      ).toBe("cancel_settled");
+    });
+    spawner.plan = [
+      {
+        lines: [
+          JSON.stringify({
+            type: "system",
+            subtype: "init",
+            session_id: sid,
+            model: "claude-sonnet-5",
+            apiKeySource: "none"
+          }),
+          loadLine("result_success.jsonl")
+        ],
+        exitCode: 0,
+        preserveInitSession: true
+      }
+    ];
+    executor.tick();
+    await vi.waitFor(() => expect(spawner.spawned).toHaveLength(2), { timeout: 15_000, interval: 50 });
+    expect(spawner.spawned[1]?.resumeChatId).toBe(sid);
+    await vi.waitFor(
+      () => {
+        const attempt2 = db
+          .prepare(
+            "SELECT native_session_id AS sid, native_session_confirmed AS c FROM tier1_runs WHERE task_id=? AND attempt=2"
+          )
+          .get(TSK) as { sid: string | null; c: number } | undefined;
+        expect(attempt2?.sid).toBe(sid);
+        expect(attempt2?.c).toBe(1);
+      },
+      { timeout: 15_000, interval: 50 }
+    );
+  }, 30_000);
+
   it("queued_delta 未确认 ⇒ 新会话并审计 resume_skipped_not_confirmed", async () => {
     const TSK = "tsk_01EXEC0000000000000000C2B8";
     executor = makeClaude();
@@ -6118,33 +6177,62 @@ describe("C2b session / canary / 记账 / 限流 / 恢复", () => {
 
   it("评审 91/92 A-5:身份漂移 + 任务被并发转走 ⇒ finalizeFailure 早退仍释放认领", async () => {
     const TSK = "tsk_01EXEC0000000000000000R9B2";
+    const RUN = "run_01EXEC0000000000000000R9B2";
     const bin = armClaudeIdentityAt(saydoHome, "drift-claude-2");
-    executor = makeExecutor(
+    seedQueuedTask(TSK);
+    const nowIso = new Date().toISOString();
+    db.prepare("UPDATE tasks SET status='running', cwd=? WHERE id=?").run(repo, TSK);
+    db.prepare(
+      `INSERT INTO tier1_runs(id, task_id, attempt, adapter, cwd, worktree_path, state, created_at, updated_at)
+       VALUES (?, ?, 1, 'claude_code', ?, ?, 'running', ?, ?)`
+    ).run(RUN, TSK, repo, repo, nowIso, nowIso);
+    writeFileSync(bin, "#!/bin/sh\necho tampered\nexit 0\n");
+    const recoveredSpawner = new FakeSpawner();
+    recoveredSpawner.plan = [{ lines: [loadLine("init.jsonl")], exitCode: 0 }];
+    const recovered = makeExecutor(
       { adapter: "claude_code", model: "opus", claudeMaxTurns: 200, lockedBinary: bin },
-      undefined,
+      recoveredSpawner,
+      {
+        backend: claudeBackend(),
+        afterProvision: () => {
+          db.prepare("UPDATE tasks SET status='blocked', updated_at=? WHERE id=? AND status='running'").run(
+            new Date().toISOString(),
+            TSK
+          );
+        }
+      }
+    );
+    // 并发转走让 finalizeFailure 事务早退;若漏 resolveClaim,recover 的 claimPromise 永不完成。
+    await recovered.recover();
+    expect(recoveredSpawner.spawned).toHaveLength(0);
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("blocked");
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.finalize_transaction_failed'").get() as {
+        c: number;
+      }).c
+    ).toBeGreaterThan(0);
+    // 早退回滚 run 转态,durable 行仍 running(任务已 blocked)——锁住 B-3 核心回归。
+    // 后续 recover 对「活跃 run 但 task 非 running」清孤儿并经取消链落到 cancel_settled,
+    // 不消费 spawner;同项目健康任务仍可达 ready_for_review。
+    expect((db.prepare("SELECT state FROM tier1_runs WHERE id=?").get(RUN) as { state: string }).state).toBe("running");
+
+    const OK = "tsk_01EXEC0000000000000000R9B3";
+    const healthyBin = armClaudeIdentityAt(saydoHome, "drift-claude-2");
+    const healthySpawner = new FakeSpawner();
+    healthySpawner.plan = [{ lines: [loadLine("init.jsonl"), loadLine("result_success.jsonl")], exitCode: 0 }];
+    const healthy = makeExecutor(
+      { adapter: "claude_code", model: "opus", claudeMaxTurns: 200, lockedBinary: healthyBin },
+      healthySpawner,
       { backend: claudeBackend() }
     );
-    seedQueuedTask(TSK);
-    // 二进制在认领前漂移 ⇒ spawn 前身份核验抛错 ⇒ finalizeFailure(blocked)
-    writeFileSync(bin, "#!/bin/sh\necho tampered\nexit 0\n");
-    spawner.plan = [{ lines: [loadLine("init.jsonl")], exitCode: 0 }];
-    executor.tick();
-    await waitTaskStatus(TSK, "blocked");
-    expect(spawner.spawned).toHaveLength(0);
-
-    // 关键断言:claim 已释放 ⇒ active 表清空,下一 tick 能正常继续(不挂 barrier)
-    const drained = db.prepare("SELECT state FROM tier1_runs WHERE task_id=?").get(TSK) as { state: string };
-    expect(drained.state).toBe("settled_failed");
-
-    // 再放一个健康任务:若上一轮把认领链挂住,这个任务永远不会被认领
-    const OK = "tsk_01EXEC0000000000000000R9B3";
-    armClaudeIdentityAt(saydoHome, "drift-claude-2"); // 重新登记为当前内容
+    await healthy.recover();
     seedQueuedTask(OK);
-    spawner.plan = [{ lines: [loadLine("init.jsonl"), loadLine("result_success.jsonl")], exitCode: 0 }];
-    executor.tick();
+    const okWt = join(repo, ".saydo", "worktrees", OK);
+    mkdirSync(join(repo, ".saydo", "worktrees"), { recursive: true });
+    execFileSync("git", ["worktree", "add", "-b", `saydo/${OK}`, okWt, "HEAD"], { cwd: repo });
+    healthy.tick();
     await waitTaskStatus(OK, "ready_for_review");
-    expect(spawner.spawned.length).toBeGreaterThan(0);
-  });
+  }, 45_000);
 
   it("评审 90 A-4:init 缺 apiKeySource(形状漂移)在 claude 下同样终止", async () => {
     const TSK = "tsk_01EXEC0000000000000000R9A4";

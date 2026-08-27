@@ -130,6 +130,9 @@
 | 一周文档 x 实施双向对账 + 全分支合并 + 评审 90 回修 | 08-22 | `a26d5bf`(对账回修)/ `058090d`(win32 门四路)/ `3bf3d10`(门路径单源)+ 评审 90 回修批 | `docs/review/2026-08-22-week-crosscheck.md` + `w54b-batch.md` §7 | R92 | Codex 90(裁决 No-Go;A 级八条 + B 级代码项已回修) |
 | 备份 workspace 身份锚去 st_dev(部署门前置清偿) | 08-22 | `d406387`(+ HANDOFF 回写 `fb16fb8`) | 见 `docs/review/2026-08-22-week-crosscheck.md` F17 | R92 | 随评审 90/91 轮 |
 | 三端移动壳真机构建与装机 | 08-22 | `82c77e3` | `2026-08-22-mobile-shells-device-build.md` | R92 | — |
+| ios 安装器门禁合并回归修复(main 转绿) | 08-27 | `9a3e180` | `w54b-batch.md` §14.2 | R110 | — |
+| w54b-wiring 收口(四轮独立复审 + 三轮返工;自身 A 级 0) | 08-27 | `8941e1c`(证据 `9417b6d`) | `w54b-batch.md` §15–§18 | R110 | Codex 四轮 `gpt-5.6-sol`+max |
+| AI 供给专题开具名坐标(PLAN-2 §1 `ai-supply`) | 08-27 | `9417b6d` 为基线锚 | PLAN-2 §1 | R110 | — |
 
 ## 3. 编号勘误登记(原始文件不重编号,统一在此收口)
 

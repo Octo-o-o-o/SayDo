@@ -58,6 +58,14 @@ export function insertProject(db: Db, p: Project): void {
   });
 }
 
+/** 探测连接是否允许写。只读打开与 query_only=ON 都跳过刷新,真实写故障仍由 UPDATE 抛出。 */
+function dbConnectionWritable(db: Db): boolean {
+  if (db.readonly) return false;
+  // defaultSafeIntegers(true) 时 pragma 返回 1n;1n !== 1 恒真会把 query_only 连接当成可写。
+  const queryOnly = db.pragma("query_only", { simple: true });
+  return queryOnly !== 1 && queryOnly !== 1n;
+}
+
 /** external workspace 的唯一受信消费入口：列/JSON 必须同形，filesystem identity 必须未漂移。 */
 export function verifiedProjectWorkspace(db: Db, projectId: string): string | null {
   const row = db
@@ -91,11 +99,21 @@ export function verifiedProjectWorkspace(db: Db, projectId: string): string | nu
   ) {
     throw new WorkspacePolicyError("workspace_registry_incomplete", "external workspace registry incomplete");
   }
-  return revalidateWorkspaceIdentity({
+  const current = revalidateWorkspaceIdentity({
     path: row.canonical_workspace_path,
     dev: row.workspace_dev,
     ino: row.workspace_ino
-  }).path;
+  });
+  // POSIX:st_dev 是挂载期标识,漂移视为重挂载,放行并以当前值刷新登记(09 §规则 1)。
+  // 备份副本以 readonly:true 打开,刷新只发生在可写连接(daemon 运行时),避免中止快照。
+  if (current.dev !== row.workspace_dev && dbConnectionWritable(db)) {
+    db.prepare("UPDATE projects SET workspace_dev = ?, updated_at = ? WHERE id = ?").run(
+      current.dev,
+      new Date().toISOString(),
+      projectId
+    );
+  }
+  return current.path;
 }
 
 /** 转正(2.4 lifecycle):draft -> active,title/type 定型 */

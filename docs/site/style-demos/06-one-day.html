@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Demo 06 · 一日时间轴 — 说到 SayDo 风格探索</title>
+<style>
+  :root{
+    --paper:#f0ede4; --paper-card:#faf7ef; --paper-raised:#fcfaf4;
+    --ink:#34332e; --ink-2:#5b564b; --ink-muted:#706b61; --ink-faint:#a29b8f;
+    --rule:#cec6b7; --rule-soft:rgba(206,198,183,.62);
+    --ochre:#a8641f; --indigo:#3c5f96; --pine:#41755a; --seal:#b13a2b; --seal-fg:#fff8ed;
+    --paper-fg:#fffaf0;
+    --shadow:0 1px 2px rgba(75,64,47,.05),0 8px 24px rgba(75,64,47,.09);
+    --font-body:'PingFang SC','HarmonyOS Sans SC','MiSans','Hiragino Sans GB','Microsoft YaHei',-apple-system,sans-serif;
+    --font-display:'Songti SC','Noto Serif SC',serif;
+    --font-mono:ui-monospace,'SF Mono','JetBrains Mono','Menlo',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--font-body);color:var(--ink);font-size:15px;line-height:1.85;background:var(--paper);transition:background 1s ease}
+  body.phase-dusk{background:#eee7d8}
+  body.phase-night{background:#232a38;color:#e8ecf4}
+  ::selection{background:var(--seal);color:var(--seal-fg)}
+
+  /* ---------- 顶栏 ---------- */
+  .topbar{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;align-items:center;justify-content:space-between;padding:14px 26px;pointer-events:none}
+  .topbar .brand{display:flex;align-items:center;gap:10px;pointer-events:auto}
+  .topbar .mark{width:30px;height:30px;border-radius:8px;background:var(--seal);color:var(--seal-fg);display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:14px}
+  .topbar nav{pointer-events:auto;display:flex;gap:18px;font-size:13px}
+  .topbar nav a{color:inherit;text-decoration:none;opacity:.6}
+  .topbar nav a:hover{opacity:1;color:var(--seal)}
+
+  /* 实时钟 */
+  .clock{
+    position:fixed;left:26px;bottom:26px;z-index:60;pointer-events:none;
+    font-family:var(--font-mono);font-size:34px;font-weight:700;letter-spacing:.04em;
+    opacity:.16;transition:opacity .4s;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:80px 24px 60px;position:relative}
+  .hero .sun{
+    width:74px;height:74px;border-radius:50%;background:var(--ochre);opacity:.85;margin-bottom:36px;
+    box-shadow:0 0 60px rgba(168,100,31,.35);
+  }
+  .hero .kick{font-family:var(--font-mono);font-size:12px;letter-spacing:.3em;color:var(--ink-muted);margin-bottom:18px}
+  .hero h1{font-family:var(--font-display);font-weight:700;font-size:clamp(42px,7vw,84px);line-height:1.25;letter-spacing:.03em}
+  .hero h1 em{font-style:normal;color:var(--seal)}
+  .hero .sub{margin-top:20px;max-width:520px;color:var(--ink-2);font-size:16px}
+  .hero .scroll-hint{margin-top:56px;font-size:12px;color:var(--ink-faint);letter-spacing:.2em;animation:hint 2s ease-in-out infinite}
+  @keyframes hint{50%{transform:translateY(6px);opacity:.5}}
+
+  /* ---------- 时间轴 ---------- */
+  .timeline{position:relative;max-width:980px;margin:0 auto;padding:40px 24px 80px}
+  .spine{position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--rule);transform:translateX(-50%)}
+  .spine i{position:absolute;left:0;top:0;width:100%;background:var(--indigo);height:0;display:block}
+
+  .stop{position:relative;display:grid;grid-template-columns:1fr 120px 1fr;align-items:center;margin:0 0 84px}
+  .stop .node{
+    grid-column:2;justify-self:center;width:22px;height:22px;border-radius:50%;
+    background:var(--paper);border:5px solid var(--ph,var(--indigo));z-index:1;
+    transition:transform .3s;
+  }
+  .stop:hover .node{transform:scale(1.25)}
+  .stop .time{
+    grid-column:2;justify-self:center;position:absolute;top:-38px;
+    font-family:var(--font-mono);font-size:21px;font-weight:700;letter-spacing:.06em;color:var(--ph,var(--indigo));
+  }
+  .stop .card{
+    background:var(--paper-card);border:1px solid var(--rule);border-radius:12px;padding:22px 24px;
+    box-shadow:var(--shadow);
+  }
+  .stop .card h3{font-family:var(--font-display);font-size:20px;letter-spacing:.04em;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+  .stop .card h3 .tg{font-size:11px;font-family:var(--font-mono);letter-spacing:.1em;padding:2px 9px;border-radius:999px;border:1px solid var(--ph,var(--indigo));color:var(--ph,var(--indigo));font-weight:400}
+  .stop .card p{font-size:14px;color:var(--ink-2)}
+  .stop .card p b{color:var(--ink)}
+  .stop.left .card{grid-column:1;grid-row:1;text-align:right}
+  .stop.left .card h3{justify-content:flex-end}
+  .stop.right .card{grid-column:3;grid-row:1}
+  .stop.left .side-note{grid-column:3;grid-row:1;padding-left:26px}
+  .stop.right .side-note{grid-column:1;grid-row:1;text-align:right;padding-right:26px}
+  .side-note{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-faint);letter-spacing:.08em;line-height:1.9}
+
+  /* 引语大卡 */
+  .quote{
+    grid-column:1 / -1;text-align:center;background:none;border:none;box-shadow:none;padding:10px 40px;
+  }
+  .quote p{font-family:var(--font-display);font-size:clamp(22px,3.4vw,32px);line-height:1.6;color:var(--ink)}
+  .quote p em{font-style:normal;color:var(--seal);border-bottom:2px solid var(--seal)}
+
+  /* 语音条 */
+  .vline{display:inline-flex;align-items:center;gap:8px;background:var(--indigo);color:var(--paper-fg);border-radius:999px;padding:7px 16px;font-size:13.5px;margin-top:10px}
+  .vline .wave{display:inline-flex;align-items:flex-end;gap:2px;height:12px}
+  .vline .wave i{width:2.5px;background:currentColor;border-radius:2px;animation:wv 1s ease-in-out infinite}
+  .vline .wave i:nth-child(1){height:5px}.vline .wave i:nth-child(2){height:11px;animation-delay:.15s}.vline .wave i:nth-child(3){height:7px;animation-delay:.3s}.vline .wave i:nth-child(4){height:12px;animation-delay:.45s}
+  @keyframes wv{50%{transform:scaleY(.45)}}
+
+  /* 账本迷你卡 */
+  .mini-ledger{margin-top:12px;border-top:1px dashed var(--rule-soft);padding-top:10px;display:grid;gap:6px;font-size:13px}
+  .mini-ledger div{display:flex;align-items:center;gap:8px}
+  .mini-ledger .d{width:8px;height:8px;border-radius:50%;flex:none}
+  .mini-ledger .m{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--ink-muted)}
+
+  /* 夜晚段落（反色） */
+  body.phase-night .stop .card{background:rgba(38,46,64,.7);border-color:rgba(232,236,244,.14)}
+  body.phase-night .stop .card p{color:#a8b2c4}
+  body.phase-night .stop .card p b{color:#e8ecf4}
+  body.phase-night .spine{background:rgba(232,236,244,.16)}
+  body.phase-night .quote p{color:#e8ecf4}
+  body.phase-night .side-note{color:#6e7a90}
+
+  /* ---------- 尾章 ---------- */
+  .finale{text-align:center;padding:110px 24px 120px}
+  .finale h2{font-family:var(--font-display);font-weight:700;font-size:clamp(32px,5.4vw,58px);line-height:1.35}
+  .finale h2 em{font-style:normal;color:var(--seal)}
+  .finale p{margin:20px auto 34px;max-width:460px;color:var(--ink-2)}
+  body.phase-night .finale p{color:#a8b2c4}
+  .btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:600;font-size:15px;border-radius:8px;padding:13px 30px;transition:.2s}
+  .btn-seal{background:var(--seal);color:var(--seal-fg);box-shadow:0 4px 16px rgba(177,58,43,.35)}
+  .btn-seal:hover{transform:translateY(-2px)}
+  .cmd{margin:26px auto 0;max-width:640px;background:#2b2a25;color:#e8e4d8;border-radius:8px;padding:14px 18px;font-family:var(--font-mono);font-size:12px;line-height:1.8;word-break:break-all;text-align:left}
+  .cmd b{color:#8fc7a3;font-weight:400}
+
+  footer{padding:26px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-muted)}
+  footer a{color:var(--indigo);text-decoration:none}
+  .demo-tag{font-family:var(--font-mono);color:var(--ink-faint)}
+
+  @media(max-width:760px){
+    .stop{grid-template-columns:34px 1fr;margin-bottom:56px}
+    .spine{left:17px}
+    .stop .node{grid-column:1;width:16px;height:16px;border-width:4px}
+    .stop .time{grid-column:1;top:auto;bottom:-30px;font-size:15px}
+    .stop.left .card,.stop.right .card{grid-column:2;grid-row:1;text-align:left}
+    .stop.left .card h3{justify-content:flex-start}
+    .side-note{display:none}
+    .clock{display:none}
+  }
+
+  [data-pop]{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s cubic-bezier(.22,.61,.36,1)}
+  [data-pop].in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><div class="mark">说</div><b style="font-family:var(--font-display);letter-spacing:.1em">说到 · 一日</b></div>
+  <nav><a href="index.html">风格总览</a><a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub</a></nav>
+</header>
+
+<div class="clock" id="clock">06:58</div>
+
+<!-- ============ Hero ============ -->
+<section class="hero">
+  <div class="sun"></div>
+  <div class="kick">A DAY WITH SAYDO · 2026</div>
+  <h1>有你的一天，<br><em>从一句话开始。</em></h1>
+  <p class="sub">这不是功能列表，是一天的流水。跟着时间往下走——看「说到」怎么把说出口的每件事，都办出着落。</p>
+  <div class="scroll-hint">↓ 06:58 · 醒来</div>
+</section>
+
+<!-- ============ 时间轴 ============ -->
+<div class="timeline" id="timeline">
+  <div class="spine"><i id="spine-fill"></i></div>
+
+  <div class="stop left" data-pop data-time="06:58" style="--ph:var(--ink-faint)">
+    <div class="time">06:58</div><div class="node"></div>
+    <div class="card">
+      <h3>睁眼，账已经记好了 <span class="tg">灰线</span></h3>
+      <p>手机亮着：昨晚等的第三方 API 配额批下来了——<b>它没吵醒你，自己把后续排进了今天的账。</b></p>
+    </div>
+    <div class="side-note">等外部回音的事<br>回音一到自动续办</div>
+  </div>
+
+  <div class="stop right" data-pop data-time="08:12" style="--ph:var(--indigo)">
+    <div class="time">08:12</div><div class="node"></div>
+    <div class="card">
+      <h3>通勤路上，说一句 <span class="tg">黛线</span></h3>
+      <p>地铁里按住说话：<span class="vline">「把昨天说的导出功能做了，用 CSV。」<span class="wave"><i></i><i></i><i></i><i></i></span></span><br>不用组织语言，不用打开任何 app。它带着对项目的理解追问了一个细节：UTF-8 带不带 BOM？</p>
+    </div>
+    <div class="side-note">说了就记<br>想到哪说到哪</div>
+  </div>
+
+  <div class="stop left" data-pop data-time="09:00" style="--ph:var(--indigo)">
+    <div class="time">09:00</div><div class="node"></div>
+    <div class="card">
+      <h3>到工位，决策包已备好 <span class="tg">就绪</span></h3>
+      <p>火候够了，它主动提议开工：<b>成果预览、实施计划、预计花费与封顶</b>，外加一份和计划同源生成的网页小样——先看最终长什么样，再说对不对。</p>
+    </div>
+    <div class="side-note">规格是它的产物<br>不是你的输入</div>
+  </div>
+
+  <div class="stop right" data-pop data-time="09:05" style="--ph:var(--seal)">
+    <div class="time">09:05</div><div class="node"></div>
+    <div class="card">
+      <h3>一句「就这样」 <span class="tg">拍板</span></h3>
+      <p>看完小样，你说了三个字。<b>它放手去办</b>：独立 git worktree，主工作区不碰；预算、时长、回合三重熔断。你合上电脑，去开会。</p>
+    </div>
+    <div class="side-note">合并、交付<br>永远你点头才算</div>
+  </div>
+
+  <div class="stop" data-pop data-time="10:47">
+    <div class="quote">
+      <p>整个上午，你没碰过一行代码，<br>也没写过一句需求。<em>事在往前跑。</em></p>
+    </div>
+  </div>
+
+  <div class="stop left" data-pop data-time="10:47" style="--ph:var(--pine)">
+    <div class="time">10:47</div><div class="node"></div>
+    <div class="card">
+      <h3>会议室里，它叫你验收 <span class="tg">松线</span></h3>
+      <p>手机震了一下：<b>「导出功能做完了，测试全绿，等你验收。」</b>——说「等你验收」，而不是「做完了」。你在会议间隙扫了一眼证据，点了「合并」。</p>
+    </div>
+    <div class="side-note">执行和检查都跑完<br>才叫你来</div>
+  </div>
+
+  <div class="stop right" data-pop data-time="12:30" style="--ph:var(--ochre)">
+    <div class="time">12:30</div><div class="node"></div>
+    <div class="card">
+      <h3>午休，随口一记 <span class="tg">赭线</span></h3>
+      <p>排队买饭时想起一件事：「帮我记着，给财务回个数字，这周。」<b>三秒进账</b>，归到「你欠的动作」——不用专门开 app。</p>
+    </div>
+    <div class="side-note">随口一句「帮我记一下」<br>立刻进账</div>
+  </div>
+
+  <div class="stop left" data-pop data-time="18:40" style="--ph:var(--indigo)">
+    <div class="time">18:40</div><div class="node"></div>
+    <div class="card">
+      <h3>地铁上，翻一眼账本 <span class="tg">四色</span></h3>
+      <p>今天的事，四色分明：
+        <span class="mini-ledger">
+          <div><span class="d" style="background:var(--pine)"></span>导出功能（CSV）<span class="m">已验收 ●</span></div>
+          <div><span class="d" style="background:var(--pine)"></span>API 配额后续接入<span class="m">AI 在办 · 2h</span></div>
+          <div><span class="d" style="background:var(--indigo)"></span>给财务回个数字<span class="m">你来做</span></div>
+          <div><span class="d" style="background:var(--ochre)"></span>官网风格五选一<span class="m">等你拍板</span></div>
+        </span>
+      </p>
+    </div>
+    <div class="side-note">件件有着落<br>不靠脑子记</div>
+  </div>
+
+  <div class="stop right" data-pop data-time="22:10" style="--ph:#7aa5f7" data-night>
+    <div class="time">22:10</div><div class="node"></div>
+    <div class="card">
+      <h3>睡前，明天已经排好 <span class="tg">夜</span></h3>
+      <p>明天的账它已经理好顺序：两件它来办，一件等你一句话。<b>所有对话、事项与账本，都在你自己的设备上</b>——没有云端后台，没有账号，谁也拿不走。</p>
+    </div>
+    <div class="side-note">不运营任何服务器<br>数据不出你的设备</div>
+  </div>
+</div>
+
+<!-- ============ 尾章 ============ -->
+<section class="finale">
+  <h2 data-pop>这一天，<br>你只做了<em>说</em>和<em>拍板</em>两件事。</h2>
+  <p data-pop>重活它来，你的电脑跑，你的 AI 订阅出力，你的设备存数据。开源免费，现在就能开始。</p>
+  <a class="btn btn-seal" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener" data-pop>开始你的一天 →</a>
+  <div class="cmd" data-pop><b>$</b> npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz -- saydo up</div>
+</section>
+
+<footer>
+  <span class="demo-tag">STYLE DEMO 06 · 一日时间轴 · 仅风格探索</span>
+  <span><a href="https://github.com/Octo-o-o-o/SayDo">GitHub</a> · <a href="/privacy/">隐私政策</a> · <a href="index.html">返回风格总览</a></span>
+</footer>
+
+<script>
+  // 出现动画 + 时钟与脊柱随滚动推进 + 入夜变天色
+  const clock = document.getElementById('clock');
+  const spine = document.getElementById('spine-fill');
+  const stops = [...document.querySelectorAll('.stop[data-time]')];
+  const nightStop = document.querySelector('[data-night]');
+
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }), { threshold: .2 });
+  document.querySelectorAll('[data-pop]').forEach(el => io.observe(el));
+
+  function onScroll() {
+    const mid = scrollY + innerHeight * 0.45;
+    // 时钟：取最后越过的站点时间（getBoundingClientRect 取文档坐标）
+    let current = stops[0];
+    stops.forEach(s => { if (s.getBoundingClientRect().top + scrollY < mid) current = s; });
+    clock.textContent = current.dataset.time;
+    // 脊柱
+    const tl = document.getElementById('timeline');
+    const tlTop = tl.getBoundingClientRect().top + scrollY;
+    const p = Math.min(1, Math.max(0, (mid - tlTop) / tl.offsetHeight));
+    spine.style.height = (p * 100) + '%';
+    // 天色
+    document.body.classList.toggle('phase-night',
+      nightStop && nightStop.getBoundingClientRect().top + scrollY < mid);
+  }
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+</script>
+</body>
+</html>

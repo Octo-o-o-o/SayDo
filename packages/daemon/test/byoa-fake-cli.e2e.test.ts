@@ -1,7 +1,7 @@
 // T18a-1 fake CLI 进程级反例:超时/畸形 JSON/非零退出/unknown/取消/排队/schema 拒绝。
 
 import { createHash } from "node:crypto";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -965,5 +965,46 @@ describe("BYOA fake CLI 进程级反例", () => {
     controller.abort();
     await expect(queued).resolves.toMatchObject({ ok: false, code: "cancelled" });
     await expect(active).resolves.toMatchObject({ ok: true });
+  });
+
+  it("BYOA spawn 前身份核验每次真算;同 mtime/size 内容替换拒绝", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "saydo-byoa-id-"));
+    const bin = join(dir, "cli.mjs");
+    writeFileSync(bin, readFileSync(fakeCli));
+    chmodSync(bin, 0o755);
+    const digest = createHash("sha256").update(readFileSync(bin)).digest("hex");
+    let hashes = 0;
+    const hashFile = (path: string): string => {
+      hashes += 1;
+      return createHash("sha256").update(readFileSync(path)).digest("hex");
+    };
+    const { provider } = makeProvider({
+      binaryPath: bin,
+      binaryIdentity: { path: bin, digest },
+      hashFile,
+      networkRetryLimit: 0,
+      wallTimeoutMs: 8_000
+    });
+    const first = await provider.chat({ messages: [{ role: "user", content: "ok" }] });
+    expect(hashes).toBe(1);
+    expect(first).not.toMatchObject({ ok: false, code: "binary_identity_mismatch" });
+    resetByoaLifecycleForTests();
+    try {
+      resetRuntimeChildLifecycleForTests();
+    } catch {
+      // 上一发若未收口,不得挡住第二次身份核验
+    }
+    const before = statSync(bin);
+    const tampered = Buffer.from(readFileSync(bin));
+    tampered[tampered.length - 1] = (tampered[tampered.length - 1] ?? 0) ^ 0xff;
+    writeFileSync(bin, tampered);
+    utimesSync(bin, before.atimeMs / 1000, before.mtimeMs / 1000);
+    const restored = statSync(bin);
+    expect(restored.size).toBe(before.size);
+    expect(restored.mtimeMs).toBe(before.mtimeMs);
+    const second = await provider.chat({ messages: [{ role: "user", content: "ok" }] });
+    expect(second).toMatchObject({ ok: false, code: "binary_identity_mismatch" });
+    expect(hashes).toBe(2);
+    rmSync(dir, { recursive: true, force: true });
   });
 });

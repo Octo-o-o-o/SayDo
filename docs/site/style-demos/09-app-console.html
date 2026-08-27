@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Demo 09 · App 化单页 — 说到 SayDo 风格探索</title>
+<style>
+  :root{
+    --paper:#f0ede4; --paper-card:#faf7ef; --paper-raised:#fcfaf4;
+    --ink:#34332e; --ink-2:#5b564b; --ink-muted:#706b61; --ink-faint:#a29b8f;
+    --rule:#cec6b7; --rule-soft:rgba(206,198,183,.62);
+    --ochre:#a8641f; --ochre-wash:rgba(168,100,31,.06);
+    --indigo:#3c5f96; --indigo-wash:rgba(60,95,150,.09); --indigo-line:rgba(60,95,150,.34);
+    --pine:#41755a; --pine-wash:rgba(65,117,90,.07);
+    --seal:#b13a2b; --seal-wash:rgba(177,58,43,.07); --seal-fg:#fff8ed;
+    --paper-fg:#fffaf0;
+    --shadow:0 1px 2px rgba(75,64,47,.05),0 8px 24px rgba(75,64,47,.09);
+    --font-body:'PingFang SC','HarmonyOS Sans SC','MiSans','Hiragino Sans GB','Microsoft YaHei',-apple-system,sans-serif;
+    --font-display:'Songti SC','Noto Serif SC',serif;
+    --font-mono:ui-monospace,'SF Mono','JetBrains Mono','Menlo',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font-body);background:#e7e2d4;color:var(--ink);font-size:15px;line-height:1.8;overflow:hidden;height:100vh;display:grid;place-items:center}
+  ::selection{background:var(--seal);color:var(--seal-fg)}
+
+  /* ---------- App 窗口 ---------- */
+  .app{
+    width:min(1180px,100vw);height:min(780px,100vh);background:var(--paper);display:grid;
+    grid-template-rows:46px 1fr 34px;border-radius:0;overflow:hidden;
+    box-shadow:0 30px 80px rgba(75,64,47,.25);
+  }
+  @media(min-width:900px){.app{border-radius:14px;width:min(1180px,calc(100vw - 48px));height:min(780px,calc(100vh - 48px))}}
+
+  /* 标题栏 */
+  .titlebar{
+    display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--paper-raised);
+    border-bottom:1px solid var(--rule-soft);user-select:none;
+  }
+  .lights{display:flex;gap:7px}
+  .lights i{width:11px;height:11px;border-radius:50%}
+  .lights i:nth-child(1){background:#c9563f}.lights i:nth-child(2){background:#cfa050}.lights i:nth-child(3){background:#5cab7d}
+  .titlebar .t{font-size:13px;color:var(--ink-2)}
+  .titlebar .t b{color:var(--ink)}
+  .titlebar .kbd-hint{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-faint);letter-spacing:.08em}
+  @media(max-width:640px){.titlebar .kbd-hint{display:none}}
+
+  /* 主体：侧栏 + 面板 */
+  .body{display:grid;grid-template-columns:210px 1fr;min-height:0}
+  .sidebar{
+    background:var(--paper-raised);border-right:1px solid var(--rule-soft);
+    display:flex;flex-direction:column;padding:18px 12px;
+  }
+  .side-brand{display:flex;align-items:center;gap:10px;padding:4px 10px 18px}
+  .side-brand .m{width:32px;height:32px;border-radius:9px;background:var(--seal);color:var(--seal-fg);display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:15px;box-shadow:0 2px 8px rgba(177,58,43,.3)}
+  .side-brand b{font-family:var(--font-display);letter-spacing:.08em}
+  .side-brand small{display:block;font-family:var(--font-mono);font-size:9.5px;color:var(--ink-faint);letter-spacing:.14em}
+  .tabnav{display:flex;flex-direction:column;gap:3px}
+  .tabnav button{
+    display:flex;align-items:center;gap:10px;padding:9px 12px;border:none;background:none;cursor:pointer;
+    font-family:var(--font-body);font-size:13.5px;color:var(--ink-2);border-radius:8px;text-align:left;transition:.15s;
+  }
+  .tabnav button svg{opacity:.75;flex:none}
+  .tabnav button:hover{background:var(--indigo-wash)}
+  .tabnav button.on{background:var(--indigo);color:var(--paper-fg)}
+  .tabnav button.on svg{opacity:1}
+  .side-foot{margin-top:auto;padding:12px 10px 4px;border-top:1px dashed var(--rule-soft);font-size:11px;color:var(--ink-muted);line-height:2}
+  .side-foot .dotlive{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--pine);margin-right:6px;animation:pl 1.8s infinite}
+  @keyframes pl{50%{opacity:.4}}
+
+  /* 面板 */
+  .panels{position:relative;overflow:hidden}
+  .panel{
+    position:absolute;inset:0;overflow-y:auto;padding:34px 40px 50px;
+    opacity:0;transform:translateX(26px);pointer-events:none;
+    transition:opacity .32s ease,transform .32s cubic-bezier(.22,.61,.36,1);
+  }
+  .panel.on{opacity:1;transform:none;pointer-events:auto}
+  .panel h2{font-family:var(--font-display);font-weight:700;font-size:clamp(26px,3vw,36px);letter-spacing:.02em}
+  .panel .sub{color:var(--ink-2);margin:8px 0 28px;max-width:560px}
+  .panel .sub b{color:var(--ink)}
+
+  /* 首页 */
+  .home-hero{display:grid;grid-template-columns:1fr 320px;gap:28px;align-items:start}
+  @media(max-width:860px){.home-hero{grid-template-columns:1fr}}
+  .mic-wrap{display:flex;flex-direction:column;align-items:center;text-align:center;padding:26px 0 10px}
+  .mic-btn{
+    width:108px;height:108px;border-radius:50%;background:var(--seal);color:var(--seal-fg);border:none;cursor:pointer;
+    display:grid;place-items:center;position:relative;box-shadow:0 10px 30px rgba(177,58,43,.35);transition:.2s;
+  }
+  .mic-btn:hover{transform:scale(1.05)}
+  .mic-btn::before,.mic-btn::after{
+    content:"";position:absolute;inset:-14px;border-radius:50%;border:2px solid var(--seal);opacity:.3;
+    animation:ring 2.4s ease-out infinite;
+  }
+  .mic-btn::after{animation-delay:1.2s}
+  @keyframes ring{0%{transform:scale(.86);opacity:.45}100%{transform:scale(1.35);opacity:0}}
+  .mic-wrap .say{margin-top:20px;font-family:var(--font-display);font-size:20px}
+  .mic-wrap .hint{font-size:12.5px;color:var(--ink-muted);margin-top:4px}
+  .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:26px}
+  .stat{background:var(--paper-card);border:1px solid var(--rule);border-radius:10px;padding:14px 16px}
+  .stat .n{font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--sc,var(--indigo))}
+  .stat .l{font-size:11.5px;color:var(--ink-muted)}
+  .card{background:var(--paper-card);border:1px solid var(--rule);border-radius:12px;padding:18px 20px;box-shadow:var(--shadow)}
+  .card h3{font-family:var(--font-display);font-size:16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:baseline}
+  .card h3 a{font-size:12px;color:var(--indigo);text-decoration:none;font-family:var(--font-body)}
+  .lrow{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px dashed var(--rule-soft);font-size:13.5px}
+  .lrow:first-of-type{border-top:none}
+  .lrow .d{width:9px;height:9px;border-radius:50%;margin-top:7px;flex:none}
+  .lrow .m{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-muted);white-space:nowrap;padding-top:2px}
+
+  /* 闭环 */
+  .loop-list{display:flex;flex-direction:column;max-width:640px}
+  .loop-step{display:grid;grid-template-columns:44px 1fr;gap:16px;position:relative;padding-bottom:26px}
+  .loop-step::before{content:"";position:absolute;left:21px;top:46px;bottom:2px;width:2px;background:var(--rule)}
+  .loop-step:last-child::before{display:none}
+  .loop-step .no{
+    width:44px;height:44px;border-radius:50%;background:var(--paper-card);border:2px solid var(--lc,var(--indigo));
+    display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:18px;color:var(--lc,var(--indigo));z-index:1;
+  }
+  .loop-step h3{font-family:var(--font-display);font-size:18px;display:flex;align-items:center;gap:10px;padding-top:8px}
+  .loop-step h3 .tg{font-size:10.5px;font-family:var(--font-mono);letter-spacing:.1em;padding:2px 9px;border-radius:999px;border:1px solid var(--lc,var(--indigo));color:var(--lc,var(--indigo));font-weight:400}
+  .loop-step p{grid-column:2;font-size:13.5px;color:var(--ink-2)}
+
+  /* 账本 */
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .filters button{
+    font-family:var(--font-body);font-size:12.5px;padding:6px 15px;border-radius:999px;cursor:pointer;
+    border:1px solid var(--rule);background:var(--paper-card);color:var(--ink-2);transition:.15s;
+  }
+  .filters button.on{border-color:var(--fc);color:var(--fc);background:var(--fb,var(--indigo-wash));font-weight:600}
+  .ledger-table{width:100%;border-collapse:collapse;background:var(--paper-card);border:1px solid var(--rule);border-radius:12px;overflow:hidden;font-size:14px}
+  .ledger-table td{padding:13px 18px;border-bottom:1px solid var(--rule-soft)}
+  .ledger-table tr:last-child td{border-bottom:none}
+  .ledger-table tr.hide{display:none}
+  .chip{font-size:11px;padding:2px 10px;border-radius:999px;border:1px solid;white-space:nowrap}
+  .c-o{color:var(--ochre);border-color:rgba(168,100,31,.42);background:var(--ochre-wash)}
+  .c-i{color:var(--indigo);border-color:var(--indigo-line);background:var(--indigo-wash)}
+  .c-p{color:var(--pine);border-color:rgba(65,117,90,.42);background:var(--pine-wash)}
+  .c-g{color:var(--ink-muted);border-color:var(--rule);background:rgba(52,51,46,.04)}
+
+  /* 为什么 */
+  .why-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:820px}
+  @media(max-width:760px){.why-grid{grid-template-columns:1fr}}
+  .why-grid .card h3{color:var(--wc,var(--indigo))}
+  .why-grid .card p{font-size:13.5px;color:var(--ink-2)}
+
+  /* 开始 */
+  .cmdbox{background:#2b2a25;color:#e8e4d8;border-radius:10px;padding:18px 20px;font-family:var(--font-mono);font-size:12px;line-height:1.9;word-break:break-all;position:relative;max-width:720px}
+  .cmdbox b{color:#8fc7a3;font-weight:400}
+  .cmdbox .copy{position:absolute;top:12px;right:12px;font-size:10.5px;color:#7aa5f7;background:none;border:1px solid rgba(122,165,247,.4);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:var(--font-mono)}
+  .plats{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;font-size:13px}
+  .plats span{border:1px solid var(--rule);border-radius:999px;padding:5px 16px;background:var(--paper-card)}
+  .plats .ok{color:var(--pine)}.plats .wip{color:var(--ochre)}
+  .start-actions{margin-top:24px;display:flex;gap:12px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;padding:11px 24px;transition:.2s}
+  .btn-seal{background:var(--seal);color:var(--seal-fg)}
+  .btn-seal:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(177,58,43,.3)}
+  .btn-line{border:1.5px solid var(--indigo-line);color:var(--indigo)}
+
+  /* 状态栏 */
+  .statusbar{
+    display:flex;align-items:center;gap:18px;padding:0 16px;background:var(--paper-raised);
+    border-top:1px solid var(--rule-soft);font-family:var(--font-mono);font-size:10.5px;color:var(--ink-muted);letter-spacing:.06em;
+  }
+  .statusbar .live{color:var(--pine)}
+  .statusbar .right{margin-left:auto;display:flex;gap:16px}
+  .statusbar a{color:var(--indigo);text-decoration:none}
+  @media(max-width:760px){.statusbar .hide-m{display:none}}
+
+  /* 移动：侧栏变底栏 */
+  @media(max-width:760px){
+    .body{grid-template-columns:1fr;grid-template-rows:1fr auto}
+    .sidebar{order:2;flex-direction:row;align-items:center;padding:6px;border-right:none;border-top:1px solid var(--rule-soft)}
+    .side-brand,.side-foot{display:none}
+    .tabnav{flex-direction:row;flex:1;justify-content:space-around}
+    .tabnav button{flex-direction:column;gap:3px;font-size:10.5px;padding:7px 8px}
+    .tabnav button span.lb{display:none}
+    .panel{padding:24px 20px 40px}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- 标题栏 -->
+  <div class="titlebar">
+    <div class="lights"><i></i><i></i><i></i></div>
+    <div class="t"><b>说到</b> — Web 控制台 · localhost</div>
+    <div class="kbd-hint">← → 切换面板 · 这只是官网 Demo</div>
+  </div>
+
+  <div class="body">
+    <!-- 侧栏 -->
+    <aside class="sidebar">
+      <div class="side-brand">
+        <div class="m">说</div>
+        <div><b>说到</b><small>SAYDO CONSOLE</small></div>
+      </div>
+      <nav class="tabnav" id="tabnav">
+        <button data-tab="home" class="on"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>首页</button>
+        <button data-tab="loop"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>闭环</button>
+        <button data-tab="ledger"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>账本</button>
+        <button data-tab="why"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>为什么</button>
+        <button data-tab="start"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>开始</button>
+      </nav>
+      <div class="side-foot">
+        <span class="dotlive"></span>daemon 运行中<br>
+        账本 4 件 · AI: cursor-agent<br>
+        <a href="index.html" style="color:var(--indigo);text-decoration:none">← 风格总览</a>
+      </div>
+    </aside>
+
+    <!-- 面板 -->
+    <div class="panels">
+
+      <!-- 首页 -->
+      <section class="panel on" data-panel="home">
+        <h2>下午好。有什么事，<br>按住就说。</h2>
+        <p class="sub">你只管把事聊清楚——它先读透你的项目，听懂了就驱动你电脑上已有的 AI 去办，<b>办完叫你验收</b>。</p>
+        <div class="home-hero">
+          <div>
+            <div class="mic-wrap">
+              <button class="mic-btn" type="button" aria-label="按住说话">
+                <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+              </button>
+              <div class="say">「把昨天说的导出功能做了，用 CSV。」</div>
+              <div class="hint">想到哪说到哪 · 随口一句立刻进账</div>
+            </div>
+            <div class="stat-row">
+              <div class="stat" style="--sc:var(--pine)"><div class="n">2</div><div class="l">今天 AI 办完</div></div>
+              <div class="stat" style="--sc:var(--ochre)"><div class="n">1</div><div class="l">等你拍板</div></div>
+              <div class="stat" style="--sc:var(--indigo)"><div class="n">¥3.2</div><div class="l">今日花费 · 封顶 ¥8</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>今天 · 四色账本 <a href="#ledger" data-goto="ledger">全部 →</a></h3>
+            <div class="lrow"><span class="d" style="background:var(--ochre)"></span><div>官网风格五选一</div><span class="m">待拍板</span></div>
+            <div class="lrow"><span class="d" style="background:var(--indigo)"></span><div>回复设计稿确认邮件</div><span class="m">你来做</span></div>
+            <div class="lrow"><span class="d" style="background:var(--pine)"></span><div>重构登录模块</div><span class="m">AI 在办</span></div>
+            <div class="lrow"><span class="d" style="background:var(--ink-faint)"></span><div>API 配额审批</div><span class="m">等回音</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 闭环 -->
+      <section class="panel" data-panel="loop">
+        <h2>一个完整的闭环</h2>
+        <p class="sub">你只管聊和拍板，重活它来。<b>执行和检查都跑完，它主动叫你验收——你点头，才算交付。</b></p>
+        <div class="loop-list">
+          <div class="loop-step" style="--lc:var(--indigo)"><div class="no">一</div><h3>开口聊 <span class="tg">INTERVIEW</span></h3><p>按住说话，想到哪说到哪。它带着对你项目的理解，像采访一样一次问一个，把事聊透。</p></div>
+          <div class="loop-step" style="--lc:var(--indigo)"><div class="no">二</div><h3>就绪决断 <span class="tg">READY</span></h3><p>火候够了，它主动提议开工——规格是它的产物，不是你的输入。</p></div>
+          <div class="loop-step" style="--lc:var(--ochre)"><div class="no">三</div><h3>决策包 <span class="tg">PKG ×3</span></h3><p>成果预览、实施计划、预计花费与封顶，外加一份与计划同源生成的网页小样。</p></div>
+          <div class="loop-step" style="--lc:var(--seal)"><div class="no">四</div><h3>你拍板 <span class="tg">QC GATE</span></h3><p>看着具体的东西说「就这样」。合并、交付，永远你拍板才算数。</p></div>
+          <div class="loop-step" style="--lc:var(--pine)"><div class="no">五</div><h3>后台执行 <span class="tg">UNATTENDED</span></h3><p>独立 git worktree 隔离；预算、时长、回合三重熔断。你可以走开。</p></div>
+          <div class="loop-step" style="--lc:var(--pine)"><div class="no">六</div><h3>叫你验收 <span class="tg">ACCEPT</span></h3><p>说「等你验收」，而不是「做完了」。证据入账，可复查、可回溯。</p></div>
+        </div>
+      </section>
+
+      <!-- 账本 -->
+      <section class="panel" data-panel="ledger">
+        <h2>四色账本</h2>
+        <p class="sub">每件事都有归属和去向：等你拍板的、你欠的、AI 在办的、等回音的。<b>四色分明，件件有着落。</b>点下面筛选试试：</p>
+        <div class="filters" id="filters">
+          <button data-f="all" class="on" style="--fc:var(--ink);--fb:rgba(52,51,46,.06)">全部 4</button>
+          <button data-f="o" style="--fc:var(--ochre);--fb:var(--ochre-wash)">等你拍板 1</button>
+          <button data-f="i" style="--fc:var(--indigo);--fb:var(--indigo-wash)">你欠的 1</button>
+          <button data-f="p" style="--fc:var(--pine);--fb:var(--pine-wash)">AI 在办 1</button>
+          <button data-f="g" style="--fc:var(--ink-muted);--fb:rgba(52,51,46,.04)">等回音 1</button>
+        </div>
+        <table class="ledger-table">
+          <tr data-tone="o"><td style="width:36px"><span class="chip c-o">赭</span></td><td>官网五个风格 Demo，等你选一个<div style="font-size:12px;color:var(--ink-muted)">今天 · 来自对话</div></td><td style="text-align:right"><span class="chip c-o">等你拍板</span></td></tr>
+          <tr data-tone="i"><td><span class="chip c-i">黛</span></td><td>回复设计稿确认邮件<div style="font-size:12px;color:var(--ink-muted)">今天 09:10 · 你欠的动作</div></td><td style="text-align:right"><span class="chip c-i">你来做</span></td></tr>
+          <tr data-tone="p"><td><span class="chip c-p">松</span></td><td>重构登录模块，独立 worktree 跑着<div style="font-size:12px;color:var(--ink-muted)">AI 正在办 · 已 40 分钟</div></td><td style="text-align:right"><span class="chip c-p">AI 在办</span></td></tr>
+          <tr data-tone="g"><td><span class="chip c-g">灰</span></td><td>等第三方 API 配额审批回来<div style="font-size:12px;color:var(--ink-muted)">等外部回音 · 预计明天</div></td><td style="text-align:right"><span class="chip c-g">等回音</span></td></tr>
+        </table>
+        <p style="margin-top:16px;font-size:13px;color:var(--ink-muted)">手机上说的，电脑上看得见；电脑里记的，手机上盯得住——跨设备，同一本账。会话写入账本，可复查、可回溯。</p>
+      </section>
+
+      <!-- 为什么 -->
+      <section class="panel" data-panel="why">
+        <h2>不是又一个语音工具</h2>
+        <p class="sub">市面上每一块都有成熟单点，但还没人把「聊透、自动开工、办完交付」做成同一套闭环。<b>说到做的是完整治理，不是单点。</b></p>
+        <div class="why-grid">
+          <div class="card" style="--wc:var(--indigo)"><h3>先吃透，再办事</h3><p>第一次聊一个项目，先读透结构、约定与关键文件，沉淀成持久知识底座。这是和「新开一个聊天窗口」的分水岭。</p></div>
+          <div class="card" style="--wc:var(--pine)"><h3>AI 真的在干活</h3><p>接上你电脑上已登录的 AI——Codex、Claude Code、Cursor、Gemini CLI、Grok。已订阅哪家用哪家，无需额外付费。</p></div>
+          <div class="card" style="--wc:var(--seal)"><h3>人拍板才算数</h3><p>开工前给决策包三件套；做完说「等你验收」而不是「做完了」。合并、交付，永远你点头才算。</p></div>
+          <div class="card" style="--wc:var(--ochre)"><h3>数据完全在你手里</h3><p>不运营任何服务器，没有账号体系，不埋点。对话、事项与账本保存在你自己的设备上。</p></div>
+        </div>
+      </section>
+
+      <!-- 开始 -->
+      <section class="panel" data-panel="start">
+        <h2>一条命令，开跑</h2>
+        <p class="sub">桌面服务开源免费、现在可用。需要 <b>Node.js 22</b>，无需克隆源码；语音 pipeline 与常驻安装见文档。</p>
+        <div class="cmdbox">
+          <button class="copy" id="copy" type="button">copy</button>
+          <b>$</b> <span id="cmdline">npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz -- saydo up</span>
+        </div>
+        <div class="plats">
+          <span class="ok">macOS ● 现在可用</span><span class="ok">Windows ● 现在可用</span><span class="ok">Linux ● 现在可用</span>
+          <span class="wip">iOS ◐ 开发中</span><span class="wip">Android ◐ 开发中</span><span class="wip">HarmonyOS ◐ 开发中</span>
+        </div>
+        <div class="start-actions">
+          <a class="btn btn-seal" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub 仓库 →</a>
+          <a class="btn btn-line" href="/docs/">安装文档</a>
+        </div>
+        <p style="margin-top:22px;font-size:13px;color:var(--ink-muted);max-width:560px">选择 SayDo 已支持且通过自检的登录态 AI CLI 时，无需另申请 API key；不支持的 CLI 会被明确拒绝。</p>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- 状态栏 -->
+  <div class="statusbar">
+    <span class="live">● LOCAL</span>
+    <span class="hide-m">账本 4 件</span>
+    <span class="hide-m">AI: cursor-agent</span>
+    <span class="hide-m">无云端后台</span>
+    <div class="right">
+      <span>STYLE DEMO 09 · App 化单页</span>
+      <a href="index.html">../demos</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const tabs = [...document.querySelectorAll('#tabnav button')];
+  const panels = [...document.querySelectorAll('.panel')];
+  let idx = 0;
+
+  function go(i) {
+    idx = (i + tabs.length) % tabs.length;
+    tabs.forEach((b, j) => b.classList.toggle('on', j === idx));
+    panels.forEach((p, j) => p.classList.toggle('on', j === idx));
+    location.hash = tabs[idx].dataset.tab;
+  }
+  tabs.forEach((b, i) => b.addEventListener('click', () => go(i)));
+  addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') go(idx + 1);
+    if (e.key === 'ArrowLeft') go(idx - 1);
+  });
+  // 卡片内跳转链接
+  document.querySelectorAll('[data-goto]').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault();
+    go(tabs.findIndex(b => b.dataset.tab === a.dataset.goto));
+  }));
+  // hash 初始化
+  const h = location.hash.slice(1);
+  const hi = tabs.findIndex(b => b.dataset.tab === h);
+  if (hi >= 0) go(hi);
+
+  // 账本筛选
+  const filterBtns = [...document.querySelectorAll('#filters button')];
+  filterBtns.forEach(b => b.addEventListener('click', () => {
+    filterBtns.forEach(x => x.classList.toggle('on', x === b));
+    const f = b.dataset.f;
+    document.querySelectorAll('.ledger-table tr[data-tone]').forEach(tr =>
+      tr.classList.toggle('hide', f !== 'all' && tr.dataset.tone !== f));
+  }));
+
+  // 复制
+  document.getElementById('copy').addEventListener('click', function () {
+    navigator.clipboard && navigator.clipboard.writeText(document.getElementById('cmdline').textContent);
+    this.textContent = 'copied ●';
+    setTimeout(() => this.textContent = 'copy', 1600);
+  });
+</script>
+</body>
+</html>

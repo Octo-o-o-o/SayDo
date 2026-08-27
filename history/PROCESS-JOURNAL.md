@@ -2786,3 +2786,161 @@ packages 零改动,不影响 RC4 发布链路。
 - **main 未推送 origin**(领先 13 个提交),push 需 owner 单独授权。
 - 未入库 `prompts/203`(RC4 线的工作文件,非本线产物,不擅自处置)。
 - 未介入 RC4 任何分支或 worktree。
+
+## R110 · W5.4-b 四轮独立复审收口、ios 门禁回归修复与 AI 供给专题开坐标（2026-08-27）
+
+调度方(Claude)一线,评审派 Codex `gpt-5.6-sol`+max、施工派 Grok `grok-4.6`+xhigh,
+两侧均为彼此零上下文的独立会话。
+
+**起点**是 AI 供给专题的启用门检查(依据 `prompts/205` 的坐标刷新与 `prompts/204` 的任务主体,
+两者均为未跟踪工作文件)。五门实测:门 1(四线并入 + 公开仓 rc.12 tag)绿;
+门 2(active pointer 仍 `w54b-wiring`)红,处置路径 = `IMPL-PROMPT-16`;
+门 3(`just ci`)**红——新发现的合并回归**;门 4/5 按纪律处置。
+
+**门 3 根因**是两条 RC4 分支的语义级合并冲突(git 不报,因两边改不同文件):
+release 线 `09f7920` 的门禁 `scripts/test-ios-build-and-install.mjs` 断言 `SAYDO_IOS_DEVICE_ID` 合同,
+而被测的 `apps/ios/build-and-install.sh` 已由 mobile 线 `c56ebdf` 重构为公共库 + 自动设备发现;
+该门禁不存在于 mobile 线,那条线无从同步。二分定位引入点 = `d83c341`(mobile 并入,rc.12 tag 后 3 小时),
+故 rc.12 的托管门全绿与 main 现红不矛盾。连带后果:`ci-node` fail-fast 使 mobile 新增的三项门禁
+在 `just ci` 中从未被执行。owner 裁决删除该门禁(职能已由 `test-mobile-installers.mjs` 128 项取代),
+落 `9a3e180`,main 转绿。
+
+**W5.4-b 收口**经四轮复审 + 三轮返工:首轮 No-Go(A5/B3/C1,五条 A 级由调度方逐条独立核验属实);
+返工 1 修完但**自己引入一条 A 级生产回归**(POSIX dev 刷新在只读 SQLite 副本上 UPDATE ⇒ 备份中止);
+返工 2 关闭该回归;末轮提出的 BYOA 多 spawn 不重验身份经归属核验属**基线既有缺陷**
+(`git show 5036bee:…/byoa/runner.ts` 零处身份核验,该文件 diff 全属 RC4 runtime 线),
+按 owner 裁决转独立安全线。收口时 W5.4-b **自身 A 级 = 0**,遗留 6 条 B/C 见
+`e2e/evidence/w54b-batch.md` §18.4。代码 `8941e1c`、证据 `9417b6d`;
+`just ci` exit 0(daemon 2174 passed/6 skipped、console 279)、`playwright` 36 passed。
+
+owner 另裁决两项:A-5(既有测试期望超红线 7 白名单)**追认为白名单例外**——该改动本就是 C1 验收锚
+「projectOverrides `dev.agent` 放开 `claude_code`」的直接要求,真正的违规是当时未停点上浮;
+B-2(10/11 直接写入正式 canonical 而非草案)**追认为正式回写**。
+
+**AI 供给专题已开具名坐标**(PLAN-2 §1 `ai-supply`),范围按四项已签决策收缩,
+基线 HEAD 与主方案/决策单的 SHA-256 已固化在该节。
+
+**调度方本轮的三次不实陈述**(均由独立复审抓出,已全部就地更正,记于 evidence §18.3):
+「四处改动全部在 spawn 之后」、「`ready_for_review` 不可达」(照录施工方自述未核验)、
+「脏 run 断言改为 `cancel_settled`」(据 diff 片段推断未读代码)。三次同一根因:
+**用二手材料代替一手核验**。这正是本批的历史教训,也证明实施/评估分离的链路有效——
+三次都不是自查出来的。
+
+门禁:emoji clean;`check-doc-links` files=109 broken=0;`git diff --check` clean。
+
+### 未做
+- **main 未推送 origin**,push 需 owner 单独授权。
+- L-1(BYOA 单次 chat 内多 spawn 不重验身份)未修,按 owner 裁决登记为独立安全线。
+- W5.4-c(真 Claude hook 全链、live conformance、四场真人验收)未触及。
+- 未部署常驻:`~/.saydo/runtime` 仍 `6d98a6e`。
+- `IMPL-PROMPT-15` §3.5 第 2/3 条(方案 §8 残余确认、ADR-002 状态更正确认)**未见书面确认**,
+  已在 HANDOFF §1 如实标注,不当作已处置。
+
+## R111 · 口袋采集设备接入方案(capture ingress)定稿与三轮评审闭环（2026-08-26）
+
+### 输入
+owner 提供 Cursor 会话产出的"FoloToy AI Passport 口袋硬件接入 daemon"方案,要求评审其合理性并产出标准化定稿;后续追加三问:移动端是否也可选弱客户端模式、该能力放主仓还是外挂/通用项目、需外部生态调研;最后授权 Codex 交叉评审并要求最终方案。
+
+### 行动
+1. 对照仓内真实代码逐条核验 Cursor 前案,证伪四个 A 级问题(voice.mode 清缓冲 no-op 前提、Console asr.final 冒领、hello.ack 绑 sessionId 天然过期、hello 后掰 pipeline 档位踩坏 Console),产出修订方案 v1(store-and-forward 聚轮 + 双令牌 + origin 标注),落 `docs/plan/2026-08-26-capture-device-ingress.fable.md`。
+2. 两个零上下文 subagent 互补评审:事实核验(约 60 处 file:line 全核,1 B + 3 C,B=restoreFromDb 归因应为 onVoiceMode 回放)、架构安全对抗(4 A + 6 B + 10 C,A=并发判定启发式破洞/计数漂移/rebuild 副作用/dispatch 红线缺失);A/B 级全部回修。
+3. 外部调研(FoloToy 仓为开发基线无既定协议、Wyoming、小智生态、pipecat-esp32),产出 §8 生态定位:手机弱客户端=又一个 capture 设备零新增合同;通用性放仓外协议 bridge(capture 令牌零特权),不自研通用网关;owner-token 代持 bridge 机制级否定存档。
+4. Codex 对抗评审(`prompts/205`,报告 `research/codex-findings/100-capture-device-ingress-adversarial-review.md`,gpt-5.6-sol,判定"需回修后可"):6 A + 10 B + 4 C,最重发现=capture principal 进 Brain 后退化为 owner 语义输入(免确认写工具 + 5 秒自动接受可被设备语音触达)。关键断言(scheduleAutoAccept/cancelTask/onUserTurnBegin ack/protocolCompatible)经本会话抽查全部属实。
+5. 按 Codex 发现重写方案为 v2:origin 贯穿工具环 + 工具三档权限(read/propose/deny,fail-closed)+ capture 轮禁自动接受;删猜测式版本后备改 protocol minor 能力门;单在途轮闸;第一刀收窄为"Console 在场的第二麦克风"(unheard 纪律);设备上行零 JSON(0x03 结束帧);合并单帧两消息提交;principal/via 正交。
+
+### 产出
+- `docs/plan/2026-08-26-capture-device-ingress.fable.md`(v2,471 行,emoji 门禁绿);
+- `prompts/205-capture-device-ingress-adversarial-review.md`;
+- `research/codex-findings/100-capture-device-ingress-adversarial-review.md`(285 行);
+- 日志 `logs/codex-205-capture-ingress-events.jsonl`(172 行,turn.completed=1);
+- 附带发现的现网既有缺陷已单独立项提示(pipeline 单独重连后 Console 不重发 voice.mode,免手档 `_mic_buf` 无限积累)。
+
+### 结论与边界
+- 三档结论维持"要加一条窄的设备采集入口";实施按 PR1(本机)/PR2(LAN)/PR3(下行与独立成轮)分刀,PR1 待 owner 批准后按 impl-prompt 流程派工。
+- 本轮未改任何生产代码、未跑 `just ci`、未 commit、未 push;Device tests NOT RUN(无板)。
+
+## R112 · 600 条提问三轮 dry run 的 A 级返工与试跑前收口（2026-08-27）
+
+### 输入
+owner 要求在新会话继续 600 条提问的三轮静态 dry run，只做 A 级返工与试跑前收口：不跑真实 connector、外部账号、真实模型批次、浏览器/Web 搜索或业务写 effect；只修 R110 readback 的 A1-A5，A=0 即停；不新增 V10、不扩写近义问题、不清零 B/C。要求优先 resume 原 Grok 实施 session 施工，并明令 replay/P0/P1/P2/P3 必须由 72 条证据全量重算，禁止为迎合评审里的 67/65/46/23 等局部下界硬编码。
+
+### 行动
+1. 先读 `AGENTS.md`、dry-run 计划与三份评审、`dry-run-model.mjs`/`rebuild`/`validate` 与 `simulation-spec.mjs`，再用只读脚本结构化复核而不是照抄评审结论：确认 CTX 题实测 172、`inSimulation` 72、fixture 状态词表为 `ok/stale/empty/partial/permission_denied/conflict`；对 72 个 sim 导出 lifecycle / turn move / failure inject / recover / must / mustNot / finalState，独立复现出 12 个已知反例（5 个 LONG_RUN_PAUSE 无 resume 轮、7 个 S3 的 failure 全是数据类），并反向确认 `RES-046` 确有 `resume` 轮而只缺 lifecycle 标签。
+2. 派发前记录主语料源树 SHA-256 `0c2a1f65…`，并对未跟踪产物做 tar 快照（25 MB）防 sandbox 清树。
+3. 写 `prompts/188-…-impl.md`（243 行）把 A1 架构定死：新建 `perturbation-evidence.mjs`，用可解析锚（`lifecycle:` / `turn:i:move=` / `failure:inject~` / `mustNot:i~` / `final_state:` / `pretest:` / `fixture:name:status=`）对 `buildSpecs()` 真实对象逐条解析，8 个扰动各有结构化判据（`LIVE_PERMISSION_DENIED` 必须 inject 命中 `permission_denied`；`S3_AUTH_MISSING` 数据类失败不算；`LONG_RUN_PAUSE` 以 resume 轮为准、lifecycle 标签只作旁证）。以 `grok -r 01a03c05-…`、`grok-4.6`、`xhigh`、`--no-subagents --sandbox workspace --always-approve --disable-web-search --no-memory` 派发。
+4. 首轮全部门禁绿后，调度方独立核验发现一条评审未提的 A 级残留：`EVIDENCE_MAP` 是推导产物，而 `independent-oracle.mjs` 直接 import 它判 `replayProven`，覆盖判定仍与模型同源（与上一轮被判红的「validator 与生成器共用 `buildDryRun`」同类，只是下沉一层）。以 `prompts/189-…-fix.md` 退回同一 session 续修：oracle 自行重写 8 个扰动判据与词表，只在一处把 `EVIDENCE_MAP` 当被比对对象做双向交叉核验，并加放宽/收紧两方向 mutation。同轮附带修一条 B：`PERM_RECOVER` 词表收「不编造」却漏「不补造」，致 `DAT-006` 在 inject 与 connector 均命中时被误判无证据。
+5. 调度方自己重跑全部门禁并逐项核验，不采信施工方自述：12 条已知反例逐行取第 12 列确认全为 `NO_EVIDENCE`；PROVEN 27 条与独立结构分析一致（三处差异逐条查明，两处判据正确维持、一处为词表缺口已修）；CTX 赋码实测 172；逐题表实测 12 列；`grep` 追 oracle 的 import 确认判定函数是本地重写而非引入。
+
+### 产出
+- `research/customer-question-corpus/dry-runs/`：新增 `perturbation-evidence.mjs`(495)、`dry-run-render.mjs`(639)、`independent-oracle.mjs`(669)、`test-dry-run-mutations.mjs`(274)、`03-a-repair-implementation-note.md`(234)；改写 `dry-run-model.mjs`、`rebuild-…mjs`、`validate-…mjs`；重生成 `01-`(1088) 与 `02-`(766)。
+- `docs/review/2026-08-27-customer-question-dry-run-a-repair-report.md`(176 行) — A 级返工报告；
+- `prompts/188-…-impl.md`(243 / `0e006ee2…`)、`prompts/189-…-fix.md`(62 / `4de83f78…`)、`prompts/190-…-readback.md`(122 / `ad389f48…`)；
+- 日志：`logs/grok-188-…jsonl`(2249 行 / 3108747 B / `d9dd974a…`)、`logs/grok-189-…jsonl`(1701 行 / 1341353 B / `5c1b326f…`)，两轮均 `stopReason=end_turn`、`modelUsage` 为 `grok-4.6-build`，无回落。
+- 生成物 SHA-256：result `68225899…`、solution `56337afc…`、authority `2a83fe23…`、主语料源树仍为 `0c2a1f65…`。
+
+### 结论与边界
+- A1-A5 全部落地。DR3 判据由「属于 72 个 simulation」改为「该 simulation 的结构化锚证明了本行所选的那一个扰动」，重算得 replay 27、P0 23、P1 46、P2 338、P3 166，PROVEN/NO_EVIDENCE/NOT_IN_SIM = 27/45/528。P0 新增的 7 条恰是 7 个 `S3_AUTH_MISSING` 无证据的 simulation 题，是判据改正的直接后果而非调参。
+- 冻结事实全部保持：600 条、F 46/483/60/11、DR1 七态、LIVE 465、F1 46、simulation 72、CTX 172、主语料源树 SHA 不变。
+- 本会话真实执行的门禁全绿：7 个 `node --check`、rebuild、validate、independent-oracle、38 条 mutation 全拒、主语料 validate、simulation validate、emoji 门，退出码均为 0；连续两次 rebuild 生成树 `cmp` 退出 0。
+- 仍保留的 B：`RES-046` lifecycle 标签（`simulations/**` 属本轮禁改路径）、`OPS-053` F4 D0 与 `read_test` 顺序、`ENG-001`/`ENG-048` F1 与 USER connector 边界、P0 23 条仍是待填写 capsule、词表仍属人工枚举需随新增 simulation 复审。`issuance` 缺字段一条在修 A3 时已顺带修掉。
+- 本轮未 commit / push / add，工作树无关改动全部保留；未跑全仓 `just ci`（不涉生产代码）；未调用任何真实工具或产生外部 effect。
+- **本会话既调度又跑门禁，不构成验收**。A=0 结论须由另一个零上下文会话按 `prompts/190-…-readback.md` 独立复核；在此之前不开始真实 connector 或模型批次。
+
+## R113 · 清理前的抢救保全:三条工作线从未入库的产物（2026-08-27）
+
+清理本地分支与 worktree 前做全量盘点(不抽样:逐个 `git cat-file -e main:<path>` 核验),
+发现三处**从未进入版本控制**的产物,按 owner 裁决全部入库后再清理。
+
+**盘点结论先行**:17 个本地分支中 **15 个已完全并入 main**(`git cherry main <branch>` = 0),
+「合并所有分支」实际不需要合并任何东西。另 2 个有未并入提交,但都**不该**合并:
+
+- `codex/eol-check`:提交自称 `temporary eol validation`,其内容(`.gitattributes` 的
+  `* text=auto eol=lf`、`packages/cli/scripts/build.mjs:28` 的 `".gitattributes",`)main 上已有;
+- `codex/week-audit-evidence-20260823`:main 上的账本**更新**
+  (`2026-08-23-publication-manifest.json` main 11,480 行 vs 分支 9,420 行;
+  main 最近重生成 `c383bc0` 在 08-26,晚于该分支的 08-23)——合并会用旧版覆盖新版。
+
+**抢救入库的三批**(第一批 82 个文件已落 `511787f`;第二批 63 个):
+
+| 来源 | 内容 | 去向 |
+|---|---|---|
+| `SayDo-rc4-f107-readline-review-fix-20260823` | 24 份 privacy/release 线交接 prompt | `prompts/` |
+| 同上 | 20 个 `scripts/*.mjs`(未被采用) | `research/rc4-unmerged-tooling/` + README |
+| `SayDo-rc4-runtime-recovery-rebuild-20260823` | 33 份 runtime 线 prompt + 3 份 findings + 1 份 readback | `prompts/` / `research/codex-findings/` / `docs/review/` |
+| `~/WorkSpace/SayDo` 主工作区 | 600 条提问 dry run 线的 60 个文件(`research/` 语料与工具、`prompts/168–190`、`research/codex-findings/168–186`、`docs/site/` 风格探索与 demo 稿)+ `research/README.md` 扩充 + journal 的 R111/R112 两节 | 各自原路径 |
+
+**入库前脱敏**:隐私探针三轮共抓到 **667 处**本机标识 ——
+第一批 5 个文件 162 处 macOS home 路径;第二批 30 个文件 505 处;
+最后 `prompts/203` 一行里的 `ssh <用户名>@<私网 IP>`(该行本身还写着「公开证据不得记录用户名、IP」)。
+全部用 `scripts/public-text-redaction.mjs` 的规则处理,复验
+`check-public-tree-privacy.mjs --fs` exit 0、hits=0。
+
+**两处刻意不做的**:
+
+1. **不采用主工作区版本的已跟踪文件**(两处,同一类陷阱:主树停在旧基线,复制过去就是回退):
+   - 官网 `deploy/` 的 4 个 DIFF 文件 —— 主树是 **rc.2** 时代文案,main 已是 **rc.12**
+     (`410eb84 release: rc.12 实体门通过,availability 翻转为 available`);
+   - `docs/site/2026-08-20-docs-page-content.fable.md`(main 952 行 / 主树 949)与
+     `docs/site/2026-08-20-homepage-structure-copy.fable.md`(main 204 / 主树 201)——
+     rsync 时被连带覆盖,已 `git checkout` 还原。
+   反例:`research/README.md` 是**主树更新**(60 行 vs main 15 行,600 条线扩充了目录说明),该版保留。
+2. **journal 不整体复制** —— 主工作区版本独有 R111/R112 但**缺** main 的 R94–R97
+   (AI 供给线重编号所致),整体复制会删掉那 4 节。只提取 R111/R112 两节追加。
+   本节编号取 R113 而非 R111,即为避开这次撞号。
+
+**另两处处置**:主工作区根目录散落的两张官网安装引导候选截图
+(`saydo-home-install-candidate.png` / `saydo-docs-install-candidate-en.png`,2026-08-23)
+移入 `docs/site/shots/`(官网截图的既有位置),不放仓库根目录;
+入库的 6 份 demo 稿里 34 处装饰符号(码点 U+2713 / U+2717 / U+279C / U+2726,
+均落在零 emoji 门禁的 U+2600–U+27BF 禁区)按 `2026-08-25-homepage-style-exploration.md`
+自述的办法换为 U+25CF / U+00D7 / U+2192 / U+25C6(均在禁区外),以通过 `check-emoji`。
+本节刻意只写码点不写字符本身 —— 写了就会把 journal 自己撞红。
+
+**未入库**:`f107` 工作树里 54 个**已跟踪**文件的 5,012 行改动,含一套 500 行的
+`scripts/public-text-redaction.mjs`(main 版 83 行,已过 rc.10–rc.12 发布验证)。
+那是未被采用的平行实现,按 owner 2026-08-27 裁决不入库。
+
+### 未做
+- **推送**待本节所在提交完成后统一执行(私有归档 + 公开快照)。
+- 未动 `.claude/worktrees/trusting-panini-f5d41b` —— L-1(BYOA 多 spawn 不重验身份)
+  的独立会话正在其中施工。

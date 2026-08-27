@@ -150,6 +150,36 @@ describe("fileToolToEffect", () => {
     expect(fileToolToEffect("Read", join(cwd, ".env"), cwd).touchesSensitiveData).toBe(true);
   });
 
+  it("圈内 symlink .env -> 普通文件 的 write 仍 touchesSensitiveData", () => {
+    const cwd = wt();
+    writeFileSync(join(cwd, "plain.txt"), "x");
+    symlinkSync(join(cwd, "plain.txt"), join(cwd, ".env"));
+    const d = fileToolToEffect("Write", join(cwd, ".env"), cwd);
+    expect(d.kind).toBe("write_worktree");
+    expect(d.touchesSensitiveData).toBe(true);
+    expect(computeRisk(d, {}).level).toBe("S2");
+  });
+
+  it("圈内 symlink .env -> 普通文件 的 read 仍 touchesSensitiveData", () => {
+    const cwd = wt();
+    writeFileSync(join(cwd, "plain.txt"), "x");
+    symlinkSync(join(cwd, "plain.txt"), join(cwd, ".env"));
+    const d = fileToolToEffect("Read", join(cwd, ".env"), cwd);
+    expect(d.kind).toBe("read");
+    expect(d.touchesSensitiveData).toBe(true);
+    expect(computeRisk(d, {}).level).toBe("S2");
+  });
+
+  it("圈内普通非敏感 symlink 仍是 S1,不带 touchesSensitiveData", () => {
+    const cwd = wt();
+    writeFileSync(join(cwd, "plain.txt"), "x");
+    symlinkSync(join(cwd, "plain.txt"), join(cwd, "alias.txt"));
+    const d = fileToolToEffect("Write", join(cwd, "alias.txt"), cwd);
+    expect(d.kind).toBe("write_worktree");
+    expect(d.touchesSensitiveData).toBeUndefined();
+    expect(computeRisk(d, {}).level).toBe("S1");
+  });
+
   it("路径非字符串 / 空 / $VAR 判不出", () => {
     const cwd = wt();
     expect(fileToolToEffect("Write", 1, cwd).target).toBe("unresolvable");

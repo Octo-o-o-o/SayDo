@@ -60,6 +60,30 @@ describe("Tier1 开发执行器卡", () => {
     expect(html).toContain("未测试");
     expect(html).toContain("没有已知限流记录");
     expect(html).not.toContain("额度充足");
+    const measured = html.match(/data-tier1-version[\s\S]*?<\/div>/)?.[0] ?? "";
+    expect(measured).toContain("未测试");
+    expect(measured).not.toContain("2.1.220");
+    expect(html).toContain("data-tier1-pinned-version");
+  });
+
+  it("探针版本项失败时实测版本写未测试,不回退 pin", () => {
+    const html = renderToStaticMarkup(
+      <Tier1ExecutorCard
+        config={{ adapter: "claude_code", model: "opus", pinnedVersion: "2.1.220" }}
+        report={{
+          adapter: "claude_code",
+          status: "fail",
+          checks: [{ name: "version", status: "fail", error: "version mismatch" }],
+          identityWritten: false
+        }}
+        testing={false}
+        error={null}
+        onTest={() => {}}
+      />
+    );
+    const measured = html.match(/data-tier1-version[\s\S]*?<\/div>/)?.[0] ?? "";
+    expect(measured).toContain("未测试");
+    expect(measured).not.toContain("2.1.220");
   });
 
   it("物理探针结果展示真实版本、登录态、失败处方与重启提示", () => {

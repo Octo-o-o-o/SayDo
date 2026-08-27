@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Demo 10 · 水墨大笔触 — 说到 SayDo 风格探索</title>
+<style>
+  :root{
+    --paper:#f0ede4; --paper-card:#faf7ef;
+    --ink:#34332e; --ink-2:#5b564b; --ink-muted:#706b61; --ink-faint:#a29b8f;
+    --rule:#cec6b7;
+    --ochre:#a8641f; --indigo:#3c5f96; --pine:#41755a; --seal:#b13a2b; --seal-fg:#fff8ed;
+    --paper-fg:#fffaf0;
+    --font-body:'PingFang SC','HarmonyOS Sans SC','MiSans','Hiragino Sans GB','Microsoft YaHei',-apple-system,sans-serif;
+    --font-display:'Songti SC','Noto Serif SC',serif;
+    --font-mono:ui-monospace,'SF Mono','JetBrains Mono','Menlo',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-size:15px;line-height:1.9;overflow-x:hidden}
+  ::selection{background:var(--seal);color:var(--seal-fg)}
+  .wrap{max-width:900px;margin:0 auto;padding:0 26px}
+
+  /* ---------- 顶栏（极简） ---------- */
+  .topbar{display:flex;justify-content:space-between;align-items:center;padding:26px 34px}
+  .topbar .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;letter-spacing:.16em;font-size:16px}
+  .topbar .brand i{width:10px;height:10px;background:var(--seal);border-radius:2px;transform:rotate(45deg)}
+  .topbar nav{display:flex;gap:22px;font-size:13px}
+  .topbar nav a{color:var(--ink-muted);text-decoration:none}
+  .topbar nav a:hover{color:var(--seal)}
+
+  /* ---------- Hero ---------- */
+  .hero{min-height:86vh;display:flex;flex-direction:column;justify-content:center;position:relative;padding:40px 0 80px}
+  .hero .glyph{
+    font-family:var(--font-display);font-weight:700;color:var(--ink);
+    font-size:clamp(150px,30vw,340px);line-height:.95;letter-spacing:.02em;position:relative;z-index:1;
+  }
+  .hero .glyph .dot-seal{color:var(--seal)}
+  .hero-stroke{position:absolute;left:-4%;bottom:6%;width:108%;height:auto;z-index:0}
+  .hero-sub{max-width:400px;margin-left:auto;text-align:right;margin-top:-30px;position:relative;z-index:1}
+  .hero-sub .en{font-family:var(--font-mono);font-size:11px;letter-spacing:.3em;color:var(--ink-faint);margin-bottom:10px}
+  .hero-sub p{font-size:15.5px;color:var(--ink-2)}
+  .hero-sub p b{color:var(--ink)}
+  .hero-sub .cta{margin-top:20px;display:flex;gap:14px;justify-content:flex-end}
+  .btn{display:inline-flex;align-items:center;text-decoration:none;font-weight:600;font-size:14px;padding:11px 24px;transition:.2s}
+  .btn-seal{background:var(--seal);color:var(--seal-fg);border-radius:4px}
+  .btn-seal:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(177,58,43,.3)}
+  .btn-ghost{color:var(--ink);border-bottom:2px solid var(--ink);border-radius:0;padding:11px 4px}
+  .btn-ghost:hover{color:var(--seal);border-color:var(--seal)}
+  .hero-seal{
+    position:absolute;top:12%;right:8%;width:76px;height:76px;background:var(--seal);color:var(--seal-fg);
+    border-radius:6px;transform:rotate(6deg);display:grid;place-items:center;
+    font-family:var(--font-display);font-weight:700;font-size:26px;line-height:1.2;text-align:center;
+    box-shadow:0 6px 20px rgba(177,58,43,.3);
+  }
+
+  /* ---------- 笔触分隔 ---------- */
+  .divider{display:block;width:min(720px,86vw);margin:0 auto;height:auto}
+
+  /* ---------- 章节题 ---------- */
+  .sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:14px}
+  .sec-head .zh{font-family:var(--font-display);font-weight:700;font-size:clamp(34px,5vw,52px);letter-spacing:.06em}
+  .sec-head .zh i{font-style:normal;color:var(--seal);font-size:.5em;vertical-align:.35em;margin-right:6px}
+  .sec-head .en{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.26em;color:var(--ink-faint)}
+  .sec-lead{max-width:480px;color:var(--ink-2);margin-bottom:20px}
+  .sec-lead b{color:var(--ink)}
+  section{padding:70px 0}
+
+  /* ---------- 一笔长卷：闭环 ---------- */
+  .journey svg{width:100%;height:auto;display:block}
+  .jp{fill:none;stroke:var(--ink);stroke-width:13;stroke-linecap:round;filter:url(#brush)}
+  .jp2{fill:none;stroke:var(--paper);stroke-width:2.4;stroke-dasharray:1 26;opacity:.6}
+  .jdot{fill:var(--paper);stroke:var(--ink);stroke-width:4}
+  .jdot.hot{fill:var(--seal);stroke:var(--seal)}
+  .jt{font-family:'PingFang SC',sans-serif;font-size:16px;font-weight:600;fill:var(--ink)}
+  .jts{font-family:ui-monospace,monospace;font-size:9px;letter-spacing:.14em;fill:var(--ink-muted)}
+  .jd{font-family:'PingFang SC',sans-serif;font-size:12px;fill:var(--ink-2)}
+
+  /* ---------- 四色墨滴 ---------- */
+  .drops{display:grid;grid-template-columns:repeat(2,1fr);gap:34px 44px;margin-top:40px}
+  @media(max-width:680px){.drops{grid-template-columns:1fr}}
+  .drop{
+    min-height:250px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;
+    padding:44px 40px;position:relative;transition:transform .4s cubic-bezier(.22,.61,.36,1);
+  }
+  .drop:hover{transform:scale(1.04) rotate(var(--rr,0deg))}
+  .drop::before{
+    content:"";position:absolute;inset:0;z-index:-1;transform:rotate(var(--rr,0deg));
+    background:radial-gradient(closest-side,var(--dc) 0%,var(--dc) 58%,transparent 72%);
+    border-radius:44% 56% 58% 42% / 48% 42% 58% 52%;
+    filter:blur(2px);opacity:.92;
+  }
+  .drop.o{--dc:var(--ochre);--rr:-2deg} .drop.i{--dc:var(--indigo);--rr:1.5deg}
+  .drop.p{--dc:var(--pine);--rr:2deg} .drop.g{--dc:#8b8578;--rr:-1deg}
+  .drop .zh-big{font-family:var(--font-display);font-weight:700;font-size:44px;color:var(--paper-fg);letter-spacing:.1em}
+  .drop .what{color:var(--paper-fg);font-size:14px;font-weight:600;margin-top:6px}
+  .drop .ex{color:rgba(255,250,240,.78);font-size:12.5px;margin-top:8px;max-width:220px;line-height:1.7}
+
+  /* ---------- 合：收笔 ---------- */
+  .finale{text-align:center;padding:100px 0 60px;position:relative}
+  .finale .big{font-family:var(--font-display);font-weight:700;font-size:clamp(38px,6vw,64px);letter-spacing:.06em}
+  .finale .big em{font-style:normal;color:var(--seal)}
+  .finale p{margin:18px auto 30px;max-width:420px;color:var(--ink-2)}
+  .cmd{
+    margin:0 auto;max-width:600px;background:var(--ink);color:#e8e4d8;border-radius:6px;
+    padding:16px 20px;font-family:var(--font-mono);font-size:11.5px;line-height:1.9;word-break:break-all;text-align:left;
+  }
+  .cmd b{color:#8fc7a3;font-weight:400}
+  .finale .links{margin-top:22px;display:flex;gap:22px;justify-content:center;font-size:13px}
+  .finale .links a{color:var(--indigo);text-decoration:none;border-bottom:1px solid transparent}
+  .finale .links a:hover{border-color:var(--indigo)}
+
+  footer{padding:30px 34px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--ink-faint)}
+  footer a{color:var(--ink-muted);text-decoration:none}
+  .demo-tag{font-family:var(--font-mono)}
+
+  /* 笔触绘制动画 */
+  .draw{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);transition:stroke-dashoffset 2.4s cubic-bezier(.4,0,.2,1)}
+  .drawn{stroke-dashoffset:0}
+
+  [data-pop]{opacity:0;transform:translateY(22px);transition:opacity .8s ease,transform .8s cubic-bezier(.22,.61,.36,1)}
+  [data-pop].in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<!-- 干笔滤镜 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="brush" x="-20%" y="-20%" width="140%" height="140%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.04 0.09" numOctaves="4" seed="3" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="9"/>
+  </filter>
+  <filter id="brush-soft" x="-20%" y="-20%" width="140%" height="140%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed="9" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="7"/>
+  </filter>
+</svg>
+
+<header class="topbar">
+  <div class="brand"><i></i>說到</div>
+  <nav><a href="#journey">闭环</a><a href="#drops">四色</a><a href="#end">开始</a><a href="index.html" style="color:var(--ink-faint)">总览</a></nav>
+</header>
+
+<!-- ============ Hero ============ -->
+<section class="hero wrap">
+  <svg class="hero-stroke" viewBox="0 0 900 160" aria-hidden="true">
+    <path d="M20 96 C 220 40, 420 128, 620 74 C 720 50, 820 66, 884 84"
+      fill="none" stroke="#34332e" stroke-width="34" stroke-linecap="round" filter="url(#brush)" opacity=".14"/>
+  </svg>
+  <div class="hero-seal">说<br>到</div>
+  <div class="glyph" data-pop>说到<span class="dot-seal">，</span><br>就做到<span class="dot-seal">。</span></div>
+  <div class="hero-sub" data-pop>
+    <div class="en">VOICE IN · DONE OUT</div>
+    <p>一个你能对着说话的高级助手。<b>聊清楚，它去办，办完叫你验收。</b>一笔落成，不做作。</p>
+    <div class="cta">
+      <a class="btn btn-seal" href="#end">开始使用</a>
+      <a class="btn btn-ghost" href="#journey">看这一笔怎么走 →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 起：一笔长卷 ============ -->
+<section class="wrap" id="journey">
+  <div class="sec-head" data-pop><span class="zh"><i>起</i>一笔闭环</span><span class="en">ONE STROKE · SIX MOVES</span></div>
+  <p class="sec-lead" data-pop>从开口到验收，<b>中间没有断笔</b>。你只在两处落墨：说，和拍板。</p>
+  <div class="journey" data-pop>
+    <svg viewBox="0 0 640 900" role="img" aria-label="六步闭环：开口聊、就绪决断、决策包、你拍板、后台执行、叫你验收">
+      <path id="stroke-path" class="jp draw" d="M320 24 C 160 140, 480 250, 320 380 C 160 510, 480 610, 320 740 C 250 800, 280 850, 320 878"/>
+      <path class="jp2" d="M320 24 C 160 140, 480 250, 320 380 C 160 510, 480 610, 320 740 C 250 800, 280 850, 320 878"/>
+      <!-- 站点 -->
+      <g>
+        <circle class="jdot" cx="320" cy="24" r="11"/>
+        <text class="jt" x="350" y="22">开口聊</text><text class="jts" x="350" y="40">01 · SPEAK</text>
+        <text class="jd" x="350" y="58">按住说话，想到哪说到哪</text>
+      </g>
+      <g>
+        <circle class="jdot" cx="320" cy="202" r="11"/>
+        <text class="jt" x="288" y="200" text-anchor="end">就绪决断</text><text class="jts" x="288" y="218" text-anchor="end">02 · READY</text>
+        <text class="jd" x="288" y="236" text-anchor="end">火候够了，它主动提议开工</text>
+      </g>
+      <g>
+        <circle class="jdot" cx="320" cy="380" r="11"/>
+        <text class="jt" x="350" y="378">决策包</text><text class="jts" x="350" y="396">03 · PACKAGE</text>
+        <text class="jd" x="350" y="414">预览 + 计划 + 花费封顶</text>
+      </g>
+      <g>
+        <circle class="jdot hot" cx="320" cy="560" r="14"/>
+        <text class="jt" x="288" y="556" text-anchor="end" style="fill:var(--seal)">你拍板 ◆</text><text class="jts" x="288" y="574" text-anchor="end">04 · YOU DECIDE</text>
+        <text class="jd" x="288" y="592" text-anchor="end">「就这样」才开工，永远你点头</text>
+      </g>
+      <g>
+        <circle class="jdot" cx="320" cy="740" r="11"/>
+        <text class="jt" x="350" y="738">后台执行</text><text class="jts" x="350" y="756">05 · UNATTENDED</text>
+        <text class="jd" x="350" y="774">独立 worktree · 三重熔断</text>
+      </g>
+      <g>
+        <circle class="jdot" cx="320" cy="878" r="11"/>
+        <text class="jt" x="350" y="872">叫你验收</text><text class="jts" x="350" y="890">06 · ACCEPT</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- ============ 转：四色墨滴 ============ -->
+<section class="wrap" id="drops">
+  <div class="sec-head" data-pop><span class="zh"><i>转</i>四色入纸</span><span class="en">FOUR DROPS · ONE LEDGER</span></div>
+  <p class="sec-lead" data-pop>每件事洇成一滴：<b>该等谁的、谁在办、办得怎么样</b>——落在纸上，不靠脑子记。</p>
+  <div class="drops">
+    <div class="drop o" data-pop><div class="zh-big">赭</div><div class="what">等你拍板</div><div class="ex">「官网五个风格，选哪个？」——它把该你定的，研好了递到你面前。</div></div>
+    <div class="drop i" data-pop><div class="zh-big">黛</div><div class="what">你欠的动作</div><div class="ex">只有你能做的挂在你名下：那封设计稿确认邮件，今天 09:10 记的。</div></div>
+    <div class="drop p" data-pop><div class="zh-big">松</div><div class="what">AI 正在办</div><div class="ex">重构登录模块，独立 worktree 里跑着，已 40 分钟，进展实时入纸。</div></div>
+    <div class="drop g" data-pop><div class="zh-big">灰</div><div class="what">等外部回音</div><div class="ex">等第三方 API 配额。不催不怨，回音一到，自动接着往下办。</div></div>
+  </div>
+</section>
+
+<!-- ============ 承：三行小字 ============ -->
+<section class="wrap">
+  <div class="sec-head" data-pop><span class="zh"><i>承</i>纸外三事</span><span class="en">THREE NOTES</span></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:34px;margin-top:30px" class="notes3">
+    <div data-pop><b style="font-family:var(--font-display);font-size:17px">先吃透，再办事</b><p style="font-size:13.5px;color:var(--ink-2);margin-top:6px">读透项目结构、约定与关键文件，沉淀持久知识底座——这是和「新开一个聊天窗口」的分水岭。</p></div>
+    <div data-pop><b style="font-family:var(--font-display);font-size:17px">复用你已有的 AI</b><p style="font-size:13.5px;color:var(--ink-2);margin-top:6px">接上你电脑已登录的 Codex、Claude Code、Cursor、Gemini CLI、Grok。已订阅哪家用哪家，无需额外付费。</p></div>
+    <div data-pop><b style="font-family:var(--font-display);font-size:17px">数据不出你的设备</b><p style="font-size:13.5px;color:var(--ink-2);margin-top:6px">不运营任何服务器，没有账号，不埋点。对话、事项与账本，只留在你自己的设备上。</p></div>
+  </div>
+</section>
+
+<!-- ============ 合：收笔 ============ -->
+<section class="finale wrap" id="end">
+  <div class="big" data-pop>把「说」和「做」<br><em>一笔连起来。</em></div>
+  <p data-pop>桌面开源免费，macOS / Windows / Linux 现在可用；移动 App 开发中。一条命令起笔：</p>
+  <div class="cmd" data-pop><b>$</b> npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz -- saydo up</div>
+  <div class="links" data-pop>
+    <a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub →</a>
+    <a href="/docs/">安装文档 →</a>
+    <a href="mailto:octoooo@octoooo.com">邮件订阅进展 →</a>
+  </div>
+</section>
+
+<footer>
+  <span class="demo-tag">STYLE DEMO 10 · 水墨大笔触 · 仅风格探索</span>
+  <span><a href="/privacy/">隐私政策</a> · <a href="index.html">返回风格总览</a></span>
+</footer>
+
+<script>
+  // 长卷笔触：进入视口后绘制
+  const path = document.getElementById('stroke-path');
+  const len = path.getTotalLength();
+  path.style.setProperty('--len', len);
+  const drawIO = new IntersectionObserver(es => {
+    if (es[0].isIntersecting) { path.classList.add('drawn'); drawIO.disconnect(); }
+  }, { threshold: .2 });
+  drawIO.observe(path.closest('.journey'));
+
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }), { threshold: .12 });
+  document.querySelectorAll('[data-pop]').forEach(el => io.observe(el));
+</script>
+</body>
+</html>

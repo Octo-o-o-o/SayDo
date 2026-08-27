@@ -517,6 +517,7 @@ export function Tier1ExecutorCard({
   const auth = tier1Check(report, "auth");
   const failed = report?.checks.find((check) => check.status === "fail");
   const loginText = !report ? "未测试" : auth?.status === "ok" ? "已登录" : auth?.status === "fail" ? "未通过" : "不适用";
+  const measuredVersion = version?.status === "ok" && version.detail ? version.detail : "未测试";
   return (
     <PaperCard data-tier1-settings>
       <div className="flex items-center justify-between gap-[12px]">
@@ -549,9 +550,13 @@ export function Tier1ExecutorCard({
       <div className="flex flex-col gap-[6px]" style={{ marginTop: 12, fontSize: "var(--text-sm)" }}>
         <div className="flex justify-between"><span style={{ color: "var(--text-muted)" }}>后端</span><Mono>{adapter}</Mono></div>
         <div className="flex justify-between"><span style={{ color: "var(--text-muted)" }}>模型</span><Mono>{model}</Mono></div>
+        <div className="flex justify-between" data-tier1-pinned-version>
+          <span style={{ color: "var(--text-muted)" }}>pin 版本</span>
+          <Mono>{pinnedVersion}</Mono>
+        </div>
         <div className="flex justify-between" data-tier1-version>
-          <span style={{ color: "var(--text-muted)" }}>版本</span>
-          <Mono>{version?.status === "ok" && version.detail ? version.detail : pinnedVersion}</Mono>
+          <span style={{ color: "var(--text-muted)" }}>实测版本</span>
+          <Mono>{measuredVersion}</Mono>
         </div>
         <div className="flex justify-between" data-tier1-login><span style={{ color: "var(--text-muted)" }}>登录态</span><span>{loginText}</span></div>
         <div className="flex justify-between" data-tier1-self-test><span style={{ color: "var(--text-muted)" }}>自检</span><span>{tier1StatusText(report)}</span></div>

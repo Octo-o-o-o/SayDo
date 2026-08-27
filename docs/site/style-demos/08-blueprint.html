@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Demo 08 · 蓝图工程图 — 说到 SayDo 风格探索</title>
+<style>
+  :root{
+    --paper:#f0ede4; --paper-card:#faf7ef;
+    --ink:#34332e; --ink-2:#5b564b; --ink-muted:#706b61; --ink-faint:#a29b8f;
+    --rule:#cec6b7; --rule-soft:rgba(206,198,183,.62);
+    --ochre:#a8641f; --indigo:#3c5f96; --pine:#41755a; --seal:#b13a2b; --seal-fg:#fff8ed;
+    --sheet:#33456e; --sheet-line:rgba(240,237,228,.85); --sheet-line-soft:rgba(240,237,228,.28);
+    --font-body:'PingFang SC','HarmonyOS Sans SC','MiSans','Hiragino Sans GB','Microsoft YaHei',-apple-system,sans-serif;
+    --font-display:'Songti SC','Noto Serif SC',serif;
+    --font-mono:ui-monospace,'SF Mono','JetBrains Mono','Menlo',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-size:15px;line-height:1.8}
+  ::selection{background:var(--indigo);color:var(--paper-fg)}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+
+  /* ---------- 蓝图面 ---------- */
+  .sheet{
+    background:
+      linear-gradient(rgba(20,28,48,.25),rgba(20,28,48,.25)),
+      var(--indigo);
+    color:var(--paper);position:relative;
+    background-image:
+      linear-gradient(rgba(20,28,48,.25),rgba(20,28,48,.25)),
+      repeating-linear-gradient(0deg,var(--sheet-line-soft) 0 1px,transparent 1px 26px),
+      repeating-linear-gradient(90deg,var(--sheet-line-soft) 0 1px,transparent 1px 26px);
+  }
+  .sheet-inner{border:2px solid var(--sheet-line);margin:26px;position:relative}
+  @media(max-width:640px){.sheet-inner{margin:14px}}
+  .corner{position:absolute;width:18px;height:18px;border:2px solid var(--sheet-line)}
+  .corner.tl{top:-2px;left:-2px;border-right:none;border-bottom:none}
+  .corner.tr{top:-2px;right:-2px;border-left:none;border-bottom:none}
+  .corner.bl{bottom:-2px;left:-2px;border-right:none;border-top:none}
+  .corner.br{bottom:-2px;right:-2px;border-left:none;border-top:none}
+
+  /* 图签（标题栏） */
+  .titleblock{
+    display:grid;grid-template-columns:repeat(6,auto);border:1.5px solid var(--sheet-line);
+    font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;background:rgba(20,28,48,.3);
+  }
+  .titleblock .tb{padding:8px 14px;border-right:1px solid var(--sheet-line-soft)}
+  .titleblock .tb:last-child{border-right:none}
+  .titleblock .tb b{display:block;font-weight:400;opacity:.6;font-size:9px;margin-bottom:2px}
+  @media(max-width:760px){.titleblock{grid-template-columns:repeat(3,1fr)}.titleblock .tb{border-bottom:1px solid var(--sheet-line-soft)}}
+
+  /* ---------- 头部图幅 ---------- */
+  .fig-head{padding:60px 40px 30px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:flex-end}
+  .fig-head .fk{font-family:var(--font-mono);font-size:11px;letter-spacing:.32em;opacity:.75;margin-bottom:14px}
+  .fig-head h1{font-family:var(--font-display);font-weight:700;font-size:clamp(40px,6vw,72px);line-height:1.2;letter-spacing:.04em}
+  .fig-head h1 em{font-style:normal;color:#f3b8a9}
+  .fig-head .sub{margin-top:14px;max-width:480px;font-size:15px;opacity:.85}
+  .fig-head .rev{font-family:var(--font-mono);font-size:11px;line-height:2;text-align:right;opacity:.8;white-space:nowrap}
+  .fig-body{padding:0 40px 34px}
+  .fig-body svg{width:100%;height:auto;display:block}
+  .fig-foot{padding:0 40px 40px}
+
+  /* SVG 通用 */
+  .sl{stroke:var(--sheet-line);stroke-width:1.6;fill:none}
+  .sl2{stroke:var(--sheet-line);stroke-width:1;fill:none;stroke-dasharray:5 5}
+  .sc{stroke:#f3b8a9;stroke-width:1.6;fill:none}
+  .st{fill:var(--paper);font-family:'PingFang SC',sans-serif;font-size:13px}
+  .sts{fill:var(--paper);opacity:.72;font-family:ui-monospace,monospace;font-size:9.5px;letter-spacing:.12em}
+  .stb{fill:#f3b8a9;font-family:'PingFang SC',sans-serif;font-size:13px;font-weight:600}
+
+  /* ---------- 纸面部分 ---------- */
+  .paper-sec{padding:70px 0}
+  .paper-sec + .paper-sec{border-top:1px solid var(--rule-soft)}
+  .sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:30px;flex-wrap:wrap}
+  .sec-head .fig-no{font-family:var(--font-mono);font-size:12px;color:var(--indigo);letter-spacing:.2em;border:1.5px solid var(--indigo);padding:4px 12px}
+  .sec-head h2{font-family:var(--font-display);font-weight:700;font-size:clamp(26px,3.6vw,40px);letter-spacing:.03em}
+  .sec-head .m{font-family:var(--font-mono);font-size:11px;color:var(--ink-muted);letter-spacing:.14em}
+
+  /* 工序图（纸面，黛蓝绘制） */
+  .process svg{width:100%;height:auto;display:block}
+  .pl{stroke:var(--indigo);stroke-width:1.6;fill:none}
+  .pld{stroke:var(--indigo);stroke-width:1;fill:none;stroke-dasharray:4 4;opacity:.6}
+  .pt{fill:var(--ink);font-family:'PingFang SC',sans-serif;font-size:12.5px;font-weight:600}
+  .pts{fill:var(--ink-muted);font-family:ui-monospace,monospace;font-size:8.5px;letter-spacing:.1em}
+  .pfill{fill:var(--paper-card);stroke:var(--indigo);stroke-width:1.6}
+  .phot{fill:var(--seal);stroke:var(--seal);stroke-width:1.6}
+
+  /* BOM 材料清单 */
+  .bom{width:100%;border-collapse:collapse;font-size:14px;border:2px solid var(--indigo)}
+  .bom th{background:rgba(60,95,150,.08);color:var(--indigo);font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;font-weight:400;padding:10px 14px;border:1px solid var(--indigo);text-align:left}
+  .bom td{padding:12px 14px;border:1px solid rgba(60,95,150,.35);vertical-align:top}
+  .bom .no{font-family:var(--font-mono);color:var(--indigo)}
+  .bom .m{font-size:12px;color:var(--ink-muted)}
+  .bom tr:nth-child(even) td{background:rgba(60,95,150,.035)}
+
+  /* 技术要求 */
+  .reqs{counter-reset:req;max-width:760px}
+  .req{display:grid;grid-template-columns:44px 1fr;gap:14px;padding:13px 0;border-bottom:1px dashed var(--rule-soft)}
+  .req::before{counter-increment:req;content:counter(req) ".";font-family:var(--font-mono);font-size:15px;color:var(--indigo);padding-top:2px}
+  .req p{font-size:14.5px;color:var(--ink-2)}
+  .req p b{color:var(--ink)}
+
+  /* 加工指令 */
+  .workorder{border:2px solid var(--ink);background:var(--paper-card);position:relative;padding:34px 38px}
+  .workorder .wo-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:20px}
+  .workorder .wo-head h3{font-family:var(--font-display);font-size:24px;letter-spacing:.06em}
+  .workorder .wo-head span{font-family:var(--font-mono);font-size:11px;color:var(--seal);letter-spacing:.18em}
+  .cmd{background:#2b2a25;color:#e8e4d8;border-radius:6px;padding:14px 18px;font-family:var(--font-mono);font-size:12px;line-height:1.8;word-break:break-all}
+  .cmd b{color:#8fc7a3;font-weight:400}
+  .wo-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:0 24px;margin-top:18px;font-size:12.5px}
+  .wo-meta div{border-top:1px solid var(--rule);padding-top:8px}
+  .wo-meta b{display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;color:var(--ink-muted);font-weight:400}
+  .approved{
+    position:absolute;top:22px;right:26px;transform:rotate(9deg);
+    border:2.5px solid var(--seal);color:var(--seal);border-radius:6px;padding:6px 14px;
+    font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:.2em;opacity:.85;
+  }
+  @media(max-width:640px){.approved{position:static;display:inline-block;margin-top:16px}}
+  .wo-actions{margin-top:24px;display:flex;gap:12px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;text-decoration:none;font-weight:600;font-size:14px;border-radius:6px;padding:11px 24px;transition:.2s}
+  .btn-indigo{background:var(--indigo);color:var(--paper-fg)}
+  .btn-indigo:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(60,95,150,.35)}
+  .btn-line{border:1.5px solid var(--indigo);color:var(--indigo)}
+  .btn-line:hover{background:rgba(60,95,150,.08)}
+
+  footer{border-top:1px solid var(--rule);padding:22px 0;font-size:12.5px;color:var(--ink-muted)}
+  footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  footer a{color:var(--indigo);text-decoration:none}
+  .demo-tag{font-family:var(--font-mono);color:var(--ink-faint)}
+
+  [data-pop]{opacity:0;transform:translateY(18px);transition:opacity .65s ease,transform .65s cubic-bezier(.22,.61,.36,1)}
+  [data-pop].in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<!-- ============ 图幅 A0：总装图 ============ -->
+<section class="sheet">
+  <div class="sheet-inner">
+    <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+
+    <div class="fig-head">
+      <div data-pop>
+        <div class="fk">SAYDO ENGINEERING · 装配总图 · SHEET 1/4</div>
+        <h1>说到，<em>就做到。</em></h1>
+        <p class="sub">一台能对着说话的高级助手：沟通面在你的手机，执行面在你的电脑。本图为其总装关系，未注公差按「人拍板才算数」执行。</p>
+      </div>
+      <div class="rev" data-pop>
+        REV 记录<br>
+        v0.1.0-rc.2 · 首版发行<br>
+        单位 · 件 / 比例 · 1:1
+      </div>
+    </div>
+
+    <div class="fig-body" data-pop>
+      <svg viewBox="0 0 780 360" role="img" aria-label="系统总装图：手机沟通面经局域网连接电脑执行面">
+        <!-- 中心线 -->
+        <line class="sl2" x1="40" y1="180" x2="740" y2="180" opacity=".5"/>
+        <!-- 手机 -->
+        <rect class="sl" x="70" y="105" width="92" height="158" rx="14"/>
+        <line class="sl" x1="104" y1="245" x2="128" y2="245"/>
+        <circle class="sc" cx="116" cy="150" r="16"/>
+        <path class="sc" d="M116 142 a5 5 0 0 1 5 5 v4 a5 5 0 0 1 -10 0 v-4 a5 5 0 0 1 5 -5 M110 152 a6 6 0 0 0 12 0"/>
+        <text class="st" x="116" y="292" text-anchor="middle">沟通面 · 手机</text>
+        <text class="sts" x="116" y="308" text-anchor="middle">COMM — iOS / ANDROID</text>
+        <!-- 引线 ① -->
+        <circle class="sc" cx="180" cy="96" r="10"/><text class="st" x="180" y="100" text-anchor="middle" style="font-size:11px">1</text>
+        <line class="sl2" x1="172" y1="102" x2="150" y2="130"/>
+        <text class="sts" x="192" y="92">说话 / 看进展 / 点头确认</text>
+        <text class="sts" x="192" y="106">审批封顶 S2 · S3 回电脑</text>
+        <!-- 双箭头连接 -->
+        <line class="sl" x1="162" y1="180" x2="612" y2="180"/>
+        <path class="sl" d="M176 172 L162 180 L176 188"/>
+        <path class="sl" d="M598 172 L612 180 L598 188"/>
+        <text class="st" x="387" y="166" text-anchor="middle">局域网 / 自行配置的加密组网</text>
+        <text class="sts" x="387" y="200" text-anchor="middle">手机暂离不打断执行</text>
+        <!-- 电脑 -->
+        <rect class="sl" x="612" y="100" width="130" height="96" rx="6"/>
+        <line class="sl" x1="662" y1="196" x2="692" y2="196"/>
+        <line class="sl" x1="677" y1="196" x2="677" y2="208"/>
+        <line class="sl" x1="650" y1="208" x2="704" y2="208"/>
+        <rect class="sc" x="624" y="114" width="106" height="22"/>
+        <text class="st" x="677" y="129" text-anchor="middle" style="font-size:10.5px">说到 daemon</text>
+        <rect class="sl" x="624" y="142" width="50" height="20"/>
+        <text class="sts" x="649" y="155" text-anchor="middle">AI 执行器</text>
+        <rect class="sl" x="680" y="142" width="50" height="20"/>
+        <text class="sts" x="705" y="155" text-anchor="middle">四色账本</text>
+        <rect class="sl" x="624" y="168" width="106" height="16"/>
+        <text class="sts" x="677" y="179" text-anchor="middle">独立 git worktree</text>
+        <text class="st" x="677" y="238" text-anchor="middle">执行面 · 电脑</text>
+        <text class="sts" x="677" y="254" text-anchor="middle">EXEC — MACOS / WIN / LINUX</text>
+        <!-- 引线 ② -->
+        <circle class="sc" cx="560" cy="96" r="10"/><text class="st" x="560" y="100" text-anchor="middle" style="font-size:11px">2</text>
+        <line class="sl2" x1="568" y1="102" x2="612" y2="128"/>
+        <text class="sts" x="446" y="78">吃透项目 · 驱动已登录 AI</text>
+        <text class="sts" x="446" y="92">预算 / 时长 / 回合三重熔断</text>
+        <!-- 引线 ③ 数据 -->
+        <circle class="sc" cx="404" cy="292" r="10"/><text class="st" x="404" y="296" text-anchor="middle" style="font-size:11px">3</text>
+        <line class="sl2" x1="412" y1="286" x2="560" y2="210"/>
+        <text class="st" x="240" y="288" style="fill:#f3b8a9;font-weight:600">数据 100% 留在本机</text>
+        <text class="sts" x="240" y="304">无云端后台 · 无账号 · 不埋点</text>
+        <!-- 尺寸线 -->
+        <line class="sl" x1="70" y1="336" x2="742" y2="336"/>
+        <path class="sl" d="M82 330 L70 336 L82 342"/>
+        <path class="sl" d="M730 330 L742 336 L730 342"/>
+        <line class="sl" x1="70" y1="330" x2="70" y2="342"/>
+        <line class="sl" x1="742" y1="330" x2="742" y2="342"/>
+        <text class="sts" x="406" y="330" text-anchor="middle">跨设备同一本账 · 断连容错</text>
+      </svg>
+    </div>
+
+    <div class="fig-foot">
+      <div class="titleblock" data-pop>
+        <div class="tb"><b>图名 TITLE</b>说到 · 总装图</div>
+        <div class="tb"><b>图号 DWG NO.</b>SAYDO-2026-001</div>
+        <div class="tb"><b>材料 MATERIAL</b>语音 / 本地 AI / 账本</div>
+        <div class="tb"><b>制图 DRAWN</b>说到工程部</div>
+        <div class="tb"><b>审核 CHECKED</b>四色账本</div>
+        <div class="tb"><b>批准 APPROVED</b>你（拍板）</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 图幅 A1：工序图 ============ -->
+<section class="paper-sec wrap">
+  <div class="sec-head" data-pop><span class="fig-no">FIG.2</span><h2>闭环工序图</h2><span class="m">PROCESS · 6 STATIONS · 人拍板为强制检验点</span></div>
+  <div class="process" data-pop>
+    <svg viewBox="0 0 780 210" role="img" aria-label="六道工序：开口聊、就绪决断、决策包、你拍板、后台执行、叫你验收">
+      <line class="pl" x1="30" y1="105" x2="750" y2="105"/>
+      <g>
+        <rect class="pfill" x="30" y="80" width="100" height="50" rx="4"/>
+        <text class="pt" x="80" y="102" text-anchor="middle">开口聊</text>
+        <text class="pts" x="80" y="118" text-anchor="middle">SPEAK</text>
+        <text class="pts" x="80" y="66" text-anchor="middle">工序 01</text>
+      </g>
+      <g>
+        <rect class="pfill" x="154" y="80" width="100" height="50" rx="4"/>
+        <text class="pt" x="204" y="102" text-anchor="middle">就绪决断</text>
+        <text class="pts" x="204" y="118" text-anchor="middle">READY?</text>
+        <text class="pts" x="204" y="66" text-anchor="middle">工序 02</text>
+      </g>
+      <g>
+        <rect class="pfill" x="278" y="80" width="100" height="50" rx="4"/>
+        <text class="pt" x="328" y="102" text-anchor="middle">决策包</text>
+        <text class="pts" x="328" y="118" text-anchor="middle">PKG: 预览+计划+封顶</text>
+        <text class="pts" x="328" y="66" text-anchor="middle">工序 03</text>
+      </g>
+      <g>
+        <rect class="phot" x="402" y="80" width="100" height="50" rx="4" fill-opacity=".1"/>
+        <text x="452" y="102" text-anchor="middle" style="fill:var(--seal);font-size:13px;font-weight:700;font-family:'PingFang SC',sans-serif">你拍板 ◆</text>
+        <text class="pts" x="452" y="118" text-anchor="middle" style="fill:var(--seal)">QC GATE — 强制停点</text>
+        <text class="pts" x="452" y="66" text-anchor="middle">工序 04 · 检验</text>
+      </g>
+      <g>
+        <rect class="pfill" x="526" y="80" width="100" height="50" rx="4"/>
+        <text class="pt" x="576" y="102" text-anchor="middle">后台执行</text>
+        <text class="pts" x="576" y="118" text-anchor="middle">WORKTREE · 熔断×3</text>
+        <text class="pts" x="576" y="66" text-anchor="middle">工序 05</text>
+      </g>
+      <g>
+        <rect class="pfill" x="650" y="80" width="100" height="50" rx="4"/>
+        <text class="pt" x="700" y="102" text-anchor="middle">叫你验收</text>
+        <text class="pts" x="700" y="118" text-anchor="middle">ACCEPT</text>
+        <text class="pts" x="700" y="66" text-anchor="middle">工序 06</text>
+      </g>
+      <!-- 回路虚线 -->
+      <path class="pld" d="M700 130 L700 165 L80 165 L80 130"/>
+      <text class="pts" x="390" y="160" text-anchor="middle">验收后入账 · 下一件事 — 循环</text>
+      <!-- 公差注 -->
+      <text class="pts" x="30" y="196">注：工序 04 未通过（你不点头）时，禁止流入工序 05。合并 / 删除等 S3 操作仅允许在执行面（电脑）完成。</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ============ 图幅 A2：材料清单 ============ -->
+<section class="paper-sec wrap">
+  <div class="sec-head" data-pop><span class="fig-no">FIG.3</span><h2>材料清单</h2><span class="m">BOM · 六件 · 缺一不可</span></div>
+  <table class="bom" data-pop>
+    <thead><tr><th>件号</th><th>名称</th><th>规格</th><th>数量</th><th>备注</th></tr></thead>
+    <tbody>
+      <tr><td class="no">01</td><td><b>说了就记</b></td><td>按住说话，随口一句立刻进账</td><td>1</td><td class="m">不用组织语言，不用专门开 app</td></tr>
+      <tr><td class="no">02</td><td><b>先吃透，再办事</b></td><td>读透项目结构 / 约定 / 关键文件，持久知识底座</td><td>1</td><td class="m">与「新开一个聊天窗口」的分水岭</td></tr>
+      <tr><td class="no">03</td><td><b>AI 真的在干活</b></td><td>Codex · Claude Code · Cursor · Gemini CLI · Grok</td><td>≥1</td><td class="m">用你本机已登录的订阅，无需额外付费</td></tr>
+      <tr><td class="no">04</td><td><b>人拍板才算数</b></td><td>决策包三件套 + 验收制</td><td>1</td><td class="m">做完说「等你验收」，不说「做完了」</td></tr>
+      <tr><td class="no">05</td><td><b>数据完全在你手里</b></td><td>本地存储 · 无账号 · 不埋点</td><td>1</td><td class="m">开发者无法访问、也不收集</td></tr>
+      <tr><td class="no">06</td><td><b>跨设备同一本账</b></td><td>手机沟通面 ↔ 电脑执行面</td><td>1</td><td class="m">S2 封顶审批在远程，S3 永远只在电脑</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 图幅 A3：技术要求 ============ -->
+<section class="paper-sec wrap">
+  <div class="sec-head" data-pop><span class="fig-no">FIG.4</span><h2>技术要求</h2><span class="m">TECHNICAL REQUIREMENTS · 强制</span></div>
+  <div class="reqs" data-pop>
+    <div class="req"><p><b>不运营任何服务器。</b>对话、事项与账本数据保存在用户自己的设备上，开发者无法访问、也不收集。</p></div>
+    <div class="req"><p><b>不设账号体系。</b>不埋点，不接入第三方统计或广告 SDK。</p></div>
+    <div class="req"><p><b>设备间通道自备。</b>手机与电脑之间走用户自己的局域网或用户自行配置的加密组网。</p></div>
+    <div class="req"><p><b>云端上游用户自选。</b>用户自行启用的云端语音与 AI 上游，由其电脑直连第三方；开发者不接收这些数据。</p></div>
+    <div class="req"><p><b>完成度诚实标注。</b>计划中的功能不得提前写成可用：桌面三端现在可用，移动 App 开发中、尚未上架。</p></div>
+  </div>
+</section>
+
+<!-- ============ 加工指令 ============ -->
+<section class="paper-sec wrap">
+  <div class="sec-head" data-pop><span class="fig-no">WO-001</span><h2>加工指令</h2><span class="m">按图施工 · 一次成型</span></div>
+  <div class="workorder" data-pop>
+    <div class="approved">准予施工</div>
+    <div class="wo-head"><h3>说到 · 首装工单</h3><span>WORK ORDER · v0.1.0-rc.2</span></div>
+    <div class="cmd"><b>$</b> npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz -- saydo up</div>
+    <div class="wo-meta">
+      <div><b>前置条件 PREREQ</b>Node.js 22 · 无需克隆源码</div>
+      <div><b>加工内容 SCOPE</b>daemon + Web 控制台</div>
+      <div><b>检验标准 QC</b>跑通后即可开口说话</div>
+    </div>
+    <div class="wo-actions">
+      <a class="btn btn-indigo" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">领料开工（GitHub）→</a>
+      <a class="btn btn-line" href="/docs/">查阅工艺文件（安装文档）</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span class="demo-tag">STYLE DEMO 08 · 蓝图工程图 · 仅风格探索</span>
+    <span><a href="https://github.com/Octo-o-o-o/SayDo">GitHub</a> · <a href="/privacy/">隐私政策</a> · <a href="index.html">返回风格总览</a></span>
+  </div>
+</footer>
+
+<script>
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }), { threshold: .12 });
+  document.querySelectorAll('[data-pop]').forEach(el => io.observe(el));
+</script>
+</body>
+</html>

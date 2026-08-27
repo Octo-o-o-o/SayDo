@@ -1,0 +1,824 @@
+{
+  "schema_version": 1,
+  "domain": "LRN",
+  "contracts": [
+    {
+      "id": "LRN-004",
+      "question_sha256": "759dc56a0c797448b650db7b189e33e9bd45da86195205e1e1faed9ccdd6f988",
+      "object_selector": "先读官方教程和这个仓库，给我一个两小时能做完的小项目和验收。",
+      "execution_mode": "READ_ONLY_OR_REVIEWED_EFFECT",
+      "input_modes": [
+        "LIVE"
+      ],
+      "user_locator": "-",
+      "fixture_supplemental": "-",
+      "sources": [
+        {
+          "source_kind": "workspace_repository_state",
+          "locator": "workspace+repo://authorized-project-root/LRN-004/workspace_repository_state",
+          "locator_provider": "WORKSPACE",
+          "required_fields": [
+            "path",
+            "revision",
+            "artifact_status",
+            "updated_at",
+            "evidence_id",
+            "verification_status",
+            "build_status"
+          ],
+          "reader_tools": [
+            "repo"
+          ],
+          "authority": "学新框架的开发者；来源系统 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-004 请求主体；只读 workspace_repository_state；仅限 path,revision,artifact_status,updated_at,evidence_id,verification_status,build_status"
+        },
+        {
+          "source_kind": "workspace_test_evidence",
+          "locator": "workspace+test://authorized-project-root/LRN-004/workspace_test_evidence",
+          "locator_provider": "WORKSPACE",
+          "required_fields": [
+            "test_id",
+            "environment",
+            "result",
+            "observed_at",
+            "evidence_id",
+            "verification_status",
+            "revision",
+            "path",
+            "build_status"
+          ],
+          "reader_tools": [
+            "test"
+          ],
+          "authority": "学新框架的开发者；来源系统 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-004 请求主体；只读 workspace_test_evidence；仅限 test_id,environment,result,observed_at,evidence_id,verification_status,revision,path,build_status"
+        },
+        {
+          "source_kind": "official_rule_web",
+          "locator": "connector+browser://USER-PROVIDED/LRN-004/official_rule_web",
+          "locator_provider": "USER",
+          "required_fields": [
+            "source_url",
+            "published_at",
+            "accessed_at",
+            "source_authority",
+            "evidence_id",
+            "verification_status",
+            "revision",
+            "path",
+            "build_status"
+          ],
+          "reader_tools": [
+            "browser"
+          ],
+          "authority": "学新框架的开发者；来源系统 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-004 请求主体；只读 official_rule_web；仅限 source_url,published_at,accessed_at,source_authority,evidence_id,verification_status,revision,path,build_status"
+        }
+      ]
+    },
+    {
+      "id": "LRN-009",
+      "question_sha256": "9e84f24224d1be4d391a4493815c513ab436c32cfc0682ee35288662089d1b63",
+      "object_selector": "未来两周该在什么时候复习哪些错题？只在真到复习时间时提醒我。",
+      "execution_mode": "READ_ONLY_OR_REVIEWED_EFFECT",
+      "input_modes": [
+        "CTX-10",
+        "USER",
+        "LIVE"
+      ],
+      "user_locator": "user-input://LRN-009/supplemental-object",
+      "fixture_supplemental": "USER 确认当前错题范围与提醒偏好；LIVE 通过 forms 读取错题进展，通过 calendar 读取未来两周时段，并由 automation/notification 执行到时提醒",
+      "sources": [
+        {
+          "source_kind": "authorized_calendar_state",
+          "locator": "connector+calendar://USER-PROVIDED/LRN-009/authorized_calendar_state",
+          "locator_provider": "USER",
+          "required_fields": [
+            "event_id",
+            "participant",
+            "start_at",
+            "status",
+            "effective_at",
+            "due_at",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "calendar"
+          ],
+          "authority": "容易忘记的学习者；目标动作 owner",
+          "freshness": "每次周周期前刷新；最大陈旧度 24 小时",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-009 请求主体；只读 authorized_calendar_state；仅限 event_id,participant,start_at,status,effective_at,due_at,learner_id,learning_item,progress"
+        },
+        {
+          "source_kind": "learning_progress_forms",
+          "locator": "connector+forms://USER-PROVIDED/LRN-009/learning_progress_forms",
+          "locator_provider": "USER",
+          "required_fields": [
+            "submission_id",
+            "respondent_scope",
+            "submitted_at",
+            "response_fields",
+            "effective_at",
+            "due_at",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "forms"
+          ],
+          "authority": "容易忘记的学习者；目标动作 owner",
+          "freshness": "每次周周期前刷新；最大陈旧度 24 小时",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-009 请求主体；只读 learning_progress_forms；仅限 submission_id,respondent_scope,submitted_at,response_fields,effective_at,due_at,learner_id,learning_item,progress"
+        }
+      ]
+    },
+    {
+      "id": "LRN-016",
+      "question_sha256": "4c0c87058521fcc5c078b07c167982a580cc805e981f0f73cd35e93f08dc9409",
+      "object_selector": "为新后端设计四周训练营，每周一个真实仓库任务和 code review 门。",
+      "execution_mode": "READ_ONLY_OR_REVIEWED_EFFECT",
+      "input_modes": [
+        "LIVE"
+      ],
+      "user_locator": "-",
+      "fixture_supplemental": "-",
+      "sources": [
+        {
+          "source_kind": "workspace_repository_state",
+          "locator": "workspace+repo://authorized-project-root/LRN-016/workspace_repository_state",
+          "locator_provider": "WORKSPACE",
+          "required_fields": [
+            "path",
+            "revision",
+            "artifact_status",
+            "updated_at",
+            "item_id",
+            "assignee",
+            "dependency",
+            "build_status",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "repo"
+          ],
+          "authority": "工程团队做训练营；来源系统 owner",
+          "freshness": "每次周周期前刷新；最大陈旧度 24 小时",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-016 请求主体；只读 workspace_repository_state；仅限 path,revision,artifact_status,updated_at,item_id,assignee,dependency,build_status,learner_id,learning_item,progress"
+        },
+        {
+          "source_kind": "project_tracker_state",
+          "locator": "connector+tasks://USER-PROVIDED/LRN-016/project_tracker_state",
+          "locator_provider": "USER",
+          "required_fields": [
+            "item_id",
+            "owner_id",
+            "status",
+            "updated_at",
+            "assignee",
+            "dependency",
+            "revision",
+            "path",
+            "build_status",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "tasks"
+          ],
+          "authority": "工程团队做训练营；来源系统 owner",
+          "freshness": "每次周周期前刷新；最大陈旧度 24 小时",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-016 请求主体；只读 project_tracker_state；仅限 item_id,owner_id,status,updated_at,assignee,dependency,revision,path,build_status,learner_id,learning_item,progress"
+        }
+      ]
+    },
+    {
+      "id": "LRN-020",
+      "question_sha256": "7e319b62ec963bd6582fba7b65c5f6c99ad19fb2f089061ae1f272c0e35009a1",
+      "object_selector": "这单元学生基础差异很大。请按课程目标排内容，阅读材料逐条核来源。",
+      "execution_mode": "READ_ONLY_OR_REVIEWED_EFFECT",
+      "input_modes": [
+        "USER",
+        "LIVE"
+      ],
+      "user_locator": "user-input://LRN-020/supplemental-object",
+      "fixture_supplemental": "-",
+      "sources": [
+        {
+          "source_kind": "learning_progress_forms",
+          "locator": "connector+forms://USER-PROVIDED/LRN-020/learning_progress_forms",
+          "locator_provider": "USER",
+          "required_fields": [
+            "submission_id",
+            "respondent_scope",
+            "submitted_at",
+            "response_fields",
+            "document_id",
+            "version",
+            "source_link",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "forms"
+          ],
+          "authority": "职业学校带实训课的教师；来源系统 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-020 请求主体；只读 learning_progress_forms；仅限 submission_id,respondent_scope,submitted_at,response_fields,document_id,version,source_link,learner_id,learning_item,progress"
+        },
+        {
+          "source_kind": "public_web_evidence",
+          "locator": "connector+browser://USER-PROVIDED/LRN-020/public_web_evidence",
+          "locator_provider": "USER",
+          "required_fields": [
+            "source_url",
+            "published_at",
+            "accessed_at",
+            "source_authority",
+            "document_id",
+            "version",
+            "source_link",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "browser"
+          ],
+          "authority": "职业学校带实训课的教师；来源系统 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-020 请求主体；只读 public_web_evidence；仅限 source_url,published_at,accessed_at,source_authority,document_id,version,source_link,learner_id,learning_item,progress"
+        }
+      ]
+    },
+    {
+      "id": "LRN-018",
+      "question_sha256": "62a4928663b1ccb33a9d050afa12c8a2b8e75507f86aa69ca7df12b4aae0ec72",
+      "object_selector": "从真实数据事故生成去敏案例、数据和答案，原始客户信息不能进入。",
+      "execution_mode": "READ_ONLY_OR_REVIEWED_EFFECT",
+      "input_modes": [
+        "CTX-15",
+        "LIVE"
+      ],
+      "user_locator": "-",
+      "fixture_supplemental": "LIVE 读取经授权事故数据、去敏范围和教学验收环境",
+      "sources": [
+        {
+          "source_kind": "incident_observability_stream",
+          "locator": "connector+monitoring://USER-PROVIDED/LRN-018/incident_observability_stream",
+          "locator_provider": "USER",
+          "required_fields": [
+            "event_id",
+            "severity",
+            "event_time",
+            "source_timestamp",
+            "customer_id",
+            "account_scope",
+            "risk_level",
+            "metric_name",
+            "metric_value",
+            "security_classification",
+            "access_scope"
+          ],
+          "reader_tools": [
+            "monitoring"
+          ],
+          "authority": "数据团队建立练习库；数据主体与数据 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-018 请求主体；只读 incident_observability_stream；仅限 event_id,severity,event_time,source_timestamp,customer_id,account_scope,risk_level,metric_name,metric_value,security_classification,access_scope"
+        }
+      ]
+    },
+    {
+      "id": "LRN-019",
+      "question_sha256": "a6ba96159b8b0a11fa9940b2d3ef7750656e658d323d1accbfa6cb89632ff0dc",
+      "object_selector": "我们 review 同类问题时标准不一致，设计一次用真实匿名 diff 做的校准练习，先不做绩效判断。",
+      "execution_mode": "READ_ONLY_OR_REVIEWED_EFFECT",
+      "input_modes": [
+        "LIVE"
+      ],
+      "user_locator": "-",
+      "fixture_supplemental": "-",
+      "sources": [
+        {
+          "source_kind": "workspace_git_history",
+          "locator": "workspace+git://authorized-project-root/LRN-019/workspace_git_history",
+          "locator_provider": "WORKSPACE",
+          "required_fields": [
+            "revision",
+            "ref",
+            "change_path",
+            "commit_time",
+            "path",
+            "build_status"
+          ],
+          "reader_tools": [
+            "git"
+          ],
+          "authority": "八人后端小组的资深工程师；来源系统 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-019 请求主体；只读 workspace_git_history；仅限 revision,ref,change_path,commit_time,path,build_status"
+        }
+      ]
+    },
+    {
+      "id": "LRN-022",
+      "question_sha256": "97d9dbc478725df1c1a74682983b57bd3c5950540e4b1fa22b0a346657174b78",
+      "object_selector": "建客户管理员认证，题目覆盖真实任务，不能靠背文案通过。",
+      "execution_mode": "READ_ONLY_OR_REVIEWED_EFFECT",
+      "input_modes": [
+        "LIVE"
+      ],
+      "user_locator": "-",
+      "fixture_supplemental": "-",
+      "sources": [
+        {
+          "source_kind": "project_tracker_state",
+          "locator": "connector+tasks://USER-PROVIDED/LRN-022/project_tracker_state",
+          "locator_provider": "USER",
+          "required_fields": [
+            "item_id",
+            "owner_id",
+            "status",
+            "updated_at",
+            "customer_id",
+            "account_scope",
+            "assignee",
+            "dependency",
+            "evidence_id",
+            "verification_status"
+          ],
+          "reader_tools": [
+            "tasks"
+          ],
+          "authority": "负责产品认证的厂商；来源系统 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-022 请求主体；只读 project_tracker_state；仅限 item_id,owner_id,status,updated_at,customer_id,account_scope,assignee,dependency,evidence_id,verification_status"
+        }
+      ]
+    },
+    {
+      "id": "LRN-023",
+      "question_sha256": "a96f69334b15b9594ed68907dbe028fe7827f39af0ee34c24bf2beb9e4a0bb7b",
+      "object_selector": "我停了两周没跟论文。先从上次研究问题恢复，只推三篇真正相关且能读到全文的。",
+      "execution_mode": "READ_ONLY_OR_REVIEWED_EFFECT",
+      "input_modes": [
+        "USER",
+        "LIVE"
+      ],
+      "user_locator": "user-input://LRN-023/supplemental-object",
+      "fixture_supplemental": "-",
+      "sources": [
+        {
+          "source_kind": "public_web_evidence",
+          "locator": "connector+browser://USER-PROVIDED/LRN-023/public_web_evidence",
+          "locator_provider": "USER",
+          "required_fields": [
+            "source_url",
+            "published_at",
+            "accessed_at",
+            "source_authority"
+          ],
+          "reader_tools": [
+            "browser"
+          ],
+          "authority": "持续追踪文献的在职研究者；来源系统 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-023 请求主体；只读 public_web_evidence；仅限 source_url,published_at,accessed_at,source_authority"
+        },
+        {
+          "source_kind": "authorized_pdf_evidence",
+          "locator": "connector+pdf://USER-PROVIDED/LRN-023/authorized_pdf_evidence",
+          "locator_provider": "USER",
+          "required_fields": [
+            "asset_id",
+            "page",
+            "version",
+            "provenance"
+          ],
+          "reader_tools": [
+            "pdf"
+          ],
+          "authority": "持续追踪文献的在职研究者；来源系统 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-023 请求主体；只读 authorized_pdf_evidence；仅限 asset_id,page,version,provenance"
+        }
+      ]
+    },
+    {
+      "id": "LRN-024",
+      "question_sha256": "04df6815392752bca9d2bf7f328029d66a6c0fc44e202d3841059f42de9d1bee",
+      "object_selector": "我们想从过去十次事故中学点真东西，能提炼共性模式并设计一场桌面演练吗？",
+      "execution_mode": "READ_ONLY_OR_REVIEWED_EFFECT",
+      "input_modes": [
+        "LIVE"
+      ],
+      "user_locator": "-",
+      "fixture_supplemental": "-",
+      "sources": [
+        {
+          "source_kind": "workspace_test_evidence",
+          "locator": "workspace+test://authorized-project-root/LRN-024/workspace_test_evidence",
+          "locator_provider": "WORKSPACE",
+          "required_fields": [
+            "test_id",
+            "environment",
+            "result",
+            "observed_at",
+            "risk_level",
+            "event_time",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "test"
+          ],
+          "authority": "团队做复盘学习；来源系统 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-024 请求主体；只读 workspace_test_evidence；仅限 test_id,environment,result,observed_at,risk_level,event_time,learner_id,learning_item,progress"
+        },
+        {
+          "source_kind": "incident_observability_stream",
+          "locator": "connector+monitoring://USER-PROVIDED/LRN-024/incident_observability_stream",
+          "locator_provider": "USER",
+          "required_fields": [
+            "event_id",
+            "severity",
+            "event_time",
+            "source_timestamp",
+            "risk_level",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "monitoring"
+          ],
+          "authority": "团队做复盘学习；来源系统 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-024 请求主体；只读 incident_observability_stream；仅限 event_id,severity,event_time,source_timestamp,risk_level,learner_id,learning_item,progress"
+        }
+      ]
+    },
+    {
+      "id": "LRN-025",
+      "question_sha256": "dafc062f5c930d710ecc3b53527899bb22e7cb025a0d85cd9655b8ba54d61a2b",
+      "object_selector": "把两年课程、工作旺季、学费和职业目标做成可调整计划，申请由我提交。",
+      "execution_mode": "READ_ONLY_OR_REVIEWED_EFFECT",
+      "input_modes": [
+        "LIVE"
+      ],
+      "user_locator": "-",
+      "fixture_supplemental": "-",
+      "sources": [
+        {
+          "source_kind": "authorized_calendar_state",
+          "locator": "connector+calendar://USER-PROVIDED/LRN-025/authorized_calendar_state",
+          "locator_provider": "USER",
+          "required_fields": [
+            "event_id",
+            "participant",
+            "start_at",
+            "status",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "calendar"
+          ],
+          "authority": "规划在职学位的专业人士；目标动作 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-025 请求主体；只读 authorized_calendar_state；仅限 event_id,participant,start_at,status,learner_id,learning_item,progress"
+        },
+        {
+          "source_kind": "learning_progress_forms",
+          "locator": "connector+forms://USER-PROVIDED/LRN-025/learning_progress_forms",
+          "locator_provider": "USER",
+          "required_fields": [
+            "submission_id",
+            "respondent_scope",
+            "submitted_at",
+            "response_fields",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "forms"
+          ],
+          "authority": "规划在职学位的专业人士；目标动作 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-025 请求主体；只读 learning_progress_forms；仅限 submission_id,respondent_scope,submitted_at,response_fields,learner_id,learning_item,progress"
+        },
+        {
+          "source_kind": "financial_record_state",
+          "locator": "connector+finance://USER-PROVIDED/LRN-025/financial_record_state",
+          "locator_provider": "USER",
+          "required_fields": [
+            "record_id",
+            "amount",
+            "currency",
+            "posting_status",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "finance"
+          ],
+          "authority": "规划在职学位的专业人士；目标动作 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-025 请求主体；只读 financial_record_state；仅限 record_id,amount,currency,posting_status,learner_id,learning_item,progress"
+        }
+      ]
+    },
+    {
+      "id": "LRN-026",
+      "question_sha256": "4e21f372978ac46e368560c26665e76bc2f7c19940dc9236199437da95fa2bf8",
+      "object_selector": "在获授权并去标识的员工资料范围内，把岗位、技能、课程和项目证据连成能力学院；晋级决定不要交给自动评分。",
+      "execution_mode": "READ_ONLY_OR_REVIEWED_EFFECT",
+      "input_modes": [
+        "USER",
+        "LIVE"
+      ],
+      "user_locator": "user-input://LRN-026/supplemental-object",
+      "fixture_supplemental": "-",
+      "sources": [
+        {
+          "source_kind": "authorized_database_state",
+          "locator": "connector+database://USER-PROVIDED/LRN-026/authorized_database_state",
+          "locator_provider": "USER",
+          "required_fields": [
+            "database_object",
+            "record_key",
+            "field_definition",
+            "source_timestamp",
+            "authorization_scope",
+            "evidence_id",
+            "verification_status",
+            "principal_id",
+            "role",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "database"
+          ],
+          "authority": "企业构建能力学院；数据主体与数据 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-026 请求主体；只读 authorized_database_state；仅限 database_object,record_key,field_definition,source_timestamp,authorization_scope,evidence_id,verification_status,principal_id,role,learner_id,learning_item,progress"
+        }
+      ]
+    },
+    {
+      "id": "LRN-028",
+      "question_sha256": "e130f07f77e02e91365a4e6f4bbb7e97d27cb61813789c8e449d0073b6a3ad11",
+      "object_selector": "每天根据我的表现改计划、出题、提醒和复盘，但重大目标变更先问我。",
+      "execution_mode": "READ_ONLY_OR_REVIEWED_EFFECT",
+      "input_modes": [
+        "CTX-10",
+        "USER",
+        "LIVE"
+      ],
+      "user_locator": "user-input://LRN-028/supplemental-object",
+      "fixture_supplemental": "USER 确认重大目标、可调整范围和提醒边界；LIVE 通过 tasks/forms 读取每日表现、计划与提醒状态",
+      "sources": [
+        {
+          "source_kind": "project_tracker_state",
+          "locator": "connector+tasks://USER-PROVIDED/LRN-028/project_tracker_state",
+          "locator_provider": "USER",
+          "required_fields": [
+            "item_id",
+            "owner_id",
+            "status",
+            "updated_at",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "tasks"
+          ],
+          "authority": "自学者想要全自动导师；目标动作 owner",
+          "freshness": "每次日周期前刷新；最大陈旧度 24 小时",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-028 请求主体；只读 project_tracker_state；仅限 item_id,owner_id,status,updated_at,learner_id,learning_item,progress"
+        },
+        {
+          "source_kind": "learning_progress_forms",
+          "locator": "connector+forms://USER-PROVIDED/LRN-028/learning_progress_forms",
+          "locator_provider": "USER",
+          "required_fields": [
+            "submission_id",
+            "respondent_scope",
+            "submitted_at",
+            "response_fields",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "forms"
+          ],
+          "authority": "自学者想要全自动导师；目标动作 owner",
+          "freshness": "每次日周期前刷新；最大陈旧度 24 小时",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-028 请求主体；只读 learning_progress_forms；仅限 submission_id,respondent_scope,submitted_at,response_fields,learner_id,learning_item,progress"
+        }
+      ]
+    },
+    {
+      "id": "LRN-029",
+      "question_sha256": "9867e4fa6fff6550a06401e1df3741fcc14f709573ba6e0af4b0d0aa21373193",
+      "object_selector": "同一课程去八个地区，语言、政策和时区都不同。哪些内容必须由本地专家逐版批准？",
+      "execution_mode": "READ_ONLY_OR_REVIEWED_EFFECT",
+      "input_modes": [
+        "USER",
+        "LIVE"
+      ],
+      "user_locator": "user-input://LRN-029/supplemental-object",
+      "fixture_supplemental": "-",
+      "sources": [
+        {
+          "source_kind": "project_tracker_state",
+          "locator": "connector+tasks://USER-PROVIDED/LRN-029/project_tracker_state",
+          "locator_provider": "USER",
+          "required_fields": [
+            "item_id",
+            "owner_id",
+            "status",
+            "updated_at",
+            "version",
+            "approval_status",
+            "effective_date",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "tasks"
+          ],
+          "authority": "公司做全球培训；目标动作 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-029 请求主体；只读 project_tracker_state；仅限 item_id,owner_id,status,updated_at,version,approval_status,effective_date,learner_id,learning_item,progress"
+        },
+        {
+          "source_kind": "authorized_calendar_state",
+          "locator": "connector+calendar://USER-PROVIDED/LRN-029/authorized_calendar_state",
+          "locator_provider": "USER",
+          "required_fields": [
+            "event_id",
+            "participant",
+            "start_at",
+            "status",
+            "version",
+            "approval_status",
+            "effective_date",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "calendar"
+          ],
+          "authority": "公司做全球培训；目标动作 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-029 请求主体；只读 authorized_calendar_state；仅限 event_id,participant,start_at,status,version,approval_status,effective_date,learner_id,learning_item,progress"
+        },
+        {
+          "source_kind": "official_rule_web",
+          "locator": "connector+browser://USER-PROVIDED/LRN-029/official_rule_web",
+          "locator_provider": "USER",
+          "required_fields": [
+            "source_url",
+            "published_at",
+            "accessed_at",
+            "source_authority",
+            "version",
+            "approval_status",
+            "effective_date",
+            "learner_id",
+            "learning_item",
+            "progress"
+          ],
+          "reader_tools": [
+            "browser"
+          ],
+          "authority": "公司做全球培训；目标动作 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-029 请求主体；只读 official_rule_web；仅限 source_url,published_at,accessed_at,source_authority,version,approval_status,effective_date,learner_id,learning_item,progress"
+        }
+      ]
+    },
+    {
+      "id": "LRN-030",
+      "question_sha256": "ac2472ce69fe6bf38117bc97dc2ab74d1dd78e59216ae53acc866fa00fb94c84",
+      "object_selector": "用一年安排读文献、复现、研究问题和独立项目，每阶段用作品而非时长验收。",
+      "execution_mode": "READ_ONLY_OR_REVIEWED_EFFECT",
+      "input_modes": [
+        "USER",
+        "LIVE"
+      ],
+      "user_locator": "user-input://LRN-030/supplemental-object",
+      "fixture_supplemental": "-",
+      "sources": [
+        {
+          "source_kind": "workspace_repository_state",
+          "locator": "workspace+repo://authorized-project-root/LRN-030/workspace_repository_state",
+          "locator_provider": "WORKSPACE",
+          "required_fields": [
+            "path",
+            "revision",
+            "artifact_status",
+            "updated_at",
+            "evidence_id",
+            "verification_status"
+          ],
+          "reader_tools": [
+            "repo"
+          ],
+          "authority": "研究团队培养新人；来源系统 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-030 请求主体；只读 workspace_repository_state；仅限 path,revision,artifact_status,updated_at,evidence_id,verification_status"
+        },
+        {
+          "source_kind": "workspace_test_evidence",
+          "locator": "workspace+test://authorized-project-root/LRN-030/workspace_test_evidence",
+          "locator_provider": "WORKSPACE",
+          "required_fields": [
+            "test_id",
+            "environment",
+            "result",
+            "observed_at",
+            "evidence_id",
+            "verification_status"
+          ],
+          "reader_tools": [
+            "test"
+          ],
+          "authority": "研究团队培养新人；来源系统 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-030 请求主体；只读 workspace_test_evidence；仅限 test_id,environment,result,observed_at,evidence_id,verification_status"
+        },
+        {
+          "source_kind": "public_web_evidence",
+          "locator": "connector+browser://USER-PROVIDED/LRN-030/public_web_evidence",
+          "locator_provider": "USER",
+          "required_fields": [
+            "source_url",
+            "published_at",
+            "accessed_at",
+            "source_authority",
+            "evidence_id",
+            "verification_status"
+          ],
+          "reader_tools": [
+            "browser"
+          ],
+          "authority": "研究团队培养新人；来源系统 owner",
+          "freshness": "本次分析开始前刷新；不得沿用未标日期缓存",
+          "as_of": "request_time；保存 source_updated_at 或等价来源时间",
+          "principal_scope": "LRN-030 请求主体；只读 public_web_evidence；仅限 source_url,published_at,accessed_at,source_authority,evidence_id,verification_status"
+        }
+      ]
+    }
+  ]
+}
+

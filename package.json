@@ -11,7 +11,7 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "eslint packages",
     "test": "pnpm -r --filter '!@saydo/android' --if-present test",
-    "ci:node": "pnpm typecheck && pnpm lint && pnpm test && node scripts/check-emoji.mjs && node scripts/test-emoji-gate.mjs && node scripts/check-hardcoded-colors.mjs && node scripts/test-color-gate.mjs && node scripts/test-migration-tools.mjs && node scripts/test-release-physical-evidence.mjs && node scripts/test-release-provenance.mjs && node scripts/test-public-text-redaction.mjs && node scripts/test-public-tree-privacy.mjs && node scripts/test-ios-build-and-install.mjs && node scripts/test-pairing-url-corpus.mjs && node scripts/test-mobile-installers.mjs && node scripts/test-mobile-release-contract.mjs && pnpm --filter @saydo/cli verify:distribution"
+    "ci:node": "pnpm typecheck && pnpm lint && pnpm test && node scripts/check-emoji.mjs && node scripts/test-emoji-gate.mjs && node scripts/check-hardcoded-colors.mjs && node scripts/test-color-gate.mjs && node scripts/test-migration-tools.mjs && node scripts/test-release-physical-evidence.mjs && node scripts/test-release-provenance.mjs && node scripts/test-public-text-redaction.mjs && node scripts/test-public-tree-privacy.mjs && node scripts/test-pairing-url-corpus.mjs && node scripts/test-mobile-installers.mjs && node scripts/test-mobile-release-contract.mjs && pnpm --filter @saydo/cli verify:distribution"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",

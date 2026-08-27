@@ -150,7 +150,9 @@ export function fileToolToEffect(
   if (inside === "unresolvable") {
     return isRead ? outsideRead() : { kind: "delete_data", target: "unresolvable" };
   }
-  const sensitive = SENSITIVE_FILE_BASENAME_RE.test(resolved.abs.replace(/\\/g, "/"));
+  const sensitive =
+    SENSITIVE_FILE_BASENAME_RE.test(path.replace(/\\/g, "/")) ||
+    SENSITIVE_FILE_BASENAME_RE.test(resolved.abs.replace(/\\/g, "/"));
   if (isRead) {
     if (!inside) return outsideRead();
     return { kind: "read", ...(sensitive ? { touchesSensitiveData: true } : {}) };

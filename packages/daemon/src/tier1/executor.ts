@@ -2495,7 +2495,11 @@ export class Tier1Executor {
         const first = !run.resumeSessionConfirmed;
         run.resumeSessionConfirmed = true;
         if (this.backend.adapter === "claude_code") {
-          confirmTier1RunNativeSession(this.d.db, run.runId, this.now().toISOString());
+          // queued_delta 续跑 attempt 插入时 native_session_id 为 NULL;confirm 有
+          // IS NOT NULL 守卫,必须先覆写继承的 SID 再确认,durable 行才能落到四元组。
+          const nowIso = this.now().toISOString();
+          if (run.isResume) overwriteTier1RunNativeSession(this.d.db, run.runId, sid, nowIso);
+          confirmTier1RunNativeSession(this.d.db, run.runId, nowIso);
           if (first && !run.isResume) {
             this.d.audit.record({
               actor: "daemon",

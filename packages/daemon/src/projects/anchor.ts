@@ -383,9 +383,9 @@ export function proposeProjectAnchor(input: {
   };
 }
 
-function revalidateCandidate(candidate: ProjectAnchorCandidate, now: Date): void {
+function revalidateCandidate(candidate: ProjectAnchorCandidate, now: Date): WorkspaceIdentity {
   if (now.getTime() > Date.parse(candidate.expiresAt)) throw new Error("项目归属确认已过期");
-  revalidateWorkspaceIdentity({ path: candidate.canonicalPath, dev: candidate.dev, ino: candidate.ino });
+  return revalidateWorkspaceIdentity({ path: candidate.canonicalPath, dev: candidate.dev, ino: candidate.ino });
 }
 
 export function acceptProjectAnchor(input: {
@@ -401,7 +401,7 @@ export function acceptProjectAnchor(input: {
   const nowIso = input.now.toISOString();
   const tx = input.db.transaction(() => {
     // BEGIN IMMEDIATE 已取得 write lock 后再验 filesystem identity，缩到最小 TOCTOU 窗口。
-    revalidateCandidate(candidate, input.now);
+    const identity = revalidateCandidate(candidate, input.now);
     const session = getSession(input.db, input.sessionId);
     if (
       !session ||
@@ -438,8 +438,8 @@ export function acceptProjectAnchor(input: {
           candidate.type,
           JSON.stringify({ kind: "local_folder", path: candidate.canonicalPath, managed: false }),
           candidate.canonicalPath,
-          candidate.dev,
-          candidate.ino,
+          identity.dev,
+          identity.ino,
           nowIso,
           candidate.draftId,
           candidate.type

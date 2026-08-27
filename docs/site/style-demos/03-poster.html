@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Demo 03 · 构成主义大字海报 — 说到 SayDo 风格探索</title>
+<style>
+  :root{
+    --paper:#f0ede4; --paper-card:#faf7ef;
+    --ink:#34332e; --ink-2:#5b564b; --ink-muted:#706b61; --ink-faint:#a29b8f;
+    --rule:#cec6b7;
+    --ochre:#a8641f; --indigo:#3c5f96; --pine:#41755a; --seal:#b13a2b; --seal-fg:#fff8ed;
+    --paper-fg:#fffaf0;
+    --font-body:'PingFang SC','HarmonyOS Sans SC','MiSans','Hiragino Sans GB','Microsoft YaHei',-apple-system,sans-serif;
+    --font-display:'Songti SC','Noto Serif SC',serif;
+    --font-mono:ui-monospace,'SF Mono','JetBrains Mono','Menlo',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-size:15px;line-height:1.75;overflow-x:hidden}
+  ::selection{background:var(--seal);color:var(--seal-fg)}
+
+  /* 印刷颗粒 */
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:200;mix-blend-mode:multiply;opacity:.55;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.28 0 0 0 0 0.25 0 0 0 0.045 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /* 套准十字（crop marks） */
+  .reg{position:absolute;width:22px;height:22px;pointer-events:none;opacity:.55}
+  .reg::before,.reg::after{content:"";position:absolute;background:var(--ink)}
+  .reg::before{left:50%;top:0;width:1.5px;height:100%;transform:translateX(-50%)}
+  .reg::after{top:50%;left:0;height:1.5px;width:100%;transform:translateY(-50%)}
+  .reg.tl{top:14px;left:14px}.reg.tr{top:14px;right:14px}
+  .reg.bl{bottom:14px;left:14px}.reg.br{bottom:14px;right:14px}
+  /* 做旧 */
+  .rough{filter:url(#inkRough)}
+  /* 斜纹分隔带 */
+  .hatch{height:12px;border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);
+    background:repeating-linear-gradient(-45deg,var(--ink) 0 2.5px,transparent 2.5px 11px)}
+  /* 背景大号章节数 */
+  .sec .bgnum{
+    position:absolute;top:40px;right:3vw;font-family:var(--font-display);font-weight:700;
+    font-size:clamp(140px,22vw,300px);line-height:1;color:transparent;
+    -webkit-text-stroke:1.5px rgba(52,51,46,.14);pointer-events:none;user-select:none;
+  }
+  .sec--ink .bgnum{-webkit-text-stroke-color:rgba(255,250,240,.1)}
+
+  /* ---------- 顶栏：海报式 ---------- */
+  .bar{
+    display:flex;align-items:stretch;border-bottom:2px solid var(--ink);
+    position:sticky;top:0;z-index:60;background:var(--paper);
+  }
+  .bar .logo{
+    font-family:var(--font-display);font-weight:700;font-size:19px;letter-spacing:.1em;
+    padding:14px 24px;border-right:2px solid var(--ink);display:flex;align-items:center;gap:10px;
+  }
+  .bar .logo i{width:12px;height:12px;background:var(--seal);transform:rotate(45deg)}
+  .bar nav{flex:1;display:flex;align-items:center;gap:26px;padding:0 26px;font-size:13px;font-weight:600}
+  .bar nav a{color:var(--ink);text-decoration:none}
+  .bar nav a:hover{color:var(--seal)}
+  .bar .go{
+    background:var(--ink);color:var(--paper-fg);display:flex;align-items:center;padding:0 26px;
+    text-decoration:none;font-weight:700;font-size:13.5px;letter-spacing:.08em;transition:.2s;
+  }
+  .bar .go:hover{background:var(--seal)}
+  @media(max-width:760px){.bar nav{display:none}}
+
+  /* ---------- Hero：字符构成 ---------- */
+  .hero{position:relative;padding:60px 5vw 90px;border-bottom:2px solid var(--ink);overflow:hidden}
+  .glyph-field{display:flex;flex-wrap:wrap;align-items:flex-end;gap:0 1.5vw;line-height:.95}
+  .glyph{font-family:var(--font-display);font-weight:700;font-size:clamp(90px,17vw,240px)}
+  .glyph.g1{color:var(--ink)}
+  .glyph.g2{color:var(--ink);transform:translateY(.12em)}
+  .glyph.g3{
+    color:transparent;-webkit-text-stroke:2.5px var(--ink);transform:translateY(-.06em);
+  }
+  .glyph.g4{color:var(--paper-fg);background:var(--seal);padding:0 .06em;transform:rotate(-3deg) translateY(.05em);box-shadow:12px 12px 0 var(--ink)}
+  .glyph.g5{color:var(--seal)}
+  .hero-ru{
+    position:absolute;top:54px;right:5vw;text-align:right;font-family:var(--font-mono);
+    font-size:12px;color:var(--ink-muted);letter-spacing:.14em;line-height:2;
+  }
+  .hero-sub{
+    margin-top:44px;max-width:560px;font-size:16.5px;color:var(--ink-2);
+    border-left:6px solid var(--seal);padding-left:20px;
+  }
+  .hero-sub b{color:var(--ink)}
+  .hero-cta{margin-top:30px;display:flex;gap:0}
+  .hero-cta a{
+    text-decoration:none;font-weight:700;font-size:15px;padding:14px 34px;border:2px solid var(--ink);
+  }
+  .hero-cta a:first-child{background:var(--seal);border-color:var(--seal);color:var(--seal-fg)}
+  .hero-cta a:first-child:hover{background:var(--ink);border-color:var(--ink)}
+  .hero-cta a:last-child{color:var(--ink);margin-left:-2px}
+  .hero-cta a:last-child:hover{background:var(--ink);color:var(--paper-fg)}
+  .hero-note{margin-top:18px;font-size:12.5px;color:var(--ink-muted);font-family:var(--font-mono)}
+
+  /* ---------- 跑马灯 ---------- */
+  .marquee{border-bottom:2px solid var(--ink);background:var(--ink);color:var(--paper-fg);overflow:hidden;padding:12px 0}
+  .marquee.rev{background:var(--paper);color:transparent;border-top:2px solid var(--ink)}
+  .marquee.rev span{-webkit-text-stroke:1.2px var(--ink)}
+  .marquee.rev .marquee-track{animation-direction:reverse}
+  .marquee-track{display:flex;gap:0;white-space:nowrap;animation:mq 26s linear infinite;width:max-content}
+  .marquee span{font-family:var(--font-display);font-size:17px;letter-spacing:.2em;padding:0 28px}
+  .marquee b{color:var(--seal);font-weight:400;padding:0 4px}
+  @keyframes mq{to{transform:translateX(-50%)}}
+
+  /* ---------- 斜切分区通用 ---------- */
+  .sec{padding:110px 5vw 120px;position:relative}
+  .sec-label{
+    font-family:var(--font-mono);font-size:12px;letter-spacing:.3em;color:var(--seal);
+    display:flex;align-items:center;gap:14px;margin-bottom:22px;font-weight:700;
+  }
+  .sec-label::after{content:"";width:80px;height:2px;background:var(--seal)}
+  .sec-title{
+    font-family:var(--font-display);font-weight:700;font-size:clamp(40px,6.5vw,84px);
+    line-height:1.15;letter-spacing:.02em;max-width:900px;
+  }
+  .sec-title em{font-style:normal;color:var(--seal)}
+  .sec-title u{text-decoration:none;color:transparent;-webkit-text-stroke:1.8px var(--ink)}
+  .sec-lead{margin-top:22px;max-width:600px;font-size:16px;color:var(--ink-2)}
+
+  /* 斜切：墨面 */
+  .sec--ink{background:var(--ink);color:var(--paper-fg);clip-path:polygon(0 4vw,100% 0,100% calc(100% - 4vw),0 100%)}
+  .sec--ink .sec-title u{-webkit-text-stroke-color:var(--paper-fg)}
+  .sec--ink .sec-lead{color:rgba(255,250,240,.72)}
+
+  /* ---------- 六步：破网格编号 ---------- */
+  .flow{margin-top:64px;display:grid;grid-template-columns:repeat(6,1fr);gap:2px;background:var(--paper-fg);border:2px solid var(--paper-fg)}
+  .flow .cell{background:var(--ink);padding:26px 18px 30px;min-height:230px;display:flex;flex-direction:column;position:relative;transition:.25s}
+  .flow .cell:hover{background:var(--seal);transform:translateY(-8px)}
+  .flow .num{font-family:var(--font-display);font-weight:700;font-size:52px;line-height:1;color:transparent;-webkit-text-stroke:1.6px rgba(255,250,240,.5)}
+  .flow .cell:hover .num{-webkit-text-stroke-color:var(--seal-fg)}
+  .flow h3{font-family:var(--font-display);font-size:19px;margin:16px 0 8px;letter-spacing:.06em}
+  .flow p{font-size:12.5px;color:rgba(255,250,240,.66);line-height:1.7}
+  .flow .cell.key{background:var(--seal)}
+  .flow .cell.key .num{-webkit-text-stroke-color:rgba(255,248,237,.75)}
+  @media(max-width:960px){.flow{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.flow{grid-template-columns:1fr}}
+
+  /* ---------- 四色账本：色块阵列 ---------- */
+  .tones{margin-top:64px;display:grid;grid-template-columns:repeat(4,1fr);gap:2px}
+  .tone{padding:30px 24px 34px;color:var(--paper-fg);min-height:300px;display:flex;flex-direction:column}
+  .tone .big{font-family:var(--font-display);font-weight:700;font-size:64px;line-height:1;opacity:.28}
+  .tone h3{font-family:var(--font-display);font-size:22px;margin:auto 0 10px;letter-spacing:.08em}
+  .tone p{font-size:13px;line-height:1.75;opacity:.85}
+  .tone.o{background:var(--ochre)} .tone.i{background:var(--indigo)} .tone.p{background:var(--pine)} .tone.g{background:#7d786b}
+  @media(max-width:860px){.tones{grid-template-columns:repeat(2,1fr)}}
+
+  /* ---------- 对比：粗野表格 ---------- */
+  .versus{margin-top:64px;display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--ink)}
+  .versus>div{padding:36px 34px}
+  .versus .before{border-right:2px solid var(--ink);background:var(--paper)}
+  .versus .after{background:var(--paper-card)}
+  .versus h3{font-family:var(--font-display);font-size:24px;margin-bottom:14px;letter-spacing:.05em}
+  .versus .before h3{color:var(--ink-muted);text-decoration:line-through;text-decoration-color:var(--seal);text-decoration-thickness:3px}
+  .versus .after h3{color:var(--seal)}
+  .versus p{font-size:14.5px;color:var(--ink-2)}
+  @media(max-width:760px){.versus{grid-template-columns:1fr}.versus .before{border-right:none;border-bottom:2px solid var(--ink)}}
+
+  /* ---------- 隐私：印章宣言 ---------- */
+  .manifesto{margin-top:64px;display:flex;gap:44px;align-items:flex-start;flex-wrap:wrap}
+  .stamp{
+    width:150px;height:150px;background:var(--seal);color:var(--seal-fg);flex:none;
+    display:grid;place-items:center;transform:rotate(3deg);box-shadow:14px 14px 0 var(--ink);
+    font-family:var(--font-display);font-weight:700;font-size:44px;letter-spacing:.08em;line-height:1.25;text-align:center;
+  }
+  .manifesto .txt{flex:1;min-width:280px}
+  .manifesto h3{font-family:var(--font-display);font-size:clamp(26px,3.4vw,40px);margin-bottom:14px}
+  .manifesto p{color:rgba(255,250,240,.75);font-size:15px;max-width:560px}
+
+  /* ---------- 安装：命令即海报 ---------- */
+  .cmd-block{
+    margin-top:56px;background:var(--ink);color:#e8e4d8;border:2px solid var(--ink);
+    box-shadow:16px 16px 0 var(--seal);padding:30px 30px 26px;max-width:860px;
+  }
+  .cmd-block .lab{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.28em;color:#9a937f;margin-bottom:14px}
+  .cmd-block code{font-family:var(--font-mono);font-size:clamp(11.5px,1.6vw,14px);line-height:1.8;word-break:break-all;color:#e8e4d8}
+  .cmd-block code b{color:#8fc7a3;font-weight:400}
+  .plat{margin-top:44px;display:flex;gap:2px;flex-wrap:wrap}
+  .plat span{border:2px solid var(--ink);padding:10px 20px;font-weight:700;font-size:13.5px;background:var(--paper-card)}
+  .plat span i{font-style:normal;font-family:var(--font-mono);font-size:11px;display:block;letter-spacing:.1em}
+  .plat .ok i{color:var(--pine)} .plat .wip i{color:var(--ochre)}
+
+  /* ---------- 尾版 ---------- */
+  .finale{
+    background:var(--seal);color:var(--seal-fg);text-align:center;padding:120px 5vw 130px;
+    clip-path:polygon(0 4vw,100% 0,100% 100%,0 100%);
+  }
+  .finale h2{font-family:var(--font-display);font-weight:700;font-size:clamp(48px,9vw,120px);line-height:1.15;letter-spacing:.04em}
+  .finale p{margin:26px auto 34px;max-width:460px;font-size:15.5px;opacity:.88}
+  .finale a{
+    display:inline-block;background:var(--ink);color:var(--paper-fg);text-decoration:none;
+    font-weight:700;font-size:16px;padding:16px 46px;letter-spacing:.1em;transition:.2s;
+  }
+  .finale a:hover{transform:translate(-3px,-3px);box-shadow:6px 6px 0 rgba(52,51,46,.45)}
+
+  footer{
+    display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    padding:22px 5vw;border-top:2px solid var(--ink);font-size:12.5px;color:var(--ink-muted);
+  }
+  footer a{color:var(--indigo);text-decoration:none}
+  .demo-tag{font-family:var(--font-mono);color:var(--ink-faint)}
+
+  [data-pop]{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s cubic-bezier(.22,.61,.36,1)}
+  [data-pop].in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="inkRough">
+    <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" seed="11" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="6"/>
+  </filter>
+</svg>
+
+<header class="bar">
+  <div class="logo"><i></i>说到 SAYDO</div>
+  <nav>
+    <a href="#flow">闭环</a><a href="#tones">四色账</a><a href="#versus">对照</a><a href="#start">开始</a>
+    <a href="index.html" style="color:var(--ink-faint)">风格总览</a>
+  </nav>
+  <a class="go" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GITHUB ↗</a>
+</header>
+
+<!-- ============ Hero ============ -->
+<section class="hero">
+  <span class="reg tl"></span><span class="reg tr"></span><span class="reg bl"></span><span class="reg br"></span>
+  <div class="hero-ru">VOICE-DRIVEN<br>LOCAL-FIRST<br>OPEN SOURCE<br>EST. 2026</div>
+  <div class="glyph-field" data-pop>
+    <span class="glyph g1">说</span><span class="glyph g2">到</span><span class="glyph g3">，</span><span class="glyph g4 rough" id="glyph-seal">就</span><span class="glyph g5">做到。</span>
+  </div>
+  <p class="hero-sub" data-pop>一个你能对着说话的高级助手。你只管把事聊清楚——<b>它先读透你的项目，听懂了就驱动你电脑上已有的 AI 去办，办完叫你验收。</b>没有开发者运营的云端后台。</p>
+  <div class="hero-cta" data-pop>
+    <a href="#start">开始使用</a>
+    <a href="#flow">看它怎么办事</a>
+  </div>
+  <p class="hero-note" data-pop>// 桌面开源免费 · macOS / Windows / Linux 现在可用 · 移动 App 开发中</p>
+</section>
+
+<!-- ============ 跑马灯 ============ -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>开源免费 <b>◆</b> 本地优先 <b>◆</b> 语音驱动 <b>◆</b> 人拍板才算数 <b>◆</b> 四色账本 <b>◆</b> 数据不出你的设备 <b>◆</b></span>
+    <span>开源免费 <b>◆</b> 本地优先 <b>◆</b> 语音驱动 <b>◆</b> 人拍板才算数 <b>◆</b> 四色账本 <b>◆</b> 数据不出你的设备 <b>◆</b></span>
+  </div>
+</div>
+
+<!-- ============ 六步闭环（墨面斜切） ============ -->
+<div class="hatch" aria-hidden="true"></div>
+<section class="sec sec--ink" id="flow">
+  <span class="bgnum" aria-hidden="true">01</span>
+  <div class="sec-label">THE LOOP / 从聊一句到办完叫你</div>
+  <h2 class="sec-title" data-pop>一个<em>完整的</em><u>闭环</u></h2>
+  <p class="sec-lead" data-pop>你只管聊和拍板，重活它来。执行和检查都跑完，它主动叫你验收——你点头，才算交付。</p>
+  <div class="flow" data-pop>
+    <div class="cell"><span class="num">01</span><h3>开口聊</h3><p>按住说话，想到哪说到哪。它像采访一样一次问一个，把事聊透。</p></div>
+    <div class="cell"><span class="num">02</span><h3>就绪决断</h3><p>火候够了，它主动提议开工。规格是它的产物，不是你的输入。</p></div>
+    <div class="cell"><span class="num">03</span><h3>决策包</h3><p>成果预览、实施计划、花费封顶，外加一份同源的网页小样。</p></div>
+    <div class="cell key"><span class="num">04</span><h3>你拍板</h3><p>看着具体的东西说「就这样」。合并、交付，永远你点头才算。</p></div>
+    <div class="cell"><span class="num">05</span><h3>后台执行</h3><p>独立 worktree 隔离，预算/时长/回合三重熔断。你可以走开。</p></div>
+    <div class="cell"><span class="num">06</span><h3>叫你验收</h3><p>说「等你验收」，而不是「做完了」。证据在账，可复查可回溯。</p></div>
+  </div>
+</section>
+
+<!-- ============ 四色账本 ============ -->
+<section class="sec" id="tones">
+  <span class="bgnum" aria-hidden="true">02</span>
+  <div class="sec-label">FOUR TONES / 每件事都有归属和去向</div>
+  <h2 class="sec-title" data-pop>四色账本，<em>件件</em><u>有着落</u></h2>
+  <p class="sec-lead" data-pop>说过的话不再转头就忘。该等谁的、谁在办、办得怎么样——一眼看清，不靠脑子记。</p>
+  <div class="tones" data-pop>
+    <div class="tone o"><span class="big">朱</span><h3>等你拍板</h3><p>「导出用 CSV 还是 Excel？」——它把该你定的递到你面前，一句「就这样」就放行。</p></div>
+    <div class="tone i"><span class="big">黛</span><h3>你欠的动作</h3><p>只有你能做的那部分，挂在你名下：回复那封设计稿确认邮件，今天 09:10 记的。</p></div>
+    <div class="tone p"><span class="big">松</span><h3>AI 正在办</h3><p>重构登录模块，独立 worktree 里跑着，已 40 分钟。进展实时入账，随时可查。</p></div>
+    <div class="tone g"><span class="big">灰</span><h3>等外部回音</h3><p>等第三方 API 配额审批。它不催不怨，回音一到，自动接着往下办。</p></div>
+  </div>
+</section>
+
+<!-- ============ 对照 + 隐私（墨面斜切） ============ -->
+<div class="hatch" aria-hidden="true"></div>
+<section class="sec sec--ink" id="versus">
+  <span class="bgnum" aria-hidden="true">03</span>
+  <div class="sec-label">WHY / 不是又一个语音工具</div>
+  <h2 class="sec-title" data-pop>单点到处都是，<em>闭环</em><u>只此一家</u></h2>
+  <div class="versus" data-pop>
+    <div class="before" style="background:transparent;border-color:rgba(255,250,240,.25)">
+      <h3 style="color:rgba(255,250,240,.5)">没有它的时候</h3>
+      <p style="color:rgba(255,250,240,.6)">说过的话，转头就忘；答应的事，不知道办到哪了。该等谁的、谁在办、办得怎么样——全靠脑子记和来回翻聊天记录。</p>
+    </div>
+    <div class="after" style="background:transparent">
+      <h3>有了说到 →</h3>
+      <p style="color:rgba(255,250,240,.85)">聊透、自动开工、办完交付，同一套闭环。它接上你电脑上已登录的 AI——Codex、Claude Code、Cursor、Gemini CLI、Grok——已订阅哪家用哪家，无需额外付费。</p>
+    </div>
+  </div>
+  <div class="manifesto" data-pop>
+    <div class="stamp rough" id="manifesto-stamp">不<br>设<br>服<br>务<br>器</div>
+    <div class="txt">
+      <h3>隐私不是承诺，是架构。</h3>
+      <p>对话、事项与账本保存在你自己的设备上。没有账号体系，不埋点，不接第三方统计或广告 SDK。手机与电脑之间走你自己的局域网或你自行配置的加密组网——开发者无法访问，也不收集。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 开始 ============ -->
+<section class="sec" id="start">
+  <span class="bgnum" aria-hidden="true">04</span>
+  <div class="sec-label">START / 一条命令</div>
+  <h2 class="sec-title" data-pop>桌面开源，<em>现在</em><u>就能跑</u></h2>
+  <p class="sec-lead" data-pop>需要 Node.js 22，无需克隆源码。启动 daemon + Web 控制台，跑起来就能开聊。</p>
+  <div class="cmd-block" data-pop>
+    <div class="lab">TERMINAL — v0.1.0-rc.2 RELEASE CANDIDATE</div>
+    <code><b>$</b> npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz -- saydo up</code>
+  </div>
+  <div class="plat" data-pop>
+    <span class="ok">macOS<i>现在可用</i></span>
+    <span class="ok">Windows<i>现在可用</i></span>
+    <span class="ok">Linux<i>现在可用</i></span>
+    <span class="wip">iOS<i>开发中</i></span>
+    <span class="wip">Android<i>开发中</i></span>
+    <span class="wip">HarmonyOS<i>开发中</i></span>
+  </div>
+</section>
+
+<!-- ============ 尾版 ============ -->
+<div class="marquee rev" aria-hidden="true">
+  <div class="marquee-track">
+    <span>说到 <b>◆</b> 就做到 <b>◆</b> 说到 <b>◆</b> 就做到 <b>◆</b> 说到 <b>◆</b> 就做到 <b>◆</b> 说到 <b>◆</b> 就做到 <b>◆</b></span>
+    <span>说到 <b>◆</b> 就做到 <b>◆</b> 说到 <b>◆</b> 就做到 <b>◆</b> 说到 <b>◆</b> 就做到 <b>◆</b> 说到 <b>◆</b> 就做到 <b>◆</b></span>
+  </div>
+</div>
+<section class="finale">
+  <h2 data-pop>把「说」和「做」<br>连起来。</h2>
+  <p data-pop>聊清楚，它去办，办完叫你验收。开源免费，数据不出你的设备。</p>
+  <a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener" data-pop>去 GitHub 开跑 →</a>
+</section>
+
+<footer>
+  <span class="demo-tag">STYLE DEMO 03 · 构成主义大字海报 · 仅风格探索</span>
+  <span><a href="https://github.com/Octo-o-o-o/SayDo">GitHub</a> · <a href="/privacy/">隐私政策</a> · <a href="index.html">返回风格总览</a></span>
+</footer>
+
+<script>
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }), { threshold: .15 });
+  document.querySelectorAll('[data-pop]').forEach(el => io.observe(el));
+
+  // 滚动驱动：印章微旋 + 字块视差
+  const stamp = document.getElementById('manifesto-stamp');
+  const glyphSeal = document.getElementById('glyph-seal');
+  let ticking = false;
+  addEventListener('scroll', () => {
+    if (ticking) return; ticking = true;
+    requestAnimationFrame(() => {
+      const y = scrollY;
+      if (stamp) {
+        const r = stamp.getBoundingClientRect();
+        if (r.top < innerHeight && r.bottom > 0)
+          stamp.style.transform = `rotate(${3 + (innerHeight / 2 - r.top) * 0.012}deg)`;
+      }
+      if (glyphSeal && y < innerHeight)
+        glyphSeal.style.transform = `rotate(${-3 - y * 0.008}deg) translateY(${0.05 + y * 0.0004}em)`;
+      ticking = false;
+    });
+  }, { passive: true });
+</script>
+</body>
+</html>

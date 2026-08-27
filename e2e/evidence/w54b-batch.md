@@ -225,3 +225,383 @@ Claude 每次 spawn 强制重算二进制身份、Windows `.cmd` 真入口、Rel
 daemon 1883/5 skipped、typecheck 与差量门。发布独立复审确认 F89–F94,唯一 No-Go 是旧 audit bundle；
 当前已把 implementation boundary 固定为 `3e74a5a` 并重生 schema 2/6,内部 `--check` 绿。公开过滤树
 `--check-bundle`、不可变 Release 与实体主机证据尚未执行，不提前宣称发布完成。
+
+## 14. 2026-08-26 收口批对账(w54b-closeout 阶段 A)
+
+依据 `docs/plan/IMPL-PROMPT-16-W54B-CLOSEOUT.md` §3 阶段 A。本节只做**现势对账与记述纠正**,
+不写新功能、不宣称本批已收口 —— 沿用 §10 口径:独立零上下文复审绿灯前,W5.4-b 停在**收口候选**。
+
+### 14.1 记述冲突的裁决
+
+`HANDOFF.md` §1 批次指针行原写「C3(console Tier1 卡 + 任务详情 adapter/observedModel + 语音文件工具话术
++ 10/11 回写草案)未做;…本批未收口」,与本文 §10 冲突。本会话按实测判定 **§10 为准**:
+
+| 核验项 | 命令 | 实测 |
+|---|---|---|
+| C1/C2 入库 | `git merge-base --is-ancestor 4c4bf96 HEAD` | exit 0;`4c4bf96 feat(w54b): C1 配置自检 + C2 executor 接 claude backend 生产接线` |
+| C3 任务详情 | `grep -n 'observed_model' packages/console/src/pages/TaskDetail.tsx` | 第 241 行 `<Mono>{String(r["observed_model"] ?? "未观测")}</Mono>` |
+| C3 设置页 Tier1 卡 | `grep -c 'Tier1SelfTestReport' packages/console/src/pages/GlobalSettings.tsx` | `5`(IMPL-16 §0.3 预期 ≥3) |
+| C3 自检字段 | `grep -c 'tier1Check\|tier1StatusText\|pinnedVersion' …/GlobalSettings.tsx` | `9` |
+
+处置:`HANDOFF.md` §1 指针行的现势句已更正为「C1/C2/C3 代码均已实现,批次状态 = 收口候选」;
+2026-08-22 快照行**原文保留**为历史事实,另新增 2026-08-26 快照行 supersede 其现时坐标。
+本文 §1、§2、§6 的「C3 未做」是 2026-08-22 的阶段快照,**已由 §10 supersede,本节不回改它们**。
+
+### 14.2 本批修复的一处发布工程回归(owner 2026-08-26 授权)
+
+对账时跑 IMPL-16 §0.4 门禁基线,发现 `main` 当前 `just ci` **红**,与既有记述不符。定位结论:
+
+- 症状:`node scripts/test-ios-build-and-install.mjs` → `pass=4 fail=5`,`ci-node` fail-fast 退出 1。
+  单独复跑一致,**非 flaky**。
+- 根因:两条 RC4 分支的语义级合并冲突(git 不报冲突,改的是不同文件)。门禁脚本
+  `scripts/test-ios-build-and-install.mjs` 唯一提交为 `09f7920 fix(release): 收紧公开树隐私与 iOS 真机目标`
+  (release 线),断言旧合同 `SAYDO_IOS_DEVICE_ID`;被测的 `apps/ios/build-and-install.sh` 已由 mobile 线
+  `c56ebdf feat(mobile): 闭合三端配对与真机安装边界` 重构为 `scripts/mobile-install-common.sh` 公共库 +
+  `saydo_pick_single_device` 自动发现真机(变量改名 `SAYDO_DEVICE_ID`)。该门禁**不存在于 mobile 线**
+  (`git cat-file -e c56ebdf:scripts/test-ios-build-and-install.mjs` 报 "exists on disk, but not in 'c56ebdf'"),
+  故该线重构时无从同步。合并后全仓 `SAYDO_IOS_DEVICE_ID` 命中 4 处**全部在门禁脚本自身**,生产代码零处。
+- 引入点(隔离三文件复现法二分):`329a40d`(rc.12 内部基准)9/9 绿 → `1f2e57e` 绿 →
+  **`d83c341 merge(rc4): 并入 mobile 线`** 转红 → `c383bc0`(基线 HEAD)延续红。
+  rc.12 tag 打于 2026-08-26 19:43,`d83c341` 在 22:36,故 **rc.12 的托管门全绿与 main 现红不矛盾**。
+  注:隔离复现只拷三个文件,`missing env exits 2` 一项因缺公共库以 exit 1 落地,计数为 5/4;
+  **权威数字以全仓 HEAD 的 `pass=4 fail=5` 为准**,隔离法仅用于定位引入点。
+- 连带后果:`ci-node` fail-fast 使 mobile 线新增的三项门禁在 `just ci` 中**从未被执行**。
+- 处置(owner 2026-08-26 授权):删除 `scripts/test-ios-build-and-install.mjs`,并清理 `justfile` `ci-node`
+  与 `package.json` `ci:node` 两处调用。依据 = 其断言的 env 合同在生产代码中已零处,职能已由
+  `scripts/test-mobile-installers.mjs`(128 项,三端安装器同源,覆盖设备发现/codesign/plist 身份/fail-closed)取代。
+  `research/week-audit/2026-08-23-publication-manifest.json` 中的该路径条目属账本,随其既有重生成流程处理,本节不手改。
+
+### 14.3 门禁实测(本会话真实输出;退出码显式核查)
+
+分支 `w54b-closeout`,基线 `c383bc0364bd258444c0acc0b295e9ef69993486`。
+
+- `just ci` → **exit 0**(`[ok] just ci: node + python matrices green`)。
+  contracts **111**、platform **72 passed | 14 skipped**、console **278**、
+  CLI **49 passed | 1 skipped**、daemon **2161 passed | 6 skipped**(130 files passed | 2 skipped)、
+  pipeline pytest **34 passed**、ruff All checks passed。
+  自测门:emoji-gate 11/0、color gate `[summary] pass=21 fail=0`、public-text-redaction 28/0、
+  public-tree-privacy 26/0、migration tools / release physical evidence / release provenance 均 `[ok]`。
+  **修复后首次真正执行的三项 mobile 门禁**:pairing url corpus **216 passed**、
+  mobile installer self-test **128 passed**、mobile release contract **227 passed**。
+- `pnpm exec playwright test` → **exit 0**,**36 passed (2.4m)**。
+- 修复前同一基线 `c383bc0`(rc4-runtime worktree,clean main)实测:`just ci` **exit 1**,
+  daemon 同为 2161 passed | 6 skipped —— 即 w54b 自身的 `tier1-executor.test.ts` 在修复前后**都是绿的**,
+  IMPL-16 启用前置②(「w54b 的代码当前是红的」)已解除。
+
+对比 §12 记录的 2026-08-23 值(daemon 1883/5 skipped):daemon 增至 2161/6,系此后 RC4 四条线并入所致,
+非本批改动。本批零生产代码改动(改动集 = `HANDOFF.md`、本文件、`justfile`、`package.json`、
+删除 `scripts/test-ios-build-and-install.mjs`)。
+
+### 14.4 边界(未做的明说未做)
+
+- 本批**未**关闭 active pointer:IMPL-16 §2 红线 5 要求阶段 C 前置全绿方可动,
+  而阶段 B 的独立零上下文复审尚未派发。pointer 仍 = `w54b-wiring`。
+- 本批**未**做 W5.4-c 的任何内容:真 Claude PreToolUse/PostToolUse hook 全链、live conformance、
+  四场真人验收均未触及,不宣称。
+- 本批**未**部署常驻:`~/.saydo/runtime` 仍 clean @ `6d98a6e`,未升级、未探活。
+- 本批**未**提交:改动停留在工作区,等 owner 授权。
+
+## 15. 2026-08-26/27 独立复审 No-Go 与返工批(w54b-review-rework)
+
+本节记录 §14 之后的第一轮独立复审、owner 三项裁决与据此的返工批。返工的独立复审另记,
+**本节不宣称 W5.4-b 已收口**——沿用 §10 口径。
+
+### 15.1 第一轮独立复审(Codex,零上下文)
+
+调度方(Claude)直接派发,实施/评估会话零上下文隔离。参数与判活:
+
+- `codex exec -s read-only -C <rework 前的 w54b-closeout 树> -m gpt-5.6-sol --json -o <final.md> "<prompt>" < /dev/null`
+- 档位现场确认(非 JSON 模式):`model: gpt-5.6-sol`、`reasoning effort: max`。
+- 事件流 625 行,`turn.completed` **1**(判活铁律),`item.completed` 315;报告 21,493 bytes / 177 行。
+
+**结论:No-Go。A 级 5 / B 级 3 / C 级 1。C1、C2、C3 均未完整满足验收锚;红线 3、6、7 违反;
+§9 五条自犯错误中第 4 条未修完。**
+
+调度方对五条 A 级**逐条独立核验**(不采信复审自述,命令与读码均本会话实跑):
+
+| # | 断言 | 核验方式 | 结论 |
+|---|---|---|---|
+| A-1 | queued_delta 新 attempt 未持久化 resume session | `insertTier1Run` 调用点对象字面量确无 `nativeSessionId` 键;`confirmTier1RunNativeSession` SQL 带 `AND native_session_id IS NOT NULL` ⇒ confirm 必为 no-op | 属实 |
+| A-2 | 敏感基名经圈内 symlink 降为 S1 | `fileToolEffect.ts` 路径解析遇 symlink 即 `realpathSync`;敏感正则只测 `resolved.abs` | 属实 |
+| A-3 | BYOA 身份核验降级为 mtime/size 缓存 | 基线 `5036bee` 每次 `sha256File` 真算;现 BYOA 调用点不传 opts ⇒ 走 `sha256FileCached`;仅 `claudeIdentity.ts` 传 `forceRehash` | 属实,且模块头注释「行为对 byoa 原调用点不变」是不实陈述 |
+| A-4 | POSIX dev 漂移未刷新登记 | `verifiedProjectWorkspace` 末行只取 `.path` 丢弃刷新后 dev;`revalidateCandidate` 丢弃返回值 | 属实(canonical `09:104` 明写「放行并以当前值刷新登记」) |
+| A-5 | 既有测试期望超红线 7 白名单 | `git diff 5036bee 4c4bf96 -- config-project-overrides.test.ts` 显示期望 `false→true` | 属实,但属**流程违规而非代码缺陷** |
+
+### 15.2 owner 三项裁决(2026-08-26)
+
+| 项 | 裁决 |
+|---|---|
+| ios 门禁回归(§14.2) | **现在单独提交到 main**——已落 `9a3e180`,main 随之转绿 |
+| **A-5** | **追认为红线 7 的白名单例外**。理由:该改动本身就是 C1 验收锚「projectOverrides `dev.agent` 放开 `claude_code`」的直接要求,改回去 C1 即失效;真正的违规是当时未按红线停点上浮。**不改代码,本节记录追认** |
+| **B-2** | **追认为正式回写**。`docs/10`/`docs/11` 的相关条目内容已过评审且与实现一致,退回草案态反而制造「canonical 说一套、代码做一套」的新不一致。W5.4-c 相应减重 |
+
+### 15.3 返工批(Grok 施工,零上下文)
+
+分支 `w54b-review-rework`,基于 main。派发形态与判活:
+
+- `grok --prompt-file /dev/stdin --cwd <rework 树> --output-format streaming-json --model grok-4.6
+  --reasoning-effort xhigh --no-subagents --verbatim --always-approve --sandbox workspace`
+- 预检:已登录 grok.com,`grok-4.6` 为 available/default。
+- 结束事件 `stopReason: "end_turn"`、`modelUsage: {"grok-4.6-build": …}`、`num_turns: 138`(判活铁律)。
+
+任务书给定七条,每条要求配「先失败、修后通过」的测试。逐条落地:
+
+| 条 | 实现改动 | 测试 |
+|---|---|---|
+| A-1 | `executor.ts` `applySessionIdentity`:`run.isResume` 时先 `overwriteTier1RunNativeSession` 再 confirm(**未动** confirm 的 NOT NULL 守卫) | `tier1-executor.test.ts` 新增用例,直查 `SELECT native_session_id, native_session_confirmed … WHERE attempt=2` 断言 `sid` 与 `c===1` |
+| A-2 | `fileToolEffect.ts`:敏感判定改为「请求原路径 **或** `resolved.abs`」任一命中;位置判定仍只用解析后路径 | `tier1-file-tool-effect.test.ts` +3(write/read 各一,外加「普通非敏感 symlink 仍 S1」防一刀切) |
+| A-3 | `byoa/provider.ts` spawn 前改 `checkBinaryIdentity(…, { forceRehash: true, hashFile })`;`binaryIdentity.ts` 头部不实注释**改为如实**区分缓存调用点与安全门 | 新文件 `binary-identity-force-rehash.test.ts` +2;`byoa-fake-cli.e2e.test.ts` 同族用例(哈希调用计数 === 2 + 同 mtime/size 内容替换判 `digest_mismatch`) |
+| A-4 | `projects.ts` `verifiedProjectWorkspace` dev 漂移时 UPDATE;`anchor.ts` `revalidateCandidate` 改为返回 identity,`acceptProjectAnchor` 用刷新值写库 | `workspace-identity-remount.test.ts` +2,均**重查数据库**断言 `workspace_dev` 已刷新且 `not.toBe(staleDev)` |
+| B-1 | `GlobalSettings.tsx` 拆「pin 版本(配置)」与「实测版本(探针)」,探针缺失/版本项失败写「未测试」,不回退 pin | `GlobalSettings.test.tsx` 改原用例期望 + 新增 1 条 |
+| B-3 | **只改测试**(实现已有 `resolveClaim`):改写为 recover 路径真造并发转态,让 `finalizeFailure` 走事务早退 | 反证:临时去掉 `resolveClaim` 后该用例 8s 超时红,还原后绿 |
+| C-1 | `TaskDetail.tsx` run 行加 `data-adapter`;`console.spec.ts` 补断言 adapter 与版本来源 | Playwright 定向断言 |
+
+**调度方对返工的处置**:Grok 曾把 §14.2 已删除的 ios 门禁**原样还原**(范围外改动,其自述中记为
+「工作区里有无关的 iOS 脚本删除,先还原」),已由调度方清理——该删除是 owner 裁决,不接受施工方推翻。
+
+### 15.4 返工批门禁(**非沙箱环境**,调度方本会话实跑;退出码显式核查)
+
+Grok 在其 workspace sandbox 内跑不通 `just ci` / playwright / python 矩阵(其自述已如实标注),
+故由调度方在真实环境复跑:
+
+| 门 | 结果 |
+|---|---|
+| `just ci`(第 2 次) | **exit 0** — `[ok] just ci: node + python matrices green` |
+| daemon | **2170 passed \| 6 skipped**(131 files passed \| 2 skipped);基线 2161 ⇒ **+9**(返工新增) |
+| console | **279 passed**;基线 278 ⇒ +1 |
+| contracts / platform / CLI / pytest | 111 / 72 passed·14 skipped / 49 passed·1 skipped / 34 —— 与基线一致 |
+| `pnpm exec playwright test` | **exit 0**,**36 passed (2.7m)** ⇒ C-1 由「已实现未验」转为**已实现且测试绿** |
+
+**第 1 次 `just ci` 为 exit 1**,红 2 条,均在 `tier1-executor.test.ts`
+(第 1090 行与第 1425 行的裸 `vi.waitFor(() => expect(spawner.spawned).toHaveLength(1))` 超时)。
+判定为**已知 flaky 而非返工引入的回归**,三条证据:
+
+1. 单独复跑该文件 **2/2 全绿**(各 155 passed,含返工新增用例);
+2. **对照组**:在**未打任何补丁**的 `main`(`52119ff`)上跑全量 daemon,同样红,
+   且红的是**同一条测试、同一行 1090、同一断言**(`expected [] to have a length of 1`);
+3. 失败断言是 `expect(spawner.spawned).toHaveLength(1)` 在 executor 尚未 spawn 时超时
+   (裸 `vi.waitFor` 无 timeout 参数,默认 1000ms)。
+   **【2026-08-27 更正】**本条原写作「返工的四处实现改动全部在 spawn **之后**的路径上,与该失败无因果」,
+   该表述**不成立**,已由第二轮独立复审指出:A-4 改动的 `verifiedProjectWorkspace` 位于 Tier1 认领路径、
+   **在 spawn 之前**(`packages/daemon/src/tier1/executor.ts:1643`);BYOA 的身份核验同样在其 spawn 之前。
+   本条据此**降为非独立论证**,不作为判据。flaky 判定仍成立,依据是第 1、2 条,其中第 2 条
+   (未打任何补丁的 main 上同一条测试、同一行、同一断言同样红)是决定性的。
+
+该 flaky 属 RC 链收口时已登记的发布工程质量债(`tier1-executor.test.ts` 裸 `vi.waitFor` 结构性问题),
+**本批不展开修复**,按会话纪律留给该独立线。
+
+### 15.5 边界(未做的明说未做)
+
+- **未合并**:`w54b-review-rework` 的改动尚未进 main,等第二轮独立复审。
+- **未关 pointer**:`w54b-wiring` 仍是 active pointer。关批前置(IMPL-16 §3 阶段 C)尚未全绿。
+- **未做 W5.4-c 任何内容**:真 Claude hook 全链、live conformance、四场真人验收,均未触及。
+- **未部署常驻**:`~/.saydo/runtime` 仍 `6d98a6e`。
+- **未修 flaky**:见 §15.4,归独立线。
+
+## 16. 2026-08-27 第二轮复审 No-Go 与第二轮返工
+
+### 16.1 第二轮独立复审(Codex,零上下文)
+
+参数同 §15.1(`gpt-5.6-sol` + config `max`,`-s read-only`,`< /dev/null`)。
+事件流 170 行,`turn.completed` **1**;报告 9,613 bytes / 66 行。
+
+**结论:No-Go。** 但已接近:七条中 **6 条 CONFIRMED_FIXED**(A-1/A-2/A-3/B-1/B-3/C-1),
+A-4 **PARTIALLY_FIXED**,并抓出**返工自己引入的一条 A 级生产回归**。
+
+| 新问题 | 级别 | 内容 |
+|---|---|---|
+| 只读备份路径被 dev 刷新击穿 | **A** | `verifiedProjectWorkspace` 新增的 `UPDATE` 会在只读 SQLite 副本上执行:`backup/snapshot.ts` 的 `productionWorkspaceSourcesFromSnapshot` 以 `{ readonly: true }` 打开备份副本(约 501 行)→ `activeWorkspaceSources`(约 447)→ `verifiedProjectWorkspace` ⇒ `attempt to write a readonly database`,**整轮备份中止**。复审方已跑等价只读反例取得该原始输出 |
+| BYOA 回归测试未锁住 mtime | B | 三组测试用 `utimesSync(bin, atime, mtime)` 恢复时间戳但只断言 size;`Date` 丢亚毫秒(实测 `mtimeMs=…209.1145` vs `getTime()=…209`),故移除生产 `forceRehash` 后缓存仍可能因 mtime 数值变化而重算 ⇒ **回归证明不成立**(实现正确,证明无效) |
+| 证据文档新的不实陈述 | B | §15.4 第 3 条称「四处实现改动全部在 spawn 之后」——**不成立** |
+| 测试标签与次级断言弱化 | C | A-1 测试标题写 `queued_delta` 实走 `cancel_resume`;B-3 健康任务断言由 `ready_for_review` 降为「已 spawn」;console.spec 两断言未收窄到同一 `<tr>` |
+
+**调度方对 B 级第三条的处置**:该不实陈述是**调度方本人**写的,已核实成立
+(`verifiedProjectWorkspace` 确在 Tier1 认领路径、spawn 之前 —— `executor.ts:1643`;
+BYOA 身份核验亦在其 spawn 之前),已于 §15.4 就地更正并标注,该条论证降为非独立论证。
+flaky 判定本身不受影响(依据是第 1、2 条,其中 main 对照是决定性的)。
+
+调度方另**主动自查** §14.2「职能已由 `test-mobile-installers.mjs` 取代」的覆盖面断言:
+该脚本中设备发现相关 24 处、`codesign` 7 处、plist/CFBundle 23 处、fail-closed 相关 65 处命中,
+断言成立。
+
+### 16.2 第二轮返工(Grok 施工,零上下文,与第一轮返工不同会话)
+
+派发形态同 §15.3。判活:`stopReason: "end_turn"`、`modelUsage: {"grok-4.6-build": …}`、
+`num_turns: 72`。
+
+| 条 | 改动 | 测试 |
+|---|---|---|
+| **A**(只读备份) | `projects.ts` 新增 `dbConnectionWritable(db)`(查 `db.readonly` 与 `pragma("query_only")`),可写连接才执行 UPDATE;**未用 try-catch 吞写失败**,真实写故障仍抛出。**【2026-08-27 第三轮复审更正】**原写「仅可写连接执行 UPDATE」不够严谨:开启 `defaultSafeIntegers(true)` 时该 pragma 返回 BigInt `1n`,`1n !== 1` 恒真会使探测失效——见 §17.1 的 B 级条目(**生产路径**无 `safeIntegers` 调用,故非生产可达;第三轮返工已在 §17.2 B-1 堵上) | `workspace-identity-remount.test.ts` +3:`readonly:true` 路径、`query_only=ON` 路径、`productionWorkspaceSourcesFromSnapshot` 在 stale dev 只读副本上不失败。修前红原始输出 `SqliteError: attempt to write a readonly database`(3 failed / 5 passed),修后 8 passed |
+| **B**(mtime) | 测试改用数值秒 `mtimeMs/1000` 并显式断言 `restored.mtimeMs === before.mtimeMs` 且 size 不变 | 反证:临时移除生产 `forceRehash: true` 后 e2e 两条转红(`binary_identity_mismatch` → `process_group_not_reaped`),即缓存命中放行了被篡改的 CLI;还原后绿 |
+| **C**(标题) | 测试标题 `queued_delta …` → `cancel_resume 续跑 attempt 在 init 对上后必须持久化 native_session_id 并确认` | 未另补真正的 `queued_delta` 用例(实施方明说) |
+| **C**(断言) | 实施方称 `ready_for_review` 在该 recover 夹具上不可达,改为断言脏 run 仍 `running` + 健康路径 spawn;console.spec 两断言已收窄到同一 `<tr>` | **【2026-08-27 第三轮复审更正】「不可达」的说法不成立**:`executor.ts:3835` 的恢复分支对「活跃 run 但 task 非 running」的数据不一致会清旧孤儿并经取消链把 run 落到终态,旧 run 因此不再阻塞同项目,健康任务**可以**到达 `ready_for_review`。调度方此前照录该说法,系未独立核验,一并更正。该项列入 §17.1 的 C 级条目,第三轮返工已在 §17.2 C-2 处置 |
+
+实施方给出**全仓 `verifiedProjectWorkspace` 调用点清单**(调度方要求的必做项):
+`snapshot.ts` 三处 `readonly:true` 中,157 与 573 只 SELECT id **不**走该函数,仅 501 走;
+其余 `index.ts`/`live/pack.ts`/`brain`/`anchor.ts`/`api/actions.ts`/`memory`/`tier1` 等调用点
+均经可写 `openDb`,刷新仍会发生。该清单的真实性由第三轮复审独立验证。
+
+**调度方处置的两处副产物**:playwright 每次运行都写 `e2e/screenshots/**`(spec 内
+`page.screenshot({path})` 留证,非断言基线),两轮均由调度方 `git checkout` 还原;
+`e2e/evidence/w54b-batch.md` 的改动为调度方自己的更正,非施工产物。
+
+### 16.3 第二轮返工门禁(非沙箱,调度方本会话实跑)
+
+Grok 在其 sandbox 内 `just ci` 与 playwright 均跑不通(`git worktree add` 经 `runManagedCommand`
+挂起、daemon 起不来),已如实标注;由调度方在真实环境复跑:
+
+| 门 | 结果 |
+|---|---|
+| `just ci` | **exit 0**,**一次通过**(未撞 flaky) |
+| daemon | **2173 passed \| 6 skipped**(131 files passed);上一轮 2170 ⇒ **+3**(本轮只读路径测试) |
+| console / contracts / platform / CLI / pytest | 279 / 111 / 72 passed·14 skipped / 49 passed·1 skipped / 34 —— 与基线一致 |
+| `pnpm exec playwright test` | **exit 0**,**36 passed (2.9m)** |
+
+### 16.4 状态
+
+第三轮独立复审已派发(聚焦本轮 4 条 + 复核前 6 条未退化 + 找新问题)。
+**在其绿灯前,W5.4-b 仍是收口候选,active pointer 不动。**
+
+## 17. 2026-08-27 第三轮复审与第三轮返工(收尾)
+
+### 17.1 第三轮独立复审
+
+参数同前。事件流 289 行,`turn.completed` **1**;报告 9,664 bytes / 78 行。
+
+**结论:No-Go,但 A 级已清零** —— 原「只读快照执行 UPDATE」的生产 A 级回归**已关闭**,
+**未发现新的当前生产 A 级**,上一轮 6 条 CONFIRMED_FIXED **全部仍成立、无退化**。
+剩余为 2 条 PARTIALLY + 新增 B/C:
+
+| 项 | 级别 | 内容 |
+|---|---|---|
+| `query_only` 探测的 BigInt 缺口 | B | `dbConnectionWritable` 用 `pragma(…) !== 1`;开 `defaultSafeIntegers(true)` 时返回 BigInt `1n`,`1n !== 1` 恒真 ⇒ 探测失效。复审跑了动态探针取证(`{"safe":true,"value":"1","type":"bigint","threw":true,"code":"SQLITE_READONLY"}`)。**生产路径无 `safeIntegers` 调用,故非生产可达**,定 B(注:第三轮返工新增的测试本身会开启 safeIntegers,故「仓内无调用」的说法自该轮起不再成立,生产路径无调用仍成立) |
+| 证据文档两处不实 | B | §16.2 的「`ready_for_review` 不可达」与「仅可写连接执行 UPDATE」 |
+| 测试夹具假定 checkout 在 owner home | C | `workspace-identity-remount.test.ts` 用 `process.cwd()` 建 workspace |
+| B-3 健康任务终态断言仍放宽 | C | 「不可达」理由被证伪,断言仍停在「已 spawn」 |
+
+**调度方对两条证据不实的处置**(均为调度方自己的失误,已核实后就地更正,见 §16.2 的两个更正块):
+
+1. 「`ready_for_review` 不可达」—— 调度方**照录了施工方的说法而未独立核验**。实测
+   `executor.ts:3835` 的恢复分支对「活跃 run 但 task 非 running」的数据不一致会清旧孤儿、
+   经取消链把 run 落终态,旧 run 不再阻塞同项目 ⇒ 该状态**可达**。
+   这与本批历史教训(台账写不实陈述)同源,记此备戒。
+2. 「仅可写连接执行 UPDATE」—— 在 BigInt 场景下不成立,已加限定并指向本节的 B 级条目。
+
+复审同时确认 §15.4 的第一处更正**准确**,并独立验证了施工方给出的
+`verifiedProjectWorkspace` 调用点清单属实(`snapshot.ts` 157/573 只做 `quick_check`/SELECT,
+仅 501 经 `activeWorkspaceSources` 走到该函数)。
+
+### 17.2 第三轮返工(Grok,零上下文,第三个独立会话)
+
+判活:`stopReason: "end_turn"`、`modelUsage: {"grok-4.6-build": …}`、`num_turns: 55`。
+
+| 条 | 改动 | 验证 |
+|---|---|---|
+| **B-1** | `projects.ts` 探测改为 `queryOnly !== 1 && queryOnly !== 1n`,同时认 number 与 bigint | 新增用例「`query_only=ON` 且 safeIntegers 时 POSIX dev 漂移不抛错且不刷新登记」;修前红 `SqliteError: attempt to write a readonly database`,修后同文件 **9 passed** |
+| **C-2** | 断言恢复到 `waitTaskStatus(OK, "ready_for_review")`;**脏 run 断言仍是 `running`(第 6217 行),未改**;删去错误推演,注释改为与 `executor.ts:3835` 一致。**【2026-08-27 第四轮复审更正】**本格原写「脏 run 断言改为 `cancel_settled`」——**不实**:实测第 6217 行仍为 `.toBe("running")`,`cancel_settled` 只出现在其上方注释中。调度方据 `git diff` 片段推断而未读实际代码,系本轮第三次同类失误;复审同时指出第一次 `recover()` 后断言 `running` **本就是正确时序**,应补的是第二次 `healthy.recover()` 后的 `cancel_settled` 断言(列入 §18 遗留) | 施工方沙箱内该用例 15s 超时,其**对照实验**证明是环境限制:同文件**未改动**的 `成功全链:ready_for_review` 与 `评审 90 A-6` 在其沙箱同样超时,根因是 `runtimeChildRegistry` 拿不到 verify 子进程的 `processStart`。**调度方在非沙箱复跑坐实修复成立**(见 §17.3) |
+| **C-3** | 新增 `ownerTempRoot()`:优先 `~/.cache` → `~`,两者 EPERM/EACCES 时**仅当 cwd 已是 home 严格子树**才回落 checkout,否则显式抛错 | 同文件 9 绿 |
+
+### 17.3 第三轮返工门禁(非沙箱,调度方本会话实跑)
+
+| 门 | 结果 |
+|---|---|
+| `just ci` | **exit 0** |
+| daemon | **2174 passed \| 6 skipped**(131 files passed);上一轮 2173 ⇒ **+1**(B-1 新增用例) |
+| console / contracts / platform / CLI / pytest | 279 / 111 / 72 passed·14 skipped / 49 passed·1 skipped / 34 —— 与基线一致 |
+| 单独跑 `test/tier1-executor.test.ts` | **exit 0**,**155 passed**;其中 `评审 91/92 A-5:身份漂移 + 任务被并发转走 ⇒ finalizeFailure 早退仍释放认领` **[ok] 1001ms** |
+
+最后一项是 **C-2 的决定性验证**:恢复后的 `ready_for_review` 断言在真实环境**通过**,
+同时印证了第三轮复审「该状态可达」的判断与施工方「沙箱环境限制」的归因**双双成立**。
+
+### 17.4 状态
+
+第四轮独立复审已派发(聚焦本轮 3 条 + 全面防退化核对 + 找新问题)。
+**在其结论出来前,W5.4-b 仍是收口候选,active pointer 不动。**
+
+## 18. 2026-08-27 第四轮复审、归属判定与收敛状态
+
+### 18.1 第四轮独立复审
+
+参数同前。事件流 145 行,`turn.completed` **1**;报告 10,151 bytes / 61 行。
+
+**结论:No-Go。** 三条本轮返工均判 PARTIALLY_FIXED(核心已修,边角未尽),
+前 7 项防退化中 6 项「仍成立」,并提出**一条 A 级新问题**。
+
+| 条 | 判定 | 复审认定的剩余边角 |
+|---|---|---|
+| B-1 `query_only` | PARTIALLY | `1/1n` 与 `0/0n` 均判定正确、`db.readonly` 短路仍在、pragma 抛错会在 UPDATE 前传播;但**任何非 `1/1n` 的未知返回(如 `"1"`、`null`)会 fail-open 为可写**。better-sqlite3 13.0.3 实测只有 number/bigint,故第三形态**当前生产不可达** |
+| C-2 | PARTIALLY | 健康任务已恢复 `ready_for_review`;但**缺第二次 `healthy.recover()` 之后的 `cancel_settled` 断言**。复审同时确认:第一次 `recover()` 后断言 `running` **本就是正确时序**,注释推演正确,且移除 `resolveClaim` 后该用例必然超时变红 |
+| C-3 | PARTIALLY | 正常路径已不依赖 checkout 位置,子树判定与清理正确;但 `~/.cache` 若是指向 home 外的 symlink 仍会在策略层失败、只捕获 EPERM/EACCES 未含 EROFS、新建的 `.cache` 父目录不清理 |
+
+### 18.2 A 级新问题的**归属判定**(调度方独立核验,非采信复审)
+
+**复审提出**:BYOA 单次 `chat()` 内的后续 spawn 不重验身份 ——
+`chat()` 开头哈希通过后,`runner.ts` 的网络重试(默认 `networkRetryLimit=1`)、tripwire/unknown 重试、
+Cursor schema repair 都会**再次 `spawnRuntimeChild` 而不回到身份检查**,
+两次 spawn 之间替换二进制即可绕过。
+
+**该问题成立,但不属 W5.4-b。** 调度方核验:
+
+| 核验项 | 命令/证据 | 结果 |
+|---|---|---|
+| 基线是否也「验一次、多次 spawn」 | `git show 5036bee:…/byoa/provider.ts` | 第 241 行 `verifyBinaryIdentity`(chat 开头一次)、第 275 行 `networkRetryLimit ?? 1`、第 319 行 `runSpawnTurn` —— **同构** |
+| 基线 `runner.ts` 重试循环是否重验 | `git show 5036bee:…/byoa/runner.ts \| grep 'verifyBinaryIdentity\|checkBinaryIdentity'` | **零命中**;第 329 行 `retryLimit`、第 343 行 `isRetryableNetworkFailure`、第 111 行 `spawnRuntimeChild` |
+| 当前 `runner.ts` 是否有身份核验 | 同 grep | **零命中**(与基线一致) |
+| `runner.ts` 的 diff 归属 | `git diff 5036bee HEAD -- …/runner.ts` | 全部是 **RC4 runtime 线**的进程组生命周期改动(`processGroupLifecycle` / `pipeError` / `lifecycleError` / `runtimeChildRegistry` 迁移),与 w54b 无关 |
+
+**结论:这是基线既有的安全缺口,既非 W5.4-b 引入,也非本次三轮返工引入。**
+W5.4-b 的 A-3 修的是「共享模块提取时引入的 mtime/size 缓存」,那一条已 CONFIRMED_FIXED;
+「重试不重验」是另一个更早的结构问题。
+
+按 IMPL-16 §2 红线 1(「若认为某处实现有缺陷,记录为 finding 上浮,不要顺手改」),
+**本批不修,登记为独立线的安全债**,详见 §18.4。
+
+### 18.3 调度方本轮的三次失误(如实记录,不掩饰)
+
+本批历史教训是「台账写不实陈述」。调度方在本轮**重犯三次**,均由独立复审抓出:
+
+| # | 不实陈述 | 复审轮次 | 真相 | 已更正处 |
+|---|---|---|---|---|
+| 1 | §15.4「四处改动全部在 spawn 之后」 | 第二轮 | `verifiedProjectWorkspace` 在 Tier1 认领路径、spawn 之前(`executor.ts:1643`);BYOA 身份核验亦在其 spawn 之前 | §15.4 更正块 |
+| 2 | §16.2「`ready_for_review` 不可达」 | 第三轮 | **照录施工方说法而未独立核验**。`executor.ts:3835` 的恢复分支会清孤儿、经取消链落终态,该状态可达 | §16.2 更正块 |
+| 3 | §17.2「脏 run 断言改为 `cancel_settled`」 | 第四轮 | **据 `git diff` 片段推断而未读实际代码**。实测第 6217 行仍为 `.toBe("running")`,`cancel_settled` 只在其上方注释中 | §17.2 更正块 |
+
+另有两处非事实性但不严谨:两个更正块曾指向**不存在的 §16.5**(已改指 §17.1/§17.2);
+「仓内当前无 `safeIntegers` 调用」在第三轮返工新增测试后过时(已限定为「生产路径无调用」)。
+
+**根因**:三次都是「用二手材料(施工方自述 / diff 片段)代替一手核验」。
+这正是调度方在派发 prompt 里要求评审方做到、而自己没做到的事。
+**纠正措施**:自本节起,evidence 中任何关于代码的事实性断言,落笔前必须有本会话读到的
+`file:line` 实际内容支撑,不得据 diff 片段或他方自述推断。
+
+### 18.4 遗留清单(本批不修,登记去向)
+
+| # | 级别 | 内容 | 去向 |
+|---|---|---|---|
+| L-1 | **A** | BYOA 单次 chat 内多 spawn 不重验二进制身份(网络重试 / tripwire / schema repair 三条路径) | **既有缺陷,独立安全线**。修法方向:把身份核验下沉到每次 `spawnRuntimeChild` 之前,而非 `chat()` 开头一次 |
+| L-2 | B | `dbConnectionWritable` 对非 `1/1n` 的未知 pragma 返回 fail-open | 当前 better-sqlite3 13.0.3 只返回 number/bigint,生产不可达;若升级该库需复核 |
+| L-3 | B | A-1 的 `overwrite`(置 `confirmed=0`)与 `confirm`(置 1)是两条 autocommit SQL,其间崩溃会留下未确认 durable 行 | 该状态是 fail-closed(未确认即不 exact resume),不造成错误 resume;登记待后续合并为单事务 |
+| L-4 | C | C-2 缺第二次 `recover()` 后的 `cancel_settled` 断言 | 断言强度问题,核心回归已锁 |
+| L-5 | C | C-3 夹具的 `.cache` symlink / EROFS / 父目录清理边角 | 测试夹具健壮性 |
+| L-6 | C | `binary-identity-force-rehash.test.ts` 第二个 chat 用例与 tracked e2e 场景重复 | 测试去重 |
+| L-7 | — | `tier1-executor.test.ts` 裸 `vi.waitFor` 结构性 flaky(第 1090/1425 行等) | RC 链收口时已登记的发布工程质量债,独立线 |
+
+### 18.5 收敛状态
+
+四轮独立复审 + 三轮返工后:
+
+- **W5.4-b 自身引入的 A 级 = 0**。第一轮的 5 条全部 CONFIRMED_FIXED;
+  第一轮返工引入的 1 条 A 级生产回归已关闭;第四轮的 A 级经归属核验属基线既有缺陷。
+- 前 7 项修复经第四轮逐条防退化核对,6 项「仍成立」,第 7 项(A-3)的「退化」判定
+  实为**覆盖面认定变化**(从「chat 开头每次真算」扩展到「每次 spawn 前真算」),
+  其原始验收锚(spawn 前不走 mtime/size 缓存)仍成立。
+- 剩余 6 条为 B/C 级,均为测试断言强度、夹具健壮性与文档表述,无生产功能缺陷。
+- 门禁:`just ci` exit 0(daemon 2174 passed / 6 skipped)、
+  `pnpm exec playwright test` exit 0(36 passed)、单独跑 `tier1-executor.test.ts` 155 passed。
+
+**owner 2026-08-27 三项裁决**:
+1. **停止返工循环,进关批流程** —— 以「W5.4-b 自身 A 级 0」为准,§18.4 的 6 条 B/C 登记为遗留;
+2. **L-1 登记为独立安全线,另起批次** —— 不拿基线既有缺陷卡 W5.4-b 关批;
+3. **返工分支现在合入 main**。
+
+返工代码提交 = `8941e1c`(本会话 `git log` 实测)。

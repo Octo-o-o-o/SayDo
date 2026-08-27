@@ -1,0 +1,867 @@
+{
+  "schema_version": 1,
+  "active_contracts": [
+    {
+      "id": "ENG-002",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-002",
+      "allowed_tools": [
+        "repo",
+        "test"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "用户改完邮箱再刷新会变回旧值，你先复现、找根因，再给我最小修复。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "在有限范围内修复可复现缺陷并保留证据。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "d35f702661f98f2e1d449e6b699881fc51ca50f6423ca25220e97be26e224025"
+    },
+    {
+      "id": "ENG-003",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-003",
+      "allowed_tools": [
+        "test"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "这个解析器没人敢动。能只把现有行为补成测试，不碰实现吗？",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "用回归测试冻结现状，为后续修改降风险。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "e85b10ad9e29a81b6d64094a31614b733eac0ff7fb6813423d856e59363b9521"
+    },
+    {
+      "id": "ENG-005",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-005",
+      "allowed_tools": [
+        "repo",
+        "test"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_test",
+      "allowed_effect": "这段代码越来越难读，能在不改行为的前提下拆清楚，并用回归测试证明吗？",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "改善可维护性，同时用测试约束等价性。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "49160bee7f2c250f6c78586ea4465037de5e95d8f65ad3ed53f7c55ada8ca169"
+    },
+    {
+      "id": "ENG-006",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-006",
+      "allowed_tools": [
+        "git"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "帮我 review 这个分支，最可能造成数据丢失、越权或兼容性回退的地方有哪些？",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "在合并前优先发现高影响缺陷。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "e3397d80d40190c6e23ab8d9ecf47920d28813fe7f07a11a9904756271e0ce67"
+    },
+    {
+      "id": "ENG-008",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-008",
+      "allowed_tools": [
+        "repo",
+        "test",
+        "api"
+      ],
+      "conditional_tool_scope": {
+        "api": "workspace-local object only"
+      },
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "能按现有风格加一个按月份查账单的接口吗？权限、分页和错误码都要有测试。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "交付契合既有合同的新 API。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "e7538fa457b9f1b98ee162c2050578097063a3360c61130ca9051b407d75e491"
+    },
+    {
+      "id": "ENG-010",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-010",
+      "allowed_tools": [
+        "repo",
+        "test"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "这个联合类型为什么突然收窄失败？先解释，再用最小改动修到 typecheck 通过。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "理解并消除类型回归，避免粗暴断言。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "9ae7e8e970e12181cf31e21b04afc5c24c0a8d3fc33597f587bbfc63b796e222"
+    },
+    {
+      "id": "ENG-014",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-014",
+      "allowed_tools": [
+        "repo"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "请按实际代码补清默认值和失败方式：这个配置项现在到底怎么用？",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "让文档与实现一致，减少错误配置。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "edc837022ab88f0d7eda1c1e9941e0ebfe09b93a9fa0b60d5b12418e03adf5b8"
+    },
+    {
+      "id": "ENG-015",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-015",
+      "allowed_tools": [
+        "shell"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "按当前命令实际走一遍，README 的快速开始现在还能跑通吗？",
+      "verification_method": "运行本地命令并保存退出码与输出",
+      "evidence": "恢复新用户可复现的安装路径。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "6c2ac495d8267888e2630bd03e1cb30055f0184fff1420a6e0f7bea7efc824b3"
+    },
+    {
+      "id": "ENG-016",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-016",
+      "allowed_tools": [
+        "document",
+        "repo"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "这个字段要从可空改成必填，先给我迁移和回滚方案，别直接动生产数据。",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "在实施前暴露兼容和数据回填风险。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "f2083ac04a1bd26dda6ab7a917180a01ef669c9685ed91f588576be530bf7b52"
+    },
+    {
+      "id": "ENG-018",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-018",
+      "allowed_tools": [
+        "git"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "把这个版本从上个 tag 到现在的用户可见变化整理成 release notes，内部重构不要写进去。",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "生成面向用户、可追溯的版本说明。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "1c8317f6ee2d762a0e1dd40036345093d81e2e5cd395998a82e04f064a1881d3"
+    },
+    {
+      "id": "ENG-019",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-019",
+      "allowed_tools": [
+        "memory",
+        "test",
+        "git"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_test",
+      "allowed_effect": "昨天那版冲突处理跑测试又挂了。别再整块选一边，先告诉我是哪条语义没保住。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "保留双方语义并安全解决冲突。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "33404f323fa7cd6458329bf5da931142d9bf57090cb9bfe0f46f1af506f49799"
+    },
+    {
+      "id": "ENG-020",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-020",
+      "allowed_tools": [
+        "repo",
+        "rag"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "先判断这个漏洞在我们的调用路径里能不能触发，证据够了再提升级。",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "区分真实暴露与仅版本命中，合理排序修复。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "a8dacf5751bf2a29722bf56bc924465bbf23673d9faf38cd5e17fbd79d031781"
+    },
+    {
+      "id": "ENG-024",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-024",
+      "allowed_tools": [
+        "repo",
+        "shell"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "按仓库现在的要求把本机开发环境跑起来，卡住就记录准确原因，不要跳过检查。",
+      "verification_method": "运行本地命令并保存退出码与输出",
+      "evidence": "获得可复现的开发环境和故障记录。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "b1c4b7ca7e2a27d1388b29cacc5150c0c0e491311812be6d1eb063e94553104c"
+    },
+    {
+      "id": "ENG-025",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-025",
+      "allowed_tools": [
+        "shell",
+        "test"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "这个命令在 macOS 正常，Windows 路径一带空格就挂，补实现和跨平台测试。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "修复路径兼容并防止平台回归。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "5d6ff4cd397e011c6a1ab32bdfd5101238899e21b3afd010222a5cd7abcfad74"
+    },
+    {
+      "id": "ENG-026",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-026",
+      "allowed_tools": [
+        "shell"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "这个用例十次里挂一次，先做重复运行和时序取证，别直接放宽超时。",
+      "verification_method": "运行本地命令并保存退出码与输出",
+      "evidence": "找出非确定性来源并恢复测试可信度。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "c9a8596c59a50cd266e43f7dac78bbe7fdb635d2c5aa2d08bcb3e956e527567e"
+    },
+    {
+      "id": "ENG-029",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-029",
+      "allowed_tools": [
+        "memory",
+        "repo",
+        "git",
+        "test"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "昨天改筛选器后键盘操作失效了，定位是哪次改动，修完补回归测试。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "恢复交互并锁住可访问性行为。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "ce9420ed0ca79f9b445126fc163783bc6f634a994926cb1bad73ec0c4133c6b0"
+    },
+    {
+      "id": "ENG-034",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-034",
+      "allowed_tools": [
+        "repo",
+        "test",
+        "document"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_test",
+      "allowed_effect": "这个响应字段要改名，先找所有消费者，给我兼容期方案和契约测试。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "避免接口分叉和一次性破坏升级。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "c8c88b97f5732ec4c8ce3e87e0edf93c07d84bcf016f3334c62752377403c037"
+    },
+    {
+      "id": "ENG-037",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-037",
+      "allowed_tools": [
+        "repo",
+        "test",
+        "api"
+      ],
+      "conditional_tool_scope": {
+        "api": "workspace-local object only"
+      },
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "普通成员好像能读管理员导出接口，先做反例测试，再修到默认拒绝。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "消除越权并建立 fail-closed 回归门。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "dfab243a5ee0198d2760d41370c09465990cda7070ac5b43219a67f0404fdf08"
+    },
+    {
+      "id": "ENG-044",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-044",
+      "allowed_tools": [
+        "test",
+        "git"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_test",
+      "allowed_effect": "根据实际 diff 和测试结果写 PR 描述，未验证的地方单独列，不要自夸。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "降低 reviewer 理解成本并诚实交接。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "7f0df51ac420690f75fdfe845ab251cbc438b2517b709febe2f55aafdae7fa14"
+    },
+    {
+      "id": "ENG-046",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-046",
+      "allowed_tools": [
+        "test"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_test",
+      "allowed_effect": "按这份需求列正向、边界、权限和失败恢复测试，先指出哪些现在测不了。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "形成风险驱动且可执行的测试计划。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "728c8c27d49e74ff3a52f3d483f0f6da62e4d870feb4bcf645a1363312c482e4"
+    },
+    {
+      "id": "ENG-047",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-047",
+      "allowed_tools": [
+        "repo",
+        "shell",
+        "test",
+        "document"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "新命令第一次失败时用户看不懂，重做帮助文案和退出码，并补 CLI 测试。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "让命令失败可诊断且适合自动化消费。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "10df048fb6a507a900f33741bc933137e2c59c88bcf44ef58af7a9d8d76340f8"
+    },
+    {
+      "id": "ENG-053",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-053",
+      "allowed_tools": [
+        "memory",
+        "tasks"
+      ],
+      "conditional_tool_scope": {
+        "tasks": "workspace-local object only"
+      },
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "我刚派的修复现在到哪了？只告诉我状态、已验证证据和还在等什么。",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "低注意力获取可信进度，而非原始日志。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "f20e4182bf215bca271f750acf0adb3284d1fd38486f3504e77efd5faed04bd1"
+    },
+    {
+      "id": "ENG-060",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-060",
+      "allowed_tools": [
+        "test",
+        "repo"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "现在角色越加越乱，先从真实动作整理权限矩阵，再给迁移和反例测试。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "收敛最小权限模型并避免隐式扩权。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "5618f82b8bf72dabe2730dfc7e30565c4dd73780b818b272979d6ddc91b77d34"
+    },
+    {
+      "id": "ENG-070",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-070",
+      "allowed_tools": [
+        "test"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_test",
+      "allowed_effect": "把系统资产、信任边界、测试账号和禁止动作整理成给第三方的测试包。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "提高安全测试覆盖并限制误伤。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "b1376e82360027b7b8c171a6d88590a88198631f2eb8585c1853375052521ded"
+    },
+    {
+      "id": "ENG-089",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-089",
+      "allowed_tools": [
+        "repo",
+        "api"
+      ],
+      "conditional_tool_scope": {
+        "api": "workspace-local object only"
+      },
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "这个供应商 API 偶尔超时，做重试、幂等、限流和降级，但别把错误吞掉。",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "提高外部依赖韧性并保持失败可见。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "83620c6cb690189839450b90a426a8929f60f1d58cefa5d1dda00cce75d2f7dc"
+    },
+    {
+      "id": "ENG-001",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-001",
+      "allowed_tools": [
+        "repo",
+        "database",
+        "api"
+      ],
+      "conditional_tool_scope": {
+        "api": "workspace-local object only"
+      },
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "先画一张能核对的路径图：这个请求从 API 到数据库到底绕了哪些层？",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "快速建立可核对的代码导航，减少盲目搜索。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "89c730b687a4ac15cfca074da250086ba817ddb1862a21f011a20e417bbcfbc8"
+    },
+    {
+      "id": "ENG-023",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-023",
+      "allowed_tools": [
+        "git"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "把 dev 和 staging 的配置差异列清楚，哪些是故意的，哪些可能是漂移？",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "识别环境漂移并保留敏感信息边界。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "92bbe1c4decb209439e629c4fd580adf81c7eb3c3e5eaf0d2b4a0607da0b741c"
+    },
+    {
+      "id": "ENG-032",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-032",
+      "allowed_tools": [
+        "repo",
+        "test"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "导入规则定好后，请直接在现有后端实现，并补空值、重复和非法日期的测试；能先给我看 dry-run 结果吗？",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "防止脏数据静默进入系统。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "df8e02426e615d721621dc60be47c8e17ee5a8a4cb1aa9f5f6a9200f4e0f56c3"
+    },
+    {
+      "id": "ENG-033",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-033",
+      "allowed_tools": [
+        "shell"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "给这个清理命令设计 dry-run、范围确认和可恢复输出，别一上来就删。",
+      "verification_method": "运行本地命令并保存退出码与输出",
+      "evidence": "为破坏性命令建立预览与确认边界。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "d8712cd70da3cfe07e4648cd813f70e8693e8a8080deea46edcba3feaf7ab7ce"
+    },
+    {
+      "id": "ENG-043",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-043",
+      "allowed_tools": [
+        "repo",
+        "test"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "这些错误码用户根本看不懂。能改成下一步该做什么，同时把关联 ID 留给排障吗？",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "提升失败可恢复性而不泄露内部细节。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "00b589c3fa44dd71284bee4dfce68f6ca55d88ea4dea7cabd62eb4831c0a8eaa"
+    },
+    {
+      "id": "ENG-048",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-048",
+      "allowed_tools": [
+        "repo",
+        "database",
+        "test"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "新列只进了建库脚本，老库还没迁移。能补上增量迁移和老版本 fixture 吗？",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "防止只在空库绿、真实升级失败。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "ed442dd7655809d1bae9e6703fb8632e2dd0ce0cf297f50fd6100bee4ce0b372"
+    },
+    {
+      "id": "ENG-051",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-051",
+      "allowed_tools": [
+        "repo",
+        "test"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "这三个 helper 看起来一样，先确认行为差异，再决定是否合并。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "避免为了去重破坏隐含契约。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "86e2d57646699b3def5c175939651cfcab27c0a98d3a92001929c4302cb87292"
+    },
+    {
+      "id": "ENG-052",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-052",
+      "allowed_tools": [
+        "repo",
+        "rag"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "配置文档说默认关闭，代码却默认开启。能找到权威口径并把两边对齐吗？",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "消除合同与实现冲突。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "15745703be1ea69fb913fc3d0d137d76e9b50ac06fabdf1f0a29916359c88b1d"
+    },
+    {
+      "id": "ENG-055",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-055",
+      "allowed_tools": [
+        "repo",
+        "document"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "通知真要改成事件驱动吗？先给我一页 ADR，把失败模式和不改的代价讲清楚。",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "在施工前澄清边界、收益和迁移风险。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "99e381c7ba91e417efc1c23ed401504aaba1c6ac33566abf0cf97fa420e184cf"
+    },
+    {
+      "id": "ENG-061",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-061",
+      "allowed_tools": [
+        "repo",
+        "test",
+        "document"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "给现有登录加 SSO，先把租户发现、账号合并、锁死风险和管理员恢复路径设计清楚。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "安全引入企业身份而不阻断存量用户。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "ebec62b829ecbd494d0687d0b043b1dfbe41c9a8e96cbadfad201314533638af"
+    },
+    {
+      "id": "ENG-067",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-067",
+      "allowed_tools": [
+        "repo"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "插件机制我有点担心失控。权限、兼容、隔离和撤销这四块先怎么设门？",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "避免第三方扩展扩大供应链风险。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "5125c203a4fdf0003be205e2f271da2b56b554f57fedc7f8dd3933ed60dd5b3f"
+    },
+    {
+      "id": "ENG-068",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-068",
+      "allowed_tools": [
+        "repo",
+        "api"
+      ],
+      "conditional_tool_scope": {
+        "api": "workspace-local object only"
+      },
+      "effect_kind": "workspace_patch",
+      "allowed_effect": "给公开 API 做 v2，列出客户端迁移、双写期、弃用信号和最终下线门。",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "让破坏性升级可观测、可退出。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "c22da50c0a4a384520b81b9e10b24602190a7b0db8f990b21ae9af782dba89ce"
+    },
+    {
+      "id": "ENG-081",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-081",
+      "allowed_tools": [
+        "test",
+        "document"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "先做一套有人工标签的评测集，再比较模型，不要凭三条示例上线。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "用可重复评估替代演示偏见。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "a86c280910001cf62ec73db8457bd9f5ba1ef17e86bbe7aee7f9b6ade019c523"
+    },
+    {
+      "id": "ENG-083",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-083",
+      "allowed_tools": [
+        "memory",
+        "repo",
+        "test"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_test",
+      "allowed_effect": "仓库里的文档可能有 prompt injection，设计候选记忆、工具权限和回读验证的红队测试。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "阻断不可信内容到持久行动依据的链路。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "4bff7fe9d43bc50b14d6322d3c011e3c68484f2b8ce037f09abacd28e8e001fd"
+    },
+    {
+      "id": "ENG-101",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-101",
+      "allowed_tools": [
+        "repo",
+        "rag",
+        "document"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "密钥轮换设计快评审了，能重点检查旧密钥残留、回滚和审计证据是否闭合吗？",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "发现加密生命周期中的操作风险。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "1f0b8e44d2165106aed48814a0292760e4a6f1529e27e2a26d46aef8b5e9a15d"
+    },
+    {
+      "id": "ENG-116",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-116",
+      "allowed_tools": [
+        "repo",
+        "test",
+        "filesystem",
+        "rag"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_test",
+      "allowed_effect": "这些证据都在当前 workspace：把其中的需求、代码、测试、审批和发布记录串成审计包，法律充分性由合规人员确认。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "在缺省 coding workspace 内建立可追溯的软件交付证据链。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "be46a2f3c8eec1e86183388a64599fc5a5bcfb12594e997adbf7f1eb6777a9ad"
+    },
+    {
+      "id": "ENG-097",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-097",
+      "allowed_tools": [
+        "repo"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "先用两周把这套系统的真实边界、关键债和可替换模块摸清，再决定是否重写。",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "用证据约束重写冲动并形成投资决策。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "267a84403498e614bfcffdb088107c64aa0504be2c39c1eca1a1a8236dc7e88a"
+    },
+    {
+      "id": "ENG-103",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-103",
+      "allowed_tools": [
+        "test",
+        "design"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_test",
+      "allowed_effect": "离线协同这块到底选 OT 还是 CRDT？先拿权限撤销和历史压缩两个场景做对照原型。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "为实时协作选择一致性模型。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "934c2af7acd0b690cc0e714267ef28aaea9e0f1476ee4692b448d48af8196165"
+    },
+    {
+      "id": "ENG-108",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-108",
+      "allowed_tools": [
+        "repo",
+        "test"
+      ],
+      "conditional_tool_scope": {},
+      "effect_kind": "workspace_test",
+      "allowed_effect": "给这个状态机的关键不变量做模型检查，找出测试难覆盖的并发反例。",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "用形式化方法补常规测试盲区。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "ab234f7ff733cb359f847c6772eed2a004d4a59077ffdf83cf982be336696ad9"
+    },
+    {
+      "id": "ENG-113",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/ENG-113",
+      "allowed_tools": [
+        "repo",
+        "test",
+        "monitoring"
+      ],
+      "conditional_tool_scope": {
+        "monitoring": "workspace-local object only"
+      },
+      "effect_kind": "workspace_test",
+      "allowed_effect": "租户隔离这块，我想补一套可回归的安全门。能对缓存和后台任务做威胁模型、反例测试和日志取证吗？",
+      "verification_method": "运行题面相称的本地测试并保存退出码与输出",
+      "evidence": "找到跨租户泄漏路径并建立回归门。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "244d15eae125214319c289e326e8248cec666a5777d03c2d59bb40c1ac7635b2"
+    },
+    {
+      "id": "PRJ-031",
+      "status": "F1",
+      "project_type": "coding",
+      "capability_baseline": "enabled_project_types=coding；授权 project_root；本地文件、命令与测试闭环",
+      "workspace_locator": "workspace://authorized-project-root/PRJ-031",
+      "allowed_tools": [
+        "memory",
+        "tasks",
+        "document"
+      ],
+      "conditional_tool_scope": {
+        "tasks": "workspace-local object only"
+      },
+      "effect_kind": "workspace_read_or_document",
+      "allowed_effect": "回到昨天那个发布计划，先说已确认、仍冲突和今天最该问的一件事。",
+      "verification_method": "回读 workspace 产物并保存可审阅差异",
+      "evidence": "低成本恢复共享状态并继续收敛。；证据限于 workspace diff、文件回读、命令或测试输出",
+      "denied_scope": "生产控制面、外部 CRM、外部消息、外部账户与未授权 connector",
+      "question_sha256": "90b742ca5fd1c61bca0d28813635f0153ab9b4088d806f94f7aa1a717d2810ef"
+    }
+  ],
+  "reviewed_demotions": [
+    {
+      "id": "ENG-091",
+      "status": "F2",
+      "reason": "需要生产消费者遥测与 CRM 大客户依赖，超出缺省 coding workspace"
+    },
+    {
+      "id": "PRJ-025",
+      "status": "F2",
+      "reason": "需要 CRM、客户聊天与履约 tracker，超出缺省 coding workspace"
+    }
+  ]
+}
+

@@ -221,7 +221,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
               {runs.map((r) => (
                 <tr key={String(r["id"])} style={{ height: 40, borderTop: "1px solid var(--line)" }}>
                   <td>第 {String(r["attempt"])} 次</td>
-                  <td>
+                  <td data-adapter>
                     <Mono>{String(r["adapter"])}</Mono>
                   </td>
                   <td>

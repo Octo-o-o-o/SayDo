@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>说到 SayDo · 官网风格探索 Demo 总览（10 选）</title>
+<style>
+  :root{
+    --paper:#f0ede4; --paper-card:#faf7ef; --paper-raised:#fcfaf4;
+    --ink:#34332e; --ink-2:#5b564b; --ink-muted:#706b61; --ink-faint:#a29b8f;
+    --rule:#cec6b7; --rule-soft:rgba(206,198,183,.62);
+    --ochre:#a8641f; --indigo:#3c5f96; --pine:#41755a; --seal:#b13a2b; --seal-fg:#fff8ed;
+    --paper-fg:#fffaf0;
+    --shadow:0 1px 2px rgba(75,64,47,.05),0 8px 24px rgba(75,64,47,.09);
+    --font-body:'PingFang SC','HarmonyOS Sans SC','MiSans','Hiragino Sans GB','Microsoft YaHei',-apple-system,sans-serif;
+    --font-display:'Songti SC','Noto Serif SC',serif;
+    --font-mono:ui-monospace,'SF Mono','JetBrains Mono','Menlo',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:var(--font-body);background:var(--paper);color:var(--ink);font-size:15px;line-height:1.8;
+    background-image:radial-gradient(1100px 600px at 85% -5%,rgba(168,100,31,.05),transparent 60%),
+                     radial-gradient(900px 500px at 5% 35%,rgba(60,95,150,.045),transparent 60%);
+    min-height:100vh;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:64px 24px 80px}
+  .kicker{font-family:var(--font-mono);font-size:12px;letter-spacing:.26em;color:var(--seal);font-weight:700;margin-bottom:16px}
+  h1{font-family:var(--font-display);font-weight:700;font-size:clamp(34px,5vw,52px);letter-spacing:.03em}
+  .lead{margin:16px 0 8px;color:var(--ink-2);max-width:660px}
+  .note{font-size:13px;color:var(--ink-muted);margin-bottom:44px}
+  .note code{font-family:var(--font-mono);font-size:12px;background:rgba(52,51,46,.06);padding:1px 6px;border-radius:4px}
+
+  .group-label{
+    font-family:var(--font-mono);font-size:11.5px;letter-spacing:.24em;color:var(--ink-muted);
+    margin:34px 0 16px;display:flex;align-items:center;gap:14px;
+  }
+  .group-label::after{content:"";flex:1;height:1px;background:var(--rule-soft)}
+  .group-label b{color:var(--seal);font-weight:700}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .card{
+    display:block;text-decoration:none;color:inherit;background:var(--paper-card);
+    border:1px solid var(--rule);border-radius:14px;padding:26px 26px 24px;
+    box-shadow:var(--shadow);transition:.22s;position:relative;overflow:hidden;
+  }
+  .card:hover{transform:translateY(-5px);box-shadow:0 2px 4px rgba(75,64,47,.06),0 16px 44px rgba(75,64,47,.14)}
+  .card::before{content:"";position:absolute;top:0;left:0;right:0;height:5px;background:var(--ac,var(--indigo))}
+  .card .no{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.2em;color:var(--ac,var(--indigo));font-weight:700;display:flex;align-items:center;gap:10px}
+  .card .no .refined{font-size:10px;letter-spacing:.1em;border:1px solid var(--ac);border-radius:999px;padding:1px 8px;font-weight:400}
+  .card h2{font-family:var(--font-display);font-size:24px;margin:10px 0 4px;letter-spacing:.04em}
+  .card .one{font-size:14px;color:var(--ink);font-weight:600;margin-bottom:10px}
+  .card p{font-size:13.5px;color:var(--ink-2);line-height:1.75}
+  .card .tags{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+  .card .tags span{font-size:11px;border:1px solid var(--rule);border-radius:999px;padding:2px 10px;color:var(--ink-muted)}
+  .card .open{position:absolute;right:22px;top:22px;font-family:var(--font-mono);font-size:12px;color:var(--ink-faint)}
+  .card:hover .open{color:var(--ac,var(--indigo))}
+
+  footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule-soft);
+    display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-muted)}
+  footer a{color:var(--indigo);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">SAYDO HOMEPAGE · STYLE EXPLORATION · 2026-08-25</div>
+  <h1>官网风格探索 · 十个方向</h1>
+  <p class="lead">配色全部锁定现有色板（宣纸 / 松烟墨 / 矿彩四色 / 印泥朱，含夜色层），内容事实与现站一致——只有叙事结构、版式语言与视觉记忆点不同。01–05 已做第二轮精细化（微交互、质感、真实细节），06–10 为本轮新增。</p>
+  <p class="note">候选池与选型理由见 <code>docs/site/2026-08-25-homepage-style-exploration.md</code>。以下为静态 Demo，供设计评审用，非正式页面。</p>
+
+  <div class="group-label"><b>A 组</b> 精修版（首轮 5 个 · 已加细节与微交互）</div>
+  <div class="grid">
+    <a class="card" href="01-dialogue.html" style="--ac:var(--indigo)">
+      <span class="open">OPEN →</span>
+      <div class="no">DEMO 01 · NARRATIVE <span class="refined">已精修</span></div>
+      <h2>对话流叙事</h2>
+      <div class="one">整页就是一段真实对话，滚动即演示产品</div>
+      <p>语音气泡、决策包、四色账本长在聊天流里；带「正在输入」、已读回执，拍板/验收按钮可点——点下去账本真的会翻状态。</p>
+      <div class="tags"><span>亲切</span><span>零学习成本</span><span>可交互</span></div>
+    </a>
+
+    <a class="card" href="02-vertical-classic.html" style="--ac:var(--seal)">
+      <span class="open">OPEN →</span>
+      <div class="no">DEMO 02 · CLASSICAL <span class="refined">已精修</span></div>
+      <h2>竖排古籍·经折装</h2>
+      <div class="one">把「纸上账本」DNA 推到美术馆级</div>
+      <p>竖排大标题、界行线、卷次章节；做旧朱印、朱砂圈点、版心鱼尾、右侧书签、阅读进度。与「账本」定位完全同源的东方高定。</p>
+      <div class="tags"><span>高级</span><span>收藏感</span><span>东方自信</span></div>
+    </a>
+
+    <a class="card" href="03-poster.html" style="--ac:var(--ochre)">
+      <span class="open">OPEN →</span>
+      <div class="no">DEMO 03 · POSTER <span class="refined">已精修</span></div>
+      <h2>构成主义大字海报</h2>
+      <div class="one">超大宋体 + 斜切 + 朱印色块，一屏记住</div>
+      <p>套准十字、印刷颗粒、做旧印章、滚动驱动印章微旋与字块视差、双向跑马灯、背景大号章节数。视觉锤最强。</p>
+      <div class="tags"><span>冲击力</span><span>态度</span><span>Kinetic</span></div>
+    </a>
+
+    <a class="card" href="04-metro-map.html" style="--ac:var(--pine)">
+      <span class="open">OPEN →</span>
+      <div class="no">DEMO 04 · INFO DESIGN <span class="refined">已精修</span></div>
+      <h2>四色线路图</h2>
+      <div class="one">六步闭环画成地铁环线，四色账本 = 四条线</div>
+      <p>「你拍板」换乘大站 + 朱色小车沿线跑；图例、指北针、计费区环、「预算封顶」支线、运营状态条、可撕票根安装区。</p>
+      <div class="tags"><span>巧思</span><span>信息设计</span><span>可传播</span></div>
+    </a>
+
+    <a class="card" href="05-night-terminal.html" style="--ac:#7aa5f7">
+      <span class="open">OPEN →</span>
+      <div class="no">DEMO 05 · DEVELOPER <span class="refined">已精修</span></div>
+      <h2>夜账本·终端</h2>
+      <div class="one">暗色主打，hero 是一个真跑起来的终端</div>
+      <p>saydo up 打字机 + 带时间戳的启动日志、tmux 状态栏、扫描线、隐私做成 doctor 检查单、导航 scrollspy。直接对话开发者。</p>
+      <div class="tags"><span>极客</span><span>可信</span><span>想立刻试</span></div>
+    </a>
+  </div>
+
+  <div class="group-label"><b>B 组</b> 新增（本轮 5 个 · 差异化补位）</div>
+  <div class="grid">
+    <a class="card" href="06-one-day.html" style="--ac:var(--indigo)">
+      <span class="open">OPEN →</span>
+      <div class="no">DEMO 06 · STORY</div>
+      <h2>一日时间轴</h2>
+      <div class="one">跟着「有你的一天」从 06:58 走到 22:10</div>
+      <p>中央时间轴 + 交替卡片；左下实时钟随滚动推进，脊柱黛蓝填充，入夜后整页天色转暗。叙事沉浸感最强，把价值主张讲成了日子。</p>
+      <div class="tags"><span>叙事</span><span>沉浸</span><span>情绪曲线</span></div>
+    </a>
+
+    <a class="card" href="07-magazine.html" style="--ac:var(--seal)">
+      <span class="open">OPEN →</span>
+      <div class="no">DEMO 07 · EDITORIAL</div>
+      <h2>编辑部杂志</h2>
+      <div class="one">《說到月刊》创刊号：封面故事 + 专访 + 数据</div>
+      <p>刊头、目录点线、三栏正文配首字下沉与引文条、信息框边栏、Q&A 专访、编者的话信笺、「订阅」安装卡。印刷品级的排版功底。</p>
+      <div class="tags"><span>排版功力</span><span>杂志感</span><span>可读性强</span></div>
+    </a>
+
+    <a class="card" href="08-blueprint.html" style="--ac:var(--indigo)">
+      <span class="open">OPEN →</span>
+      <div class="no">DEMO 08 · ENGINEERING</div>
+      <h2>蓝图工程图</h2>
+      <div class="one">把产品当精密机械：总装图 + 工序图 + BOM</div>
+      <p>黛蓝晒图面、引线标注、尺寸线、图签标题栏、材料清单、技术要求、「准予施工」印章工单。工程信实感拉满，极客与设计师通吃。</p>
+      <div class="tags"><span>精密</span><span>工程感</span><span>信实</span></div>
+    </a>
+
+    <a class="card" href="09-app-console.html" style="--ac:var(--pine)">
+      <span class="open">OPEN →</span>
+      <div class="no">DEMO 09 · PRODUCT</div>
+      <h2>App 化单页</h2>
+      <div class="one">官网即产品：无滚动面板切换的控制台</div>
+      <p>标题栏 + 侧栏 + 状态栏的完整 App 壳；← → 键切换面板、账本可筛选、命令可复制、移动端变底栏。让人以为产品已经长这样。</p>
+      <div class="tags"><span>产品感</span><span>可交互</span><span>身临其境</span></div>
+    </a>
+
+    <a class="card" href="10-ink-brush.html" style="--ac:var(--ink)">
+      <span class="open">OPEN →</span>
+      <div class="no">DEMO 10 · ART</div>
+      <h2>水墨大笔触</h2>
+      <div class="one">留白、飞白笔触、四色墨滴晕染</div>
+      <p>超大「说到就做到」字构、干笔 SVG 滤镜、六步闭环画成一笔长卷（滚动绘制）、四色矿彩化作墨滴。最克制、最艺术的一版。</p>
+      <div class="tags"><span>美术馆</span><span>留白</span><span>克制</span></div>
+    </a>
+  </div>
+
+  <div class="group-label"><b>终稿候选</b> 评审终审后的杂交版（03 皮肤 × 01 骨架 × 04/08 零件）</div>
+  <div class="grid">
+    <a class="card" href="11-hybrid.html" style="--ac:var(--seal);border:2px solid var(--seal)">
+      <span class="open">OPEN →</span>
+      <div class="no">DEMO 11 · HYBRID FINAL <span class="refined">杂交终稿候选</span></div>
+      <h2>海报为框，对话为画</h2>
+      <div class="one">03 的大字 hero + 01 的可交互对话主线 + 04 环线图 + 08 隐私总装图</div>
+      <p>首屏：超大宋体视觉锤 + 一句话定义 + 双 CTA + 平台可用性 + 右侧环线图（站名已修复）。随后：痛点对照（解决什么问题）→ 影院式对话窗（一屏高、自动播放、新消息挤走旧消息、拍板/验收自动演示可抢点）→ 四义机制扫读 → 隐私总装图（全页唯一深底）→ 对话式 FAQ → 整幅朱色 CTA。环线图另有独立 SVG 资产 saydo-loop.svg。</p>
+      <div class="tags"><span>03 hero</span><span>01 body·活体版</span><span>04 图·入 hero</span><span>08 图</span><span>痛点+机制已补</span></div>
+    </a>
+  </div>
+
+  <footer>
+    <span>说到 SayDo · 风格探索（仅 Demo，未上线）· 01–05 已精修 / 06–10 新增 / 11 杂交终稿候选</span>
+    <span><a href="https://saydo.octoooo.com/">现版官网</a> · <a href="https://github.com/Octo-o-o-o/SayDo">GitHub</a></span>
+  </footer>
+</div>
+</body>
+</html>

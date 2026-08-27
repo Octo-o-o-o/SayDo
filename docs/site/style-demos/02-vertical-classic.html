@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Demo 02 · 竖排古籍·经折装 — 说到 SayDo 风格探索</title>
+<style>
+  :root{
+    --paper:#f0ede4; --paper-card:#faf7ef; --paper-raised:#fcfaf4;
+    --ink:#34332e; --ink-2:#5b564b; --ink-muted:#706b61; --ink-faint:#a29b8f;
+    --rule:#cec6b7; --rule-soft:rgba(206,198,183,.62);
+    --ochre:#a8641f; --indigo:#3c5f96; --indigo-line:rgba(60,95,150,.34);
+    --pine:#41755a; --seal:#b13a2b; --seal-line:rgba(177,58,43,.42); --seal-fg:#fff8ed;
+    --paper-fg:#fffaf0;
+    --font-body:'PingFang SC','HarmonyOS Sans SC','MiSans','Hiragino Sans GB','Microsoft YaHei',-apple-system,sans-serif;
+    --font-display:'Songti SC','Noto Serif SC','STSong',serif;
+    --font-mono:ui-monospace,'SF Mono','JetBrains Mono','Menlo',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-body);background:var(--paper);color:var(--ink);
+    font-size:15px;line-height:1.9;
+    background-image:radial-gradient(1000px 700px at 90% 0%,rgba(168,100,31,.05),transparent 60%),
+                     radial-gradient(800px 600px at 0% 60%,rgba(60,95,150,.04),transparent 60%);
+  }
+  ::selection{background:var(--seal);color:var(--seal-fg)}
+
+  /* 纸纹颗粒 */
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:200;opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.29 0 0 0 0 0.27 0 0 0 0 0.24 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /* 阅读进度（朱） */
+  .progress{position:fixed;top:0;left:0;height:3px;background:var(--seal);width:0;z-index:300;transition:width .1s linear}
+
+  /* 圈点（朱砂批点） */
+  .qd{text-emphasis: filled circle var(--seal);-webkit-text-emphasis: filled circle var(--seal);text-emphasis-position: under;-webkit-text-emphasis-position: under}
+
+  /* 书口：章节之间的版心鱼尾 */
+  .fold{
+    display:flex;align-items:center;justify-content:center;gap:18px;
+    padding:12px 0;background:var(--paper-raised);border-bottom:1px solid var(--rule-soft);
+    font-family:var(--font-display);font-size:12px;letter-spacing:.3em;color:var(--ink-muted);
+  }
+  .fold .yw{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent}
+  .fold .yw.up{border-bottom:11px solid var(--ink)}
+  .fold .yw.down{border-top:11px solid var(--ink)}
+
+  /* 右侧书签 */
+  .ribbon-nav{
+    position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:100;
+    display:flex;flex-direction:column;gap:6px;
+  }
+  .ribbon-nav a{
+    writing-mode:vertical-rl;text-decoration:none;font-family:var(--font-display);font-size:13px;letter-spacing:.22em;
+    background:var(--paper-raised);color:var(--ink-2);border:1px solid var(--rule);border-right:none;
+    padding:14px 7px;border-radius:6px 0 0 6px;transition:.2s;
+  }
+  .ribbon-nav a:hover{background:var(--seal);color:var(--seal-fg);border-color:var(--seal)}
+  @media(max-width:1100px){.ribbon-nav{display:none}}
+
+  /* 朱印做旧 */
+  .rough{filter:url(#inkRough)}
+
+  /* 书页外框：双边界 */
+  .page{max-width:1180px;margin:28px auto;padding:6px;border:1px solid var(--rule);background:var(--paper-card)}
+  .page-inner{border:1px solid var(--rule-soft);padding:0}
+
+  /* 顶行：书签式导航 */
+  .masthead{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 36px;border-bottom:3px double var(--rule);
+  }
+  .masthead .brand{display:flex;align-items:center;gap:12px}
+  .mini-seal{
+    width:34px;height:34px;background:var(--seal);color:var(--seal-fg);border-radius:5px;
+    display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:13px;
+    line-height:1.1;text-align:center;box-shadow:0 2px 8px rgba(177,58,43,.3);letter-spacing:0;
+  }
+  .masthead nav{display:flex;gap:22px;font-size:13.5px}
+  .masthead nav a{color:var(--ink-2);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px}
+  .masthead nav a:hover{color:var(--seal);border-bottom-color:var(--seal-line)}
+
+  /* ---------- 卷首 Hero ---------- */
+  .hero{
+    position:relative;display:flex;justify-content:flex-end;gap:0;
+    min-height:640px;padding:56px 48px 64px;
+    /* 界行：竖直细线，如刻本界行 */
+    background-image:repeating-linear-gradient(90deg,transparent 0 46px,rgba(206,198,183,.35) 46px 47px);
+    border-bottom:1px solid var(--rule-soft);
+  }
+  .v-title{
+    writing-mode:vertical-rl;font-family:var(--font-display);font-weight:700;
+    font-size:clamp(64px,9vw,118px);letter-spacing:.18em;line-height:1.15;color:var(--ink);
+  }
+  .v-title .zhu{color:var(--seal)}
+  .v-sub{
+    writing-mode:vertical-rl;font-family:var(--font-display);font-size:clamp(17px,1.7vw,22px);
+    letter-spacing:.42em;color:var(--ink-2);margin-right:34px;padding-top:8px;
+  }
+  .v-tags{
+    writing-mode:vertical-rl;font-size:12.5px;letter-spacing:.34em;color:var(--ink-muted);
+    margin-right:30px;padding-top:14px;
+  }
+  .v-tags i{font-style:normal;color:var(--seal);padding:0 .1em}
+  /* 大朱印 */
+  .seal-stamp{
+    position:absolute;left:56px;bottom:64px;width:118px;height:118px;background:var(--seal);
+    color:var(--seal-fg);border-radius:8px;transform:rotate(-4deg);
+    display:grid;place-items:center;box-shadow:0 10px 30px rgba(177,58,43,.35);
+  }
+  .seal-stamp span{
+    writing-mode:vertical-rl;font-family:var(--font-display);font-weight:700;
+    font-size:44px;letter-spacing:.12em;line-height:1;
+  }
+  .seal-stamp::after{content:"";position:absolute;inset:6px;border:1.5px solid rgba(255,248,237,.55);border-radius:5px}
+  .hero-brief{
+    position:absolute;left:56px;top:72px;max-width:340px;font-size:14px;color:var(--ink-2);
+  }
+  .hero-brief h2{font-family:var(--font-display);font-size:19px;color:var(--ink);margin-bottom:10px;letter-spacing:.08em}
+  .hero-brief .cta{margin-top:22px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+  .btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:600;font-size:14px;
+    border-radius:6px;padding:10px 22px;transition:.2s}
+  .btn-seal{background:var(--seal);color:var(--seal-fg);box-shadow:0 4px 14px rgba(177,58,43,.3)}
+  .btn-seal:hover{transform:translateY(-2px)}
+  .btn-line{color:var(--indigo);border:1px solid var(--indigo-line)}
+  .btn-line:hover{background:rgba(60,95,150,.08)}
+
+  /* ---------- 章节骨架 ---------- */
+  .chapter{display:grid;grid-template-columns:92px 1fr;border-bottom:1px solid var(--rule-soft)}
+  /* 书耳：右侧竖排章节条 */
+  .ch-tab{
+    border-right:1px solid var(--rule-soft);padding:34px 0;display:flex;flex-direction:column;
+    align-items:center;gap:18px;background:var(--paper-raised);
+  }
+  .ch-tab .juan{
+    writing-mode:vertical-rl;font-family:var(--font-display);font-size:15px;letter-spacing:.3em;color:var(--seal);
+  }
+  .ch-tab .ch-name{
+    writing-mode:vertical-rl;font-family:var(--font-display);font-weight:700;font-size:26px;letter-spacing:.22em;color:var(--ink);
+  }
+  .ch-tab .fish{width:12px;height:12px;background:var(--ink);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);opacity:.7}
+  .ch-body{padding:44px 52px}
+  .ch-lead{font-size:15.5px;color:var(--ink-2);max-width:640px;margin-bottom:30px}
+  .ch-lead b{color:var(--ink)}
+
+  /* 卷一：六步闭环 —— 双栏界行排印 */
+  .steps{columns:2;column-gap:0;column-rule:1px solid var(--rule-soft)}
+  .step{break-inside:avoid;padding:0 26px 26px}
+  .step:nth-child(odd){padding-left:0}
+  .step h3{font-family:var(--font-display);font-size:18px;letter-spacing:.06em;display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+  .step h3 .no{
+    font-size:12px;color:var(--seal);border:1px solid var(--seal-line);border-radius:3px;
+    width:22px;height:22px;display:inline-grid;place-items:center;flex:none;transform:translateY(-1px);
+  }
+  .step p{font-size:13.5px;color:var(--ink-2);line-height:1.75}
+  .step.decide h3{color:var(--seal)}
+
+  /* 卷二：四色账本 */
+  .ledger{border:1px solid var(--rule);background:var(--paper-raised)}
+  .ledger-head{display:flex;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--rule);
+    font-family:var(--font-display);letter-spacing:.1em}
+  .lrow{display:grid;grid-template-columns:14px 1fr auto;gap:12px;align-items:center;padding:13px 20px;border-bottom:1px dashed var(--rule-soft)}
+  .lrow:last-child{border-bottom:none}
+  .lrow .dot{width:9px;height:9px;border-radius:50%}
+  .lrow .meta{font-size:12px;color:var(--ink-muted)}
+  .lrow .chip{font-size:11px;padding:2px 10px;border:1px solid;border-radius:999px}
+  .t-ochre .dot{background:var(--ochre)} .t-ochre .chip{color:var(--ochre);border-color:rgba(168,100,31,.42);background:rgba(168,100,31,.06)}
+  .t-indigo .dot{background:var(--indigo)} .t-indigo .chip{color:var(--indigo);border-color:var(--indigo-line);background:rgba(60,95,150,.08)}
+  .t-pine .dot{background:var(--pine)} .t-pine .chip{color:var(--pine);border-color:rgba(65,117,90,.42);background:rgba(65,117,90,.07)}
+  .t-muted .dot{background:var(--ink-faint)} .t-muted .chip{color:var(--ink-muted);border-color:var(--rule);background:rgba(52,51,46,.04)}
+
+  /* 卷三：六义（卖点） */
+  .tenets{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--rule)}
+  .tenet{padding:24px 24px 26px;border-right:1px solid var(--rule-soft);border-bottom:1px solid var(--rule-soft);background:var(--paper-card)}
+  .tenet:nth-child(3n){border-right:none}
+  .tenet:nth-child(n+4){border-bottom:none}
+  .tenet h3{font-family:var(--font-display);font-size:17px;letter-spacing:.05em;margin-bottom:8px}
+  .tenet h3::before{content:"";display:inline-block;width:8px;height:8px;background:var(--seal);border-radius:2px;transform:rotate(45deg);margin-right:9px}
+  .tenet p{font-size:13px;color:var(--ink-2);line-height:1.75}
+
+  /* 卷四：开始使用 */
+  .colophon-cmd{
+    background:#2b2a25;color:#e8e4d8;border-radius:6px;padding:16px 20px;
+    font-family:var(--font-mono);font-size:12.5px;line-height:1.8;overflow-x:auto;margin:8px 0 16px;
+  }
+  .colophon-cmd .p{color:#8fc7a3}.colophon-cmd .c{color:#9a937f}
+  .plat{display:flex;gap:10px;flex-wrap:wrap;font-size:13px}
+  .plat span{border:1px solid var(--rule);border-radius:999px;padding:4px 14px;color:var(--ink-2)}
+  .plat span b{color:var(--pine);font-weight:600}
+  .plat span i{font-style:normal;color:var(--ochre)}
+
+  /* 牌记 footer */
+  .colophon{
+    display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+    padding:34px 52px;background:var(--paper-raised);
+  }
+  .colophon .paiji{
+    font-family:var(--font-display);font-size:14px;letter-spacing:.24em;color:var(--ink-2);
+    border:1px solid var(--rule);padding:12px 18px;line-height:2;
+  }
+  .colophon .paiji b{color:var(--seal)}
+  .colophon nav{display:flex;gap:20px;font-size:13px}
+  .colophon nav a{color:var(--indigo);text-decoration:none}
+  .demo-tag{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-faint)}
+
+  @media(max-width:860px){
+    .hero{flex-direction:column;min-height:0;gap:30px}
+    .v-title{writing-mode:horizontal-tb;font-size:52px}
+    .v-sub,.v-tags{writing-mode:horizontal-tb;margin:0;padding:0;letter-spacing:.2em}
+    .seal-stamp{position:static;margin-top:8px}
+    .hero-brief{position:static;max-width:none}
+    .chapter{grid-template-columns:1fr}
+    .ch-tab{flex-direction:row;justify-content:flex-start;padding:14px 22px;border-right:none;border-bottom:1px solid var(--rule-soft)}
+    .ch-tab .juan,.ch-tab .ch-name{writing-mode:horizontal-tb;font-size:16px;letter-spacing:.12em}
+    .ch-tab .fish{display:none}
+    .ch-body{padding:30px 24px}
+    .steps{columns:1}
+    .tenets{grid-template-columns:1fr}
+    .tenet{border-right:none!important;border-bottom:1px solid var(--rule-soft)!important}
+    .tenet:last-child{border-bottom:none!important}
+  }
+</style>
+</head>
+<body>
+<!-- 朱印做旧滤镜 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="inkRough">
+    <feTurbulence type="fractalNoise" baseFrequency="0.055" numOctaves="3" seed="7" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="5"/>
+  </filter>
+</svg>
+<div class="progress" id="progress"></div>
+<div class="page">
+<div class="page-inner">
+
+  <div class="masthead">
+    <div class="brand">
+      <div class="mini-seal">说<br>到</div>
+      <span style="font-family:var(--font-display);font-size:17px;letter-spacing:.14em">說到賬本 · SayDo</span>
+    </div>
+    <nav>
+      <a href="#juan1">卷一·闭环</a>
+      <a href="#juan2">卷二·账本</a>
+      <a href="#juan3">卷三·六义</a>
+      <a href="#juan4">卷四·用</a>
+      <a href="index.html" style="color:var(--ink-faint)">风格总览</a>
+    </nav>
+  </div>
+
+  <!-- ============ 卷首 ============ -->
+  <section class="hero">
+    <div class="hero-brief">
+      <h2>一本会替你办事的账</h2>
+      <p>你只管把事聊清楚——它先读透你的项目，把每件事记成一本四色账；听懂了，就驱动你电脑上已有的 AI 去办；执行和检查都跑完，叫你来验收。</p>
+      <div class="cta">
+        <a class="btn btn-seal" href="#juan4">开始使用</a>
+        <a class="btn btn-line" href="#juan1">翻阅此卷</a>
+      </div>
+    </div>
+    <div class="v-tags">語音驅動 <i>·</i> 本地優先 <i>·</i> 開源免費</div>
+    <div class="v-sub">聊清楚，它去辦，辦完叫你驗收。</div>
+    <h1 class="v-title">說到，<span class="zhu">就做到。</span></h1>
+    <div class="seal-stamp rough"><span>說到</span></div>
+  </section>
+
+  <div class="fold"><span class="yw up"></span><span>說到賬本 · 卷一</span><span class="yw down"></span></div>
+
+  <!-- ============ 卷一 · 闭环 ============ -->
+  <section class="chapter" id="juan1">
+    <div class="ch-tab">
+      <span class="juan">卷之一 · 起</span>
+      <span class="ch-name">六步閉環</span>
+      <span class="fish"></span>
+    </div>
+    <div class="ch-body">
+      <p class="ch-lead">从聊一句，到办完叫你——<b class="qd">你只管聊和拍板，重活它来。</b>你点头，才算交付。</p>
+      <div class="steps">
+        <div class="step"><h3><span class="no">一</span>开口聊</h3><p>按住说话，想到哪说到哪。随口一句「帮我记一下」立刻进账。它带着对你项目的理解，像采访一样一次问一个，把事聊透。</p></div>
+        <div class="step"><h3><span class="no">二</span>就绪决断</h3><p>它判断火候够了，主动提议开工——规格是它的产物，不是你的输入。</p></div>
+        <div class="step"><h3><span class="no">三</span>决策包</h3><p>端出三件套请你拍板：成果预览、实施计划、预计花费与封顶，外加一份与计划同源的网页小样。</p></div>
+        <div class="step decide"><h3><span class="no">四</span>你拍板</h3><p>看着预览和计划说一句「就这样」，它就放手去办。合并、交付，永远你拍板才算数。</p></div>
+        <div class="step"><h3><span class="no">五</span>后台执行</h3><p>在你自己电脑上跑：独立 git worktree 隔离；预算、时长、回合三重熔断。你可以走开。</p></div>
+        <div class="step"><h3><span class="no">六</span>叫你验收</h3><p>执行和检查都跑完，它主动叫你。说「等你验收」，而不是「做完了」。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="fold"><span class="yw up"></span><span>說到賬本 · 卷二</span><span class="yw down"></span></div>
+
+  <!-- ============ 卷二 · 账本 ============ -->
+  <section class="chapter" id="juan2">
+    <div class="ch-tab">
+      <span class="juan">卷之二 · 承</span>
+      <span class="ch-name">四色賬本</span>
+      <span class="fish"></span>
+    </div>
+    <div class="ch-body">
+      <p class="ch-lead">说过的话转头就忘？在这里，<b class="qd">每件事都有归属和去向</b>：等你拍板的、你欠的动作、AI 正在办的、等外部回音的——四色分明，件件有着落。</p>
+      <div class="ledger">
+        <div class="ledger-head"><span>今日之賬</span><span style="color:var(--ink-muted);font-size:13px">可復查 · 可回溯</span></div>
+        <div class="lrow t-ochre"><span class="dot"></span><div><div>导出功能用 CSV 还是 Excel？等你定个格式</div><div class="meta">昨天 10:24 · 来自语音</div></div><span class="chip">等你拍板</span></div>
+        <div class="lrow t-indigo"><span class="dot"></span><div><div>回复设计稿确认邮件</div><div class="meta">今天 09:10 · 你欠的动作</div></div><span class="chip">你来做</span></div>
+        <div class="lrow t-pine"><span class="dot"></span><div><div>重构登录模块，独立 worktree 跑着</div><div class="meta">AI 正在办 · 已 40 分钟</div></div><span class="chip">AI 在办</span></div>
+        <div class="lrow t-muted"><span class="dot"></span><div><div>等第三方 API 配额审批回来</div><div class="meta">等外部回音 · 预计明天</div></div><span class="chip">等回音</span></div>
+      </div>
+      <p style="margin-top:18px;font-size:13px;color:var(--ink-muted)">手机上说的，电脑上看得见；电脑里记的，手机上盯得住——跨设备，同一本账。</p>
+    </div>
+  </section>
+
+  <div class="fold"><span class="yw up"></span><span>說到賬本 · 卷三</span><span class="yw down"></span></div>
+
+  <!-- ============ 卷三 · 六义 ============ -->
+  <section class="chapter" id="juan3">
+    <div class="ch-tab">
+      <span class="juan">卷之三 · 轉</span>
+      <span class="ch-name">六義</span>
+      <span class="fish"></span>
+    </div>
+    <div class="ch-body">
+      <p class="ch-lead">不是又一个语音工具。市面上每一块都有成熟单点，但还没人把「聊透、自动开工、办完交付」做成同一套闭环。<b>说到做的是完整治理。</b></p>
+      <div class="tenets">
+        <div class="tenet"><h3>说了就记</h3><p>按住说话，想到哪说到哪。随口一句立刻进账，不用专门开 app、不用组织语言。</p></div>
+        <div class="tenet"><h3>先吃透，再办事</h3><p>第一次聊一个项目，先读透结构、约定与关键文件，沉淀成持久知识底座——这是和「新开一个聊天窗口」的分水岭。</p></div>
+        <div class="tenet"><h3>AI 真的在干活</h3><p>接上你电脑上已登录的 AI：Codex、Claude Code、Cursor、Gemini CLI、Grok。已订阅哪家用哪家，无需额外付费。</p></div>
+        <div class="tenet"><h3>人拍板才算数</h3><p>开工前给决策包三件套，做完说「等你验收」而不是「做完了」。合并、交付，永远你点头才算。</p></div>
+        <div class="tenet"><h3>数据完全在你手里</h3><p>没有云端后台，没有账号注册。对话、事项与账本保存在你自己的设备上，不埋点、不收集。</p></div>
+        <div class="tenet"><h3>跨设备同一本账</h3><p>手机只做沟通——说话、看进展、点头确认；重活留在你的电脑上，审批分级，S3 永远只在电脑。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="fold"><span class="yw up"></span><span>說到賬本 · 卷四</span><span class="yw down"></span></div>
+
+  <!-- ============ 卷四 · 用 ============ -->
+  <section class="chapter" id="juan4" style="border-bottom:none">
+    <div class="ch-tab">
+      <span class="juan">卷之四 · 合</span>
+      <span class="ch-name">開卷即用</span>
+      <span class="fish"></span>
+    </div>
+    <div class="ch-body">
+      <p class="ch-lead">桌面服务开源免费、现在可用；移动 App 开发中、尚未上架。<b>一条命令</b>，启动 daemon + Web 控制台（需 Node.js 22，无需克隆源码）：</p>
+      <div class="colophon-cmd"><span class="c"># v0.1.0-rc.2 发布候选固定 URL</span><br><span class="p">$</span> npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz -- saydo up</div>
+      <div class="plat">
+        <span>macOS <b>现在可用</b></span><span>Windows <b>现在可用</b></span><span>Linux <b>现在可用</b></span>
+        <span>iOS <i>开发中</i></span><span>Android <i>开发中</i></span><span>HarmonyOS <i>开发中</i></span>
+      </div>
+      <div style="margin-top:26px;display:flex;gap:12px;flex-wrap:wrap">
+        <a class="btn btn-seal" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub 仓库</a>
+        <a class="btn btn-line" href="/docs/">安装文档</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 牌记 ============ -->
+  <footer class="colophon">
+    <div class="paiji">歲在丙午 · <b>說到 SayDo</b> 謹製 · 開源於 GitHub · 數據不出君之器</div>
+    <nav>
+      <a href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GitHub</a>
+      <a href="/privacy/">隐私政策</a>
+      <a href="index.html">返回风格总览</a>
+    </nav>
+    <span class="demo-tag">STYLE DEMO 02 · 竖排古籍·经折装</span>
+  </footer>
+
+</div>
+</div>
+
+<nav class="ribbon-nav" aria-label="卷次书签">
+  <a href="#juan1">卷一·閉環</a>
+  <a href="#juan2">卷二·賬本</a>
+  <a href="#juan3">卷三·六義</a>
+  <a href="#juan4">卷四·用</a>
+</nav>
+
+<script>
+  const bar = document.getElementById('progress');
+  addEventListener('scroll', () => {
+    const h = document.documentElement;
+    bar.style.width = (h.scrollTop / (h.scrollHeight - h.clientHeight) * 100) + '%';
+  }, { passive: true });
+</script>
+</body>
+</html>

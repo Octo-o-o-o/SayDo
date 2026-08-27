@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Demo 11 · 杂交终稿候选（03 皮肤 × 01 骨架 × 04/08 零件） — 说到 SayDo 风格探索</title>
+<style>
+  :root{
+    --paper:#f0ede4; --paper-card:#faf7ef; --paper-raised:#fcfaf4;
+    --ink:#34332e; --ink-2:#5b564b; --ink-muted:#706b61; --ink-faint:#a29b8f;
+    --rule:#cec6b7; --rule-soft:rgba(206,198,183,.62);
+    --ochre:#a8641f; --ochre-wash:rgba(168,100,31,.06);
+    --indigo:#3c5f96; --indigo-wash:rgba(60,95,150,.09); --indigo-line:rgba(60,95,150,.34);
+    --pine:#41755a; --pine-wash:rgba(65,117,90,.07);
+    --seal:#b13a2b; --seal-wash:rgba(177,58,43,.07); --seal-fg:#fff8ed; --seal-line:rgba(177,58,43,.42);
+    --paper-fg:#fffaf0;
+    --sheet-line:rgba(240,237,228,.85); --sheet-line-soft:rgba(240,237,228,.26);
+    --shadow:0 1px 2px rgba(75,64,47,.05),0 8px 24px rgba(75,64,47,.09);
+    --font-body:'PingFang SC','HarmonyOS Sans SC','MiSans','Hiragino Sans GB','Microsoft YaHei',-apple-system,sans-serif;
+    --font-display:'Songti SC','Noto Serif SC',serif;
+    --font-mono:ui-monospace,'SF Mono','JetBrains Mono','Menlo',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--font-body);background:var(--paper);color:var(--ink);font-size:15px;line-height:1.8;overflow-x:hidden}
+  ::selection{background:var(--seal);color:var(--seal-fg)}
+
+  /* 印刷颗粒（03 质感，全页画框） */
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:200;mix-blend-mode:multiply;opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.28 0 0 0 0 0.25 0 0 0 0.045 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .rough{filter:url(#inkRough)}
+  .reg{position:absolute;width:22px;height:22px;pointer-events:none;opacity:.55}
+  .reg::before,.reg::after{content:"";position:absolute;background:var(--ink)}
+  .reg::before{left:50%;top:0;width:1.5px;height:100%;transform:translateX(-50%)}
+  .reg::after{top:50%;left:0;height:1.5px;width:100%;transform:translateY(-50%)}
+  .reg.tl{top:14px;left:14px}.reg.tr{top:14px;right:14px}
+  .reg.bl{bottom:14px;left:14px}.reg.br{bottom:14px;right:14px}
+
+  /* ================= 顶栏（03 海报式） ================= */
+  .bar{display:flex;align-items:stretch;border-bottom:2px solid var(--ink);position:sticky;top:0;z-index:60;background:var(--paper)}
+  .bar .logo{font-family:var(--font-display);font-weight:700;font-size:19px;letter-spacing:.1em;padding:14px 24px;border-right:2px solid var(--ink);display:flex;align-items:center;gap:10px}
+  .bar .logo i{width:12px;height:12px;background:var(--seal);transform:rotate(45deg)}
+  .bar nav{flex:1;display:flex;align-items:center;gap:24px;padding:0 26px;font-size:13px;font-weight:600}
+  .bar nav a{color:var(--ink);text-decoration:none}
+  .bar nav a:hover{color:var(--seal)}
+  .bar nav a.dim{color:var(--ink-faint);font-weight:400}
+  .bar .go{background:var(--ink);color:var(--paper-fg);display:flex;align-items:center;padding:0 26px;text-decoration:none;font-weight:700;font-size:13.5px;letter-spacing:.08em;transition:.2s}
+  .bar .go:hover{background:var(--seal)}
+  @media(max-width:820px){.bar nav{display:none}}
+
+  /* ================= Hero（03 海报语言） ================= */
+  .hero{position:relative;padding:56px 5vw 64px;border-bottom:2px solid var(--ink);overflow:hidden}
+  .hero-grid{display:grid;grid-template-columns:minmax(0,6fr) minmax(330px,5fr);gap:44px;align-items:center}
+  @media(max-width:980px){.hero-grid{grid-template-columns:1fr}}
+  .glyph-field{display:flex;flex-wrap:wrap;align-items:flex-end;gap:0 1.2vw;line-height:.95}
+  .glyph{font-family:var(--font-display);font-weight:700;font-size:clamp(62px,8.4vw,146px)}
+  .glyph.g1{color:var(--ink)}
+  .glyph.g2{color:var(--ink);transform:translateY(.12em)}
+  .glyph.g3{color:transparent;-webkit-text-stroke:2.5px var(--ink);transform:translateY(-.06em)}
+  .glyph.g4{color:var(--paper-fg);background:var(--seal);padding:0 .06em;transform:rotate(-3deg) translateY(.05em);box-shadow:12px 12px 0 var(--ink)}
+  .glyph.g5{color:var(--seal)}
+  .hero-ru{position:absolute;top:52px;right:5vw;text-align:right;font-family:var(--font-mono);font-size:12px;color:var(--ink-muted);letter-spacing:.14em;line-height:2}
+  @media(max-width:1100px){.hero-ru{display:none}}
+  .hero .map-card{margin:0}
+  .hero .map-cap{padding-bottom:8px}
+  @media(max-width:980px){.hero .map-card{max-width:560px}}
+  .hero-sub{margin-top:40px;max-width:580px;font-size:16.5px;color:var(--ink-2);border-left:6px solid var(--seal);padding-left:20px}
+  .hero-sub b{color:var(--ink)}
+  .hero-cta{margin-top:28px;display:flex;gap:0}
+  .hero-cta a{text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border:2px solid var(--ink)}
+  .hero-cta a:first-child{background:var(--seal);border-color:var(--seal);color:var(--seal-fg)}
+  .hero-cta a:first-child:hover{background:var(--ink);border-color:var(--ink)}
+  .hero-cta a:last-child{color:var(--ink);margin-left:-2px}
+  .hero-cta a:last-child:hover{background:var(--ink);color:var(--paper-fg)}
+  .hero-note{margin-top:20px;font-size:12.5px;color:var(--ink-muted);font-family:var(--font-mono);display:flex;gap:18px;flex-wrap:wrap}
+  .hero-note i{font-style:normal;color:var(--pine)}
+  .hero-note .wip{color:var(--ochre)}
+
+  /* ================= 跑马灯（降速） ================= */
+  .marquee{border-bottom:2px solid var(--ink);background:var(--ink);color:var(--paper-fg);overflow:hidden;padding:11px 0}
+  .marquee-track{display:flex;white-space:nowrap;animation:mq 44s linear infinite;width:max-content}
+  .marquee span{font-family:var(--font-display);font-size:16px;letter-spacing:.2em;padding:0 28px}
+  .marquee b{color:var(--seal);font-weight:400;padding:0 4px}
+  .marquee.rev{background:var(--paper);color:transparent;border-top:2px solid var(--ink);border-bottom:none}
+  .marquee.rev span{-webkit-text-stroke:1.2px var(--ink)}
+  .marquee.rev .marquee-track{animation-direction:reverse}
+  @keyframes mq{to{transform:translateX(-50%)}}
+
+  /* ================= 节标题系统（poster 画框） ================= */
+  .sec{padding:76px 5vw}
+  .ph{max-width:760px;margin-bottom:40px}
+  .ph-kick{font-family:var(--font-mono);font-size:12px;letter-spacing:.3em;color:var(--seal);display:flex;align-items:center;gap:14px;margin-bottom:18px;font-weight:700}
+  .ph-kick::after{content:"";width:76px;height:2px;background:var(--seal)}
+  .ph-title{font-family:var(--font-display);font-weight:700;font-size:clamp(32px,5vw,56px);line-height:1.2;letter-spacing:.02em}
+  .ph-title em{font-style:normal;color:var(--seal)}
+  .ph-title u{text-decoration:none;color:transparent;-webkit-text-stroke:1.6px var(--ink)}
+  .ph-lead{margin-top:16px;font-size:15.5px;color:var(--ink-2);max-width:600px}
+  .ph-lead b{color:var(--ink)}
+
+  /* ================= 对话流（01 骨架） ================= */
+  .thread{max-width:760px;margin:0 auto}
+  .day-divider{display:flex;align-items:center;gap:14px;margin:34px 0 24px;color:var(--ink-faint);font-size:12px;letter-spacing:.12em}
+  .day-divider::before,.day-divider::after{content:"";flex:1;height:1px;background:var(--rule-soft)}
+  .day-divider b{font-weight:600;color:var(--ink-muted)}
+  .msg{display:flex;gap:10px;margin:18px 0;max-width:88%}
+  .msg .avatar{width:30px;height:30px;border-radius:8px;flex:none;margin-top:2px;display:grid;place-items:center;font-size:13px;font-family:var(--font-display);font-weight:700}
+  .msg .bubble{border-radius:4px 14px 14px 14px;padding:12px 16px;position:relative;box-shadow:var(--shadow)}
+  .msg .who{font-size:11px;color:var(--ink-faint);margin-bottom:4px;letter-spacing:.06em}
+  .msg.saydo .avatar{background:var(--seal);color:var(--seal-fg)}
+  .msg.saydo .bubble{background:var(--paper-card);border:1px solid var(--rule-soft)}
+  .msg.me{margin-left:auto;flex-direction:row-reverse}
+  .msg.me .avatar{background:var(--ink);color:var(--paper-fg)}
+  .msg.me .bubble{background:var(--indigo);color:var(--paper-fg);border-radius:14px 4px 14px 14px;box-shadow:0 8px 22px rgba(60,95,150,.25)}
+  .msg.me .read{display:block;font-size:11px;color:rgba(255,250,240,.6);margin-top:6px;text-align:right}
+  .voice{display:flex;align-items:center;gap:10px}
+  .wave{display:inline-flex;align-items:flex-end;gap:2.5px;height:16px}
+  .wave i{width:3px;background:currentColor;border-radius:2px;animation:wv 1.1s ease-in-out infinite}
+  .wave i:nth-child(1){height:6px}.wave i:nth-child(2){height:13px;animation-delay:.15s}.wave i:nth-child(3){height:9px;animation-delay:.3s}.wave i:nth-child(4){height:15px;animation-delay:.45s}.wave i:nth-child(5){height:7px;animation-delay:.6s}
+  @keyframes wv{50%{transform:scaleY(.45)}}
+  .v-dur{height:3px;background:rgba(255,250,240,.35);border-radius:2px;overflow:hidden;margin-top:9px}
+  .v-dur i{display:block;height:100%;width:0;background:var(--paper-fg)}
+  .in .v-dur i,.sim-in .v-dur i{animation:vdur 3s linear .5s forwards}
+  @keyframes vdur{to{width:100%}}
+  .typing{display:inline-flex;gap:4px;padding:4px 2px}
+  .typing i{width:6px;height:6px;border-radius:50%;background:var(--ink-faint);animation:tp 1.2s infinite}
+  .typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+  @keyframes tp{30%{transform:translateY(-4px);opacity:1}60%{opacity:.4}}
+  .card{background:var(--paper-raised);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;margin-top:10px;font-size:14px;position:relative}
+  .card h4{font-family:var(--font-display);font-size:16px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .card h4 .seal-dot{width:8px;height:8px;background:var(--seal);border-radius:2px;transform:rotate(45deg)}
+  .pkg{display:grid;gap:8px}
+  .pkg .pkg-item{border:1px solid var(--rule-soft);border-radius:8px;padding:10px 12px;background:var(--paper-card)}
+  .pkg .pkg-item b{font-size:13.5px}
+  .pkg .pkg-item p{font-size:13px;color:var(--ink-2);line-height:1.6;margin-top:2px}
+  .pkg .cost{font-size:12px;color:var(--ochre);font-family:var(--font-mono)}
+  .ledger-row{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px dashed var(--rule-soft);transition:background .5s}
+  .ledger-row:first-of-type{border-top:none}
+  .ledger-row .dot{width:9px;height:9px;border-radius:50%;margin-top:7px;flex:none}
+  .ledger-row .t{font-size:14px;line-height:1.5}
+  .ledger-row .meta{font-size:12px;color:var(--ink-muted)}
+  .ledger-row .chip{margin-left:auto;flex:none;font-size:11px;padding:2px 9px;border-radius:999px;border:1px solid;line-height:1.7}
+  .tone-ochre .dot{background:var(--ochre)} .tone-ochre .chip{color:var(--ochre);border-color:rgba(168,100,31,.42);background:var(--ochre-wash)}
+  .tone-indigo .dot{background:var(--indigo)} .tone-indigo .chip{color:var(--indigo);border-color:var(--indigo-line);background:var(--indigo-wash)}
+  .tone-pine .dot{background:var(--pine)} .tone-pine .chip{color:var(--pine);border-color:rgba(65,117,90,.42);background:var(--pine-wash)}
+  .tone-muted .dot{background:var(--ink-faint)} .tone-muted .chip{color:var(--ink-muted);border-color:var(--rule);background:rgba(52,51,46,.04)}
+  .ledger-row.flash{background:var(--pine-wash)}
+  .approve-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:7px;text-decoration:none;cursor:pointer;border:none;font-family:var(--font-body);font-size:14px;font-weight:600;border-radius:8px;padding:9px 18px;transition:.2s}
+  .btn-seal{background:var(--seal);color:var(--seal-fg);box-shadow:0 4px 14px rgba(177,58,43,.3)}
+  .btn-seal:hover{transform:translateY(-2px)}
+  .btn-line{background:transparent;color:var(--indigo);border:1px solid var(--indigo-line)}
+  .btn-line:hover{background:var(--indigo-wash)}
+  .btn.done{background:var(--pine);color:var(--paper-fg);box-shadow:none;pointer-events:none}
+  .stamp-ok{position:absolute;top:12px;right:14px;transform:rotate(-12deg) scale(1.7);opacity:0;border:2.5px solid var(--seal);color:var(--seal);border-radius:6px;padding:4px 12px;font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:.16em;transition:.35s cubic-bezier(.34,1.3,.5,1);pointer-events:none;background:rgba(250,247,239,.7)}
+  .stamp-ok.on{opacity:1;transform:rotate(-12deg) scale(1)}
+  .sys{text-align:center;font-size:12px;color:var(--ink-faint);margin:24px 0 6px}
+  .sys span{background:rgba(52,51,46,.05);border-radius:999px;padding:3px 14px}
+
+  /* ================= 影院式对话窗（一屏高 · 自动播放 · 旧消息被挤走） ================= */
+  .chatwin{max-width:760px;margin:0 auto;border:2px solid var(--ink);border-radius:14px;overflow:hidden;background:var(--paper-card);box-shadow:10px 10px 0 rgba(52,51,46,.12)}
+  .chatwin-bar{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:2px solid var(--ink);background:var(--paper-raised)}
+  .chatwin-bar .peerdot{width:30px;height:30px;border-radius:8px;background:var(--seal);color:var(--seal-fg);display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:14px;flex:none}
+  .chatwin-bar .pmeta{flex:1;min-width:0;line-height:1.35}
+  .chatwin-bar .pmeta b{font-size:13.5px;display:block}
+  .chatwin-bar .pmeta span{font-size:11px;color:var(--pine);display:flex;align-items:center;gap:5px}
+  .chatwin-bar .pmeta span::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--pine)}
+  .sim-btn{font-family:var(--font-body);font-size:12px;color:var(--ink-2);background:none;border:1px solid var(--rule);border-radius:999px;padding:5px 14px;cursor:pointer;transition:.15s}
+  .sim-btn:hover{color:var(--seal);border-color:var(--seal-line)}
+  .chatlive{height:clamp(500px,calc(100vh - 280px),640px);min-height:420px;overflow-y:auto;padding:18px 18px 24px;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--rule) transparent}
+  .chatlive .thread{max-width:none}
+  .chatlive .day-divider{margin:22px 0 16px}
+  .chatwin-foot{border-top:1px solid var(--rule-soft);padding:8px 16px;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-faint);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  /* beat 入场 / 离场 */
+  .beat{transition:opacity .45s ease,transform .45s cubic-bezier(.22,.61,.36,1)}
+  .beat.pre{opacity:0;transform:translateY(16px)}
+  .beat.gone{opacity:0;transform:translateY(-14px)}
+  @media(prefers-reduced-motion:reduce){
+    .beat{transition:none}
+    .chatlive{scroll-behavior:auto}
+  }
+
+  /* ================= 痛点对照 / 四义（poster 件） ================= */
+  .versus{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--ink);max-width:960px}
+  .versus>div{padding:30px 30px 34px}
+  .versus .before{border-right:2px solid var(--ink)}
+  .versus .after{background:var(--paper-card)}
+  .versus h3{font-family:var(--font-display);font-size:22px;margin-bottom:12px;letter-spacing:.05em}
+  .versus .before h3{color:var(--ink-muted);text-decoration:line-through;text-decoration-color:var(--seal);text-decoration-thickness:3px}
+  .versus .after h3{color:var(--seal)}
+  .versus p{font-size:14.5px;color:var(--ink-2)}
+  .versus .after p b{color:var(--ink)}
+  @media(max-width:720px){.versus{grid-template-columns:1fr}.versus .before{border-right:none;border-bottom:2px solid var(--ink)}}
+  .tenets{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--ink);border:2px solid var(--ink);max-width:1100px}
+  .tenet{background:var(--paper);padding:24px 22px 28px;position:relative;transition:.2s}
+  .tenet:hover{background:var(--paper-card);transform:translateY(-4px)}
+  .tenet::before{content:"";position:absolute;top:0;left:0;right:0;height:5px;background:var(--tc,var(--indigo))}
+  .tenet .tn{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;color:var(--tc,var(--indigo));font-weight:700}
+  .tenet h3{font-family:var(--font-display);font-size:19px;margin:10px 0 8px;letter-spacing:.04em}
+  .tenet p{font-size:13px;color:var(--ink-2);line-height:1.75}
+  @media(max-width:920px){.tenets{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.tenets{grid-template-columns:1fr}}
+
+  /* ================= 环线图（04 零件 · 修复版） ================= */
+  .map-card{background:var(--paper-card);border:1px solid var(--rule);border-radius:14px;box-shadow:var(--shadow);padding:18px 10px 8px;max-width:860px;margin:0 auto;
+    background-image:linear-gradient(rgba(60,95,150,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(60,95,150,.055) 1px,transparent 1px);background-size:28px 28px}
+  .map-card svg{width:100%;height:auto;display:block}
+  .map-cap{display:flex;justify-content:space-between;padding:8px 14px 10px;font-family:var(--font-mono);font-size:11px;color:var(--ink-faint);letter-spacing:.12em}
+  .st-name{font-family:var(--font-body);font-size:14.5px;font-weight:600;fill:var(--ink)}
+  .st-en{font-family:var(--font-mono);font-size:8.5px;fill:var(--ink-faint);letter-spacing:.1em}
+  .seg-note{font-family:var(--font-mono);font-size:9px;fill:var(--ink-muted);letter-spacing:.08em}
+  .loop-name{font-family:var(--font-display);font-weight:700;font-size:26px;fill:var(--ink);letter-spacing:.14em}
+  .loop-en{font-family:var(--font-mono);font-size:10px;fill:var(--ink-muted);letter-spacing:.3em}
+
+  /* ================= 隐私（08 零件 · 全页唯一深底） ================= */
+  .sheet{background:var(--indigo);color:var(--paper);position:relative;
+    background-image:linear-gradient(rgba(20,28,48,.25),rgba(20,28,48,.25)),
+      repeating-linear-gradient(0deg,var(--sheet-line-soft) 0 1px,transparent 1px 26px),
+      repeating-linear-gradient(90deg,var(--sheet-line-soft) 0 1px,transparent 1px 26px)}
+  .sheet-inner{border:2px solid var(--sheet-line);margin:26px;position:relative;padding:56px 40px 40px}
+  @media(max-width:640px){.sheet-inner{margin:14px;padding:40px 18px 24px}}
+  .corner{position:absolute;width:18px;height:18px;border:2px solid var(--sheet-line)}
+  .corner.tl{top:-2px;left:-2px;border-right:none;border-bottom:none}
+  .corner.tr{top:-2px;right:-2px;border-left:none;border-bottom:none}
+  .corner.bl{bottom:-2px;left:-2px;border-right:none;border-top:none}
+  .corner.br{bottom:-2px;right:-2px;border-left:none;border-top:none}
+  .sheet .ph-kick{color:#f3b8a9}
+  .sheet .ph-kick::after{background:#f3b8a9}
+  .sheet .ph-title u{-webkit-text-stroke-color:var(--paper)}
+  .sheet .ph-lead{color:rgba(240,237,228,.82)}
+  .sheet .ph-lead b{color:var(--paper)}
+  .fig svg{width:100%;height:auto;display:block;max-width:820px;margin:10px auto 0}
+  .sl{stroke:var(--sheet-line);stroke-width:1.6;fill:none}
+  .sl2{stroke:var(--sheet-line);stroke-width:1;fill:none;stroke-dasharray:5 5}
+  .sc{stroke:#f3b8a9;stroke-width:1.6;fill:none}
+  .st{fill:var(--paper);font-family:'PingFang SC',sans-serif;font-size:13px}
+  .sts{fill:var(--paper);opacity:.72;font-family:ui-monospace,monospace;font-size:9.5px;letter-spacing:.12em}
+  .sheet-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;max-width:820px;margin:26px auto 0;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;opacity:.75}
+
+  /* ================= 收尾 CTA（03 整幅朱版） ================= */
+  .finale{background:var(--seal);color:var(--seal-fg);text-align:center;padding:100px 5vw 110px;position:relative}
+  .finale h2{font-family:var(--font-display);font-weight:700;font-size:clamp(44px,8vw,104px);line-height:1.2;letter-spacing:.04em}
+  .finale p{margin:24px auto 34px;max-width:480px;font-size:15.5px;opacity:.88}
+  .finale .cmd{display:block;margin:0 auto 30px;max-width:720px;background:var(--ink);color:#e8e4d8;border-radius:4px;padding:18px 22px;font-family:var(--font-mono);font-size:clamp(10.5px,1.4vw,13px);line-height:1.8;word-break:break-all;text-align:left;box-shadow:10px 10px 0 rgba(52,51,46,.35)}
+  .finale .cmd b{color:#8fc7a3;font-weight:400}
+  .finale .plat{display:flex;gap:2px;justify-content:center;flex-wrap:wrap;margin-bottom:36px}
+  .finale .plat span{border:1.5px solid rgba(255,248,237,.55);padding:8px 18px;font-weight:700;font-size:12.5px}
+  .finale .plat span i{font-style:normal;font-family:var(--font-mono);font-size:10px;display:block;letter-spacing:.1em;opacity:.85}
+  .finale .cta-final{display:inline-block;background:var(--ink);color:var(--paper-fg);text-decoration:none;font-weight:700;font-size:16px;padding:16px 46px;letter-spacing:.1em;transition:.2s}
+  .finale .cta-final:hover{transform:translate(-3px,-3px);box-shadow:6px 6px 0 rgba(52,51,46,.45)}
+
+  footer{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:22px 5vw;border-top:2px solid var(--ink);font-size:12.5px;color:var(--ink-muted)}
+  footer a{color:var(--indigo);text-decoration:none}
+  .demo-tag{font-family:var(--font-mono);color:var(--ink-faint)}
+
+  [data-pop]{opacity:0;transform:translateY(18px);transition:opacity .65s ease,transform .65s cubic-bezier(.22,.61,.36,1)}
+  [data-pop].in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="inkRough">
+    <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" seed="11" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="6"/>
+  </filter>
+</svg>
+
+<header class="bar">
+  <div class="logo"><i></i>说到 SAYDO</div>
+  <nav>
+    <a href="#why">为什么</a><a href="#dialogue">一段对话</a><a href="#loop">闭环</a><a href="#privacy">隐私</a><a href="#faq">问答</a><a href="#start">开始</a>
+    <a class="dim" href="index.html">风格总览</a>
+  </nav>
+  <a class="go" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener">GITHUB ↗</a>
+</header>
+
+<!-- ================= Hero（03 皮肤） ================= -->
+<section class="hero">
+  <span class="reg tl"></span><span class="reg tr"></span><span class="reg bl"></span><span class="reg br"></span>
+  <div class="hero-ru">VOICE-DRIVEN<br>LOCAL-FIRST<br>OPEN SOURCE<br>EST. 2026</div>
+  <div class="hero-grid">
+    <div class="hero-left">
+      <div class="glyph-field" data-pop>
+        <span class="glyph g1">说</span><span class="glyph g2">到</span><span class="glyph g3">，</span><span class="glyph g4 rough" id="glyph-seal">就</span><span class="glyph g5">做到。</span>
+      </div>
+      <p class="hero-sub" data-pop>一个你能对着说话的高级助手。你只管把事聊清楚——<b>它先读透你的项目，听懂了就驱动你电脑上已有的 AI 去办，办完叫你验收。</b>没有开发者运营的云端后台。</p>
+      <div class="hero-cta" data-pop>
+        <a href="#start">开始使用</a>
+        <a href="#dialogue">看它怎么办事</a>
+      </div>
+      <p class="hero-note" data-pop>
+        <span><i>●</i> macOS / Windows / Linux 现在可用</span>
+        <span class="wip">◐ iOS / Android / HarmonyOS 开发中</span>
+        <span>// 开源免费 · v0.1.0-rc.2</span>
+      </p>
+    </div>
+
+    <div class="hero-right" id="loop" data-pop>
+      <div class="map-card">
+        <svg viewBox="0 0 640 470" role="img" aria-label="说到闭环线路图：开口聊、就绪决断、决策包、你拍板、后台执行、叫你验收">
+          <!-- 轨道 -->
+          <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M140 80 L500 80" stroke="#3c5f96" stroke-width="7"/>
+            <path d="M500 80 L570 150 L570 225" stroke="#3c5f96" stroke-width="7"/>
+            <path d="M570 225 L570 300 L500 370" stroke="#a8641f" stroke-width="7"/>
+            <path d="M500 370 L140 370" stroke="#41755a" stroke-width="7"/>
+            <path d="M140 370 L70 300 L70 225" stroke="#41755a" stroke-width="7"/>
+            <path d="M70 225 L70 150 L140 80" stroke="#a29b8f" stroke-width="5" stroke-dasharray="2 12"/>
+          </g>
+          <!-- 区间注释 -->
+          <text class="seg-note" x="320" y="64" text-anchor="middle">聊透为止 · INTERVIEW</text>
+          <text class="seg-note" x="320" y="392" text-anchor="middle">后台执行 · UNATTENDED</text>
+          <!-- 计费区环 -->
+          <circle cx="320" cy="225" r="126" fill="none" stroke="#a29b8f" stroke-width="1.2" stroke-dasharray="4 6" opacity=".55"/>
+          <text class="seg-note" x="178" y="110" text-anchor="middle" opacity=".7">一票通 zone 1</text>
+          <!-- 指北针 -->
+          <g transform="translate(604,42)">
+            <circle r="15" fill="#faf7ef" stroke="#34332e" stroke-width="1.5"/>
+            <path d="M0 -9 L4.5 5 L0 2 L-4.5 5 Z" fill="#b13a2b"/>
+            <text y="-19" text-anchor="middle" style="font-family:ui-monospace,monospace;font-size:9px;fill:#34332e">N</text>
+          </g>
+          <!-- 支线：预算封顶 -->
+          <path d="M500 388 L500 446" stroke="#a8641f" stroke-width="3.5" stroke-dasharray="3 6" fill="none"/>
+          <circle cx="500" cy="450" r="6.5" fill="#faf7ef" stroke="#a8641f" stroke-width="3"/>
+          <text class="st-name" x="514" y="448" style="font-size:12.5px">预算封顶</text>
+          <text class="st-en" x="514" y="462">BUDGET CAP</text>
+          <!-- 中心环名 -->
+          <text class="loop-name" x="320" y="222" text-anchor="middle">說到環線</text>
+          <text class="loop-en" x="320" y="246" text-anchor="middle">SAYDO · LOOP</text>
+          <!-- 图例 -->
+          <g>
+            <rect x="238" y="272" width="164" height="82" rx="6" fill="#faf7ef" stroke="#cec6b7"/>
+            <text x="320" y="289" text-anchor="middle" style="font-family:ui-monospace,monospace;font-size:9px;letter-spacing:.2em;fill:#706b61">图例 LEGEND</text>
+            <line x1="252" y1="301" x2="272" y2="301" stroke="#a8641f" stroke-width="4" stroke-linecap="round"/>
+            <text x="280" y="305" style="font-size:10.5px;fill:#34332e;font-family:'PingFang SC',sans-serif">赭 · 等你拍板</text>
+            <line x1="252" y1="317" x2="272" y2="317" stroke="#3c5f96" stroke-width="4" stroke-linecap="round"/>
+            <text x="280" y="321" style="font-size:10.5px;fill:#34332e;font-family:'PingFang SC',sans-serif">黛 · 你欠的动作</text>
+            <line x1="252" y1="333" x2="272" y2="333" stroke="#41755a" stroke-width="4" stroke-linecap="round"/>
+            <text x="280" y="337" style="font-size:10.5px;fill:#34332e;font-family:'PingFang SC',sans-serif">松 · AI 正在办</text>
+            <line x1="252" y1="349" x2="272" y2="349" stroke="#a29b8f" stroke-width="3" stroke-dasharray="2 4"/>
+            <text x="280" y="353" style="font-size:10.5px;fill:#34332e;font-family:'PingFang SC',sans-serif">灰 · 等外部回音</text>
+          </g>
+          <!-- 行驶的列车 -->
+          <circle r="9" fill="#b13a2b" stroke="#faf7ef" stroke-width="3">
+            <animateMotion dur="14s" repeatCount="indefinite"
+              path="M140 80 L500 80 L570 150 L570 300 L500 370 L140 370 L70 300 L70 150 Z"/>
+          </circle>
+          <!-- 车站（站名全部避开轨道） -->
+          <g>
+            <circle cx="140" cy="80" r="10" fill="#faf7ef" stroke="#34332e" stroke-width="4"/>
+            <text class="st-name" x="140" y="52" text-anchor="middle">开口聊</text>
+            <text class="st-en" x="140" y="36" text-anchor="middle">SPEAK</text>
+          </g>
+          <g>
+            <circle cx="500" cy="80" r="10" fill="#faf7ef" stroke="#34332e" stroke-width="4"/>
+            <text class="st-name" x="500" y="52" text-anchor="middle">就绪决断</text>
+            <text class="st-en" x="500" y="36" text-anchor="middle">READY?</text>
+          </g>
+          <g>
+            <circle cx="570" cy="225" r="10" fill="#faf7ef" stroke="#34332e" stroke-width="4"/>
+            <text class="st-name" x="554" y="220" text-anchor="end">决策包</text>
+            <text class="st-en" x="554" y="236" text-anchor="end">DECISION PKG</text>
+          </g>
+          <g>
+            <circle cx="500" cy="370" r="15" fill="none" stroke="#b13a2b" stroke-width="3.5"/>
+            <circle cx="500" cy="370" r="8" fill="#b13a2b"/>
+            <text class="st-name" x="478" y="388" text-anchor="end" fill="#b13a2b" style="font-weight:700">你拍板 · 换乘</text>
+            <text class="st-en" x="478" y="404" text-anchor="end">YOU DECIDE — INTERCHANGE</text>
+          </g>
+          <g>
+            <circle cx="140" cy="370" r="10" fill="#faf7ef" stroke="#34332e" stroke-width="4"/>
+            <text class="st-name" x="140" y="414" text-anchor="middle">后台执行</text>
+            <text class="st-en" x="140" y="430" text-anchor="middle">EXECUTE</text>
+          </g>
+          <g>
+            <circle cx="70" cy="225" r="10" fill="#faf7ef" stroke="#34332e" stroke-width="4"/>
+            <text class="st-name" x="86" y="220">叫你验收</text>
+            <text class="st-en" x="86" y="236">ACCEPTANCE</text>
+          </g>
+        </svg>
+        <div class="map-cap"><span>SAYDO TRANSIT · 闭环运行图</span><span>首班 06:00 · 末班 23:59</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 跑马灯（降速过渡带） ================= -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>开源免费 <b>◆</b> 本地优先 <b>◆</b> 语音驱动 <b>◆</b> 人拍板才算数 <b>◆</b> 四色账本 <b>◆</b> 数据不出你的设备 <b>◆</b></span>
+    <span>开源免费 <b>◆</b> 本地优先 <b>◆</b> 语音驱动 <b>◆</b> 人拍板才算数 <b>◆</b> 四色账本 <b>◆</b> 数据不出你的设备 <b>◆</b></span>
+  </div>
+</div>
+
+<!-- ================= 痛点对照（解决什么问题） ================= -->
+<section class="sec" id="why" style="padding-bottom:30px">
+  <div class="ph" data-pop>
+    <span class="ph-kick">THE PROBLEM / 它解决什么</span>
+    <h2 class="ph-title">说过的话，<em>不再</em><u>转头就忘</u></h2>
+  </div>
+  <div class="versus" data-pop>
+    <div class="before">
+      <h3>没有它的时候</h3>
+      <p>说过的话，转头就忘；答应的事，不知道办到哪了。该等谁的、谁在办、办得怎么样——全靠脑子记和来回翻聊天记录。AI 工具遍地都是，但「记下来」就结束了，没人管「办出着落」。</p>
+    </div>
+    <div class="after">
+      <h3>有了说到 →</h3>
+      <p>每件事都有归属和去向，一眼看清：<b>等你拍板的、你欠的动作、AI 正在办的、等外部回音的</b>，四色分明，件件有着落。它把「聊透、自动开工、办完交付」做成同一套闭环。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 对话流（01 骨架） ================= -->
+<section class="sec" id="dialogue">
+  <div class="ph" data-pop>
+    <span class="ph-kick">ACT II / 不做介绍，直接旁观</span>
+    <h2 class="ph-title">一段<em>真实的</em><u>对话</u></h2>
+    <p class="ph-lead">自动播放的一段真实对话——新消息会把先出现的挤走，就像真的在用它。<b>也可以随时抢过来自己点。</b></p>
+  </div>
+
+  <div class="chatwin" data-pop>
+    <div class="chatwin-bar">
+      <div class="peerdot">说</div>
+      <div class="pmeta"><b>说到 SayDo</b><span>本地在线 · 自动演示</span></div>
+      <button class="sim-btn" id="sim-replay" type="button">重播</button>
+      <button class="sim-btn" id="sim-toggle" type="button">暂停</button>
+    </div>
+    <div class="chatlive" id="chatlive">
+      <div class="thread" id="sim-thread">
+        <div class="day-divider beat"><b>今天</b> 上午 9:41</div>
+
+    <div class="msg me beat">
+      <div class="avatar">你</div>
+      <div class="bubble">
+        <div class="voice">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+          <span>「把昨天说的导出功能做了，用 CSV。」</span>
+          <span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+        </div>
+        <div class="v-dur" aria-hidden="true"><i></i></div>
+        <span class="read">语音 3″ · 已读 09:41</span>
+      </div>
+    </div>
+
+    <div class="msg saydo beat">
+      <div class="avatar">说</div>
+      <div class="bubble">
+        <div class="who">说到 · 已读透这个项目</div>
+        记下来了。这个项目我读过结构、约定和关键文件——「导出」挂在报表模块，按现有约定该走 <code style="font-family:var(--font-mono);font-size:13px;background:rgba(52,51,46,.06);padding:1px 5px;border-radius:4px">export/</code> 目录。一个事等你拍板：
+        <div class="card">
+          <div class="ledger-row tone-ochre">
+            <span class="dot"></span>
+            <div><div class="t">CSV 用 UTF-8 带 BOM 吗？（Excel 直开不乱码）</div>
+            <div class="meta">等你拍板 · 一句「要」或「不要」就行</div></div>
+            <span class="chip">等你拍板</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="msg me beat">
+      <div class="avatar">你</div>
+      <div class="bubble">要。另外别动主分支。<span class="read">已读 09:44</span></div>
+    </div>
+
+    <div class="sys beat"><span>火候够了 —— 说到主动提议开工，而不是让你写需求文档</span></div>
+
+    <div class="msg saydo beat">
+      <div class="avatar">说</div>
+      <div class="bubble">
+        <div class="who">说到 · 决策包</div>
+        都聊透了，我建议开工。这是决策包，你看着具体的东西说「对 / 不对 / 调一下」：
+        <div class="card">
+          <div class="stamp-ok">已拍板</div>
+          <h4><span class="seal-dot"></span>决策包 · 导出功能（CSV）</h4>
+          <div class="pkg">
+            <div class="pkg-item"><b>① 成果预览</b><p>做完你会得到：报表页一个「导出 CSV」按钮，带 BOM，含一份和计划同源生成的网页小样，先看最终长什么样。</p></div>
+            <div class="pkg-item"><b>② 实施计划</b><p>4 步，每步标好 AI 执行还是需要你配合。独立 git worktree 跑，主工作区不会被碰。</p></div>
+            <div class="pkg-item"><b>③ 预计花费与封顶</b><p>走你已订阅的 AI，无需额外付费。<span class="cost">预算 ¥3.2 · 封顶 ¥8 · 超时熔断 45min</span></p></div>
+          </div>
+          <div class="approve-row">
+            <button class="btn btn-seal" type="button" data-approve>就这样，去办</button>
+            <button class="btn btn-line" type="button">调一下</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="day-divider beat"><b>上午 10:02</b> 你拍了板，去开会了</div>
+
+    <div class="msg saydo beat">
+      <div class="avatar">说</div>
+      <div class="bubble">
+        <div class="who">说到 · 后台执行中</div>
+        开工了。你可以走开——有预算、时长、回合三重熔断，不会无人值守烧钱。进展都记进账本：
+        <div class="card">
+          <h4><span class="seal-dot"></span>今天 · 四色账本</h4>
+          <div class="ledger-row tone-pine" id="row-csv">
+            <span class="dot"></span>
+            <div><div class="t">导出功能（CSV）· 独立 worktree 跑着</div><div class="meta">AI 正在办 · 已 12 分钟</div></div>
+            <span class="chip">AI 在办</span>
+          </div>
+          <div class="ledger-row tone-indigo">
+            <span class="dot"></span>
+            <div><div class="t">回复设计稿确认邮件</div><div class="meta">你欠的动作 · 今天 09:10</div></div>
+            <span class="chip">你来做</span>
+          </div>
+          <div class="ledger-row tone-ochre">
+            <span class="dot"></span>
+            <div><div class="t">官网风格定了，11 号杂交版</div><div class="meta">等你拍板 · 刚刚</div></div>
+            <span class="chip">等你拍板</span>
+          </div>
+          <div class="ledger-row tone-muted">
+            <span class="dot"></span>
+            <div><div class="t">等第三方 API 配额审批回来</div><div class="meta">等外部回音 · 预计明天</div></div>
+            <span class="chip">等回音</span>
+          </div>
+        </div>
+        每件事都有归属和去向：等你拍板的、你欠的、AI 在办的、等回音的，四色分明，件件有着落。
+      </div>
+    </div>
+
+    <div class="day-divider beat"><b>上午 10:47</b> 执行和检查都跑完了</div>
+
+    <div class="msg saydo beat">
+      <div class="avatar">说</div>
+      <div class="bubble">
+        <div class="who">说到 · 叫你验收</div>
+        办完了——说「等你验收」，而不是「做完了」。测试全绿，证据在这。合并、交付，你点头才算数。
+        <div class="approve-row">
+          <button class="btn btn-seal" type="button" data-accept>验收，合并</button>
+          <button class="btn btn-line" type="button">打回重做</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sys beat"><span>一段对话 = 一个完整闭环 · 稍后自动重播</span></div>
+    </div>
+  </div>
+  <div class="chatwin-foot"><span>LIVE DEMO · 约 40 秒一轮</span><span id="sim-foot-note">拍板与验收会自动演示，也可以抢点</span></div>
+  </div>
+</section>
+
+
+<!-- ================= 四义（机制扫读层） ================= -->
+<section class="sec" id="how" style="padding-top:30px">
+  <div class="ph" data-pop>
+    <span class="ph-kick">HOW / 它怎么做到的</span>
+    <h2 class="ph-title">四件事，<em>缺一不可</em></h2>
+    <p class="ph-lead">上面那段对话能成立，靠的是这四条机制。<b>市面上每一块都有成熟单点，但还没人把它们做成同一套闭环。</b></p>
+  </div>
+  <div class="tenets" data-pop>
+    <div class="tenet" style="--tc:var(--indigo)"><span class="tn">01</span><h3>先吃透，再办事</h3><p>第一次聊一个项目，先读透结构、约定与关键文件，沉淀成持久知识底座——此后每次都带着理解开聊。这是和「新开一个聊天窗口」的分水岭。</p></div>
+    <div class="tenet" style="--tc:var(--pine)"><span class="tn">02</span><h3>AI 真的在干活</h3><p>接上你电脑上已登录的 AI——Codex、Claude Code、Cursor、Gemini CLI、Grok。已订阅哪家用哪家，无需额外付费。</p></div>
+    <div class="tenet" style="--tc:var(--seal)"><span class="tn">03</span><h3>人拍板才算数</h3><p>开工前给决策包三件套；做完说「等你验收」而不是「做完了」。合并、交付，永远你点头才算。</p></div>
+    <div class="tenet" style="--tc:var(--ochre)"><span class="tn">04</span><h3>跨设备同一本账</h3><p>手机说话、看进展、点头确认；重活留在你的电脑上，S3 重操作永远只在电脑。沟通是移动的，执行是固定的。</p></div>
+  </div>
+</section>
+
+<!-- ================= 隐私（08 零件 · 全页唯一深底） ================= -->
+<section class="sheet" id="privacy">
+  <div class="sheet-inner">
+    <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+    <div class="ph" data-pop>
+      <span class="ph-kick">DWG SAYDO-2026-001 / 隐私总装图</span>
+      <h2 class="ph-title">隐私不是承诺，<em>是</em><u>架构</u></h2>
+      <p class="ph-lead">对话、事项与账本保存在你自己的设备上。<b>没有账号体系，不埋点，不接入第三方统计或广告 SDK</b>——开发者无法访问，也不收集。</p>
+    </div>
+    <div class="fig" data-pop>
+      <svg viewBox="0 0 780 340" role="img" aria-label="隐私总装图：手机沟通面经局域网连接电脑执行面，数据全部留在本机">
+        <line class="sl2" x1="40" y1="170" x2="740" y2="170" opacity=".5"/>
+        <!-- 手机 -->
+        <rect class="sl" x="70" y="95" width="92" height="158" rx="14"/>
+        <line class="sl" x1="104" y1="235" x2="128" y2="235"/>
+        <circle class="sc" cx="116" cy="140" r="16"/>
+        <path class="sc" d="M116 132 a5 5 0 0 1 5 5 v4 a5 5 0 0 1 -10 0 v-4 a5 5 0 0 1 5 -5 M110 142 a6 6 0 0 0 12 0"/>
+        <text class="st" x="116" y="282" text-anchor="middle">沟通面 · 手机</text>
+        <text class="sts" x="116" y="298" text-anchor="middle">说话 / 看进展 / 点头确认</text>
+        <!-- 双箭头连接 -->
+        <line class="sl" x1="162" y1="170" x2="612" y2="170"/>
+        <path class="sl" d="M176 162 L162 170 L176 178"/>
+        <path class="sl" d="M598 162 L612 170 L598 178"/>
+        <text class="st" x="387" y="156" text-anchor="middle">局域网 / 自行配置的加密组网</text>
+        <text class="sts" x="387" y="190" text-anchor="middle">远程审批封顶 S2 · 合并删除 S3 仅电脑</text>
+        <!-- 电脑 -->
+        <rect class="sl" x="612" y="90" width="130" height="96" rx="6"/>
+        <line class="sl" x1="662" y1="186" x2="692" y2="186"/>
+        <line class="sl" x1="677" y1="186" x2="677" y2="198"/>
+        <line class="sl" x1="650" y1="198" x2="704" y2="198"/>
+        <rect class="sc" x="624" y="104" width="106" height="22"/>
+        <text class="st" x="677" y="119" text-anchor="middle" style="font-size:10.5px">说到 daemon</text>
+        <rect class="sl" x="624" y="132" width="50" height="20"/>
+        <text class="sts" x="649" y="145" text-anchor="middle">AI 执行器</text>
+        <rect class="sl" x="680" y="132" width="50" height="20"/>
+        <text class="sts" x="705" y="145" text-anchor="middle">四色账本</text>
+        <rect class="sl" x="624" y="158" width="106" height="16"/>
+        <text class="sts" x="677" y="169" text-anchor="middle">数据 100% 本机</text>
+        <text class="st" x="677" y="228" text-anchor="middle">执行面 · 电脑</text>
+        <text class="sts" x="677" y="244" text-anchor="middle">无云端后台 · 无账号 · 不埋点</text>
+        <!-- 云端上游注记 -->
+        <circle class="sc" cx="404" cy="282" r="10"/><text class="st" x="404" y="286" text-anchor="middle" style="font-size:11px">注</text>
+        <text class="sts" x="240" y="278">你自行启用的云端语音与 AI 上游，由你的电脑直连第三方；</text>
+        <text class="sts" x="240" y="294">开发者不接收这些数据。</text>
+        <line class="sl2" x1="412" y1="276" x2="600" y2="200"/>
+      </svg>
+    </div>
+    <div class="sheet-foot" data-pop>
+      <span>图名 TITLE · 隐私总装图</span>
+      <span>图号 DWG NO. · SAYDO-2026-001</span>
+      <span>批准 APPROVED · 你（拍板）</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 问答（01 对话式 FAQ） ================= -->
+<section class="sec" id="faq">
+  <div class="ph" data-pop>
+    <span class="ph-kick">Q&amp;A / 先说清楚它不是什么</span>
+    <h2 class="ph-title">你大概<em>想问</em></h2>
+  </div>
+  <div class="thread">
+    <div class="msg me" data-pop><div class="avatar">你</div><div class="bubble">它用的是哪家的 AI？要我再买一份订阅吗？</div></div>
+    <div class="msg saydo" data-pop>
+      <div class="avatar">说</div>
+      <div class="bubble">不用。它接上你电脑上<b>已登录</b>的 AI——Codex、Claude Code、Cursor、Gemini CLI、Grok 等替它对话、思考、评估；动手改代码当前稳定路径是 Cursor Agent，Claude Code 正在最终收口。已订阅哪家用哪家。</div>
+    </div>
+    <div class="msg me" data-pop><div class="avatar">你</div><div class="bubble">我的对话和项目数据，会传到你们服务器吗？</div></div>
+    <div class="msg saydo" data-pop>
+      <div class="avatar">说</div>
+      <div class="bubble">我们没有服务器（上面那张总装图画的就是这个）。<b>不运营任何云端后台，没有账号体系，不埋点。</b>数据保存在你自己的设备上；手机与电脑之间走你自己的局域网或你自行配置的加密组网。</div>
+    </div>
+    <div class="msg me" data-pop><div class="avatar">你</div><div class="bubble">手机上能用到什么程度？</div></div>
+    <div class="msg saydo" data-pop>
+      <div class="avatar">说</div>
+      <div class="bubble">沟通天然是移动的，执行天然是固定的。手机上说话、看进展、点头确认（审批封顶 S2）；合并、删除等 S3 重操作永远只在你的电脑上。手机暂时离开，也不打断执行。</div>
+    </div>
+    <div class="msg me" data-pop><div class="avatar">你</div><div class="bubble">现在就能用吗？</div></div>
+    <div class="msg saydo" data-pop>
+      <div class="avatar">说</div>
+      <div class="bubble">桌面服务开源免费、现在可用（macOS / Windows / Linux）；移动 App 开发中、尚未上架。下面这条命令，一条就够 ↓</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 反向跑马灯 ================= -->
+<div class="marquee rev" aria-hidden="true">
+  <div class="marquee-track">
+    <span>说到 <b>◆</b> 就做到 <b>◆</b> 说到 <b>◆</b> 就做到 <b>◆</b> 说到 <b>◆</b> 就做到 <b>◆</b> 说到 <b>◆</b> 就做到 <b>◆</b></span>
+    <span>说到 <b>◆</b> 就做到 <b>◆</b> 说到 <b>◆</b> 就做到 <b>◆</b> 说到 <b>◆</b> 就做到 <b>◆</b> 说到 <b>◆</b> 就做到 <b>◆</b></span>
+  </div>
+</div>
+
+<!-- ================= 收尾 CTA（03 整幅朱版） ================= -->
+<section class="finale" id="start">
+  <h2 data-pop>把「说」和「做」<br>连起来。</h2>
+  <p data-pop>聊清楚，它去办，办完叫你验收。开源免费，数据不出你的设备。需要 Node.js 22，无需克隆源码：</p>
+  <span class="cmd" data-pop><b>$</b> npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.2/saydo-cli-0.1.0-rc.2.tgz -- saydo up</span>
+  <div class="plat" data-pop>
+    <span>macOS<i>现在可用</i></span>
+    <span>Windows<i>现在可用</i></span>
+    <span>Linux<i>现在可用</i></span>
+    <span>iOS<i>开发中</i></span>
+    <span>Android<i>开发中</i></span>
+    <span>HarmonyOS<i>开发中</i></span>
+  </div>
+  <a class="cta-final" href="https://github.com/Octo-o-o-o/SayDo" target="_blank" rel="noopener" data-pop>去 GitHub 开跑 →</a>
+</section>
+
+<footer>
+  <span class="demo-tag">STYLE DEMO 11 · 杂交终稿候选（03 皮肤 × 01 骨架 × 04 环线图 × 08 总装图）· 仅风格探索</span>
+  <span><a href="https://github.com/Octo-o-o-o/SayDo">GitHub</a> · <a href="/privacy/">隐私政策</a> · <a href="index.html">返回风格总览</a></span>
+</footer>
+
+<script>
+  // 出现动画；SayDo 的消息先显示「正在输入」再浮现
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    const el = e.target;
+    io.unobserve(el);
+    if (el.matches('.msg.saydo')) {
+      const t = document.createElement('div');
+      t.className = 'msg saydo typing-msg in';
+      t.innerHTML = '<div class="avatar">说</div><div class="bubble"><span class="typing"><i></i><i></i><i></i></span></div>';
+      el.parentNode.insertBefore(t, el);
+      setTimeout(() => { t.remove(); el.classList.add('in'); }, 680);
+    } else {
+      el.classList.add('in');
+    }
+  }), { threshold: .12 });
+  document.querySelectorAll('[data-pop]').forEach(el => io.observe(el));
+
+  // 拍板：盖章 + 闪高账本行
+  document.querySelectorAll('[data-approve]').forEach(btn => btn.addEventListener('click', () => {
+    btn.textContent = '已拍板 · 开工'; btn.classList.add('done');
+    const stamp = btn.closest('.card') && btn.closest('.card').querySelector('.stamp-ok');
+    if (stamp) stamp.classList.add('on');
+    const row = document.getElementById('row-csv');
+    if (row) { row.classList.add('flash'); setTimeout(() => row.classList.remove('flash'), 1600); }
+  }));
+
+  // 验收：账本翻状态
+  document.querySelectorAll('[data-accept]').forEach(btn => btn.addEventListener('click', () => {
+    btn.textContent = '已验收 · 已合并'; btn.classList.add('done');
+    const row = document.getElementById('row-csv');
+    if (row) {
+      row.className = 'ledger-row tone-muted flash';
+      row.querySelector('.chip').textContent = '已验收';
+      row.querySelector('.meta').textContent = '今天 10:47 · 测试全绿，已合并入账';
+      setTimeout(() => row.classList.remove('flash'), 1600);
+    }
+  }));
+
+  // hero 朱字视差（轻量）
+  const glyphSeal = document.getElementById('glyph-seal');
+  let ticking = false;
+  addEventListener('scroll', () => {
+    if (ticking) return; ticking = true;
+    requestAnimationFrame(() => {
+      const y = scrollY;
+      if (glyphSeal && y < innerHeight)
+        glyphSeal.style.transform = `rotate(${-3 - y * 0.008}deg) translateY(${0.05 + y * 0.0004}em)`;
+      ticking = false;
+    });
+  }, { passive: true });
+
+  // ============ 影院式对话：自动播放 · 新消息挤走旧消息 · 可暂停/重播 ============
+  (function () {
+    const live = document.getElementById('chatlive');
+    const simThread = document.getElementById('sim-thread');
+    if (!live || !simThread) return;
+    const beats = [...simThread.children];
+    const toggleBtn = document.getElementById('sim-toggle');
+    const replayBtn = document.getElementById('sim-replay');
+    const footNote = document.getElementById('sim-foot-note');
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // beat 顺序：0 日期 / 1 语音 / 2 BOM / 3 要 / 4 sys / 5 决策包 / 6 日期2 / 7 账本 / 8 日期3 / 9 验收 / 10 sys闭环
+    const delays = [700, 1500, 2300, 1400, 1100, 2600, 1100, 2400, 1100, 2500, 1600];
+    const autoAt = { 5: ['[data-approve]', 1400], 9: ['[data-accept]', 1500] };
+    const typingBefore = new Set([2, 5, 7, 9]);
+    let playing = false, timer = null, idx = 0, started = false;
+
+    function reveal(el, i) {
+      el.style.display = '';
+      el.classList.add('pre');
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        el.classList.add('sim-in');
+        el.classList.remove('pre');
+      }));
+      // 装不下时，把最早还可见的 beat 挤走
+      let guard = 0;
+      while (live.scrollHeight > live.clientHeight + 6 && guard++ < 12) {
+        const first = beats.find(b => b.style.display !== 'none' && !b.classList.contains('gone') && b !== el);
+        if (!first) break;
+        first.classList.add('gone');
+        const f = first;
+        setTimeout(() => { if (f.classList.contains('gone')) f.style.display = 'none'; }, 480);
+      }
+      live.scrollTo({ top: live.scrollHeight, behavior: 'smooth' });
+      // 自动拍板 / 验收
+      if (autoAt[i]) {
+        const sel = autoAt[i][0], wait = autoAt[i][1];
+        setTimeout(() => {
+          if (!playing) return;
+          const b = el.querySelector(sel);
+          if (b && !b.classList.contains('done')) b.click();
+        }, wait);
+      }
+      schedule(i + 1);
+    }
+
+    function showBeat(i) {
+      const el = beats[i];
+      if (typingBefore.has(i)) {
+        const t = document.createElement('div');
+        t.className = 'msg saydo beat typing-msg-live';
+        t.innerHTML = '<div class="avatar">说</div><div class="bubble"><span class="typing"><i></i><i></i><i></i></span></div>';
+        el.before(t);
+        live.scrollTo({ top: live.scrollHeight, behavior: 'smooth' });
+        timer = setTimeout(() => { t.remove(); if (playing) reveal(el, i); }, 800);
+      } else {
+        reveal(el, i);
+      }
+    }
+
+    function schedule(next) {
+      idx = next;
+      if (next < beats.length) {
+        timer = setTimeout(() => { if (playing) showBeat(next); }, delays[next] || 1500);
+      } else {
+        timer = setTimeout(() => { if (playing) restart(); }, 4600);
+      }
+    }
+
+    function resetSim() {
+      const ap = simThread.querySelector('[data-approve]');
+      if (ap) { ap.textContent = '就这样，去办'; ap.classList.remove('done'); }
+      const ac = simThread.querySelector('[data-accept]');
+      if (ac) { ac.textContent = '验收，合并'; ac.classList.remove('done'); }
+      const stamp = simThread.querySelector('.stamp-ok');
+      if (stamp) stamp.classList.remove('on');
+      const row = document.getElementById('row-csv');
+      if (row) {
+        row.className = 'ledger-row tone-pine';
+        row.querySelector('.chip').textContent = 'AI 在办';
+        row.querySelector('.meta').textContent = 'AI 正在办 · 已 12 分钟';
+      }
+    }
+
+    function restart() {
+      clearTimeout(timer);
+      resetSim();
+      beats.forEach(b => { b.style.display = 'none'; b.classList.remove('sim-in', 'pre', 'gone'); });
+      simThread.querySelectorAll('.typing-msg-live').forEach(t => t.remove());
+      live.scrollTop = 0;
+      idx = 0;
+      timer = setTimeout(() => { if (playing) showBeat(0); }, 600);
+    }
+
+    if (reduceMotion) {
+      // 系统减弱动效：静态全量展示，按钮仍可点
+      toggleBtn.style.display = 'none';
+      replayBtn.style.display = 'none';
+      footNote.textContent = '已按系统偏好静态展示 · 按钮仍可点击';
+    } else {
+      playing = true;
+      // 滚进视口再开播，避免错过
+      const kickoff = new IntersectionObserver(es => {
+        if (es[0].isIntersecting && !started) { started = true; kickoff.disconnect(); restart(); }
+      }, { threshold: .25 });
+      kickoff.observe(live);
+      toggleBtn.addEventListener('click', () => {
+        playing = !playing;
+        toggleBtn.textContent = playing ? '暂停' : '播放';
+        if (playing) { if (idx >= beats.length) restart(); else showBeat(idx); }
+        else clearTimeout(timer);
+      });
+      replayBtn.addEventListener('click', () => {
+        if (!playing) { playing = true; toggleBtn.textContent = '暂停'; }
+        restart();
+      });
+    }
+  })();
+</script>
+</body>
+</html>
