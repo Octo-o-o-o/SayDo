@@ -2862,7 +2862,7 @@ owner 提供 Cursor 会话产出的"FoloToy AI Passport 口袋硬件接入 daemo
 ## R112 · 600 条提问三轮 dry run 的 A 级返工与试跑前收口（2026-08-27）
 
 ### 输入
-owner 要求在新会话继续 600 条提问的三轮静态 dry run，只做 A 级返工与试跑前收口：不跑真实 connector、外部账号、真实模型批次、浏览器/Web 搜索或业务写 effect；只修 R110 readback 的 A1-A5，A=0 即停；不新增 V10、不扩写近义问题、不清零 B/C。要求优先 resume 原 Grok 实施 session 施工，并明令 replay/P0/P1/P2/P3 必须由 72 条证据全量重算，禁止为迎合评审里的 67/65/46/23 等局部下界硬编码。
+owner 要求在新会话继续 600 条提问的三轮静态 dry run，只做 A 级返工与试跑前收口：不跑真实 connector、外部账号、真实模型批次、浏览器/Web 搜索或业务写 effect；只修 dry-run readback(`docs/review/2026-08-26-customer-question-dry-run-impl-readback.fable.md`;原记「R110 readback」为主工作区旧编号体系残留,main 的 R110 是 W5.4-b 收口——2026-08-27 月度审计勘误)的 A1-A5，A=0 即停；不新增 V10、不扩写近义问题、不清零 B/C。要求优先 resume 原 Grok 实施 session 施工，并明令 replay/P0/P1/P2/P3 必须由 72 条证据全量重算，禁止为迎合评审里的 67/65/46/23 等局部下界硬编码。
 
 ### 行动
 1. 先读 `AGENTS.md`、dry-run 计划与三份评审、`dry-run-model.mjs`/`rebuild`/`validate` 与 `simulation-spec.mjs`，再用只读脚本结构化复核而不是照抄评审结论：确认 CTX 题实测 172、`inSimulation` 72、fixture 状态词表为 `ok/stale/empty/partial/permission_denied/conflict`；对 72 个 sim 导出 lifecycle / turn move / failure inject / recover / must / mustNot / finalState，独立复现出 12 个已知反例（5 个 LONG_RUN_PAUSE 无 resume 轮、7 个 S3 的 failure 全是数据类），并反向确认 `RES-046` 确有 `resume` 轮而只缺 lifecycle 标签。
@@ -2881,7 +2881,7 @@ owner 要求在新会话继续 600 条提问的三轮静态 dry run，只做 A �
 ### 结论与边界
 - A1-A5 全部落地。DR3 判据由「属于 72 个 simulation」改为「该 simulation 的结构化锚证明了本行所选的那一个扰动」，重算得 replay 27、P0 23、P1 46、P2 338、P3 166，PROVEN/NO_EVIDENCE/NOT_IN_SIM = 27/45/528。P0 新增的 7 条恰是 7 个 `S3_AUTH_MISSING` 无证据的 simulation 题，是判据改正的直接后果而非调参。
 - 冻结事实全部保持：600 条、F 46/483/60/11、DR1 七态、LIVE 465、F1 46、simulation 72、CTX 172、主语料源树 SHA 不变。
-- 本会话真实执行的门禁全绿：7 个 `node --check`、rebuild、validate、independent-oracle、38 条 mutation 全拒、主语料 validate、simulation validate、emoji 门，退出码均为 0；连续两次 rebuild 生成树 `cmp` 退出 0。
+- 本会话真实执行的门禁全绿：7 个 `node --check`、rebuild、validate、independent-oracle、36 条 mutation 全拒(原记 38 含正控与总结行,2026-08-27 勘误)、主语料 validate、simulation validate、emoji 门，退出码均为 0；连续两次 rebuild 生成树 `cmp` 退出 0。
 - 仍保留的 B：`RES-046` lifecycle 标签（`simulations/**` 属本轮禁改路径）、`OPS-053` F4 D0 与 `read_test` 顺序、`ENG-001`/`ENG-048` F1 与 USER connector 边界、P0 23 条仍是待填写 capsule、词表仍属人工枚举需随新增 simulation 复审。`issuance` 缺字段一条在修 A3 时已顺带修掉。
 - 本轮未 commit / push / add，工作树无关改动全部保留；未跑全仓 `just ci`（不涉生产代码）；未调用任何真实工具或产生外部 effect。
 - **本会话既调度又跑门禁，不构成验收**。A=0 结论须由另一个零上下文会话按 `prompts/190-…-readback.md` 独立复核；在此之前不开始真实 connector 或模型批次。
@@ -2974,3 +2974,85 @@ owner 要求在新会话继续 600 条提问的三轮静态 dry run，只做 A �
 - `~/WorkSpace/SayDo-rc4-review-clean-v3.zkC5HW`:RC4 privacy 复审用的**独立 clone**
   (505 MB,分支 `candidate` @ `4d4a442`,upstream `file:///tmp/...` 已消失),
   不属本仓 worktree,未删。
+
+## R114 · 月度全量双向审计:提交合并收敛 + 九线 commit↔文档 对照 + 修复(2026-08-27)
+
+owner 要求对最近一个月(07-27 起,585 个 commit / 1009 份月内动过的 md;口径:`git log --since=2026-07-27 --oneline` 于合并收敛点 `f723ab7` 计 585,md 数为 `--all` 含分支口径——两路交叉复审确认数字对但须带口径才可复核,故补此注)做完整的全新 review:
+先提交合并全部在途内容,再做文档↔commit 双向对照,错误直接修,不一致判方向,最后交叉复审、
+推送、部署。本节为该批的一行索引与勘误收口。
+
+**收敛动作**(全部有独立命令证据):
+
+- 主工作区 284 个未入库/漂移文件逐一与 main blob 对比定向:55 个与 main 一致、48 个 main 更新
+  (脱敏+门禁修复后的版本,工作区为旧快照,弃)、181 个 main 缺(600 条线语料库实体等)。
+  语料库全量入库 `cf50f52`(171 文件;入库前修 1 处本机路径,三门禁绿)。
+- panini worktree 的 BYOA L-1 修复线(w54b §18.4 登记的独立安全线)提交 `911ce95` 并 merge
+  `f723ab7`:身份门下沉到每次 spawn 前(preSpawnGate),单测 5 passed、daemon 全套 2177 passed。
+  同批索引 voice B-5 修复线 `7f6562e`(merge `1f2e57e`,hub 重放最近生效 voice.mode)——两线
+  此前零 journal 记录,在此补录。
+- `codex/week-audit-evidence-20260823` 分支唯一独有 commit(`6624299` 冻结账本)的三处**非账本文件增量**
+  (冻结 SHA/活跃文档 96/tgz 摘要)逐条确认已被 main 吸收且超越;按 R113 裁决不合并。
+  (勘误 2026-08-27 交叉复审:本节初稿写「随后删除」不实——分支当时仍在,且 R113 的裁决是
+  「刻意不删、是否归档由 owner 定」,其理由「8-23 账本冻结态整体只存在于该分支」仍然成立,
+  与本节的「非账本增量已吸收」判断不冲突。终局处置:本批清理阶段先打归档 tag
+  `archive/week-audit-evidence-20260823` 指向 `6624299` 保住冻结点,再删分支——既执行 owner
+  本轮「清理所有分支」指令,又满足 R113 的不可恢复警告。)
+- 收敛前先移除了 `SayDo-rc4-runtime-final-reimplementation-20260824` worktree(R113 保留的三个
+  之一;checkout main、工作树 clean、无独有内容,移除以释放 main 给主树),随后主工作区从
+  `codex/week-audit-faststart-20260822`(R113 记 dirty 76 项)按上述定向处置后 checkout main。
+- 合并后全量 `just ci` exit 0(node+python 矩阵绿)。
+
+**九线并行零上下文审计**(9 个独立 subagent,报告在会话 scratchpad):RC 发布链 / daemon 核心 /
+console-UI / mobile-remote / w54-AI供给 / 周审计账本 / 公开化官网 / 提问语料 / 杂项兜底。
+发现合计 A 级 18、B 级 31、C 级 40;其中可直接修复的当日全部修复(见本批 fix 系列提交),
+要点如下——
+
+**入库事故修复**:`dfb6f9d` 曾把整套语料实体 rsync **拍平**到 `research/*`(非 canonical 路径),
+`cf50f52` 未察觉再入一份,main 一度存在两份 byte-identical 副本(171×2),且原 `research/README.md`
+目录索引被语料 README 覆盖丢失。`f5ca882` 删除拍平副本(逐一核验同 blob 后删,零信息损失)并恢复
+原索引。**勘误**:`cf50f52` message 称 dfb6f9d「只收 28 个文件、实体一直只在工作区」不实——
+系对其 --stat 截断输出的误读;`dfb6f9d` message 对 README 的「主树更新」判断亦误。
+
+**公开仓 CI 红灯事件补记**(此前零文档记录):公开仓 main 最近两次快照 CI 真红
+(run 33061815709/33061397898,`pnpm test` 同 3 条 L-1 身份门测试失败)——根因是 w54b 收口
+`8941e1c` 把 L-1 复现测试先入了库而修复实现 `911ce95` 尚未快照到公开仓,且该 3 条测试的绿
+在 macOS 上是平台相关的(本机 just ci 曾绿)。另两次 08-26 失败为 GitHub 基础设施故障
+(runner 未分配 / android SDK zip 损坏)。本批推送快照后应转绿,推送后须确认 CI 结论。
+
+**文档修复清单**(对齐实施方向,均已落盘):rc.12 发布说明改合同 v2 口径 + supersede 链勘误注;
+version-matrix/release-profile 版本 SoT 刷新到 rc.12 available;HANDOFF §1 头部 08-23 块降级
+历史段、rc.4-rc.9 归因精确化、新增「收尾必重生成账本」纪律;docs/09 §10 握手段对齐 §16 既定
+改判(identity 三元组/protocol major/stateRootDigest;runtimeSha 废止)+ 词表补 10 种在网 WS
+消息;docs/11 §3 外壳段/-§2.5 surface-raised/语音三态/§5.11 改号/DemoFrame 登记;docs/10 §3-8
+三态;modules/a A3 与 d D1 对齐 canonical;capture 方案 B-5 已修回注 + §10 分叉定性更正;
+w54b-batch §14.2「git 不报冲突」叙事更正(实报 5 文件冲突,漏检=解决后未复跑 ci-node)+
+§18.4 L-1 已修注 + L-8/9/10 补录(w54a readback 三项断链);runtime readback 范围声明 +
+§11 后记(8B/A6 处置、Windows 92 failed 债登记);DSH 评估 D-09 勘误(buildSpawnEnv 白名单
+07-24 已有,强于建议);phase-gap B0 supersede 注;mobile-gap-audit 两处行号勘误;faststart
+release「96 链接」单位勘误;账本 ledger 覆盖边界声明(终点=b768089);readiness 方案探针位置
+与 gitleaks 基线注;风格探索稿 §五 门禁范围事后注;site README 索引补 11 号稿 supersede 关系;
+PLAN-2 204/205「未入库」勘误与合同草案行数口径;IMPL-16 终态注(阶段 A/C 已执行,转历史存档);
+决策单未签项 checkbox 改未勾选态;A-repair 报告与本文件 R112 的「38 条 mutation」勘误为 36、
+R112「R110 readback」错引改为文档路径;语料 README review/ 措辞修正;台账 §1 tag 行刷新、
+时代 VII 补九行批次索引(清偿 R84 双轨承诺的 08-23~26 断档)、§3 补 205/100 撞号登记。
+
+**d413e30 补记**(RFC1918 白名单化,此前无叙述性记录):mobile 线并入带入配对语料的 RFC1918
+示例值,裁决为**白名单校验而非豁免**——3 个语料文件、6 个边界/文档示例值,白名单外仍报
+`rfc1918-corpus-disallowed`,收紧而非放松。
+
+**官网 11 号杂交重构补记**(此前无 R 节):08-25 风格探索(30 方向→10 demo→11 号杂交定稿,
+`docs/site/2026-08-25-homepage-style-exploration.md`)当日直接上线;入库滞后两段式——
+`0e33260`(08-26,16 个 deploy/ 文件逐 SHA-256 校验合入)+ `dfb6f9d`(08-27,探索稿与 demo 稿)。
+08-25 那次上线无部署证据文件,以 `0e33260` message 的校验记述为据。
+
+**owner 待决清单**(本批不代拍,汇总自九线审计):
+1. 主语料 v8 终审三份 [fail](3 条 A 级:locator 模板拼接不能称具体/字段异物)零处置即入库——
+   三选一:开修复线 / 接受现状改 README 口径 / 降级对外承诺等级(语料线 A-4)。
+2. 600 条 dry run 的 prompts/190 零上下文全量评审停点仍未执行(本批语料线审计可作旁证不可替代)。
+3. rc.5-rc.9 五个已烧版本仓内零证据工件——认可「commit message+readback+GitHub 不可变记录」
+   形态并声明,或补轻量台账引用 run id(发布线 B-1)。
+4. `borrow-dsh-invariants` 第一刀(D-01/D-05/D-02+D-14)悬空 14 天:开批/放弃/并入后续批。
+5. `native_api` 执行器决策点跨 6 份文档 12 天无裁决。
+6. IMPL-15 §3.5 第 2/3 条(方案 §8 残余/ADR-002 状态更正)书面确认或明示豁免。
+7. 四场真人验收基线:发布锁已两度前移,四场基线重声明仍待 owner(自 07-31 悬置)。
+8. Windows daemon 单测 92 failed 债(9f0e735 开门实测)的投入排期。

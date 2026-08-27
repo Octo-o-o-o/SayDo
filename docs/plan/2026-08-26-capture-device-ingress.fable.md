@@ -135,13 +135,13 @@ contracts additive(`packages/contracts/src/types/pipeline.ts` 全部为 `z.stric
 - pipeline 透传:`_handle` 的 done_speaking 分支把 origin 传入 `_spawn_ptt_flush` → `_flush_mic`,回发的 asr.final 原样带上(约 3 行;对不带 origin 的现网消息零行为差异);
 - daemon 收到 `origin:"capture"` 的 asr.*:不 `broadcast("console")`(§1.2 冒领防御),进 capture 独立 handler(§2.6);
 - `asr.final` 只信 pipeline 的 B8 铁律不放宽(`hub.ts:109-139`);
-- **版本门替代猜测(v2)**:v1 的"captureInFlight 配对猜无 origin final 来源"后备已删——Codex 证明它双向误归因(Console 切 sid 清计数后,旧 Console final 会被吞成 capture;偏斜叠加免手切换时 capture final 会放行进词表环)。替代:`RUNTIME_PROTOCOL_VERSION` 从 `1.0.0` bump 到 `1.1.0`(contracts 与 pipeline 同步,additive capability 的语义化表达);hello 兼容仍按 major(`runtime.ts:128-133` 不动,旧 pipeline 照常可连、现网功能不受影响),但 capture flush 判定 b 要求 pipeline identity 的 minor >= 1,否则弃轮 `pipeline_incompatible`。**fail-closed:不确定透传能力就不发**,零猜测、零误归因。(注:canonical `docs/09:986-988` 要求握手 runtimeSha 三方一致而实现只比 protocol major——该既有分叉不由本方案修,如实记录于 §9。)
+- **版本门替代猜测(v2)**:v1 的"captureInFlight 配对猜无 origin final 来源"后备已删——Codex 证明它双向误归因(Console 切 sid 清计数后,旧 Console final 会被吞成 capture;偏斜叠加免手切换时 capture final 会放行进词表环)。替代:`RUNTIME_PROTOCOL_VERSION` 从 `1.0.0` bump 到 `1.1.0`(contracts 与 pipeline 同步,additive capability 的语义化表达);hello 兼容仍按 major(`runtime.ts:128-133` 不动,旧 pipeline 照常可连、现网功能不受影响),但 capture flush 判定 b 要求 pipeline identity 的 minor >= 1,否则弃轮 `pipeline_incompatible`。**fail-closed:不确定透传能力就不发**,零猜测、零误归因。(注:定稿时曾记录 canonical `docs/09:986-988` 要求握手 runtimeSha 三方一致而实现只比 protocol major 的分叉——2026-08-27 月度审计核实其真实状态是 §10 陈旧、§16.1 已改判且实现与 §16 一致,§10 已同批回写对齐,分叉不复存在。)
 
 ### 2.5 与 Console 的并发互斥:机械账本而非启发式
 
 不引入抢占锁(§1.1 已证伪)。判定用三个**机械维护**的影子值(v1 的"最近 1s 有 console 帧"启发式已删——tailnet console 帧间隔可超 1s、console 断线残留无 done 兜底,两条时序都会破"pipeline 只见完整轮"):
 
-- **shadow mode**:VoiceHub 在向 pipeline 转发 `voice.mode` 的分支(`hub.ts:543-546`,mobile_lan 的 voice.mode 不转发、不计入)记录最近生效 (mode, sid) 二元组;`onPipelineJoined` 重置为 ptt(pipeline 重连清态回 ptt,`hub_client.py:232`)。hands_free ⇒ 弃轮 `hands_free_active`(capture 帧进免手档会被 `_feed_vad` 当作 Console 语音段,`hub_client.py:170-175`)。已知边界(如实):pipeline 单独重连后 Console 不会重发 voice.mode(Console 只在自己 hello.ack 或用户切档时发,`useVoiceChannel.ts:478-484,722-745`)——此时 Console UI 免手、pipeline/shadow 已回 ptt,Console 常开麦帧持续进 `_mic_buf`;这是**现网既有缺陷**(与 capture 无关,今天就存在),对 capture 的影响方向安全:console 帧会把 `consoleMicResidual` 置 true,capture 持续弃轮直到状态收敛。该现网缺陷另行立项修复,不进本方案改动面。
+- **shadow mode**:VoiceHub 在向 pipeline 转发 `voice.mode` 的分支(`hub.ts:543-546`,mobile_lan 的 voice.mode 不转发、不计入)记录最近生效 (mode, sid) 二元组;`onPipelineJoined` 重置为 ptt(pipeline 重连清态回 ptt,`hub_client.py:232`)。hands_free ⇒ 弃轮 `hands_free_active`(capture 帧进免手档会被 `_feed_vad` 当作 Console 语音段,`hub_client.py:170-175`)。已知边界(如实):pipeline 单独重连后 Console 不会重发 voice.mode(Console 只在自己 hello.ack 或用户切档时发,`useVoiceChannel.ts:478-484,722-745`)——此时 Console UI 免手、pipeline/shadow 已回 ptt,Console 常开麦帧持续进 `_mic_buf`;这是**现网既有缺陷**(与 capture 无关,今天就存在),对 capture 的影响方向安全:console 帧会把 `consoleMicResidual` 置 true,capture 持续弃轮直到状态收敛。该现网缺陷另行立项修复,不进本方案改动面。**(2026-08-27 更新:该缺陷已由 `7f6562e` 修复并入 main——hub 留档最近生效 voice.mode 并在 pipeline (re)join 后重放。本段"Console 不会重发"的哑死前提不再成立;实施 PR1 时 onPipelineJoined 的 shadow 重置 ptt 会随即被 hub 自己的重放(走同一 voice.mode 转发分支)同步回最近档位,机制自洽,但断言时序须按"重置→重放收敛"两拍写。)**
 - **consoleMicResidual(布尔,`_mic_buf` 是否可能含 console 数据的精确影子)**:routeBinary 向 pipeline 转发 console 0x01 时置 true;三处置 false——console done_speaking 转发时(缓冲快照即清,`hub_client.py:287-289`)、`onPipelineJoined`(重连清缓冲,`hub_client.py:228`)、(mode,sid) 实变的 voice.mode 转发时(该条件下 pipeline 真清账,`hub_client.py:296`)。true ⇒ 弃轮 `console_residual`。
 - **consolePttInFlight(计数,console 轮在 ASR 中)**:console done 转发时 +1;**无 origin** 的 asr.final 到达时 -1(带 origin 的属 capture 轮,不得偷减);增减读仅在 shadow=ptt 执行;`onPipelineLeft`/`onPipelineJoined` 清零(断线取消在途 ASR,final 永不回,不清零则 capture 永久 `console_busy`);(mode,sid) 实变清零;clamp >= 0。>0 ⇒ 弃轮 `console_busy`(此时插入 capture 轮虽不混数据,但 final 侧必被 f 判定丢弃,提前弃省一次 ASR)。
 - **captureInFlight(计数,capture 轮在 ASR 中;v2 语义=纯并发闸,不做来源猜测)**:capture flush 成功 +1;带 origin 的 final 到达 -1;`onPipelineLeft`/`onPipelineJoined` 清零。>0 ⇒ 弃轮 `capture_busy`——**单在途上限 1**,这同时是资源上限(pipeline 任意时刻至多持有一份 capture PCM + 一个识别任务,自然限速为每 ASR 周期一轮,90s 超时封顶),Codex A-3 的无界队列风险由此闭合,无需 token bucket。
@@ -348,7 +348,7 @@ hub 层(`voice-hub-capture.test.ts`):
 5. 清零点:console 按住中断线 → residual 保持 true、capture 持续弃,pipeline 重连(onPipelineJoined)后恢复;console done 后 pipeline 断线 → onPipelineLeft 清零计数,capture 不永久卡死;capture 的带 origin final 不减 consolePttInFlight;
 6. 单在途闸:第一轮 flush 后 final 未回,第二轮 0x03 → 弃轮 `capture_busy`;final 回来后恢复;burst 连打 N 轮 → pipeline 任意时刻至多持有一份 capture PCM;
 7. 版本门:假 pipeline hello 报 protocolVersion 1.0.0 → capture flush 弃轮 `pipeline_incompatible`(连接与现网功能不受影响);报 1.1.0 → 放行;
-8. shadow mode=hands_free → 弃轮 `hands_free_active`;切回 ptt 恢复;pipeline 重连后 shadow 重置 ptt;
+8. shadow mode=hands_free → 弃轮 `hands_free_active`;切回 ptt 恢复;pipeline 重连后 shadow 先重置 ptt、随即被 hub 的 voice.mode 重放(`7f6562e`)同步回最近档位——断言最终收敛值而非重置瞬时值;
 9. 无 pipeline peer → 帧仅入缓冲,flush 弃轮 `no_pipeline`;超限(>1_920_000B)→ overflow 弃轮;单帧 >64KB / 总长 <7 / payload 奇数 → 丢帧;下一轮从零正常;
 10. capture 断线(按住中)→ 缓冲清弃,pipeline 零字节;
 11. console 发带 origin 的 done_speaking → origin 被剥;第二个 capture peer → 4003;断开后新 peer 可入;
@@ -433,8 +433,8 @@ hub 层(`voice-hub-capture.test.ts`):
 | capture 打断控制轮 / TTS 播放中触发新轮 | 有意接受(§2.6 已知残余):控制轮本就可被用户打断;单用户场景 |
 | 确认窗口内被拦轮不落转写正文 | 有意取舍(§2.6),PR3 补 |
 | 工具三档分类漂移 | fail-closed(未分类即 deny)+ §7.1 用例 26 完备性断言兜底 |
-| pipeline 单独重连后 Console 不重发 voice.mode(现网既有缺陷) | 对 capture 方向安全(residual 弃轮);缺陷本体另行立项,不进本方案改动面(§2.5) |
-| canonical"握手 runtimeSha 三方一致"与实现只比 protocol major 的既有分叉(`docs/09:986-988` vs `runtime.ts:128-133`) | 不由本方案修;capture 版本门用 minor 判定,独立于该分叉;如实上浮 owner |
+| pipeline 单独重连后 Console 不重发 voice.mode(现网既有缺陷) | **已修:`7f6562e`(2026-08-27 注)**——hub 重放最近生效 voice.mode;对 capture 的方向安全性结论不变,§2.5 时序断言按更新后两拍口径(§2.5 更新注) |
+| canonical"握手 runtimeSha 三方一致"与实现只比 protocol major 的既有分叉(`docs/09:986-988` vs `runtime.ts:128-133`) | **已消除(2026-08-27 注)**:月度审计核实为 §10 陈旧、§16.1 已改判,§10 已回写对齐;capture 版本门用 minor 判定不受影响 |
 | transport 层 ws 无 maxPayload(近 100MB 消息聚合) | 现网既有暴露,与 console/pipeline 同构;PR1 应用层 64KB 兜 capture 缓冲,PR2 独立 listener 收紧 |
 | sauc 超长 PTT 上限 | unknown;60s 首值保守,到货实测校准 |
 | FoloToy 固件按 §4 合同的实际产出 / USB 网卡是否 RFC1918 | Unverified,到货后验(§8.2 已确认固件本就自写;USB NCM 若得 RFC1918 则按 (位置,principal) 复用,不另开协议) |

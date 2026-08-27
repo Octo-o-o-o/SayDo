@@ -50,6 +50,8 @@ export type BinaryIdentityCheck =
         | "digest_mismatch"
         | "family_mismatch"
         | "unreadable";
+      /** 本次核验实际算出的内容摘要(仅哈希成功时有);调用方审计直接复用,不再重读文件。 */
+      actualDigest?: string;
     };
 
 /** 带原因码的核验内核(Tier1 claude 登记核验消费原因码做处方化提示)。 */
@@ -78,13 +80,15 @@ export function checkBinaryIdentity(
   } catch {
     return { ok: false, code: "unreadable" };
   }
-  if (actual !== identity.digest) return { ok: false, code: "digest_mismatch" };
+  if (actual !== identity.digest) return { ok: false, code: "digest_mismatch", actualDigest: actual };
   try {
     const defaultFamily = identity.defaultModel ? familyOf(identity.defaultModel) : null;
-    if (defaultFamily && defaultFamily !== expectedFamily) return { ok: false, code: "family_mismatch" };
+    if (defaultFamily && defaultFamily !== expectedFamily) {
+      return { ok: false, code: "family_mismatch", actualDigest: actual };
+    }
   } catch {
     // 原 byoa 实现把 familyOf 异常吞为不通过(catch → undefined);保持等价
-    return { ok: false, code: "family_mismatch" };
+    return { ok: false, code: "family_mismatch", actualDigest: actual };
   }
   return { ok: true, identity };
 }

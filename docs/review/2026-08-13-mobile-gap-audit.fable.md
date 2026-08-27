@@ -56,7 +56,7 @@
 - **触发:**
   1. 手机扫 LAN 码(`SAYDO_MOBILE_LAN=1`)或经 Tailscale 打开 console;
   2. `SetupProvider` 必调 `GET /api/setup/probe`;
-  3. `via=mobile_lan` → 白名单 403 `mobile_lan_route_rejected`;`via=tailnet` → 显式 403 `setup_local_only`(`index.ts:988-998`);
+  3. `via=mobile_lan` → 白名单 403 `mobile_lan_route_rejected`;`via=tailnet` → 显式 403 `setup_local_only`(`index.ts:961-973`,行号勘误 2026-08-27:原引 988-998 为 probe 响应拼装段);
   4. `resolveSetupBootstrapState` 进 `probe-error` → 全屏「没连上本机服务」→ `AppContent`/`MobileApp` 不挂载。点重试仍打同一 403。
 - **证据:**
 
@@ -140,7 +140,7 @@ export function mobileLanApiAllowed(method: string | undefined, pathname: string
 #### B1 · 触控热区低于 44px(mic / send / 返回)
 
 - **核验:**`[ok]CONFIRMED`
-- **证据:**`.m-composer` 两翼 `36px`(`mobile.css:674-678`);`.m-back` / `.m-avatar` `38px`(`mobile.css:120-124`)。菜单钮已是 48px。合同 `docs/11-ui-spec.md` §9:移动 ≥44。
+- **证据:**`.m-composer` 两翼 `36px`(`mobile.css:120-124`);`.m-back` / `.m-avatar` `38px`(`mobile.css:674-678`)(行号勘误 2026-08-27 月度审计:原文两处互换)。菜单钮已是 48px。合同 `docs/11-ui-spec.md` §9:移动 ≥44。
 - **回报:**加透明 padding,不改视觉。不要把所有 36px 图标都改成大按钮。焦点环(`outline:0`,E4)可顺手画在 `.m-composer:focus-within` 上。
 
 #### B3 · 列表错误态有 `reload` 却没传进页面
@@ -401,7 +401,7 @@ E2 回写 09 白名单增量     → 文档,不是砍功能
 
 起草后主会话把全文又读了一遍,改动如下(对应你要求的「疏漏 / 不足 / 错误 / 过度设计 / 是否有完整回报」):
 
-1. **疏漏 · A1 范围偏窄。**初稿只写了 `mobile_lan`。`GET /api/setup/probe` 对 `tailnet` 同样 403(`setup_local_only`,`index.ts:988-998`),W2 已交付的 T2 薄版也被同一扇门挡住。这提高了 A1 的回报,不是新开一条。
+1. **疏漏 · A1 范围偏窄。**初稿只写了 `mobile_lan`。`GET /api/setup/probe` 对 `tailnet` 同样 403(`setup_local_only`,`index.ts:961-973`),W2 已交付的 T2 薄版也被同一扇门挡住。这提高了 A1 的回报,不是新开一条。
 2. **错误处方 · 「所有 403 旁路」会把错 token 伪装成空账本。**`SetupContext` 还丢掉了 `ApiError.code`。完整回报=只放行两个远程面 code,并先把 code 传到 boundary。
 3. **错误处方 · A2「OPEN 绝不重连」。**有害的是 visibility + native-resume + 手动事件叠成双击。iOS 僵尸 OPEN 未真机验证,禁止 resume 强制重连是不完整回报,可能把续连修断。
 4. **过度设计 · 把 B2/B5/B6 写成「立刻变好」。**刘海未截图;进程被杀和旋转是边角。已降到 F 或盲区。本周顺手只留 B1/B3/B4。

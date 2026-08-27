@@ -51,7 +51,7 @@ DeepSeek Harness(DSH)是 DeepSeek 官方的 coding-agent 运行时:把模型接�
 | D-06 | System prompt 分段注册 + assemble waterfall + 变量插值 | `packages/core/system-prompt/src/index.ts:337-542` | 已有。`buildInstructions` + Context Pack + 归属轮状态(`instructions.ts:77-138`,`live/pack.ts:68-115`) | **C** | 重复建设。分段插件化对 Brain 固定人格/状态词没有收益 |
 | D-07 | Session 为 append-only 类型化事件;fork 深拷贝到 boundary | `packages/core/session/src/types.ts:58-244`;`index.ts:1081-1137` | 部分有。transcript JSONL + focus timeline;`forked_from` 仅 DDL(`storage/ddl.ts:905-909`),无写路径 | **B** | fork 对「同一项目开平行焦点」有用,须接 focus 合同,不能当通用 session 克隆 |
 | D-08 | Capability seam:Definition / Provider / Consumer 分包,Provider 与 Consumer 互不依赖 | `docs/glossary.md:7-9`;`docs/architecture.md:98-100` | 部分有。工具在 daemon 内注册,执行世界(Hopper/CLI)在桥对岸,已是某种 seam,但新能力(若有)容易在 daemon 里揉成一团 | **B** | 作以后新能力的设计纪律(尤其 P1 `network_fetch`),不接 Cordis 服务容器 |
-| D-09 | 子进程环境 scrub:剥 KEY/PASSWORD/SECRET/TOKEN 与内部前缀 | `packages/subprocess/subprocess/src/index.ts:44-66`;`docs/defensive-patterns.md:28-29` | 没有(spawn CLI 路径未做启发式剥离)。密钥本身已走 `~/.saydo/.env` 0600 白名单(`config/envFile.ts:7-15`) | **A** | 与现有「value 永不进日志」同向,改 cage/spawn 即可 |
+| D-09 | 子进程环境 scrub:剥 KEY/PASSWORD/SECRET/TOKEN 与内部前缀 | `packages/subprocess/subprocess/src/index.ts:44-66`;`docs/defensive-patterns.md:28-29` | ~~没有(spawn CLI 路径未做启发式剥离)~~ **勘误(2026-08-27 月度审计):本评估基线 `c5148ab` 上已有——BYOA spawn 走 `buildSpawnEnv` 白名单(默认剥离、仅透传显式给定,07-24 `ca102ea` 起),tier1 executor 有 `AGENT_ENV_ALLOWLIST`;白名单形态强于本条建议的启发式剥离**。密钥本身已走 `~/.saydo/.env` 0600 白名单(`config/envFile.ts:7-15`) | ~~A~~ **C(已满足)** | 现状已强于建议目标,无需动作 |
 | D-10 | 凭据引用 `CredentialRef`,配置不内联密钥;分层 env > yaml > .env | `packages/credentials/credentials/src/index.ts:16-99`;`credentials-local` | 已有。secret 白名单 + 0600 + 不进 audit | **C** | 重复建设。对方多一层 yaml 存储对 SayDo 单用户本地无增量 |
 | D-11 | 审批 `allowed-once`;缺 answerer fail-closed;`never` 在 dispatch 前拒;asked/decided 成对且不进模型 transcript | `packages/interaction/user-approval/src/index.ts:84-343` | 已有可增强。收据单次消费 + S2 超时 deny + S3 语音永不放行(`gate.ts:36-70`,`approvals/issue.ts`)已是更强合同;缺的是「asked/decided 成对事件」形状 | **B** | 借事件成对与「审批不进模型可见历史」,不借 `allowed-once` 替代 S0–S3 |
 | D-12 | 沙箱升级:先审批再执行,只允许加宽,拒绝有独立文案 | `packages/sandbox/sandbox/src/escalation.ts:28-188`;`tool-bash` 消费 | 没有对等 choreography(执行在 Hopper/CLI 内) | **B** | 若未来 daemon 自跑 bash 才需要;现在不要在语音路径做「升到 danger-full-access」 |
@@ -152,7 +152,9 @@ DeepSeek Harness(DSH)是 DeepSeek 官方的 coding-agent 运行时:把模型接�
 | 1 | D-01 对话环请求重建不变量 | 现有 `TranscriptTurn` schema;可能要在 09 补「模型可见消息可重建」一句(合同轮攒批) | 单测:篡改内存 messages 不写 transcript ⇒ 断言失败;正常路径 messages digest == transcript 派生 digest |
 | 2 | D-05 Brain 工具环组装 snapshot | 现有 golden / fake LLM | 至少 1 条 keyless 场景走真实 `runDialogTurnWithTools` 入口,钉工具顺序与脱敏后口播,不手挂 registry |
 | 3 | D-02 + D-14 单调 deny + cage enforcement 字段 | `cage.ts` 分档表、`cliCapability` | probe/capabilities JSON 含 `enforcement: full\|partial\|unavailable`;单测:deny 后同一调用不可变 allow |
-| 4 | D-09 spawn env scrub | cage/executor spawn 点 | 子进程 env 无 `OPENAI_API_KEY` 等,除非该 provider 显式要求 |
+| 4 | ~~D-09 spawn env scrub~~(2026-08-27 勘误划去:白名单形态已存在,见上表 D-09 勘误) | — | — |
+
+> **状态注(2026-08-27 月度审计)**:上表 `borrow-dsh-invariants` 第一刀建议(D-01 / D-05 / D-02+D-14)截至今日**未开批、未实施、亦未标注放弃**——IMPLEMENTATION-PLAN-2 与 HANDOFF 对其零命中,dialogLoop 无重建断言,daemon 全源无 `enforcement` 分档字段。是否开批/放弃/并入后续批待 owner 裁决;D-09 因勘误所述已天然满足,不在待决之列。
 
 **owner 决策点(本评估不代拍)**
 

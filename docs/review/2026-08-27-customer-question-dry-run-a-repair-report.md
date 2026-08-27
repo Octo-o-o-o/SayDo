@@ -86,7 +86,7 @@ A1-A5 五项全部落地，本会话真实跑过的门禁全绿；上一轮 5 �
 
 - 纯 renderer 抽到 `dry-runs/dry-run-render.mjs`（639 行），rebuild 与 validator 共用同一函数；validator 用 `firstByteDiff()` 对被校验文本做**完整字节 exact compare**，不一致时报第一处差异偏移与两侧片段。
 - 独立 oracle `dry-runs/independent-oracle.mjs`（669 行）：自行解析 questions/contracts/manifests，自行实现扰动选择、覆盖判据、DR1/DR2/DR3、优先级、issue code 与全部汇总，比对对象是**落盘 result / solution 正文**；覆盖 source summary、全部汇总、`GO`/`F4`/`replay`/`P0`/`P1` 清单 exact-set、P0 逐题正文整节比对、P1 逐行比对、issue code heading 与最小字段、CTX 172 exact-set、72 条扰动证据对应关系。
-- mutation runner `dry-runs/test-dry-run-mutations.mjs`（274 行）：本会话实测 **38 条 mutation 全部被拒**，含 12 列逐列篡改、5 类可见汇总、5 个清单各删一项、P0 正文换 generic、P1 删行、删 issue 模板、CTX 缺码、CTX 模板删 `valid_until`、long 删幂等、multi 删 DAG 与人工对账、simulation failure 与登记 perturbation 不匹配、判据放宽 / 收紧、以及三条 authority 摘要变异。
+- mutation runner `dry-runs/test-dry-run-mutations.mjs`（274 行）：本会话实测 **36 条 mutation 全部被拒**(勘误 2026-08-27 月度审计:原记 38 系把正控行与自测总结行计入)，含 12 列逐列篡改、5 类可见汇总、5 个清单各删一项、P0 正文换 generic、P1 删行、删 issue 模板、CTX 缺码、CTX 模板删 `valid_until`、long 删幂等、multi 删 DAG 与人工对账、simulation failure 与登记 perturbation 不匹配、判据放宽 / 收紧、以及三条 authority 摘要变异。
 
 ### A5 authority manifest
 
@@ -108,7 +108,7 @@ A1-A5 五项全部落地，本会话真实跑过的门禁全绿；上一轮 5 �
 | `node dry-runs/rebuild-three-pass-dry-run.mjs` | 0 | `replay=27 P0=23 P1=46 P2=338 P3=166`；`PROVEN=27 NO_EVIDENCE=45 NOT_IN_SIM=528` |
 | `node dry-runs/validate-three-pass-dry-run.mjs` | 0 | `rows=600 P0=23 P1=46`，11 个 issue code |
 | `node dry-runs/independent-oracle.mjs` | 0 | `[ok] independent oracle passed`，`rows=600 replay=27` |
-| `node dry-runs/test-dry-run-mutations.mjs` | 0 | 38 条 mutation 全部 rejected，`official tree unchanged` |
+| `node dry-runs/test-dry-run-mutations.mjs` | 0 | 36 条 mutation 全部 rejected(另两行为正控与总结行)，`official tree unchanged` |
 | `node research/customer-question-corpus/validate.mjs` | 0 | `records: 600`，`requiredClaims: 172`，`liveSourceContracts: 465` |
 | `node simulations/validate-simulations.mjs` | 0 | `[ok] A-level checks passed`（4 条 payload warn，非 A） |
 | dry-runs emoji 门 | 0 | `[ok] emoji gate: clean` |

@@ -48,7 +48,7 @@ F106–F107。当前 rc.4 必须重新复审并以新标签首次 Actions 与发
 | 提交分类 | 115 | paired 29 / document-only 48 / implementation-only 38 |
 | 文档状态 | 219 | 同提交实现或测试 149 / 合同或发布文案纯文档 17 / 档案与证据 53 |
 | 回修提交与文档 | 见 remediation ledger | `3fccf4a..最终实施冻结 SHA`;逐提交 `relatedDocumentRefs` 与逐文档反向边 |
-| 活跃文档相对链接 | 96 | Markdown 内联/引用式链接及两个 Pages 根的 HTML `href/src`;broken 0 |
+| 活跃文档链接检查 | 96 个文件 | `check-doc-links.mjs` 的文件数口径(2026-08-27 勘误:原行首「相对链接 | 96」把文件数标成了链接数;脚本输出即 `files=N broken=0`),覆盖 Markdown 内联/引用式链接及两个 Pages 根的 HTML `href/src`;broken 0 |
 | 当前修复工作树 | 逐路径冻结 | 七个自引用账本输出单独摘要闭环,review finding anchor、cross-links 与其余 staged/unstaged/untracked 全量记录 |
 
 复现门禁:

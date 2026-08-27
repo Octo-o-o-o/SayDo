@@ -1,4 +1,4 @@
-// TaskCard(demo taskCardHtml):16 呈现态全覆盖;状态 chip 用既有 StatusChip 单源(11 §5.1 登记);
+// TaskCard(demo taskCardHtml):16 呈现态全覆盖;状态 chip 用既有 StatusChip 单源(11 §5.11 登记);
 // 动作按钮全部 onAction 回调(组件不接线);HP(Hopper 投影)只读说明,不给本地动作。
 // 状态词三级:收到/等你验收/已交付;成本 unknown 显示「还没有确切数字」。
 

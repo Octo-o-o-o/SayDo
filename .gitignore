@@ -24,6 +24,7 @@ coverage/
 e2e/artifacts/
 test-results/
 playwright-report/
+.playwright-mcp/
 e2e/console/.pw-home/
 e2e/console/.pw-first-run-home/
 e2e/console/.runtime.json

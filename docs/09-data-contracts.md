@@ -983,9 +983,12 @@ CREATE INDEX task_messages_task ON task_messages(task_id, attempt);
 
 ## 10. 语音管线 WS 契约(A1 ⇄ A2)
 
-生产握手首包为 `{v:1, role:"pipeline", runtimeSha:<40位 Git SHA>}`。daemon 以自身实际
-Git HEAD 为期望值，缺失、非法或不一致均以 4001 拒绝；后续 `pipeline.health.runtimeSha`
-必须与握手值和 daemon 值三方一致。同一 daemon 同时只接受一个已完成握手的 pipeline
+生产握手首包为 `{v:1, role:"pipeline", identity:<RuntimeIdentity 三元组>}`（§16.1：
+`{sourceRevision, buildId, protocolVersion}`）。daemon 对 identity 缺失/非法、或
+`protocolVersion` 与自身不满足 semver major 兼容（`runtimeProtocolCompatible`）均以
+4001 拒绝；后续 `pipeline.health.identity` 必须与握手 identity 完全一致，否则 4001 断连。
+旧 `runtimeSha` 字段只可作兼容别名，不得再作为进程兼容或启动成功判据（§16.1 改判，
+2026-08-12 T18/D1 批落地；本段 2026-08-27 月度审计随 §16 回写对齐）。同一 daemon 同时只接受一个已完成握手的 pipeline
 owner；owner 进入 `CLOSING` 后仍占席位，直到 daemon 收到其 close 事件才可替换。只有
 `peer === currentOwner ∧ readyState=OPEN` 的 JSON、二进制和 health 消息可消费，旧 peer
 一律丢弃；`/readyz` 每次判定还必须读取 owner 当下的 transport 状态，只要不是 `OPEN`
@@ -994,9 +997,9 @@ socket error 时还必须立即把该 owner 标成 unavailable、广播 down，�
 才清陈旧 health，但 owner 席位仍保留到 close。第二个连接 fail-closed，旧 peer 退出后才可替换。新 pipeline 入场必须清空上一 peer
 的健康快照，收到该 peer 自己的新心跳前 `/readyz` 不得恢复；`/dev/inject` 等内部注入面
 不得注入 `pipeline.health`。pipeline 心跳还必须携带实际运行的
-`stateRootDigest=sha256(绝对 SAYDO_HOME UTF-8)`；`/health` 回显 daemon `runtimeSha` 与
-`stateRootDigest`，`/readyz` 仅在 pipeline 已连接、双方 SHA 和状态根 digest 都相同且最近
-一次心跳不超过 45 秒时返回 `ok:true`。部署 preflight 只认健康端点回显的运行中 digest，
+`stateRootDigest=sha256(绝对 SAYDO_HOME UTF-8)`；`/health` 回显 daemon 侧 identity 与
+`stateRootDigest`，`/readyz` 仅在 pipeline 已连接、双方 identity 按上述判据兼容且一致、
+状态根 digest 相同且最近一次心跳不超过 45 秒时返回 `ok:true`。部署 preflight 只认健康端点回显的运行中 digest，
 不能以磁盘 plist 已改写代替实际 job 环境证明。
 真人语音场次使用的 ready 判据还要求 `asr="ok"` 且 `tts="ok"`；pipeline 启动时必须分别
 执行一次真实 provider 探活，运行中真实识别/合成失败立即把对应状态降级，后续成功才恢复
@@ -1022,7 +1025,28 @@ type PipelineMsg =
   | { t: "session.project"; sessionId: Id; projectId: Id; projectRevision: number;
       reason: "draft_created"|"workspace_adopted"|"draft_reanchored"|"migration_snapshot" }
   | { t: "pipeline.health"; asr: "ok"|"degraded"|"down"; tts: "ok"|"degraded"|"down";
-      runtimeSha: string; stateRootDigest: string }
+      identity: RuntimeIdentity; stateRootDigest: string; generation?: number }
+  // identity=§16.1 三元组(与握手值一致,否则 4001);generation=first-run onboarding self-restart 世代号(缺省=未参与协调)。
+  // 2026-08-27 月度审计:本行随 §16 改判回写(旧 runtimeSha 字段废止),下列 additive 消息同批补录词表——
+  // 引入时未随批回写 §10 的欠账一次结清(正例纪律见 2d3b653:schema+docs 同一 commit):
+  | { t: "native.reply"; sessionId: Id; turnId: string; sentenceId: string; text: string; origin: NativeReplyOrigin }   // turnId 为普通非空 string(schema z.string().min(1)),非前缀 ULID
+  // M2-voice-a(08-12):壳内 TTS 只消费经 daemon 口播闸与脱敏出口生成的定向文本事件
+  | { t: "confirm.card"; sessionId: Id; receiptId: string; text: string; kind: string; digest: string; digestVersion: number }
+  | { t: "confirm.countdown"; sessionId: Id; receiptId: string; ms: number }
+  | { t: "confirm.resolved"; sessionId: Id; receiptId: string; outcome: ConfirmResolvedOutcome }
+  // F25+批1(08-04/05):确认卡 UI 事件,digest 三元绑定(§6)
+  | { t: "confirm.click"; sessionId: Id; receiptId: string; digest: string; decision: "accept"|"reject" }
+  // 批1:console 点击专用上行(退役 F25 sendText 词表复用)
+  | { t: "confirm.decision"; sessionId: Id; receiptId: string; decision: "accept"|"reject"|"withdraw" }
+  // M1 移动卡裁决(08-11):卡原 session+receipt 显式定向;withdraw 是撤下而非 reject;mobile_lan 上行白名单成员(§11)
+  | { t: "focus.entity"; sessionId: Id; entity: { id: string; kind: string; title: string; sub: string; color: string; at: string } }
+  // 批4(08-05):会话内「这次聊出来的东西」实体卡(办成事才长卡;只下行 console)
+  | { t: "pipeline.restart_pending"; generation: number } | { t: "pipeline.restart_ack"; generation: number }
+  // first-run onboarding v4(1ab27cc,08-10):daemon→pipeline 协调重启;pipeline 回 ACK 后 self-exec 重读 .env
+  | { t: "screen_text"; sessionId: Id; turnId: Id; text: string }
+  // Focus v0.4 ④e(08-09):双文本分离——modelText 全文仅投 via=local 的 console peer(不脱敏);tailnet 只收脱敏 tts.say
+  | { t: "console.heartbeat"; sessionId: Id; atMs: number }
+  // Focus v0.4 ④e A6:console 应用层心跳(30s);daemon 90s 无心跳视同断开,取消 idle 收场
   // 以下两条为工程侧 additive 扩展的回写补录(词表以本节为 canonical;2026-07-25;时序:latency.stage
   // 实现自 M3 埋点批,asr.hotwords 实现自接线批——Codex 16 C 级措辞拆分):
   | { t: "latency.stage"; sessionId: Id; turnId: Id;              // M3 五段延迟埋点(03 §3 SLO 分段实测):

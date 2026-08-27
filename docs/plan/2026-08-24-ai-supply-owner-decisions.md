@@ -148,7 +148,7 @@ D8 第 133 行原文「ACP 持续跟进不押注……**若成事实标准则适
 
 **签署**:
 
-- [x] 采纳上述默认推荐　　←　**Claude 预填草案,待 owner 确认**
+- [ ] 采纳上述默认推荐(Claude 预填推荐,勾选=确认)　　←　**待 owner 确认,未签**
 - [ ] 改为(填写):
 - 签署人 / 日期:
 
@@ -183,7 +183,7 @@ Anthropic 官方原文(`code.claude.com/docs/en/legal-and-compliance`,2026-08-19
 
 **签署**:
 
-- [x] 采纳上述默认推荐　　←　**Claude 预填草案,待 owner 确认**
+- [ ] 采纳上述默认推荐(Claude 预填推荐,勾选=确认)　　←　**待 owner 确认,未签**
 - [ ] 改为(填写):
 - 签署人 / 日期:
 
@@ -206,7 +206,7 @@ Anthropic 官方原文(`code.claude.com/docs/en/legal-and-compliance`,2026-08-19
 
 **签署**:
 
-- [x] 采纳上述默认推荐　　←　**Claude 预填草案,待 owner 确认**
+- [ ] 采纳上述默认推荐(Claude 预填推荐,勾选=确认)　　←　**待 owner 确认,未签**
 - [ ] 改为(填写):
 - 签署人 / 日期:
 
@@ -276,7 +276,7 @@ Anthropic 官方原文(`code.claude.com/docs/en/legal-and-compliance`,2026-08-19
 
 **签署**:
 
-- [x] 采纳上述默认推荐　　←　**Claude 预填草案,待 owner 确认**
+- [ ] 采纳上述默认推荐(Claude 预填推荐,勾选=确认)　　←　**待 owner 确认,未签**
 - [ ] 改为(填写):
 - 签署人 / 日期:
 
@@ -304,7 +304,7 @@ Anthropic 官方原文(`code.claude.com/docs/en/legal-and-compliance`,2026-08-19
 
 **签署**:
 
-- [x] 采纳上述默认推荐　　←　**Claude 预填草案,待 owner 确认**
+- [ ] 采纳上述默认推荐(Claude 预填推荐,勾选=确认)　　←　**待 owner 确认,未签**
 - [ ] 改为(填写):
 - 签署人 / 日期:
 

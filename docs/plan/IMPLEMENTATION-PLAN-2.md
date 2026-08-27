@@ -146,7 +146,7 @@ edit 审批细则(若 5.2 撞缺口)· **共享黑板实体 + 并发预检**(09 
 | 基线 HEAD | `9417b6decd85cd59157a76c6429752e92e6803df` |
 | 主方案 `2026-08-23-ai-supply-universal-onboarding-final.fable.md` SHA-256 | `6641d2b2462fb9e7548f61ad1af9de228dedefcfa7c23b55bd31f0105d69fbd0`(2,484 行) |
 | 决策单 `2026-08-24-ai-supply-owner-decisions.md` SHA-256 | `bb61b24be934eb3307abc9ab1cb173c6dfa9ca850b8ab9aca6e0c339db69c2ea`(349 行) |
-| 合同草案 `docs/plan/ai-supply-contracts-draft/` | 10 个 `.ts` + README,合计 45,734 行 |
+| 合同草案 `docs/plan/ai-supply-contracts-draft/` | 10 个 `.ts` 合计 45,734 行(wc -l) + README 87 行 |
 
 **范围**已按 owner 已签的四项决策收缩,**不按方案原文 Phase 0–8 全量排**:
 
@@ -167,7 +167,7 @@ edit 审批细则(若 5.2 撞缺口)· **共享黑板实体 + 并发预检**(09 
 | `ai-supply-contracts` | 按上批清单逐条修仍适用的 A 级 finding(**修的是合同草案,不是再写文档评审**) | 草案在 strict/NodeNext 下 `tsc` 零诊断;每条 finding 的修复有类型级反例(负例编译失败)或测试 | `ai-supply-scope` + **owner 确认清单** |
 | `ai-supply-p*` | 下沉 `packages/contracts` 并按方案 §10 各 Phase 实施(Phase 5 按决策 2 重组) | 遵循 §10 各 Phase 的「验收标准」——先读该节开头的定位说明,那 327 条是 gate 脚本规格,不是人工 checklist | `ai-supply-contracts` |
 
-**红线**(摘自 `prompts/204-ai-supply-post-rc4-continuation.md` §4,该文件未入库,故要点在此固化):
+**红线**(摘自 `prompts/204-ai-supply-post-rc4-continuation.md` §4;该文件已于 08-26 入库(`9e9afee`),写入本节时误记为未入库——2026-08-27 月度审计勘误;要点在此固化以自足):
 
 1. **不再起新一轮「三路零上下文终审」**——诊断报告 `docs/review/2026-08-24-ai-supply-v20-loop-diagnosis.md`
    已证明该路线不收敛(20 轮、A 级计数在 1–9 间随机游走、零次 PASS)。需要评审时,

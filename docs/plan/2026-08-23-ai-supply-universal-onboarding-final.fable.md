@@ -1714,7 +1714,7 @@ Phase 末：`just ci`。
 >
 > 重组后子批数与 TCK 套数都显著下降，且新增一个已实现 ACP 的 agent 通常只增加 registry 条目，
 > 不再新增 driver。**决策 2 已于 2026-08-25 裁决采用本方向**；现有九个品牌子批保留为重组的输入清单，
-> 由本专题正式排产时（决策 1：`w54b-wiring` C3 收口之后）执行重组。第三方 driver 只有在当前平台通过 §4.10/§4.13 的 OS-enforced sandbox 与直接 syscall 负例后才可运行；否则只 inventory。空环境、临时 HOME 或普通同 UID 子进程不能被称为限权。
+> 由本专题正式实施 §10 时（Phase 5 动工前；排产=2026-08-27 已完成，见 PLAN-2 §1 `ai-supply` 坐标与其 `ai-supply-p*` 子批安排）执行重组。第三方 driver 只有在当前平台通过 §4.10/§4.13 的 OS-enforced sandbox 与直接 syscall 负例后才可运行；否则只 inventory。空环境、临时 HOME 或普通同 UID 子进程不能被称为限权。
 
 Execution surface 使用互斥 kind：`cli_stdio | app_server_stdio | acp_stdio | acp_http | agent_http`。ACP 不能用一个含糊分支同时代表 stdio 与 HTTP；每个 kind 对应准确 binary 或 endpoint identity、wire profile、sandbox/peer producer 和 secret contract。
 

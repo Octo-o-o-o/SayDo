@@ -9,7 +9,7 @@ product:
     zh-CN: "说到"               # owner 2026-08-13 确认;三端 app_name/备案名/软著名/AGC 中文名统一用它;App Store cn/us 精确名 0 占用(name-occupancy.md §6)
     en-US: "SayDo"
   bundle_id: "com.octoooo.saydo" # identical in iOS project.yml / Android applicationId / HarmonyOS bundleName
-  version_sot: "docs/release/version-matrix.md"  # shells 0.1.0 (1); CLI remains 0.1.0-rc.4
+  version_sot: "docs/release/version-matrix.md"  # shells 0.1.0 (1); CLI 0.1.0-rc.12 (available Release)
   platforms: [ios, android, harmonyos]           # all three native shells exist and compile
   stores: [appstore, googleplay, appgallery]  # owner 2026-08-13: 三店含中国大陆;国内安卓未选
   regions:

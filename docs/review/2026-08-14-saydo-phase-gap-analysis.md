@@ -1,5 +1,6 @@
 # SayDo 阶段、缺口与核心问题分析(2026-08-14 终版)
 
+> **supersede 注(2026-08-27 月度审计)**:本文 B0(「8 月工作属 v0.1.0 还是 v0.2 需显式裁决」)已被事实解决——owner 批准的 faststart 发布线(`docs/plan/2026-08-22-week-audit-faststart-release.fable.md`)以当期 main 切 rc.2–rc.12 候选链,事实采纳「8 月工作纳入 v0.1.0 候选」;v0.1.0 正式版仍受四场真人验收门约束。
 > 性质:首发版(8-13)经三路独立评审回修后的终版。评审:事实证据 subagent + 战略价值 subagent + Codex 71 对抗审(报告 research/codex-findings/71-phase-analysis-review.md,triage 见该文末)。
 > 时间锚:全部数字为 2026-08-13 23:35 +0800 实测(git fetch 实采);历史快照数字一律标注快照时点。
 > 边界:不实施代码;不代 owner 裁决;待拍板项只列清单。

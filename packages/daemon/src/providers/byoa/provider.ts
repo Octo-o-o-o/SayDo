@@ -231,21 +231,23 @@ export function createByoaProvider(opts: ByoaProviderOptions): LlmProvider {
         const isolated =
           requiresIsolatedHome(opts.provider) && cwd ? prepareIsolatedHome(opts.provider) : undefined;
         isolatedHomeDir = isolated?.home;
-        const identityCheck = checkBinaryIdentity(
-          opts.binaryPath,
-          opts.binaryIdentity,
-          opts.familyOf,
-          opts.expectedFamily,
-          { forceRehash: true, hashFile: opts.hashFile ?? sha256File }
-        );
-        const verifiedIdentity = identityCheck.ok ? identityCheck.identity : undefined;
-        if (opts.binaryIdentity && !verifiedIdentity) {
-          let actualBinaryDigest: string | null = null;
-          try {
-            actualBinaryDigest = sha256File(opts.binaryIdentity.path);
-          } catch {
-            // 不可读/已消失也是身份漂移；审计保留 null，不把底层路径错误暴露给调用方。
-          }
+        // 身份门下沉到每次 spawn 前(L-1):chat 开头只验一次,挡不住重试之间被替换的二进制。
+        // 未登记 identity 时 checkBinaryIdentity 在哈希前就返回,不产生额外开销。
+        let verifiedIdentity: VerifiedBinaryIdentity | undefined;
+        const preSpawnGate = (): "binary_identity_mismatch" | undefined => {
+          const identityCheck = checkBinaryIdentity(
+            opts.binaryPath,
+            opts.binaryIdentity,
+            opts.familyOf,
+            opts.expectedFamily,
+            { forceRehash: true, hashFile: opts.hashFile ?? sha256File }
+          );
+          // 后一发被拒不得抹掉前一发已核验的身份:那几发的 consume/豁免证据仍归它们自己。
+          if (identityCheck.ok) verifiedIdentity = identityCheck.identity;
+          if (identityCheck.ok || !opts.binaryIdentity) return undefined;
+          // 只认这次核验算出的摘要:事后重读会落到另一个版本上,审计就不再是判定当时的快照。
+          // 拿不到(不可读/路径不符/登记摘要格式坏)一律记 null,不把底层路径错误暴露给调用方。
+          const actualBinaryDigest: string | null = identityCheck.actualDigest ?? null;
           opts.audit.record({
             actor: "daemon",
             action: "provider.cli_runtime_rejected",
@@ -258,8 +260,8 @@ export function createByoaProvider(opts: ByoaProviderOptions): LlmProvider {
               actualBinaryDigest
             }
           });
-          return failure("binary_identity_mismatch", "CLI 可执行文件身份与 self-test 登记不一致", false);
-        }
+          return "binary_identity_mismatch";
+        };
         if (schemaFile && req.jsonSchema) {
           writeFileSync(schemaFile, JSON.stringify(req.jsonSchema), { encoding: "utf8", mode: 0o600 });
         }
@@ -336,6 +338,7 @@ export function createByoaProvider(opts: ByoaProviderOptions): LlmProvider {
               }
             },
             stopNetworkRetry: (result) => isCliSubscriptionRateLimit(opts.provider, result),
+            preSpawnGate,
             signal: invocationController.signal,
             ...(opts.wallTimeoutMs !== undefined ? { wallTimeoutMs: opts.wallTimeoutMs } : {}),
             ...(opts.idleTimeoutMs !== undefined ? { idleTimeoutMs: opts.idleTimeoutMs } : {}),
@@ -369,9 +372,13 @@ export function createByoaProvider(opts: ByoaProviderOptions): LlmProvider {
               requireTerminalResult: true
             });
           });
-          const consumed = consumedAttempts.at(-1)!;
+          // 被门拦下的那一发没有起进程,不进 attempts 口径、不进计费,证据也不该由它代表。
+          const spawnedAttempts = turn.attemptResults.filter((attempt) => !attempt.spawnBlocked).length;
+          const lastSpawnedIndex = turn.attemptResults.findLastIndex((attempt) => !attempt.spawnBlocked);
+          const consumed = consumedAttempts[lastSpawnedIndex] ?? consumedAttempts.at(-1)!;
 
           for (const [attemptIndex, attempt] of turn.attemptResults.entries()) {
+            if (attempt.spawnBlocked) continue;
             const attemptConsumed = consumedAttempts[attemptIndex]!;
             const unknownEventShapes = attempt.lines.flatMap((line) => {
               const event = parser(line);
@@ -428,7 +435,7 @@ export function createByoaProvider(opts: ByoaProviderOptions): LlmProvider {
                   observedModelSource: attemptConsumed.observedModelSource,
                   observedModelExempted: true,
                   attempt: attemptIndex + 1,
-                  attempts: turn.attempts
+                  attempts: spawnedAttempts
                 }
               });
             }
@@ -466,26 +473,28 @@ export function createByoaProvider(opts: ByoaProviderOptions): LlmProvider {
                 outputLimitExceeded: attempt.outputLimitExceeded,
                 exitCode: attempt.exitCode,
                 attempt: attemptIndex + 1,
-                attempts: turn.attempts,
+                attempts: spawnedAttempts,
                 schemaDigest: req.jsonSchema ? jcsDigest(req.jsonSchema) : null,
                 unknownEventShapes
               }
             });
           }
           try {
-            opts.onSubscriptionInvocation?.({
-              provider: opts.provider,
-              model: opts.model,
-              requests: turn.attempts,
-              ...(opts.costProvenance ? { provenance: opts.costProvenance } : {})
-            });
+            if (spawnedAttempts > 0) {
+              opts.onSubscriptionInvocation?.({
+                provider: opts.provider,
+                model: opts.model,
+                requests: spawnedAttempts,
+                ...(opts.costProvenance ? { provenance: opts.costProvenance } : {})
+              });
+            }
           } catch (err) {
             accountingFailed = true;
             opts.audit.record({
               actor: "daemon",
               action: "byoa.subscription_accounting_failed",
               refDigest: consumed.evidenceDigest,
-              meta: { provider: opts.provider, attempts: turn.attempts, error: String(err).slice(0, 160) }
+              meta: { provider: opts.provider, attempts: spawnedAttempts, error: String(err).slice(0, 160) }
             });
           }
           return { turn, consumed };
@@ -547,6 +556,11 @@ export function createByoaProvider(opts: ByoaProviderOptions): LlmProvider {
           const triggerLine = current.turn.safetyStopLine;
           const voided = (code: string, message: string): ChatResult =>
             failure(code, withTriggerContent(message, triggerLine, secretValues), false);
+          // 身份漂移排在记账失败之前:前者 fail-closed 不可重试,后者 retryable,
+          // 让调用方去重试一个已被换掉的二进制是错的处方(记账失败本身仍有独立审计行)。
+          if (current.turn.spawnBlocked) {
+            return failure("binary_identity_mismatch", "CLI 可执行文件身份与 self-test 登记不一致", false);
+          }
           if (accountingFailed) return failure("cost_ledger_failed", "CLI 调用记账失败,结果不下发", true);
           if (current.turn.pipeError) return failure("pipe_failed", "CLI 输出管道失败", false);
           if (current.turn.safetyStop && current.turn.safetyStop !== "unknown_event") {

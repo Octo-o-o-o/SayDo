@@ -144,7 +144,7 @@
 | `--bg-app` | `#f0ede4` 宣纸 | `#12161f` | 画布 |
 | `--bg-glow-a/b` | 赭石 5% / 黛蓝 4.5% 色渍 | 蓝 13% / 暖 7% | 画布氛围(纸不发光,只有渍) |
 | `--surface` | `#faf7ef` 纸面**实底** | `rgb(26 32 45 / 62%)` | 卡片/面板 |
-| `--surface-raised` | `#fcfaf4` 抬升纸面 | `rgb(30 37 52 / 82%)` | 顶栏/侧栏/模态/浮层 |
+| `--surface-raised` | `#fcfaf4` 抬升纸面 | `rgb(30 37 52 / 82%)` | 模态/浮层(顶栏/侧栏自 `3918eef` 08-13 起为 `--bg-app` 宣纸通底,不再消费本 token) |
 | `--surface-soft` | 纸面 68% | 26 32 45 / 40% | 弱化纸面:骨架块/浅底区 |
 | `--surface-control` | 纸面 80% | 38 46 64 / 55% | 输入/下拉/次按钮面 |
 | `--surface-ink-wash` | 墨 5% | 反白 4.5% | 悬停/选中底 |
@@ -288,7 +288,7 @@
 
 ### 2.7a 写死色值门禁(防回潮)
 
-`scripts/check-hardcoded-colors.sh`,接入 `package.json ci:node` 与 `justfile ci-node`。
+`scripts/check-hardcoded-colors.mjs`(`.sh` 保留为 exec shim),接入 `package.json ci:node` 与 `justfile ci-node`。
 
 - **范围**:`packages/console/src` 的 `.css/.ts/.tsx`,排除 `*.test.*` / `*.fixture.*`。
 - **拦**:hex(含 Tailwind 任意值类 `[#fff]`)、`rgb/rgba/hsl/hsla/oklch/oklab/lab/lch/hwb/color()`、以及 `.css` 文件里的 CSS 具名色(`color: red` 之流)。
@@ -310,7 +310,7 @@
 
 ## 3. 布局与信息架构(与 08 §6 对齐)
 
-- **外壳**:左侧栏(`--w-sidebar`,`--surface-raised`,分"当前项目/全局"两段,项目切换器置顶)+ 顶栏(52px:语音会话指示器 + 通知铃 + 免打扰 + 主题切换)+ 内容区(最大宽 1200px 居中,gutter 20px)。
+- **外壳**(2026-08-27 月度审计随实现回写;IA 演进史见 08 §6 修订):左侧栏(`--w-sidebar`,宣纸通底 `--bg-app` + 墨线分隔,树形导航="开口聊 CTA/今天/全景看板/正在持续的事/记录/旧版折叠",项目选择器沉底)+ 顶栏(52px,宣纸通底:语音会话指示器 + 通知铃 + 免打扰 + 主题切换)+ 内容区(最大宽 1600px 居中,gutter 20px;`8b74430` 08-06 起)。默认路由 `#/today`。
 - **画布**:`--bg-app` + 双光斑 + 细噪点(唯一装饰,照抄 OctoBlog `.canvas-atmosphere` 配方)。
 - **卡片即单位**:一切内容承载在纸面卡片(`--surface` + `--radius-md`/`lg` + `--line` + `--shadow-card`;组件为 `PaperCard`);票据类卡用 `--radius-ledger` 系不对称角。卡片不嵌卡片超过两层。**禁 `backdrop-filter`**——纸是清晰的,不做玻璃模糊。
 - **断点**:`≥1280` 双栏(对话页转写流+右栏草稿);`768–1279` 单栏可折叠侧栏;`<768` 移动式(侧栏抽屉、底部主操作)。D2 原生外壳(P1)复用同一套响应式,不另做设计。
@@ -492,11 +492,11 @@ shadcn 原样(Input/Select/Switch/Tabs);设置页每项带一句 muted 说明;�
 - **免手档(hands_free)**:VAD 自动断轮天然直发语义(A 档),不变。
 - **思考中反馈**(场次① A3;02 §3 learning 一等状态):用户轮发出(A 档转写到达/文本发送)到 Brain 首句回话之间,消息流末尾显示"思考中…"占位;首句 TTS 到达即替换,45s 兜底自动清——**不留白让用户以为卡死;B 档转写期间绝不显示思考中**(AI 尚未收到任何内容)。
 - **CLI 慢速模式**:probe 的 dialog `mode="oneshot"` 时,对话页常驻徽标"CLI 慢速模式·每轮约 15-25 秒·配 API key 立即变快"。轮次进行中使用现有 turn/thinking 状态显示按秒更新的"CLI 慢速模式处理中",这是 UI 状态而非 assistant 消息,不得写入对话历史。
-- **语音未配置**:probe 表明 ASR 未配置/不可用时,「点击说话」与模式切换禁用,不得点击后无声失败;固定人话为"语音未配置(可选)——用键盘上的话筒,或直接打字;配好豆包 key 后这里可以开口即说"。文本输入和发送保持可用。
+- **语音传输三态**(`40a607f` 08-13 起,10 §3-8 同批合同):`VoiceTransport = "cloud"|"system"|"unavailable"`。cloud=火山 ASR/TTS 全链;system=VOLC 未配但浏览器支持时走 SpeechRecognition/speechSynthesis 系统语音回退(话筒可用,话术见 systemVoice.ts 的 `VOICE_SYSTEM_NOTE` 系常量);仅 `unavailable`(未配且浏览器不支持)才禁用「点击说话」与模式切换,固定人话为"语音未配置(可选)——用键盘上的话筒,或直接打字;配好豆包 key 后这里可以开口即说"。文本输入和发送任何态下保持可用。
 - **轮次守恒(09 §10 同批合同)**:PTT 下每个 done_speaking 恰好一个 asr.final(可空)——console 采集意图按 FIFO 队列逐条消费(直发/编辑/取消三种意图),超时(录音时长+30s,至少 20s)逐出并置失败态。
 - 状态词纪律:输入区任何提示文案禁结果句式(10 §4-1);禁 emoji(§12)。
 
-### 5.1 三面一栏新组件登记(2026-08-08 增设;视觉参考实现=demo/saydo-console-redesign-proposal.html,唯一样式规范)
+### 5.11 三面一栏新组件登记(2026-08-08 增设;原编号 5.1 与上方按钮节撞号,2026-08-27 月度审计改号;视觉参考实现=demo/saydo-console-redesign-proposal.html,唯一样式规范)
 
 > **视觉参考实现已过期(2026-08-13 标注)**:`demo/saydo-console-redesign-proposal.html` 内嵌的是**换芯前的雾灰蓝玻璃色板**(`#edf0f6` 画布 / `#2b5fd9` 蓝 / `--glass-*` 旧名),纸上账本换芯与本批 token 归一都未回灌进去。它只能当**布局与信息结构**的参考;**色彩/圆角/token 一律以 §2 为准**,冲突时 §2 胜。重刷 demo 归独立批。
 >
@@ -507,7 +507,8 @@ shadcn 原样(Input/Select/Switch/Tabs);设置页每项带一句 muted 说明;�
 | 四色收件箱条目 | 左色条(橙/蓝/绿/灰)+标题+Focus 归属+needs 标签;绿/灰带「知道了」(ack),橙/蓝无 ack(源数据驱动消失) | ② |
 | 任务状态 chip | CHIP_TABLE 16 呈现态四联映射(状态→颜色→图标→文案)全站唯一渲染表,消费 TaskRowView.viewStatus,禁读原始 status | ② |
 | 球权徽章 | owner 三色(我来做/需要你/外部);数字徽章全站单源=attention,openByOwner 仅文字描述 | ② |
-| 决策包卡 | 做出来什么样/做不做/每步谁做/验收标准/成本熔断/预授权(所闻即所签)/怎么跑二选一无默认 | ③b |
+| 决策包卡 | 做出来什么样/做不做/每步谁做/验收标准/成本熔断/预授权(所闻即所签)/怎么跑二选一无默认;「看小样」动作(s1 批 08-20)打开 DemoFrame 内联预览 | ③b |
+| DemoFrame | 决策包「看小样」内联渲染(s1-demo-wiring 批 `5c48eb4`,08-20):iframe `sandbox=""` 零 allow 渲染 srcdoc,产物版本经 `/api/artifacts/:id/versions/:version` 拉取;红线=沙箱零权限、token 不进 URL;另有「在产物库查看」链接 | s1 |
 | 确认卡 | 按 daemon 真实 kind 枚举投影;倒计时;「也可以直接开口回答」;超时语义按 v0.4 落账机制 | ③b |
 | 进度对齐卡 | AI 主动对账:决策包步进/产物计数/下一步在谁 | ③a |
 | 待命卡 | 虚线边;在等什么+叫醒条件+到期兜底 | ③a |
@@ -567,7 +568,7 @@ P0 提供:亮/暗/跟随系统 + 免打扰。**不提供**:自定义主题色、
 ## 12. 工程落地与门禁
 
 - token 文件:`packages/console/src/styles/tokens.css`(与本篇 §2 同步,PR 里两处一起改);Tailwind 经 `@theme` 消费同一组变量;移动 `mobile.css` 只做消费映射,不得自定义色值/字号。
-- **写死色值 CI 门禁**:`bash scripts/check-hardcoded-colors.sh`(口径与白名单见 §2.7a),自测 `scripts/test-color-gate.sh`;两者已接入 `ci:node` 与 `just ci-node`。
+- **写死色值 CI 门禁**:`node scripts/check-hardcoded-colors.mjs`(口径与白名单见 §2.7a),自测 `scripts/test-color-gate.mjs`(`1482510` 08-22 Windows 对齐批 .sh→.mjs,.sh 保留为 shim);两者已接入 `ci:node` 与 `just ci-node`。
 - **禁 emoji CI 门禁(0.1 脚手架即接)**:对 git 追踪的全部文本文件跑
   `rg -nP "[\p{Emoji_Presentation}\x{FE0F}\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}]" --glob '!node_modules'`,
   命中即 CI 红;无豁免清单。HTML/Markdown numeric entity 与 HTML script 的 Unicode escape

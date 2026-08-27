@@ -13,7 +13,7 @@
 | 方案版本 v1.0 → v1.14 | 2026-07-18 ~ 07-22 | 设计期主方案演进,终版 `history/voice-coding-framework.Cursor2.md`;逐版变化见 journal R1-R16 与「版本时间线(速览)」表 |
 | 文档集 docs v2.0 | 2026-07-22 起 | 方案重写为正式 canonical(docs/01-11 + modules + adr),此后按评审轮次持续修订,不再打整册版本号 |
 | 实施批次制 | 2026-07-24 起 | 版本推进单位从「方案版本」切换为「批次」(Phase N → W 系列 → 专项批),本文件 §2 为全量台账 |
-| git tag | v0.1.0-rc.1 @ `628f7e4`(2026-07-25) | 唯一 tag;`v0.1.0` 待场次④通过后由 owner 授权打;返工走 rc.N+1,旧 rc 不移动 |
+| git tag | 内部仓 v0.1.0-rc.1 @ `628f7e4`(2026-07-25);**公开仓 rc.2–rc.12 共 11 个 tag(2026-08-23~26),rc.12 为全绿 available Release** | rc.4–rc.9 永久不可用(rc.8/9 UNAVAILABLE Release,rc.4–7 无 Release);`v0.1.0` 正式版待场次④通过后由 owner 授权打;返工走 rc.N+1,旧 rc 不移动(2026-08-27 月度审计更新,详见 readback §14-§17) |
 | DDL schema 版本 | v1 → v26+(持续) | daemon SQLite 迁移链;铁律 = 改 DDL_V1 必配增量迁移(HANDOFF §4) |
 | 知识底座 generation | generation 5(AGENTS.md 知识块所记) | 底座文件在本机运行时目录(不在仓内);仓内可复核出处 = AGENTS.md 知识块与 `docs/plan/MIGRATION.md` 迁移快照 |
 
@@ -98,7 +98,7 @@
 | T19-polish(死因透传/HOME 隔离实测) | 08-13 | `013d84b` 段 | — | findings 67 |
 | 融合布局批(向导左右分栏 + 混搭快照) | 08-13 | `af80b26` 段 | — | findings 68 |
 | 全端 UI 标准化(token 三层归一 + 写死色值门禁) | 08-13 | `05f714c` 段 | — | `docs/plan/2026-08-13-ui-standardization-audit.md` |
-| 品牌朱印全端 + 纸上账本 Light 换芯 + 应用定名「说到」 | 08-13 ~ 08-15 | `ecdd1d2`/`55d61d2`/`b13b744` | — | — |
+| 品牌朱印全端 + 纸上账本 Light 换芯 + 应用定名「说到」(+ 08-14 收尾:`c5148ab` 自检同族降级说明 / `d039552` 删 PlanSlotList 死代码 / `8a8247a` 槽行换家 defaultSlotModels——2026-08-27 月度审计补索引) | 08-13 ~ 08-15 | `ecdd1d2`/`55d61d2`/`b13b744` | — | — |
 | 上架与备案材料首批 + release 归并 | 08-13 ~ 08-15 | `6194046`/`aac3d60` | — | — |
 | DeepSeek 单家直连 + 默认 Runner 决策 + 两安全修复 | 08-15 | `789b76d`/`03c6d54` | — | findings 72 + `2026-08-15-default-runner-decision.md` |
 | 移动外壳战略 + 阶段缺口分析(纯评审轮) | 08-13 ~ 08-14 | (无生产代码;材料入库 `35604be`) | R69 x2/R70 x2(撞号见 §3) | findings 69/70/71 |
@@ -130,6 +130,16 @@
 | 一周文档 x 实施双向对账 + 全分支合并 + 评审 90 回修 | 08-22 | `a26d5bf`(对账回修)/ `058090d`(win32 门四路)/ `3bf3d10`(门路径单源)+ 评审 90 回修批 | `docs/review/2026-08-22-week-crosscheck.md` + `w54b-batch.md` §7 | R92 | Codex 90(裁决 No-Go;A 级八条 + B 级代码项已回修) |
 | 备份 workspace 身份锚去 st_dev(部署门前置清偿) | 08-22 | `d406387`(+ HANDOFF 回写 `fb16fb8`) | 见 `docs/review/2026-08-22-week-crosscheck.md` F17 | R92 | 随评审 90/91 轮 |
 | 三端移动壳真机构建与装机 | 08-22 | `82c77e3` | `2026-08-22-mobile-shells-device-build.md` | R92 | — |
+| faststart 周审计冻结 + rc.2→rc.4 补救链(以下九行 2026-08-27 月度审计补录,清偿 R84 双轨承诺) | 08-23 | `a15b5de`(审计批)/`951249e`(rc.4 bump);冻结边界 `b768089` | `2026-08-22-week-audit-ledger.md` + `2026-08-23-remediation-ledger.md` + `2026-08-23-rc3-release-recovery.md` / `-rc4-release-candidate.md` | R94-R97 | 两路零上下文最终复审(108/112 未产出 final,如实未写绿) |
+| rc4 runtime 二轮红灯检查点 + 全新重实施 | 08-23 ~ 08-25 | 检查点 `c3f8aa5` / 重实施 `2378b7b`(55 files) | `2026-08-24-rc4-runtime-fresh-final-readback.md`(No-Go) + `2026-08-25-rc4-runtime-final-reimplementation-readback.md` | —(journal 无 R 节,载体为两份 readback) | Codex 对抗评审(6A+8B,见 readback §11) |
+| runtime 对抗评审回修(A1-A6 + 8B 处置) | 08-25 ~ 08-26 | `4b7d0d6`(A1-A5)/`4545769`(8B)/`9f0e735`(A6 前置;Windows 单测门开门实测 92 failed 登记债)/`3e56ac5` | readback §10-§11(§11 后记 2026-08-27 补) | — | owner 两项裁决(见 §11 后记) |
+| mobile readiness 分支批(三端壳测试/配对/安装器重构) | 08-24 | 分支 `codex/rc4-mobile-readiness-fix`:`7062267`→`c56ebdf`(末码) | `2026-08-22-mobile-shells-device-build.md` §5 + prompts/143-164 工作单链(两轮 No-Go 返工) | —(journal 无 R 节) | 独立 readback 两轮退回后过 |
+| rc.5→rc.12 发布链 + 发布合同 v2 + 实体门 + availability 翻转 | 08-25 ~ 08-26 | bump 链 `e37ebe5`…`4e5f09f`;合同 v2 `0a2f290`;翻转 `410eb84`;mobile 并入 `d83c341`+锚释放 `6cb461c` | readback §14-§17 + `e2e/evidence/2026-08-26-rc1[0-2]-*` + `-rc12-physical/`/`-availability.json`/`-site-deploy.md` | —(journal 无 R 节;R110 仅回收 ios 门禁回归) | 实体门四项真机 + 六项 smoke(rc.10-12 全绿) |
+| AI 供给文档线(v1-v20 保全/结构手术/决策/坐标) | 08-25 ~ 08-26 | `57819ad`/`109dacc`/`6467076`(R 重编号)/merge `1edd3d0` | `docs/plan/2026-08-23-ai-supply-*` 系 + `2026-08-24-ai-supply-*` 三份 | R98-R109 | 循环诊断代替新终审(R100) |
+| capture ingress 方案定稿(口袋采集设备接入) | 08-26 | 方案文档(未改生产代码) | `docs/plan/2026-08-26-capture-device-ingress.fable.md` | R111 | Codex 100(6A+10B+4C 全吸收进 v2) |
+| 600 条提问三轮 dry run + A 级返工 | 08-26 ~ 08-27 | 语料入库 `dfb6f9d`(拍平事故)+`cf50f52`(canonical)+清理 `f5ca882` | `2026-08-26-customer-question-dry-run-impl-readback.fable.md` + `2026-08-27-…-a-repair-report.md` | R112 | 停点:prompts/190 零上下文评审未跑;主语料 v8 三份 [fail] 待 owner 处置 |
+| R113 抢救保全批(三线未入库产物) | 08-27 | `511787f`/`dfb6f9d`/`4866330` | journal R113 | R113 | — |
+| BYOA L-1 身份门下沉 + voice B-5 重放修复线 | 08-26 ~ 08-27 | L-1:`911ce95`(merge `f723ab7`);B-5:`7f6562e`(merge `1f2e57e`) | 源条目 `w54b-batch.md` §18.4 L-1(已修注)+ codex-findings/100 B-5;capture 方案 §2.5 更新注 | —(本行即索引) | daemon 全套 2177 passed |
 | ios 安装器门禁合并回归修复(main 转绿) | 08-27 | `9a3e180` | `w54b-batch.md` §14.2 | R110 | — |
 | w54b-wiring 收口(四轮独立复审 + 三轮返工;自身 A 级 0) | 08-27 | `8941e1c`(证据 `9417b6d`) | `w54b-batch.md` §15–§18 | R110 | Codex 四轮 `gpt-5.6-sol`+max |
 | AI 供给专题开具名坐标(PLAN-2 §1 `ai-supply`) | 08-27 | `9417b6d` 为基线锚 | PLAN-2 §1 | R110 | — |
@@ -163,6 +173,8 @@
 |---|---|
 | findings 11/19/61/71 各两份 | 11(implementation-plan-v25 / post-review-reassessment)、19(plan2 / tier1-executor)、61(d1-desktop-foundation / d1-distributable-runtime)、71(正式报告 / attempt1,后者为 Codex 沙箱受阻首跑,journal R70 有说明)各为两份文件共用编号 |
 | findings 60 缺失 | 59 之后直接 61;60 号未分配。两份 61 均保留,无证据判定其一本应为 60,不作推断 |
+| prompts/205 两份(2026-08-27 月度审计登记) | `205-ai-supply-activation-refresh.md`(AI 供给线,`88ac8a2`/`61ce050`)与 `205-capture-device-ingress-adversarial-review.md`(capture 线,R111)撞号;同既有惯例不重编号,引用必须带完整文件名 |
+| findings 100 两份(同批登记) | `100-ai-supply-universal-onboarding-final-billing-gate-review.md` 与 `100-capture-device-ingress-adversarial-review.md` 撞号;处置同上 |
 | findings 39-44 合并 | session1 锚定系列 aborted,六号合并为一个文件(文内有说明) |
 | findings 75/76 销案 | 官网 v1/Docs 评审因 Codex 额度/容量未产出(journal R75/R76 登记);2026-08-21 评审 88 轮裁决销案不补跑(owner 验收本轮即追认)。理由与覆盖差异:75/76 原范围含视觉/可访问性/SEO/性能/链接/移动端与双语内容逐项;86/87 系列覆盖其中状态承诺、数据路径与档案一致性维度,视觉/性能维度未逐项复评——差异如实登记于销案文件,不写「全链 supersede」 |
 | findings 88 两主题五文件(2026-08-22) | `88-version-records-audit-review.md`(版本记录对账,内部线)与 `88-windows-alignment-{codex,consistency,implementation,triage}.md`(Windows 线,四份)共用 88 号;两线并行、互不可见所致。沿「原始证据不重编号」只登记不改名,引用时必须带完整文件名 |

@@ -6,7 +6,7 @@
 
 - **许可证 = Apache License 2.0**(commit `354b028`,已 push 到 `origin/main`):`LICENSE`(标准全文 + 版权行 `Copyright 2026 Yixiao Wang (汪义骁)`)、`NOTICE`(声明「说到」/SayDo 名称、印章 logo、`assets/` 品牌资产不在许可范围——Apache §6 商标条款)、`README.md` 新增「许可证」节、根 `package.json` 与可发布的 `packages/cli/package.json` 补 `"license": "Apache-2.0"`。
 - 选 Apache-2.0 而非 MIT 的理由:① 含专利授权与明确的商标排除(项目有品牌与商店上架计划);② 与全部依赖(MIT/BSD/Apache)及同作者 Hopper(MIT)兼容;③ 社区与企业采用阻力最小。若 owner 想要 copyleft(AGPL)或更宽松(MIT),改 LICENSE 一行一文件即可,此前无对外分发不构成变更成本。
-- **全史秘密扫描**:`gitleaks git .`(434 commits,12.5 MB)仅 2 条命中,均为误报(`research/codex-findings/24-…md:210` 文件名数组;`e2e/spikes/asr-1.0/check-asr-auth.sh:48` 是 RFC 6455 示例 `Sec-WebSocket-Key` 常量)。无真实 token / key / cap-token / ntfy topic / `.env` 真值入库。
+- **全史秘密扫描**:`gitleaks git .`(434 commits,12.5 MB)仅 2 条命中,均为误报(`research/codex-findings/24-…md:210` 文件名数组;`e2e/spikes/asr-1.0/check-asr-auth.sh:48` 是 RFC 6455 示例 `Sec-WebSocket-Key` 常量)。无真实 token / key / cap-token / ntfy topic / `.env` 真值入库。(基线注 2026-08-27 月度审计:此为 2026-08-20 时点基线;08-27 复跑为 713 commits / 129 条命中,按 规则×文件 全 17 组抽样均为假阳性类——测试标记串、evidence 指纹字段、40-hex commit SHA 等;公开树现役门是 `check-public-tree-privacy`,当日实测 hits=0。)
 
 ## 2. 阻塞公开的隐私项(翻公开前必须裁决)
 
@@ -34,7 +34,7 @@
 ## 4. 翻公开的操作清单(裁决后执行)
 
 1. 按所选选项完成删改 / 改写 / 快照。
-2. 复跑 `gitleaks git .` + 本文 §2 的 `git grep` 探针(手机号正则、CPCC 账号名、图片工具名、第三方实名、备案通知邮箱前缀、订阅账号邮箱)全零——探针字面量集中在 `scripts/publish-public-snapshot.sh`。
+2. 复跑 `gitleaks git .` + 本文 §2 的 `git grep` 探针(手机号正则、CPCC 账号名、图片工具名、第三方实名、备案通知邮箱前缀、订阅账号邮箱)全零——探针字面量的现行位置(2026-08-27 更新):脚本内联仅手机号正则一条(`scripts/publish-public-snapshot.sh`),其余隐私探针存于 Git 私有目录锚文件 `.git/info/saydo-private-probes`(常规文件、owner-only 权限,由脚本运行时读取;不入公开树)。
 3. `gh repo edit Octo-o-o-o/SayDo --visibility public --accept-visibility-change-consequences`;确认 `gh repo view --json isPrivate,licenseInfo` 返回 `false` / `Apache License 2.0`。
 4. 官网 / Docs 稿的「开源免费 · 前往 GitHub」口径生效(见 `docs/site/` 两稿 C-1)。
 5. 可选:GitHub 仓库 About 填一句话与 topics;开启 Issues;加 `SECURITY.md`(私下披露邮箱 `support@octoooo.com`)与 `CONTRIBUTING.md`(指向 AGENTS.md)。

@@ -253,7 +253,7 @@ daemon 1883/5 skipped、typecheck 与差量门。发布独立复审确认 F89–
 
 - 症状:`node scripts/test-ios-build-and-install.mjs` → `pass=4 fail=5`,`ci-node` fail-fast 退出 1。
   单独复跑一致,**非 flaky**。
-- 根因:两条 RC4 分支的语义级合并冲突(git 不报冲突,改的是不同文件)。门禁脚本
+- 根因:两条 RC4 分支的语义级合并冲突。(更正 2026-08-27 月度审计:原记「git 不报冲突,改的是不同文件」不实——`d83c341` 自动生成的 `# Conflicts:` 清单含 `apps/ios/build-and-install.sh` 与 `justfile` 等 5 文件,两者均双侧修改、git 已报冲突并经人工取舍(installer 整取 mobile 侧、justfile 门禁行并集);真正无冲突信号的只有 release 侧独有的门禁脚本本身,漏检环节是**冲突解决取舍后未复跑 ci-node**。)门禁脚本
   `scripts/test-ios-build-and-install.mjs` 唯一提交为 `09f7920 fix(release): 收紧公开树隐私与 iOS 真机目标`
   (release 线),断言旧合同 `SAYDO_IOS_DEVICE_ID`;被测的 `apps/ios/build-and-install.sh` 已由 mobile 线
   `c56ebdf feat(mobile): 闭合三端配对与真机安装边界` 重构为 `scripts/mobile-install-common.sh` 公共库 +
@@ -523,6 +523,9 @@ Grok 在其 sandbox 内 `just ci` 与 playwright 均跑不通(`git worktree add`
 ### 18.1 第四轮独立复审
 
 参数同前。事件流 145 行,`turn.completed` **1**;报告 10,151 bytes / 61 行。
+(存放事实注,2026-08-27 月度审计:08-26/27 四轮收口复审的 prompt 与报告原文未入库、只在会话
+scratchpad,本文件各节仅记字节/行数无 SHA-256——与 89-92 轮入库先例不一致;收口结论不依赖
+报告原文,每条 A 级均有调度方逐条归属核验与代码级证据在案。)
 
 **结论:No-Go。** 三条本轮返工均判 PARTIALLY_FIXED(核心已修,边角未尽),
 前 7 项防退化中 6 项「仍成立」,并提出**一条 A 级新问题**。
@@ -578,13 +581,16 @@ W5.4-b 的 A-3 修的是「共享模块提取时引入的 mtime/size 缓存」,�
 
 | # | 级别 | 内容 | 去向 |
 |---|---|---|---|
-| L-1 | **A** | BYOA 单次 chat 内多 spawn 不重验二进制身份(网络重试 / tripwire / schema repair 三条路径) | **既有缺陷,独立安全线**。修法方向:把身份核验下沉到每次 `spawnRuntimeChild` 之前,而非 `chat()` 开头一次 |
+| L-1 | **A** | BYOA 单次 chat 内多 spawn 不重验二进制身份(网络重试 / tripwire / schema repair 三条路径) | **已修:`911ce95`(2026-08-27,merge `f723ab7`)**——preSpawnGate 贴每次 spawn 执行,被拦发不进 attempts/记账/审计口径;daemon 全套 2177 passed。原登记:既有缺陷,独立安全线;修法方向即身份核验下沉到每次 `spawnRuntimeChild` 之前 |
 | L-2 | B | `dbConnectionWritable` 对非 `1/1n` 的未知 pragma 返回 fail-open | 当前 better-sqlite3 13.0.3 只返回 number/bigint,生产不可达;若升级该库需复核 |
 | L-3 | B | A-1 的 `overwrite`(置 `confirmed=0`)与 `confirm`(置 1)是两条 autocommit SQL,其间崩溃会留下未确认 durable 行 | 该状态是 fail-closed(未确认即不 exact resume),不造成错误 resume;登记待后续合并为单事务 |
 | L-4 | C | C-2 缺第二次 `recover()` 后的 `cancel_settled` 断言 | 断言强度问题,核心回归已锁 |
 | L-5 | C | C-3 夹具的 `.cache` symlink / EROFS / 父目录清理边角 | 测试夹具健壮性 |
 | L-6 | C | `binary-identity-force-rehash.test.ts` 第二个 chat 用例与 tracked e2e 场景重复 | 测试去重 |
 | L-7 | — | `tier1-executor.test.ts` 裸 `vi.waitFor` 结构性 flaky(第 1090/1425 行等) | RC 链收口时已登记的发布工程质量债,独立线 |
+| L-8 | C | w54a readback 修复清单第 5 条未兑现:`claudeIsTerminalResult` 仍是宽正则 `/"type"\s*:\s*"result"/`(claude.ts:231-233),assistant 文本含该字样会提前 arm finish 计时器 | 2026-08-27 月度审计补录(w54a readback→w54b 闭环断链);归 W5.4-c 或独立小批,改为 parse 后判 `type === "result"` |
+| L-9 | C | w54a readback 修复清单第 4 条未兑现:`e2e/evidence/w54a-claude-cli.md` §9 复跑位仍是空槽 | 同上补录;按 readback 给的替代方案补一行指针即可 |
+| L-10 | C | w54a readback 修复清单第 6 条子项未兑现:`tier1-claude-backend.test.ts` 无 `permissionMode` 断言 | 同上补录;归 W5.4-c 顺带项 |
 
 ### 18.5 收敛状态
 

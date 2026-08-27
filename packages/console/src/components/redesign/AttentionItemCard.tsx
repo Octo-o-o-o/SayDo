@@ -1,4 +1,4 @@
-// AttentionItemCard(demo .attn-item 四色收件箱条目,11 §5.1 登记组件):
+// AttentionItemCard(demo .attn-item 四色收件箱条目,11 §5.11 登记组件):
 // 左色条(橙/蓝/绿/灰)+标题+Focus 归属+needs 标签;绿/灰(calm)带「知道了」(ack),
 // 橙/蓝无 ack(源数据驱动消失);hover 抬升阴影;非 calm 右侧 chevron。
 // needs 文案用话术规范口径:等你拍板/等你补充/等你的动作/待归类。

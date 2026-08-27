@@ -1,5 +1,6 @@
 // BYOA 一发一收 spawn 运行器(无 Electron):prompt 走 stdin,持续 drain stdout/stderr。
-// 安全底座:wall/idle 双 watchdog、总输出上限、AbortSignal、SIGTERM→3s→SIGKILL、网络失败至多重试一次。
+// 安全底座:每次 spawn 前的身份门、wall/idle 双 watchdog、总输出上限、AbortSignal、SIGTERM→3s→SIGKILL、
+// 网络失败至多重试一次。
 
 import { randomUUID } from "node:crypto";
 import { StringDecoder } from "node:string_decoder";
@@ -66,6 +67,8 @@ export interface SpawnTurnOptions {
   onStdoutLine?: (line: string) => "tripwire" | "unknown_event" | "parse_error" | "family_mismatch" | undefined;
   /** provider 已识别为订阅限流时阻止通用网络重试，保持 fail-fast。 */
   stopNetworkRetry?: (result: SpawnAttemptResult) => boolean;
+  /** 每次起进程前的安全门(二进制身份核验);返回原因即拒绝本次 spawn,不起进程也不重试。 */
+  preSpawnGate?: () => "binary_identity_mismatch" | undefined;
   /** 额外透传的 env(白名单;spawn env 默认剥离,只透传显式给定的)。 */
   passEnv?: Record<string, string | undefined>;
 }
@@ -85,6 +88,8 @@ export interface SpawnAttemptResult {
   safetyStop?: "tripwire" | "unknown_event" | "parse_error" | "family_mismatch";
   /** 触发 safetyStop 的 stdout 行原文(截断/脱敏由调用方负责)。 */
   safetyStopLine?: string;
+  /** preSpawnGate 拒绝:本次没有起进程。 */
+  spawnBlocked?: "binary_identity_mismatch";
 }
 
 export interface SpawnTurnResult extends SpawnAttemptResult {
@@ -129,7 +134,7 @@ export function buildSpawnEnv(passEnv: Record<string, string | undefined> = {}):
 }
 
 function isRetryableNetworkFailure(result: SpawnAttemptResult): boolean {
-  if (result.aborted || result.timedOut || result.outputLimitExceeded || result.safetyStop || result.spawnError || result.pipeError || result.lifecycleError) return false;
+  if (result.spawnBlocked || result.aborted || result.timedOut || result.outputLimitExceeded || result.safetyStop || result.spawnError || result.pipeError || result.lifecycleError) return false;
   if (result.exitCode === 0) return false;
   return /(?:network|connection|econnreset|econnrefused|socket|fetch failed|temporarily unavailable|retrying)/i.test(
     result.stderrTail
@@ -179,6 +184,20 @@ async function runSpawnAttempt(opts: SpawnTurnOptions): Promise<SpawnAttemptResu
         spawnError: safeFailureText(err)
       });
     };
+    // 安全门贴着 spawn:同一次 chat 内的每一发都重验,不接受“开头验一次”后的替换。
+    const blocked = opts.preSpawnGate?.();
+    if (blocked) {
+      resolve({
+        lines: [],
+        stderrTail: "",
+        exitCode: null,
+        timedOut: false,
+        aborted: false,
+        outputLimitExceeded: false,
+        spawnBlocked: blocked
+      });
+      return;
+    }
     let spawned: SpawnedRuntimeChild;
     try {
       spawned = spawnRuntimeChild(opts.argv.bin, opts.argv.args, {

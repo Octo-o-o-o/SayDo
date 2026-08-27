@@ -1,5 +1,9 @@
 # RC4 runtime 全新重实施 — 实施与验证报告
 
+> **范围声明（2026-08-27 月度审计补）**：本文档自 §13 起超出标题所述的 runtime 重实施范围，承载
+> release 线合并 → rc.5-rc.12 发布链 → 发布合同 v2 → 实体门 → availability 翻转的完整收口叙事
+> （§14-§17），是 08-26 RC 链收口的唯一详账载体。检索「rc.12 收口在哪」应至本文 §17。
+
 - 日期：2026-08-25
 - worktree：`SayDo-rc4-runtime-final-reimplementation-20260824`
 - branch：`codex/rc4-runtime-final-reimplementation-20260824`
@@ -432,6 +436,13 @@ Windows stdout flush 无 liveness 截止、多条测试假杀伤力、platform �
 
 曾据**单次运行**判定 A5 是回归源并做过回退；复跑 3/3 全绿后确认那次失败是已知的并发 flaky。
 本报告反复强调「报错信息不可尽信」，而这次正是作者自己用单次结果下了定性结论。
+
+### §11 后记：处置结果（2026-08-27 月度审计补记）
+
+上文「待 owner 裁决」的两项均已在 08-25/26 发生、此前只存在于 commit message：
+
+- **8 条 B 级**：owner 裁定「B 级全部修完再发布」，`4545769` 落地（6 修 / B2 回退 / B7-3 与 B8 后半记为已知限制——subject 的"8 条"按 B7/B8 各拆两半计）。
+- **A6（Windows 单测门）**：owner 裁定先修真机加载，`9f0e735` 打开 Windows 单测门 + TOML 转义；开门后实测 daemon 单测 Windows **92 failed**，属新登记的既有问题，后续投入待 owner 裁决——此债在本补记前无任何文档落点，现登记于此，去向参照 w54b-batch.md §18.4 遗留清单形态。
 
 ## 12. privacy 线合并与发布前状态
 
