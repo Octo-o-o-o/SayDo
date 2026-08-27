@@ -2433,6 +2433,13 @@
       "sha256": "af3dd779622a28393cc0e5937a536718559721a328798029679b0c48017ca30e"
     },
     {
+      "path": "e2e/evidence/2026-08-27-monthly-audit-site-deploy.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1928,
+      "sha256": "e553ba288d969247d46ea96eeffe7090aac3f3ab57ce2389f29fa6ae3c3955e9"
+    },
+    {
       "path": "e2e/evidence/a3-armed-batch.md",
       "kind": "file",
       "mode": 420,
@@ -6720,15 +6727,15 @@
       "path": "packages/daemon/test/binary-identity-force-rehash.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 10755,
-      "sha256": "7b604d299f6cc7c05a5cfcc725636a6d1384cdcc996e26707c86821a77dac7fb"
+      "bytes": 11616,
+      "sha256": "a12e477ded02c7600b162d38b56615606fd409acacee88e389484f28eefc75d7"
     },
     {
       "path": "packages/daemon/test/byoa-fake-cli.e2e.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 45608,
-      "sha256": "0caf3598519872e03021a0826117ad2a33ffabdc1cdd77cc7495e7f598fdb494"
+      "bytes": 45930,
+      "sha256": "81bd4c13e924672e9b2a10da76ec4b95182282e6beffa9eb8ec89b53e63fbd6f"
     },
     {
       "path": "packages/daemon/test/byoa-smoke.mjs",

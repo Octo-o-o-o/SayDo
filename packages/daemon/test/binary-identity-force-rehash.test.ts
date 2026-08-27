@@ -54,6 +54,10 @@ describe("BYOA spawn 前身份核验每次真算", () => {
     expect(hashes).toBe(1);
     expect(verifyBinaryIdentity(bin, identity, familyOf, "claude", { forceRehash: true, hashFile })).toBe(identity);
     expect(hashes).toBe(2);
+    // 时间戳锚定整秒:Linux 纳秒 mtime 经 utimesSync(浮点秒) 往返有精度损失,非整秒值恢复后
+    // mtimeMs 不再严格相等,"同 mtime/size 替换"反例就构造不出来(缓存判据是全精度 ===)。
+    const anchorSec = Math.floor(Date.now() / 1000) - 60;
+    utimesSync(bin, anchorSec, anchorSec);
     const before = statSync(bin);
     writeFileSync(bin, "BBBB");
     utimesSync(bin, before.atimeMs / 1000, before.mtimeMs / 1000);
@@ -117,6 +121,9 @@ describe("BYOA spawn 前身份核验每次真算", () => {
     } catch {
       // 上一发若未收口,不得挡住第二次身份核验
     }
+    // 整秒锚:同上,保证 utimesSync 恢复在 Linux 上也精确命中缓存判据的全精度相等
+    const anchorSec = Math.floor(Date.now() / 1000) - 60;
+    utimesSync(bin, anchorSec, anchorSec);
     const before = statSync(bin);
     const tampered = Buffer.from(readFileSync(bin));
     tampered[tampered.length - 1] = (tampered[tampered.length - 1] ?? 0) ^ 0xff;
@@ -159,6 +166,10 @@ describe("BYOA spawn 前身份核验每次真算", () => {
     const bin = join(dir, "cli.mjs");
     writeFileSync(bin, readFileSync(tamperCli));
     chmodSync(bin, 0o755);
+    // 整秒锚:fixture 的 swapSelf 用 utimesSync(atimeMs/1000, mtimeMs/1000) 恢复时间戳,
+    // 只有整秒基值在 Linux 纳秒时间戳下往返无精度损失(缓存判据是全精度 ===)。
+    const swapAnchorSec = Math.floor(Date.now() / 1000) - 60;
+    utimesSync(bin, swapAnchorSec, swapAnchorSec);
     const digest = sha256(bin);
     const before = statSync(bin);
     let hashes = 0;

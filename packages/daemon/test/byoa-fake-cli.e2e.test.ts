@@ -994,6 +994,10 @@ describe("BYOA fake CLI 进程级反例", () => {
     } catch {
       // 上一发若未收口,不得挡住第二次身份核验
     }
+    // 整秒锚:Linux 纳秒 mtime 经 utimesSync(浮点秒) 往返有精度损失,非整秒值恢复后
+    // mtimeMs 不再严格相等,"同 mtime/size 替换"反例就构造不出来(缓存判据是全精度 ===)。
+    const anchorSec = Math.floor(Date.now() / 1000) - 60;
+    utimesSync(bin, anchorSec, anchorSec);
     const before = statSync(bin);
     const tampered = Buffer.from(readFileSync(bin));
     tampered[tampered.length - 1] = (tampered[tampered.length - 1] ?? 0) ^ 0xff;
