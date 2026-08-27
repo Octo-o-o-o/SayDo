@@ -3101,3 +3101,20 @@ Production 部署绑定 main/`49c1d1f`;线上四页与 link 站实测 200。证�
 - 终态:本地仅 main 一个分支、主树一个 worktree;origin/main 与本地同步,公开快照随最终收口推出。
 
 **owner 待决第 9 项**(追加):publication manifest 的 mode 判据 fs stat vs git tracked mode。
+
+### R114 追补二:第三轮公开 CI 红与「推送前 CI 假绿」事故复盘(2026-08-27 深夜)
+
+第三轮快照(源 `ef47166`)公开 CI 仍红:metadata 门过(mode 修复生效)后 fail-fast 揭开第三层——
+`test-mobile-release-contract` 2 failed。根因:`6cb461c` 当日把 CLI 版本锚动态化时**漏改了同脚本
+第 417 行 includesAll 列表里的第二处钉死 `"0.1.0-rc.4"`;月审修复批(938ee8a)把 version-matrix
+刷新到 rc.12 后该钉死暴露(「full entry after redact is zero」为同因连带)。修复:钉死串改为
+动态 `cliVersion`,完成 6cb461c 未竟的动态化;复跑 227 passed、exit 0(紧跟取码)。
+
+**必须如实记录的事故**:这个红本应在推送前被拦下——推送前的「全量 CI 终验」输出存档里赫然有
+`[fail] mobile release contract 2 failed`,但当时命令形态是 `just ci 2>&1 | tail -3` 后台跑,
+任务通知的 exit 0 是 **tail 的退出码**;推送决策点的 `grep …绿字样… | tail -2 && git push`
+同样被 tail 洗成恒零。这是全局纪律「判定用退出码必须紧跟命令本身取」的第 5 次踩中,且两道
+防线(终验+推送闸)被同一管道模式同时击穿,带病推送直接后果 = 公开仓多一轮红。本追补后
+所有判定性命令一律落文件后 `echo $?` 紧跟取码,不再经管道。公开 CI 三轮红的完整洋葱:
+L-1 mtime 精度(343f81c 修)→ manifest mode 384(ef47166 修)→ mobile contract 钉死(本批修),
+三层均为真缺陷,公开 CI 的推送后确认环节全部抓对。

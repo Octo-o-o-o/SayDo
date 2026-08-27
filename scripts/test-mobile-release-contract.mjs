@@ -414,7 +414,8 @@ const matrix = read("docs/release/version-matrix.md");
 includesAll(
   matrix,
   [
-    "0.1.0-rc.4",
+    // 6cb461c 动态化了上方 CLI 版本锚,漏了本列表的第二处钉死;月度审计改 matrix 到 rc.12 后暴露(2026-08-27)
+    cliVersion,
     "0.1.0",
     "No-Go",
     "无当前设备证据",
