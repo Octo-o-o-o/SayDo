@@ -1721,7 +1721,7 @@
     {
       "path": "docs/review/2026-08-14-saydo-phase-gap-analysis.md",
       "kind": "file",
-      "mode": 384,
+      "mode": 420,
       "bytes": 14594,
       "sha256": "00cffbfa4a8ed59810f375ee6d51ff076041a432d6c2d42bf12d6301500b61ce"
     },
@@ -3290,8 +3290,8 @@
       "path": "history/PROCESS-JOURNAL.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 381906,
-      "sha256": "ba929bd26b714860b64e74872139ec4e54a0e108dc836d9653ce0bac20c3a2bd"
+      "bytes": 385457,
+      "sha256": "3d581a99169a21135e6a9b4e9426cded89e4219b1bbfd3f5c14cc9e414de9c9c"
     },
     {
       "path": "history/README.md",
@@ -3303,14 +3303,14 @@
     {
       "path": "history/reviews/2026-08-14-analysis-fact-review.md",
       "kind": "file",
-      "mode": 384,
+      "mode": 420,
       "bytes": 3684,
       "sha256": "0a30d44a94b3d0869868593d3837d0d9305ed92ebd9823518a8a969a51572414"
     },
     {
       "path": "history/reviews/2026-08-14-analysis-strategy-review.md",
       "kind": "file",
-      "mode": 384,
+      "mode": 420,
       "bytes": 7882,
       "sha256": "e5ba302350262f90f01a44c4ed0743da27d9774a0157ba197ee1d1e9a97eb62b"
     },

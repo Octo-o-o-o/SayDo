@@ -3056,3 +3056,48 @@ R112「R110 readback」错引改为文档路径;语料 README review/ 措辞修�
 6. IMPL-15 §3.5 第 2/3 条(方案 §8 残余/ADR-002 状态更正)书面确认或明示豁免。
 7. 四场真人验收基线:发布锁已两度前移,四场基线重声明仍待 owner(自 07-31 悬置)。
 8. Windows daemon 单测 92 failed 债(9f0e735 开门实测)的投入排期。
+
+### R114 追补:推送后闭环、产线验收与清理(2026-08-27 晚)
+
+**公开仓 CI 转绿的完整修复链**(两轮迭代,均由推送后确认环节抓出):
+
+1. 第一轮快照(`0648334`,源 `49c1d1f`)node job 红:`binary-identity-force-rehash` 5 条在
+   Linux 全红,断言差形如 `…679.265 != …679.2654`——ext4 纳秒 mtime 经 `utimesSync(浮点秒)`
+   往返丢精度,「同 mtime/size 替换」反例构造不出来(缓存判据是全精度 `===`);macOS APFS 行为
+   不同故本地恒绿。修复 `343f81c`:四处构造点先把时间戳锚定整秒(整秒的浮点毫秒表示精确,
+   utimes 往返跨平台无损),产品代码零改动;本地 77 passed。
+2. 第二轮快照(`9df1743`,源 `b388165`)pnpm test **通过**(整秒锚生效),红移到
+   `--check-bundle`:「公开发布树内容漂移:phase-gap-analysis.md」——本地 3 个 2026-08-14
+   时代文件权限为 600,manifest 从 fs stat 记录 `mode:384`,公开 CI checkout 出 644 必不匹配
+   (git 不保存 644/600 之别,均为 100644;600 为本轮会话某操作新引入,上次绿快照的 manifest
+   中 384 条目为 0)。修复:三文件 chmod 644 + manifest 重生成,本地 `--check`/`--check-bundle`
+   双绿。**工具缺陷登记**:manifest 的 mode 判据取 fs stat 而非 git tracked mode,任何本地
+   权限抖动都会让公开 CI 红——是否改为 git mode 口径归 owner 决策(owner 待决第 9 项)。
+   本段教训:`gh run watch | tail` 的退出码是 tail 的——判 CI 结论必须
+   `gh run list` 的 conclusion 与 `--log-failed` 双认,又一次验证了「退出码紧跟命令取」纪律。
+
+**tgz 产线验收**(owner 裁决以此替代 DMG——项目无 dmg 产线,docs/07 决策延后;全部实跑):
+
+- `pnpm --filter @saydo/cli verify:distribution` exit 0:真安装入口、生命周期
+  (prepareShutdown=restart_pending → resumed=settled_review)、进程树零孤儿(tracked=9 全退出)。
+- `node scripts/verify-release-url.mjs <rc.12 固定 URL> exec|global` 双模式 exit 0:
+  已发布 rc.12 从固定 URL 安装→启动→访问→受保护摘要→attach→优雅停止→零孤儿全过。
+- `build-release-artifacts --check` 在月审后 HEAD 不适用(产物绑定 sourceRevision,合同设计),
+  以上两项为本轮验收面。过程中发现并修复本机 node_modules 漂移:better-sqlite3 实装 13.0.1
+  ≠ lockfile 13.0.3(THIRD_PARTY_NOTICES --check 因此红);`pnpm install --frozen-lockfile`
+  对齐后 NOTICES 检查转绿。lockfile 与 tracked NOTICES 本身自始正确,未改动。
+
+**官网重部署**:双站 preview(锚点实测四页 200/rc.12 计数齐/中英 available 文案)→ production,
+Production 部署绑定 main/`49c1d1f`;线上四页与 link 站实测 200。证据
+`e2e/evidence/2026-08-27-monthly-audit-site-deploy.md`。
+
+**清理**(用户指令「清理本地 worktree 和分支」,全部完成):
+
+- `6624299` 冻结快照按 R113「不可恢复」警告先打归档 tag `archive/week-audit-evidence-20260823`
+  (已推 origin)再删分支——冻结点永久可达,分支清理;
+- 删 `codex/week-audit-faststart-20260822`(cherry=0)与 `claude/trusting-panini-f5d41b`(cherry=0);
+- 移除 `.claude/worktrees/trusting-panini-f5d41b`(clean);删陈旧远端分支
+  `origin/feature/focus-contract-v0`(ahead=0,L9-C4)。
+- 终态:本地仅 main 一个分支、主树一个 worktree;origin/main 与本地同步,公开快照随最终收口推出。
+
+**owner 待决第 9 项**(追加):publication manifest 的 mode 判据 fs stat vs git tracked mode。
