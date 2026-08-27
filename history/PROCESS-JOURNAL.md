@@ -2940,7 +2940,37 @@ owner 要求在新会话继续 600 条提问的三轮静态 dry run，只做 A �
 `scripts/public-text-redaction.mjs`(main 版 83 行,已过 rc.10–rc.12 发布验证)。
 那是未被采用的平行实现,按 owner 2026-08-27 裁决不入库。
 
-### 未做
-- **推送**待本节所在提交完成后统一执行(私有归档 + 公开快照)。
-- 未动 `.claude/worktrees/trusting-panini-f5d41b` —— L-1(BYOA 多 spawn 不重验身份)
-  的独立会话正在其中施工。
+### 收尾(2026-08-27 回填)
+
+**推送**(owner 明确要求):
+
+- 私有归档 `origin` = `SayDo-archive`:`c383bc0..4866330`,8 个提交,`origin/main` 已同步;
+- 公开快照 `public` = `SayDo`:经 `scripts/publish-public-snapshot.sh` 推出
+  `f49b21a..db3962a`,提交信息绑定内部 SHA(`snapshot: 2026-08-27 from internal 4866330…`);
+  脚本内隐私探针 `hits=0`、公开树按 owner 裁决剔除 `artifacts/release/copyright`。
+
+**清理**:worktree **24 → 3**、本地分支 **21 → 4**。
+
+保留的 3 个 worktree = 主工作区 `~/WorkSpace/SayDo`、main 的 checkout
+(`SayDo-rc4-runtime-final-reimplementation-20260824`)、
+`.claude/worktrees/trusting-panini-f5d41b`(L-1 独立会话正在其中施工,未动)。
+
+保留的 4 个分支中,`codex/week-audit-evidence-20260823` **有 1 个未并入提交**且**刻意不删**:
+它是 2026-08-23 周审计账本的冻结快照(49,684 行),main 上虽有更新版本,但这个冻结点
+只存在于该分支,删了不可恢复。是否归档由 owner 定。
+
+删除的分支里有两个 `git branch -d` 拒绝、经核验后 `-D` 的:
+`codex/rc4-final-integration-20260824` 与 `codex/runtime-p1-remediation` ——
+两者 `git cherry main <branch>` 均为 0(内容已以 patch 等价形式在 main),
+只是提交对象不是 main 的祖先,故 `-d` 的祖先判据不通过。
+另 `codex/eol-check` 自称 `temporary`,其两处内容(`.gitattributes` 的 `text=auto eol=lf`、
+`packages/cli/scripts/build.mjs` 的 `.gitattributes` 条目)main 均已有,冗余删除。
+
+**未处置**(如实登记):
+
+- 主工作区 `~/WorkSpace/SayDo` 仍停在 `codex/week-audit-faststart-20260822`、**dirty 76 项**。
+  其中不在 main 的内容已由本轮保全入库;工作树本身未动(切分支会与已入库的同名文件冲突,
+  且它是另一条在途线的现场)。
+- `~/WorkSpace/SayDo-rc4-review-clean-v3.zkC5HW`:RC4 privacy 复审用的**独立 clone**
+  (505 MB,分支 `candidate` @ `4d4a442`,upstream `file:///tmp/...` 已消失),
+  不属本仓 worktree,未删。
