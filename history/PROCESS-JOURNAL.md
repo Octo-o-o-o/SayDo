@@ -3473,3 +3473,11 @@ unit economics 决定扩张;持续承担账号/API、CI/设备、证据刷新、
 - **复审预算终态**:产品修复 3/3(`01ab5cf`、`3630edf`、`560f5ff`),零上下文复审 3/3(223 RED 7A → 224 RED 2A → 225 RED 2A);最终候选 `560f5ff` 上的第 3 次修复(A-01 残留的 `realpath` 依赖 + N-02 脱敏)未再派复审,证据为自测 + Mac/Windows 真实回归 + 完整 `just ci`,已在对账报告 §6.3 如实声明。
 - **官网正式部署**(推送前执行,绑定 `560f5ff`):saydo Production deployment `647fa1c8-9b73-429b-9a89-7a51c6438248`,saydo-link Production `2e973545-4fa0-47f4-a535-a9527ba3c658`(内容未变、同 commit 重绑)。线上四页 200、`/install.sh` `/install.ps1` 200 且与仓内 bytes 全等、两个 provenance marker 各 1 处、`link.saydo.octoooo.com` 200、镜像 tgz 200;macOS 从线上域名 `curl \| sh` 安装成功;Windows 从线上域名 `irm \| iex` 结果见 `e2e/evidence/2026-09-02-crosscheck-site-deploy.md`。
 - **待推送**:origin(私有归档)main、tag `archive/pg-01a-c1-red-20260831`;随后 `scripts/publish-public-snapshot.sh public "" <main SHA>` 推公开快照;公开 CI 结论记于追补二。私有归档 CI 因账户付款问题不会运行(owner 项)。
+
+### R127 追补二:推送、公开快照与公开 CI 结论(2026-09-02)
+
+- main `merge --ff-only` 到收口提交 `6c6b8c4`(断言 tip 全等),分支 `codex/monthly-crosscheck-20260902` 删除;`git push origin main`(`280b0cf..6c6b8c4`)与 tag `archive/pg-01a-c1-red-20260831` 均已推私有归档。
+- `bash scripts/publish-public-snapshot.sh public "" 6c6b8c4…`:隐私探针 `scanned=1964 hits=0`,剔除 `artifacts/release/copyright`,公开快照 `21c173bd05cf0e34e9363dedd9118ea770f5df33` → `public/main`(前值 `83e0aca`)。
+- 公开 CI run `33579894235`(快照 `21c173b`):`gh run watch --exit-status` exit 0,结论 **success**,8 个 job 全绿(node / python / console fresh-origin e2e / android shell / ios shell / distribution ubuntu-24.04、macos-15、windows-2022)——node job 已含新挂入的 `test-install-scripts.mjs`。
+- 公开仓两条 2026-08-22 的旧远端分支 `feat/windows-alignment`、`fix/ownership-anchor-and-cmd-escape`(相对 `public/main` 均 0 个未合并提交、抽查文件在 main 全部存在)已删除;本地终态:仅 main 一个 worktree / 一个分支,`origin/main` = 本地 main。
+- 本追补二随 `node scripts/week-audit.mjs --write` 的账本重生成一起提交并再推一次(第二次公开快照);该次快照的 CI 结论由本会话最终汇报给 owner,不再回填第三次。
