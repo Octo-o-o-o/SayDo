@@ -275,7 +275,7 @@ export function SupplyPicker({
           disabled={disabled}
           title="API 直连"
           badge="按量计费"
-          desc="填 baseURL + key,用任意兼容 OpenAI 协议的端点"
+          desc="填 baseURL + key,用已配置的 OpenAI 兼容对话端点(不表示工具或 Structured Outputs 等价)"
           onClick={() =>
             onChange(
               value.kind === "api" ? value : { kind: "api", baseURL: "", apiKey: "", model: "" }

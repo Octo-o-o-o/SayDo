@@ -1,5 +1,5 @@
 # SayDo 本机开发配置(owner dev 机)—— 整文件复制为 ~/.saydo/config.toml(勿与 saydo.config.example.toml 拼接,会重复声明 [models] 表)
-# 设计依据:docs/07 D18"本机开发 profile"。对话档走 API(秒级工具环);沉思 / 廉价 / 评估走已接线 CLI(订阅零 key)。
+# 设计依据:docs/07 D18"本机开发 profile"。对话档走 API;沉思 / 廉价 / 评估走已接线 CLI(登录态零 key,不推断免费)。
 #
 # 【重要】 dev 双开关:本文件 profile="dev" + 环境变量 SAYDO_DEV=1,缺一按 default 生效并给提示。
 
@@ -16,10 +16,10 @@ evaluator_isolation_ack   = true
 
 [models.dev]
 # Tier 1 执行 agent:dev 机缺省 = Cursor CLI 订阅态(2026-07-23 实测通过,research/spikes/cursor-cli-tier1/)——
-#   零 API key、走你的 Cursor 订阅额度;审批门经 worktree .cursor/hooks.json 的 beforeShellExecution 钩子(deny 可靠拦截)。
+#   零 API key、走本机 Cursor CLI 登录态(费用以服务商为准);审批门经 worktree .cursor/hooks.json 的 beforeShellExecution 钩子(deny 可靠拦截)。
 #   claude_code 已接生产主流程、最终 live conformance 收口中;codex 尚未实现并会 fail-closed 拒起,对话不受影响。
 agent     = "cursor"
-transport = "cli"                       # cli=订阅态零 key(缺省) | sdk=CURSOR_API_KEY(后续要更低延迟/更强流式时切)
+transport = "cli"                       # cli=登录态零 key(缺省,不推断免费) | sdk=CURSOR_API_KEY
 model     = "claude-fable-5-thinking-max"
 
 # 选择 cursor 时两键齐备才启用执行器;不接受 `~`(必须是锁定副本绝对路径 versions/<ver>/cursor-agent)。

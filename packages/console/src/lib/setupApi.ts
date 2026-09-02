@@ -430,7 +430,7 @@ export function parseHealth(raw: unknown): HealthSnapshot {
 }
 
 export const DIALOG_CLI_UNSUPPORTED_MESSAGE =
-  "对话可用 CLI 慢速模式:每轮约 15-25 秒,支持记点和提议;配 API key 可切到秒级实时模式";
+  "对话可用 CLI 慢速模式:每轮约 15-25 秒,支持记点和提议;配 API key 可走对话 API,时延以服务商为准";
 
 export function isDialogCliProvider(provider: string | undefined): boolean {
   return provider !== undefined && isWiredCliProvider(provider);
@@ -1041,7 +1041,7 @@ export interface CliProbeFailureCopy {
  *
  * 2026-08-12 实测教训:向导对任何失败都说"CLI 检测失败(Failed to fetch)——可以直接用 API
  * 直连配置",而当时失败的真实原因是页面连不上 daemon(旧 vite 端口的僵尸页)。本机三家 CLI
- * 全部已登录、可零成本用,用户却被这句话引着去填 key 花钱。所以:**连不上/凭证失效/正在启动
+ * 全部已登录、费用仍以服务商为准,用户却被这句话引着去填 key 花钱。所以:**连不上/凭证失效/正在启动
  * 一律不是 CLI 的问题,此时不得建议 API 直连**——那不解决问题,只是把人推向更贵的路。
  */
 export function cliProbeFailureCopy(err: unknown): CliProbeFailureCopy {
@@ -1071,7 +1071,7 @@ export type CliCapability = {
   enumerable: boolean;
   models: CliModelOption[];
   note?: string;
-  /** 探测采集的计费来源;只有 subscription 才允许「订阅内零成本」 */
+  /** 探测采集的计费来源;subscription 只表示探测结果,不把登录写成免费 */
   billing?: { provenance: CliCostProvenance; detail?: string };
 };
 

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "task": "project-gap-closure",
+  "control_dir": "<worktree>/docs/plan/project-gap-closure",
+  "policy_file": "policy.frozen.json",
+  "policy_revision": "2.4",
+  "policy_sha256": "6368bc583926ffec4f038bb5c5ec4528957b62797ebe2822396d638868e136de",
+  "cycle_state_file": "../project-gap-closure-cycle.json"
+}

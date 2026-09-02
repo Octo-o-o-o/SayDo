@@ -54,3 +54,6 @@ saydo-tier1-executor-*
 
 # OpenClaw 会话续跑临时物(非项目内容)
 .omo/
+
+# wrangler 本地状态/日志(R2 本地模拟、tmp)
+.wrangler/

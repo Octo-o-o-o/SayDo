@@ -756,7 +756,7 @@ export function PurposeZones({
             ? supply.kind === "cli"
               ? "CLI 慢速 · 每轮约 15-25 秒"
               : supply.kind === "api"
-                ? "API 秒回"
+                ? "API · 时延以服务商和网络为准"
                 : null
             : null;
         const isMixed = mixed.has(slot);
@@ -959,7 +959,7 @@ export function SetupWizard({
   const [elapsedSec, setElapsedSec] = useState(0);
   /** 失败发生在哪一步(失败位置本身就是排查信息,不能一律涂红) */
   const [failedAt, setFailedAt] = useState<SetupProgressStep["key"] | undefined>(undefined);
-  /** 方案里有 CLI 槽才提"每槽 15-25 秒";纯 API 自检是秒级,照抄这句就成了吓唬人 */
+  /** 方案里有 CLI 槽才提"每槽约 15-25 秒";纯 API 自检不要写成固定秒数 */
   const planUsesCli = slotSupplies
     ? Object.values(slotSupplies).some((supply) => supply.kind === "cli")
     : false;

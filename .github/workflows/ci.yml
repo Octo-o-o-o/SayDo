@@ -49,6 +49,8 @@ jobs:
           node scripts/test-pairing-url-corpus.mjs
           node scripts/test-mobile-installers.mjs
           node scripts/test-mobile-release-contract.mjs
+      - name: quick-start install script self-test
+        run: node scripts/test-install-scripts.mjs
 
   console-e2e:
     name: console fresh-origin e2e

@@ -3118,3 +3118,358 @@ Production 部署绑定 main/`49c1d1f`;线上四页与 link 站实测 200。证�
 所有判定性命令一律落文件后 `echo $?` 紧跟取码,不再经管道。公开 CI 三轮红的完整洋葱:
 L-1 mtime 精度(343f81c 修)→ manifest mode 384(ef47166 修)→ mobile contract 钉死(本批修),
 三层均为真缺陷,公开 CI 的推送后确认环节全部抓对。
+
+## R115 · 全项目缺口盘点与五线治理计划(2026-08-28)
+
+**输入与边界**:owner 要求从开发工程质量、初级/资深用户完整使用、AI 服务的订阅与 API、
+工具覆盖、既有模拟提问五个角度重新审视当前项目,只制定计划并做交叉 review,本轮明确不做实际
+测试。工作基线为 `280b0cfa1594a8963bed2a4b730734915a3762b0`,在
+`codex/project-gap-plans-20260828` 分支完成;未 commit、未 push。
+
+**行动**:
+
+1. 逐项读取当前唯一排产源、canonical、活跃源码、发布与站点树、600 条主语料及其 v8 评审,
+   并用当前文件重新统计语料组成,没有把旧评审或 README 数字当成当前事实。
+2. 新建非排产文档 `docs/plan/2026-08-28-project-gap-closure-program.md`,并在
+   `docs/plan/README.md` 登记其边界:它只维护缺口、依赖、验收形状与 owner 决策,具体施工顺序仍
+   只回写 `IMPLEMENTATION-PLAN-2.md`。
+3. 计划登记 9 个 A 级与 17 个 B 级缺口,拆为工程 E0-E9、用户 U0-U5、AI S0-S6、
+   工具 T0-T6、语料 Q0-Q6 五线,统一到 Wave 0-Wave 5;下一 RC 前另有 E9 blocking batch。
+   语料增量不是单纯加数量:48 个 unique journey seed、12 个长会话、6 对跨 session、
+   17 类失败各 3 个实例,并前置 product-state context、oracle、reference journey。
+4. 三个独立 subagent 先做工程、用户/语料、AI/工具生态静态审计,再对同一版草案交叉复审。
+   工程复审为 5A/8B/1C,用户/语料为 0A/6B/3C,生态为 3A/5B/2C;全部 finding 已逐条
+   disposition 并吸收,路线选择 D1、D4-D10 上浮 owner,未代拍板。
+5. 另存对抗评审输入 `prompts/206-project-gap-program-adversarial-review.md`,以只读
+   `codex exec -s read-only -C <repo> -m gpt-5.6-sol
+   -c model_reasoning_effort=max --json -o <report> '<prompt>' < /dev/null > <log> 2>&1`
+   执行。事件日志包含 `turn.completed`,进程 exit 0;报告对评审时快照给出 `[fail] 5A/6B/1C`。
+   5A、6B、1C 均已吸收进总案,但本轮没有再启动第二次独立 Codex 复审,因此不把回修后计划
+   宣称为外部 `[pass]`。
+
+**评审产物**:
+
+- prompt:3,683 bytes, SHA-256
+  `694e337374cdbb0cb93898218249f17ac690eecc409e6e21496616081c3bb79b`;
+- report:14,083 bytes, SHA-256
+  `6ad8def5d793f6395fa9a7ee0ee4bbf34bb2701f076de39c3a91718f40b3b343`;
+- log:`logs/206-project-gap-program-adversarial-review.jsonl`,1,520,024 bytes, SHA-256
+  `01364340db96a4a43e6ca73be74ad4f91380d982738b66a907591a596028c0f6`;
+- 回修后总案:710 行、68,904 bytes, SHA-256
+  `71712b280ecf19bbd6cee2ca7b0f21aea0f5d950c8454e2379288e8380ab7785`。
+
+**静态收口初检**(journal 写入前):`bash scripts/check-emoji.sh` 输出
+`[ok] emoji gate: clean`,exit 0;`node scripts/check-doc-links.mjs` 输出
+`[ok] active document links: files=115 broken=0`,exit 0;`git diff --check` 无输出,exit 0。
+journal 写入后第一次终检得到相同输出与三个 exit 0。
+
+**结论**:当前主要风险不是再补一张 provider/tool 名单,而是产品承诺、运行时能力、证据成熟度
+三条曲线没有同步。先关闭 9 个 A 级,再扩展普通用户、AI/connector 与批量语料;否则覆盖面增加
+会同时扩大误述、凭据、资费、审计与恢复风险。按 owner 的本轮边界,未运行 lint、typecheck、
+unit、contract、build、e2e、真实账号、真实设备或真人验收,也没有对外发布或改变生产状态。
+
+## R116 · 缺口总案完整对应方案、回报与生命周期成本复审(2026-08-28)
+
+**输入与边界**:owner 要求重新完整阅读 R115 的当前计划,为全部缺口补出可执行对应方案,再次
+交叉 review 并更新文档,同时回答完整对应后的回报、补足内容、非开发成本和方案是否最合理。
+继续使用基线 `280b0cfa1594a8963bed2a4b730734915a3762b0` 与分支
+`codex/project-gap-plans-20260828`;仍是静态方案工作,未运行产品测试,未 commit、未 push。
+
+**行动与产出**:
+
+1. 重读 710 行 v1 总案、唯一排产源 `IMPLEMENTATION-PLAN-2.md`、AI 供给 owner decisions/
+   专题方案和 release SoT,在同一总案扩为 v2,没有另建竞争计划。新增第 14–17 节:九个 A 与
+   十七个 B 的逐项处置、SP0–SP7 DAG/唯一主责映射、PLAN-2 原子导入事务、回报/价值测量、
+   生命周期成本/兼容/支持/Ops0 和合理性/退出边界。
+2. 把“全做”收窄为“每项有修复、禁用、conditional 或 deferred 的唯一处置”。当前最小价值面
+   只保留 desktop coding + 一个合法 inference protocol + 一个已证明 execution driver;远程业务
+   payload 全部关闭,Web/MCP/移动/Team/A2A 受 owner decision 与真实需求触发。旧 48 journey 固定
+   任务量由第二轮 review 改成 12→24→48 分阶段预算。
+3. 将 owner 决策扩为 D11–D19:组合容量、live evidence 预算、逐 store retention、primary
+   ICP/JTBD、真人晋级、价值/portfolio 预算、导入唯一排产源、remote trust ADR、支持与事故。
+   D1–D19 均未代签;`IMPLEMENTATION-PLAN-2.md` 未经 D17 不改,本总案仍无开工权。
+4. 三路独立 subagent 对补全版只读复审:工程 3A/11B/2C,用户与语料 0A/7B/2C,AI 与工具生态
+   0A/8B/2C。工程 A 项分别由 PLAN-2 导入事务、闭合 DAG/唯一主责和两阶段 ProbeGrant 处置;
+   其余 findings 转为文档纠错、future acceptance/contract 或 owner decision/deferred。吸收不表示
+   决策已签或功能已实现。
+5. 独立对抗 review 使用 `prompts/207-project-gap-solution-value-adversarial-review.md`。第一次
+   fresh `codex exec` 在 20 分钟上限 exit 124、无 report,保留 timeout 日志且没有 resume;缩小
+   prompt 后第二个 fresh read-only session 以 `gpt-5.6-sol` + `max` 运行,exit 0 且事件流含
+   `turn.completed`。报告对 pre-fix 快照裁决 `[fail] 4A/9B/1C`;四个 A 和其余 B/C 已逐项
+   回修或上浮决策,但未再跑独立复评,不宣称外部 `[pass]`。
+
+**本轮评审产物**:
+
+- 更新后总案:1,220 行、120,972 bytes,SHA-256
+  `4f589ab9816065c09ade24faecccd9b55636b094c4f1ec4829877716209389c0`;
+- prompt:51 行、3,621 bytes,SHA-256
+  `b801b048ce6a474806401f818d8b9acb79c77998aec887200343e751d0e47ec9`;
+- report:83 行、13,855 bytes,SHA-256
+  `b7ae05929e68a93878cdef5e38efa6e03a7b423d4e9239f0accff9348b293325`;
+- 完成日志:`logs/207-project-gap-solution-value-adversarial-review.jsonl`,61 行、482,411 bytes,
+  SHA-256 `a17c57ea0cdc3f49f9181e04238d7d218bf6f871cbe97e71bd135014d69072b6`;
+- timeout 日志:`logs/207-project-gap-solution-value-adversarial-review-attempt1-timeout.jsonl`,
+  123 行、758,981 bytes,SHA-256
+  `9e4611f455f4bc6d0e5d6796c020d96ec0bec1bf195a05927a8ca4f2312f8ff9`。
+
+**静态收口初检**(本条写入前):`bash scripts/check-emoji.sh` 输出
+`[ok] emoji gate: clean`,exit 0;`node scripts/check-doc-links.mjs` 输出
+`[ok] active document links: files=115 broken=0`,exit 0;`git diff --check` 无输出,exit 0。
+
+**journal 写入后复核**:上述三条命令再次分别得到相同输出,exit 均为 0;随后只为记录该真实
+结果补入本句,不改方案、prompt、report 或日志。
+
+**结论**:完整对应的工程回报是把“存在代码/文档”变成可审计的支持合同,把安全、数据、费用、
+发布和恢复风险置于扩张前;产品回报是先保护资深开发者主线,再用真人和 unit economics 决定是否
+扩非代码用户。除开发外还持续承担账号/API、CI/签名设备、证据刷新、存储/备份、隐私合规、
+兼容/EOL、支持/事故、语料/研究和 owner 注意力成本。硬风险的“修复或关闭”是当前必要解;
+desktop coding 最小组合是现证据下最可逆方案,但新 ICP、第二纵切片和商业最优仍为 unknown。
+
+## R117 · 缺口总案第三轮独立复审与回修(2026-08-28)
+
+**输入与边界**:owner 要求对 R116 产出的 v2 总案做完整 review,找出错误、疏漏、不足与过度
+设计并直接修订文档。本轮由独立 Claude 会话执行,与 R115/R116 的撰写与评审会话均零共享上下文;
+仍是静态文档工作,分支 `codex/project-gap-plans-20260828`,未运行产品测试、未 commit、未 push。
+
+**核验**:三路并行 subagent 对总案 G-A1–G-A9 全部 36 条 file:line 证据锚、G-B1–G-B17 证据锚
+与 PLAN-2/owner-decisions/AI 专题引用共 59 条逐条只读复核:对总案正文引用 0 条方向性失实,
+A 级 36 条全部成立。G-A1 计数在 rg 出现次数外另做逐对象复核(986 个含 source_kind 对象中
+752 含 USER-PROVIDED、234 含 authorized-project-root,互斥且合计恰为 986,与 rg 计数一致);
+G-A3 的 0/0 预算占位追验到消费端:`ExpectationGroup.tsx:63`、`ProgressAlignCard.tsx:31` 直接
+渲染 `¥0`,违反 `components/ui.tsx:92` 自述的 unknown 禁 0 纪律,断言比原文更实。
+
+**回修**(全部直接落在总案,升版 v3 并新增第 19 节):
+
+1. 证据精度 7 处:G-A2 justfile 行段 7-26→7-31;G-A6 的 net/capToken、net/pairUrl 补
+   `packages/daemon/src/` 包前缀;G-A9 补“截断 80 字符仍为明文”;G-A3 补消费端 ¥0 渲染
+   证据;G-B7 摘除该锚不支持的“弱网”半句(覆盖索引 :76-82 无弱网字样);14.8 的 W5.4 链
+   补“先关 W5.4-b 复审”一步。
+2. 207-B9 残留:第二轮自称的叶项 crosswalk 实际只落了 gap 级映射,E3 观测/容量、U0、S0、
+   S3、S5、T0、Q1/Q2 前置均悬空——14.7 补五线叶项到 SP/Wave 唯一 crosswalk 表。
+3. E8 验收“mirror DTO 为零”(全局)与 G-B15“分批归零”矛盾,统一为分批口径。
+4. 决策前置死锁:D13、AI 决策 4/5、D12 原样前置整个 SP2 会卡死 fail-closed 收紧,精化为只
+   阻塞放开/retention/live 子项(14.6 前置列、14.7 澄清 2、Wave 1);Wave 0 problem interview
+   改并行启动,只阻塞 SP4/SP5,不阻塞 Wave 1 的 A 级关闭。
+5. 防过度设计:6.2 ledger 全字段只对 scoped 条目要求(inventory/deferred 最小字段);7.1 的
+   MCP 从“本轮缺省仅允许 builtin”(可误读为缺省启用)收紧为 D5/D9 未签前整体 deferred。
+
+按纪律,回修后的总案未再做外部独立复评;第 13/18 节历史 `[fail]` 记录未改写。
+
+**静态收口**(本条写入前):`bash scripts/check-emoji.sh` 输出 `[ok] emoji gate: clean`,
+exit 0;`node scripts/check-doc-links.mjs` 输出 `[ok] active document links: files=115 broken=0`,
+exit 0;`git diff --check` 无输出,exit 0。三个退出码均紧跟命令本身取得。总案由 1,220 行增至
+1,315 行;18 处修改逐条以 grep 程序化核验落盘(其中 1 处因 78 列折行需跨行确认,内容在)。
+
+**结论**:v2 的证据地基经全量核验成立,207 报告四个 A 的回修属实;本轮修复的是“自称已吸收
+但未完全落地”的叶项映射、一处验收口径矛盾、三处决策前置死锁和两处可误读的过度约束表述。
+总案仍是治理提案而非排产源,开工权仍取决于 D17 导入事务与 owner 对 D1–D19 的裁决。
+
+## R118 · 缺口总案按「标准完整、零过度」定位的第二批回修(2026-08-28)
+
+**输入与边界**:owner 在 R117 后追加定位——尽可能标准完整的对应,但不要过度设计与过度实施,
+要求按此再完善并完整检查。由 R117 同一独立会话执行;静态文档工作,未 commit、未 push。
+
+**回修**(总案 1,315→1,353 行,逐项记入其第 19 节):
+
+1. 完整性补齐四处:新增 1.4 编号体系导读(六套编号、两套决策体系的读法);C 级升格 C1–C4
+   并逐条登记归属包与触发线(3.3;14.7 注明不重复列表);第 10 节补裁决登记方式(沿用
+   ai-supply 签署惯例、载体二选一、decision digest 来源、未签=缺省动作生效);17.4 decision
+   card 价值测量字段复用 15.3 value-cost-ledger 定义,消除第二份字段清单漂移源。
+2. 防过度两处:11 节批模板分级——SP0–SP3 止损/修复批免第 11 项价值测量(风险关闭即价值,
+   由 A-ID disposition 与 gate receipt 证明),SP4 起扩张批 12 项全量、缺项不派;E4 出站策略
+   以声明边界为主,未选中企业网络形态(mTLS/企业 CA)标 unsupported、不为其实现支持。
+3. 编号统一:「owner 决策 2」「决策 7」两处统一为「AI 决策 N」前缀;grep 复核全文裸「决策 N」
+   引用零残留。
+
+**静态收口**(本条写入前):`bash scripts/check-emoji.sh` 输出 `[ok] emoji gate: clean`,
+exit 0;`node scripts/check-doc-links.mjs` 输出 `[ok] active document links: files=115 broken=0`,
+exit 0;`git diff --check` 无输出,exit 0。13 处修改逐条 grep 程序化核验落盘。
+
+**结论**:本批只补登记形状与读法(导读、C 级归属、签署方式、字段复用),不新增任何实施范围;
+两处防过度把修复批与出站策略从隐性全量要求收回到声明边界。总案维持治理提案定位,开工权仍在
+D17 导入事务与 owner 对 D1–D19 的裁决。
+
+## R119 · 缺口总案实施化、标准 Git 收敛与最终对抗复审(2026-08-28)
+
+**输入与边界**:owner 将 R118 的 v3 文档交给独立 Claude 评审后,要求吸收其“标准完整、零过度”
+意见,把方案收敛成可实施计划,说明 owner 所需动作、完整对应后的回报、补足面、开发外持续成本与
+合理性。本轮锁定分支 `codex/project-gap-plans-20260828`、HEAD
+`280b0cfa1594a8963bed2a4b730734915a3762b0`;只做静态代码/文档核验和方案修订,未运行产品测试、
+构建、真实账号、设备、connector、deploy 或网络访问,未修改 PLAN-2/HANDOFF,未 commit、push、merge。
+
+**实施化与复杂度回收**:
+
+1. 总案从 v3 扩成 v7 实施化层:PG-00 标准 Git 排产导入,其后唯一串行链为
+   `PG-01A→PG-01B→PG-02→PG-03→PG-04→PG-05→PG-06→owner-stop`;每批具备 depends_on、
+   close/stop-loss/deferred、scope roots、focused/full gate、evidence、回滚与 owner 决策前置。
+2. 删除 v4/v5 的自制 whole-dirty snapshot、WAL/lease/fencing、private ref/CAS、digest DAG、selector
+   与 abort 状态机;当前只使用普通 branch/worktree、`P→I→E`、explicit pathspec、commit/tree、
+   clean validation worktree、reflog/revert 和另行授权后的完整 E OID `merge --ff-only`。
+3. 新建 D17 import spec 与 owner decision 单,把 PG-00 限定为当前 feature branch 的本地 I/E 两提交;
+   不授权产品代码、push/merge/deploy、外部调用、付费或数据删除。D1–D16、D18、D19 继续按触发线
+   后置,当前不要求 owner 一次决定长期产品面。
+4. A 级批补足可执行分母:986 source Q0 report 使用 path+RFC6901 identity;remote 覆盖
+   main/recovery/voice/tier1×HTTP/WS/Unix×真实 via;G-A3 先 stop-loss、再由完整 action denominator
+   关闭;DB 覆盖 live sidecar、一致副本、WAL-only 与每次 production migration 恢复点;所有代码批
+   E 复用现役 week-audit writer,七项实际变化与 evidence 同一 E,clean E 再 `--check-bundle`。
+5. 防过度边界保持不变:不逐条预修 986 对象、不持久化 source_id、不建通用 route/report/receipt
+   平台;W5.3-tail 全量 deferred,SP2d 是批内规则,Q1/Q2 只在首个获批 SP4/SP5 slice 初始化;
+   connector、MCP/A2A、team、移动正式业务面与第二价值轨均等待对应决策/需求证据。
+
+**交叉评审与回修**:
+
+1. 两路互补 subagent 最终都裁决 `[pass]`:A/B/C open exact-set 为空,
+   `D17_SEMANTIC_FREEZE_READY=yes`,`OVERDESIGN_REGRESSION=no`。复杂度线曾发现 PG-01A 改动
+   corpus source-tree 后会使两份 dry-run 投影过期;最小回修只复用现役 rebuild,条件纳入两份既有
+   文档。Git 线程序化确认最终 semantic 版 I=7 paths、E=28 paths、无重复,以及 I/review/E/
+   amend/恢复/full-E-OID 链闭合。
+2. fresh Codex 215 因运行中 semantic bytes 被回修而终止,exit 143;216 持续有事件但达到 20 分钟
+   硬时限,exit 124;217 因发现 D17 错列不存在的 216 report 而停止,exit 1;218 因并行评审发现
+   dry-run projection scope 缺口而停止,exit 1。四次均无 `turn.completed`、无 report,只保留 ignored log。
+3. fresh Codex 219 正常 exit 0 且有 `turn.completed`,报告 `[fail] 2A/0B/0C`:dry-run writer 误放入
+   clean-I gate 可掩盖 committed I 旧投影;PG-03 I 误用 predecessor publication bundle。回修后 writer
+   只在 I 前运行,I gate 只读 committed bytes;PG-03 的 `--check-bundle` 只在通用 E writer 后运行;
+   同时明确 PG-02 回归排除 Q0 `--write`,不改绑历史 report identity。
+4. fresh Codex 220 正常 exit 0 且有 `turn.completed`,最终报告 `[pass]`:
+   `A_open_exact_set={}`,`B_open_exact_set={}`,`C_open_exact_set={}`,
+   `D17_SEMANTIC_FREEZE_READY=yes`,`D17_READY_AFTER_MECHANICAL_FINALIZATION=yes`,
+   `owner_now_must_provide_exact_set={}`,`OVERDESIGN_REGRESSION=no`。
+
+**最终语义证据**:
+
+- program:1,922 行、185,092 bytes,SHA-256
+  `fa6f8c8aeb7f3e7727bfd3f440a5e01dce0413a311dc44f35425f7038a3bc8f5`;
+- D17 semantic pre-finalization:282 行、17,889 bytes,SHA-256
+  `05c55b7a57e471a9faca2218208f13e1f3ba731bb206d1e0819656dd16975c90`;
+- 219 prompt/report/log:分别为 45 行/3,077 bytes/
+  `b01f6f4e5241ee3f5586cef2da755883e7e2e40902e6513841d3f1522406ae5d`,67 行/7,309 bytes/
+  `aaa149e0e68be690dcafe92a43a5453acf75e58d01ff1f5097e2bf2524be72cd`,182 行/1,056,754 bytes/
+  `84325137f5a883a2fe0d4b4a701ea93fa2f2f8b2f1e3a7d17e0276189c472ff3`;
+- 220 prompt/report/log:分别为 32 行/1,919 bytes/
+  `ecf0071b1c98fd89d76cb9dbb5ec000dea82c5c1a34c336c54925c89183f8d48`,38 行/3,497 bytes/
+  `000da7e7c2c6ddb693aea38fa7e2b4f6b9d5614573c865009db8e66281bb3516`,101 行/695,362 bytes/
+  `5cb4bd2ed640f8e50849d8f4df63c417e81729f22091a9eecbe094d317c03834`。
+
+**机械最终化前静态门**:`bash scripts/check-emoji.sh` 输出 `[ok] emoji gate: clean`,exit 0;
+`node scripts/check-doc-links.mjs` 输出 `[ok] active document links: files=117 broken=0`,exit 0;
+`git diff --check` 无输出,exit 0;28 个 untracked 文件逐项 no-index whitespace 检查均为预期 exit 1、
+零诊断,汇总 `bad=0`。
+
+**结论**:v7 semantic freeze 已通过两路 subagent 与 fresh Codex 220;下一步只允许按 D17 §2.2
+机械填 HANDOFF/PLAN-2 preimage、dirty exact-set、PG-00 future prompt/report path 和最终 spec SHA。
+机械锁定后 owner 的唯一当前动作是按最终 SHA 签 D17;这仍只授权 PG-00 本地文档导入,不自动开
+PG-01A。回报与成本结论不变:先把承诺、入口、数据、安全、费用和发布变成可证明合同,再用真人与
+unit economics 决定扩张;持续承担账号/API、CI/设备、证据刷新、存储/备份、兼容/EOL、隐私合规、
+支持/事故、语料研究和 owner 注意力成本,商业最优仍须真实用户/市场证据确认。
+
+## R120 · PG-01A 三文件恢复、本地代码候选与 C1 独立红灯(2026-08-31)
+
+**输入**：owner 先明确首批兼顾开发者与普通用户、完整语音非必需，随后回复“授权你继续对应”，批准上一轮列出的三文件有限恢复及本地 I/E 两提交；授权原文与边界维护于 owner 决策单第 6/7 节。不包含 push、merge、deploy、真实产品调用、付费或用户数据删除。
+
+**行动**：supervisor 按当前 Workflow V2.2 RECONCILE，保留旧 cycle 的 C0 RED/GREEN 和已用额度。新 cycle=owner-recovery-20260831-1；原 Grok grok-4.6/xhigh 实施线修复两条向导文案断言，并用现役 writer 重生成两份 dry-run 投影。完整核对其余 2038 个文件未变；source digest 和 48 项 authority input digest 不变。恢复的 8 项定向门均 exit 0。仅以 explicit 31 路径创建 I，再建立 clean I validation worktree，16 项定向门全部 exit 0；不预跑 full just ci。
+
+**产出**：本会话 git log 实测 I=`004b226db0b9a6fb0347d60dc790c97293d11635`、tree=`578f45078cde3e920912d108d1158dfefc7dc051`、parent=`79211f6fec5c6eb092419c1871e35d8eedc4e3e5`。fresh Codex gpt-5.6-sol/max 只读 C1 readback 报告为 `docs/review/2026-08-31-pg-01a-c1-impl-readback.fable.md`；manifest validator 实测 valid/stop_for_owner。唯一过程与门禁证据为 `e2e/evidence/project-gap-pg-01a.md`，唯一 P2 ledger 沿用原路径，delta 为空。
+
+**结论**：C1 判 RED（3 P1）：现役中英文绝对支持/隐私/费用/时延承诺残留；active-claim 门和组合反例漏检；Q0 的 reason/locator_check/required_field_check 可伪造后仍过门。16 项原有定向绿灯不能覆盖独立语义反例的红灯。当前 cycle repair=1、C1_review=1，停止等待 owner；未生成正式 Q0、未跑 full just ci/渲染、未创建 E，也未合并或部署。不将本批宣称为所有本地/云端、订阅/API 用户已经能快速开始。
+
+**原始日志**：均位于 ignored `logs/pg01a-recovery-20260831.fWhCEM/`：`repair-1.log` 266376 bytes / SHA-256 `681fb8ed0f0a89fff200a0be1fcf5335fda7a88f9f8fa84590a059180f5aba42`；`focused-on-i.log` 23140 bytes / `afde1697194a55978b5064f5c4c6a47ecba3a6733bda33af5396a2047dd06264`；`c1-review-1.log` 1055804 bytes / `c6157f00f01b8bf4d9fdb1734920873882900f5f610870fc400079ec2b803b5b`。reviewer 原始报告 13423 bytes / `c23c595d0a75ca8a91134ffe7b109f23b2b5651baa35a3eae8ea0173de64f615`，归档副本增加来源元数据后为 13834 bytes / `bba40db85f0c82c2bd2e2ca1649273ebc47e88e3daa345bd2c21a4756cf103f9`。
+
+## R121 · PG-01A C1 再次修复、Q0 关闭与公开承诺残留(2026-08-31)
+
+**输入**：owner 回复“授权你继续完整对应”，承接上一轮针对 B1/B2/B3 再作一次有限修复与独立复审的具体问题；原话与权限见 owner 决策单第 8 节。cycle=owner-recovery-20260831-2，仍不授权 push、合并晋升、部署、真实产品服务调用、付费或用户数据删除。
+
+**行动**：supervisor 先固化验收和 36 路径 recovery exact-set，原 Grok grok-4.6/xhigh 会话作一次修复，实际改 12 路径；其余 2008 项完整路径/权限/bytes 未变。source 与 48 authority input digest 不变。独立定向门通过后，将旧 I 固化于 codex/pg-01a-c1-red-20260831，并在原本地 I/E 权限内 amend 未发布 I；P 不变。新 clean I 的 16 项 focused 全部 exit 0。复审派发前发现机器策略已更新为 2.3，旧合同校验失败后同步唯一 contract 块并重新校验通过；不扩充已钉住的一轮授权。
+
+**产出**：真实 git log 为 I=`2b5517d322f062297d25806b02c4106e2ecc60e8`、tree=`c5cae2f04ee907328b672e3099c865f1c3f83552`、parent=`79211f6fec5c6eb092419c1871e35d8eedc4e3e5`；P..I 共 33 路径。全新零上下文 Codex gpt-5.6-sol/max 的 ordinal=2 报告为 `docs/review/2026-08-31-pg-01a-c1-rereview-2.fable.md`，RED；旧 RED 报告保留。唯一 evidence 与 P2 ledger 不另建副本。
+
+**结论**：独立 readback 关闭 B3：Q0 的八字段完整性、一致性和各自反例已通过；B1/B2 仍 P1，release 与官网 FAQ 残留设备内隐私/任一 CLI 可用总括承诺，checker 漏这些实际变体。当前 policy + 核验后 cycle-state 的 manifest validator exit 0、valid/stop_for_owner；本 cycle repair=1/rereview=1 已用完，不自动加轮。未跑 full just ci/渲染、未生成正式 Q0、未创建 E 或晋升。不能将 16 项现有 focused 绿灯当成语义通过，更不能声明所有用户/AI 服务已开箱可用。
+
+**原始日志**：均位于 ignored `logs/pg01a-recovery2-20260831.i5h14e/`：`repair-1.log` 8259762 bytes / SHA-256 `2d7f07e1aa38201080481ea370dd267c26c1b6495316b44e8a8c63125adb7a47`；`focused-on-i.log` 24122 bytes / `c37af2d284f60c61ffcc84612ca35c93c1ea15fd3d010ce3bb839dda40d4d816`；`c1-rereview-2.log` 929458 bytes / `fccc29c96123e2bd7343f232fb1e3c9ef382419380ad2ea148184e9d7bd248c3`。reviewer 原始报告 13542 bytes / `f29d95e354fc2c723a5eee9f275989e00812e1d936ffa76726d55fbda2ae4898`；归档副本 SHA-256 `9395ec0ea104a884d6fa760c338175567305247c4f5b1029b9c3eb66f5f101ba`。两条 CLI 均 exit 0 且有各自真实结束事件；这只表示进程正常结束，不表示产品验收 GREEN。
+
+## R122 · PG-01A 夜间恢复两轮修复与同根因预算停止（2026-09-01）
+
+**输入**：owner 明确要求接续既存 PG-01A，不重建 Q0，不扩大 provider 实现；本夜 cycle=`owner-night-recovery-20260901` 最多三次修复/复审，但同根因最多两次修复与一次策略重置。冻结已发布 V2.3 policy，排除 E、正式 Q0、PG-01B、真实产品调用、付费、push、merge 与 deploy。
+
+**行动**：RECONCILE 旧 RED、合同、候选与进程后，原 Grok4.6/xhigh 实施线完成 repair 1；fresh Codex sol/max ordinal 2 仍报 B1/B2。validator 路由 strategy reset 后，以全新 Grok4.6/xhigh 会话完成 repair 2。两次实施均完整核对允许集外 bytes 未变；第二次 validation candidate 的 9 项 affected focused 为 9/9，active mutations=28、console=33 files/279 tests。随后全新零上下文 Codex sol/max ordinal 3 作第二次只读 readback。
+
+**产出**：validation candidate 保持 HEAD=`2b5517d322f062297d25806b02c4106e2ecc60e8` + 15 项未提交产品 delta，git-diff-v1=`32ff760d7da4d797230267342b70b4f88999fa1f6e76df1daf0d9ad14f224964`。第二次报告归档于 `docs/review/2026-09-01-pg-01a-night-readback-2.fable.md`；原始报告 SHA-256=`0bf883ab89043c619cbf4491acde0feeb652490f3b161de668884d215d47fe33`，日志 SHA-256=`3aed12e71421435831cdcb0824468e832ff60f3df71341932a3ff67eed252707`。冻结 policy 与完整 cycle-state 的 manifest validator 为 `valid/stop_for_owner`；P2 delta 为空。
+
+**结论**：真实进展是上一轮十个旧句式已移除，SetupGate、首页、style demo、SetupWizard、release 与 metadata 已收紧；但中英文 docs 仍有五条登录态/订阅额度/系统语音免费残留，scanner 和独立回归全部漏检，B1/B2 仍为 P1。repair=2、rereview=2、strategy reset=1；两个同根因尝试均达到 2/2，因此不启动第三次机械返工。语义未 GREEN，未跑 `just ci`、页面渲染、正式 Q0、E 或 PG-01B，也未提交或晋升。不能宣称各类用户与全部本地/云端、订阅/API AI 服务已经开箱可用；下一步需要 owner 对同根因新恢复授权或验收/策略调整作明确决定。
+
+## R123 · PG-01A 最后槽位语义 GREEN 与完整门禁停止（2026-09-01）
+
+**输入**：根监督依据 owner 夜间有界自动交付委托，仅释放现有 `owner-night-recovery-20260901` 周期未使用的 repair/rereview 第 3 槽；不新开 cycle、不清零两份旧 RED、同根因次数或 strategy reset。范围仅为中英文 docs 五条现役过度承诺以及 scanner/test 的对应漏检；E、PG-01B、正式 Q0、真实服务、付费、push、merge 与 deploy 继续排除。
+
+**行动**：复用既有 Grok4.6/xhigh session `47c53a80-b8df-469e-907e-890974925d0e` 完成 repair 3，实际只改中英文 docs、active checker 与 mutation test 四个产品路径；允许集外 2049 个路径摘要不变。机械同步到 validation 后，focused 6/6 通过，active roots=31、mutations=33、public redaction=28。fresh Codex sol/max ordinal 4 在同一 HEAD+dirty candidate 上独立只读复审，枚举 31 roots，关闭五条残留与 B1/B2，verdict=GREEN、P2 delta 为空；冻结 V2.3 manifest validator 返回 `valid/full_gate`。
+
+**完整门禁**：同 candidate 的单次 `just ci` exit=1。失败项是未被本候选修改的 `packages/daemon/test/tier1-executor.test.ts:6404`，owner 文件在 callback 已观察为存在后、紧接的断言中变为不存在；daemon 结果为 2176 tests passed、1 failed、6 skipped。门禁前后 HEAD=`2b5517d322f062297d25806b02c4106e2ecc60e8`、git-diff-v1=`8455d6c5d42142b36cd7104e3b74989c64a2db6d2871af771610e598aa9fda49`，candidate 未漂移。日志为 72927 bytes、SHA-256=`e9b01f9c7bb98f1fd63b9e07b0500e9c36e06cd96153db85cfb2733824cec819`。
+
+**结论**：语义 readback 已 GREEN，但完整门禁真实 RED，状态为 `BLOCKED_FULL_GATE`。按最后槽位决定不重跑、不启动 repair 4 或额外 review，也不执行依赖 full gate GREEN 的中英文页面 QA。PG-01A 尚未达到完整验收，未形成 E、提交、晋升或发布；需要 owner 另行决定是否授权调查这个门禁测试问题。仍不得宣称各类用户与全部本地/云端、订阅/API AI 服务已开箱可用。
+
+## R124 · PG-01A FG-1 程序性复现与最终稳定阻塞（2026-09-01）
+
+**输入**：根监督根据 owner 夜间只在必须人工决策时中断的授权，追加一次决定特例 `saydo-pg01a-fg1-transient-recovery-20260901`；它不新开 cycle，不消耗或清零产品 repair/rereview/reset，只允许 FG-1 单例一次和单例通过后的完整门禁一次。禁止修改产品或测试、第三次门禁、E、PG-01B、真实服务与 Git 晋升。
+
+**行动与证据**：RECONCILE 后 validation 仍为 HEAD=`2b5517d322f062297d25806b02c4106e2ecc60e8`、git-diff-v1=`8455d6c5d42142b36cd7104e3b74989c64a2db6d2871af771610e598aa9fda49`、15 路径 exact-set；FG-1 文件 blob 与 HEAD 相同。按首轮日志中的 daemon Vitest 调用，唯一单例复现 exit=0，1 passed、154 skipped，日志 SHA-256=`5ab43f817a1f9d717b9befc82ac18ba8ebfc8884417907c2fc7a0deb27524987`。同 candidate 的第二次且最后一次 `just ci` exit=1，同一 FG-1 再次在 `tier1-executor.test.ts:6404` 失败，日志 SHA-256=`6ba20eba2b52e996b3e0db93f46bd92770af0d763515f146c4cff5db99b7a0a1`；候选未漂移。
+
+**结论**：isolated pass 只能证明失败具有 suite/timing 条件，不能关闭完整门禁；同点两次 full-suite RED 后 FG-1 记为稳定 full-gate blocker。按决定立即停止，不第三跑、不改 daemon/test、不执行页面 QA。要继续必须由 owner 明确授权扩展到 FG-1 的 daemon/test 调查与修复；PG-01A 仍未达到完整验收或发布状态。
+
+## R125 · PG-01A FG-1 有界恢复与本地完整验收（2026-09-01）
+
+**输入与边界**：owner 新授权 cycle=`owner-night-fg1-recovery-20260901`，只处理两次 full-suite 同点失败的 daemon ownership lifecycle / suite timing 根因。旧 ordinal 4 GREEN、两份 full-gate RED 与全部旧计数保留；冻结 V2.4 policy。仍排除 E、PG-01B、正式 Q0、真实 AI/账号/付费、commit、push、merge、deploy。
+
+**行动**：RECONCILE 初始 HEAD=`2b5517d322f062297d25806b02c4106e2ecc60e8`、fingerprint=`8455d6c5d42142b36cd7104e3b74989c64a2db6d2871af771610e598aa9fda49`。fresh Grok4.6/xhigh 只改 `packages/daemon/test/tier1-executor.test.ts` 6 additions / 2 deletions：保留 durable publication callback 断言，移除把 claim barrier 当成 settle barrier 的错误 owner-still-exists 断言和固定 sleep，改为观察 active 清零与 owner 清理。protected 2029 paths 与既有 15 个 PG-01A delta 均未漂移。新 validation fingerprint=`d324b59bce25b1c3eedb0110c77e520f160f57bc44c2ad3e6b51552ac26444e8`。
+
+**Focused 与 review**：六项 focused 全部 exit 0：targeted 1/154、tier1 文件 155、daemon 131 files/2177 tests、typecheck、ESLint、diff-check。focused log SHA-256=`38b6a444f8c42895f0e073c331f3d6e663d1993782e2eec9cd498044853d484f`。fresh zero-context Codex sol/max ordinal 1 只读 review GREEN，raw report/log SHA-256 分别为 `d6a156fe6aaa351b8942981bddb0d6e99104475acb63e21a524efdf122171e42` / `117be3290e42c457b3c85a59a6f426ddb018f1cf1449968046c28b59d2edeb35`；冻结 policy + cycle-state manifest validator exit 0、`valid/full_gate`。唯一 P2 新增 `P2-001`：ESLint 配置不覆盖 test-only 文件，当前由 typecheck/Vitest 覆盖，按规则只登记。
+
+**完整门禁与视觉证据**：同 candidate 唯一 `just ci` runner exit 0、duration=140.455s，日志 SHA-256=`e6b99d5967462d7d24a735c0cd79174e67b6b01c8d7c81595d0623a7fce5f1d1`；Node/Python 全矩阵真实绿，fingerprint 前后不变。随后隔离 Chromium 对中英文 docs 页面完成视觉 QA：两页 load complete、error=0、horizontal overflow=0，18/18 当前声明变体 present/rendered；10 张截图逐张检查无明显遮挡或截断。浏览器工具无 POSIX exit，receipt 记录 `exit_code=null/tool_status=success`；证据校验器 exit 0，verify log SHA-256=`af53509e15b0cdd1b85da2af3acd2a4423c2417960dfa5cc7cf0a69ecea8514c`。临时 loopback 服务和标签页已关闭。
+
+**结论**：本 cycle 的 FG-1 本地闭环为 GREEN；当前仍是未提交的 HEAD + dirty candidate，不是发布。cycle-state 为 repair=1/1、rereview=0/0、reset=0/0、review ordinal=1；没有新开第二 cycle，也未做 final P2 sweep。公开能力仍限于真实验证边界，不能据本地门禁推导所有本地/云端、订阅/API AI 服务对全部用户开箱可用。
+
+## R126 · PG-01A 收口:I 定案、同 SHA 完整门禁、Q0 报告与 E(2026-09-02)
+
+**输入与边界**：owner 2026-09-02 当前消息授权「全部实施后提交完整更新到 GitHub、确保本地所有 worktree/分支已合并」，据此把 PG-01A 从「HEAD+dirty 候选」推进到 program §20.2 的 I/E 两提交。本节由主会话以 supervisor 角色执行，不派新实施线、不追加 reviewer；旧 cycle 的 RED/GREEN、计数与 `P2-001` 均保留。
+
+**行动**：
+
+1. 对未发布 I `2b5517d` 作 amend：先断言 index 为空，再以 explicit pathspec 加入夜间恢复 15 路径 + FG-1 测试 1 路径（amend 前逐路径 `git hash-object` 与 `git rev-parse 2b5517d` 之后的目标 blob 比对，mismatch=0），得 I=`2a786ed803f8229ea2fefe8240d9e644306331c4`、tree=`6cb66c57dc0ecda7389593c5a7dc02dd70e5647c`、parent=`79211f6…`；P..I 共 36 路径。
+2. validation worktree `checkout -f --detach` 到 I（force 仅因工作树 bytes 已与目标 blob 逐一全等），porcelain 空，`git-diff-v1` 为空 diff 值 `e42dd19c…`。在其上运行 FG-PG01A-CLAIM 的 10 项 read-only argv + emoji + doc-links + `git diff --check P..I`，13/13 exit 0（`logs/pg01a-close-20260902/focused-I.log`，SHA-256 `08dead75…`）。
+3. Q0 producer 在 clean I 上以 `--implementation-sha 2a786ed… --implementation-tree 6cb66c57…` 生成 `research/customer-question-corpus/review/23-pg01a-q0-truth-report.json`（986 对象，`unresolved_count=986`，三项 disposition 均 `owner_downgraded_with_public_limit`），`--check` 与 mutation 均 exit 0；raw SHA-256 `be5ff653…`。
+4. 同 I 完整门禁：首跑因 TMPDIR 取 scratchpad 深路径致 tsx IPC Unix socket 超 `sun_path` 上限，`platform/home-lock.test.ts` 两例 `EADDRINUSE`（exit 1，环境错误不计产品失败，日志 SHA-256 `15dc17ed…`）；改用 `/tmp/sd-close.XXXXXX` 重跑 exit 0（128.5s，daemon 2177/console 279/platform 72/cli 49/contracts 111/python 34；日志 SHA-256 `51afe87f…`）。
+5. 入库前按 R114 纪律脱敏 15 个 prompt/report/control 文件中的本机绝对路径（`<worktree>`/`<validation-worktree>`/`~/.octoworkflow`/`~/.codex`/`<repo>`/`<codex-work>`），产品路径与 Q0 report 不动；readback 中记录的派发时 prompt digest 因此与入库 bytes 不同，已在 evidence 收口节声明。
+6. HANDOFF 指针改 `active=none,next=PG-01B`，PLAN-2 PG-01A 卡加「已收口」状态行；evidence 收口节按 §20.2.1 最小 schema 写齐 36 路径 exact-set、决策单 digest、focused/full gate、readback 身份、A-ID disposition（G-A1 `repo_downgraded`、G-A4 `repo_closed`、G-A2 `stop_loss_recorded`；deployed 均 `blocks_expansion`）。
+
+7. E 前 `git diff --check P..E` 硬门命中三份归档 reviewer 报告的 Markdown 双空格硬换行，统一去除行尾空白后 exit 0（归一后 digest 记于 evidence 收口节；R120/R121 所记归档副本 digest 为归一前值）。clean E 上 emoji、doc-links、`week-audit --check`/`--check-bundle`、Q0 `--check` 均 exit 0；公开树隐私探针在 E 上命中的 13 处 `home-macos` 全部来自 PG-00 E 入库文件，本批 pathset 零命中，随后在月度对账提交中脱敏。
+
+**产出**：I 如上；E = 承载本节的 evidence 提交（不自指），pathset 见 evidence 收口节末尾；`node scripts/week-audit.mjs --write` 的实际变化子集随 E 入库。
+
+**结论**：PG-01A 本地 I/E 闭环完成，唯一 next=PG-01B。deployed_status 仍为 `blocks_expansion`：本会话随后按 owner 当前消息的合并/推送/部署授权执行 ff 晋升与公开快照，结果记于下一节，不回写本节。
+
+## R127 · 月度双向对账、快速启动分发线与全仓收口(2026-09-02)
+
+**输入**:owner 2026-09-02 要求对最近一月「所有文档 ↔ 所有 commit」双向对照并直接修复,实施后 Codex 交叉评审,提交推送 GitHub,确认本地 worktree/分支全部合并,部署官网;设计并落地「除 clone 之外的快速跑法」,在本机 Mac 与 局域网 Windows 主机(IP 不入库)实测;需要传包时用 GitHub Release / R2;推真机包到 iPhone Air / 鸿蒙 / 安卓;通过后清理本地 worktree 与分支。
+
+**对账(报告 `docs/review/2026-09-02-monthly-docs-commit-crosscheck.md`)**:565 commit / 976 文档;文档引用的 1071 个 hex 中 696 解析为 Git 对象,198 未解析项逐条分类均为非 SayDo commit 标识;136 个未被逐条点名的 commit 全部落在 `DEV-VERSION-LEDGER` §2 批次区间。R114 的 30 项修复逐项复核无虚报。发现 A 级 1(PG-00 E 入库文件含本机绝对路径,公开树隐私探针 13 文件 290 处命中,会拒绝下次公开快照;`babd864` 脱敏)、B 级 4(`f35c234` 等)、C 级 4。
+
+**PG-01A 收口与合并**:见 R126;E `f4d8de9` 按 owner 本轮合并授权 `merge --ff-only` 进 main,断言 tip==E。旧被拒 I `004b226` 打 tag `archive/pg-01a-c1-red-20260831` 后删分支;`codex/pg-01a-20260831`、`codex/project-gap-plans-20260828` 删除(均已合并);两个 PG-01A worktree 移除。本轮实施在 `codex/monthly-crosscheck-20260902` 分支进行,收口后 ff 回 main。
+
+**快速启动分发线(方案 `docs/plan/2026-09-02-quick-start-distribution.md`)**:
+
+1. 官网托管一条命令安装:`curl -fsSL https://saydo.octoooo.com/install.sh | sh` / `irm https://saydo.octoooo.com/install.ps1 | iex`。用户目录内准备 Node 22(缺失时从 nodejs.org 按 SHASUMS256 校验下载)、固定版本 + SHA-256 校验的 SayDo 包、独立 prefix、启动器、可选 PATH 写入;零 emoji 输出;`install.ps1` 带 UTF-8 BOM(PowerShell 5.1 `-File` 实测无 BOM 会按 ANSI 解析而崩)。
+2. Cloudflare R2 镜像 `saydo-releases` + 自定义域 `dl.saydo.octoooo.com`(zone octoooo.com):rc.12 三个 Release 资产按 `shasum -c SHA256SUMS` 校验后上传;脚本 GitHub 不可达时自动回退镜像,并同时把 `better-sqlite3` 预构建改走 npmmirror。动因:Windows 主机实测 `github.com` 直连超时而 nodejs.org / npm registry / Cloudflare 均可达。
+3. 自测 `scripts/test-install-scripts.mjs`(钉住版本/digest 绑定 `e2e/evidence/*-availability.json` 的 `tarballSha256`、镜像 URL 形态、`_headers` charset、BOM、README 与四页入口;8 个 mutation 自证)挂入 `justfile` ci-node、`package.json` ci:node、`.github/workflows/ci.yml`。
+4. 官网中英文首页收尾 CTA 与 Docs §4.2、README、`packages/cli/README.md`、两份站点文稿同步;availability 锚句与 `post-release-gate.mjs` 替换表未动(rc.13 bump 时整体改写,见对账报告 C-1)。
+
+**实测**:macOS 三条路径(系统 Node / 无 Node 下载 / 强制镜像)与 Windows 两条路径(默认 / 强制镜像)全部完成安装 → status → up → `/health` → 优雅停止 → 无残留;细表见方案 §6。移动端:iOS / Android 两壳 `--build-only` 构建与产物校验通过;HarmonyOS `hvigorw` BUILD SUCCESSFUL 但安装器按合同拒绝 unsigned HAP(仍缺 SayDo 签名 Profile,与 version-matrix 一致);真机安装未完成——iPhone Air 可达但 `developer disk image could not be mounted`(iOS 27.0 / Xcode 27.0 beta),`adb devices` 与 `hdc list targets` 均为空;不宣称移动端已验。
+
+**未做**:未开 rc.13(需 owner 决定是否走完整发布合同);未发布 npm registry(owner 手动);Linux 未真机实测;R114 待决 1–9 保持。
+
+**Codex 交叉评审与返工(2026-09-02)**:第一次派发 `prompts/222` 维度过宽,1500 s 硬超时内无结论(ignored 事件流 797457 bytes / SHA-256 `d54559a4b8908c00cfd7a676e89c6c18e3b9fb51f1a8a4072ca14b8bc921c41a`,exit −15),按纪律不 resume、起全新会话 `prompts/223`(范围收窄、2400 s):783.9 s 完成、`turn.completed` 1 次,事件流 731977 bytes / `426b6c71e60da3e2ce2003efb4bfa533b012e7fc3413a8b7d50b009522e4f49e`;报告原始 8018 bytes / `651c0c7557815937b0cbd6975c30a5090b010b3949bc224fd116070b832e58fa`,归档副本脱敏内网 IP 后 8012 bytes / `78a8cf59c6e99d75c8216691440e7209c5c9bce4185ba456da05c3c1c34ed149`,结论 `[fail] 7A/7B/5C`。triage 与处置见对账报告 §6.3:7 条 A 级全部成立、全部当轮修复(安装根目录限定用户目录内 + 显式放行开关;`HOME` 缺失/含空格;PATH 标记整行精确匹配;fish;Windows 启动器路径改写为 `%LOCALAPPDATA%`/`%USERPROFILE%` 前缀、不再 ASCII 写入;journal 内网 IP 脱敏),B 级自测空洞吸收为 17 条结构不变量 + 2 项动态无写入检查 + 8 个新 mutation,C-02/C-04/C-05 修,C-01/C-03 按既定安排。修复后 Mac 五例(HOME 含空格 zsh、fish、无关注释不阻止写入、越出 HOME 拒绝且不建目录、真实安装/启动/停止)全绿;Windows 回归结果见追补。修复后的候选 `01ab5cf` 另派全新零上下文 reviewer 复审(`prompts/224`,第 2/3 次复审预算;701.4 s 完成、`turn.completed` 1 次,事件流 246567 bytes / SHA-256 `081841588ddd7d62330e32514eb3e7663cb5bcc24e5a0746d187859ee41843a8`;报告原始 5119 bytes / `4fe6183a6550c59bb8c92b707ff1a3e34dc03d95f3d14321f3c9259daf94a38a`,归档副本去除本机绝对路径后 4575 bytes / `4a8c5c1a14b8cdd77f7c7c7714e27fb38d906e52c00de807142cd300dd727d69`):`[fail] 2A/0B/0C`——A-02…A-07、B-01…B-07 全部 closed;A-01 partially_closed(`..` 绕过用户目录前缀判断)+ 新 N-01/P1(Windows `%LOCALAPPDATA%` 被重定向时默认根目录被误拒)。第 2 次修复(同根因 A-01 第 2/2 次尝试;产品修复 2/3):POSIX 词法拒绝 `..` 路径段 + `realpath` 复核 symlink 越出;Windows 以 `%USERPROFILE%` / `%LOCALAPPDATA%` 双基准判定;自测 18 mutation / 22 不变量 / 4 动态检查。Mac 回归四例全绿(`..` 与 symlink 越出均在写入前拒绝且不建目录);Windows 回归三例全绿(重定向 `LOCALAPPDATA` 下默认根目录被接受、`..` 根目录归一化后被拒且未创建、放行开关有效)。第 3/3 次复审 `prompts/225`(候选 `3630edf`;632.2 s,事件流 152441 bytes / SHA-256 `6684b2447f6caf2d506526ac9fb769f7b66fef7501ca6a02d0a2c6fac75a9d5a`;报告原始 2632 bytes / `8b9a441a11c34a4f4bebdf44583f557697848010b05426375870998a0d843005`,归档去本机路径后 2428 bytes / `d99bf0cd6550faf4395095e97fd82963b3289d5a1d88103e6d6f00b9eef26aeb`):`[fail] 2A`——N-01 closed;A-01 仍 partially_closed(无 `realpath` 时 symlink 越出不复核);N-02 = 我在 prompt 225 与归档 224 报告里写的示例 `C:\Users\<某用户名>` 触发隐私探针。**预算声明**:A-01 为同根因第 3 次修复,超出 V2 同根因 2 次上限,复审 3/3 已用完;按 owner 本轮「直接修复完善」授权应用确定性最小修复(`cd -P && pwd -P` 取代 `realpath`,自测加 symlink 越出的两种 PATH 动态检查),最终候选**未再派零上下文复审**,证据只有自测、Mac 真实安装启停回归与完整 `just ci`;如 owner 要求可另开周期复审。N-02 脱敏后 `--fs` hits=0。
+
+### R127 追补:本地收口、官网正式部署与推送前状态(2026-09-02)
+
+- **最终候选** = `560f5ff`(分支 `codex/monthly-crosscheck-20260902`;链:`babd864` → `f35c234` → `b46daed` → `d1cd29c` → `eb64832` → `01ab5cf` → `3630edf` → `560f5ff`,基线 main=`f4d8de9`)。本节所在的 `chore(evidence)` 提交是该线最后一个提交(HANDOFF 硬教训 3:随 `week-audit --write` 重生成账本),随后 `merge --ff-only` 进 main 并推送。
+- **完整门禁(均为 clean tree、短路径 isolated TMPDIR、`env -u SAYDO_LIVE_E2E -u SAYDO_SLOW_E2E`)**:`d1cd29c` exit 0(161.6 s,日志 SHA-256 `560ee4b060d7494987663591ee69f558e863641d5865da076eb99999a1a847ed`);`01ab5cf` exit 0(135.5 s,`a8cbb411a50cd08cad95a5073423680ce037e7cfa9b8ed45e1d2e367016a4ae7`);`3630edf` exit 0(143.5 s,`60cb9b9980e4f8ba678b58d5a3c3a3d08c4b53420e5d491fa878697601c8cb44`);最终 `560f5ff` exit 0(145.5 s,92579 bytes,`e3f4fe1a9f4fd24ec6321c08257e9ba2ca62294e527b3317ffd9d9d3721905de`;contracts 111 / platform 72+14 skipped / console 279 / cli 49+1 skipped / daemon 2177+6 skipped / python 34;安装脚本自测 18 mutation 全红、6 项动态检查;active-claims roots=33)。日志在 ignored `logs/crosscheck-20260902/`。
+- **复审预算终态**:产品修复 3/3(`01ab5cf`、`3630edf`、`560f5ff`),零上下文复审 3/3(223 RED 7A → 224 RED 2A → 225 RED 2A);最终候选 `560f5ff` 上的第 3 次修复(A-01 残留的 `realpath` 依赖 + N-02 脱敏)未再派复审,证据为自测 + Mac/Windows 真实回归 + 完整 `just ci`,已在对账报告 §6.3 如实声明。
+- **官网正式部署**(推送前执行,绑定 `560f5ff`):saydo Production deployment `647fa1c8-9b73-429b-9a89-7a51c6438248`,saydo-link Production `2e973545-4fa0-47f4-a535-a9527ba3c658`(内容未变、同 commit 重绑)。线上四页 200、`/install.sh` `/install.ps1` 200 且与仓内 bytes 全等、两个 provenance marker 各 1 处、`link.saydo.octoooo.com` 200、镜像 tgz 200;macOS 从线上域名 `curl \| sh` 安装成功;Windows 从线上域名 `irm \| iex` 结果见 `e2e/evidence/2026-09-02-crosscheck-site-deploy.md`。
+- **待推送**:origin(私有归档)main、tag `archive/pg-01a-c1-red-20260831`;随后 `scripts/publish-public-snapshot.sh public "" <main SHA>` 推公开快照;公开 CI 结论记于追补二。私有归档 CI 因账户付款问题不会运行(owner 项)。

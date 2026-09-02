@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "receipt_id": "owner-night-fg1-recovery-20260901-repair-1",
+  "action": "repair",
+  "terminal": "completed",
+  "candidate_head": "2b5517d322f062297d25806b02c4106e2ecc60e8",
+  "diff_fingerprint": "d324b59bce25b1c3eedb0110c77e520f160f57bc44c2ad3e6b51552ac26444e8",
+  "review_ordinal": 1,
+  "consumed": {
+    "repair": true,
+    "rereview": false,
+    "strategy_reset": false
+  },
+  "cost_kind": "product",
+  "blocker_id_map": [],
+  "evidence_refs": [
+    "logs/pg01a-night-20260901.V1D8er/fg1-repair-1.summary.json",
+    "logs/pg01a-night-20260901.V1D8er/pre-scope-fg1.json",
+    "logs/pg01a-night-20260901.V1D8er/post-scope-fg1.json"
+  ]
+}

@@ -155,13 +155,13 @@
         <h3>1.4 当前状态一句话</h3>
         <ul>
           <li><strong>macOS 桌面服务</strong>(守护进程 daemon + Web 控制台 + 可选语音管线):现在可用,开源免费(见 §18 开源与参与)。</li>
-          <li><strong>驱动你已有的 AI</strong>:推理槽位可用 Claude Code / Codex / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI 的<strong>订阅登录态</strong>或任意 OpenAI 兼容 API(§5);<strong>稳定执行器路径当前为 Cursor CLI</strong>,Claude Code 已接入生产主流程、最终 live conformance 收口中,Codex 执行路线规划中(§6)。</li>
+          <li><strong>驱动你已有的 AI</strong>:推理槽位可走已接线并通过调用验证的 Claude Code / Codex / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI,或经配置的 OpenAI 兼容对话端点(§5;不表示工具等价)。登录或订阅不等于可调用,实际权益和费用以服务商为准。<strong>稳定执行器路径当前为 Cursor CLI</strong>,Claude Code 已接入生产主流程、最终 live conformance 收口中,Codex 执行路线规划中(§6)。</li>
           <li><strong>项目记忆与四色账本</strong>:现在可用。</li>
           <li><strong>iOS / Android / HarmonyOS App</strong>:工程壳存在,均未提审上架、无公开下载。当前可用的是移动浏览器 LAN dogfood;三端 App 壳均是开发候选(iOS 待本轮真机复测,Android 无当前设备证据,HarmonyOS 2026-08-22 曾出现物理目标、本轮无在线目标证据,仅有 unsigned HAP、缺签名 Profile)(§13)。</li>
           <li><strong>来电式语音汇报</strong>:规划中。</li>
         </ul>
         <h3>1.5 费用一句话</h3>
-        <p>桌面服务本身免费。AI 能力的费用直接付给你选的厂商——用你已有的 CLI 订阅(额度内零额外费用),或你自己的 API key 按量计费。「说到」不加价、不经手、不代充。细节见 §15。</p>
+        <p>桌面服务本身免费。AI 能力的费用直接付给你选的厂商——用你已有的 CLI 登录态(不推断额度或免费),或你自己的 API key 按量计费。「说到」不加价、不经手、不代充。细节见 §15。</p>
 
         <h2 id="s2">2. 核心概念速查</h2>
         <div class="table-scroll">
@@ -187,7 +187,7 @@
             <tr><td><strong><code>ready_for_review</code></strong></td><td>执行和检查都跑完、产物落盘、等你验收的状态;回叫从这里触发。<strong>它不等于完成</strong>;合并/归档后才是「交付了」</td><td>§10.1</td></tr>
             <tr><td><strong>推理槽位(四槽)</strong></td><td>对话 dialog / 沉思 thinking / 廉价 cheap / 评估 evaluator——各自可选 API 或订阅 CLI 供给</td><td>§5.1</td></tr>
             <tr><td><strong>开发档(执行器)</strong></td><td>第五个槽位 <code>[models.dev]</code>:派发任务时<strong>驱动哪个 agent 去改代码</strong>(与上面「调哪个模型说话」是两回事)</td><td>§6</td></tr>
-            <tr><td><strong>BYOA(Bring Your Own Agent)</strong></td><td>用你本机已登录的 CLI(Codex / Claude Code / Cursor / Grok / Gemini / Qwen / Copilot)做推理供给,零 API key</td><td>§5.2</td></tr>
+            <tr><td><strong>BYOA(Bring Your Own Agent)</strong></td><td>用本机已接线并通过调用验证的 CLI(Codex / Claude Code / Cursor / Grok / Gemini / Qwen / Copilot)做推理供给,可以零 API key。登录不等于可调用,费用以服务商为准</td><td>§5.2</td></tr>
             <tr><td><strong>cap-token</strong></td><td>控制台的本机能力令牌(<code>~/.saydo/.cap-token</code>),进控制台的 URL 里带它;删了会轮换</td><td>§4.3、§14</td></tr>
           </tbody>
         </table>
@@ -260,7 +260,7 @@
         </ul>
 
         <h2 id="quickstart">4. 快速开始(普通用户路径)</h2>
-        <div class="docs-note"><p>目标:一台电脑(macOS 主线;Windows / Linux 同样可跑)、一个你已登录的 AI CLI(或一个 API key),十几分钟跑起来并开口聊。</p></div>
+        <div class="docs-note"><p>目标:一台电脑(macOS 主线;Windows / Linux 同样可跑)、一个已接线并通过调用验证的 AI CLI(或一个 API key),按向导走通后开口聊。</p></div>
         <h3>4.1 前提</h3>
         <div class="table-scroll">
         <table>
@@ -269,16 +269,26 @@
           </thead>
           <tbody>
             <tr><td>系统</td><td>macOS(Apple Silicon / Intel 均可)· Windows · Linux</td><td>三端都能跑桌面服务;<strong>常驻安装与系统通知当前仍是 macOS 实现</strong>,Windows/Linux 需前台运行</td></tr>
-            <tr><td>Node</td><td><strong>22.x</strong>(<code>&gt;=22 &lt;23</code>)</td><td>桌面服务与 CLI 的运行时;用 nvm / fnm / Homebrew 装</td></tr>
+            <tr><td>Node</td><td><strong>22.x</strong>(<code>&gt;=22 &lt;23</code>)</td><td>桌面服务与 CLI 的运行时;走一条命令安装时脚本会自动准备,手动走 npm 路径时用 nvm / fnm / Homebrew 装</td></tr>
             <tr><td>可选 · pnpm</td><td>10.x</td><td>只有源码开发需要;Release 包不需要</td></tr>
             <tr><td>可选 · git</td><td>任意新版</td><td>只有让执行器修改代码、创建隔离 worktree 时需要;只使用账本与控制台不需要</td></tr>
-            <tr><td>一个 AI 供给</td><td>二选一:① 本机已登录任一已接线 CLI(Codex / Claude Code / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI);② 一个 OpenAI 兼容 API key(OpenRouter / OpenAI / Anthropic / DeepSeek)</td><td>只聊天、立账、调研不需要 key(走 CLI 订阅);见 §5.3</td></tr>
+            <tr><td>一个 AI 供给</td><td>二选一:① 本机已接线并通过调用验证的 CLI(Codex / Claude Code / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI);② 一个 OpenAI 兼容 API key(OpenRouter / OpenAI / Anthropic / DeepSeek)</td><td>聊天、立账、调研可以不配 API key,前提是该 CLI 已接线并通过调用验证;实际权益和费用以服务商为准。见 §5.3</td></tr>
             <tr><td>可选 · Python 3.11+ 与 <code>uv</code></td><td>只有<strong>桌面浏览器云端语音</strong>(火山豆包 ASR/TTS)才需要</td><td>不配也能说话:浏览器系统语音兜底(§12)</td></tr>
             <tr><td>可选 · 一个执行器登录态</td><td><code>cursor-agent</code>(当前稳定缺省)或 Claude Code(生产主流程已接线、最终 live conformance 收口中)</td><td>只有<strong>派发执行任务</strong>才需要;Codex 执行器尚未实现并会 fail-closed 拒起,不影响对话(§6)</td></tr>
           </tbody>
         </table>
         </div>
         <h3>4.2 安装</h3>
+        <p><strong>最快 · 一条命令:</strong>不需要预装 Node.js。脚本先检查本机 Node 22,缺失时把官方 Node 22 下载到你的用户目录(<code>~/.saydo/toolchain</code>,不改系统、不需要 sudo),再下载固定版本的 SayDo 包、校验 SHA-256,安装到独立 prefix 并生成 <code>~/.saydo/bin/saydo</code>;默认在 shell 启动文件追加一行 PATH(带 <code># saydo</code> 标记,可重复执行)。</p>
+        <pre><code># macOS / Linux
+curl -fsSL https://saydo.octoooo.com/install.sh | sh
+
+# Windows(PowerShell 5.1+ / 7)
+irm https://saydo.octoooo.com/install.ps1 | iex
+
+# 然后在新终端
+saydo up</code></pre>
+        <div class="docs-note"><p>网络:脚本先从 GitHub Release 固定 URL 下载,连不上时自动改用官网镜像 <code>dl.saydo.octoooo.com</code>(与 Release 资产字节全等,同一个 SHA-256 校验;<code>SAYDO_INSTALL_MIRROR=1</code> 直接用镜像);依赖走 npm registry,<code>SAYDO_INSTALL_NPM_REGISTRY</code> 可改(如 <code>https://registry.npmmirror.com</code>)。环境变量:<code>SAYDO_INSTALL_NO_MODIFY_PATH=1</code> 不改启动文件 / 用户 PATH;<code>SAYDO_INSTALL_RUN=1</code> 装完直接启动;<code>SAYDO_HOME</code>(Windows 为 <code>SAYDO_INSTALL_ROOT</code>)改安装根目录。卸载:删除 <code>~/.saydo/toolchain</code> 与 <code>~/.saydo/bin</code>(Windows 为 <code>%LOCALAPPDATA%\SayDo</code>),并移除启动文件里带 <code># saydo</code> 标记的那一行(Windows 从用户 PATH 移除 bin 目录)。脚本源码与官网同源发布:公开仓 <code>deploy/saydo-octoooo-com/install.sh</code>、<code>install.ps1</code>;脚本钉住的版本与 SHA-256 由仓内自测 <code>scripts/test-install-scripts.mjs</code> 绑定到该 Release 的可用性证据。</p></div>
         <p><strong>推荐 · 不克隆源码:</strong>v0.1.0-rc.12 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证,可直接使用。尚未发布到 npm registry 或 Homebrew。</p>
         <pre><code># 一次运行:下载到 npm 缓存后直接启动
 npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.12/saydo-cli-0.1.0-rc.12.tgz -- saydo up
@@ -305,9 +315,9 @@ saydo open      # 打开控制台</code></pre>
         <h3>4.4 首次使用:资源画像向导</h3>
         <p>进门先看到<strong>资源画像</strong>:它清点这台机器能用的模型来源(装了哪些 CLI、哪些已登录、<code>.env</code> 里有哪些 key),然后给出方案卡(§5.3 三种)。典型零 key 流程:</p>
         <ol>
-          <li>看到「全用 Codex(订阅内零成本)」之类的一键卡(每家已登录的 CLI 一张;列表按 已登录 &gt; 仅安装 &gt; 未装 排序,同档内按用过次数);</li>
+          <li>看到「全用 Codex」之类的一键卡(每家已登录的 CLI 一张;列表按 已登录 &gt; 仅安装 &gt; 未装 排序,同档内按用过次数);</li>
           <li>勾两条知情确认(评估档与对话同族 / 评估器笼隔离不可证,§5.4);</li>
-          <li>点「确认并启动」→ 写入待生效配置 → <strong>自检 1/2</strong>(四槽各真调一次)→ 重启服务 → <strong>自检 2/2</strong>(生效后再确认)→ 落到「开口聊」。全 CLI 方案每槽一次 15–25 秒,<strong>两轮自检合计约 1–3 分钟</strong>(视 CLI 而定,可能更久),界面有进度与耗时;</li>
+          <li>点「确认并启动」→ 写入待生效配置 → <strong>自检 1/2</strong>(四槽各真调一次)→ 重启服务 → <strong>自检 2/2</strong>(生效后再确认)→ 落到「开口聊」。全 CLI 方案每槽一次约 15–25 秒,<strong>两轮自检合计约 1–3 分钟</strong>(视 CLI 而定,可能更久),界面有进度与耗时;</li>
           <li>之后随时可在「设置」里换方案、逐槽手配(高级模式)。</li>
         </ol>
         <p>没配好对话档之前,进哪一页都会先弹向导(有「先随便看看」逃生口);首次且账本为空时,它会先说一句固定开场白请你「随便说三件这周要办的事」给你立账看看。</p>
@@ -365,13 +375,13 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
         <h3>5.2 两种供给方式</h3>
         <p><strong>方式 A · API 直连</strong>(<code>{ provider = "api", via = "&lt;端点名&gt;", model = "..." }</code>)</p>
         <ul>
-          <li>任意 <strong>OpenAI 兼容</strong>端点:在 <code>[providers.api.&lt;name&gt;]</code> 声明 <code>base_url</code> + <code>api_key = "env:VAR"</code>(key 只能以环境变量引用,<strong>禁止明文写进配置</strong>)。</li>
+          <li>已配置的 <strong>OpenAI 兼容</strong>对话端点(不表示工具或 Structured Outputs 等价):在 <code>[providers.api.&lt;name&gt;]</code> 声明 <code>base_url</code> + <code>api_key = "env:VAR"</code>(key 只能以环境变量引用,<strong>禁止明文写进配置</strong>)。</li>
           <li>推荐网关 <strong>OpenRouter</strong>:一个 key 打通多家(缺省模板就是它);也可直连单家(OpenAI / Anthropic / DeepSeek / 月之暗面 / 阿里百炼……模板有示例)。</li>
           <li>模型名带厂商前缀时(<code>openai/…</code>、<code>anthropic/…</code>、<code>google/…</code>、<code>deepseek/…</code>、<code>x-ai/…</code>、<code>qwen/…</code>)家族自动解析;单家直连端点模型名无前缀时,端点要显式写 <code>family = "deepseek"</code> 之类——给 §5.4 的异族校验用。</li>
-          <li>对话档走 API 时是<strong>实时模式</strong>:完整多轮工具环、流式、秒级返回,语音对话就靠它。</li>
+          <li>对话档走 API 时是<strong>实时模式</strong>:完整多轮工具环、流式;时延以服务商为准,语音对话就靠它。</li>
         </ul>
         <p><strong>方式 B · 订阅 CLI(BYOA)</strong>(<code>{ provider = "&lt;x&gt;_cli", model = "..." }</code>)</p>
-        <p>用你本机<strong>已经登录</strong>的 AI 命令行工具做推理供给,零 API key、走你的订阅额度。当前已接线的 CLI:</p>
+        <p>用你本机<strong>已接线并通过调用验证</strong>的 AI 命令行工具做推理供给,可以零 API key。登录不等于订阅额度或可调用,实际权益和费用以服务商为准。当前已接线的 CLI:</p>
         <div class="table-scroll">
         <table>
           <thead>
@@ -422,9 +432,9 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
             <tr><th>方案</th><th>适合谁</th><th>四个推理槽怎么配</th><th>体验</th></tr>
           </thead>
           <tbody>
-            <tr><td><strong>全用某个 CLI</strong>(如「全用 Codex」)</td><td>只有一个订阅、不想申请 key</td><td>对话 / 沉思 / 廉价 / 评估四槽全走该 CLI</td><td>零 key 零终端;对话每轮 15–25 秒(慢速文本模式);订阅额度内零额外费用。评估档走 CLI 且与对话同族,需勾「同族知情确认」+「隔离知情确认」两条</td></tr>
-            <tr><td><strong>对话走 API + 其余槽 CLI</strong></td><td>有订阅,也愿意为实时对话花一点 API 费</td><td>对话档 API(秒级、可语音);沉思 / 廉价 / 评估走 CLI</td><td>推荐的「又快又省」组合;评估档走 CLI 同样需勾两条知情确认</td></tr>
-            <tr><td><strong>一个 key 全搞定</strong></td><td>没有任何 CLI 订阅</td><td>四槽都走 OpenRouter API,各槽按规格指定模型</td><td>秒级返回;按量计费,以服务商账单为准</td></tr>
+            <tr><td><strong>全用某个 CLI</strong>(如「全用 Codex」)</td><td>只有一个订阅、不想申请 key</td><td>对话 / 沉思 / 廉价 / 评估四槽全走该 CLI</td><td>零 key 零终端;对话每轮约 15–25 秒(慢速文本模式);登录不等于免费,费用以服务商为准。评估档走 CLI 且与对话同族,需勾「同族知情确认」+「隔离知情确认」两条</td></tr>
+            <tr><td><strong>对话走 API + 其余槽 CLI</strong></td><td>有订阅,也愿意为实时对话花一点 API 费</td><td>对话档 API(可语音;时延以服务商为准);沉思 / 廉价 / 评估走 CLI</td><td>推荐的「又快又省」组合;评估档走 CLI 同样需勾两条知情确认</td></tr>
+            <tr><td><strong>一个 key 全搞定</strong></td><td>没有任何 CLI 订阅</td><td>四槽都走 OpenRouter API,各槽按规格指定模型</td><td>按量计费,以服务商账单为准;不作固定秒数承诺</td></tr>
           </tbody>
         </table>
         </div>
@@ -445,7 +455,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
         </ul>
         <h3>5.5 计费与记账口径</h3>
         <ul>
-          <li><strong>订阅 CLI 调用不产生「元」</strong>:成本账本记为 <code>source = subscription</code>,界面显示「订阅额度内」(调用次数在周报里看)——不显示 ¥0、不显示「未知」、不预测剩余额度。只有探测到该 CLI 的认证面确属订阅(如 Gemini 个人 OAuth、Copilot GitHub 登录)才写「订阅内零成本」;若 CLI 上游其实是 API key 计费(如 Qwen 配 key),文案如实改为「按该 CLI 的上游计费方式,说到不代付」。</li>
+          <li><strong>订阅 CLI 调用记入订阅额度，费用以服务商为准</strong>:成本账本记为 <code>source = subscription</code>,界面显示「订阅额度内」(调用次数在周报里看)——不显示 ¥0、不显示「未知」、不预测剩余额度。只有探测到该 CLI 的认证面确属订阅(如 Gemini 个人 OAuth、Copilot GitHub 登录)才写「探测为订阅登录态」;若 CLI 上游其实是 API key 计费(如 Qwen 配 key),文案如实改为「按该 CLI 的上游计费方式,说到不代付」。</li>
           <li><strong>API 调用按单价表估算</strong>:<code>[pricing]</code> 无表项的模型成本显示「还没有确切数字」(绝不编数、不显示 0)。真正拦你的是<strong>每个任务</strong>的成本 / 时长 / 回合三熔断(§8.5),成本封顶只约束 API 计费部分,订阅调用靠墙钟 + 回合数兜底;<code>[budget].monthly</code> 目前只是配置项(无任何执行或展示点),不是硬闸。</li>
           <li><strong>订阅限流不静默转计费</strong>:触发周 / 5 小时时窗限流时,该次调用返回可重试的限流错误并如实告知,<strong>绝不自动转 API 计费</strong>。「停下问你切按量计费还是等重置 + 单次 billing-switch 收据(有效期 10 分钟)」与「durable 排队自动重放」两套合同已落,生产尚未接入(进行中)。</li>
         </ul>
@@ -535,7 +545,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td><strong>Claude Code 执行器</strong>(<code>agent = "claude_code"</code>)</td><td><span class="badge badge-progress">收口中</span></td><td>以官方 <code>claude -p --output-format stream-json</code> 子进程为传输,用 <code>PreToolUse</code> hooks 做 S1–S3 裁决;订阅只经 <code>claude</code> 登录态消费、零 API key,不启用 bypass 权限、不做 live steer。配置、生产执行主流程、审批门、恢复、记账、自检、设置页与任务详情已经接线;最终真实端到端 conformance 尚未收口,当前稳定缺省仍为 Cursor</td></tr>
             <tr><td><strong>Codex 执行器</strong></td><td><span class="badge badge-soon">规划中</span></td><td>设计上经 Hopper 批式路线(见下);当前 <code>agent = "codex"</code> 会被拒起</td></tr>
             <tr><td><strong>Hopper 批式路线</strong>(重任务 drop 进独立的 Hopper 任务系统:worktree / 事件溯源 / 崩溃恢复 / 预算 / 验收闸门)</td><td><strong>合同已定,生产绑定休眠</strong></td><td>daemon 主流程不启动它;锁定版本副本与专用 vault 的约定写在配置模板里但当前不被消费;Hopper 路线的合并恒为人工交接,不经本机认证卡。对用户来说今天它不是可用功能</td></tr>
-            <tr><td><strong>provider-neutral 原生执行器</strong>(任意 OpenAI 兼容后端)</td><td><span class="badge badge-soon">规划中</span></td><td>2026-08 决策推荐的方向(替代「拿 DeepSeek Harness 当默认 runner」——后者因审批缺省放行、钩子故障不阻断等与 fail-closed 红线冲突被否决)</td></tr>
+            <tr><td><strong>provider-neutral 原生执行器</strong>(规划中的兼容后端,不表示现已支持)</td><td><span class="badge badge-soon">规划中</span></td><td>2026-08 决策推荐的方向(替代「拿 DeepSeek Harness 当默认 runner」——后者因审批缺省放行、钩子故障不阻断等与 fail-closed 红线冲突被否决)</td></tr>
             <tr><td><strong>Gemini CLI 作执行器</strong></td><td>无此计划</td><td>Gemini CLI 仅作推理槽供给</td></tr>
           </tbody>
         </table>
@@ -834,9 +844,9 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
           <li><strong>软件</strong>:桌面服务开源免费;App 免费、无内购(规划中)。</li>
           <li><strong>AI 费用去向</strong>:
             <ul>
-              <li><strong>订阅 CLI(BYOA)</strong>:走你已有的 Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot 订阅额度,零额外费用;账本显示「订阅额度内」;撞限流该次调用如实报错,不偷偷转计费。</li>
+              <li><strong>订阅 CLI(BYOA)</strong>:仅当该 CLI 已接线并通过调用验证时可作为条件供给;登录本身不证明可调用、订阅权益、额度或免费。账本不因登录态写成「订阅额度内」,实际权益和费用以服务商为准;撞限流该次调用如实报错,不偷偷转计费。</li>
               <li><strong>API key</strong>:按各家账单;账本按 <code>[pricing]</code> 单价表估算(缺省不填 = 显示「还没有确切数字」,不编数);每个任务有成本封顶(缺省 20 元)+ 活跃 45 分钟 + 80 回合三熔断。</li>
-              <li><strong>语音(可选)</strong>:火山豆包 ASR / TTS 按你的火山账号计费;浏览器系统语音免费。</li>
+              <li><strong>语音(可选)</strong>:火山豆包 ASR / TTS 按你的火山账号计费;浏览器系统语音不经说到计费,是否另产生系统或网络识别费用以操作系统或浏览器厂商为准。</li>
               <li><strong>推送(可选)</strong>:ntfy 公共服务器免费 / 自托管。</li>
             </ul>
           </li>
@@ -888,12 +898,12 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         <h2 id="s17">17. 常见问题与故障排查</h2>
         <p><strong>这是语音输入法吗?</strong> 不是。语音只是入口;后面是理解上下文、立账、判断就绪、驱动执行、组织验收的闭环。</p>
         <p><strong>是把我的项目上传到「说到」自营云端代跑吗?</strong> 不是。没有承载产品数据的「说到」自营云后台;重活和核心持久数据在你的电脑上;你主动配置的第三方 AI、系统或浏览器语音识别、推送服务等例外由你的设备直连并适用对应服务商条款。</p>
-        <p><strong>需要什么前提?</strong> macOS / Windows / Linux + Node 22 + 一个已登录的 AI CLI(或一个 API key);常驻安装与系统通知目前只有 macOS 实现。语音和执行都是可选增量(§4)。</p>
-        <p><strong>不配任何 key 能用吗?</strong> 能:本机有任一已登录 CLI 即可零 key 开聊(对话每轮 15–25 秒的慢速文本模式);语音走浏览器系统语音或打字。</p>
+        <p><strong>需要什么前提?</strong> macOS / Windows / Linux + Node 22 + 一个已接线并通过调用验证的 AI CLI(或一个 API key);常驻安装与系统通知目前只有 macOS 实现。语音和执行都是可选增量(§4)。</p>
+        <p><strong>不配任何 key 能用吗?</strong> 登录态不能当成已经可聊:已接线且自检通过的 CLI 可以走零 API key 的慢速文本对话(每轮约 15–25 秒;登录不等于免费)。未接线或自检失败的 CLI 不能当模型供给。语音走浏览器系统语音或打字,完整语音可选。</p>
         <p><strong>它怎么知道「办完了」?</strong> 执行和检查都跑完、产物落盘,它说「等你验收」——不说「做完了」;你点头、过强认证合并,才是「交付了」。</p>
-        <p><strong>它会不会偷偷花钱?</strong> 订阅调用不产生费用、撞限流只会如实报错不会转计费;API 调用有每任务成本封顶 + 活跃时长 + 回合三熔断;S3(花钱 / 部署 / 删数据 / 对外发消息)必须你在屏幕上强认证。</p>
+        <p><strong>它会不会偷偷花钱?</strong> 订阅调用费用以服务商为准、撞限流只会如实报错不会转计费;API 调用有每任务成本封顶 + 活跃时长 + 回合三熔断;S3(花钱 / 部署 / 删数据 / 对外发消息)必须你在屏幕上强认证。</p>
         <p><strong>它会 push 到 GitHub 或开 PR 吗?</strong> 不会。它在 <code>saydo/&lt;taskId&gt;</code> 分支的 worktree 里改代码;合并到你当前分支要你用本机认证确认或自己 merge;push / PR 是你之后自己做的。</p>
-        <p><strong>对话每轮要等十几二十秒,是卡了吗?</strong> 不是。对话档走 CLI 订阅就是慢速文本模式(15–25 秒);界面有慢速徽标;桌面端单次 CLI 调用 120 秒上限后明确报错(手机页 90 秒提示重发)。想要秒级对话给对话档配一个 API key(§5.3 方案二)。</p>
+        <p><strong>对话每轮要等十几二十秒,是卡了吗?</strong> 不是。对话档走 CLI 订阅就是慢速文本模式(约 15–25 秒);界面有慢速徽标;桌面端单次 CLI 调用 120 秒上限后明确报错(手机页 90 秒提示重发)。想要对话走 API 再给对话档配一个 API key(§5.3 方案二)。</p>
         <p><strong>界面说「仅恢复模式 / recovery-only」。</strong> 活动配置非法(TOML 坏了、参数越界、项目覆盖冲突等):daemon 不退,只留健康探针、控制台静态页与设置自救写口;对话、派发、合并、恢复任务全停。去设置页按提示重建安全配置或清理非法项目覆盖,再重启。</p>
         <p><strong>向导说某个 CLI「可识别,暂不能当模型供给」。</strong> 该 CLI(如 kimi / opencode)无法在执行前可证零工具,出于安全不接线;换一家或用 API。</p>
         <p><strong>评估档一直 unarmed。</strong> 看原因:同族未确认(勾 <code>evaluator_same_family_ack</code> 或换家族)/ CLI 评估器缺隔离确认(勾 <code>evaluator_isolation_ack</code>)/ 自检失败 / 实际模型家族上报 unknown。unarmed 不影响对话,只是就绪深评不武装。</p>

@@ -5,7 +5,7 @@
 <!-- corpus:dry-run-meta
 generated_at: 2026-08-26
 source_tree_sha256: 0c2a1f6569db7c05088ab6d624eeecbcf3bc9260008780c42f3bf01db9db2da6
-authority_sha256: 2a83fe2355fc7328eb559d1f9fd78217cd920b323a6950725c832a1064e54365
+authority_sha256: e62d2115beee835ee882061be4b62512ef6ab6507c907a7e597fb92e8405ab98
 total: 600
 live: 465
 live_objects: 986
@@ -23,7 +23,7 @@ ctx: 172
 - simulation corpus ID：72 个
 - 含 CTX 的问题：172 条
 - 主语料源树摘要（questions、contexts、contracts、04）：`sha256:0c2a1f6569db7c05088ab6d624eeecbcf3bc9260008780c42f3bf01db9db2da6`
-- dry-run 权威输入摘要：`sha256:2a83fe2355fc7328eb559d1f9fd78217cd920b323a6950725c832a1064e54365`
+- dry-run 权威输入摘要：`sha256:e62d2115beee835ee882061be4b62512ef6ab6507c907a7e597fb92e8405ab98`
 
 判定源是问题行、LIVE/F1 合同、CTX manifest、simulation spec 与扰动证据映射，不手抄另造 600 条。
 

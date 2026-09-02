@@ -243,7 +243,7 @@ describe("SetupGate 向导页", () => {
     expect(html).toContain("data-setup-wizard-seal");
     expect(html).toContain("首次配置");
     expect(html).toContain("data-setup-wizard-footer");
-    expect(html).toContain("本机运行 · 数据不出这台电脑");
+    expect(html).toContain("本机运行 · 外发范围以当前配置为准");
     expect(html).toContain("先把对话模型配好");
     expect(html).toContain("说到聊不了天");
     expect(html).not.toContain("没有对话模型,SayDo 聊不了天");
@@ -266,7 +266,7 @@ describe("SetupGate 向导页", () => {
     expect(header).toContain("data-setup-wizard-seal");
     expect(header).toContain("data-setup-brand-lockup");
     const footerHidden = renderToStaticMarkup(<SetupWizardBrandFooter revision={null} />);
-    expect(footerHidden).toContain("本机运行 · 数据不出这台电脑");
+    expect(footerHidden).toContain("本机运行 · 外发范围以当前配置为准");
     expect(footerHidden).not.toContain("版本 ");
     const footerShown = renderToStaticMarkup(<SetupWizardBrandFooter revision="b1e591d" />);
     expect(footerShown).toContain("版本 b1e591d");

@@ -143,7 +143,8 @@
   *EN: macOS desktop service · Free & open source · Available now · Install guide → · GitHub →*
 - Windows / Linux 卡 [改 2026-08-22]:徽章 `开源 · 现在可用` / *Open source · Available now*;能力边界见引语(常驻安装与系统通知暂为 macOS 实现)
 - 三端卡上方 [改 2026-08-23]:并列展示固定版本 Release 的两种无源码入口:
-  1. 一次运行:`npm exec --yes --package=<tgz URL> -- saydo up`;
+  0. (2026-09-02 起,收尾 CTA 首行)一条命令安装:macOS / Linux `curl -fsSL https://saydo.octoooo.com/install.sh | sh`,Windows `irm https://saydo.octoooo.com/install.ps1 | iex`(无需预装 Node.js;脚本在用户目录内准备 Node 22、校验 SHA-256;方案 `docs/plan/2026-09-02-quick-start-distribution.md`);
+  1. 一次运行(已有 Node 22):`npm exec --yes --package=<tgz URL> -- saydo up`;
   2. 常用安装:`npm install --global <tgz URL>` 后运行 `saydo up`。
   说明需要 Node.js 22、包只含 daemon + Web 控制台、当前为 prerelease。
 - iOS / Android / HarmonyOS 三卡 [改]:徽章 `开发中` / *In development*;尚未上架、当前无可下载版本。邮件按钮 `邮件订阅进展` / *Email for updates*(mailto subject 为更新通知,不是 beta access)

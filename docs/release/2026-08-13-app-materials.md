@@ -56,18 +56,18 @@ store/ 与 release/ 同日各自起草,重叠处按「owner 已拍板 > 已实�
 
 **一句话版本**
 
-「说到」不运营任何服务器。你的对话、语音、事项与账本数据,全部保存在**你自己的设备**(你的电脑与手机)上,在你自己的局域网内传输,开发者无法访问、也不收集你的任何数据。
+「说到」不运营任何服务器。核心账本在你的电脑上；你自行启用的云端语音、AI 上游和推送由你的电脑直连第三方，外发范围以当前配置为准。开发者无法访问、也不收集你的任何数据。
 
 **我们收集哪些信息**
 
-不收集。本应用没有开发者运营的服务端,不设账号体系,不埋点,不接入第三方统计/广告 SDK,不上传任何用户数据。
+开发者不收集。本应用没有开发者运营的服务端,不设账号体系,不埋点,不接入第三方统计/广告 SDK。开发者不上传、不接收用户数据;你自行启用的语音或 AI 上游由你的电脑按当前配置直连第三方。
 
 **应用会使用哪些设备能力,为什么**
 
 | 能力 | 用途 | 数据去向 |
 |---|---|---|
 | 相机 | 扫描桌面端展示的配对二维码 | 仅本机解析,不存储图像 |
-| 麦克风 | 按住说话 | 音频仅在本机处理,不上传 |
+| 麦克风 | 按住说话 | 音频交给系统语音识别,说到不保存音频;是在设备端处理还是联网处理,取决于应用或系统设置与操作系统厂商的实现,联网时适用该厂商的隐私条款 |
 | 语音识别 | 将你的话转成文字(使用系统语音识别,默认设备端处理) | 转写文本仅发送到**你自己配对的电脑**;若你在系统设置中允许了联网语音识别,适用操作系统厂商的隐私条款 |
 | 本地网络 | 与你自己电脑上的「说到」服务通信 | 仅限你的局域网,凭配对令牌通信 |
 
@@ -111,12 +111,12 @@ support@octoooo.com
 >
 > - 说了就记:按住说话,想到哪说到哪,随口一句「帮我记一下」立刻进账。
 > - 一本账,不是一堆待办:每件事都有归属和去向,四色分明。
-> - AI 真的在干活:接上你电脑上已有的 AI(已订阅的 CLI 即可,无需额外付费),对话、整理、跟进、动手都由它来。
-> - 数据完全在你手里:没有云端服务器,没有账号注册。手机扫码连接你自己的电脑,数据只在你的设备和局域网里。
+> - AI 真的在干活:接上你电脑上已有的 AI(已登录不等于可调用,需已接线并完成自检;登录不等于免费),对话、整理、跟进、动手都由它来。
+> - 外发范围以当前配置为准:没有账号注册。手机扫码连接你自己的电脑。模型与语音是否出网取决于你的配置。
 >
 > 使用前提:需在你的电脑(macOS)上运行「说到」桌面服务(开源免费),手机扫码即连。
 >
-> 这不是语音输入法,也不是把你的项目上传到云端代跑的服务。默认在你自己的设备上工作。
+> 这不是语音输入法,也不是把你的项目上传到云端代跑的服务。核心账本在你的电脑上;模型与语音外发以当前配置为准。
 
 - **平台变体**:
   - App Store 中国区:描述末尾附 `ICP 备案号:京ICP备2025153079号-4A`
@@ -167,7 +167,7 @@ This app ("说到", English name SayDo) is the mobile companion for SayDo, an op
 Key points for review:
 
 - No account system, no sign-up, no in-app purchases, no data collection (no developer-operated user cloud exists; see privacy policy).
-- Camera is used solely to scan the pairing QR code; microphone + speech recognition are used for push-to-talk input, processed on-device; local network access is required to reach the user's own computer.
+- Camera is used solely to scan the pairing QR code; microphone + speech recognition are used for push-to-talk input; whether recognition is on-device or network-based depends on app or OS settings and the vendor's implementation; local network access is required to reach the user's own computer.
 - On first launch the app shows a pairing screen. Full functionality requires a desktop instance.
 
 How to review: A dedicated review desktop (SayDo desktop service) will remain online for the entire review window. It is a review fixture only; production usage is LAN to the user's own computer.

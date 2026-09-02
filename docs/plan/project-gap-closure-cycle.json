@@ -1,0 +1,65 @@
+{
+  "applied_receipts": [
+    {
+      "id": "owner-night-fg1-recovery-20260901-repair-1",
+      "sha256": "5335c86255bae3eb3df8f4a7028f9991bea32dd7fbd7c7f275e50b5bcc1ee58d"
+    },
+    {
+      "id": "owner-night-fg1-recovery-20260901-review-1",
+      "sha256": "a795d0f38e08d373929a320d7c9440f83e6df8109926449c790027e643ea0b6d"
+    }
+  ],
+  "blocker_id_map": [],
+  "budget": {
+    "repair_rounds_reserved": 1,
+    "repair_rounds_used": 1,
+    "rereview_rounds_reserved": 0,
+    "rereview_rounds_used": 0,
+    "strategy_resets_reserved": 0,
+    "strategy_resets_used": 0
+  },
+  "candidate_head": "2b5517d322f062297d25806b02c4106e2ecc60e8",
+  "cost_events": [
+    {
+      "cost_kind": "product",
+      "receipt_id": "owner-night-fg1-recovery-20260901-repair-1"
+    },
+    {
+      "receipt_id": "owner-night-fg1-recovery-20260901-review-1",
+      "cost_kind": "none"
+    }
+  ],
+  "current_blockers": [],
+  "cycle": "owner-night-fg1-recovery-20260901",
+  "diff_fingerprint": "d324b59bce25b1c3eedb0110c77e520f160f57bc44c2ad3e6b51552ac26444e8",
+  "evidence_refs": [
+    "cycle-state:init",
+    "logs/pg01a-night-20260901.V1D8er/fg1-repair-1.summary.json",
+    "logs/pg01a-night-20260901.V1D8er/pre-scope-fg1.json",
+    "logs/pg01a-night-20260901.V1D8er/post-scope-fg1.json",
+    "logs/pg01a-night-20260901.V1D8er/fg1-review-1.md",
+    "logs/pg01a-night-20260901.V1D8er/fg1-review-1.summary.json",
+    "docs/review/2026-09-01-pg-01a-fg1-impl-readback.fable.md",
+    "logs/pg01a-night-20260901.V1D8er/fg1-focused-1.receipt.json",
+    "logs/pg01a-night-20260901.V1D8er/fg1-full-gate-1.summary.json",
+    "logs/pg01a-night-20260901.V1D8er/fg1-browser-qa-1.json",
+    "logs/pg01a-night-20260901.V1D8er/fg1-browser-qa-1.verify.summary.json"
+  ],
+  "followup_authorized": true,
+  "owned_session_id": null,
+  "previous_blockers": [],
+  "review_ordinal": 1,
+  "root_cause_attempts": [],
+  "safety": {
+    "candidate_unchanged": true,
+    "new_owner_decision": false,
+    "partial_write": false,
+    "permissions_lowered": false,
+    "process_alive": false,
+    "scope_expanded": false
+  },
+  "schema_version": 1,
+  "stage": "PG-01A/FG-1",
+  "task": "project-gap-closure",
+  "task_mode": "supervised_delivery"
+}

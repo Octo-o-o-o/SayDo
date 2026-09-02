@@ -81,6 +81,7 @@ describe("listAvailableSupplies", () => {
     expect(supplyOneLiner(supplies[0]!)).toContain("本机用过 1 个模型");
     expect(supplyOneLiner(supplies[1]!)).toContain("已存 key");
     expect(supplyOneLiner(supplies[1]!)).not.toContain("有效 key");
+    expect(supplyOneLiner(supplies[1]!)).not.toContain("秒级返回");
   });
 
   it("空态:无可用 CLI 也无 key", () => {
@@ -195,7 +196,7 @@ describe("plan factories", () => {
   });
 
   it("成本文案按 provenance 分流,缺字段当 unknown", () => {
-    expect(costCopyForProvenance("subscription")).toBe("订阅内零成本");
+    expect(costCopyForProvenance("subscription")).toBe("探测为订阅登录态;费用以服务商账单为准");
     expect(costCopyForProvenance("external_api")).toBe("按该 CLI 配置的上游计费,SayDo 不代付");
     expect(costCopyForProvenance("unknown")).toBe("计费方式未知,以你的 CLI 账单为准");
     expect(costCopyForProvenance(undefined)).toBe("计费方式未知,以你的 CLI 账单为准");

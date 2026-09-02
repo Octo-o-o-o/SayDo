@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
@@ -1598,6 +1598,13 @@ const liveCanonical = JSON.stringify(liveContracts);
 const capabilityCanonical = JSON.stringify(capabilityRegistry);
 if (liveObjectSourceCount !== finalV8LiveObjectSourceCount) {
   errors.push(`LIVE 对象来源=${liveObjectSourceCount}，v8 基线应为 ${finalV8LiveObjectSourceCount}`);
+}
+const corpusReadmePath = join(root, "README.md");
+if (existsSync(corpusReadmePath)) {
+  const corpusReadme = readFileSync(corpusReadmePath, "utf8");
+  if (!corpusReadme.includes("unresolved requirement，不是 connector readiness")) {
+    errors.push("README 未将 986 LIVE source 降为 unresolved requirement（非 connector readiness）");
+  }
 }
 if (sha256(liveCanonical) !== finalV8LiveRegistryDigest) errors.push("LIVE 合同源 v8 全量摘要基线漂移");
 if (sha256(capabilityCanonical) !== finalV8CapabilityRegistryDigest) errors.push("F1 能力合同源 v8 全量摘要基线漂移");

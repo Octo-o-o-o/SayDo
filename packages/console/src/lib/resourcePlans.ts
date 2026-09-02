@@ -130,9 +130,9 @@ export function cliUsableForPlans(cli: CliCapability): boolean {
   return !CLI_PROVIDER_CONTRACT[cli.provider].modelRequired || firstCliModel(cli) !== undefined;
 }
 
-/** 计费文案只认探测 provenance;缺字段按 unknown,禁止默认成「订阅内零成本」 */
+/** 计费文案只认探测 provenance;缺字段按 unknown,禁止把登录写成免费 */
 export function costCopyForProvenance(provenance: CliCostProvenance | undefined): string {
-  if (provenance === "subscription") return "订阅内零成本";
+  if (provenance === "subscription") return "探测为订阅登录态;费用以服务商账单为准";
   if (provenance === "external_api") return "按该 CLI 配置的上游计费,SayDo 不代付";
   return "计费方式未知,以你的 CLI 账单为准";
 }
@@ -486,7 +486,7 @@ export function mixedPlan(cli: CliCapability): QuickConfigPlan {
     id: `mixed-${cli.provider}`,
     shape: "mixed",
     title: "对话走 API+其余槽 CLI",
-    positioning: `对话用 API 秒级返回;沉思、廉价、评估槽走本机 ${label}。`,
+    positioning: `对话用 API;沉思、廉价、评估槽走本机 ${label}。时延以服务商为准。`,
     cost: `对话按 API 实际用量计费;其余三槽${phrase}。`,
     supplies: { ...cliSlots, dialog: apiSupplies().dialog },
     requiredAcks: requiredAcksForSupplies({ ...cliSlots, dialog: apiSupplies().dialog })
@@ -499,7 +499,7 @@ const ONE_KEY_PLAN: QuickConfigPlan = {
   shape: "all-api",
   title: "一个 key 全搞定",
   positioning: "四个推理槽都经 OpenRouter API,保存后按各槽真实模型调用。",
-  cost: "API 按实际用量计费,通常秒级返回;这里不展示月费数字,以服务商账单为准。",
+  cost: "API 按实际用量计费;这里不展示月费数字,以服务商账单为准。",
   supplies: apiSupplies(),
   requiredAcks: requiredAcksForSupplies(apiSupplies())
 };
@@ -573,7 +573,7 @@ export function unreadyCliAllowsLiveCheck(cli: CliCapability): boolean {
 }
 
 export function supplyOneLiner(supply: AvailableSupply): string {
-  if (supply.kind === "api") return "已存 key · 秒级返回 · 按量计费 · 有效性以启动自检为准";
+  if (supply.kind === "api") return "已存 key · 计费以服务商为准 · 有效性以启动自检为准";
   const cli = supply.cli;
   const used = cli.models.filter((model) => model.source === "used").length;
   const usedPart = used > 0 ? `本机用过 ${used} 个模型` : cli.enumerable ? `${cli.models.length} 个模型` : "模型数未知";
@@ -605,7 +605,7 @@ export function apiKeyPlan(keyName: ApiKeyName): QuickConfigPlan {
     shape: "all-api",
     title: `全用 ${label}(已存 key · 有效性以启动自检为准)`,
     positioning: `四个推理槽都经 ${label} API,保存后按各槽真实模型调用。`,
-    cost: "已存 key · 秒级返回 · 按量计费。有效性以启动自检为准。",
+    cost: "已存 key · 计费以服务商为准。有效性以启动自检为准。",
     supplies,
     // 单家直连四槽同族恒成立 ⇒ same-family ack 前置(11 §5 owner 2026-08-15);
     // 不走 requiredAcksForSupplies 的「API 一律不前置」缺省,否则用户必撞一次 422。
@@ -628,7 +628,7 @@ export function oneKeyFromForm(input: { baseURL: string; apiKey: string; model: 
     shape: "all-api",
     title: "全用这个 API(按量计费)",
     positioning: "四个推理槽都走刚填的 API 端点。",
-    cost: "API 按实际用量计费,通常秒级返回;有效性以启动自检为准。",
+    cost: "API 按实际用量计费;有效性以启动自检为准。",
     supplies: { dialog: slot, thinking: { ...slot }, cheap: { ...slot }, evaluator: { ...slot } },
     requiredAcks: requiredAcksForSupplies({
       dialog: slot,

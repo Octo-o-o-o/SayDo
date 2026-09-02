@@ -484,7 +484,7 @@ export function Chat({
             data-dialog-mode="oneshot"
             style={{ margin: "0 0 10px", fontSize: "var(--text-xs)", color: "var(--color-warning)" }}
           >
-            CLI 慢速模式·每轮约 15-25 秒·配 API key 立即变快
+            CLI 慢速模式·每轮约 15-25 秒·配 API key 后时延以服务商为准
           </p>
         ) : null}
         {/* L13:dialog 槽非 ok → 错误态引导去设置页配置向导(真实存在的门) */}

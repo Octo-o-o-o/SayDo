@@ -69,7 +69,7 @@ Codex 报告或 journal 记录日志文件名、字节数与 SHA-256，历史日
 
 ## 质量门
 
-- 每个 Phase:lint + typecheck + 单测 + 契约测试绿，`just ci` 双矩阵(node + python)全绿。
+- 每个 Phase:lint + typecheck + 单测 + 契约测试绿，`just ci` 双矩阵(node + python)作为本地基线，不宣称托管 CI 等效。
 - owner 明确授权提交时使用两提交法:先 `feat(phase-N): ...` 代码提交，再
   `chore(evidence): phase-N` 证据提交;证据记录代码提交 SHA，不自指。
 - 批量编辑后逐项程序化核验改动落盘;长文件用 `wc -l` 与关键内容检索复核。
@@ -77,7 +77,7 @@ Codex 报告或 journal 记录日志文件名、字节数与 SHA-256，历史日
 ## 常用命令
 
 - `just dev` — 起 daemon + pipeline + console
-- `just ci` — 本地 CI 等效(node/python 双矩阵 + emoji 门禁与自测)
+- `just ci` — 本地 Node/Python 基线(node/python 双矩阵 + emoji 门禁与自测;不是托管 CI 等效)
 - `just backup` — SQLite/JSONL/knowledge 快照备份
 
 ## 语言与身份

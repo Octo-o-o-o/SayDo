@@ -5,6 +5,129 @@
 > **纪律继承**:AGENTS.md 评审制度(设计文档轮次=重制度;实施期轻量版)、HANDOFF §4 铁律、IMPL-PROMPT 系列交接模式、本仓实施会话串行。
 > **v1.1(2026-07-26)**:经自审 + 四路 subagent 评审(完整性对账/架构契约/范围克制/可操作性)回修。**v1.2(同日)**:叠加 Codex 19(报告 `research/codex-findings/19-plan2-review.md`,评的是 v1.0,与 subagent 重叠项已在 v1.1 修)——最重发现:电话形态已有**锁定实施计划**(`research/phone-call-impl-plan-2026-07.md` v3,40–55 工程日、自带解锁触发与四道前置门),从 W7 摘出为指针;另修 S3 merge 措辞(候选方案而非既定语义)、corpus 双资产拆分、planning 出缺省集、APNs/FCM 等 B 级十余项。
 
+## 当前唯一排产链 · PG-00 导入（2026-08-29）
+
+> 本节是 2026-08-29 起 PLAN-2 的唯一当前排产坐标。下方 §0 现状锚点与 §1 W1–W9 / 合同轮 / `ai-supply` 为历史原文，只增加 superseded/disposition，不删除历史节点、不重写既有 evidence。当前 `HANDOFF` active=none；唯一 next=`PG-01A`（未开工）；不得保留第二个 active/next。字段逐字来自 `docs/plan/2026-08-28-project-gap-closure-program.md` §20 批卡与 D17 §4.2；不新增功能、不另造控制平台。`PLAN2-default-all` 已 `superseded`；未被 exact 选入的未来项一律 deferred，取消“未回复则缺省全做”。
+
+### 唯一串行链
+
+```text
+PG-01A → PG-01B → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop
+```
+
+断言形态：`PLAN2_chain == PG-01A>PG-01B>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop`。
+
+PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代码批，也不占用 active/next。
+
+### legacy disposition exact-set
+
+`PLAN2_legacy_disposition_id_exact_set` 必须与下表 18 行全等；缺项、重复、删除历史节点或保留第二个 active/next 都失败。
+
+| legacy node | disposition |
+|---|---|
+| `AI-ACTIVE` | `superseded_by_PG-00_chain` |
+| `AI-DRAFT` | `archive_deferred` |
+| `W5.4-c` | `conditional_release_evidence` |
+| `W5.3-tail` | `inventory_deferred(trigger=PLAN-2 §6.10)` |
+| `W5.6` | `inventory_deferred` |
+| `W5.8` | `inventory_deferred` |
+| `W5.9` | `inventory_deferred` |
+| `W5.11-rest-six` | `inventory_deferred` |
+| `R-B` | `split_deferred` |
+| `R-C` | `inventory_deferred` |
+| `A5-armed` | `not_authorized` |
+| `A5-UI` | `not_authorized` |
+| `W6` | `inventory_deferred` |
+| `W7` | `inventory_deferred` |
+| `W8` | `inventory_deferred` |
+| `W9` | `preserved_trigger_track` |
+| `PLAN2-default-all` | `superseded` |
+| `Codex-app-server` | `deferred_by_AI_decision_2` |
+
+### PG-01A · public-claim-corpus-stoploss——**状态:已收口(2026-09-02;I `2a786ed`,evidence `e2e/evidence/project-gap-pg-01a.md`;G-A1 按 D2 安全缺省 `repo_downgraded`(986 source 全部 unresolved),G-A4 `repo_closed`,G-A2 stop-loss 已落;deployed_status 均 `blocks_expansion` 待部署授权)**
+
+- depends_on：PG-00 evidence commit
+- A-ID exact-set：`close_set=[G-A1,G-A4]`；`stop_loss_set=[G-A2]`
+- deferred exact-set：`[DF-CLAIM-SOURCE-FULL,DF-CLAIM-GENERATOR,DF-SP3B-DIST,DF-SP4-FORMATIVE,DF-SP5-READ]`
+- scope roots：`AGENTS.md`、`justfile`、`README*`、`docs/site/**`、`docs/release/**`、`deploy/saydo-octoooo-com/**`、`templates/**`、与受影响 claim 直接对应的 console copy、`research/customer-question-corpus/{README.md,contracts/**,questions/**,contexts/**,04-live-source-contracts.md,validate.mjs,rebuild.mjs,test-mutations.mjs,dry-runs/rebuild-three-pass-dry-run.mjs,dry-runs/01-three-pass-dry-run-result.md,dry-runs/02-dry-run-remediation-plan.md,check-q0-truth-report.mjs,test-q0-truth-mutations.mjs,review/23-pg01a-q0-truth-report.json}`、`docs/06-references.md`、`docs/11-ui-spec.md`、`scripts/{check-active-claims.mjs,test-active-claims.mjs}`
+- focused gate：`FG-PG01A-CLAIM` = `node research/customer-question-corpus/validate.mjs`；`node research/customer-question-corpus/test-mutations.mjs`；`node research/customer-question-corpus/simulations/validate-simulations.mjs`；`node research/customer-question-corpus/simulations/test-simulation-mutations.mjs`；`node research/customer-question-corpus/dry-runs/validate-three-pass-dry-run.mjs`；`node research/customer-question-corpus/dry-runs/test-dry-run-mutations.mjs`；`node scripts/test-public-text-redaction.mjs`；`[new] node scripts/check-active-claims.mjs`；`[new] node scripts/test-active-claims.mjs`；`[E-artifact producer, after all read-only I gates] node research/customer-question-corpus/check-q0-truth-report.mjs --write --output research/customer-question-corpus/review/23-pg01a-q0-truth-report.json --implementation-sha <full-I-OID> --implementation-tree <full-I-tree>`；`[new] node research/customer-question-corpus/check-q0-truth-report.mjs --check research/customer-question-corpus/review/23-pg01a-q0-truth-report.json`；`[new] node research/customer-question-corpus/test-q0-truth-mutations.mjs`
+- full gate：`just ci`
+- evidence path：`e2e/evidence/project-gap-pg-01a.md`
+- 回滚上限：只能回到更保守文案或关闭投影，不能恢复已证伪 claim。`safe_default=unsupported_or_conditional + repo_closed_only + no_deploy`
+- 批卡摘要（program §20.4）：claim-only，规模 S；canonical_change=yes。按 D2 安全缺省先降级 986 source 合同与 connector-readiness 引用，不逐条修 986 个 source；只修 active claim roots 和生成真相，不新增 generator 平台。G-A2 在本批只做 stop-loss（删除“本地 CI 等效”总括说法，改成“本地 Node/Python 基线”），由 PG-03 唯一关闭。
+
+### PG-01B · runtime-entry-stoploss
+
+- depends_on：PG-01A evidence commit
+- A-ID exact-set：`close_set=[G-A6]`；`stop_loss_set=[G-A3]`
+- deferred exact-set：`[DF-DIRECT-REVIEW-FULL,DF-REMOTE-REOPEN,DF-SP2B1-LIVE,DF-SP2C1-HISTORY]`
+- scope roots：`packages/daemon/src/net/**`、`packages/daemon/src/index.ts`、`packages/daemon/src/voice/hub.ts`、`packages/daemon/src/api/recoveryOnlyServer.ts`、`packages/daemon/src/tier1/gateServer.ts`（仅证明 Unix socket 不属于远程面）、对应 remote/mobile/console/recovery/voice WS API tests、`packages/daemon/src/brain/liveTools.ts`、`packages/console/src/**` 中 action/budget/remote 消费点、`packages/daemon/src/api/**` 的 touched exact-set、`docs/09-data-contracts.md`、`docs/10-voice-ux-spec.md`、`docs/11-ui-spec.md`、`scripts/{pairing-url-corpus.json,remote-surface-inventory.json,check-remote-surface-inventory.mjs,test-remote-surface-inventory.mjs}`
+- focused gate：`FG-PG01B-RUNTIME` = `pnpm --filter @saydo/console exec vitest run src/hooks/redesign/mappers.test.ts src/components/redesign/DecisionPackageCard.test.tsx src/lib/apiError.test.ts`；`pnpm --filter @saydo/daemon exec vitest run test/console-actions.test.ts test/console-api.test.ts test/p05c-direct-mode.test.ts test/mobile-lan-process.test.ts test/pairing-info.test.ts test/t2-thin.test.ts test/logger.test.ts`；`node scripts/test-pairing-url-corpus.mjs`；`[new] node scripts/check-remote-surface-inventory.mjs`；`[new] node scripts/test-remote-surface-inventory.mjs`
+- full gate：`just ci`；`pnpm exec playwright test`
+- evidence path：`e2e/evidence/project-gap-pg-01b.md`
+- 回滚上限：保持入口 hidden/403/unknown；如兼容客户端失败，返回稳定 typed unsupported/error，不恢复不安全读取。`safe_default=hidden + remote_business_403 + budget_unknown`
+- 批卡摘要（program §20.4）：runtime safety，规模 M；canonical_change=yes。`direct_to_review` 保留设计合同并标 `designed/deferred`，从 active selector/default route/public claim 移除，不删 schema。remote business API 统一 fail-closed；只保留无业务 payload health/static shell 与安全跳转；abandon 不再映射 archive；0/0 改 unknown。G-A9 不在本批关闭。G-A3 本批只记 stop-loss，由 PG-02 关闭。
+
+### PG-02 · minimal-truth-gate-bootstrap
+
+- depends_on：PG-01B evidence commit
+- A-ID exact-set：`close_set=[G-A3]`；`stop_loss_set=[]`
+- deferred exact-set：`[DF-CLAIM-GENERATOR,DF-AI-DRAFT-FULL,DF-SP4-FORMATIVE,DF-SP5-READ,DF-SP7-CALIBRATE]`
+- scope roots：`docs/06-references.md`、`docs/09-data-contracts.md`、`docs/11-ui-spec.md`、`packages/contracts/**`、最小 release/support projection、`scripts/{check-capability-ledger.mjs,check-action-reachability.mjs,check-support-matrix.mjs}` 及对应 mutation self-tests；`ai-supply-scope` 在本批重分类，不下沉全部 45k 行草案
+- focused gate：`FG-PG02-BOOTSTRAP` = `pnpm --filter @saydo/contracts exec vitest run test/schemas.test.ts`；`[new] node scripts/check-capability-ledger.mjs`；`[new] node scripts/test-capability-ledger.mjs`；`[new] node scripts/check-action-reachability.mjs`；`[new] node scripts/test-action-reachability.mjs`；`[new] node scripts/check-support-matrix.mjs`；`[new] node scripts/test-support-matrix.mjs`
+- full gate：`just ci`；`pnpm exec playwright test`。本批 implementation commit 上重跑 `FG-PG01A-CLAIM`、`FG-PG01B-RUNTIME`；其中 `FG-PG01A-CLAIM` 回归只运行 read-only validator/mutation 与 Q0 `--check` 子集，明确排除 Q0 `--write` E-artifact producer
+- evidence path：`e2e/evidence/project-gap-pg-02.md`
+- 回滚上限：checker/projector 失败即阻断新 claim，不回退为人工口头对账。`safe_default=unregistered_not_claimable + evidence_bound_to_git_commit`
+- 批卡摘要（program §20.4）：runtime safety/bootstrap，规模 M；canonical_change=yes。最小 capability/action/scope schema、手工维护 scoped ledger、claim/gate/support checker；inventory/deferred 只填最小字段；建立供 PG-03–PG-06 消费的稳定 gate-ID registry，但不建设通用 wave-exit 执行/receipt 平台。
+
+### PG-03 · gate-truth
+
+- depends_on：PG-02 evidence commit
+- A-ID exact-set：`close_set=[G-A2]`；`stop_loss_set=[]`
+- deferred exact-set：`[DF-SP3A1-RELEASE,DF-SP3B-DIST,DF-SP3C-VOICE]`
+- scope roots：`AGENTS.md`、`justfile`、根/各 package scripts、`.github/workflows/**`、与当前公开 claim 相关的 release/gate scripts、`docs/09-data-contracts.md`、PG-02 的 gate registry/schema、`scripts/{check-gate-manifest.mjs,test-gate-manifest.mjs}`；不做 candidate identity 参数化
+- focused gate：`FG-PG03-CONTROL` = `node scripts/test-release-provenance.mjs`；`node scripts/test-release-physical-evidence.mjs`；`node scripts/check-doc-links.mjs`；`node scripts/third-party-notices.mjs --check`；`pnpm --filter @saydo/cli verify:distribution`；`[new] node scripts/check-gate-manifest.mjs`；`[new] node scripts/test-gate-manifest.mjs`；说明：I 阶段不运行 predecessor 的 `week-audit --check-bundle`，该门只在通用 E writer 后的 clean E 执行，gate-manifest mutation 负责证明 workflow 可达该 E 门
+- full gate：`just ci`；`pnpm exec playwright test`
+- evidence path：`e2e/evidence/project-gap-pg-03.md`
+- 回滚上限：gate checker 故障时阻断新 claim/RC，不恢复“本地 CI 等效”总括声明。`safe_default=unwitnessed_required_gate_nonzero + local_baseline_not_hosted_or_release`
+- 批卡摘要（program §20.5）：runtime safety，规模 S/M；canonical_change=yes。只关闭 G-A2，不做下一 RC。现役 gate/workflow control graph；required/optional 与平台 exact-set；删除 matrix、恒假 if、`continue-on-error`、断 needs、required skip mutations；缺当前 commit 的 gate evidence/freshness 时 overall nonzero。托管 CI、跨平台与 live 的未运行状态必须单独记录，不能由本机 exit 0 填绿。
+
+### PG-04 · audit-new-write-safety
+
+- depends_on：PG-03 evidence commit
+- A-ID exact-set：`close_set=[G-A9]`；`stop_loss_set=[]`
+- deferred exact-set：`[DF-SP2C1-HISTORY,DF-SP2C2-LOGGER,DF-SP3B-DIST]`
+- scope roots：`packages/daemon/src/obs/**`、audit SQLite sink、`audit.record(...)` 全 callsite exact-set、`packages/contracts/**` 的 selected audit schema、`docs/09-data-contracts.md`、`docs/modules/e-crosscutting.md`、logger/audit tests、`scripts/{audit-sensitive-inventory.mjs,test-audit-sensitive-inventory.mjs}`
+- focused gate：`FG-PG04-AUDIT` = `[new] pnpm --filter @saydo/daemon exec vitest run test/logger.test.ts test/audit.test.ts`；`[new] node scripts/audit-sensitive-inventory.mjs`；`[new] node scripts/test-audit-sensitive-inventory.mjs`
+- full gate：`just ci`
+- evidence path：`e2e/evidence/project-gap-pg-04.md`
+- 回滚上限：保持 stop-write 与最小 safe envelope；sink 可 fail-closed/告警，不能恢复原文。`safe_default=stop_unsafe_write + safe_envelope + history_inventory_only`
+- 批卡摘要（program §20.5）：runtime safety，规模 M；canonical_change=yes。D13 只阻塞历史处置，不阻塞本批。稳定 event ID + typed envelope；已知事件 exact schema；未知 meta 仅允许 safe scalar allowlist 或 digest；对 DB、备份、副本生成逐对象 history inventory 与隔离状态，不做不可逆变换。普通 logger/correlation/capacity 不在本批。
+
+### PG-05 · db-safety
+
+- depends_on：PG-04 evidence commit
+- A-ID exact-set：`close_set=[G-A5]`；`stop_loss_set=[]`
+- deferred exact-set：`[DF-SP2A1-DATA]`
+- scope roots：`packages/daemon/src/storage/**`、`packages/daemon/src/backup/**`、直接迁移入口与 storage/backup tests、`docs/09-data-contracts.md`；config/receipt/client 只在被现役 DB schema 直接触及时列入 exact-set
+- focused gate：`FG-PG05-DB` = `pnpm --filter @saydo/daemon exec vitest run test/storage-migration-v5.test.ts test/storage-checks.test.ts test/storage-crash.test.ts test/storage-roundtrip.test.ts test/backup.test.ts`；同组测试必须包含 live main+WAL/SHM 一致读取、quiesced copy immutable probe、WAL-only future/gap、每种生产 migration（含 additive）恢复点及故障点反例
+- full gate：`just ci`
+- evidence path：`e2e/evidence/project-gap-pg-05.md`
+- 回滚上限：保留迁移前 snapshot；固定旧 compatible artifact，只读/拒绝不兼容库；不做未验证逆向 DDL。`safe_default=consistent_read_then_refuse_incompatible + snapshot_before_every_production_migrate + no_reverse_DDL`
+- 批卡摘要（program §20.5）：runtime safety，规模 M；canonical_change=yes。只关闭 G-A5，不顺带兑现 G-B3 的所有 workspace/RPO/RTO 支持。open/inspect/migrate 分离；backup 只读不迁移；每一次 production migration 前建立可恢复点。
+
+### PG-06 · admission-discovery-tightening
+
+- depends_on：PG-05 evidence commit
+- A-ID exact-set：`close_set=[G-A7,G-A8]`；`stop_loss_set=[]`
+- deferred exact-set：`[DF-SP2B1-LIVE,DF-AI-DRAFT-FULL,DF-SP4-FORMATIVE,DF-SP5-READ,DF-SP6-EXPAND]`
+- scope roots：`packages/contracts/**` 的 selected admission schema、daemon config/provider/resolver/discovery/executor 边界、console setup 对应 surface、`docs/09-data-contracts.md`；AI 草案只提取 exact safety types，不整包下沉；新增 test 路径为 `packages/daemon/test/provider-admission.test.ts`
+- focused gate：`FG-PG06-ADMISSION` = `[new] pnpm --filter @saydo/daemon exec vitest run test/cli-capability.test.ts test/provider.test.ts test/setup-onboarding.test.ts test/tier1-security.test.ts test/provider-admission.test.ts`；`pnpm --filter @saydo/console exec vitest run src/lib/setupApi.test.ts`
+- full gate：`just ci`
+- evidence path：`e2e/evidence/project-gap-pg-06.md`
+- 回滚上限：保持 static inventory 与 provider route disabled；不能回到页面加载即探测。`safe_default=unknown_deny + static_inventory_only + zero_probe`
+- 批卡摘要（program §20.5）：runtime safety，规模 M；canonical_change=yes。只关闭 G-A7/A8。AI 决策 4/5、D12 未签不阻塞本批，也不在本批实现 live ProbeGrant cage。static inventory 与 production admission 分离；field-aware pre-send gate；自动 probe hard-disable。收口后停在 owner-stop。
+
 ## 0. 现状锚点(2026-07-26 00:50 定稿时刻快照;开批时现状以 `HANDOFF.md` 为准)
 
 > **2026-08-21 当前(覆盖下表过期现时态):**Claude 订阅已就位；W5.4-a 纯函数层已收口；**W-Win Windows 原生对齐已收口**(2026-08-22,真机全量门禁 + Linux CI 双 job 绿;evidence `windows-alignment.md`),gate 运输面串行约束随之解除,W5.4-b 的 C1/C2 已在其后合入 `4d2824e`(协议仍是现网 `{cwd, command?}` 超集,可选 `kind`,未知 deny)。官网 FAQ 已按 owner 本轮授权翻转为「Windows/Linux 已开放,常驻安装与系统通知暂为 macOS 实现」。Actions billing 已恢复且 workflow pnpm 版本冲突已由 `3279c0f` 修复,公开仓两 job 已绿。场次 1 = `failed` @ `ada7981c`，待 owner 复验；场次 2–4 = `not_run`。T2 = 组网已就绪，待手机烟测；结论只对 `ada7981c`，不得外推当前 HEAD。T19 × tailnet 合同拍板并回写 canonical + 备份恢复可用，二者都是任何升常驻动作的前置。活动树 / 常驻 runtime / release config 的当前三层坐标唯一以 `HANDOFF.md` §1「当前快照」行为准，本计划不复制第二套现时坐标。
@@ -18,7 +141,7 @@
 | dogfood 仓 | OctoDesk(coding)+ OctoBlog(writing,窄版后接入) | IMPL-PROMPT-5 §3.5 |
 | 外部解锁 | Claude 订阅已就位(CLI-only,Max);Actions billing 已恢复(剩 pnpm 版本键,走公开快照仓);OpenAI key=可选;CURSOR_API_KEY=无额度(购入才解锁 5.9) | HANDOFF §2-5/§2-6;IMPL-PROMPT-5 §3.5 |
 
-## 1. 工作流总表(W1–W9 + 合同轮 R-A/R-B/R-C)
+## 1. 工作流总表(W1–W9 + 合同轮 R-A/R-B/R-C)——**历史保留；当前唯一串行链见「当前唯一排产链 · PG-00 导入」节**
 
 > 排序原则:dogfood 价值优先,合同轮先行于对应实施批;工期为工程量粗估(墙钟另见 §4)。
 > **通则(全 W 适用)**:① 批级 IMPL prompt 生成时每项必须给出**可判定验收锚**,给不出锚 = 合同不熟 = 回 canonical 文件面,不得带模糊项开批;② 合同门机械判定 = 09/10 出现对应节 + 本方案对应行标"合同已落"(照 IMPL-5 §2 E 门模式);③ 合同增量随批走轻量评审,**语义级变更一律先回写本仓 canonical**,批中途撞缺口 = 停该项继续其他;④ 每批收口:evidence 落盘(命名 `w{N}-batch.md`)+ HANDOFF §2 回填 + 本方案 §1 行标状态 + /impl-review readback + **下一批前重估**(继承首发收尾仪式第 4 条)+ W9 触发线巡检一节。
@@ -52,7 +175,7 @@ launchd 常驻(A)→ T2 薄版切片(B;顺手评估 ntfy X-Call 电话 TTS 作�
 
 S3 卡(console 卡+认证+收据+合并链;requestManualMerge 降级路径)→ writing 窄版(门禁开值+收尾边+话术+迁移+OctoBlog 奠基接入)→ 10 golden 覆盖扩 writing/S3 卡场景 → **双项目最小并行切片**(双 dogfood 项目各一队列/并发 2 + 同项目串行守恒 + 排队可见——防 OctoBlog 长文任务把 OctoDesk 编码任务挡在单队列里;冲突状态机/黑板完整版留 W6)→ E2E:OctoBlog 一篇真实文章"聊→开始写→成稿→逐节验收→定稿"全链(**选材避开外部网页引证依赖**——窄版无引证合同)+ S3 卡真人过一次。
 
-### W5 · 体验完善批(5–8 天;前置=W4;Claude 订阅已就位;合同增量按通则③)——**W5a 前段批已收口(2026-07-27,`086001d→eabc5ac` 12 提交;evidence `w5a-batch.md`;/impl-review 通过,报告 `research/2026-07-27-saydo-w5a-impl-readback.fable.md`;canonical 待回写 8 条已随后落盘)**:5.1 / 5.2 / 5.3(cancel_resume 档+capabilities 分级)/ 5.5 / 5.7 / 5.10 + 5.11 篮内两项(订阅限流 durable 重放、11 §3 紧凑模式)+ TTS 音色落地已交付;**W5.4-a** 纯函数层已收口(2026-08-20),**W5.4-b** 生产执行主流程与 console/话术**已收口(2026-08-27,收口 SHA `9417b6d`;代码 `8941e1c`)**——经四轮零上下文独立复审(Codex `gpt-5.6-sol`+max)+ 三轮独立返工(Grok `grok-4.6`+xhigh),自身 A 级 0,遗留 6 条 B/C 见 `e2e/evidence/w54b-batch.md` §18.4;**W5 剩余** = **5.4-c 真 Claude hook 冒烟、live conformance 与 canonical 收口**· 5.6/5.8/5.9(挂 §6 二次确认)· 5.3 尾(Tier2 步序循环挂 §6-10)· 5.11 篮剩余六项(批容量顺延,evidence 登记)
+### W5 · 体验完善批(5–8 天;前置=W4;Claude 订阅已就位;合同增量按通则③)——**W5a 前段批已收口(2026-07-27,`086001d→eabc5ac` 12 提交;evidence `w5a-batch.md`;/impl-review 通过,报告 `research/2026-07-27-saydo-w5a-impl-readback.fable.md`;canonical 待回写 8 条已随后落盘)**:5.1 / 5.2 / 5.3(cancel_resume 档+capabilities 分级)/ 5.5 / 5.7 / 5.10 + 5.11 篮内两项(订阅限流 durable 重放、11 §3 紧凑模式)+ TTS 音色落地已交付;**W5.4-a** 纯函数层已收口(2026-08-20),**W5.4-b** 生产执行主流程与 console/话术**已收口(2026-08-27,收口 SHA `9417b6d`;代码 `8941e1c`)**——经四轮零上下文独立复审(Codex `gpt-5.6-sol`+max)+ 三轮独立返工(Grok `grok-4.6`+xhigh),自身 A 级 0,遗留 6 条 B/C 见 `e2e/evidence/w54b-batch.md` §18.4;**W5 剩余** = **5.4-c 真 Claude hook 冒烟、live conformance 与 canonical 收口**· 5.6/5.8/5.9(挂 §6 二次确认)· 5.3 尾(Tier2 步序循环挂 §6-10)· 5.11 篮剩余六项(批容量顺延,evidence 登记)。**PG-00 disposition（exact-set 见当前唯一排产链节，原文保留）:** `W5.4-c`=`conditional_release_evidence`；`W5.3-tail`=`inventory_deferred(trigger=PLAN-2 §6.10)`；`W5.6`=`inventory_deferred`；`W5.8`=`inventory_deferred`；`W5.9`=`inventory_deferred`；`W5.11-rest-six`=`inventory_deferred`。上述剩余项不再构成当前 next
 
 | # | 项 | 出处 |
 |---|---|---|
@@ -70,7 +193,7 @@ S3 卡(console 卡+认证+收据+合并链;requestManualMerge 降级路径)→ w
 
 ### remote-mobile-w0 · 8 月临时轨道(2026-08-16 已收口;插在 W5.4 之前)——**状态:已收口(代码 `addfd1965a5144223df3bfa3f7c407976664929a`)**
 
-LAN `remote-mobile` 第 0 步(处方 `docs/review/2026-08-13-mobile-shell-strategy-final.fable.md` §3;范围 `docs/review/2026-08-16-now-vs-later.md`)。完成定义=代码 + 临时 Chromium/LAN 证据,不部署常驻、不宣称真机 WKWebView 狗粮。`just ci` 双矩阵绿;定向 Playwright 6/6;canonical Codex 74 B 已吸收。后续工程顺序现为 **W5.4-c 真 hook 冒烟 / live conformance → R-B 合同轮**。四场真人验收为 owner 并行轨,不进本代码批。T19 × tailnet 合同已拍板并回写 canonical,备份也已恢复并实测;发布锁仍须 owner 基于新 runtime 重新声明。
+LAN `remote-mobile` 第 0 步(处方 `docs/review/2026-08-13-mobile-shell-strategy-final.fable.md` §3;范围 `docs/review/2026-08-16-now-vs-later.md`)。完成定义=代码 + 临时 Chromium/LAN 证据,不部署常驻、不宣称真机 WKWebView 狗粮。`just ci` 双矩阵绿;定向 Playwright 6/6;canonical Codex 74 B 已吸收。后续工程顺序现为 **W5.4-c 真 hook 冒烟 / live conformance → R-B 合同轮**。（此句为 2026-08-16 当时顺序；2026-08-29 PG-00 导入后不再是当前 next，`W5.4-c`/`R-B` 见 legacy exact-set）。四场真人验收为 owner 并行轨,不进本代码批。T19 × tailnet 合同已拍板并回写 canonical,备份也已恢复并实测;发布锁仍须 owner 基于新 runtime 重新声明。
 
 ### W-Win · Windows 原生对齐(2026-08-21 开;owner 当场授权)
 
@@ -91,16 +214,16 @@ LAN `remote-mobile` 第 0 步(处方 `docs/review/2026-08-13-mobile-shell-strate
 
 P1(Scheduled Task、Actions windows-latest、SAPI、官网翻转)不在本行完成定义内。
 
-### R-B · 合同轮(本仓 canonical 文件面,重制度;1 天+评审;W5 收口后串行):规模与通道合同
+### R-B · 合同轮(本仓 canonical 文件面,重制度;1 天+评审;W5 收口后串行):规模与通道合同——**PG-00 disposition=`split_deferred`；非当前 next**
 
 edit 审批细则(若 5.2 撞缺口)· **共享黑板实体 + 并发预检**(09 零承载,全新实体)· **回叫聚合摘要合同**(聚合 digest/升级链交互)· **T2 配对/信任五件套的 09 承载面**(一次性票据/Ed25519 JWS/opaque push payload + token digest/Keychain/Noise XX·WS 密文中继/跨设备 resume 的契约化,modules/d 采 OctoDesk 设计;APNs/FCM 直连凭据面按 07 D11)。
 **注:电话合同不在 R-B**——电话形态归锁定计划所有(`research/phone-call-impl-plan-2026-07.md` v3 自带 canonical 回写与 Gate 0 addendum 阶段),R-B 不得与其双写。
 
-### W6 · 并行与规模批(4–6 天;前置=W5 主体 + R-B 合同已落)
+### W6 · 并行与规模批(4–6 天;前置=W5 主体 + R-B 合同已落)——**PG-00 disposition=`inventory_deferred`；非当前 next**
 
 多任务跨仓并行完整版(合并冲突状态机 + 共享黑板显式化;最小切片已于 W4 前移)→ 回叫聚合 digest(防召回风暴)→ 一句话拆多任务(候选分组确认后 dispatch;10 §2.4 多任务指代消歧话术随做)→ 应急/事故车道(跳过采访姿态的专用车道)。
 
-### W7 · 语音与移动完整版(6–10 天不含 7.2 电话——电话为指针另计;**按项拆估偏乐观、开批时拆子批重估**;前置=W2-B/D + R-B;7.3 与 W6 可并批)
+### W7 · 语音与移动完整版(6–10 天不含 7.2 电话——电话为指针另计;**按项拆估偏乐观、开批时拆子批重估**;前置=W2-B/D + R-B;7.3 与 W6 可并批)——**PG-00 disposition=`inventory_deferred`；非当前 next**
 
 | # | 项 | 出处 |
 |---|---|---|
@@ -112,17 +235,17 @@ edit 审批细则(若 5.2 撞缺口)· **共享黑板实体 + 并发预检**(09 
 | 7.6 | ASR 第二家对比门禁(gpt-4o-transcribe;golden 语料计数源=纠错事件+人工标注,300–500 条)——挂 OpenAI key | 07 D4;计划 1.0 |
 | 7.7 | G1 说话人标签软过滤升级(视 ASR 能力,条件项,升级后回写 Gate 0 行) | 05 §4 Gate 0 |
 
-### R-C · 合同轮(本仓 canonical 文件面,重制度;1–2 天+评审;启动锚 = R-A 收口 + W4 OctoBlog 首篇有真实反馈):通用化合同
+### R-C · 合同轮(本仓 canonical 文件面,重制度;1–2 天+评审;启动锚 = R-A 收口 + W4 OctoBlog 首篇有真实反馈):通用化合同——**PG-00 disposition=`inventory_deferred`；非当前 next**
 
 类型抽象(**缺省 = 05 词表四类型 research/writing/marketing/general 执行器合同**;planning 不在缺省集——其完整流程属 P3 场景 2,提前须 owner 在 §6-5 显式勾选并另立范围合同)+ `explainResult` 判别联合扩展 + 统一产物库扩展 + writing 全量(ArticleCitation/引用级引证消费面/归属合同 user_authored·user_quoted/parentProjectId lineage/paper 子档 WritingSpec)+ 类型演化派生子项目通道(05 §6-7 拍板落契约)+ **network_fetch EffectGrant 合同**(枚举+约束表:来源白名单/SSRF·DNS-rebinding 防护/快照留痕/riskLevel/运行时 grant;**按后端能力分行:cursor_cli `egress=uncontrolled` 禁 network_fetch 类预授权,Hopper route preauthorizedEffects 恒空**,Gate 0 G4)+ canonical sweep 攒批(Codex 18 B-4/B-5 尾项:02 research 边界措辞、03/modules-b 产物目录 article 补注、06 §5 术语行、07 D2 状态回写"spike 已结"、产品载体统一使用设计 ADR-003，与工程 ADR-002 observedModel 决策消歧)。
 **出口纪律(Codex 19 B-11)**:R-C 每个合同条目必须绑定 schema/validator/正反例/迁移策略/证据路径才算"合同已落";给不出出口的条目留设计 backlog,不得算 W8 范围。
 
-### W8 · 通用化与治理完整版(6–10 天,开批时拆子批重估;前置=R-C 合同已落)
+### W8 · 通用化与治理完整版(6–10 天,开批时拆子批重估;前置=R-C 合同已落)——**PG-00 disposition=`inventory_deferred`；非当前 next**
 
-四类型执行器 + writing 全量 + network_fetch 落地 → 记忆治理完整版(自动 consolidation 提名流水/审计/衰减)→ 主动巡检(窄版先行:每晨一次/只读/草稿卡上限;完整版挂使用率)→ remote_repo workspace → 菜单栏分发 → Codex app-server 交互审批评估(spike)。
+四类型执行器 + writing 全量 + network_fetch 落地 → 记忆治理完整版(自动 consolidation 提名流水/审计/衰减)→ 主动巡检(窄版先行:每晨一次/只读/草稿卡上限;完整版挂使用率)→ remote_repo workspace → 菜单栏分发 → Codex app-server 交互审批评估(spike)。**PG-00：**`Codex-app-server`=`deferred_by_AI_decision_2`（原文 spike 保留，不再构成当前 next）。
 **挂起轨(不入批收口判定;每项 = bounded spike + owner gate,外部条件未到保持 deferred 不计欠账)**:Hopper capabilities 演进消费(steer/settle/merge 升级时 bridge 按握手分级升级,设计 ADR-001;bounded = 每次握手能力变化做一次消费评估,不无限跟随)· T3 服务端执行(挂 owner 服务器)· 多人旁听 discovery(合规/说话人分离/授权模型预研+被动旁听实验,owner 触发才开)。
 
-### W9 · 数据触发与校准(持续轨;执行载体 = W1.5 周报"触发线读数"栏 + 每批收口巡检节)
+### W9 · 数据触发与校准(持续轨;执行载体 = W1.5 周报"触发线读数"栏 + 每批收口巡检节)——**PG-00 disposition=`preserved_trigger_track`；不是 active/next batch**
 
 | 项 | 触发线(裸数字,可判定) | 宿主批 |
 |---|---|---|
@@ -134,7 +257,7 @@ edit 审批细则(若 5.2 撞缺口)· **共享黑板实体 + 并发预检**(09 
 | **电话形态解锁**(锁定计划 v3 原文触发) | 场次②/③ dogfood 1–2 周 + 离机缺口体感 + 接通率/离机时段数据 | 触发后按锁定计划独立立项(40–55 日另计) |
 | E1/E2 完整实验机器(三臂消融/外部用户轨/预注册非劣检验/盲评,05 §4 登记) | **第二用户出现 或 对外发布前**(05 原文触发) | 触发后立项 |
 
-### ai-supply · AI 供给普适接入与零配置引导(2026-08-27 开坐标;前置 = `w54b-wiring` 已收口)
+### ai-supply · AI 供给普适接入与零配置引导(2026-08-27 开坐标;前置 = `w54b-wiring` 已收口)——**PG-00：`AI-ACTIVE`=`superseded_by_PG-00_chain`；`AI-DRAFT`=`archive_deferred`；非当前 next**
 
 **开坐标依据**:`docs/plan/2026-08-24-ai-supply-owner-decisions.md` 决策 1
 (owner 2026-08-25 签:「先收口 `w54b-wiring` C3,再排本专题」)。该前置已于 2026-08-27 满足。
@@ -195,7 +318,7 @@ R-C(canonical 文件面,锚=R-A 收口+W4 首篇反馈)──> W8
 升常驻前置(2026-08-21):T19 × tailnet 合同拍板并回写 09/11 + 备份 `workspace_identity_changed` 恢复可用;二者都未关之前禁止 `just daemon deploy` 灌 HEAD / 加 `SAYDO_MOBILE_LAN`
 ```
 
-**单仓单批规则(2026-07-29 迁移后)**:本仓任何时刻只允许一个活动批次，合同轮、纯实现批、A5-armed 与 UI 批均按当前指针串行，不以文件集不重叠为例外。互斥靠 HANDOFF §1“当前批次指针”——开批断言指针为空并写入批号，收口清除;非空时其他批一律停。
+**单仓单批规则(2026-07-29 迁移后)**:本仓任何时刻只允许一个活动批次，合同轮、纯实现批、A5-armed 与 UI 批均按当前指针串行，不以文件集不重叠为例外。互斥靠 HANDOFF §1“当前批次指针”——开批断言指针为空并写入批号，收口清除;非空时其他批一律停。**PG-00：**`A5-armed`=`not_authorized`；`A5-UI`=`not_authorized`。二者不得作为当前 next。
 **交接锚(Codex 19 B-4,单仓改写)**:每批开批 pin 本仓 HEAD + 本批依赖的 09/10 关键节 SHA-256;批级 prompt 附“输入 SHA → 改动文件 → 测试/证据 SHA → canonical 回写 SHA”四段链;合同轮回写未经实施会话核验(§0 断言)前，依赖该合同的批保持 blocked。
 
 ## 3. 显式边界(本期不含;防过度设计)
@@ -224,6 +347,8 @@ R-C(canonical 文件面,锚=R-A 收口+W4 首篇反馈)──> W8
 
 ## 6. owner 二次确认清单(范围克制评审产出;**缺省=全做**,勾"挂触发线"即移出缺省完成集)
 
+> **PG-00：**`PLAN2-default-all`=`superseded`。本表历史原文保留。未被 D17 exact-set 选入的未来项一律 deferred；取消“未回复则缺省全做”。
+
 | # | 项 | 评审建议的触发线 | 现在做的价值 vs 等待代价 |
 |---|---|---|---|
 | 6.1 | 7.4 S2S 引擎 | 周报"对话体感"连续两周列 top 摩擦 | 级联 TTS 首包 202ms 已达标;03 §3 记录原生语音任务成功率低于文本 |
@@ -250,5 +375,5 @@ R-C(canonical 文件面,锚=R-A 收口+W4 首篇反馈)──> W8
 5. **交接锚**:§2 依赖图注的四段 SHA 链;合同轮进行中其他会话不得写相同 canonical 文件。
 6. **拆批授权**:W7/W8 预授权拆子批(范围不变自决,范围增删上浮);每子批独立 prompt+evidence+readback。
 7. **W9 巡检**:每批收口仪式含"触发线读数"一节(数据来自 W1.5 周报);达线项由本仓计划会话立即立项。
-8. **执行顺序(当前)**:IMPL-PROMPT-6(W1)→ IMPL-PROMPT-5(W2)→ IMPL-PROMPT-7(W5a)→ IMPL-PROMPT-8(W4)→ **RA-closeout(2026-07-28 已收口,evidence `ra-closeout-batch.md`:pending 裁决 (a) 案 + promoteProject 接线 + A2 挑战绑定固化 v12 + 迁移框架 FK 合规 + tailnet 对表等六小项;deploy @ `c59edd1`,writing 已翻值)** → **A3-armed(2026-07-28 已收口,`2f2f7d8→103e2f6` 5 提交,随后语音稳定性与双动作修复继续部署，2026-07-29 runtime clean @ `838aeea`;活动仓迁移提交 `f28489d` 尚待部署时窗;方案 `research/2026-07-28-a3-armed-design.md` v1.2,评审链 = 双 SA + Codex 23 5A/7B 全吸收;canonical 09 covered 块等 18 处已落;核心 = 候选绑定→复述确认升格(人在环)、ReadinessBinding 一等实体(v13)、checklist/evidence 双 digest 版本、dispatch 消费事务内权威复核、pending 最小清单、门拒绝集收窄 isReadinessBlocking([warn] owner 声明项)、生产恒 armed;§12-15 反例 22 例,批末 review 1A/2B 全修;Codex 22 五条关闭条件全闭——R-A ready 翻转条件仅剩 owner 对门语义收窄的确认;evidence `e2e/evidence/a3-armed-batch.md`,journal R55)** → **W5.4-a**(2026-08-20 已收口,纯函数层,evidence `w54a-claude-cli.md`) → **W5.4-b**(2026-08-23 收口候选,C1/C2/C3 已落,双向审计回修与复审进行中)。**8 月体验工程**(T16–T20/M1/D1/上架)已合入 main,此前未映射进本表;2026-08-16 owner 停点确认插入 **`remote-mobile-w0`**(LAN 进壳第 0 步,处方 `docs/review/2026-08-13-mobile-shell-strategy-final.fable.md` §3;**已收口,代码 `addfd1965a5144223df3bfa3f7c407976664929a`**)。该批不取代 W5 剩余、**完成定义仍是不部署常驻**。下一工程批是 **先关 W5.4-b 复审 → W5.4-c 真 hook 冒烟 / live conformance**,随后 **R-B 合同轮 → A5-armed → 就绪确认卡 UI 批**,每次只开一个批。四场真人验收为 owner 并行轨:场次 1 已 `failed` @ `ada7981c` 待复验,场次 2–4 `not_run`;不进本代码批、也不排到全部工程之后。
+8. **执行顺序(历史;2026-08-29 PG-00 导入后当前唯一链见「当前唯一排产链」节,唯一 next=`PG-01A`)**:IMPL-PROMPT-6(W1)→ IMPL-PROMPT-5(W2)→ IMPL-PROMPT-7(W5a)→ IMPL-PROMPT-8(W4)→ **RA-closeout(2026-07-28 已收口,evidence `ra-closeout-batch.md`:pending 裁决 (a) 案 + promoteProject 接线 + A2 挑战绑定固化 v12 + 迁移框架 FK 合规 + tailnet 对表等六小项;deploy @ `c59edd1`,writing 已翻值)** → **A3-armed(2026-07-28 已收口,`2f2f7d8→103e2f6` 5 提交,随后语音稳定性与双动作修复继续部署，2026-07-29 runtime clean @ `838aeea`;活动仓迁移提交 `f28489d` 尚待部署时窗;方案 `research/2026-07-28-a3-armed-design.md` v1.2,评审链 = 双 SA + Codex 23 5A/7B 全吸收;canonical 09 covered 块等 18 处已落;核心 = 候选绑定→复述确认升格(人在环)、ReadinessBinding 一等实体(v13)、checklist/evidence 双 digest 版本、dispatch 消费事务内权威复核、pending 最小清单、门拒绝集收窄 isReadinessBlocking([warn] owner 声明项)、生产恒 armed;§12-15 反例 22 例,批末 review 1A/2B 全修;Codex 22 五条关闭条件全闭——R-A ready 翻转条件仅剩 owner 对门语义收窄的确认;evidence `e2e/evidence/a3-armed-batch.md`,journal R55)** → **W5.4-a**(2026-08-20 已收口,纯函数层,evidence `w54a-claude-cli.md`) → **W5.4-b**(2026-08-23 收口候选,C1/C2/C3 已落,双向审计回修与复审进行中)。**8 月体验工程**(T16–T20/M1/D1/上架)已合入 main,此前未映射进本表;2026-08-16 owner 停点确认插入 **`remote-mobile-w0`**(LAN 进壳第 0 步,处方 `docs/review/2026-08-13-mobile-shell-strategy-final.fable.md` §3;**已收口,代码 `addfd1965a5144223df3bfa3f7c407976664929a`**)。该批不取代 W5 剩余、**完成定义仍是不部署常驻**。下一工程批是 **先关 W5.4-b 复审 → W5.4-c 真 hook 冒烟 / live conformance**,随后 **R-B 合同轮 → A5-armed → 就绪确认卡 UI 批**,每次只开一个批。（此「下一工程批」为历史指针，2026-08-29 PG-00 已 supersede；`W5.4-c`/`R-B`/`A5-armed`/`A5-UI` 见 legacy exact-set，不得作为第二个 next。）四场真人验收为 owner 并行轨:场次 1 已 `failed` @ `ada7981c` 待复验,场次 2–4 `not_run`;不进本代码批、也不排到全部工程之后。
 9. **journal 纪律**:合同轮按 AGENTS.md 记轮次;实施批收口后在本仓 journal 补一行索引(R44/R45 模式)。

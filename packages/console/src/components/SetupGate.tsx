@@ -129,7 +129,7 @@ export function SetupWizardBrandFooter({ revision }: { revision: string | null }
         color: "var(--text-muted)"
       }}
     >
-      <span>本机运行 · 数据不出这台电脑</span>
+      <span>本机运行 · 外发范围以当前配置为准</span>
       {revision ? <span data-setup-wizard-revision>版本 {revision}</span> : null}
     </footer>
   );
@@ -276,7 +276,7 @@ export function SetupGate() {
         <p style={{ margin: "0 0 18px", fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
           {dialogCliUnsupported
             ? DIALOG_CLI_UNSUPPORTED_MESSAGE
-            : "没有对话模型,说到聊不了天,也就立不起要持续关注的事。已登录的本机 CLI 可以零 key 慢速开聊;API 则通常秒级返回。"}
+            : "没有对话模型,说到聊不了天,也就立不起要持续关注的事。已接线并通过调用验证的本机 CLI 可以零 key 慢速开聊;登录不等于可调用或免费,费用以服务商为准。API 时延以服务商和网络条件为准,不保证秒回。"}
         </p>
 
         {hasInvalidProjectOverrides ? (

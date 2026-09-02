@@ -109,6 +109,10 @@
 | parentPackDigest | 续编译时父 pack 入签名域(保纯函数性;重建按存档签名域原样重算,不新开父链)(09 §5,M7) |
 | context_snapshot_uses | 快照使用记录表(哪个会话何时用了哪个 pack;与内容表拆分,M1 2026-07-25) |
 | worktree | git 工作树,每任务一个隔离目录,主工作区永不被 agent 碰 |
+| 公开声明四态 | 对用户/README/官网/console 的能力声明只许 `supported` / `conditional` / `preview` / `unsupported` 之一。不是 09 任务状态,也不是 09 §4.1 `semanticSupport`。定义见 §7 |
+| 证据四事实 | `detected` / `logged_in` / `self-test` / 真实端到端 互不等价,不能互相推断,也不能单独把声明升到 `supported`。定义见 §7 |
+| LIVE 来源 | 语料上下文模式:该题回放需要当前来源;不等于 connector 已实现。现役 986 个 source 对象本批按 unresolved requirement 安全降级,见 §7 |
+| Q0 truth report | PG-01A 对 986 个 source 对象的逐条 machine report;最小字段与 identity 规则见 §7。产物路径 `research/customer-question-corpus/review/23-pg01a-q0-truth-report.json`(C1 的 E 才生成,C0 不预置) |
 
 ## 6. 过程与历史(`../history/`)
 
@@ -118,3 +122,89 @@
 - `history/legacy-archive/voice-agent-orchestrator.cursor.md`:已合并的同源独立方案(v1.4 时归档);
 - 2026-07-22 文档重写前全量快照未进入主仓，保存在迁移冻结冷档;位置与 SHA-256 manifest 见
   `docs/plan/MIGRATION.md`。
+
+## 7. 公开声明与语料证据词义(PG-01A C0,2026-08-31)
+
+> 本节约束**公开声明与语料证据词义**。运行时任务状态、API、权限与模型行为仍以 [09 · 数据契约](09-data-contracts.md) 为唯一形状源;本批不得把下列词写成 09 新枚举,也不得改 CLI/网络/状态机。用户可见文案上限见 [11 §10.3](11-ui-spec.md)。升降级权、证据 TTL、capability ledger schema 归后续 PG-02/E0,本批不建账本平台。
+
+### 7.1 公开声明四态(不是运行时任务枚举)
+
+每条现役公开能力声明必须且只能取下列一态,并绑定**候选**(implementation commit/tree,未形成 I 时为 `n/a`)、**路径**(仓内根或入口)与**条件**(平台/账户/协议/权限/网络;无条件则显式写无)。禁止用 `detected`、`deferred`、`designed` 等词充当第五声明态。
+
+| 状态 | 证据要求 | 公开含义 |
+|---|---|---|
+| `supported` | 默认入口可达、失败可恢复、required gate 与**真实端到端**证据均已绑定该候选/路径/条件且未过期 | 可称「支持」 |
+| `conditional` | 在列明条件下可走通;条件外失败或拒绝有证据 | 必须同时写出条件;条件内可称「可用」,不得省略条件称支持 |
+| `preview` | 有实现或可试用入口,但缺默认旅程、required gate 或真实端到端 | 可称「预览」;不得称支持、开箱即用、已通过目标人群验收 |
+| `unsupported` | 未实现、未授权、费用 unknown、不安全,或证据不足 | 可称「不支持」或不出现在默认选择器;不得称可用/支持 |
+
+总案 §1.3 的 `inventory_only` / `designed` / `contracted` / `implemented_hidden` / `deprecated` 是未来 capability ledger 候选词,不是本批公开声明。无权利/TCK/新鲜政策证据的 surface,公开声明不得高于 `conditional` 或 `preview`;更常见的安全缺省是 `unsupported`。
+
+下列命名空间禁止混用:
+
+- 09 任务状态(`queued` / `running` / `ready_for_review` / `task_done` 等);
+- 09 §4.1 `semanticSupport`(`supported` / `unsupported` / `unclear`,引证语义判断);
+- 11 §5.10 `VoiceTransport`(`cloud` / `system` / `unavailable`);
+- 首启 probe 的检测/`logged_in`/self-test 结果。
+
+### 7.2 证据四事实(互不等价)
+
+下列是**事实种类**,不是声明态。任一事实不能代替另一种,也不能单独推出 `supported`。
+
+| 事实 | 只证明 | 不证明 |
+|---|---|---|
+| `detected` | 本机发现名称、安装或配置痕迹 | 已登录、有权、可调用、已付费、已支持 |
+| `logged_in` | CLI 或账号呈现登录态 | 订阅权益、零额外费用、工具/结构化输出、协议 TCK |
+| `self-test` | 本机 staged/live 自检按当时配置跑过 | 托管 CI、跨平台、真实账户端到端、发布门 |
+| 真实端到端 | 绑定该候选/路径/条件的真人、真实账户或真实外部旅程 | 未列出的平台、账户、协议或下一次发布 |
+
+模型响应身份未知仍拒绝;不得把「能连上兼容端点」写成工具或 Structured Outputs 等价。不承诺固定秒数 SLA,也不承诺全本地或所有数据不出设备。
+
+首批**目标**同时包含开发者与普通用户,完整语音非必需。目标人群不是 `supported` 的验收证据:未经真人验收,不得把普通用户写成已开箱即用。文本入口与语音部署分开取证;语音可选不降低 Gate 0、S3、授权或审计要求,也不把未安装/不健康的语音写成支持,更不把文本可用写成全本地离线。
+
+### 7.3 LIVE 语料与 986 source 安全降级
+
+`research/customer-question-corpus` 的 `LIVE` 上下文模式表示:**该题回放需要当前来源**(repo / 系统 / SaaS / 新鲜 Web),必须按对象登记 locator 与字段。这是需求合同,**不是** connector 已实现,也不是公开 `supported`。
+
+现役分母: `research/customer-question-corpus/contracts/live/*.json` 中每一个含 `source_kind` 的 JSON 对象,计数必须为 **986**。本批按 D2 安全缺省把这 986 条降为 **unresolved requirement**,不得当作 connector readiness,不得逐条改写成 `valid`,不得改 600 题范围或标签来伪造通过。`simulations/` 与 CTX fixture 仍是模拟,同样不能升为 connector 证据。
+
+v8 三条发现在本批的 disposition 安全缺省均为 `owner_downgraded_with_public_limit`,不得写成 `closed`:
+
+- `A-RAG-01`:LIVE `required_fields` 含来源对象不可能提供的字段;
+- `A-RAG-02`:占位 locator 与「每工具一个来源」被计作已闭合对象;
+- `B-VAL-01`:validator/rebuild 只验形状并固化工具投影模板。
+
+### 7.4 Q0 truth report 最小合同
+
+唯一产物路径:`research/customer-question-corpus/review/23-pg01a-q0-truth-report.json`。C0 只定义合同;producer 在形成 I 且跑完 read-only I 门之后由 C1/E 生成,本批 I 不预置绑定自身 SHA 的报告。
+
+顶层最小字段:
+
+- `schema_version`:本报告合同版本,固定字符串 `"1"`。不得与 LIVE JSON 内数字 `schema_version` 混读。
+- `implementation_sha`:完整 40 位 I commit OID。
+- `implementation_tree`:完整 40 位 I tree OID。
+- `expected_total`:整数 `986`。
+- `objects`:长度恰好 986 的数组,按 `source_id` 的 UTF-8 字节序升序,无重复、无漏项。
+- `aggregate`:`{valid_count, unresolved_count}`,二者之和必须等于 986。
+- `dispositions`:恰好覆盖 `A-RAG-01`、`A-RAG-02`、`B-VAL-01`;词表仍是 `closed`、`owner_downgraded_with_public_limit`、`blocks_expansion`。当 `unresolved_count>0` 时,这三项的 `disposition` 必须均为字面 `owner_downgraded_with_public_limit`,不得为 `closed`,也不得为 `blocks_expansion`。
+
+`objects[]` 每条最小字段(标识符英文):`source_id`、`status`(`valid` 或 `unresolved`)、`reason`、`source_kind`、`entity`、`reader`、`locator_check`、`required_field_check`。不得增删这八个键来改分母。
+
+`source_id` 从输入位置确定性导出,公式为:
+
+```text
+<source_id> = <repo-relative-contract-path> + "#" + <RFC6901 JSON Pointer>
+```
+
+路径用 git 仓内 POSIX 相对路径(如 `research/customer-question-corpus/contracts/live/WRT.json`)。Pointer 指向该 `source_kind` 对象,按 RFC 6901 转义 `~`→`~0`、`/`→`~1`;例:`research/customer-question-corpus/contracts/live/WRT.json#/contracts/0/sources/0`。比较与排序一律用 UTF-8 字节序。现役 986 个对象没有持久化 `source_id`,**不得为了 ID 回写源对象**。
+
+字段取值:
+
+- `source_kind` / `reader`:从该对象抄录(`reader` 对齐 `reader_tools`;多项按 UTF-8 字节序以逗号拼接)。
+- `entity`:所属合同 `id` 与 `source_kind` 的稳定拼接 `{contract.id}:{source_kind}`,供题面对账,不回写源。
+- `locator_check` / `required_field_check`:`pass` 或 `fail` 或 `unresolved`。`pass` 仅当 locator 能定位具体现势对象(非 `USER-PROVIDED` 占位模板),且 `required_fields` 均可能由该 `source_kind` 提供并与题面实体/reader 相称。
+- `status=valid` 仅当两个 check 均为 `pass`;否则 `unresolved`。本批允许对现役对象一律 `unresolved`(reason 可用 `unresolved_requirement_downgrade`);禁止为凑 `valid` 修改 986 对象或 600 题标签。
+
+Q0 报告本身不写 `repo_status`。当 `unresolved_count>0` 时,G-A1 在批 evidence 中只允许 `owner_downgraded_with_public_limit`,禁止 `repo_status=closed`。报告缺失、ID 重复/漏项、总数不等于 986、字段与 validator 不一致时,同样不得把 G-A1 记为 closed。
+
+C1 起,现役公开根按本节四态与 11 §10.3 收紧;Q0 producer/checker 为 `research/customer-question-corpus/check-q0-truth-report.mjs`,本批 I 不预置绑定自身 SHA 的报告。

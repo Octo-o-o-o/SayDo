@@ -7,7 +7,7 @@
 # ① 五个槽位:对话 / 沉思 / 廉价 / 评估 + 开发档(执行器,见 [models.dev])。
 # ② 每个推理槽可走 api(OpenAI 兼容命名端点)或已接线 CLI
 #    (codex_cli / claude_cli / cursor_cli / grok_cli / gemini_cli / qwen_cli / copilot_cli;
-#    零 key 走本机订阅登录态;对话档走 CLI = 慢速文本模式 dialog_cli_oneshot,每轮约 13–23 秒)。
+#    零 key 走本机 CLI 登录态(登录不等于订阅权益);对话档走 CLI = 慢速文本模式 dialog_cli_oneshot,每轮约 13–23 秒,不作 SLA)。
 # ③ 缺省示例 = 四槽 OpenRouter API(一个 OPENROUTER_API_KEY);下面另给出注释掉的 CLI 绑定示例每家一行。
 #    评估档走 CLI 时必须同时写 evaluator_same_family_ack / evaluator_isolation_ack 两键为 true(本缺省评估档走 API 异族,无需 ack)。
 [models]
@@ -57,7 +57,7 @@ model     = "<cursor-agent 可列出的模型名>"
 # preset = "balanced"
 
 # ============ API key(真值写在 .env)============
-# 缺省四槽走 API,只需 OPENROUTER_API_KEY + 语音 key。已登录 CLI 可把推理槽改走订阅、零 key。
+# 缺省四槽走 API,只需 OPENROUTER_API_KEY + 语音 key。已接线并通过调用验证的 CLI 可把推理槽改走登录态、零 key(不推断免费或可调用)。
 # api_key 在 [providers.api.*] 用 env:VAR 引用；P0 语音 pipeline 直接读取 saydo.env.example
 # 中的 DOUBAO_TTS_API_KEY / VOLC_APP_ID / VOLC_ACCESS_TOKEN，不读取 config.toml 密钥表。
 

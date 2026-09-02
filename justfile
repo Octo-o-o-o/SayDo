@@ -4,7 +4,7 @@
 dev:
     node scripts/dev.mjs
 
-# CI 等效判定(本地双矩阵;Actions 不可用时以此留证)
+# 本地 Node/Python 基线(不是托管 CI 等效)
 ci: ci-node ci-python
     @echo "[ok] just ci: node + python matrices green"
 
@@ -24,6 +24,7 @@ ci-node:
     node scripts/test-pairing-url-corpus.mjs
     node scripts/test-mobile-installers.mjs
     node scripts/test-mobile-release-contract.mjs
+    node scripts/test-install-scripts.mjs
 
 ci-python:
     uv --directory pipeline sync --quiet

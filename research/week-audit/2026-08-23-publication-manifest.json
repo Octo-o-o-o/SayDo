@@ -42,29 +42,29 @@
       "path": ".github/workflows/ci.yml",
       "kind": "file",
       "mode": 420,
-      "bytes": 6113,
-      "sha256": "9a27b6744f9c3559ebf4362267b81767c5cad855430306ec84e249922b0fc845"
+      "bytes": 6215,
+      "sha256": "e0881f23765b623d533830d0edb6413c63eed25071b1711d01bca6b6023e7bf0"
     },
     {
       "path": ".github/workflows/release.yml",
       "kind": "file",
       "mode": 420,
-      "bytes": 20122,
-      "sha256": "d0ade7bf29635333ae679c95c27b8d01de5d89a5a6e5a7b6bf11e70976264dee"
+      "bytes": 20173,
+      "sha256": "fbcbeedcf1147ff8c4942ee40e1c7ce160741268e123343b44e2693bd7c97ebc"
     },
     {
       "path": ".gitignore",
       "kind": "file",
       "mode": 420,
-      "bytes": 1182,
-      "sha256": "b4395b3e0c31bdb0a09badeda58e7ac6bf3208029562cc8a4884cb727e216c65"
+      "bytes": 1248,
+      "sha256": "de20d8158aeafd891ccf9a5e8e1de5f9a406c94e59cd6ebdefe98d7b66e7b6a2"
     },
     {
       "path": "AGENTS.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 5531,
-      "sha256": "1c4fdd7f0d9af039711b7bebed53c57612af4842f1be7a4bb59362ce122dbf83"
+      "bytes": 5603,
+      "sha256": "a58d559d8eeee53136aee5d5944d6302c31570552fe6996f398ddcd4556a2490"
     },
     {
       "path": "apps/android/.gitignore",
@@ -865,6 +865,13 @@
       "sha256": "4a1c10128c280023ee6967941a7fac521e7b9a9b04ee56e9cd4cd91b7f807f2c"
     },
     {
+      "path": "CLAUDE.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 207,
+      "sha256": "2b8e203e3a1a3cf6d83493f62a286e7fae13103d103dfdd1aa30daac94bf9c00"
+    },
+    {
       "path": "demo/saydo-console-demo-atelier.html",
       "kind": "file",
       "mode": 420,
@@ -889,8 +896,8 @@
       "path": "DEPLOY-测试机部署清单.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 5416,
-      "sha256": "46fb7f86d57878231b86844c656da8747fec664d166205d14779e97cfb21d8f7"
+      "bytes": 5833,
+      "sha256": "5f87c90dd61e96eafab8de769df963c1c49f68cde54a72b86206898da76e2677"
     },
     {
       "path": "deploy/link-saydo-octoooo-com/_headers",
@@ -959,8 +966,8 @@
       "path": "deploy/saydo-octoooo-com/_headers",
       "kind": "file",
       "mode": 420,
-      "bytes": 129,
-      "sha256": "b180bae0dba177179f4bd1fc25b4062dd773112c7a437c8d8267f2df3e123213"
+      "bytes": 416,
+      "sha256": "361d3e0af9d1bc302b566e1129420eba3502c82082b3bdb9a98a7f0b0f47260b"
     },
     {
       "path": "deploy/saydo-octoooo-com/apple-touch-icon.png",
@@ -973,29 +980,29 @@
       "path": "deploy/saydo-octoooo-com/docs/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 127290,
-      "sha256": "ee0ac8c23af3045526eab005a9deaca2a89e5a6468097243dc2882ec3bda7f38"
+      "bytes": 130011,
+      "sha256": "113d015f189352e561a5cacf42f550c01a889d077c5a2915f617541c66fde578"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/docs/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 148892,
-      "sha256": "85413b0c2421f37fd5ccda733ec9136e42be1ca3a99b9f3f91f112e2586f1c86"
+      "bytes": 151900,
+      "sha256": "7de6c944c0c1c29aaf246822a683513364f56f492763db7ce374fcf7150ca20c"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 47638,
-      "sha256": "96115f71a55c3309d27aa1b701dd8a847e0da89dcaf8b099c4431dae610980f7"
+      "bytes": 48374,
+      "sha256": "882504a9042d18e78a127865a6db15eca0ef9ad0ffe6a26596725baed16b9bcd"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/privacy/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 9744,
-      "sha256": "2ad6252fd1e4fbe2044bd7ebc4f7b2ae9cf7b1ae97fb37c1a66b931b3e988f10"
+      "bytes": 9777,
+      "sha256": "bc0843a52173d442174468e18863e613419c1974a7ed31fd0481876cc3ba0f48"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/support/index.html",
@@ -1036,15 +1043,29 @@
       "path": "deploy/saydo-octoooo-com/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 46480,
-      "sha256": "1d4ef1996c210ea2e102d7a64911f60b1997472f896b6df27bc80870ddfabf5e"
+      "bytes": 47098,
+      "sha256": "953e13ed4aa961aef0c0e3969dcf34eaa2cbdee0843662b03908b88e680a8db7"
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/install.ps1",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 10785,
+      "sha256": "7a4f8d1e9884c146d1674c0d48fa9887c0f97c8d27178f51e2fd7d24acedb6b1"
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/install.sh",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 9627,
+      "sha256": "5b0bbe7d26e15a2f3ea11fdff8c1d073670cd90b3e85c1679e4ea7e012ecfb1e"
     },
     {
       "path": "deploy/saydo-octoooo-com/privacy/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 9408,
-      "sha256": "fafb6dbec72e935cb9e0cf350bfb5d718d4fdb6b94c8b1a8d60e45358463d1fa"
+      "bytes": 9417,
+      "sha256": "df39f5c4318007acce6f821a70be79f7bb6f63033c1da3104fe9720ae2498a32"
     },
     {
       "path": "deploy/saydo-octoooo-com/site.css",
@@ -1120,8 +1141,8 @@
       "path": "docs/06-references.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 17765,
-      "sha256": "86aa8c8461b43ffcaa4c5830f3cb5e2b30127b3596f411eb94d320f11b3c829a"
+      "bytes": 26255,
+      "sha256": "51d5818cada938896de680c1f52420728087a947235200ae674ac6d33be7272d"
     },
     {
       "path": "docs/07-tech-stack-decisions.md",
@@ -1155,8 +1176,8 @@
       "path": "docs/11-ui-spec.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 66449,
-      "sha256": "5cbf69d118954e30e9e1f1868514a67934b1ec4ca890d37333930c8b213b4379"
+      "bytes": 70190,
+      "sha256": "4714db1ccc79db60a7c8cc19f5c5aeb80d63c594d97f299368fe4aa247883d05"
     },
     {
       "path": "docs/adr/ADR-001-pipecat-interrupt-go.md",
@@ -1325,6 +1346,41 @@
       "mode": 420,
       "bytes": 60928,
       "sha256": "50a65aa9f5c2b354f31c51e23e0b3437ffa7add124b69fe2017ee42c7e6d9bf4"
+    },
+    {
+      "path": "docs/plan/2026-08-28-project-gap-closure-program-DEFERRED-P2.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1693,
+      "sha256": "903e6565638e65cc170220156a2bf682baad0b3159ef12acef5bae5533cafbce"
+    },
+    {
+      "path": "docs/plan/2026-08-28-project-gap-closure-program.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 185092,
+      "sha256": "fa6f8c8aeb7f3e7727bfd3f440a5e01dce0413a311dc44f35425f7038a3bc8f5"
+    },
+    {
+      "path": "docs/plan/2026-08-28-project-gap-d17-import-spec.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 22301,
+      "sha256": "9159d69ba91f3676cb96a896ac55f7e3976cc503e5212f1b378089de997940cf"
+    },
+    {
+      "path": "docs/plan/2026-08-28-project-gap-owner-decisions.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 18967,
+      "sha256": "983452a68e35a793b9394ced759e5b8ded43f83a00ae72b4925d30c45a75d9a6"
+    },
+    {
+      "path": "docs/plan/2026-09-02-quick-start-distribution.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 13707,
+      "sha256": "7d0191ecf537c11d6fe1040b20103bc3dc91e8ca3d1e005fdd3299979af1d5df"
     },
     {
       "path": "docs/plan/ai-supply-contracts-draft/01-core-contracts.ts",
@@ -1509,6 +1565,20 @@
       "sha256": "61f4839b2244dce68dd754601e813f02c305d3b80f117f2d557d4f6348da2f4d"
     },
     {
+      "path": "docs/plan/IMPL-PROMPT-PG-01A-FG1.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 7219,
+      "sha256": "6d4b92599405d384552b41388a412646ce7fbc4a546f1e152a9fa61b04835fde"
+    },
+    {
+      "path": "docs/plan/IMPL-PROMPT-PG-01A.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 37288,
+      "sha256": "e3b540c658dd30f42072cbc1bbe35be067caa81f6e13e9136f7be5a7cb5e6d5c"
+    },
+    {
       "path": "docs/plan/IMPL-PROMPT.md",
       "kind": "file",
       "mode": 420,
@@ -1519,8 +1589,8 @@
       "path": "docs/plan/IMPLEMENTATION-PLAN-2.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 43633,
-      "sha256": "b55ef048cdde69d71d07e2d4593bd324f2945b04edbb5caf86ee435d29e3d756"
+      "bytes": 60514,
+      "sha256": "b8c24b19cae19c029c482194e94fd2a29e61577aecad75fbc1ff5c5ee1c3240b"
     },
     {
       "path": "docs/plan/IMPLEMENTATION-PLAN.md",
@@ -1579,11 +1649,53 @@
       "sha256": "d43b1b171adbf4a1de3f04e5107b59612935c42fd74ee94cecd7a1a65d09e738"
     },
     {
+      "path": "docs/plan/project-gap-closure-cycle.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2195,
+      "sha256": "9d78c9f3bf123fa7c17cc4161862496837deafa927bfdbf13518a2d0ba7ad01a"
+    },
+    {
+      "path": "docs/plan/project-gap-closure/control.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 333,
+      "sha256": "47aff1308d71193559493350c6e0c1de51cef95e62101841d4fb736040ad2fac"
+    },
+    {
+      "path": "docs/plan/project-gap-closure/fg1-carry-in-red.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1576,
+      "sha256": "d487b6d094f219fed4a1798c5a7fb4a591c928c29e730b6a7e90caa057c1f749"
+    },
+    {
+      "path": "docs/plan/project-gap-closure/fg1-repair-1.receipt.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 666,
+      "sha256": "8289b0c8c1350ca4b1618426eff622d7b0cfad509fb8e150e9b9f15964693516"
+    },
+    {
+      "path": "docs/plan/project-gap-closure/fg1-review-1.receipt.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 603,
+      "sha256": "9a37b1257f2a7e8a4fa7dc3d6d33e6605fb4222d46e4b7d3a2b06a0889fac987"
+    },
+    {
+      "path": "docs/plan/project-gap-closure/policy.frozen.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2746,
+      "sha256": "6368bc583926ffec4f038bb5c5ec4528957b62797ebe2822396d638868e136de"
+    },
+    {
       "path": "docs/plan/README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2203,
-      "sha256": "700815fc12e3752afc29cde38578f154e860ef7b69abc5f62001dcf7303191d9"
+      "bytes": 3979,
+      "sha256": "ed8f9c590000135f4cd112e7a0fe251732fee8e55bc1a368427e0aa80db54aae"
     },
     {
       "path": "docs/plan/REPO-MERGE-PROPOSAL.md",
@@ -1603,8 +1715,8 @@
       "path": "docs/release/2026-08-13-app-materials.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 17153,
-      "sha256": "45a79e468701d30bd2b2b1d1f38360f196944c19ca6c9541d937cf72e642d743"
+      "bytes": 17592,
+      "sha256": "20dfd77d168e0f30fb5a3c00388fc60823af5efcd0329f0d162fe438fa89e1fc"
     },
     {
       "path": "docs/release/2026-08-13-store-submission-status.md",
@@ -1638,8 +1750,8 @@
       "path": "docs/release/metadata.json",
       "kind": "file",
       "mode": 420,
-      "bytes": 7708,
-      "sha256": "d8623b8ba32b8094ecde8be275770c08cb15d0fe0d0e198f898892c052ff732b"
+      "bytes": 7731,
+      "sha256": "b3cd0cee8d42863e60c096a9fa9aecdfe99a317b5570366a5dce92bec97479dc"
     },
     {
       "path": "docs/release/name-occupancy.md",
@@ -1817,18 +1929,81 @@
       "sha256": "1310df4c3816fd1f9d580564ed840ebbbf88419448403a64a4691c3bdadb6a42"
     },
     {
+      "path": "docs/review/2026-08-31-pg-01a-c0-impl-readback.fable.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 9505,
+      "sha256": "df1c261aec361bff80472239b0d272b614e6d264b5fddd8fe4c8b1427721bc7a"
+    },
+    {
+      "path": "docs/review/2026-08-31-pg-01a-c1-impl-readback.fable.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 13808,
+      "sha256": "22e0cdb0cce709a7c95cd4d47c93c60512ca49bae74d97586a97fecc15374f54"
+    },
+    {
+      "path": "docs/review/2026-08-31-pg-01a-c1-rereview-2.fable.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 14182,
+      "sha256": "d2ccc1f176c297f83ab65247fc2c3ccb17b058d1c7e5fa4258dc2df79d5a661f"
+    },
+    {
+      "path": "docs/review/2026-08-31-project-status-ai-onboarding-impl-readback.fable.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 34425,
+      "sha256": "634bb78643d5aef04a53cd66fad04d911112f2f7ae3502c9716a90843ca98fc3"
+    },
+    {
+      "path": "docs/review/2026-09-01-pg-01a-fg1-impl-readback.fable.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 6250,
+      "sha256": "c86f2403e86befd963dac43d03394cc2c918ac0026010e0a33e1ea8262021f13"
+    },
+    {
+      "path": "docs/review/2026-09-01-pg-01a-night-readback-1.fable.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 16235,
+      "sha256": "4a81018330098715be7ec16b22c778ef24e182a99422972a14725d60cf3c027a"
+    },
+    {
+      "path": "docs/review/2026-09-01-pg-01a-night-readback-2.fable.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 11245,
+      "sha256": "1cd67f388d667b8fd930894f952542fe63332e86a34d6ca73b0d7b9d46e9b2c4"
+    },
+    {
+      "path": "docs/review/2026-09-01-pg-01a-night-readback-3-ordinal4.fable.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 11656,
+      "sha256": "93fd04d861a793c3c07df1d823970d7ae9c23ad73dc3a1ff6d1708fe73b017a3"
+    },
+    {
+      "path": "docs/review/2026-09-02-monthly-docs-commit-crosscheck.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 15547,
+      "sha256": "e8e5a29fcdbb26b08337bd0799d878f26d7cf05608ffe322b61e681176543343"
+    },
+    {
       "path": "docs/site/2026-08-20-docs-page-content.fable.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 110751,
-      "sha256": "0d838468827118a104941545b9baaf18bc8407e360e6a831261cc07f4e58db8a"
+      "bytes": 111207,
+      "sha256": "0941007280ed0f7c1bf6f8477cfa72a1db3dda2109b30c849f1a3e7f02b91492"
     },
     {
       "path": "docs/site/2026-08-20-homepage-structure-copy.fable.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 23210,
-      "sha256": "739273f7a21ab3c03d2a0701c4df992dad940bdd26572b4b02e78720d0226206"
+      "bytes": 23548,
+      "sha256": "d26ce4302cf4bf592fc7f93beb8d1e634c636e7be138a25d25d3200f7cddde00"
     },
     {
       "path": "docs/site/2026-08-25-homepage-style-exploration.md",
@@ -2002,8 +2177,8 @@
       "path": "docs/site/style-demos/11-hybrid.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 54253,
-      "sha256": "e0c823aa1b0c1ff61b38dc13476a342d2a87e0c563cc971b327546e4de1ec6b3"
+      "bytes": 54479,
+      "sha256": "99092fb52ebeb6ba2f27b3ae240791f366e06427e26de77bd1712628669103f8"
     },
     {
       "path": "docs/site/style-demos/index.html",
@@ -2440,6 +2615,13 @@
       "sha256": "e553ba288d969247d46ea96eeffe7090aac3f3ab57ce2389f29fa6ae3c3955e9"
     },
     {
+      "path": "e2e/evidence/2026-09-02-crosscheck-site-deploy.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3821,
+      "sha256": "75080d1e30607dffe195e5d020fb08af225a7035e146c79aa8993c78e71dd8aa"
+    },
+    {
       "path": "e2e/evidence/a3-armed-batch.md",
       "kind": "file",
       "mode": 420,
@@ -2543,6 +2725,20 @@
       "mode": 420,
       "bytes": 1913,
       "sha256": "8c7da89457cb3146d6254168d541fbe913b07b811da420163cf82f9f200ed8f7"
+    },
+    {
+      "path": "e2e/evidence/project-gap-pg-00.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1423,
+      "sha256": "3e3e84897bdd76c8433911460ca7938df19f3d7d094e8ef9751179a65a0b9d61"
+    },
+    {
+      "path": "e2e/evidence/project-gap-pg-01a.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 73492,
+      "sha256": "b8b64e576ff40429481e71da086969aef010035f21258b6be4eb6e399665fc42"
     },
     {
       "path": "e2e/evidence/public-readiness.md",
@@ -3234,15 +3430,15 @@
       "path": "HANDOFF-3-UI修正批施工交接.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 2013,
-      "sha256": "a7ffb1201cdc8f201e0de4baa247ee84fef7e8c92628231878bf39831996e4a0"
+      "bytes": 2303,
+      "sha256": "2805a4108779b001cd0545ab5d2c507b8d74472577ab61bbbd17319a33ed90d2"
     },
     {
       "path": "HANDOFF-4-资源画像向导批.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 4984,
-      "sha256": "659e35a91924ebd07891dac08a45063442db5b1d4f95fb005cc52575d6ad99e7"
+      "bytes": 5277,
+      "sha256": "fbd724f23648dc9d86f2cd7a2953f16749cd246d44aeb6d65a2ce81b1192482a"
     },
     {
       "path": "HANDOFF-前端组件化施工交接.md",
@@ -3255,8 +3451,8 @@
       "path": "HANDOFF.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 38957,
-      "sha256": "d1059ad43cc646ef72a6ed1520bd7c635be8c5dd49060f16e356e4708f56b4c0"
+      "bytes": 41292,
+      "sha256": "a78841e84756d6a5580c21a300b9c287fad51c9987bce1e475924b91d94a438e"
     },
     {
       "path": "history/2026-07-29-migration-and-implementation-status.md",
@@ -3290,8 +3486,8 @@
       "path": "history/PROCESS-JOURNAL.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 387005,
-      "sha256": "18a50e64286d2fa9b17d32f05c75c663b8e702a26296ba13a004a936b1e311d9"
+      "bytes": 432988,
+      "sha256": "51f6229ce215d367a84a1bc1630b7a4409b71c997a66c491dbbd061495b36630"
     },
     {
       "path": "history/README.md",
@@ -3416,8 +3612,8 @@
       "path": "justfile",
       "kind": "file",
       "mode": 420,
-      "bytes": 1486,
-      "sha256": "75ff6a8f092a85126cff797819d8920c75eed5d98f0054e431c4fc459a3df2c5"
+      "bytes": 1512,
+      "sha256": "31bff1298a8314fb7a8aa81cff5f2f8415020a6b26d0722e011114ef117da6cf"
     },
     {
       "path": "LICENSE",
@@ -3437,8 +3633,8 @@
       "path": "package.json",
       "kind": "file",
       "mode": 420,
-      "bytes": 1277,
-      "sha256": "315d92088220fd549432324fe62bb11dba612a8cb7a41e9522f56ff23b0de2b4"
+      "bytes": 1318,
+      "sha256": "959740e2996a9a1bf12db282b64f50b5b74ac8a4259d964629998467f0cd6546"
     },
     {
       "path": "packages/cli/LICENSE",
@@ -3465,8 +3661,8 @@
       "path": "packages/cli/README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 1041,
-      "sha256": "6df6141b241794302edd30636e46807578870a99f3a36afa1bb51c435c58c1fe"
+      "bytes": 1338,
+      "sha256": "c2b83ab43887d77503500bd27dc1e0795dc47385d451c84601060b845447d74d"
     },
     {
       "path": "packages/cli/scripts/build.mjs",
@@ -3969,8 +4165,8 @@
       "path": "packages/console/src/components/SetupGate.tsx",
       "kind": "file",
       "mode": 420,
-      "bytes": 14405,
-      "sha256": "02bf4419896c1ae1895a24e3bacbdabe1efd42d47e5d581ba1209d2240ee24cc"
+      "bytes": 14530,
+      "sha256": "369aadbec92fee051fa64022be0eba5f3304b3a68b204de1b2db0d0817b613c8"
     },
     {
       "path": "packages/console/src/components/setupProgress.test.ts",
@@ -3983,15 +4179,15 @@
       "path": "packages/console/src/components/SetupWizard.tsx",
       "kind": "file",
       "mode": 420,
-      "bytes": 62897,
-      "sha256": "a413a1c38c3cf56b5ebb47fd4d3c4e4dee0a596c23122208096fe68e6eb6df55"
+      "bytes": 62914,
+      "sha256": "6f1d77c3598529d7f9b3c98ce0b0c6e3ca9b83f910efd6d05bf0026554818670"
     },
     {
       "path": "packages/console/src/components/setupWizardUx.test.tsx",
       "kind": "file",
       "mode": 420,
-      "bytes": 29896,
-      "sha256": "e3fda478506aec04cfbd5fd3f4a9989f2d0585add860967f6353e5205fd31553"
+      "bytes": 29914,
+      "sha256": "845a1c1ad990a7d757132abd5380671caf2940ae3a22ec4bf3c802b3311957c6"
     },
     {
       "path": "packages/console/src/components/StatusChip.tsx",
@@ -4004,8 +4200,8 @@
       "path": "packages/console/src/components/SupplyPicker.tsx",
       "kind": "file",
       "mode": 420,
-      "bytes": 18720,
-      "sha256": "823c9ff4c8d214b37320735fc7ef4f9ba9eded08cea3af8aa69fe534634cba74"
+      "bytes": 18769,
+      "sha256": "bad8af0f2904cf01b14cb9497c4f62bf8c35b231e6be66f4b5503e31cee5c343"
     },
     {
       "path": "packages/console/src/components/TaskModal.tsx",
@@ -4137,15 +4333,15 @@
       "path": "packages/console/src/lib/resourcePlans.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 22955,
-      "sha256": "3fd3585e36bc5a955ac2aa24731a9b34e75dc462a8a328def53ddfa3d14ccdb2"
+      "bytes": 23064,
+      "sha256": "dbabbc8beb50214011a0fa0e41046da1994895f96d1c2dd1da12c1f567c712c8"
     },
     {
       "path": "packages/console/src/lib/resourcePlans.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 24507,
-      "sha256": "12c31ed83bbcaa55c648f05a05fad9b21f85b75e7ff74c3b757f89764d356076"
+      "bytes": 24500,
+      "sha256": "3e5282f17d0adabb2b9b96a04fc729a25f5dd43a4030de582b4bb3dd8fdca478"
     },
     {
       "path": "packages/console/src/lib/router.ts",
@@ -4165,8 +4361,8 @@
       "path": "packages/console/src/lib/setupApi.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 52939,
-      "sha256": "c9c4c04ed34448ee165c0b7a599d8cf7f59c42c5c861ff284b4f78de100cbf8a"
+      "bytes": 52971,
+      "sha256": "d1a7a7550f4f42cd659e5b30c515e10b4c3bad544a077651594114b4045d810c"
     },
     {
       "path": "packages/console/src/lib/setupCopy.ts",
@@ -4487,8 +4683,8 @@
       "path": "packages/console/src/pages/Chat.tsx",
       "kind": "file",
       "mode": 420,
-      "bytes": 42149,
-      "sha256": "2b32ad9bbf4ee7ce35c569bd32690ed5e891b2fe4910e1bfd30b70375947191e"
+      "bytes": 42164,
+      "sha256": "140844b935d2565b0ced0f7181a0282fb94db18488597eb11d24afb9f0d30cbf"
     },
     {
       "path": "packages/console/src/pages/Cost.tsx",
@@ -4543,8 +4739,8 @@
       "path": "packages/console/src/pages/GlobalSettings.tsx",
       "kind": "file",
       "mode": 420,
-      "bytes": 26792,
-      "sha256": "498b8f8c1efae4f3cb22e70ae53e4fe64e00905f8a87734e9a6937dac34da382"
+      "bytes": 26868,
+      "sha256": "3379434165504035b85f78940cc770aad98cbc9098ab8381719e52d0ca081a4f"
     },
     {
       "path": "packages/console/src/pages/Memory.tsx",
@@ -7819,8 +8015,8 @@
       "path": "packages/daemon/test/tier1-executor.test.ts",
       "kind": "file",
       "mode": 420,
-      "bytes": 272011,
-      "sha256": "58182504b25a9c28ed8621655464ba3d2ca801664afb754d43b78ac4497197ea"
+      "bytes": 272171,
+      "sha256": "e0152303304161ea67f51ea7a34c3cbaec898efb9e6e28ccd7f6472da3fa3ad6"
     },
     {
       "path": "packages/daemon/test/tier1-file-tool-effect.test.ts",
@@ -9580,6 +9776,111 @@
       "sha256": "5b255dc748874bce78dc88073a3dc332f6a428f3edd74518b9ec7565e36d5562"
     },
     {
+      "path": "prompts/2026-08-31-pg-01a-c0-repair.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1824,
+      "sha256": "5ca3219b2c47168038b05b38e4178f06138aca1a4409a7f3f3007ff1bfd4cd3a"
+    },
+    {
+      "path": "prompts/2026-08-31-pg-01a-c0-rereview.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3842,
+      "sha256": "8cdba60276c13a47392db155115bfd820e3271579c2aa4a8bd5a641ff8bc86cc"
+    },
+    {
+      "path": "prompts/2026-08-31-pg-01a-c0-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5281,
+      "sha256": "ef259f0182466448eb8f35f542c4bcf5f23acf68e13c4a9ee6569e3f979ac469"
+    },
+    {
+      "path": "prompts/2026-08-31-pg-01a-c1-owner-recovery.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2558,
+      "sha256": "c5a864d6581a844ea5510bea29f1200875aeed74da80d782d67bd2a14ea1ee39"
+    },
+    {
+      "path": "prompts/2026-08-31-pg-01a-c1-recovery2.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4582,
+      "sha256": "8437e01329cfbc1e235a97ce217d3bdb31b9fb318625c18a2294470ae9732259"
+    },
+    {
+      "path": "prompts/2026-08-31-pg-01a-c1-release.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3569,
+      "sha256": "526d1e6cfc850f9fe13a70d8739f75c4e7b9429f2ec8683de522e4ed7a531a0d"
+    },
+    {
+      "path": "prompts/2026-08-31-pg-01a-c1-rereview2.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 6641,
+      "sha256": "72023c9bf55001ff80d5e9d068f087c7f42230bcaba509c1e41eebaf9a71f608"
+    },
+    {
+      "path": "prompts/2026-08-31-pg-01a-c1-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 7183,
+      "sha256": "8e0d96f32b17d78d18737a83bfdf4c0a6b0bd3036a69edd4f57a81cf7860283e"
+    },
+    {
+      "path": "prompts/2026-09-01-pg-01a-fg1-review-1.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3549,
+      "sha256": "61f220efcdc1fb6fab15342d09ae77c239341f2c72c89e33a173da4a954bb882"
+    },
+    {
+      "path": "prompts/2026-09-01-pg-01a-night-repair-1.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4463,
+      "sha256": "289662a96b879e9ecfa510d4b21f40c624264029235bca573aaa811919598915"
+    },
+    {
+      "path": "prompts/2026-09-01-pg-01a-night-repair-2.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4377,
+      "sha256": "2c692f0c35b3f0a44e5c2205ca0c8fee4341deaba100d3059b20f5576efc6821"
+    },
+    {
+      "path": "prompts/2026-09-01-pg-01a-night-repair-3.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4152,
+      "sha256": "5f19795d58cb598ac5503bd897ac57d1c6bcc27c27077ba4df9ab9e01dcb07a7"
+    },
+    {
+      "path": "prompts/2026-09-01-pg-01a-night-review-1.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5811,
+      "sha256": "36abd01b487b284f09b82d4f88aee3add7865a1f89d2bd25d5c8194303b9a666"
+    },
+    {
+      "path": "prompts/2026-09-01-pg-01a-night-review-2.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 6702,
+      "sha256": "e4ba15ea8797774d235a54bda2617a6e35f4b90dfa896f6276ed845c9b9cb1d3"
+    },
+    {
+      "path": "prompts/2026-09-01-pg-01a-night-review-3-ordinal4.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 7041,
+      "sha256": "caf7bea69acd3bcc78e3e501af52b6e35b27082139d670614d7bd2ab6e67a7e2"
+    },
+    {
       "path": "prompts/203-rc4-long-session-handoff-to-new-codex.md",
       "kind": "file",
       "mode": 420,
@@ -9608,6 +9909,34 @@
       "sha256": "de1e86aeb5a41a5300ab1ec5c60037d406494b2022e95e49bb4d4f8169155d63"
     },
     {
+      "path": "prompts/206-project-gap-program-adversarial-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3655,
+      "sha256": "baf784f6efb7b1386aefed617573c256a6d8bf0bfa7ae1d2baffacc688a80379"
+    },
+    {
+      "path": "prompts/207-project-gap-solution-value-adversarial-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3594,
+      "sha256": "23cd8ce4b8d8de43943efdd55c24dcee35cafac38b5091f82906aa2c688edfb2"
+    },
+    {
+      "path": "prompts/208-project-gap-v4-implementation-readiness-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3537,
+      "sha256": "bcb4ac38ddcb3b6db805191c57110447019cb059f54e6bf8760b707f38b70bb7"
+    },
+    {
+      "path": "prompts/209-project-gap-v4-finalization-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3461,
+      "sha256": "fd65a7cbf79f8a48144503174150df656453897d8bef6734de42f3e519e68acd"
+    },
+    {
       "path": "prompts/21-ra-contract-review.md",
       "kind": "file",
       "mode": 420,
@@ -9615,11 +9944,123 @@
       "sha256": "ed7653c8e263c9fdf858f3b749ff663060b036125d9eae751a2244a6a3ce75d4"
     },
     {
+      "path": "prompts/210-project-gap-v4-final-readiness-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3980,
+      "sha256": "64d13b44cf9c6c17cd47f924de3e04b5ca96d1b04cde15696dfc48a57129ab11"
+    },
+    {
+      "path": "prompts/211-project-gap-v4-closure-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3560,
+      "sha256": "c54c0d486c1b7d85d96f99a3be2c059dd0c3dada55e1e5a973fd74c672f9616d"
+    },
+    {
+      "path": "prompts/212-project-gap-v4-transaction-and-wave-final-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4337,
+      "sha256": "eb6d7d868af10e71fc19e6c08111a33090d9f7c0ce7b9b40d7700a13566802ea"
+    },
+    {
+      "path": "prompts/213-project-gap-v4-final-implementation-contract-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4682,
+      "sha256": "4a895ba0c655fe0518142daf77c0a9dc1bd60ca44ef506545cc1bbf2dc61ff21"
+    },
+    {
+      "path": "prompts/214-project-gap-v6-standard-git-final-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4681,
+      "sha256": "4f9f4bd703e7eb0744ce1aa33a92d12735d63ebbb39e28d6897b94a579e95da0"
+    },
+    {
+      "path": "prompts/215-project-gap-v7-final-recheck.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5236,
+      "sha256": "0896e9afa345bfdd99c9ea8b9464ce7d4d414bd579f1b558e225594e17bf4361"
+    },
+    {
+      "path": "prompts/216-project-gap-v7-final-recheck.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5349,
+      "sha256": "57f1188bea533840b566ef2f2290798be6279f02056193cd3949c1e4201b221d"
+    },
+    {
+      "path": "prompts/217-project-gap-v7-final-recheck.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2818,
+      "sha256": "9bed95a02e053ce99e93a7d7351363005b3b90e18b72f74342ad7748e1a399fe"
+    },
+    {
+      "path": "prompts/218-project-gap-v7-final-recheck.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2954,
+      "sha256": "a37ceef7f6c7090602c2a637514f92c7e0ea1510b2186828cf10e06218946db3"
+    },
+    {
+      "path": "prompts/219-project-gap-v7-final-recheck.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3077,
+      "sha256": "b01f6f4e5241ee3f5586cef2da755883e7e2e40902e6513841d3f1522406ae5d"
+    },
+    {
       "path": "prompts/22-ra-verification-completion.md",
       "kind": "file",
       "mode": 420,
       "bytes": 3783,
       "sha256": "f5eeb9baf2f45a3dc0b04fb62a09b56f73147852d387798a2c42dc21467cd145"
+    },
+    {
+      "path": "prompts/220-project-gap-v7-final-recheck.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1919,
+      "sha256": "ecf0071b1c98fd89d76cb9dbb5ec000dea82c5c1a34c336c54925c89183f8d48"
+    },
+    {
+      "path": "prompts/221-project-gap-pg00-import-readback.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 9495,
+      "sha256": "a0f51a4606dde059c08890b66d695aa132103d234be14391abf54d9f79120da8"
+    },
+    {
+      "path": "prompts/222-monthly-crosscheck-quickstart-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3779,
+      "sha256": "6bed0df757fade9b285d873f3ef7c67e4b1688ac06962326c2de7883f31862e1"
+    },
+    {
+      "path": "prompts/223-monthly-crosscheck-quickstart-review-retry.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3323,
+      "sha256": "fa75ea183683f28fb774a441a55260509b4d504e146827452e1b487f3e526e3e"
+    },
+    {
+      "path": "prompts/224-monthly-crosscheck-quickstart-rereview.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2198,
+      "sha256": "e685720d7c13ccb95e66d6551425494807e1f4545130f0da64357732042cb400"
+    },
+    {
+      "path": "prompts/225-monthly-crosscheck-quickstart-final-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2229,
+      "sha256": "68ff13451f179aac65636e79e48c49339beff4e01ba328d0fd96025ecdec9a4c"
     },
     {
       "path": "prompts/23-a3-armed-design-review.md",
@@ -10199,8 +10640,8 @@
       "path": "README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 4203,
-      "sha256": "4ba947eb4490089d03150af4ba0fbfb4e52daa07de7828ec995d40480432d7ab"
+      "bytes": 5252,
+      "sha256": "dcfc6136a961caacf1e87507627a0de29fb1064da9a3782387c8761e90caeb6f"
     },
     {
       "path": "research/2026-07-25-saydo-closeout-impl-readback.fable.md",
@@ -11071,6 +11512,34 @@
       "sha256": "1e84c194cadc9280db63189c2efb39872635611ddc5dd0effb6e737b4b0beeca"
     },
     {
+      "path": "research/codex-findings/206-project-gap-program-adversarial-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 12179,
+      "sha256": "9b9124f2c795fe1a7e5cf322e2f28d03cb56d3573e9284b6f93d4d28df3ae7b4"
+    },
+    {
+      "path": "research/codex-findings/207-project-gap-solution-value-adversarial-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 13175,
+      "sha256": "203db398963d8fe77518ed87931273266753545d5f050b0725236d7f9b6e8973"
+    },
+    {
+      "path": "research/codex-findings/208-project-gap-v4-implementation-readiness-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 10225,
+      "sha256": "29eb8d33c88677431e86959a8db868e6e830a1b324fee05021ceab5bffd42d9b"
+    },
+    {
+      "path": "research/codex-findings/209-project-gap-v4-finalization-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 8137,
+      "sha256": "d2e87cf32f8cd1af4da52305f9151f204234ae17eba6072287d338d393b9b7bb"
+    },
+    {
       "path": "research/codex-findings/21-ra-contract-review.md",
       "kind": "file",
       "mode": 420,
@@ -11078,11 +11547,81 @@
       "sha256": "4ad2f6e117baf30ae7975d1b1a06122c1ec93b7a9cf2aaa1653d60e1637e986d"
     },
     {
+      "path": "research/codex-findings/210-project-gap-v4-final-readiness-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 8216,
+      "sha256": "f0d1be645b256d84112be89400efb384436c7733a21d9acc435368bbabbcf543"
+    },
+    {
+      "path": "research/codex-findings/211-project-gap-v4-closure-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 10048,
+      "sha256": "93f9c21df23cc17b0eee5c6ab73d1d93323d43026822aa7ec6db461f6bbf9e29"
+    },
+    {
+      "path": "research/codex-findings/212-project-gap-v4-transaction-and-wave-final-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 16769,
+      "sha256": "a2810b29d704e303ba49d81b83ed5ec305e4836028066851f1375c6843b89f0a"
+    },
+    {
+      "path": "research/codex-findings/214-project-gap-v6-standard-git-final-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 14382,
+      "sha256": "83d6a2e7b4f9184b0f98261e0efa134f091b87d761cf03fa511b475dd1c84e7d"
+    },
+    {
+      "path": "research/codex-findings/219-project-gap-v7-final-recheck.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 6969,
+      "sha256": "130292aa7693371e168fa5aa69f5ccb24b3dd3822aa6c5a1364a3a4327843971"
+    },
+    {
       "path": "research/codex-findings/22-ra-verification-completion.md",
       "kind": "file",
       "mode": 420,
       "bytes": 57155,
       "sha256": "9528009bbbd65438d49f0f88fa0dd0ba26531e0ab1ff63b482f5326b21ce3da6"
+    },
+    {
+      "path": "research/codex-findings/220-project-gap-v7-final-recheck.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3259,
+      "sha256": "90e1b36b13b2019c84666da25caf1a5b8e6ebf2fffd9fbeb2c8910823bf48458"
+    },
+    {
+      "path": "research/codex-findings/221-project-gap-pg00-import-readback.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3467,
+      "sha256": "fff7d36c83eb0db5eda6b76195d73fca3c2cd55c95fbd694d9eaf874a893eacc"
+    },
+    {
+      "path": "research/codex-findings/223-monthly-crosscheck-quickstart-review-retry.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 8012,
+      "sha256": "78a8cf59c6e99d75c8216691440e7209c5c9bce4185ba456da05c3c1c34ed149"
+    },
+    {
+      "path": "research/codex-findings/224-monthly-crosscheck-quickstart-rereview.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4563,
+      "sha256": "6d280be6329ba86b01a9e28c8cb92832c45eda19b1005d04c245554560235ec9"
+    },
+    {
+      "path": "research/codex-findings/225-monthly-crosscheck-quickstart-final-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2428,
+      "sha256": "d99bf0cd6550faf4395095e97fd82963b3289d5a1d88103e6d6f00b9eef26aeb"
     },
     {
       "path": "research/codex-findings/23-a3-armed-design-review.md",
@@ -11890,6 +12429,13 @@
       "sha256": "f92bd6feb1afc6581b404cfceb0af987e7d66b820501759ab82b20964c0cf55f"
     },
     {
+      "path": "research/customer-question-corpus/check-q0-truth-report.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 11413,
+      "sha256": "17541af0048c71e6a36ac21b0d3a35afe453157fea5b4067c3143eac98247dd8"
+    },
+    {
       "path": "research/customer-question-corpus/contexts/CTX-01/feedback-notes.md",
       "kind": "file",
       "mode": 420,
@@ -12461,14 +13007,14 @@
       "kind": "file",
       "mode": 420,
       "bytes": 147619,
-      "sha256": "68225899b09f4d37570a121dfd567d1e6b5345c88915cdb5cc5e907970fbec50"
+      "sha256": "36255565e4ea0bf00a6d47d0cfccf86fe09cf3d8fb9fecafe858ea4b05605863"
     },
     {
       "path": "research/customer-question-corpus/dry-runs/02-dry-run-remediation-plan.md",
       "kind": "file",
       "mode": 420,
       "bytes": 74135,
-      "sha256": "56337afcad4998df97c6603d10840de5d0c5825521c9b2fdf224e35587b5154e"
+      "sha256": "de04f8c67f28be76a44ef4d0b72e05480cac57442a53e774d9aac29a215d4aad"
     },
     {
       "path": "research/customer-question-corpus/dry-runs/03-a-repair-implementation-note.md",
@@ -12628,8 +13174,8 @@
       "path": "research/customer-question-corpus/README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 7323,
-      "sha256": "e10ab9ab165c79071d20f13c385c1d431e4d951264ecc6902af15858b9a4dcba"
+      "bytes": 7414,
+      "sha256": "c21125e63c87af144ce5caa71ec016767de3625362003576d182d1d8596316c5"
     },
     {
       "path": "research/customer-question-corpus/rebuild.mjs",
@@ -12777,6 +13323,13 @@
       "mode": 420,
       "bytes": 24348,
       "sha256": "8081e88876b99a22f7cc9684c25538f0216f97b41d35be3421a5040e7a598a10"
+    },
+    {
+      "path": "research/customer-question-corpus/review/23-pg01a-q0-truth-report.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 395227,
+      "sha256": "be5ff653d59f6c866cab32943eca205cc2fec1484255722dd59f3c2aed4d81c1"
     },
     {
       "path": "research/customer-question-corpus/simulations/00-simulation-plan.md",
@@ -13045,11 +13598,18 @@
       "sha256": "5e8d960559986178dd0c47c0c3e8c45edf7355cd965369b8e216e1b89763c402"
     },
     {
+      "path": "research/customer-question-corpus/test-q0-truth-mutations.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5320,
+      "sha256": "4d9c406b128133c6ba5416dd54bbeca6a000924f4d283070dd4e98f09a4c256e"
+    },
+    {
       "path": "research/customer-question-corpus/validate.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 182295,
-      "sha256": "ac2cb21bc967787ca529df2d7de3c27ee0c9a3f107f8cb69c9a9fe6ee85411d5"
+      "bytes": 182658,
+      "sha256": "cf79c7f8288167eac438f603608a3ecb8d173952e6c9cde5dda2e6738457382f"
     },
     {
       "path": "research/ecosystem-analysis-and-fusion.md",
@@ -13493,6 +14053,13 @@
       "sha256": "372a01f8372ed67698f86fc3be3cefe6273f7ce153e9802c5d03bceb67daa9ab"
     },
     {
+      "path": "scripts/check-active-claims.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 7456,
+      "sha256": "316ffcae0996cc218195648589f2c56387d7b3cce60ca7a325abcea9487db0d4"
+    },
+    {
       "path": "scripts/check-doc-links.mjs",
       "kind": "file",
       "mode": 420,
@@ -13717,6 +14284,13 @@
       "sha256": "47713599e93cacb261461771505345c41cdf1dda8be7b08943b294857b676a52"
     },
     {
+      "path": "scripts/test-active-claims.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 7580,
+      "sha256": "8d69a52042a980ebeccecb6c2f0fa136f015123c8f09711d04352b24cbfbd5ed"
+    },
+    {
       "path": "scripts/test-color-gate.mjs",
       "kind": "file",
       "mode": 420,
@@ -13743,6 +14317,13 @@
       "mode": 420,
       "bytes": 80,
       "sha256": "e0bb29dcc21a4dc9bf1c9e843597ba49830f2bcd4dd3b4f5e29a38d54b02b668"
+    },
+    {
+      "path": "scripts/test-install-scripts.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 15197,
+      "sha256": "37d4dd2093e09eb1fa7c0a63d8fda751e2b41df85a73fd2abd67d26728d2e4fd"
     },
     {
       "path": "scripts/test-migration-tools.mjs",
@@ -13860,22 +14441,22 @@
       "path": "templates/saydo.config.dev.example.toml",
       "kind": "file",
       "mode": 420,
-      "bytes": 3777,
-      "sha256": "95e21c223c40a517872ea5be39ce69d14e424bd52df56fbcfd04af847de0a803"
+      "bytes": 3780,
+      "sha256": "677c7633d984dad218a32061a6367af573aed1b6072b7f253762bc9dc08cc09b"
     },
     {
       "path": "templates/saydo.config.example.toml",
       "kind": "file",
       "mode": 420,
-      "bytes": 8766,
-      "sha256": "81b8b694d5abecd84bcca811d1f9d29c579649dd9f60f57d1558d6a5c06622b4"
+      "bytes": 8861,
+      "sha256": "714bf4746a9f7dc93868e6a0c88b1cbdcc04ca92855adab6221beac350df7b14"
     },
     {
       "path": "templates/saydo.env.example",
       "kind": "file",
       "mode": 420,
-      "bytes": 2247,
-      "sha256": "8fb0b5a729d59a4713db21afe2c3cda42c0e100be1abf1d0bc1492895632f317"
+      "bytes": 2359,
+      "sha256": "94c90f93c4c88ce61c6f29b2fee7f792c39cefa2358a45f9b943c5df224e7f0f"
     },
     {
       "path": "TESTING-测试提问手册.md",

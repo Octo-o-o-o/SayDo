@@ -170,6 +170,8 @@
 
 **推荐 · 不克隆源码:**v0.1.0-rc.12 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证,可直接使用。尚未发布到 npm registry 或 Homebrew。
 
+**最快 · 一条命令(2026-09-02 起,页面 §4.2 首段;详见 `docs/plan/2026-09-02-quick-start-distribution.md`):**不需要预装 Node.js;脚本在用户目录内准备 Node 22、下载固定版本包并校验 SHA-256、生成 `~/.saydo/bin/saydo`。macOS / Linux:`curl -fsSL https://saydo.octoooo.com/install.sh | sh`;Windows:`irm https://saydo.octoooo.com/install.ps1 | iex`;然后 `saydo up`。已有 Node 22 时仍可走下面的 npm 路径。
+
 ```bash
 # 一次运行:下载到 npm 缓存后直接启动
 npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.12/saydo-cli-0.1.0-rc.12.tgz -- saydo up

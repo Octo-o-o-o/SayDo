@@ -6397,13 +6397,17 @@ describe("executor ownership / recover abort 行为回归", () => {
     const owned = new OwnedSpawner();
     owned.plan = [{ lines: [EV.init], exitCode: 2 }];
     const ex = makeExecutor({}, owned);
+    const ownerPath = join(saydoHome, "tier1", "runs", runId, "agent-owner.json");
     const recovering = ex.recover();
     await vi.waitFor(() => {
       expect(establishedWithFile).toBe(true);
     }, { timeout: 8_000, interval: 20 });
-    expect(existsSync(join(saydoHome, "tier1", "runs", runId, "agent-owner.json"))).toBe(true);
     await recovering;
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // recover 认领 barrier 只等到 durable owner 发布；wait/settle/clear 在其后合法发生。
+    await vi.waitFor(() => {
+      expect(ex.activeRunCount()).toBe(0);
+      expect(existsSync(ownerPath)).toBe(false);
+    });
   }, 20_000);
 
   it("provisionWorktree 之后 abort 不得 spawn", async () => {

@@ -9,7 +9,7 @@
         "name": "说到",
         "subtitle": "聊清楚，它去办，办完叫你",
         "promotional_text": "你把事情聊清楚。它先吃透项目，听懂了就提议开始，办完叫你验收。",
-        "description": "说到（SayDo）是一个你能对着说话的高级助手。说到，就做到。\n\n说过的话，转头就忘；答应的事，不知道办到哪了。「说到」把「说」和「做」连起来：你只管把事聊清楚，它先吃透你的项目上下文，替你把每件事记成一本账——等你拍板的、你欠的动作、AI 正在办的、等外部回音的，一眼看清。听懂了它会主动提议开工，驱动你电脑上已有的 AI agent 去办事；执行和检查都跑完，再叫你验收，办完盖章销账。\n\n手机是沟通面：说话、看进展、拍板、审批。重活留在你的电脑上，手机暂时离开也不打断执行。\n\n为什么不一样：\n- 说了就记：按住说话，想到哪说到哪，随口一句「帮我记一下」立刻进账。\n- 一本账，不是一堆待办：每件事都有归属和去向，四色分明。\n- AI 真的在干活：接上你电脑上已有的 AI（已订阅的 CLI 即可，无需额外付费），对话、整理、跟进、动手都由它来。\n- 数据完全在你手里：没有云端服务器，没有账号注册。手机扫码连接你自己的电脑，数据只在你的设备和局域网里。\n\n使用前提：需在你的电脑（macOS）上运行「说到」桌面服务（开源免费），手机扫码即连。\n\n这不是语音输入法，也不是把你的项目上传到云端代跑的服务。默认在你自己的设备上工作。\n\nICP 备案号:京ICP备2025153079号-4A",
+        "description": "说到（SayDo）是一个你能对着说话的高级助手。说到，就做到。\n\n说过的话，转头就忘；答应的事，不知道办到哪了。「说到」把「说」和「做」连起来：你只管把事聊清楚，它先吃透你的项目上下文，替你把每件事记成一本账——等你拍板的、你欠的动作、AI 正在办的、等外部回音的，一眼看清。听懂了它会主动提议开工，驱动你电脑上已有的 AI agent 去办事；执行和检查都跑完，再叫你验收，办完盖章销账。\n\n手机是沟通面：说话、看进展、拍板、审批。重活留在你的电脑上，手机暂时离开也不打断执行。\n\n为什么不一样：\n- 说了就记：按住说话，想到哪说到哪，随口一句「帮我记一下」立刻进账。\n- 一本账，不是一堆待办：每件事都有归属和去向，四色分明。\n- AI 真的在干活：接上你电脑上已有的 AI（已登录不等于可调用，需已接线并完成自检；登录不等于免费），对话、整理、跟进、动手都由它来。\n- 外发范围以当前配置为准。没有账号注册。手机扫码连接你自己的电脑。\n\n使用前提：需在你的电脑（macOS）上运行「说到」桌面服务（开源免费），手机扫码即连。\n\n这不是语音输入法，也不是把你的项目上传到云端代跑的服务。核心账本在你的电脑上；模型与语音外发以当前配置为准。\n\nICP 备案号:京ICP备2025153079号-4A",
         "keywords": "语音,待办,任务,GTD,助手,AI,agent,记事,提醒,账本,效率,验收",
         "whats_new": "首次发布。",
         "_support_url": "https://saydo.octoooo.com/support",
@@ -20,7 +20,7 @@
         "name": "SayDo - You Say, AI Do",
         "subtitle": "Talk it through. It delivers.",
         "promotional_text": "Talk the work through. It learns the project, proposes when ready, and calls you back when it is time to review.",
-        "description": "SayDo is a voice-first assistant for getting real work done.\n\nYou do not have to write a perfect prompt. Talk the work through. SayDo first builds lasting project context, then proposes to start when it actually understands, and drives a local AI agent on your computer. When execution and checks have both finished, it calls you back for review.\n\nThe phone is the conversation surface: speak, watch progress, decide, approve. Heavy work stays on your computer, so a dropped phone connection does not stop the job.\n\nIt is not a dictation keyboard, and it is not a cloud that runs your repos for you. By default it works on your own machines.",
+        "description": "SayDo is a voice-first assistant for getting real work done.\n\nYou do not have to write a perfect prompt. Talk the work through. SayDo first builds lasting project context, then proposes to start when it actually understands, and drives a local AI agent on your computer. When execution and checks have both finished, it calls you back for review.\n\nThe phone is the conversation surface: speak, watch progress, decide, approve. Heavy work stays on your computer, so a dropped phone connection does not stop the job.\n\nIt is not a dictation keyboard, and it is not a cloud that runs your repos for you. Core ledger data stays on your computer; model and voice egress follow your current configuration.",
         "keywords": "voice,assistant,agent,coding,review,local,AI,work",
         "whats_new": "Initial release.",
         "_support_url": "https://saydo.octoooo.com/support",
@@ -35,7 +35,7 @@
       "zh-CN": {
         "title": "说到",
         "short_description": "对着说话的高级助手：聊清楚就开工，电脑办事，办完叫你验收。",
-        "full_description": "说到（SayDo）是一个你能对着说话的高级助手。说到，就做到。\n\n说过的话，转头就忘；答应的事，不知道办到哪了。「说到」把「说」和「做」连起来：你只管把事聊清楚，它先吃透你的项目上下文，替你把每件事记成一本账——等你拍板的、你欠的动作、AI 正在办的、等外部回音的，一眼看清。听懂了它会主动提议开工，驱动你电脑上已有的 AI agent 去办事；执行和检查都跑完，再叫你验收，办完盖章销账。\n\n手机是沟通面：说话、看进展、拍板、审批。重活留在你的电脑上。\n\n- 说了就记：按住说话，随口一句「帮我记一下」立刻进账。\n- 一本账，不是一堆待办：每件事都有归属和去向，四色分明。\n- AI 真的在干活：接上你电脑上已有的 AI（已订阅的 CLI 即可），对话、整理、跟进、动手都由它来。\n- 数据完全在你手里：没有云端服务器，没有账号注册，数据只在你的设备和局域网里。\n\n使用前提：需在你的电脑（macOS）上运行「说到」桌面服务（开源免费），手机扫码即连。这不是语音输入法，也不是把你的项目上传到云端代跑的服务。",
+        "full_description": "说到（SayDo）是一个你能对着说话的高级助手。说到，就做到。\n\n说过的话，转头就忘；答应的事，不知道办到哪了。「说到」把「说」和「做」连起来：你只管把事聊清楚，它先吃透你的项目上下文，替你把每件事记成一本账——等你拍板的、你欠的动作、AI 正在办的、等外部回音的，一眼看清。听懂了它会主动提议开工，驱动你电脑上已有的 AI agent 去办事；执行和检查都跑完，再叫你验收，办完盖章销账。\n\n手机是沟通面：说话、看进展、拍板、审批。重活留在你的电脑上。\n\n- 说了就记：按住说话，随口一句「帮我记一下」立刻进账。\n- 一本账，不是一堆待办：每件事都有归属和去向，四色分明。\n- AI 真的在干活：接上你电脑上已有的 AI（已登录不等于可调用，需已接线并完成自检），对话、整理、跟进、动手都由它来。\n- 外发范围以当前配置为准。没有账号注册。\n\n使用前提：需在你的电脑（macOS）上运行「说到」桌面服务（开源免费），手机扫码即连。这不是语音输入法，也不是把你的项目上传到云端代跑的服务。",
         "release_notes": "首次发布。"
       },
       "en-US": {
@@ -52,7 +52,7 @@
       "zh-CN": {
         "name": "说到",
         "brief_intro": "对着说话的高级助手：聊清楚就开工，电脑办事，办完叫你验收。",
-        "description": "说到（SayDo）是一个你能对着说话的高级助手。说到，就做到。「说到」把「说」和「做」连起来：把事聊清楚，它先吃透项目上下文，替你把每件事记成一本账——等你拍板的、你欠的动作、AI 正在办的、等外部回音的，一眼看清；听懂了就主动提议开工，驱动电脑上已有的 AI agent 办事，办完盖章销账、叫你验收。手机只做沟通与拍板，重活留在电脑。没有云端服务器，没有账号注册，数据只在你的设备和局域网里。支持 HarmonyOS 设备扫码连接你自己的电脑（需在电脑上运行开源免费的「说到」桌面服务）。",
+        "description": "说到（SayDo）是一个你能对着说话的高级助手。说到，就做到。「说到」把「说」和「做」连起来：把事聊清楚，它先吃透项目上下文，替你把每件事记成一本账——等你拍板的、你欠的动作、AI 正在办的、等外部回音的，一眼看清；听懂了就主动提议开工，驱动电脑上已有的 AI agent 办事，办完盖章销账、叫你验收。手机只做沟通与拍板，重活留在电脑。没有账号注册；外发范围以当前配置为准。支持 HarmonyOS 设备扫码连接你自己的电脑（需在电脑上运行开源免费的「说到」桌面服务）。",
         "new_features": "首次发布。"
       },
       "en-US": {

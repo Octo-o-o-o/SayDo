@@ -41,7 +41,7 @@
     "research/week-audit/2026-08-22-ledger.json": "a989895c421d23ad35966da0cfbd86ac74c1089bf152aa763c38302b7c2b216d",
     "research/week-audit/2026-08-22-semantic-review.json": "905b2806c237bcea81eb8b3f64f66cec3e81ff8d3f5d1d3889c82839073cd1e5",
     "research/week-audit/2026-08-22-ref-manifest.json": "46fc3c9b4b5ac02a9a862ace714d721c9434583fc055f8f5246b58bd7cf0f70d",
-    "research/week-audit/2026-08-23-publication-manifest.json": "fb3ac716892a90b66bace0d597e28b89847bc03ae907be60ea3d52757a59da83",
+    "research/week-audit/2026-08-23-publication-manifest.json": "e06099624f4896ab48f910162325f35ede4ddbf06b00d56f35e941a210840d4d",
     "research/week-audit/2026-08-23-review-finding-anchor.json": "03c6ef06fb8f3834e311b06874a869c4e232b4b8f3842f95ef54d6ce388ef378",
     "research/week-audit/2026-08-23-remediation-cross-links.json": "c1cdfebe08cac2adff5ebdd521e9f180210b6a40bac32498fa0cb8ca2022e02e",
     "research/week-audit/2026-08-23-remediation-ledger.json": "2ce58f8c0cea79751ee7968a58d46f7d6a2f4d788100be98b0abe0660f001d2a",
@@ -51,6 +51,27 @@
     "schemaVersion": 2,
     "implementationBoundary": "b768089585d710255d61a693c2489ccf425f446f",
     "exclusionRule": "七个账本生成物由 files digest/全树 manifest 单独闭环，避免自引用；其余 staged/unstaged 已跟踪文件逐个冻结内容；无关 untracked 不入快照",
-    "entries": []
+    "entries": [
+      {
+        "path": "docs/review/2026-09-02-monthly-docs-commit-crosscheck.md",
+        "states": [
+          "staged"
+        ],
+        "kind": "file",
+        "mode": 420,
+        "bytes": 15547,
+        "sha256": "e8e5a29fcdbb26b08337bd0799d878f26d7cf05608ffe322b61e681176543343"
+      },
+      {
+        "path": "history/PROCESS-JOURNAL.md",
+        "states": [
+          "staged"
+        ],
+        "kind": "file",
+        "mode": 420,
+        "bytes": 432988,
+        "sha256": "51f6229ce215d367a84a1bc1630b7a4409b71c997a66c491dbbd061495b36630"
+      }
+    ]
   }
 }

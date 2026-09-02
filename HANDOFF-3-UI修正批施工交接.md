@@ -1,5 +1,8 @@
 # HANDOFF-3:UI 修正批施工交接(给 demo 作者 AI · 2026-08-09)
 
+> **已交付归档(2026-09-02 月度对账补记)**:本合同对应的L1-L5 UI 修正批已于 2026-08-09 施工完毕并验收合并入 main(`history/DEV-VERSION-LEDGER.md` §2 登记代码 `4d41775`);本文件仅留痕,不再是活合同。当前开工链以根 `HANDOFF.md` 为准。
+
+
 > 你的前两批(组件库/页面拼装)与对齐轮均已验收合并入 main 并推 GitHub。本批=五件独立 UI 修正(遗留清单 L1-L5),彼此无依赖,总量约半天。工作坐标:**~/WorkSpace/SayDo**(注意:仓库已改名并直连 GitHub,原 SayDo-console-build 已删),分支 main 直接施工(小修正批,commit 分件)。HANDOFF-1 的纪律门禁(tsc/test/build/emoji/状态词三级)与禁改域(daemon 逻辑/VoiceContext 语音逻辑)继续有效;**本批可读 daemon API 但不改 daemon 代码**。
 
 | # | 修正 | 要点 |

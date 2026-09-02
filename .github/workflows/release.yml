@@ -73,6 +73,7 @@ jobs:
       - run: node scripts/test-release-provenance.mjs
       - run: node scripts/check-doc-links.mjs
       - run: node scripts/third-party-notices.mjs --check
+      - run: node scripts/test-install-scripts.mjs
       - run: node scripts/week-audit.mjs --check-bundle
       - run: node scripts/post-release-gate.mjs --check-candidate "${GITHUB_REF_NAME}"
 

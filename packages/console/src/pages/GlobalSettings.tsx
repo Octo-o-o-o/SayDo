@@ -332,7 +332,7 @@ export function GlobalSettings() {
           </tbody>
         </table>
         <p style={{ margin: "10px 0 0", fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>
-          密钥永不在界面显示;前四槽可用 API 按量计费,也可用已登录 CLI 订阅。对话 CLI 是每轮约 15-25 秒的慢速模式;开发槽保持只读现状。
+          密钥永不在界面显示;前四槽可用 API 按量计费,也可用已接线并通过调用验证的 CLI。对话 CLI 是每轮约 15-25 秒的慢速模式;登录或订阅不等于可调用,费用以服务商为准;开发槽保持只读现状。
         </p>
       </PaperCard>
       <EvaluatorSafetyCard

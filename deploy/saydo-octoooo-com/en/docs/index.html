@@ -156,13 +156,13 @@
         <h3>1.4 Current status in one breath</h3>
         <ul>
           <li><strong>macOS desktop service</strong> (daemon + Web console + optional voice pipeline): available now, open source and free (see §18 Open source &amp; contributing).</li>
-          <li><strong>Drives the AI you already have</strong>: reasoning slots can use the <strong>subscription login</strong> of Claude Code / Codex / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI, or any OpenAI-compatible API (§5); <strong>Cursor CLI is currently the stable executor path</strong>, Claude Code is wired into production and undergoing final live conformance, and the Codex execution route is planned (§6).</li>
+          <li><strong>Drives the AI you already have</strong>: reasoning slots can use a wired Claude Code / Codex / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI that has passed a call check, or a configured OpenAI-compatible chat endpoint (§5; not tool equivalence). Sign-in or a subscription does not by itself mean it is callable; rights and fees follow the provider. <strong>Cursor CLI is currently the stable executor path</strong>, Claude Code is wired into production and undergoing final live conformance, and the Codex execution route is planned (§6).</li>
           <li><strong>Project memory &amp; the four-color ledger</strong>: available now.</li>
           <li><strong>iOS / Android / HarmonyOS apps</strong>: engineering shells exist; none submitted to stores, and there is no public download. What is available today is mobile-browser LAN dogfood. The three app shells are development candidates (iOS pending this-round on-device retest, Android has no current device evidence, HarmonyOS historically had a physical target (2026-08-22); this round has no online target evidence, only an unsigned HAP and no signing Profile) (§13).</li>
           <li><strong>Call-style voice briefings</strong>: planned.</li>
         </ul>
         <h3>1.5 Cost in one breath</h3>
-        <p>The desktop service itself is free. AI costs go directly to the vendors you choose — use your existing CLI subscriptions (zero extra cost within quota) or your own API keys on pay-as-you-go. SayDo adds no markup, never touches the money, and doesn't top up for you. Details in §15.</p>
+        <p>The desktop service itself is free. AI costs go directly to the vendors you choose — use your existing CLI login (this does not imply quota or free usage) or your own API keys on pay-as-you-go. SayDo adds no markup, never touches the money, and doesn't top up for you. Details in §15.</p>
 
         <h2 id="s2">2. Core concepts at a glance</h2>
         <div class="table-scroll">
@@ -188,7 +188,7 @@
             <tr><td><strong><code>ready_for_review</code></strong></td><td>The state where execution and checks have run, artifacts are on disk, and it's ready for your review; callbacks fire from here. <strong>It does not mean done</strong> — only after merge / archive is it "delivered"</td><td>§10.1</td></tr>
             <tr><td><strong>Reasoning slots (four)</strong></td><td>dialog / thinking / cheap / evaluator — each independently supplied by API or subscription CLI</td><td>§5.1</td></tr>
             <tr><td><strong>Dev slot (executor)</strong></td><td>The fifth slot <code>[models.dev]</code>: <strong>which agent edits the code</strong> when a task is dispatched (a different question from "which model talks")</td><td>§6</td></tr>
-            <tr><td><strong>BYOA (bring your own agent)</strong></td><td>Use CLIs already logged in on your machine (Codex / Claude Code / Cursor / Grok / Gemini / Qwen / Copilot) as reasoning supply — zero API keys</td><td>§5.2</td></tr>
+            <tr><td><strong>BYOA (bring your own agent)</strong></td><td>Use a wired CLI that has passed a call check (Codex / Claude Code / Cursor / Grok / Gemini / Qwen / Copilot) as reasoning supply — zero API keys is possible. Sign-in does not mean callable; fees follow the provider</td><td>§5.2</td></tr>
             <tr><td><strong>cap-token</strong></td><td>The console's local capability token (<code>~/.saydo/.cap-token</code>), carried in the console URL; deleting it rotates it</td><td>§4.3, §14</td></tr>
           </tbody>
         </table>
@@ -274,7 +274,7 @@ You (speak / listen / occasionally look at the screen; sign off / approve)
         </ul>
 
         <h2 id="quickstart">4. Quickstart (the normal user path)</h2>
-        <div class="docs-note"><p>Goal: one computer (macOS main line; Windows and Linux work too), one AI CLI you're logged into (or one API key) — up and talking in about fifteen minutes.</p></div>
+        <div class="docs-note"><p>Goal: one computer (macOS main line; Windows and Linux work too), one wired AI CLI that has passed a call check (or one API key) — follow the wizard, then start talking.</p></div>
         <h3>4.1 Prerequisites</h3>
         <div class="table-scroll">
         <table>
@@ -283,16 +283,26 @@ You (speak / listen / occasionally look at the screen; sign off / approve)
           </thead>
           <tbody>
             <tr><td>System</td><td>macOS (Apple Silicon or Intel) &middot; Windows &middot; Linux</td><td>All three run the desktop service; <strong>service installation and system notifications are still macOS-only implementations</strong>, so Windows/Linux run it in the foreground</td></tr>
-            <tr><td>Node</td><td><strong>22.x</strong> (<code>&gt;=22 &lt;23</code>)</td><td>Runtime of the desktop service and CLI; install via nvm / fnm / Homebrew</td></tr>
+            <tr><td>Node</td><td><strong>22.x</strong> (<code>&gt;=22 &lt;23</code>)</td><td>Runtime of the desktop service and CLI; the one-command installer prepares it automatically, install via nvm / fnm / Homebrew only for the manual npm path</td></tr>
             <tr><td>Optional · pnpm</td><td>10.x</td><td>Only needed for source development; the Release package does not need it</td></tr>
             <tr><td>Optional · git</td><td>any recent version</td><td>Only needed when the executor edits code and creates isolated worktrees; ledger and console use do not need it</td></tr>
-            <tr><td>One AI supply</td><td>Either: ① any wired CLI already logged in locally (Codex / Claude Code / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI); or ② an OpenAI-compatible API key (OpenRouter / OpenAI / Anthropic / DeepSeek)</td><td>Chatting, ledger entries, and research need no key (they use CLI subscriptions); see §5.3</td></tr>
+            <tr><td>One AI supply</td><td>Either: ① a locally wired CLI that has passed a call check (Codex / Claude Code / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI); or ② an OpenAI-compatible API key (OpenRouter / OpenAI / Anthropic / DeepSeek)</td><td>Chatting, ledger entries, and research can skip an API key only if that CLI is wired and has passed a call check; rights and fees follow the provider. See §5.3</td></tr>
             <tr><td>Optional · Python 3.11+ with <code>uv</code></td><td>Only needed for <strong>desktop-browser cloud voice</strong> (Volcano Doubao ASR/TTS)</td><td>Without it you can still talk: browser system voice is the fallback (§12)</td></tr>
             <tr><td>Optional · one executor login</td><td><code>cursor-agent</code> (the current stable default) or Claude Code (production path wired; final live conformance closing out)</td><td>Only needed to <strong>dispatch execution tasks</strong>; the Codex executor is not implemented and is refused fail-closed without affecting dialog (§6)</td></tr>
           </tbody>
         </table>
         </div>
         <h3>4.2 Install</h3>
+        <p><strong>Fastest · one command:</strong> no pre-installed Node.js required. The script checks for a local Node 22 and, if missing, downloads the official Node 22 into your user directory (<code>~/.saydo/toolchain</code>, no system changes, no sudo); it then downloads the pinned SayDo package, verifies its SHA-256, installs it into a private prefix and creates <code>~/.saydo/bin/saydo</code>. By default it appends one PATH line to your shell startup file (marked <code># saydo</code>, safe to re-run).</p>
+        <pre><code># macOS / Linux
+curl -fsSL https://saydo.octoooo.com/install.sh | sh
+
+# Windows (PowerShell 5.1+ / 7)
+irm https://saydo.octoooo.com/install.ps1 | iex
+
+# then, in a new terminal
+saydo up</code></pre>
+        <div class="docs-note"><p>Network: the script downloads from the fixed GitHub Release URL first and falls back to the site mirror <code>dl.saydo.octoooo.com</code> when GitHub is unreachable (byte-identical assets, same SHA-256 check; <code>SAYDO_INSTALL_MIRROR=1</code> forces the mirror); dependencies come from the npm registry, override with <code>SAYDO_INSTALL_NPM_REGISTRY</code>. Environment variables: <code>SAYDO_INSTALL_NO_MODIFY_PATH=1</code> leaves your startup file / user PATH untouched; <code>SAYDO_INSTALL_RUN=1</code> starts SayDo right after installing; <code>SAYDO_HOME</code> (<code>SAYDO_INSTALL_ROOT</code> on Windows) changes the install root. Uninstall: delete <code>~/.saydo/toolchain</code> and <code>~/.saydo/bin</code> (<code>%LOCALAPPDATA%\SayDo</code> on Windows) and remove the line marked <code># saydo</code> from your startup file (on Windows, remove the bin directory from the user PATH). The scripts ship with the website and the public repository (<code>deploy/saydo-octoooo-com/install.sh</code>, <code>install.ps1</code>); the pinned version and SHA-256 are bound to that Release's availability evidence by the in-repo self-test <code>scripts/test-install-scripts.mjs</code>.</p></div>
         <p><strong>Recommended · no source checkout:</strong> the immutable v0.1.0-rc.12 GitHub Release has passed one-off and global-install smokes on macOS, Windows, and Linux. It is ready to use and is not published to the npm registry or Homebrew yet.</p>
 <pre><code># One-off run: download into the npm cache and start
 npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.12/saydo-cli-0.1.0-rc.12.tgz -- saydo up
@@ -322,9 +332,9 @@ saydo open      # opens the console
         <h3>4.4 First run: the resource profile wizard</h3>
         <p>The first thing you see is the <strong>resource profile</strong>: it inventories the model sources available on this machine (which CLIs are installed, which are logged in, which keys are in <code>.env</code>), then offers plan cards (the three plans of §5.3). A typical zero-key flow:</p>
         <ol>
-          <li>You see a one-tap card like "all on Codex (zero cost within subscription)" (one card per logged-in CLI; the list sorts logged-in &gt; installed-only &gt; not-installed, and by usage count within a tier);</li>
+          <li>You see a one-tap card like "all on Codex (billing follows the CLI provider)" (one card per logged-in CLI; the list sorts logged-in &gt; installed-only &gt; not-installed, and by usage count within a tier);</li>
           <li>Tick two informed confirmations (evaluator same family as dialog / evaluator cage isolation not provable, §5.4);</li>
-          <li>Tap "confirm and start" → writes the pending configuration → <strong>self-check 1/2</strong> (one real call per slot) → restarts the service → <strong>self-check 2/2</strong> (re-verified after taking effect) → lands on "start talking". For an all-CLI plan each slot takes 15–25 seconds per check, <strong>about 1–3 minutes total for both rounds</strong> (varies by CLI, can be longer), with progress and elapsed time shown;</li>
+          <li>Tap "confirm and start" → writes the pending configuration → <strong>self-check 1/2</strong> (one real call per slot) → restarts the service → <strong>self-check 2/2</strong> (re-verified after taking effect) → lands on "start talking". For an all-CLI plan each slot takes about 15–25 seconds per check, <strong>about 1–3 minutes total for both rounds</strong> (varies by CLI, can be longer), with progress and elapsed time shown;</li>
           <li>Afterwards you can switch plans in "settings" anytime, or configure slot by slot (advanced mode).</li>
         </ol>
         <p>Until the dialog slot is configured, every page bounces you into the wizard (with a "just look around" escape hatch); on the very first run with an empty ledger, it opens with a fixed greeting asking you to "name any three things you need to do this week" to show you how the ledger works.</p>
@@ -383,13 +393,13 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
         <h3>5.2 Two supply methods</h3>
         <p><strong>Method A · direct API</strong> (<code>{ provider = "api", via = "&lt;endpoint name&gt;", model = "..." }</code>)</p>
         <ul>
-          <li>Any <strong>OpenAI-compatible</strong> endpoint: declare <code>base_url</code> + <code>api_key = "env:VAR"</code> under <code>[providers.api.&lt;name&gt;]</code> (keys may only be referenced as environment variables — <strong>never written into the config in plaintext</strong>).</li>
+          <li>A configured <strong>OpenAI-compatible</strong> chat endpoint (not tool or Structured Outputs equivalence): declare <code>base_url</code> + <code>api_key = "env:VAR"</code> under <code>[providers.api.&lt;name&gt;]</code> (keys may only be referenced as environment variables — <strong>never written into the config in plaintext</strong>).</li>
           <li>Recommended gateway: <strong>OpenRouter</strong> — one key reaches many vendors (it's the default template); direct single-vendor connections also work (OpenAI / Anthropic / DeepSeek / Moonshot / Alibaba Bailian… the template has examples).</li>
           <li>When the model name carries a vendor prefix (<code>openai/…</code>, <code>anthropic/…</code>, <code>google/…</code>, <code>deepseek/…</code>, <code>x-ai/…</code>, <code>qwen/…</code>), the family resolves automatically; on single-vendor endpoints whose model names have no prefix, the endpoint must declare <code>family = "deepseek"</code> or similar explicitly — used by §5.4's different-family check.</li>
-          <li>A dialog slot on API runs in <strong>realtime mode</strong>: full multi-turn tool loop, streaming, sub-second returns — voice conversations rely on it.</li>
+          <li>A dialog slot on API runs in <strong>realtime mode</strong>: full multi-turn tool loop and streaming; latency follows the provider — voice conversations rely on it.</li>
         </ul>
         <p><strong>Method B · subscription CLI (BYOA)</strong> (<code>{ provider = "&lt;x&gt;_cli", model = "..." }</code>)</p>
-        <p>Use AI command-line tools <strong>already logged in</strong> on your machine as reasoning supply — zero API keys, billed to your subscription quota. Currently wired CLIs:</p>
+        <p>Use AI command-line tools that are <strong>wired and have passed a call check</strong> as reasoning supply — zero API keys is possible. Sign-in does not prove quota or a callable path; rights and fees follow the provider. Currently wired CLIs:</p>
         <div class="table-scroll">
         <table>
           <thead>
@@ -440,9 +450,9 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
             <tr><th>Plan</th><th>Who it fits</th><th>How the four reasoning slots are configured</th><th>Experience</th></tr>
           </thead>
           <tbody>
-            <tr><td><strong>All on one CLI</strong> (e.g. "all on Codex")</td><td>One subscription, don't want to apply for keys</td><td>dialog / thinking / cheap / evaluator all on that CLI</td><td>Zero keys, zero terminal; 15–25 s per turn (slow text mode); zero extra cost within subscription quota. The evaluator on CLI and same family as dialog requires ticking both the "same-family informed confirmation" and the "isolation informed confirmation"</td></tr>
-            <tr><td><strong>Dialog on API + the rest on CLI</strong></td><td>Have a subscription, willing to pay a little API for realtime dialog</td><td>dialog on API (sub-second, voice-capable); thinking / cheap / evaluator on CLI</td><td>The recommended "fast and cheap" combination; the evaluator on CLI also needs the two confirmations</td></tr>
-            <tr><td><strong>One key for everything</strong></td><td>No CLI subscriptions</td><td>All four slots on the OpenRouter API, models assigned per slot spec</td><td>Sub-second returns; pay-as-you-go per the provider's bill</td></tr>
+            <tr><td><strong>All on one CLI</strong> (e.g. "all on Codex")</td><td>One subscription, don't want to apply for keys</td><td>dialog / thinking / cheap / evaluator all on that CLI</td><td>Zero keys, zero terminal; about 15–25 s per turn (slow text mode); sign-in does not imply free usage. The evaluator on CLI and same family as dialog requires ticking both the "same-family informed confirmation" and the "isolation informed confirmation"</td></tr>
+            <tr><td><strong>Dialog on API + the rest on CLI</strong></td><td>Have a subscription, willing to pay a little API for realtime dialog</td><td>dialog on API (streaming, voice-capable; latency follows the provider); thinking / cheap / evaluator on CLI</td><td>The recommended "fast and cheap" combination; the evaluator on CLI also needs the two confirmations</td></tr>
+            <tr><td><strong>One key for everything</strong></td><td>No CLI subscriptions</td><td>All four slots on the OpenRouter API, models assigned per slot spec</td><td>Pay-as-you-go per the provider's bill; no fixed-second SLA</td></tr>
           </tbody>
         </table>
         </div>
@@ -463,7 +473,7 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
         </ul>
         <h3>5.5 Billing &amp; accounting</h3>
         <ul>
-          <li><strong>Subscription CLI calls produce no "yuan"</strong>: the cost ledger records them as <code>source = subscription</code>, shown as "within subscription quota" (call counts appear in the weekly report) — not ¥0, not "unknown", and no quota forecasts. Only when the CLI's authentication is verified to be genuinely subscription-based (e.g. Gemini personal OAuth, Copilot GitHub login) is it written as "zero cost within subscription"; if the CLI's upstream is actually API-key billing (e.g. Qwen with a key configured), the copy honestly changes to "billed per the CLI's upstream method — SayDo doesn't pay for you".</li>
+          <li><strong>Subscription CLI calls are recorded against the subscription quota; billing follows the provider</strong>: the cost ledger records them as <code>source = subscription</code>, shown as "within subscription quota" (call counts appear in the weekly report) — not ¥0, not "unknown", and no quota forecasts. Only when the CLI's authentication is verified to be genuinely subscription-based (e.g. Gemini personal OAuth, Copilot GitHub login) is it written as "within subscription quota"; if the CLI's upstream is actually API-key billing (e.g. Qwen with a key configured), the copy honestly changes to "billed per the CLI's upstream method — SayDo doesn't pay for you".</li>
           <li><strong>API calls are estimated from the price table</strong>: models without an entry in <code>[pricing]</code> show "no exact figure yet" (never invented numbers, never 0). What actually stops you is the <strong>per-task</strong> triple circuit breaker of cost / duration / turns (§8.5); the cost cap only constrains the API-billed part — subscription calls are backstopped by wall-clock + turn count; <code>[budget].monthly</code> is currently just a config item (no enforcement or display point), not a hard gate.</li>
           <li><strong>Subscription rate limits never silently convert to billing</strong>: when a weekly / 5-hour window rate limit hits, that call returns a retryable rate-limit error and tells you honestly, <strong>never auto-switching to API billing</strong>. Two contracts — "stop and ask whether to switch to pay-as-you-go or wait for the reset + a single-use billing-switch receipt (valid 10 minutes)" and "durable queue with automatic replay" — have landed but are not yet wired into production (in progress).</li>
         </ul>
@@ -554,7 +564,7 @@ enabled_project_types  = ["coding"]  # type capability gate; may enable ["coding
             <tr><td><strong>Claude Code executor</strong> (<code>agent = "claude_code"</code>)</td><td><span class="badge badge-progress">Closing out</span></td><td>The official <code>claude -p --output-format stream-json</code> subprocess is the transport and <code>PreToolUse</code> hooks rule S1–S3. Subscriptions are consumed only through the <code>claude</code> login, with zero API keys, no bypass permissions, and no live steer. Configuration, production execution, approval, recovery, accounting, self-test, settings, and task detail are wired; final live end-to-end conformance remains open, so Cursor stays the stable default</td></tr>
             <tr><td><strong>Codex executor</strong></td><td><span class="badge badge-soon">Planned</span></td><td>Designed via the Hopper batch route (below); <code>agent = "codex"</code> is refused today</td></tr>
             <tr><td><strong>Hopper batch route</strong> (heavy tasks dropped into the standalone Hopper task system: worktree / event sourcing / crash recovery / budget / review gates)</td><td>Contract settled, production binding dormant</td><td>The daemon's main flow doesn't start it; the locked-version copy and dedicated vault conventions are written in the config template but currently not consumed; merges on the Hopper route are always manual handoff, never the local-authentication card. For users it is not a usable feature today</td></tr>
-            <tr><td><strong>provider-neutral native executor</strong> (any OpenAI-compatible backend)</td><td><span class="badge badge-soon">Planned</span></td><td>The direction recommended by the 2026-08 decision (replacing "make the DeepSeek Harness the default runner" — the latter was rejected for conflicting with fail-closed red lines: approvals defaulting to allow, hook failures not blocking, etc.)</td></tr>
+            <tr><td><strong>provider-neutral native executor</strong> (planned compatible backend, not currently supported)</td><td><span class="badge badge-soon">Planned</span></td><td>The direction recommended by the 2026-08 decision (replacing "make the DeepSeek Harness the default runner" — the latter was rejected for conflicting with fail-closed red lines: approvals defaulting to allow, hook failures not blocking, etc.)</td></tr>
             <tr><td><strong>Gemini CLI as executor</strong></td><td>Not planned</td><td>Gemini CLI serves reasoning slots only</td></tr>
           </tbody>
         </table>
@@ -857,9 +867,9 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
           <li><strong>Software</strong>: the desktop service is open source and free; the apps are free with no in-app purchases (planned).</li>
           <li><strong>Where AI costs go</strong>:
             <ul>
-              <li><strong>Subscription CLIs (BYOA)</strong>: billed to your existing Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot subscription quota, zero extra cost; the ledger shows "within subscription quota"; hitting a rate limit errors honestly for that call — never silently converts to billing.</li>
+              <li><strong>Subscription CLIs (BYOA)</strong>: usable only when that CLI is wired and has passed a call check; sign-in does not prove a callable path, subscription rights, quota, or free usage. The ledger does not show "within subscription quota" from login alone; rights and fees follow the provider; hitting a rate limit errors honestly for that call — never silently converts to billing.</li>
               <li><strong>API keys</strong>: per each vendor's bill; the ledger estimates from the <code>[pricing]</code> price table (unfilled by default = shows "no exact figure yet", no invented numbers); every task has a cost cap (default 20 yuan) + the triple circuit breaker of 45 active minutes + 80 turns.</li>
-              <li><strong>Voice (optional)</strong>: Volcano Doubao ASR / TTS bills to your Volcano account; browser system voice is free.</li>
+              <li><strong>Voice (optional)</strong>: Volcano Doubao ASR / TTS bills to your Volcano account; SayDo does not charge for browser system voice, but system, browser, or network recognition fees follow the corresponding vendor.</li>
               <li><strong>Push (optional)</strong>: the ntfy public server is free, or self-host.</li>
             </ul>
           </li>
@@ -911,12 +921,12 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
         <h2 id="s17">17. FAQ &amp; troubleshooting</h2>
         <p><strong>Is this a voice input method?</strong> No. Voice is only the entry point; behind it is the loop of understanding context, opening ledger entries, judging readiness, driving execution, and organizing review.</p>
         <p><strong>Does it upload my project to a SayDo-operated cloud runner?</strong> No. SayDo has no hosted backend carrying product data; heavy work and core persistent data stay on your computer. Third-party AI, system or browser speech recognition, and push services that you choose are called directly by your devices under those providers' terms.</p>
-        <p><strong>What are the prerequisites?</strong> macOS / Windows / Linux + Node 22 + one logged-in AI CLI (or one API key); residency install and system notifications are macOS-only for now. Voice and execution are optional increments (§4).</p>
-        <p><strong>Can I use it without any keys?</strong> Yes: any logged-in CLI on the machine means zero-key chatting (15–25 s per turn in slow text mode); voice via browser system voice or typing.</p>
+        <p><strong>What are the prerequisites?</strong> macOS / Windows / Linux + Node 22 + one wired AI CLI that has passed a call check (or one API key); residency install and system notifications are macOS-only for now. Voice and execution are optional increments (§4).</p>
+        <p><strong>Can I use it without any keys?</strong> Login is not a successful call: a wired CLI that has passed self-check can start zero-API-key slow-text chat (about 15–25 s per turn; sign-in does not imply free usage). Unwired or failed CLIs cannot be used as model supply. Voice via browser system voice or typing; complete voice is optional.</p>
         <p><strong>How does it know "it's done"?</strong> When execution and checks have run and artifacts are on disk, it says "ready for your review" — never "done"; your nod plus strong-authentication merge makes it "delivered".</p>
-        <p><strong>Can it secretly spend money?</strong> Subscription calls cost nothing and rate limits only error honestly without converting to billing; API calls have a per-task cost cap + active duration + turn count triple circuit breaker; S3 (spending / deploying / deleting data / messaging outside) requires your on-screen strong authentication.</p>
+        <p><strong>Can it secretly spend money?</strong> Subscription-call billing follows the provider and rate limits only error honestly without converting to billing; API calls have a per-task cost cap + active duration + turn count triple circuit breaker; S3 (spending / deploying / deleting data / messaging outside) requires your on-screen strong authentication.</p>
         <p><strong>Will it push to GitHub or open PRs?</strong> No. It edits code in a worktree on the <code>saydo/&lt;taskId&gt;</code> branch; merging into your current branch takes local device authentication or your own merge; pushing / PRs are yours afterwards.</p>
-        <p><strong>Each turn takes fifteen to twenty seconds — is it stuck?</strong> No. A dialog slot on CLI subscription is slow text mode (15–25 s); the UI shows a slow badge; the desktop errors explicitly after a 120-second per-CLI-call cap (the phone page suggests resending at 90 s). For sub-second dialog, give the dialog slot an API key (§5.3 plan two).</p>
+        <p><strong>Each turn takes fifteen to twenty seconds — is it stuck?</strong> No. A dialog slot on CLI subscription is slow text mode (about 15–25 s); the UI shows a slow badge; the desktop errors explicitly after a 120-second per-CLI-call cap (the phone page suggests resending at 90 s). For lower-latency dialog, give the dialog slot an API key (§5.3 plan two).</p>
         <p><strong>The UI says "recovery-only mode".</strong> The active config is invalid (broken TOML, out-of-range parameters, project override conflicts…): the daemon doesn't exit — it keeps only the health probe, console static pages, and the settings self-rescue write endpoint; dialog, dispatch, merge, and task resume all stop. Go to the settings page, rebuild a safe config or clean up invalid project overrides as prompted, then restart.</p>
         <p><strong>The wizard says a CLI is "recognized but cannot be used as model supply".</strong> That CLI (e.g. kimi / opencode) cannot prove zero-tool before execution, so for safety it isn't wired; switch vendors or use an API.</p>
         <p><strong>The evaluator stays unarmed.</strong> Check the reason: same family unconfirmed (tick <code>evaluator_same_family_ack</code> or change family) / CLI evaluator missing the isolation confirmation (tick <code>evaluator_isolation_ack</code>) / self-check failed / actual model family reported unknown. unarmed doesn't affect dialog — readiness deep assessment just won't arm.</p>

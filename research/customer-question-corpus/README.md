@@ -13,7 +13,7 @@
 - [questions/](questions/)：12 组问题，共 600 条。
 - [contexts/](contexts/)：16 组合成上下文包，供需要 RAG、冲突消解或来源核验的条目复用。
 - [contracts/](contracts/)：465 条 `LIVE` 逐对象来源登记与 46 条最终 `F1` 能力合同的显式生成源。
-- [04-live-source-contracts.md](04-live-source-contracts.md)：由构建器生成的人可读 LIVE/F1 合同交付，共登记 986 个现势对象来源。
+- [04-live-source-contracts.md](04-live-source-contracts.md)：由构建器生成的人可读 LIVE/F1 合同交付，共登记 986 个 source 对象。现役 986 个 LIVE source 对象是 unresolved requirement，不是 connector readiness。
 - [02-覆盖索引.md](02-%E8%A6%86%E7%9B%96%E7%B4%A2%E5%BC%95.md)：组织规模、角色、生命周期、生活生产力和渠道盲区的可复核索引。
 - [03-频率与语义校准.md](03-%E9%A2%91%E7%8E%87%E4%B8%8E%E8%AF%AD%E4%B9%89%E6%A0%A1%E5%87%86.md)：频率判断、自然度、工具/输入闭合、风险与上下文事实契约的维护规则。
 - [review/](review/)：独立评审结果与覆盖复核(20 份评审输出;回修本身落在语料正文与 prompts/codex-findings 的往返记录,本目录不含回修记录文档;编号 03/06 从未使用)。
@@ -29,7 +29,7 @@
 - `-`：问题本身足以开始澄清，无需预置材料；
 - `CTX-xx`：加载本仓的合成 fixture，先读对应 `manifest.md`；
 - `USER`：必须由被访者提供附件、粘贴文本或口述记录，本仓不伪造这份个人输入；
-- `LIVE`：必须读取当前 repo、系统、SaaS connector 或新鲜 Web 数据，并在 `contracts/live/*.json` 为每个所读对象登记具体 locator、题面所需字段、相称 reader、权威、新鲜度、`as_of` 与授权主体/范围，不能用冻结 fixture 冒充现势；
+- `LIVE`：该题回放需要当前来源（repo、系统、SaaS 或新鲜 Web），并在 `contracts/live/*.json` 为每个所读对象登记 locator 与字段；这是需求合同，不等于连接器已经可用；
 - 多种输入用 `+` 连接，例如 `CTX-03+LIVE` 表示发布 brief 已配套，但代码、项目状态或 connector 仍须现场读取。
 
 `CTX` 是回放前注入的 fixture，不计入 `K`；工具列里的 `rag` 表示运行时还要在输入集合中检索。两者不是同义词。
@@ -57,4 +57,4 @@ node research/customer-question-corpus/validate.mjs
 rg --files -0 research/customer-question-corpus | xargs -0 bash scripts/check-emoji.sh
 ```
 
-构建器先在同级临时目录生成全部问题、manifest 和 `04-live-source-contracts.md`，并在那里运行完整验证；验证通过后才依次晋升 `questions/`、`contexts/` 与 04 交付。可捕获的晋升失败会恢复旧产物，故障注入会验证这一点；它不是断电或进程强杀场景下的文件系统事务。验证器会检查固定文件集、总数、领域与频率配额、ID 唯一性、所有表格候选行、字段完整性、各档覆盖、工具唯一性与深度、上下文模式、50 个来源文件、172 条逐题 required claims、有效期、频率反耦合、自然度、全量 179700 对近重复和一组已知语义反例。全部 465 条 `LIVE` 必须与来源合同严格一一对应，986 个登记对象按 `source_kind` 核对 reader、locator、字段、新鲜度和授权范围；`CTX+LIVE` 还要与 manifest supplemental 对称。最终 46 条 `F1` 逐题锁定缺省 coding/workspace 基线、工具、允许 effect、验证证据与排除范围，另登记两条经复核降为 `F2` 的记录。三份 v7 终审输入出现的 99 个 ID、16 个 manifest 与两类注册表都有精确摘要基线。`rag`、`document`、`pdf`、`automation` 和 `notification` 不能冒充任意现势 reader。临时条件必须归因于题面或 `USER`，不能写成 fixture 事实。`test-mutations.mjs` 会在临时副本破坏这些类别并要求 validator 非零退出。验证器仍不替代逐题语义评审，也不能证明任意 claim 与来源之间的任意语义蕴含、真实授权有效性或市场概率；真实频率、自然度和能力边界仍需访谈、遥测及独立人工审查。
+构建器先在同级临时目录生成全部问题、manifest 和 `04-live-source-contracts.md`，并在那里运行完整验证；验证通过后才依次晋升 `questions/`、`contexts/` 与 04 交付。可捕获的晋升失败会恢复旧产物，故障注入会验证这一点；它不是断电或进程强杀场景下的文件系统事务。验证器会检查固定文件集、总数、领域与频率配额、ID 唯一性、所有表格候选行、字段完整性、各档覆盖、工具唯一性与深度、上下文模式、50 个来源文件、172 条逐题 required claims、有效期、频率反耦合、自然度、全量 179700 对近重复和一组已知语义反例。全部 465 条 `LIVE` 必须与来源合同严格一一对应，986 个登记对象按 `source_kind` 做形状核对（reader、locator、字段、新鲜度和授权范围），形状核对不等于 valid，也不是 connector readiness；`CTX+LIVE` 还要与 manifest supplemental 对称。最终 46 条 `F1` 逐题锁定缺省 coding/workspace 基线、工具、允许 effect、验证证据与排除范围，另登记两条经复核降为 `F2` 的记录。三份 v7 终审输入出现的 99 个 ID、16 个 manifest 与两类注册表都有精确摘要基线。`rag`、`document`、`pdf`、`automation` 和 `notification` 不能冒充任意现势 reader。临时条件必须归因于题面或 `USER`，不能写成 fixture 事实。`test-mutations.mjs` 会在临时副本破坏这些类别并要求 validator 非零退出。验证器仍不替代逐题语义评审，也不能证明任意 claim 与来源之间的任意语义蕴含、真实授权有效性或市场概率；真实频率、自然度和能力边界仍需访谈、遥测及独立人工审查。

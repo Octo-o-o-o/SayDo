@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SayDo — Say it, and it's done</title>
-  <meta name="description" content="SayDo is a senior assistant you can talk to. Talk things through — it studies your project first, and once it understands, it drives the AI already on your computer to do the work, then calls you back to review. No developer-operated cloud backend. Conversations, items, and the ledger stay on your own devices." />
+  <meta name="description" content="SayDo is a senior assistant you can talk to. Talk things through — it studies your project first, and once it understands, it drives the AI already on your computer to do the work, then calls you back to review. No developer-operated cloud backend. Core ledger data stays on your computer; model and voice egress follow your current configuration." />
   <meta name="theme-color" content="#f0ede4" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#171410" media="(prefers-color-scheme: dark)" />
 
@@ -199,8 +199,8 @@
     <!-- ===================== Marquee ===================== -->
     <div class="marquee" aria-hidden="true">
       <div class="marquee-track">
-        <span>Open source &amp; free <b>◆</b> Local-first <b>◆</b> Voice-driven <b>◆</b> Nothing counts until you sign off <b>◆</b> Four-color ledger <b>◆</b> Data never leaves your devices <b>◆</b></span>
-        <span>Open source &amp; free <b>◆</b> Local-first <b>◆</b> Voice-driven <b>◆</b> Nothing counts until you sign off <b>◆</b> Four-color ledger <b>◆</b> Data never leaves your devices <b>◆</b></span>
+        <span>Open source &amp; free <b>◆</b> Local-first <b>◆</b> Voice-driven <b>◆</b> Nothing counts until you sign off <b>◆</b> Four-color ledger <b>◆</b> Egress follows your current configuration <b>◆</b></span>
+        <span>Open source &amp; free <b>◆</b> Local-first <b>◆</b> Voice-driven <b>◆</b> Nothing counts until you sign off <b>◆</b> Four-color ledger <b>◆</b> Egress follows your current configuration <b>◆</b></span>
       </div>
     </div>
 
@@ -291,7 +291,7 @@
                     <div class="pkg">
                       <div class="pkg-item"><b>1 · Outcome preview</b><p>What you'll get: an "Export CSV" button on the reports page, with BOM — plus a web mock generated from the same plan, so you see the final look first.</p></div>
                       <div class="pkg-item"><b>2 · The plan</b><p>4 steps, each marked AI-run or needs-you. Runs in an isolated git worktree; your main workspace is never touched.</p></div>
-                      <div class="pkg-item"><b>3 · Expected cost &amp; cap</b><p>Runs on the AI you already subscribe to — no extra fees. <span class="cost">Budget ¥3.2 · cap ¥8 · 45-min timeout breaker</span></p></div>
+                      <div class="pkg-item"><b>3 · Expected cost &amp; cap</b><p>Uses a wired CLI that has passed a call check; sign-in does not imply rights or free usage. Fees follow the provider. <span class="cost">Budget ¥3.2 · cap ¥8 · 45-min timeout breaker</span></p></div>
                     </div>
                     <div class="approve-row">
                       <button class="btn btn-seal" type="button" data-approve>Looks right, go</button>
@@ -367,7 +367,7 @@
         </div>
         <div class="tenets" data-pop>
           <div class="tenet" style="--tc:var(--active-ink)"><span class="tn">01</span><h3>Learn first, then work</h3><p>The first conversation about a project starts by reading its structure, conventions, and key files into a persistent knowledge base — every later chat begins with that understanding. That's the line between SayDo and a fresh chat window.</p></div>
-          <div class="tenet" style="--tc:var(--color-success)"><span class="tn">02</span><h3>Real AI, doing real work</h3><p>It plugs into the AI already signed in on your computer — Codex, Claude Code, Cursor, Gemini CLI, Grok. Whichever you subscribe to, it uses. No extra fees.</p></div>
+          <div class="tenet" style="--tc:var(--color-success)"><span class="tn">02</span><h3>Real AI, doing real work</h3><p>It can plug into a wired CLI that has passed a call check — Codex, Claude Code, Cursor, Gemini CLI, Grok. Sign-in or a subscription does not by itself mean it is callable; rights and fees follow the provider.</p></div>
           <div class="tenet" style="--tc:var(--brand-seal)"><span class="tn">03</span><h3>Nothing counts until you sign off</h3><p>A three-part decision pack before work starts; "ready for your review" instead of "done" at the end. Merging and delivering always need your nod.</p></div>
           <div class="tenet" style="--tc:var(--color-warning)"><span class="tn">04</span><h3>One ledger across devices</h3><p>Talk, watch progress, and nod confirmations on your phone; the heavy lifting stays on your computer, and S3 actions live there forever. Communication is mobile; execution stays put.</p></div>
         </div>
@@ -385,7 +385,7 @@
         <div class="status-grid" data-pop>
           <div class="status-card">
             <div class="sc-top"><h3>Drives the AI you already have</h3><span class="badge badge-live">Available</span></div>
-            <p>Conversation, reasoning, and evaluation run on the Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot sessions already signed in on your machine, or any OpenAI-compatible API. The executor that edits code is Cursor Agent today.</p>
+            <p>Conversation, reasoning, and evaluation can use a wired Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot that has passed a call check, or a configured OpenAI-compatible chat endpoint (not tool or Structured Outputs equivalence). The executor that edits code is Cursor Agent today.</p>
           </div>
           <div class="status-card">
             <div class="sc-top"><h3>Claude Code executor</h3><span class="badge badge-progress">Closing out</span></div>
@@ -410,10 +410,10 @@
         <div class="ph" data-pop>
           <span class="ph-kick">DWG SAYDO-2026-001 / PRIVACY ASSEMBLY</span>
           <h2 class="ph-title">Privacy is not a promise — <em>it's</em> <u>architecture</u></h2>
-          <p class="ph-lead">Conversations, items, and the ledger stay on your own devices. <b>No accounts, no analytics, no third-party statistics or ad SDKs</b> — the developer cannot access your data, and does not collect it.</p>
+          <p class="ph-lead">Core ledger data stays on your computer; model and voice egress follow your current configuration. <b>No accounts, no analytics, no third-party statistics or ad SDKs</b> — the developer cannot access your data, and does not collect it.</p>
         </div>
         <div class="fig" data-pop>
-          <svg viewBox="0 0 780 340" role="img" aria-label="Privacy assembly: the phone communication side connects to the computer execution side over your LAN; all data stays on your devices">
+          <svg viewBox="0 0 780 340" role="img" aria-label="Privacy assembly: the phone communication side connects to the computer execution side over your LAN; egress follows your current configuration">
             <line class="sl2" x1="40" y1="170" x2="740" y2="170" opacity=".5"/>
             <!-- phone -->
             <rect class="sl" x="70" y="95" width="92" height="158" rx="14"/>
@@ -440,7 +440,7 @@
             <rect class="sl" x="680" y="132" width="50" height="20"/>
             <text class="sts" x="705" y="145" text-anchor="middle">Ledger</text>
             <rect class="sl" x="624" y="158" width="106" height="16"/>
-            <text class="sts" x="677" y="169" text-anchor="middle">100% on-device</text>
+            <text class="sts" x="677" y="169" text-anchor="middle">ledger on computer</text>
             <text class="st" x="677" y="228" text-anchor="middle">Execution · computer</text>
             <text class="sts" x="677" y="244" text-anchor="middle">no backend · no accounts</text>
             <text class="sts" x="677" y="259" text-anchor="middle">no tracking</text>
@@ -475,7 +475,7 @@
           <div class="msg me" data-pop><div class="avatar">You</div><div class="bubble">Whose AI does it use? Do I need another subscription?</div></div>
           <div class="msg saydo" data-pop>
             <div class="avatar">S</div>
-            <div class="bubble">No. It plugs into the AI <b>already signed in</b> on your computer — Codex, Claude Code, Cursor, Gemini CLI, Grok and others handle the talking, thinking, and evaluating; the stable code-editing path today is Cursor Agent, with Claude Code in final closure. Whichever you subscribe to, it uses.</div>
+            <div class="bubble">SayDo does not sell another subscription. A provider is usable only when that CLI is wired and has passed a call check; sign-in or a subscription does not by itself mean it is callable, and rights and fees follow the provider. The stable code-editing path today is Cursor Agent, with Claude Code in final closure.</div>
           </div>
           <div class="msg me" data-pop><div class="avatar">You</div><div class="bubble">Is this a voice input method?</div></div>
           <div class="msg saydo" data-pop>
@@ -485,7 +485,7 @@
           <div class="msg me" data-pop><div class="avatar">You</div><div class="bubble">Do my conversations and project data go to your servers?</div></div>
           <div class="msg saydo" data-pop>
             <div class="avatar">S</div>
-            <div class="bubble">We have no servers (that's exactly what the assembly drawing above shows). <b>No developer-operated backend, no accounts, no analytics.</b> Data stays on your own devices; phone and computer talk over your own LAN or an encrypted overlay you configure.</div>
+            <div class="bubble">We have no servers (that's exactly what the assembly drawing above shows). <b>No developer-operated backend, no accounts, no analytics.</b> Core ledger data stays on your computer; model and voice egress follow your current configuration. Phone and computer talk over your own LAN or an encrypted overlay you configure.</div>
           </div>
           <div class="msg me" data-pop><div class="avatar">You</div><div class="bubble">How much can I do from my phone?</div></div>
           <div class="msg saydo" data-pop>
@@ -518,8 +518,10 @@
     <span id="download"></span>
     <section class="finale" id="start">
       <h2 data-pop>Connect the saying<br />and the doing.</h2>
-      <p data-pop>Talk it through; it does the work, then calls you to review. Open source and free — data never leaves your devices. Requires Node.js 22, no source checkout needed:</p>
-      <span class="cmd" data-pop><b>$</b> npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.12/saydo-cli-0.1.0-rc.12.tgz -- saydo up</span>
+      <p data-pop>Talk it through; it does the work, then calls you to review. Open source and free — egress follows your current configuration. No source checkout and no pre-installed Node.js needed (when Node 22 is missing, the script prepares it inside your user directory without touching the system). One command:</p>
+      <span class="cmd" data-pop><b>macOS / Linux $</b> curl -fsSL https://saydo.octoooo.com/install.sh | sh</span>
+      <span class="cmd" data-pop><b>Windows PS&gt;</b> irm https://saydo.octoooo.com/install.ps1 | iex</span>
+      <span class="cmd" data-pop><b>with Node 22 $</b> npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.12/saydo-cli-0.1.0-rc.12.tgz -- saydo up</span>
       <p class="avail" data-pop>The immutable v0.1.0-rc.12 GitHub Release has passed all six installation smokes across macOS, Windows, and Linux and is ready to use; it does not include the voice pipeline or service installation.</p>
       <div class="plat" data-pop>
         <span>macOS<i>Available</i></span>

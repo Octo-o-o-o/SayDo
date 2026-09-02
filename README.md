@@ -15,9 +15,23 @@
 
 ## 快速运行
 
-普通用户无需克隆源码。v0.1.0-rc.12 固定 URL 已由不可变
+当前公开定位是 developer/preview。首批目标包含开发者与普通用户，完整语音可选；目标人群不是验收证据。v0.1.0-rc.12 固定 URL 已由不可变
 [GitHub Release](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.12)
-及 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证，可直接使用：
+及 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证。该包含 daemon 与 Web 控制台，不含语音 pipeline。
+
+最快的方式是一条安装命令：无需预装 Node.js（缺失时脚本在你的用户目录内准备 Node 22，不改系统、不需要 sudo），安装固定版本包并校验 SHA-256：
+
+```bash
+# macOS / Linux
+curl -fsSL https://saydo.octoooo.com/install.sh | sh
+```
+
+```powershell
+# Windows(PowerShell)
+irm https://saydo.octoooo.com/install.ps1 | iex
+```
+
+然后在新终端运行 `saydo up`。脚本先从 GitHub Release 下载，连不上时自动改用官网镜像 `dl.saydo.octoooo.com`（字节全等、同一 SHA-256 校验；`SAYDO_INSTALL_MIRROR=1` 直接用镜像，`SAYDO_INSTALL_NPM_REGISTRY` 可改依赖 registry）。脚本源码见 [install.sh](deploy/saydo-octoooo-com/install.sh) 与 [install.ps1](deploy/saydo-octoooo-com/install.ps1)，方案见 [快速启动分发方案](docs/plan/2026-09-02-quick-start-distribution.md)。已有 Node.js 22 也可直接用 npm：
 
 ```bash
 npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.12/saydo-cli-0.1.0-rc.12.tgz -- saydo up
@@ -38,7 +52,7 @@ saydo up
 pnpm install          # Node >= 22
 cd pipeline && uv sync
 just dev              # daemon + pipeline + console
-just ci               # 本地双矩阵 CI(node + python + emoji 门禁)
+just ci               # 本地 Node/Python 基线(不是托管 CI 等效)
 ```
 
 ## 文档地图
