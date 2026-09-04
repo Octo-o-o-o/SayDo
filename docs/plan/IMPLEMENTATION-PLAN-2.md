@@ -7,15 +7,25 @@
 
 ## 当前唯一排产链 · PG-00 导入（2026-08-29）
 
-> 本节是 2026-08-29 起 PLAN-2 的唯一当前排产坐标。下方 §0 现状锚点与 §1 W1–W9 / 合同轮 / `ai-supply` 为历史原文，只增加 superseded/disposition，不删除历史节点、不重写既有 evidence。当前 `HANDOFF` active=none；唯一 next=`PG-01A`（未开工）；不得保留第二个 active/next。字段逐字来自 `docs/plan/2026-08-28-project-gap-closure-program.md` §20 批卡与 D17 §4.2；不新增功能、不另造控制平台。`PLAN2-default-all` 已 `superseded`；未被 exact 选入的未来项一律 deferred，取消“未回复则缺省全做”。
+<!-- schedule-pointer:begin -->
+schema_version=1
+revision=2
+active=none
+next=PG-01B
+last_closed=PROC-01
+evidence_ref=e2e/evidence/process-convergence-proc-01.md
+updated_at=2026-09-03
+<!-- schedule-pointer:end -->
+
+> 本节是 2026-08-29 起 PLAN-2 的唯一当前排产坐标。下方 §0 现状锚点与 §1 W1–W9 / 合同轮 / `ai-supply` 为历史原文，只增加 superseded/disposition，不删除历史节点、不重写既有 evidence。当前现势指针见本节顶部 schedule-pointer 块,由 `scripts/schedule-pointer.mjs` 守护;不得手写第二套 active/next。字段逐字来自 `docs/plan/2026-08-28-project-gap-closure-program.md` §20 批卡与 D17 §4.2；不新增功能、不另造控制平台。`PLAN2-default-all` 已 `superseded`；未被 exact 选入的未来项一律 deferred，取消“未回复则缺省全做”。
 
 ### 唯一串行链
 
 ```text
-PG-01A → PG-01B → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop
+PROC-01 → PG-01B → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop
 ```
 
-断言形态：`PLAN2_chain == PG-01A>PG-01B>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop`。
+断言形态：`PLAN2_chain == PROC-01>PG-01B>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop`。
 
 PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代码批，也不占用 active/next。
 
@@ -43,6 +53,18 @@ PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代�
 | `W9` | `preserved_trigger_track` |
 | `PLAN2-default-all` | `superseded` |
 | `Codex-app-server` | `deferred_by_AI_decision_2` |
+
+### PROC-01 · process-convergence——**状态:已收口(2026-09-03;I `289cb384`,evidence `e2e/evidence/process-convergence-proc-01.md`)**
+
+- depends_on：PG-01A evidence commit
+- A-ID exact-set：`close_set=[]`；`stop_loss_set=[]`
+- deferred exact-set：本批不做 `check-review-index.mjs`、journal 按月拆分、HANDOFF 历史行搬迁、根目录文件搬迁(全部 PROC-02);不对既有 PG 批卡改 A-ID / scope / gate;PG-07 / PG-08 与仓外清单不在本批
+- scope roots：`docs/plan/IMPLEMENTATION-PLAN-2.md`、`HANDOFF.md`、`docs/plan/2026-08-28-project-gap-closure-program.md`、`docs/plan/2026-08-28-project-gap-d17-import-spec.md`、`scripts/schedule-pointer.mjs`、`docs/plan/project-gap-closure/README.md`、`AGENTS.md`、`.octoworkflow/project-profile.md`、`docs/README.md`、`docs/plan/OWNER-DECISIONS.md`、`docs/plan/README.md`、`justfile`、`package.json`、`.github/workflows/ci.yml`、`.github/workflows/release.yml`、`scripts/check-gate-list-parity.mjs`、`docs/adr/design/ADR-005-execution-single-route.md`、`docs/adr/README.md`、`docs/03-architecture.md`、`docs/05-roadmap.md`、`docs/09-data-contracts.md`(仅 §6.1 route 行注释)、`templates/saydo.config.example.toml`、`docs/adr/design/ADR-001-execution-layer.md`
+- focused gate：`FG-PROC01-P1` = `node scripts/schedule-pointer.mjs --check`；`node scripts/schedule-pointer.mjs --self-test`；`bash scripts/check-emoji.sh`；`node scripts/check-doc-links.mjs`；`git diff --check`。`FG-PROC01-P2` = `bash scripts/check-emoji.sh`；`node scripts/check-doc-links.mjs`；`git diff --check`。`FG-PROC01-P3` = `node scripts/check-gate-list-parity.mjs`；`node scripts/check-public-tree-privacy.mjs --ref "$(git rev-parse HEAD)"`；`node scripts/check-active-claims.mjs`；`python3 -c 'import yaml,sys; yaml.safe_load(open(sys.argv[1]))' .github/workflows/ci.yml`；同命令对 `.github/workflows/release.yml`；`bash scripts/check-emoji.sh`。`FG-PROC01-P4` = `bash scripts/check-emoji.sh`；`node scripts/check-doc-links.mjs`；`pnpm --filter @saydo/contracts exec vitest run test/schemas.test.ts`；`git diff --check`。`FG-PROC01-P5` = `just precommit`
+- full gate：`just ci`
+- evidence path：`e2e/evidence/process-convergence-proc-01.md`
+- 回滚上限：只能回退流程文档、检查器与指针块,不能改产品代码,不能改 09 schema/DDL,不能放宽 Gate 0 / S0–S3 / 审计不可变 / TTS 脱敏。`safe_default=I-form pointer + no_product_code`
+- 批卡摘要（方案 §3.1）：正式小批(脚本、门禁、workflow 与文档,不改产品代码),排在 PG-01B 之前。P1 现势单源;P2 规则迁移;P3 候选门补位;P4 执行层 canonical(L3);P5 证据卫生。I 指针 `active=PROC-01,next=none`;E 指针 `active=none,next=PG-01B`。legacy disposition 表与其他 PG 批卡 A-ID / scope / gate 字段不改。
 
 ### PG-01A · public-claim-corpus-stoploss——**状态:已收口(2026-09-02;I `2a786ed`,evidence `e2e/evidence/project-gap-pg-01a.md`;G-A1 按 D2 安全缺省 `repo_downgraded`(986 source 全部 unresolved),G-A4 `repo_closed`,G-A2 stop-loss 已落;deployed_status 均 `blocks_expansion` 待部署授权)**
 

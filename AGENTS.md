@@ -22,21 +22,25 @@
 
 ## 评审制度
 
-每轮重要沟通产出(新设计文档、结构性修改、关键决策、Demo 变更)完成后，收口前必须完成:
+实施、修复与交付走 `/supervised-delivery`:每个 candidate 一名零上下文 reviewer,预算按
+`~/.octoworkflow/v2-policy.json`。
 
-1. 两个互补角度的 subagent 独立评审;
-2. 一次 `codex exec -m gpt-5.6-sol -c model_reasoning_effort=max` 对抗性评审，报告落
-   `research/codex-findings/NN-*.md`，prompt 落 `prompts/`，本地日志落 `logs/`;
-3. triage 评审发现(A 级必修，B/C 择要吸收)，回修后把“输入/行动/产出/结论”写入
-   `history/PROCESS-JOURNAL.md`，轮次编号顺延。
+设计文档评审保留互补双视角,但每个版本最多 2 轮对抗 + 1 轮回修;第 3 轮需 owner 当前消息明示。
 
-实施期使用轻量版:
+风险等级(L1/L2/L3)只改变 review scope、coverage matrix 与 owner checkpoint,不改变 reviewer
+数量。
 
-- 纯代码:每个 Phase 末 1 个 code-review subagent，A 级(安全/契约/数据丢失)必修;
-- 回写 canonical:1 个一致性 subagent + 攒批 1 次 Codex;
-- spike ADR:Codex 一次或 owner 直批;
-- journal/证据:免评审;
-- 战略/范围:上浮 owner。
+派发纪律:候选先冻结(commit 或 detached worktree),reviewer 只读该 ref;派发前后各算一次
+`python3 ~/.octoworkflow/candidate_fingerprint.py`;评审 prompt 给固定核验清单,判断维度不超过
+3–4 个;超时按历史 p90 定。
+
+施工与评审只在独立 worktree/clone,主树只合并、只读与收口。
+
+报告状态词、落点与命名以 `.octoworkflow/project-profile.md` 为准;OctoWorkFlow 阶段 D
+落地前,全局 skill 的默认状态词与路径不适用于本仓,派发 prompt 须重述。
+
+journal/证据:免评审。战略与范围:上浮 owner。回修后把“输入/行动/产出/结论”写入
+`history/PROCESS-JOURNAL.md`,轮次编号顺延。
 
 评审产物落盘后、收口前必须过 `scripts/check-emoji.sh`。`*.log` 不入 Git;
 Codex 报告或 journal 记录日志文件名、字节数与 SHA-256，历史日志位置见迁移说明。

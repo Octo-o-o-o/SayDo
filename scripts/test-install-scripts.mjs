@@ -78,6 +78,7 @@ export function checkInstallScripts(input) {
     ["sh PATH 写入语句", "printf '\\n%s\\n' \"$rc_line\" >> \"$rc_file\""],
     ["sh PATH 标记整行精确匹配", 'grep -Fxq -- "$rc_line" "$rc_file"'],
     ["sh fish 分支", 'fish) append_path_line "$HOME/.config/fish/config.fish"'],
+    ["sh fish PATH 写入", 'set -gx PATH \\"$BIN_DIR\\" \\$PATH # saydo'],
     ["sh Node 下载校验", '[ "$actual" = "$expected" ] || fail "Node 下载校验失败']
   ];
   const PS_INVARIANTS = [
@@ -86,6 +87,8 @@ export function checkInstallScripts(input) {
     ["ps1 默认根目录在 LOCALAPPDATA 下", 'Join-Path $env:LOCALAPPDATA "SayDo"'],
     ["ps1 根目录越出用户目录需显式放行", 'SAYDO_INSTALL_ALLOW_OUTSIDE_HOME'],
     ["ps1 用户目录基准含 USERPROFILE 与 LOCALAPPDATA", '$userBases = @([IO.Path]::GetFullPath($env:USERPROFILE).TrimEnd(\'\\\'), [IO.Path]::GetFullPath($env:LOCALAPPDATA).TrimEnd(\'\\\'))'],
+    ["ps1 用户目录约束默认不成立", '$insideUserDir = $false'],
+    ["ps1 用户目录前缀比较含目录分隔符边界", '$Root.StartsWith($base + \'\\\', [StringComparison]::OrdinalIgnoreCase)'],
     ["ps1 根目录先 GetFullPath 消解 ..", '$Root = [IO.Path]::GetFullPath($Root)'],
     ["ps1 用户 PATH 前插且保留原值", '[Environment]::SetEnvironmentVariable("Path", (@($BinDir) + $parts) -join ";", "User")'],
     ["ps1 启动器用 %~dp0 相对引用根目录", 'function ConvertTo-LauncherPath'],
@@ -187,6 +190,12 @@ expectRed("sh 删除 .. 拒绝", (mutated) => {
 expectRed("ps1 用户目录基准只剩 USERPROFILE", (mutated) => {
   mutated.ps1 = mutated.ps1.replace('$userBases = @([IO.Path]::GetFullPath($env:USERPROFILE).TrimEnd(\'\\\'), [IO.Path]::GetFullPath($env:LOCALAPPDATA).TrimEnd(\'\\\'))', '$userBases = @([IO.Path]::GetFullPath($env:USERPROFILE).TrimEnd(\'\\\'))');
 });
+expectRed("ps1 系统目录绕过用户目录约束", (mutated) => {
+  mutated.ps1 = mutated.ps1.replace('$insideUserDir = $false', '$insideUserDir = $true');
+});
+expectRed("ps1 相邻前缀目录被误认在用户目录内", (mutated) => {
+  mutated.ps1 = mutated.ps1.replace('$Root.StartsWith($base + \'\\\', [StringComparison]::OrdinalIgnoreCase)', '$Root.StartsWith($base, [StringComparison]::OrdinalIgnoreCase)');
+});
 expectRed("sh 删除包 digest 校验", (mutated) => {
   mutated.sh = mutated.sh.replace('[ "$actual" = "$SAYDO_TGZ_SHA256" ] || fail "SayDo 包校验失败', '[ 1 = 1 ] || fail "SayDo 包校验失败');
 });
@@ -201,6 +210,9 @@ expectRed("sh 默认根目录改到系统位置", (mutated) => {
 });
 expectRed("sh PATH 写入语句被抹掉", (mutated) => {
   mutated.sh = mutated.sh.replace("printf '\\n%s\\n' \"$rc_line\" >> \"$rc_file\"", ":");
+});
+expectRed("sh fish 新终端找不到 saydo", (mutated) => {
+  mutated.sh = mutated.sh.replace('set -gx PATH \\"$BIN_DIR\\" \\$PATH # saydo', ':');
 });
 expectRed("ps1 用户 PATH 只写 BinDir", (mutated) => {
   mutated.ps1 = mutated.ps1.replace('(@($BinDir) + $parts) -join ";"', '$BinDir');
@@ -239,4 +251,4 @@ expectRed("镜像 URL 漂移", (mutated) => {
 expectRed("README 丢入口", (mutated) => {
   mutated.readme = mutated.readme.replace("https://saydo.octoooo.com/install.sh", "");
 });
-process.stdout.write(`[ok] install scripts pinned to v${pinOf(input.sh, "sh").version}; mutations=18 all red; dynamic no-write checks=6\n`);
+process.stdout.write(`[ok] install scripts pinned to v${pinOf(input.sh, "sh").version}; mutations=21 all red; dynamic no-write checks=6\n`);

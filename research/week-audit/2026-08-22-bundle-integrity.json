@@ -41,7 +41,7 @@
     "research/week-audit/2026-08-22-ledger.json": "a989895c421d23ad35966da0cfbd86ac74c1089bf152aa763c38302b7c2b216d",
     "research/week-audit/2026-08-22-semantic-review.json": "905b2806c237bcea81eb8b3f64f66cec3e81ff8d3f5d1d3889c82839073cd1e5",
     "research/week-audit/2026-08-22-ref-manifest.json": "46fc3c9b4b5ac02a9a862ace714d721c9434583fc055f8f5246b58bd7cf0f70d",
-    "research/week-audit/2026-08-23-publication-manifest.json": "50a581188a7b02cac2a643c2f4163e5f822ecff2434afb9792a6464106c02edc",
+    "research/week-audit/2026-08-23-publication-manifest.json": "19c33dbbe2a6a3cab0d7ad6527c0cce92066f8563ab8ebd6a0e48c0b62352b06",
     "research/week-audit/2026-08-23-review-finding-anchor.json": "03c6ef06fb8f3834e311b06874a869c4e232b4b8f3842f95ef54d6ce388ef378",
     "research/week-audit/2026-08-23-remediation-cross-links.json": "c1cdfebe08cac2adff5ebdd521e9f180210b6a40bac32498fa0cb8ca2022e02e",
     "research/week-audit/2026-08-23-remediation-ledger.json": "2ce58f8c0cea79751ee7968a58d46f7d6a2f4d788100be98b0abe0660f001d2a",
@@ -53,14 +53,44 @@
     "exclusionRule": "七个账本生成物由 files digest/全树 manifest 单独闭环，避免自引用；其余 staged/unstaged 已跟踪文件逐个冻结内容；无关 untracked 不入快照",
     "entries": [
       {
+        "path": "e2e/evidence/local-convergence-20260904.md",
+        "states": [
+          "staged"
+        ],
+        "kind": "file",
+        "mode": 420,
+        "bytes": 8382,
+        "sha256": "f057d8917269d8bba4a4930b33eb74c2e57c64e154fb64c23e4db8324bd7760b"
+      },
+      {
         "path": "history/PROCESS-JOURNAL.md",
         "states": [
           "staged"
         ],
         "kind": "file",
         "mode": 420,
-        "bytes": 434327,
-        "sha256": "aba1fd902e9d65ca3df141a200e19a84730d11eb9c578a1701099212d80ad70d"
+        "bytes": 438462,
+        "sha256": "d908ae880d3f58cf27c27d578f5e401e06b2eb7c452ca600fceebc8c89419ee1"
+      },
+      {
+        "path": "prompts/226-local-convergence-review.md",
+        "states": [
+          "staged"
+        ],
+        "kind": "file",
+        "mode": 420,
+        "bytes": 3766,
+        "sha256": "5ffec6d53d3347dd8f5fc64f70e92f669946c6a02cd2d803954a2909e40bc6eb"
+      },
+      {
+        "path": "research/codex-findings/226-local-convergence-review.md",
+        "states": [
+          "staged"
+        ],
+        "kind": "file",
+        "mode": 420,
+        "bytes": 12720,
+        "sha256": "0a360905515086b8754b4ecf3662b22f7fc7cf5407009dfee6eb14ec439fa6c7"
       }
     ]
   }

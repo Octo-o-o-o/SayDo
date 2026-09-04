@@ -88,6 +88,7 @@ window = "23:00-08:00"
 #   git checkout bdd1e548f9359789497a797eda24398beba68ac5   # 或 tag v0.1.0-saydo-baseline.2(2026-07-25 切锁;一致性评审 B1 同步)
 #   npm ci && npm run build
 [hopper]
+# deprecated:designed/deferred,见设计 ADR-005;保留占位不代表生产启用;锁副本与专用 vault 可删除
 bin              = "~/.saydo/hopper-dist/bin/hopper.mjs"
 vault            = "~/.saydo/hopper-vault"    # 专用 vault,绝不与你日常 Hopper vault 共用(裁决红线:daemon/调度锁是 per-vault 单写者)
 expected_version = "bdd1e548f9359789497a797eda24398beba68ac5"   # baseline.2 切锁(2026-07-25;全 40 位 commit SHA,与 09 §11 [hopper] 同源)

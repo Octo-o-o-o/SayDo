@@ -76,6 +76,8 @@ jobs:
       - run: node scripts/test-install-scripts.mjs
       - run: node scripts/week-audit.mjs --check-bundle
       - run: node scripts/post-release-gate.mjs --check-candidate "${GITHUB_REF_NAME}"
+      - run: node scripts/check-active-claims.mjs
+      - run: node scripts/check-public-tree-privacy.mjs --ref "$GITHUB_SHA" --allow-missing-probes
 
   quality-python:
     name: release quality (python)

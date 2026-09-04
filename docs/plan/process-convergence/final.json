@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "task": "process-convergence",
+  "stage": "p5",
+  "cycle": "c1",
+  "candidate_head": "80829cdac2f8b2a7de5b95526548f988db221b07",
+  "diff_fingerprint": "b64b11d2a33fe0ea026cdf2cf78e781a7f07bcb0f19da22af982ffeb61be69b3",
+  "review_ordinal": 1,
+  "policy_revision": "2.4.2",
+  "policy_sha256": "996871d90109a558c9f2399ba80babaa98b8bd1cbac68215aa26cdd491f8ccc0",
+  "review_manifest_sha256": "0fed9e38ff8c30d60eb82a78dc3c5bda7a86c31f24c8c9dfce231013332e7cea",
+  "gate_evidence": [
+    {
+      "name": "precommit",
+      "exit_code": 0,
+      "log_sha256": "bdc280fa9ac880849c0a8e7518e41530efeeac3387b11fe5ecea7ffbbf5df794"
+    }
+  ],
+  "runtime_receipt": {
+    "schema_version": 1,
+    "policy_revision": "2.4.2",
+    "policy_sha256": "996871d90109a558c9f2399ba80babaa98b8bd1cbac68215aa26cdd491f8ccc0",
+    "cycle_control_sha256": "fc51ae221e2b2af38ce7ae41e5a22894da4d8ce65f68971ba00fec89db4aecfa",
+    "cycle_state_sha256": "d1ed889cab2be7a5cd157c5cf31315eedd0cd1246ab7633b11ef0eee8e64f470",
+    "control_schema_version": 1,
+    "task": "process-convergence",
+    "stage": "p5",
+    "cycle": "c1",
+    "candidate_head": "80829cdac2f8b2a7de5b95526548f988db221b07",
+    "diff_fingerprint": "b64b11d2a33fe0ea026cdf2cf78e781a7f07bcb0f19da22af982ffeb61be69b3",
+    "review_ordinal": 1,
+    "acceptance_file": "acceptance.frozen.json",
+    "acceptance_sha256": "5dc5185dd645678c7d2705ee0fca32e9cdf7d91bd973016039f7867de00edd99"
+  }
+}

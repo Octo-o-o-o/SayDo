@@ -25,11 +25,20 @@ ci-node:
     node scripts/test-mobile-installers.mjs
     node scripts/test-mobile-release-contract.mjs
     node scripts/test-install-scripts.mjs
+    node scripts/check-active-claims.mjs
+    node scripts/check-public-tree-privacy.mjs --ref "$(git rev-parse HEAD)"
 
 ci-python:
     uv --directory pipeline sync --quiet
     uv --directory pipeline run python -m ruff check .
     uv --directory pipeline run python -m pytest -q
+
+# 提交前卫生(emoji / 文档链接 / 公开树隐私 / 排产指针)
+precommit:
+    bash scripts/check-emoji.sh
+    node scripts/check-doc-links.mjs
+    node scripts/check-public-tree-privacy.mjs --fs
+    node scripts/schedule-pointer.mjs --check
 
 # 快照备份(SQLite/JSONL/foundation/knowledge;保留期见 [params].backup_retention_days)
 backup:

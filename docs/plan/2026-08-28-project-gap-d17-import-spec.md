@@ -232,6 +232,7 @@ pathspec、staged exact-set 与 whitespace check 为硬门。E commit 前还必�
 | `Codex-app-server` | `deferred_by_AI_decision_2` |
 
 缺项、重复、删除历史节点或保留第二个 active/next 都失败。
+补注(PROC-01):HANDOFF 指针由 `schedule-pointer.mjs --render` 生成,语义不变。
 
 ## 5. 标准执行步骤
 

@@ -1,0 +1,65 @@
+{
+  "applied_receipts": [
+    {
+      "id": "proc01-p5-implement-1",
+      "sha256": "71b5a19006403857a35e22c5f8e71661590875b1a5850d4f16d126d13cc0baa8"
+    },
+    {
+      "id": "proc01-p5-review-1",
+      "sha256": "d615bccce6232a379d7dcd31b2622a8da1a09e5504b7dcb0f962e3c0b8921df9"
+    }
+  ],
+  "blocker_id_map": [],
+  "budget": {
+    "repair_rounds_used": 0,
+    "repair_rounds_reserved": 0,
+    "rereview_rounds_used": 0,
+    "rereview_rounds_reserved": 0,
+    "strategy_resets_used": 0,
+    "strategy_resets_reserved": 0
+  },
+  "candidate_head": "80829cdac2f8b2a7de5b95526548f988db221b07",
+  "cost_events": [
+    {
+      "cost_kind": "none",
+      "receipt_id": "proc01-p5-implement-1"
+    },
+    {
+      "receipt_id": "proc01-p5-review-1",
+      "cost_kind": "none"
+    }
+  ],
+  "current_blockers": [],
+  "cycle": "c1",
+  "diff_fingerprint": "b64b11d2a33fe0ea026cdf2cf78e781a7f07bcb0f19da22af982ffeb61be69b3",
+  "evidence_refs": [
+    "cycle-state:init",
+    "cli:grok-p5",
+    "gate:precommit",
+    "review:p5-review-1.md"
+  ],
+  "followup_authorized": true,
+  "gate_recovery": {
+    "full_retry_result": null,
+    "full_retry_used": 0,
+    "targeted_result": null,
+    "targeted_used": 0
+  },
+  "owned_session_id": null,
+  "previous_blockers": [],
+  "reservation_started": false,
+  "review_ordinal": 1,
+  "root_cause_attempts": [],
+  "safety": {
+    "candidate_unchanged": true,
+    "new_owner_decision": false,
+    "partial_write": false,
+    "permissions_lowered": false,
+    "process_alive": false,
+    "scope_expanded": false
+  },
+  "schema_version": 1,
+  "stage": "p5",
+  "task": "process-convergence",
+  "task_mode": "supervised_delivery"
+}

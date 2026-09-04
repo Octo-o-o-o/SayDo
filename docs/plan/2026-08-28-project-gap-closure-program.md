@@ -1460,6 +1460,7 @@ PG-01A–PG-06 仍按 PLAN-2 串行执行。每批必须完整满足：
    记 `active=<batch>,next=none`。只用 explicit pathspec staged，并证明
    `must_change ⊆ changed ⊆ must_change∪may_change`、`changed∩must_not_change=∅`。review 返工只能
    amend/recreate 这个未发布单 commit；不能把曾触碰越权路径后又还原的祖先 commit 留入 E 的历史。
+   补注(PROC-01):HANDOFF 指针由 `schedule-pointer.mjs --render` 生成,语义不变。
 5. **同 SHA 门禁**：在 I 的 clean validation worktree 上运行 focused gate、`just ci`，以及批卡列明的
    Playwright/live/device/release gate。每条命令直接记录 exit；skip、命令不存在或在另一 SHA 运行
    都不算绿。
@@ -1474,6 +1475,7 @@ PG-01A–PG-06 仍按 PLAN-2 串行执行。每批必须完整满足：
    仓库当时其他 publication/audit 门、`git diff --check <P>..<E>` 并回读两段 exact pathset。若未来
    week-audit 的固定输出集合改变，批 prompt 必须从当时脚本/config 展开，不沿用本文七项旧列表；
    不得跳过 writer、把生成物拆成第三提交，或用遗留 working-tree bytes 通过门禁。
+   补注(PROC-01):HANDOFF 指针由 `schedule-pointer.mjs --render` 生成,语义不变。
 8. **晋升停点**：只有 owner 另行允许集成、目标分支 tip 仍 byte-exact 等于 P、目标 worktree 干净时，
    且授权字面绑定完整 E OID、candidate branch tip 仍恰等于该 E 时，才可在目标分支的正常 attached
    worktree 执行 `git merge --ff-only <full-E-OID>`，随后断言目标 tip 恰等于 E；不允许按可移动 branch

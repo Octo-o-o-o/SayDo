@@ -1,5 +1,7 @@
 # ADR-001 · 执行层:复用 Hopper 现状、锁版本、不等待、双路径
 
+> 交付附注中「首发 = 完整双路径」由设计 ADR-005 supersede;架构决策正文不变。
+
 - **状态**:已决策(owner 拍板,2026-07-23)
 - **决策范围**:SayDo"拍板之后"的执行层怎么做。**不含**产品载体路线(独立 vs 并入千手,仍开放,见 05 §2/§6)。
 - **背景**:Hopper 与 OpenClaw-Kit 均在活跃改造中(Hopper:M3a 平台 schema 已冻结、Console/WS lane 在途;Kit:平台化 lane 流向 Hopper)。评估详见 `../../../history/PROCESS-JOURNAL.md` R22 与 `../../../research/codex-findings/02-hopper-integration.md`。

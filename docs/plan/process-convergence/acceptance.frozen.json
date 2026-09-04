@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "task": "process-convergence",
+  "stage": "p5",
+  "cycle": "c1",
+  "required_dimensions": [
+    "artifact",
+    "scenario",
+    "result"
+  ],
+  "acceptance_items": [
+    {
+      "id": "P5-PRECOMMIT-RECIPE",
+      "severity": "P1"
+    },
+    {
+      "id": "P5-PROFILE-NAMING",
+      "severity": "P1"
+    },
+    {
+      "id": "P5-SCOPE",
+      "severity": "P1"
+    }
+  ],
+  "required_gates": [
+    "precommit"
+  ]
+}

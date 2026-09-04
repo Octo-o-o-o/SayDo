@@ -1,0 +1,100 @@
+{
+  "policy_version": 2,
+  "policy_revision": "2.4.2",
+  "budgets": {
+    "reviewers_per_candidate": 1,
+    "max_repair_rounds": 3,
+    "max_rereview_rounds": 3,
+    "max_semantic_children_per_parent": 1,
+    "second_red_action": "progress_gated_continue",
+    "full_gate_policy": "once_on_final_candidate_then_only_after_relevant_change",
+    "recursive_review_allowed": false,
+    "p2_default_action": "record_and_defer_to_final_sweep",
+    "p2_immediate_fix_requires_owner": true,
+    "max_final_p2_sweeps": 1,
+    "max_same_root_cause_repairs": 2,
+    "max_strategy_resets": 1
+  },
+  "supervised_delivery": {
+    "task_mode": "supervised_delivery",
+    "first_red_action": "auto_repair_once",
+    "rereview_context": "fresh_zero_context",
+    "full_gate_timing": "after_semantic_review_green",
+    "post_green_continue": "preaccepted_next_stage_only",
+    "reviewer_write_scope": "review_artifacts_only",
+    "review_manifest_validator_required": true
+  },
+  "session_limits": {
+    "codex_soft_input_tokens": 150000,
+    "codex_hard_input_tokens": 220000,
+    "claude_soft_input_tokens": 400000,
+    "claude_hard_input_tokens": 650000,
+    "handoff_on_first_compaction": false,
+    "handoff_on_day_boundary": false,
+    "handoff_before_new_phase_when_over_soft_limit": false,
+    "soft_limit_action": "recommend_handoff",
+    "hard_limit_action": "checkpoint_and_reconcile",
+    "unknown_usage_action": "checkpoint_and_continue",
+    "allow_explicit_same_session_continue": true,
+    "allow_authorized_autonomous_continue": true
+  },
+  "long_task_wait": {
+    "model_polling_allowed": false,
+    "inner_terminal_wait_ms": 300000,
+    "progress_notify_seconds": 55,
+    "hard_timeout_required": true,
+    "idle_timeout_required_for_streaming_cli": true,
+    "outer_buffer_margin_seconds": 120,
+    "nested_wait_threads_timeout_ms": 120000,
+    "banned_fixed_outer_yield_time_ms": [60000, 300000],
+    "compact_status_return": true,
+    "fan_in_compact_status_only": true
+  },
+  "quality_gate": {
+    "default_mode": "local_first",
+    "allowed_modes": ["local_first", "local_only", "ci_required"],
+    "remote_wait_seconds": 600,
+    "infrastructure_retry_max": 1,
+    "local_entry_source": "stage_acceptance_contract"
+  },
+  "cli_recovery": {
+    "delay_seconds": [1800, 3600, 7200],
+    "max_deferred_attempts": 3,
+    "max_recovery_window_seconds": 21600,
+    "same_provider_model_effort": true
+  },
+  "autonomous_recovery": {
+    "max_diagnose_passes_per_incident": 1,
+    "max_procedure_retries_per_cycle": 2,
+    "max_same_cause_retries": 1
+  },
+  "gate_transient_recovery": {
+    "max_targeted_reproductions": 1,
+    "max_full_gate_retries": 1
+  },
+  "review_value_boundary": {
+    "canonical_reachability_required_for_p0_p1": true,
+    "heuristic_linter_role": "defense_in_depth",
+    "out_of_grammar_finding_default": "deferred_p2",
+    "repeat_open_ended_fuzz_on_same_candidate": false
+  },
+  "roles": {
+    "supervisor": {
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "xhigh"
+    },
+    "implementation": {
+      "provider": "xai",
+      "cli": "grok",
+      "model": "grok-4.6",
+      "reasoning_effort": "xhigh"
+    },
+    "review": {
+      "provider": "openai",
+      "cli": "codex",
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "max"
+    }
+  }
+}

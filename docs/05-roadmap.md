@@ -2,7 +2,7 @@
 
 > 本篇回答:怎么落地(复用什么、自建什么)、按什么顺序做、有哪些风险和待拍板事项。证据文档:`../research/local-projects-borrowing-assessment.md`(三本地项目评估)、`../research/ecosystem-analysis-and-fusion.md`(生态对照)、`../research/codex-findings/`(对抗性审查)。
 >
-> **[warn] 交付分期以 `plan/IMPLEMENTATION-PLAN-2.md` + `adr/design/ADR-001-execution-layer.md` 附注为唯一裁决**(owner 2026-07-23 裁定:**首发 = 完整双路径**,一次交付):开发顺序上 P0 阶段先做 Tier 1 全闭环,本篇 §6 P0 段中的 **Hopper 桥、直达验收档、Demo 生成器属 P0.5 阶段 = 首发后半程**,契约落地后接续建完才算首发交付(本篇文字未逐处回改,冲突时以计划步骤表为准)。
+> **[warn] 交付分期以 `plan/IMPLEMENTATION-PLAN-2.md` + `adr/design/ADR-001-execution-layer.md` 附注为唯一裁决**(owner 2026-07-23 裁定:**首发 = 完整双路径**,一次交付):开发顺序上 P0 阶段先做 Tier 1 全闭环,本篇 §6 P0 段中的 **Hopper 桥、直达验收档、Demo 生成器属 P0.5 阶段 = 首发后半程**,契约落地后接续建完才算首发交付(本篇文字未逐处回改,冲突时以计划步骤表为准)。**现时态(设计 ADR-005,owner 2026-09-02)**:该「首发 = 完整双路径」交付定义由设计 ADR-005 supersede;生产执行路线 = Tier1;Hopper 桥 `designed/deferred`。
 
 ## 1. 落地策略:复用而非自建
 
@@ -24,7 +24,7 @@ OctoDesk / Work Steward(独立产品线:桌面工作台,提供协议模板与结
 
 | 复用对象 | 拿什么 | 方式 |
 |---|---|---|
-| **Hopper**(TS/MIT,1076 单测全绿) | **现在可用**:runners 适配器 / worktree / events.jsonl 事件真相源 / 崩溃恢复 / usage 预算中枢 / 验收闸门。**只有 schema(设计对齐、运行时自建或等其落地)**:DecisionRequest 审批 / NotificationIntent 通知 / workflow executor | **代码级复用现状流水线**(执行后端首选);流式 + steer 等其 M3b;控制面 SayDo 自建 |
+| **Hopper**(TS/MIT,1076 单测全绿) | **现在可用**:runners 适配器 / worktree / events.jsonl 事件真相源 / 崩溃恢复 / usage 预算中枢 / 验收闸门。**只有 schema(设计对齐、运行时自建或等其落地)**:DecisionRequest 审批 / NotificationIntent 通知 / workflow executor | **代码级复用现状流水线**(历史首选;现时态见设计 ADR-005:`designed/deferred`,不再维护);流式 + steer 等其 M3b;控制面 SayDo 自建 |
 | **OpenClaw-Kit** | Genesis 大项目文档流程 / Spec Triad / Readiness Score / 自适应 Gate / 回叫链设计 | **抄骨架不接身体**(作者在迁出,终局是 Hopper) |
 | **OctoDesk** | contextPack 装配蓝本 / understand-clarify-planner 三段结构 / EffectIntent 审批 / 反向 MCP 安全五层 / **手机↔桌面连接协议五件套** | **抄设计、搬契约,不 fork 代码**(深耦合其基建,无库边界) |
 
@@ -32,7 +32,7 @@ OctoDesk / Work Steward(独立产品线:桌面工作台,提供协议模板与结
 
 ## 2. 战略路线
 
-**执行层已拍板(2026-07-23,[设计 ADR-001](adr/design/ADR-001-execution-layer.md)):复用 Hopper 现状、锁版本、不等待、双路径**——重任务 drop 进 Hopper 当时已跑通的流水线(外部系统姿势、锁 commit、契约测试),轻任务/交互审批走 Tier 1 薄执行器(**当时方案为 Claude Agent SDK;Cursor CLI hooks 是已验证缺省**);不等 Hopper 平台化(M3b/M3c/M3d),落地一块换一块。进度可见性与操作归属(用户全程留在 SayDo,Hopper Console 是排障面)见设计 ADR-001。对接需求已成文:`../research/hopper-integration-request.md`;**裁决终稿已回(2026-07-23,Hopper 仓 `docs/plan/2026-07-23-saydo-integration-adjudication.fable.md`)**:17 项全裁决、最小阻塞集给到可照写代码的契约,已回填 09(§6/§7/§11/§14 A3/A4 关闭)与设计 ADR-001(锁定点/协调点落点)。
+**执行层已拍板(2026-07-23,[设计 ADR-001](adr/design/ADR-001-execution-layer.md)):复用 Hopper 现状、锁版本、不等待、双路径**——重任务 drop 进 Hopper 当时已跑通的流水线(外部系统姿势、锁 commit、契约测试),轻任务/交互审批走 Tier 1 薄执行器(**当时方案为 Claude Agent SDK;Cursor CLI hooks 是已验证缺省**);不等 Hopper 平台化(M3b/M3c/M3d),落地一块换一块。进度可见性与操作归属(用户全程留在 SayDo,Hopper Console 是排障面)见设计 ADR-001。对接需求已成文:`../research/hopper-integration-request.md`;**裁决终稿已回(2026-07-23,Hopper 仓 `docs/plan/2026-07-23-saydo-integration-adjudication.fable.md`)**:17 项全裁决、最小阻塞集给到可照写代码的契约,已回填 09(§6/§7/§11/§14 A3/A4 关闭)与设计 ADR-001(锁定点/协调点落点)。**现时态(设计 ADR-005)**:生产执行路线 = Tier1;Hopper 桥 `designed/deferred`;「首发 = 完整双路径」交付定义由设计 ADR-005 supersede。
 
 **现时态 supersede(2026-08-21,W5.4 方案 v3.1)**:Claude 产品路径已改为 `claude -p` + `PreToolUse` hooks,生产主流程已接线;Agent SDK 只保留 live steer/streaming input 的未来候选,不再是现行执行传输。Cursor CLI hooks 仍是当前稳定/dev 缺省。
 

@@ -532,7 +532,7 @@ interface TaskCard {
   id: Id; projectId: Id;
   packageRef: { packageId: Id; revision: number; digest: Digest };
   title: string; specMarkdown: string;           // 不可信输入纪律:正文是数据不是指令
-  route: "tier1" | "hopper";                     // tier1 的具体后端见 adapter(判别键);route=hopper 时 adapter 恒空
+  route: "tier1" | "hopper";                     // tier1 的具体后端见 adapter(判别键);route=hopper 时 adapter 恒空;route=hopper 见设计 ADR-005:designed/deferred
   status: "confirmed" | "queued" | "running" | "paused_step_boundary" | "blocked"
         | "ready_for_review" | "review_approved_waiting_merge" | "merging" | "task_done"
         | "failed" | "merge_failed" | "cancel_requested" | "cancel_settled" | "superseded";

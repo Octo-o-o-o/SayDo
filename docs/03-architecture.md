@@ -1,7 +1,7 @@
 # 03 · 系统架构(Architecture)
 
 > 本篇给出总体架构、组件职责、执行层集成、数据存储、部署拓扑与技术选型。运行机制(记忆、就绪、审批、回叫、成本)见 [04 · 关键机制](04-key-mechanisms.md);模块级分解与接口契约见 [08 · 分模块设计](08-module-design.md);分期见 [05 · 落地与路线](05-roadmap.md)。
-> **状态分三行**:**执行层边界 = 已批准**([设计 ADR-001](adr/design/ADR-001-execution-layer.md):以 Hopper 为执行后端,复用现状、锁版本、双路径);**桌面 OS 矩阵 = 已批准**([设计 ADR-004](adr/design/ADR-004-windows-platform.md):Windows 是正式执行面,**P0 工程对齐已收口(2026-08-22 真机全量门禁)**,机制走 [工程 ADR-003](adr/ADR-003-os-adapters.md) 适配层,不变量不放宽;对外口径已由 owner 授权翻转为「Windows / Linux 桌面服务已开放」,同句须披露常驻安装与系统通知仍为 macOS 实现;Linux 未升正式 SKU);**产品载体与部署组合 = proposed**(独立 vs 并入千手,待 owner 拍板,见 05 §2——未来设计 ADR-003 只覆盖载体,不 supersede 设计 ADR-001/004)。
+> **状态分三行**:**执行层边界 = 已批准**([设计 ADR-001](adr/design/ADR-001-execution-layer.md) 架构决策正文保留:复用现状、锁版本、双路径;现时态见设计 ADR-005:Tier1 为唯一生产路线,Hopper 桥 `designed/deferred`,「首发 = 完整双路径」交付附注已 supersede);**桌面 OS 矩阵 = 已批准**([设计 ADR-004](adr/design/ADR-004-windows-platform.md):Windows 是正式执行面,**P0 工程对齐已收口(2026-08-22 真机全量门禁)**,机制走 [工程 ADR-003](adr/ADR-003-os-adapters.md) 适配层,不变量不放宽;对外口径已由 owner 授权翻转为「Windows / Linux 桌面服务已开放」,同句须披露常驻安装与系统通知仍为 macOS 实现;Linux 未升正式 SKU);**产品载体与部署组合 = proposed**(独立 vs 并入千手,待 owner 拍板,见 05 §2——未来设计 ADR-003 只覆盖载体,不 supersede 设计 ADR-001/004)。
 
 ## 1. 总体分层:语音前脑 + 控制面桥 + 执行后端
 
@@ -114,7 +114,7 @@ Brain 通过工具指挥 daemon,工具集与引擎无关:
 **两级集成,不假装通用**:
 
 - **Tier 1(交互式审批)**:① **Claude Code CLI `PreToolUse` hooks**——Bash 与文件工具统一回连 daemon 裁决,S2 在 hook 内同步等待,fail-closed;生产主流程已接线,最终 live conformance 收口中;② **Cursor CLI hooks(dev 机与当前稳定缺省,2026-07-23 实证)**——`beforeShellExecution` 钩子阻塞回连 daemon 审批(deny-only,fail-closed),仅 shell 通道可拦。两者都**无 live steer**(降级 `queued_delta`/`cancel_resume`,07 D8);
-- **Tier 2(预授权 + 事后恢复)**:Codex(经 Hopper `codex exec`)——运行前权限配足,改需求走 `kill_and_resume`(退出后带新指令续接,续接模板强制先 `git status` 自查)。
+- **Tier 2(预授权 + 事后恢复)**:Codex(经 Hopper `codex exec`)——运行前权限配足,改需求走 `kill_and_resume`(退出后带新指令续接,续接模板强制先 `git status` 自查)。状态注(设计 ADR-005):Tier1 为唯一生产执行路线;Hopper 桥 `designed/deferred`(保留 schema 与 dormant 代码,不再维护)。
 
 三种恢复语义严格区分:`answer_permission`(进程不退出)/ `kill_and_resume`(退出续接)/ `cancel`(放弃,worktree 保留)。能力**按运行时探测**,不按模型名假设——例如 Codex 官方已支持 `turn/steer`,但若执行后端(Hopper 现状 runner 是 `codex exec` 一次性 adapter)未接入,实际仍是 kill_and_resume 降级,Brain 会如实提醒。(机械承载 = Hopper capabilities 握手 `steerLevel`,缺键缺省 none;steerTask 对 route=hopper 按分级诚实拒且不落 task_messages——runtime 档判定值自动翻转但 steerTask 仍如实拒,桥出站消费随能力升级批接线——W5a 2026-07-27 实施,09 §13 同口径。)执行模式两档(直达验收/逐步确认)在两个 Tier 上的映射见 04 §5.4——Tier 1 差异落在审批回调策略;Tier 2 的逐步确认 = 步序循环(每步一个 dispatch,步末确认续跑)。
 

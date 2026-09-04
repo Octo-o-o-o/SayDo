@@ -3481,3 +3481,20 @@ unit economics 决定扩张;持续承担账号/API、CI/设备、证据刷新、
 - 公开 CI run `33579894235`(快照 `21c173b`):`gh run watch --exit-status` exit 0,结论 **success**,8 个 job 全绿(node / python / console fresh-origin e2e / android shell / ios shell / distribution ubuntu-24.04、macos-15、windows-2022)——node job 已含新挂入的 `test-install-scripts.mjs`。
 - 公开仓两条 2026-08-22 的旧远端分支 `feat/windows-alignment`、`fix/ownership-anchor-and-cmd-escape`(相对 `public/main` 均 0 个未合并提交、抽查文件在 main 全部存在)已删除;本地终态:仅 main 一个 worktree / 一个分支,`origin/main` = 本地 main。
 - 本追补二随 `node scripts/week-audit.mjs --write` 的账本重生成一起提交并再推一次(第二次公开快照);该次快照的 CI 结论由本会话最终汇报给 owner,不再回填第三次。
+
+## R128 · 本地遗留工作收敛与独立复审（2026-09-04）
+
+**输入**：在 PROC-01 证据提交 `a4f1a06` 之后，磁盘上仍有三组未入主线的有效工作：Tailcat 评估文档与索引、快速启动安装自测已复审通过的三组 mutation、旧 PG-01A clone 中未提交的 scanner 差异。本批只收敛这些遗留项，不推进 PG-01B，不改计划排期指针，不 push / merge / 部署。I 的 exact pathset 限定为五路径白名单；最终 I 只改其中三路径。
+
+**行动**：
+
+1. 独立实施会话在分支 `codex/local-convergence-20260904` 入库 Tailcat 评估并加固安装脚本自测，得到 I=`5cf1cabb2feea2508a4724082a408c7b734e81e2`，tree=`79748f2da3bab36a34cb27b08c1b0452653ba111`，parent=`a4f1a0618fdbb7c4a8eb7178429cd9b08a8b92d8`，fingerprint=`e42dd19ca752c0ee2dca966fb0e915cbc9fce9375efcd3d45a53f060692f9727`。I 三路径：`docs/plan/2026-09-03-tailcat-borrowing-assessment.fable.md`、`docs/plan/README.md`、`scripts/test-install-scripts.mjs`。现役 `check-active-claims.mjs` / `test-active-claims.mjs` 未改：旧 clone 的 occurrence-selector sibling 加固对当前正式入口不可达。
+2. 第一名零上下文 reviewer 因 read-only sandbox 禁止 `mkdtemp`，安装自测与 active-claims mutation 两条 suite 未跑至终点，给出 `RED / BLOCKED_REQUIRED_GATE`。该报告产品 P0=0、P1=0，但原门禁未完成，整份报告无效。事件流 4294976 bytes / SHA-256 `aba063d0797ee8a047c2236b178fe002d773c80b86cfba4512f244196eaee246`。`plan_recovery.py` 判定 `retry_procedure_once/review_invalid_replace`；恢复记录 `incident_kind=review_invalid`、`cause_id=read-only-mkdtemp`。不得把这份失效报告宣称为产品 RED。
+3. supervisor 在同一冻结 candidate、可写临时目录的普通测试环境重跑原七项 focused gate，日志 2189 bytes / SHA-256 `2d1a561b1740d8da544c7bc32da9b4c6156c7c1c70e6942271f9c452006e2c6a`，全部 exit 0。全新零上下文替代 reviewer（ordinal 仍为 1，`cost_kind=none`，未消耗 rereview 预算）得到 GREEN；P0=0、P1=0；manifest validator=`valid/full_gate`。原始 prompt 3964 bytes / `bad4cc588d3f45ca7b546a4e407529b7a975045d7b7bb730efd2c7ba556f98a2`；原始报告 12781 bytes / `52b98619e334fa779a31022c39f7a08ae4ad49c290ce2c65ad610daf0ab62414`；事件流 1028832 bytes / `1d6bc21b9deff864bec61475873eb84bf6caf967df0ebb3b36032f7d18ed8c23`，`turn.completed=1`。
+4. 语义 GREEN 之后完整门禁：`just ci` exit 0（94404 bytes / `a957c453e79b17f6084310601b287b8e6e51d767c3e0b0677c8b0dd48bc67ac0`）；`pnpm exec playwright test` exit 0、36 passed（4882 bytes / `a17bfe033deccb0ea3747875e2b80c528aa21b4fe408bdb7da0212082a771448`）。Playwright 写回四张受管截图，supervisor 仅恢复这四个测试生成路径，恢复后 fingerprint 不变。Workflow V2 finalizer 写入 `frozen/final.json`，status=`finalized`。
+5. 两条 P2 只登记、不修复、不执行 final P2 sweep：`LC-P2-OBSOLETE-SCANNER-SIBLING`（现役路径不可达）；`LC-P2-TAILCAT-COUNT`（表格机械计数 A=0/B=8/C=22 与摘要 A=1/B=8/C=21 不一致，核心裁决不受影响）。
+6. 本证据会话只新增/更新 `prompts/226-local-convergence-review.md`、`research/codex-findings/226-local-convergence-review.md`、`e2e/evidence/local-convergence-20260904.md` 与本节；入库副本删除本机绝对路径。随后显式 pathspec 暂存、`week-audit --write`、文档/隐私/emoji 门禁后创建 `chore(evidence)` 提交。未 amend I，未 push / merge / 部署 / 启动服务。
+
+**产出**：I 如上；E 为本节所在的 evidence 提交（不自指）。归档 prompt/报告见 `prompts/226-local-convergence-review.md` 与 `research/codex-findings/226-local-convergence-review.md`；证据正文见 `e2e/evidence/local-convergence-20260904.md`。writer 实际变化子集随 E 入库。
+
+**结论**：本地遗留工作已在独立分支形成 I/E 闭环，语义 GREEN 与本地完整门禁成立，但这不是线上、托管 CI、真人场次或部署验收。后续仍待 main ff、push、公开快照与 PG-01B，均需 owner 另行授权。

@@ -9,6 +9,7 @@
 | 设计 ADR-001 | `design/ADR-001-execution-layer.md`:执行层复用 Hopper、锁版本、不等待、双路径 | 已批准 |
 | 设计 ADR-003 | 产品载体与部署组合 | 预留，尚未成文 |
 | 设计 ADR-004 | `design/ADR-004-windows-platform.md`:桌面 OS 矩阵,Windows 一等公民对齐 | 已批准(2026-08-22 实施收口) |
+| 设计 ADR-005 | `design/ADR-005-execution-single-route.md`:执行层单路线,Tier1 为唯一生产路线 | 已决策(owner 2026-09-02) |
 
 设计 ADR-002 不使用，以免与已存在的工程 ADR-002 混读。
 

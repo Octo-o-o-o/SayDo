@@ -24,6 +24,11 @@
   disposition；在当前专用 feature branch 上用 explicit pathspec 形成本地 I/E 两提交，以 clean
   validation worktree 复审。未签 D17 前只读，不能据此直接改排产源；条件包不进入当前活动队列。
 
+### 流程收敛（2026-09-02）
+
+- `2026-09-02-process-convergence-plan.fable.md`:把排产现势、评审制度、候选门、证据卫生与执行层路线收敛成一份方案;不是排产源,落地须导入 `IMPLEMENTATION-PLAN-2.md`。
+- `2026-09-02-process-convergence-plan-IMPL-PROMPT.md`:PROC-01 实施交接 prompt(P1–P5);本文件只覆盖方案 §3.1。
+
 ### 快速启动分发（2026-09-02）
 
 - `2026-09-02-quick-start-distribution.md`：一条命令安装（`install.sh` / `install.ps1`,官网托管）+ R2 镜像 `dl.saydo.octoooo.com` 的渠道裁决、脚本行为、版本钉住/刷新纪律、托管位置与两端实测证据。发布/分发面的独立小批,不改变 PLAN-2 串行链。
@@ -52,6 +57,11 @@
   结论为该循环不收敛，建议停止 v21（`prompts/167`）并按上述三分法改道。
 - `2026-08-24-ai-supply-review-loop-archive.md`：v1–v20 共 20 轮「终审 + 回修」的过程记账，
   原为主方案 §17，已归档为过程证据，不再随方案演进。
+
+### 借鉴评估
+
+- `2026-09-03-tailcat-borrowing-assessment.fable.md`:Tailcat(`tailscale/tailcat`)对照当前 T2/LAN 组网。结论是不能整面替换系统 Tailscale;不 supersede `docs/07` D13。
+- `2026-08-13-deepseek-harness-borrowing-assessment.fable.md`:DeepSeek Harness 对照。不替换 Hopper / voiced daemon。
 
 ## 历史锁版
 

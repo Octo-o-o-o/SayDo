@@ -51,6 +51,10 @@ jobs:
           node scripts/test-mobile-release-contract.mjs
       - name: quick-start install script self-test
         run: node scripts/test-install-scripts.mjs
+      - name: active-claims candidate gate
+        run: node scripts/check-active-claims.mjs
+      - name: public-tree-privacy candidate scan
+        run: node scripts/check-public-tree-privacy.mjs --ref "$GITHUB_SHA" --allow-missing-probes
 
   console-e2e:
     name: console fresh-origin e2e

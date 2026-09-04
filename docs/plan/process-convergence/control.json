@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "task": "process-convergence",
+  "control_dir": "<repo>/docs/plan/process-convergence",
+  "policy_file": "policy.frozen.json",
+  "policy_revision": "2.4.2",
+  "policy_sha256": "996871d90109a558c9f2399ba80babaa98b8bd1cbac68215aa26cdd491f8ccc0",
+  "cycle_state_file": "../process-convergence-cycle.json",
+  "acceptance_file": "acceptance.frozen.json",
+  "acceptance_sha256": "5dc5185dd645678c7d2705ee0fca32e9cdf7d91bd973016039f7867de00edd99"
+}

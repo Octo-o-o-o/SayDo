@@ -42,15 +42,15 @@
       "path": ".github/workflows/ci.yml",
       "kind": "file",
       "mode": 420,
-      "bytes": 6215,
-      "sha256": "e0881f23765b623d533830d0edb6413c63eed25071b1711d01bca6b6023e7bf0"
+      "bytes": 6456,
+      "sha256": "7ba338477d9ae2529148a25f6b103c464e02e63da2a15c7e12ee830182323e3d"
     },
     {
       "path": ".github/workflows/release.yml",
       "kind": "file",
       "mode": 420,
-      "bytes": 20173,
-      "sha256": "fbcbeedcf1147ff8c4942ee40e1c7ce160741268e123343b44e2693bd7c97ebc"
+      "bytes": 20322,
+      "sha256": "c9d7f6a4b5baf1d3280bc782f32c2ec11d11d12f441c439a79e94933612cdbf9"
     },
     {
       "path": ".gitignore",
@@ -60,11 +60,18 @@
       "sha256": "de20d8158aeafd891ccf9a5e8e1de5f9a406c94e59cd6ebdefe98d7b66e7b6a2"
     },
     {
+      "path": ".octoworkflow/project-profile.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3452,
+      "sha256": "5ddb92232d5af201a436f784393603905c66566d15637ec6ab6ce3425c8105a1"
+    },
+    {
       "path": "AGENTS.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 5603,
-      "sha256": "a58d559d8eeee53136aee5d5944d6302c31570552fe6996f398ddcd4556a2490"
+      "bytes": 5869,
+      "sha256": "461882ca1a82f21b48620b89d89b4c2d85aebdb936057b8268f6b35fbdc419c6"
     },
     {
       "path": "apps/android/.gitignore",
@@ -1120,8 +1127,8 @@
       "path": "docs/03-architecture.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 20000,
-      "sha256": "3d98d5b8aab3502c6d3bf7b73a9b181ac98a3c0dc06866251c7014660cc75d7a"
+      "bytes": 20280,
+      "sha256": "8ff3aa8ce533668c72e759dfff2e28ea6852b5e9a4d9ed8e62fffad22af3f1fe"
     },
     {
       "path": "docs/04-key-mechanisms.md",
@@ -1134,8 +1141,8 @@
       "path": "docs/05-roadmap.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 22179,
-      "sha256": "76b903bb3904c2ebb1c77c468bec67637af073171ad1dae24850ffcb55f23cc7"
+      "bytes": 22573,
+      "sha256": "77cf135d747ba220c1046b705ecfab392ad11ecb540b89f99026ecb9eb743e38"
     },
     {
       "path": "docs/06-references.md",
@@ -1162,8 +1169,8 @@
       "path": "docs/09-data-contracts.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 258411,
-      "sha256": "c8cf1f96670f8ad7f55262bbc783334064b3606844c7b24382add0cb17ab93c2"
+      "bytes": 258460,
+      "sha256": "df6643bd36a58e4aaa883755766814a7aacad0991e0bbfc47b20e90b45c1fb39"
     },
     {
       "path": "docs/10-voice-ux-spec.md",
@@ -1211,8 +1218,8 @@
       "path": "docs/adr/design/ADR-001-execution-layer.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 15317,
-      "sha256": "ba087bfb3e488fb9a93e037b8d08975f2c7cda2579a378e711ff457007ddafef"
+      "bytes": 15421,
+      "sha256": "b5d53dd372051ec34d8507be3f00c3c1acd20fd0654c07d658e43af7dec025c6"
     },
     {
       "path": "docs/adr/design/ADR-004-windows-platform.md",
@@ -1222,11 +1229,18 @@
       "sha256": "c295adbea006dab052ba6617ffc4e93bc77eaff3001119df991a2b610dad7c18"
     },
     {
+      "path": "docs/adr/design/ADR-005-execution-single-route.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2827,
+      "sha256": "7ae156b98f429249d460099ae4ec3b2a16ac15ee0df69a86676196256e650402"
+    },
+    {
       "path": "docs/adr/README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 1369,
-      "sha256": "c499b02bdc194aaa9c35bdf82ba6e10cd185885768a4a35b6fda01469ccae559"
+      "bytes": 1510,
+      "sha256": "e5103f530bed6f19ca0424a9b1c7e1045ef0dff9e6a70080a61d1acf7c965c3a"
     },
     {
       "path": "docs/hopper-side-feedback-for-saydo.cursor.md",
@@ -1358,15 +1372,15 @@
       "path": "docs/plan/2026-08-28-project-gap-closure-program.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 185092,
-      "sha256": "fa6f8c8aeb7f3e7727bfd3f440a5e01dce0413a311dc44f35425f7038a3bc8f5"
+      "bytes": 185276,
+      "sha256": "c7f23da00dffb4123f3b69ce5f0ede5bef853a01ff7cfb048c3146da213c7487"
     },
     {
       "path": "docs/plan/2026-08-28-project-gap-d17-import-spec.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 22301,
-      "sha256": "9159d69ba91f3676cb96a896ac55f7e3976cc503e5212f1b378089de997940cf"
+      "bytes": 22390,
+      "sha256": "2f05deff403a48cc64186d6bd07c7cf45929935c336d2fd8fa457e44d4ef8ee7"
     },
     {
       "path": "docs/plan/2026-08-28-project-gap-owner-decisions.md",
@@ -1376,11 +1390,32 @@
       "sha256": "983452a68e35a793b9394ced759e5b8ded43f83a00ae72b4925d30c45a75d9a6"
     },
     {
+      "path": "docs/plan/2026-09-02-process-convergence-plan-IMPL-PROMPT.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 20982,
+      "sha256": "ed73700dece3c21ac938e2edda47d8aaaddbf697cbd8dc9eb9953692751830de"
+    },
+    {
+      "path": "docs/plan/2026-09-02-process-convergence-plan.fable.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 31448,
+      "sha256": "d3fef85e4f724934622b5f313a14d6ae2129da756f5a444ea89fe67292c582b3"
+    },
+    {
       "path": "docs/plan/2026-09-02-quick-start-distribution.md",
       "kind": "file",
       "mode": 420,
       "bytes": 13707,
       "sha256": "7d0191ecf537c11d6fe1040b20103bc3dc91e8ca3d1e005fdd3299979af1d5df"
+    },
+    {
+      "path": "docs/plan/2026-09-03-tailcat-borrowing-assessment.fable.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 15520,
+      "sha256": "8188f8745845e2023fbaeb564bb87c8a95695d12c5992b5324bb2e93929af77d"
     },
     {
       "path": "docs/plan/ai-supply-contracts-draft/01-core-contracts.ts",
@@ -1589,8 +1624,8 @@
       "path": "docs/plan/IMPLEMENTATION-PLAN-2.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 60514,
-      "sha256": "b8c24b19cae19c029c482194e94fd2a29e61577aecad75fbc1ff5c5ee1c3240b"
+      "bytes": 63597,
+      "sha256": "b144e64c2e8b4b9ca899463cb2e76baeea5e16b05eb353f2a2bc656c5b9a6b18"
     },
     {
       "path": "docs/plan/IMPLEMENTATION-PLAN.md",
@@ -1649,6 +1684,48 @@
       "sha256": "d43b1b171adbf4a1de3f04e5107b59612935c42fd74ee94cecd7a1a65d09e738"
     },
     {
+      "path": "docs/plan/OWNER-DECISIONS.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 6268,
+      "sha256": "042a90de4f7e4c941006877e4d9aa9f6cc41719cb96546d225db3715cbf845a7"
+    },
+    {
+      "path": "docs/plan/process-convergence-cycle.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1653,
+      "sha256": "45ca4e80d344868f07ee4c48025c341e23ada056f81bad1c8bf4137b4c1b55c5"
+    },
+    {
+      "path": "docs/plan/process-convergence/acceptance.frozen.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 441,
+      "sha256": "e49a2de88aaebe211403f83e7c420f81fb8feeb839f736635737276ee4247058"
+    },
+    {
+      "path": "docs/plan/process-convergence/control.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 469,
+      "sha256": "f09358c95dd946ac43ef0a5edd43853b8a76b667e7d8c300d43fb79d4a6a94f6"
+    },
+    {
+      "path": "docs/plan/process-convergence/final.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1451,
+      "sha256": "150fc01366f2bb1c52f0f1d358829b2f4e9976dce96cbf1b44eb16f76ab11274"
+    },
+    {
+      "path": "docs/plan/process-convergence/policy.frozen.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3315,
+      "sha256": "996871d90109a558c9f2399ba80babaa98b8bd1cbac68215aa26cdd491f8ccc0"
+    },
+    {
       "path": "docs/plan/project-gap-closure-cycle.json",
       "kind": "file",
       "mode": 420,
@@ -1691,11 +1768,18 @@
       "sha256": "6368bc583926ffec4f038bb5c5ec4528957b62797ebe2822396d638868e136de"
     },
     {
+      "path": "docs/plan/project-gap-closure/README.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 834,
+      "sha256": "08bf5b14fd4d69ea30ff5d0cc896f3bd97d1d2d91ab52eb635749b3471ea0602"
+    },
+    {
       "path": "docs/plan/README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 3979,
-      "sha256": "ed8f9c590000135f4cd112e7a0fe251732fee8e55bc1a368427e0aa80db54aae"
+      "bytes": 4676,
+      "sha256": "302427b69ea75f36a763a9fd64fec72fc1ca5c26cf6641f22f148fb2ee379d7b"
     },
     {
       "path": "docs/plan/REPO-MERGE-PROPOSAL.md",
@@ -1710,6 +1794,13 @@
       "mode": 420,
       "bytes": 10798,
       "sha256": "3681a1bae65fb490761b7c94957f237b9dd0ebb86bbca436c70894cc9152a7e0"
+    },
+    {
+      "path": "docs/README.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 1841,
+      "sha256": "8783c00a2f5a714f93ee62c190bfbfe7b4f8952a565a408a5fdc311a11ac2175"
     },
     {
       "path": "docs/release/2026-08-13-app-materials.md",
@@ -2671,6 +2762,13 @@
       "sha256": "d387c1a3f21874c420f1af6f994e70f72293d062dec348f32b94022eb411c243"
     },
     {
+      "path": "e2e/evidence/local-convergence-20260904.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 8382,
+      "sha256": "f057d8917269d8bba4a4930b33eb74c2e57c64e154fb64c23e4db8324bd7760b"
+    },
+    {
       "path": "e2e/evidence/p0-readback.md",
       "kind": "file",
       "mode": 420,
@@ -2725,6 +2823,13 @@
       "mode": 420,
       "bytes": 1913,
       "sha256": "8c7da89457cb3146d6254168d541fbe913b07b811da420163cf82f9f200ed8f7"
+    },
+    {
+      "path": "e2e/evidence/process-convergence-proc-01.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 13046,
+      "sha256": "eb3163325b9ec625645e5f7a5624532516893eea0766e7ab54c0be216d3ea324"
     },
     {
       "path": "e2e/evidence/project-gap-pg-00.md",
@@ -3451,8 +3556,8 @@
       "path": "HANDOFF.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 41292,
-      "sha256": "a78841e84756d6a5580c21a300b9c287fad51c9987bce1e475924b91d94a438e"
+      "bytes": 41521,
+      "sha256": "688a7eb2b8b59406d853c64a65040fa3cf3c3d7a5f5db6652f741bfc87289fff"
     },
     {
       "path": "history/2026-07-29-migration-and-implementation-status.md",
@@ -3486,8 +3591,8 @@
       "path": "history/PROCESS-JOURNAL.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 434327,
-      "sha256": "aba1fd902e9d65ca3df141a200e19a84730d11eb9c578a1701099212d80ad70d"
+      "bytes": 438462,
+      "sha256": "d908ae880d3f58cf27c27d578f5e401e06b2eb7c452ca600fceebc8c89419ee1"
     },
     {
       "path": "history/README.md",
@@ -3612,8 +3717,8 @@
       "path": "justfile",
       "kind": "file",
       "mode": 420,
-      "bytes": 1512,
-      "sha256": "31bff1298a8314fb7a8aa81cff5f2f8415020a6b26d0722e011114ef117da6cf"
+      "bytes": 1882,
+      "sha256": "33f974c1c331798fb9fb9a75dfddcfce1d4341cfcac0f31229f1506eec592cf1"
     },
     {
       "path": "LICENSE",
@@ -3633,8 +3738,8 @@
       "path": "package.json",
       "kind": "file",
       "mode": 420,
-      "bytes": 1318,
-      "sha256": "959740e2996a9a1bf12db282b64f50b5b74ac8a4259d964629998467f0cd6546"
+      "bytes": 1436,
+      "sha256": "03539a5a17c99230edb5385a7d4a116ea063d860a19139340b9df1e9ba23d76a"
     },
     {
       "path": "packages/cli/LICENSE",
@@ -9881,6 +9986,20 @@
       "sha256": "caf7bea69acd3bcc78e3e501af52b6e35b27082139d670614d7bd2ab6e67a7e2"
     },
     {
+      "path": "prompts/2026-09-02-process-convergence-plans-review-retry.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3257,
+      "sha256": "64f74491c4dfbff387a79687bc77a389a98a6d4290a1e2d7a1a0713acb60ee25"
+    },
+    {
+      "path": "prompts/2026-09-02-process-convergence-plans-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2750,
+      "sha256": "df9aa4c1752fd939135b903c9d4491e98f5694161de686a60d78ff53d7eae198"
+    },
+    {
       "path": "prompts/203-rc4-long-session-handoff-to-new-codex.md",
       "kind": "file",
       "mode": 420,
@@ -10061,6 +10180,13 @@
       "mode": 420,
       "bytes": 2229,
       "sha256": "68ff13451f179aac65636e79e48c49339beff4e01ba328d0fd96025ecdec9a4c"
+    },
+    {
+      "path": "prompts/226-local-convergence-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3766,
+      "sha256": "5ffec6d53d3347dd8f5fc64f70e92f669946c6a02cd2d803954a2909e40bc6eb"
     },
     {
       "path": "prompts/23-a3-armed-design-review.md",
@@ -11512,6 +11638,13 @@
       "sha256": "1e84c194cadc9280db63189c2efb39872635611ddc5dd0effb6e737b4b0beeca"
     },
     {
+      "path": "research/codex-findings/2026-09-02-process-convergence-plans-review-retry.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 7078,
+      "sha256": "72513f34aa4c0723acd5497ea1c0e1a0769fff3eea53d115f14e266a0f91afbf"
+    },
+    {
       "path": "research/codex-findings/206-project-gap-program-adversarial-review.md",
       "kind": "file",
       "mode": 420,
@@ -11622,6 +11755,13 @@
       "mode": 420,
       "bytes": 2428,
       "sha256": "d99bf0cd6550faf4395095e97fd82963b3289d5a1d88103e6d6f00b9eef26aeb"
+    },
+    {
+      "path": "research/codex-findings/226-local-convergence-review.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 12720,
+      "sha256": "0a360905515086b8754b4ecf3662b22f7fc7cf5407009dfee6eb14ec439fa6c7"
     },
     {
       "path": "research/codex-findings/23-a3-armed-design-review.md",
@@ -14081,6 +14221,13 @@
       "sha256": "c79d1d0b0a6a39316393ead9d36a2d10fd8a737caf7d3dc2ff2b8703ab2472f3"
     },
     {
+      "path": "scripts/check-gate-list-parity.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 7539,
+      "sha256": "ddcfd275d8674b0904b274f5adf94369c0ec7e5bd5323ad7b31a9fc50d6c434d"
+    },
+    {
       "path": "scripts/check-hardcoded-colors.mjs",
       "kind": "file",
       "mode": 420,
@@ -14270,6 +14417,13 @@
       "sha256": "e01280267cc02d1c4c17923fe04b3641b33ef8d2e76b8ba0d1bc2e4f5dae9fbe"
     },
     {
+      "path": "scripts/schedule-pointer.mjs",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 16435,
+      "sha256": "4c181ede0eb33ad264e97c7731ef63a0f887602d4c6f2febf06a18d258191d04"
+    },
+    {
       "path": "scripts/select-ios-simulator.mjs",
       "kind": "file",
       "mode": 420,
@@ -14322,8 +14476,8 @@
       "path": "scripts/test-install-scripts.mjs",
       "kind": "file",
       "mode": 420,
-      "bytes": 15197,
-      "sha256": "37d4dd2093e09eb1fa7c0a63d8fda751e2b41df85a73fd2abd67d26728d2e4fd"
+      "bytes": 16059,
+      "sha256": "cb04cd4b5fe89bd89bbe62f50f22925965779f8d71265dd30804903c65f22656"
     },
     {
       "path": "scripts/test-migration-tools.mjs",
@@ -14448,8 +14602,8 @@
       "path": "templates/saydo.config.example.toml",
       "kind": "file",
       "mode": 420,
-      "bytes": 8861,
-      "sha256": "714bf4746a9f7dc93868e6a0c88b1cbdcc04ca92855adab6221beac350df7b14"
+      "bytes": 8979,
+      "sha256": "fd1cad3341e05f7dc11d8aa5b492315271238c152aba817da00c4bf10a6d224a"
     },
     {
       "path": "templates/saydo.env.example",
