@@ -42,8 +42,9 @@ export const PHASE1_GOLDEN: GoldenCase[] = [
   {
     id: "g2",
     scene: "#15 用户不置可否 -> 逐步确认",
-    utterance: "那我每步问你。想改一口气跑,随时说。",
-    mustContain: ["每步问你", "随时说"]
+    utterance: "那我每步问你。",
+    mustContain: ["每步问你"],
+    mustNotContain: ["一口气跑"]
   },
   {
     id: "g3",
@@ -108,11 +109,12 @@ export const COVERAGE_GOLDEN: GoldenCase[] = [
   {
     id: "c10",
     scene: "#10 就绪提议(最高频句,定稿)",
-    utterance: "我这边评估过了,可以开始了。做完你会得到:报表页多一个导出 CSV 按钮。我打算分 3 步,其中 1 步需要你配合——跑数据库迁移要你点头。预计花费 4 元,封顶 20 元。现在开始的话——一口气跑完,还是每步问你?",
-    mustContain: ["我这边评估过了,可以开始了", "做完你会得到", "封顶", "一口气跑完,还是每步问你"]
+    utterance: "我这边评估过了,可以开始了。做完你会得到:报表页多一个导出 CSV 按钮。我打算分 3 步,其中 1 步需要你配合——跑数据库迁移要你点头。预计花费 4 元,封顶 20 元。现在开始的话,我按每步问你来跑。",
+    mustContain: ["我这边评估过了,可以开始了", "做完你会得到", "封顶", "每步问你"],
+    mustNotContain: ["一口气跑完"]
   },
   { id: "c13", scene: "#13 拒绝单条 grant", utterance: "好,改防火墙那条不批——碰到它的时候我会先问你,其他照旧。", mustContain: ["不批", "先问你", "其他照旧"] },
-  { id: "c14a", scene: "#14 模式复述·直达", utterance: "好,一口气跑到等你验收。", mustContain: ["一口气跑到等你验收"] },
+  { id: "c14a", scene: "#14 模式复述·直达(designed/deferred,非现役主动话术)", utterance: "直达验收档本期不开放,我按每步问你来跑。", mustContain: ["每步问你"], mustNotContain: ["一口气跑到等你验收"] },
   { id: "c14b", scene: "#14 模式复述·逐步", utterance: "好,每步问你——改代码、跑测试不会吵你。", mustContain: ["每步问你", "不会吵你"] },
   {
     id: "c16",
@@ -138,7 +140,7 @@ export const COVERAGE_GOLDEN: GoldenCase[] = [
   { id: "c23", scene: "#23 用户问进度", utterance: "跑了 18 分钟,在第 2 步改导出模块,目前没卡。", mustContain: ["跑了 18 分钟", "目前没卡"] },
   { id: "c24", scene: "#24 改需求·Tier1 steer", utterance: "收到,我把新要求直接塞给它,这轮不作废接着跑。", mustContain: ["这轮不作废"] },
   { id: "c26", scene: "#26 Plan Delta 重授权", utterance: "跑的时候发现要改验证命令,超出你批的范围了。变更我放屏幕上,你批了才继续。", mustContain: ["超出你批的范围", "你批了才继续"] },
-  { id: "c27", scene: "#27 切档·升档必重念", utterance: "那剩下的一口气跑,我把要出圈的事再过一遍:跑数据库迁移;改 CI 配置。都可以吗?", mustContain: ["再过一遍"] },
+  { id: "c27", scene: "#27 切档·升档必重念(designed/deferred)", utterance: "好,盯紧点,之后每步问你。", mustContain: ["每步问你"], mustNotContain: ["一口气跑"] },
   {
     id: "c28",
     scene: "#28 熔断触发(逆风;用户语转译,不念墙钟/回合)",
@@ -172,14 +174,8 @@ export const COVERAGE_GOLDEN: GoldenCase[] = [
   }
 ];
 
-// P0.5 收尾 golden(直达档/路径二场景;#12/#39/#25 此前如实标注 P0.5,此处补齐)
+// P0.5 收尾 golden(路径二/分诊场景)。#12 直达念清单 = designed/deferred,不进正式 active golden。
 export const P05_GOLDEN: GoldenCase[] = [
-  {
-    id: "p05-12",
-    scene: "#12 念预授权清单(直达验收)",
-    utterance: "选一口气跑完的话,这几件出圈的事先跟你确认:装 papaparse 这1个依赖;推到 feature/* 分支,会触发预览部署。都可以吗?哪件不行单说哪件。",
-    mustContain: ["出圈的事", "都可以吗", "哪件不行单说哪件"]
-  },
   {
     id: "p05-39",
     scene: "#39 运行中 S2 播报(A8,只播 E2 签名件)",

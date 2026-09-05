@@ -3498,3 +3498,48 @@ unit economics 决定扩张;持续承担账号/API、CI/设备、证据刷新、
 **产出**：I 如上；E 为本节所在的 evidence 提交（不自指）。归档 prompt/报告见 `prompts/226-local-convergence-review.md` 与 `research/codex-findings/226-local-convergence-review.md`；证据正文见 `e2e/evidence/local-convergence-20260904.md`。writer 实际变化子集随 E 入库。
 
 **结论**：本地遗留工作已在独立分支形成 I/E 闭环，语义 GREEN 与本地完整门禁成立，但这不是线上、托管 CI、真人场次或部署验收。后续仍待 main ff、push、公开快照与 PG-01B，均需 owner 另行授权。
+
+## R129 · PG-01B 远程业务面止损收敛、owner 特批 P2 补齐与 main ff(2026-09-05)
+
+**输入**:Codex 会话在 PG-01B 上耗尽预算后停在 RED,owner 于本日要求换手继续,并把 review 通道
+从 codex(配额耗尽)改为 Claude 零上下文子会话。起点 candidate=`1cd08b476b031c014a70fb2242042645431df6db`,
+唯一 P1 是 abandon lifecycle reason 缺断言导致的假绿。
+
+**行动**:
+
+1. 开 `pg01b-owner-recovery-1`,补齐 `lifecycle_changed` payload 的 reason 断言。supervisor 做变异
+   对照(移除产品侧 reason 写入 -> 该断言必红)确认非假绿。
+2. 该 cycle 内独立复审连续发现两处更深的缺口:新增的远程 WS 守卫使既有契约测试
+   `focus-v04e-screen-a7-a6.test.ts` 确定性失败(上一轮 codex 复审判 `[ok]` 且未跑全量,属假绿);
+   以及 `docs/10:73` 写下的「02 已回改对齐」在当时为假(`docs/02` 从未被该 candidate 改过)。
+   第二处由 replacement review 抓出——第一名 reviewer 完全没看见。
+3. 同根因(PG-01B 止损口径一致性收敛不完整)第三次显现:`e2e/console/console.spec.ts` 6 条 M1
+   移动 LAN 用例仍断言已关闭的远程业务行为,使 `pnpm exec playwright test` 稳定 RED
+   (30 passed / 6 failed,targeted 复现一致)。该 cycle 产品预算耗尽,按规则 `stop_for_owner`。
+   直接成因是 supervisor 把 repair 3 的诊断清扫范围限定为 `docs/`,未纳入 `packages/**/test/**`
+   与 `e2e/**`。
+4. owner 授权 `pg01b-owner-recovery-2`,诊断范围强制覆盖测试面(诊断表 40+ 行,含「已扫、无命中」)。
+   6 条用例 1:1 改写为断言 fail-closed 契约,用例计数守恒,无删除无 skip;另翻转
+   `t2-thin.test.ts` 与 `SetupBootstrapBoundary.test.ts` 的同类断言。语义 GREEN,
+   `just ci` exit 0、playwright 36 passed。
+5. owner 特批立即修三条覆盖回退 P2(TTS 脱敏出口断言、`queueText` 成功路径、失败保留草稿),
+   得到最终 I=`ebd449080bb0e476eb2dd3334ee0b152cb3a7eeb`。脱敏断言经 supervisor 变异对照与两名
+   reviewer 各自的代码路径论证三重确认。
+6. `pg01b-owner-recovery-3` 内两轮互不知情的零上下文复审均 GREEN;七项冻结门禁全部经
+   `cycle_control.py --record-gate` 由工具执行记录,全部 exit 0。
+7. 主仓 `main` 以 `git fetch <clone> <branch>:main` 快进到该 I。选择纯引用更新是因为当时主工作树
+   正被另一会话占用(分支 `codex/ecc-research-20260905`,有未提交改动);该会话的分支与工作树
+   全程未被触碰。快进后 `main^{tree}` 与候选 tree 逐字节一致。
+
+**产出**:I 如上;E 为本节所在的 evidence 提交(不自指)。证据正文
+`e2e/evidence/pg-01b-20260905.md`;归档评审输入与报告见
+`prompts/2026-09-05-pg-01b-owner-recovery-review.md` 与
+`research/codex-findings/2026-09-05-pg-01b-owner-recovery-review.md`。
+
+**结论**:PG-01B 本地闭环成立(两轮独立 GREEN + 七项冻结门禁本地全绿),但本批**没有
+`--finalize` 记录**:supervisor 有四处记账失误(复审 handoff 缺契约块且未跑
+`validate_handoff.py`;把 owner 特批修复放进已 GREEN 的 cycle;两次不该做的预留),
+其中两处留下无法结清的悬挂预留。所有失败 receipt 与状态快照原样保留,未伪造收据、
+未手工改写状态抹平。owner 知情后决定按现有证据合并,finalize 与 handoff 模板合规另作跟进项。
+另记:`~/.octoworkflow/` 全套脚本在本批作业中途被另一进程整体升级,本批已按新契约重建控制目录。
+未 push、未发布公开快照;这不是托管 CI、真人场次或部署验收。

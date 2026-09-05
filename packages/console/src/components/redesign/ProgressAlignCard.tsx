@@ -3,7 +3,7 @@
 
 import { Flag } from "lucide-react";
 import { card, ProgressTrack } from "./shared";
-import type { ExpectationView } from "./types";
+import { focusBudgetCopy, type ExpectationView } from "./types";
 
 export function ProgressAlignCard({ expectation, nextStepText, pkgSteps }: {
   expectation?: ExpectationView;
@@ -12,7 +12,7 @@ export function ProgressAlignCard({ expectation, nextStepText, pkgSteps }: {
   /** 决策包步进(可选,有包时展示) */
   pkgSteps?: { done: number; total: number };
 }) {
-  const rows: { label: string; pct: number; text: string; warn?: boolean }[] = [];
+  const rows: { label: string; pct?: number; text: string; warn?: boolean }[] = [];
   if (expectation) {
     const passCount = expectation.acceptance.filter(a => a.state === "pass_verify").length;
     rows.push({
@@ -25,12 +25,16 @@ export function ProgressAlignCard({ expectation, nextStepText, pkgSteps }: {
       pct: expectation.artifacts.expected ? (expectation.artifacts.delivered / expectation.artifacts.expected) * 100 : 0,
       text: `${expectation.artifacts.delivered}/${expectation.artifacts.expected} 已产出`
     });
-    rows.push({
-      label: "预算",
-      pct: expectation.budget.max ? (expectation.budget.spent / expectation.budget.max) * 100 : 0,
-      text: `¥${expectation.budget.spent} / ¥${expectation.budget.max}`,
-      warn: expectation.budget.max > 0 && expectation.budget.spent / expectation.budget.max >= 0.8
-    });
+    rows.push(
+      expectation.budget.known
+        ? {
+            label: "预算",
+            pct: expectation.budget.max ? (expectation.budget.spent / expectation.budget.max) * 100 : 0,
+            text: focusBudgetCopy(expectation.budget),
+            warn: expectation.budget.max > 0 && expectation.budget.spent / expectation.budget.max >= 0.8
+          }
+        : { label: "预算", text: focusBudgetCopy(expectation.budget) }
+    );
   }
   if (pkgSteps) {
     rows.push({
@@ -51,7 +55,9 @@ export function ProgressAlignCard({ expectation, nextStepText, pkgSteps }: {
       {rows.map((r, i) => (
         <div key={i} style={{ display: "flex", gap: "var(--space-2)", alignItems: "center", fontSize: "var(--text-sm)", marginTop: 6 }}>
           <span style={{ flex: "none", width: 60 }}>{r.label}</span>
-          <span style={{ flex: 1 }}><ProgressTrack pct={r.pct} warn={r.warn} /></span>
+          <span style={{ flex: 1 }}>
+            {typeof r.pct === "number" ? <ProgressTrack pct={r.pct} warn={r.warn} /> : null}
+          </span>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", color: "var(--text-faint)", flex: "none" }}>{r.text}</span>
         </div>
       ))}

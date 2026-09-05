@@ -1,4 +1,4 @@
-// 记录页接线容器:hook → RecordsPage;生命周期写口(archive/reopen 等)接现有 API。
+// 记录页接线容器:hook → RecordsPage;生命周期写口(archive/abandon/reopen)接现有 API。
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { RecordsPage } from "./RecordsPage";
@@ -73,13 +73,9 @@ export function RecordsPageRoute({ focusId }: { focusId: string }) {
             setToast("放弃需要理由");
             return;
           }
-          // TODO:若 daemon 有独立 abandon 口则换;暂与 archive 同形并注明
           run(
-            () =>
-              apiPost(`/api/focuses/${encodeURIComponent(focusId)}/archive`, {
-                reason: `abandon:${reason.trim()}`
-              }),
-            "已标记放弃(经 archive 口)"
+            () => apiPost(`/api/focuses/${encodeURIComponent(focusId)}/abandon`, { reason: reason.trim() }),
+            "已放弃"
           );
           return;
         }

@@ -13,7 +13,7 @@
 type Id = string;      // ULID;前缀:prj_/ses_/pkg_/tsk_/apr_/mem_/ntf_(outbox)/art_/dsp_(dispatch)/cmd_(出站命令)/aud_(审计)/snp_(源快照,§4.1)/cred_(WebAuthn 凭据)/s3c_(S3 挑战)/anc_(项目锚候选)/evt_(durable UI 事件)/asm_(就绪评估行)
 type Digest = string;  // "sha256:<hex>",JCS 规范化后哈希
 type Ts = string;      // ISO-8601 带时区
-type Money = { known: boolean; value?: number; currency?: "CNY" | "USD"; asOf?: Ts };  // 接线处:cost_entries 与投列显示;unknown 永不显示为 0
+type Money = { known: boolean; value?: number; currency?: "CNY" | "USD"; asOf?: Ts };  // 接线处:cost_entries 与投列显示;unknown 永不显示为 0。Focus 级预算无来源时用显式 unknown 形状,文案「还没有确切数字」,禁 0/0、¥0 / ¥0 冒充未知(PG-01B)
 // 第三态(07 D18):known=false 且 cost_entries.source='subscription' ⇒ 呈现"订阅额度内(已用 N 次)",不落"未知"话术;月预算汇总只 SUM api 计费行
 ```
 
@@ -52,7 +52,7 @@ interface Project {
   reanchoredTo?: Id;                            // draft 并回目标项目后留指针
   workspace: { kind: "local_folder" | "remote_repo"; path: string; url?: string; managed: boolean };
   hopperProjectId?: string;                     // Hopper project name:SayDo 生成、单路径段,1:1 workspace↔project;link-project 现状已有(裁决 §2.2.1/§2.2.3)
-  executionModeDefault: "step_confirm" | "direct_to_review";   // 出厂 step_confirm
+  executionModeDefault: "step_confirm" | "direct_to_review";   // 出厂 step_confirm;direct_to_review=designed/deferred(PG-01B),现役默认与唯一路径=step_confirm,不删 schema
   createdAt: Ts; updatedAt: Ts;
 }
 
@@ -235,8 +235,8 @@ interface DecisionPackage {
   demoRef?: { artifactId: Id; version: number }; // → §8 Artifact;Demo 元素编号 ↔ plan.seq 互引;assemble/revise 同轮生成
   cost: { expected: Money; p95: Money; max: number; currency: "CNY" };  // max 必 known(熔断依据);expected/p95 可 unknown(§0 Money)
   risks: string[];
-  mode: "direct_to_review" | "step_confirm";
-  preauthorizedEffects: EffectGrant[];           // 仅 direct_to_review;逐项念读后随包签署
+  mode: "direct_to_review" | "step_confirm";     // schema 保留双值;现役组包/拍板仅 step_confirm;旧数据携带 direct_to_review 必须 fail-closed,不可拍板(PG-01B)
+  preauthorizedEffects: EffectGrant[];           // 仅 direct_to_review;designed/deferred(PG-01B);逐项念读后随包签署
   effectPolicyVersion: string;                   // E2 版本;升级 ⇒ 旧包需重签(§11-2 测试)
   readinessRef?: { assessmentId: Id; dimsDigest: Digest; checklistDigest: Digest; evidenceDigest: Digest; verdict: ReadinessVerdict };  // 组包前置证据(R-A 补完 2026-07-27,Codex 21 A3;verdict 字段 2026-07-28 对齐实施——W4 实现含 verdict 且全对象入 digest,Codex 22 §4.2-5;**checklistDigest/evidenceDigest 2026-07-28 A3-armed 扩,Codex 23 A-2:清单结构指纹 + 绑定证据版本向量指纹,producer=proposeStart 组包事务,verifier=issue 预检+confirmAndDispatch 事务权威复核,失败动作=拒 readiness_stale**):proposeStart 消费的当次评估行 + dims 全量 JCS digest;组包装配时写入、与包内容同生(不因状态转移变化——digest 稳定性 §0.1 不破);proposed 起必填(validator/§9 body 校验,**pending 包亦然**——绑 pending 最小清单,§13)缺失 ⇒ 拒拍板;用户改回 draft 再 propose = 新 revision 以当次新评估重写
   status: "draft" | "proposed" | "approved" | "superseded" | "expired";
@@ -325,11 +325,11 @@ interface ApprovalReceipt {
 | decidedVia | 允许 authStrength | 允许 riskLevel |
 |---|---|---|
 | voice | voice_weak | ≤ S2 |
-| push(远程:电话 DTMF ack / **tailnet 配对屏幕批**) | paired_device_pin | ≤ S2(04 §5.2 远程封顶;tailnet 手机面批 S2 落此行——已配对主机+OS 解锁,R-A 2026-07-26 对齐,详见下方对表) |
+| push(远程:电话 DTMF ack / **tailnet 配对屏幕批**) | paired_device_pin | ≤ S2(04 §5.2 远程封顶;tailnet 手机面批 S2 落此行——已配对主机+OS 解锁,R-A 2026-07-26 对齐,详见下方对表)。**现役(PG-01B)**:远程业务 `/api/**` 403,本行不得当作现役入口;历史 tailnet 配对屏幕批 = designed/deferred(DF-REMOTE-REOPEN) |
 | screen(本机受信终端) | screen_authenticated / os_biometric | ≤ S3(**S3 只此一路;os_biometric=WebAuthn platform authenticator,§3.3**) |
 | preauthorized | 继承父 dispatch 收据的 authStrength | ≤ S2 |
 
-**tailnet 手机面 S2 收据口径对表(R-A 2026-07-26 定,消解 W2 场次① canonical B-2 登记)**:T2 薄版手机浏览器(经 tailnet 白名单主机,`via="tailnet"`)批 S2 = **`decidedVia="push"` + `authStrength="paired_device_pin"`**(对齐 04 §5.2 远程通道"已配对设备 + PIN/推送确认,封顶 S2":tailnet 主机在 `[t2].tailnet_hosts` 白名单枚举 = 已配对,手机端 OS 解锁/PIN = 第二因子)——**不落 `screen/screen_authenticated`**(那是本机受信终端语义,S3 卡专用)。W2 实现把 tailnet 屏幕批暂落 `screen`,属待对齐项(W4 或手机烟测批修:tailnet 来源的 decide 收据改签 push/paired_device_pin;S3 面本就 403 不受影响)。远程通道恒 ≤S2,S3 永不出 tailnet(§3.3 红线)。
+**tailnet 手机面 S2 收据口径对表(R-A 2026-07-26 定,消解 W2 场次① canonical B-2 登记;designed/deferred,DF-REMOTE-REOPEN)**:历史口径——T2 薄版手机浏览器(经 tailnet 白名单主机,`via="tailnet"`)批 S2 = **`decidedVia="push"` + `authStrength="paired_device_pin"`**(对齐 04 §5.2 远程通道"已配对设备 + PIN/推送确认,封顶 S2":tailnet 主机在 `[t2].tailnet_hosts` 白名单枚举 = 已配对,手机端 OS 解锁/PIN = 第二因子)——**不落 `screen/screen_authenticated`**(那是本机受信终端语义,S3 卡专用)。W2 实现把 tailnet 屏幕批暂落 `screen`,属待对齐项(W4 或手机烟测批修:tailnet 来源的 decide 收据改签 push/paired_device_pin;S3 面本就 403 不受影响)。远程通道恒 ≤S2,S3 永不出 tailnet(§3.3 红线)。**现役(PG-01B,`safe_default=remote_business_403`)**:`via="tailnet"` HTTP 业务 `/api/**` 一律 403、远程 WS fail-closed,本对表不得当作现役入口。
 
 **outcome 转换表(唯一合法集)**:
 
@@ -1038,13 +1038,13 @@ type PipelineMsg =
   | { t: "confirm.click"; sessionId: Id; receiptId: string; digest: string; decision: "accept"|"reject" }
   // 批1:console 点击专用上行(退役 F25 sendText 词表复用)
   | { t: "confirm.decision"; sessionId: Id; receiptId: string; decision: "accept"|"reject"|"withdraw" }
-  // M1 移动卡裁决(08-11):卡原 session+receipt 显式定向;withdraw 是撤下而非 reject;mobile_lan 上行白名单成员(§11)
+  // M1 移动卡裁决(08-11):卡原 session+receipt 显式定向;withdraw 是撤下而非 reject;历史 mobile_lan 上行白名单成员(§11)为 designed/deferred(DF-REMOTE-REOPEN,PG-01B),现役远程 WS 业务连接 fail-closed
   | { t: "focus.entity"; sessionId: Id; entity: { id: string; kind: string; title: string; sub: string; color: string; at: string } }
   // 批4(08-05):会话内「这次聊出来的东西」实体卡(办成事才长卡;只下行 console)
   | { t: "pipeline.restart_pending"; generation: number } | { t: "pipeline.restart_ack"; generation: number }
   // first-run onboarding v4(1ab27cc,08-10):daemon→pipeline 协调重启;pipeline 回 ACK 后 self-exec 重读 .env
   | { t: "screen_text"; sessionId: Id; turnId: Id; text: string }
-  // Focus v0.4 ④e(08-09):双文本分离——modelText 全文仅投 via=local 的 console peer(不脱敏);tailnet 只收脱敏 tts.say
+  // Focus v0.4 ④e(08-09):双文本分离——modelText 全文仅投 via=local 的 console peer(不脱敏)。**PG-01B**:远程 console WS 业务连接 fail-closed;历史口径「tailnet 只收脱敏 tts.say」= designed/deferred(DF-REMOTE-REOPEN),见 §15.1
   | { t: "console.heartbeat"; sessionId: Id; atMs: number }
   // Focus v0.4 ④e A6:console 应用层心跳(30s);daemon 90s 无心跳视同断开,取消 idle 收场
   // 以下两条为工程侧 additive 扩展的回写补录(词表以本节为 canonical;2026-07-25;时序:latency.stage
@@ -1226,9 +1226,9 @@ type DevAgentBinding =
   - **`tier1_runs.native_session_confirmed` 列**(additive,实现配增量迁移):claude 首跑 daemon 预生成 uuid 经 `--session-id` 传入并落 `native_session_id`(未确认态 0),`system/init.session_id` 对上 ⇒ 置 1;不等 ⇒ kill + failed `native_session_mismatch`。恢复/续跑只在 `(adapter, native_session_id, cwd, confirmed=1)` 四元组等值时 `--resume`(同 cwd 为 SayDo 自家策略;**本条仅约束 `claude_code`**,cursor 沿既有三元组语义——§12-7 同口径)。
   - **G4 env 白名单例外两键**(显式注入/覆盖,非凭据):`DISABLE_AUTOUPDATER=1`(防批中自更新改 digest)、`SHELL=/bin/sh`(防登录 shell profile 快照把 `~/.zshrc` 导出变量带进 agent Bash);`ANTHROPIC_*`/`CLAUDE_CODE_OAUTH_TOKEN` 仍恒剔除,流内 `apiKeySource !== "none"` ⇒ 立即终止 + failed `subscription_auth_violation`(HANDOFF #6 硬约束机械化)。
 
-- **T2 薄版配置承载(W2 提前批 #2,2026-07-26 additive 补录,实现先行/时序如实)**:`[t2].tailnet_hosts`(数组,**纯主机名/IP 显式白名单枚举**——进 G1 Host/Origin 白名单;**禁通配/scheme/端口**,含任一非法项 ⇒ tailnet 面整体不开(fail-closed,不丢单项)+ 审计)+ `[t2].listen`(daemon 绑定地址,缺省 `127.0.0.1`;非本机绑定时 Host/Origin/token 三道门语义不放宽)。来源面标注:请求经 tailnet 枚举主机命中 ⇒ `via="tailnet"`(手机薄版)——**S3 合并链动作(request-manual-merge/verify-merge)、`/dev/*` 注入通道、奠基 bootstrap 仅受信终端(`via="local"`)**,tailnet 来源 403 + 话术引导回桌面;S2 面(review/审批 decide/记忆候选批准)tailnet 可批(**收据口径已定(§3 对表,R-A 2026-07-26/27)**:tailnet 配对屏幕批 S2 归 push 行——`paired_device_pin` 语义 = 已配对主机 + OS 解锁,详见 §3 矩阵行注;**实现已对齐(RA-closeout 2026-07-28)**:decide via=tailnet ⇒ 收据行如实落 `push/paired_device_pin`;edit 面 tailnet 403 引导回桌面——范围 owner 已批(05 §4 提前批 #2))。capability token 不进 ntfy 深链(深链只带路由;首次配对 URL 一次性注入手机本地会话——惯例语义,非机械单次消费,URL 本体含长期 token,只在受信通道传递不进通知不落库)。
+- **T2 薄版配置承载(W2 提前批 #2,2026-07-26 additive 补录,实现先行/时序如实)**:`[t2].tailnet_hosts`(数组,**纯主机名/IP 显式白名单枚举**——进 G1 Host/Origin 白名单;**禁通配/scheme/端口**,含任一非法项 ⇒ tailnet 面整体不开(fail-closed,不丢单项)+ 审计)+ `[t2].listen`(daemon 绑定地址,缺省 `127.0.0.1`;非本机绑定时 Host/Origin/token 三道门语义不放宽)。来源面标注:请求经 tailnet 枚举主机命中 ⇒ `via="tailnet"`(手机薄版)。**PG-01B 止损(2026-09-04,`safe_default=remote_business_403`)**:`via="tailnet"` 与 `via="mobile_lan"` 的 HTTP 业务 `/api/**` 一律稳定 403(`remote_business_forbidden`);远程 WS 业务连接 fail-closed。只保留无业务 payload 的 `/health`、`/readyz`、console 静态壳,以及已证明安全的本机 `127.0.0.1`→`localhost` 308。本机 `via="local"` HTTP/WS 功能不变。recovery 是独立 composition root,不伪装 IdentityVia。下文历史 S2 远程可批 / M1 只读白名单标 `designed/deferred`(DF-REMOTE-REOPEN),不得当作现役入口。——历史口径(designed/deferred,非现役):**S3 合并链动作(request-manual-merge/verify-merge)、`/dev/*` 注入通道、奠基 bootstrap 仅受信终端(`via="local"`)**;S2 面(review/审批 decide/记忆候选批准)曾允许 tailnet 可批(**收据口径已定(§3 对表,R-A 2026-07-26/27)**:tailnet 配对屏幕批 S2 归 push 行——`paired_device_pin` 语义 = 已配对主机 + OS 解锁,详见 §3 矩阵行注;**实现已对齐(RA-closeout 2026-07-28)**:decide via=tailnet ⇒ 收据行如实落 `push/paired_device_pin`;edit 面 tailnet 403 引导回桌面——范围 owner 已批(05 §4 提前批 #2))。capability token 不进 ntfy 深链(深链只带路由;首次配对 URL 一次性注入手机本地会话——惯例语义,非机械单次消费,URL 本体含长期 token,只在受信通道传递不进通知不落库)。
 
-- **M1 移动 LAN 临时访问面(2026-08-11)**:`SAYDO_MOBILE_LAN=1` 是独立显式开关;未开启时不改变缺省 `127.0.0.1` 监听与 G1 拒绝语义,开启后监听 IPv4 `0.0.0.0`,受身份门保护的请求只接受带 daemon 端口的 RFC 1918 IPv4 Host、RFC 1918 socket peer 与 capability token;Host 自报 localhost 但 peer 非环回必须拒。浏览器带 Origin 时要求与 Host 同源;同源 GET 天然缺 Origin 时只接受同 Host Referer,且 `Sec-Fetch-Site` 存在时必须为 `same-origin`;非浏览器缺来源证明仍拒。来源标为 `via="mobile_lan"`,业务 HTTP API 只放行 M1 所需只读投影(`/api/attention`、`/api/focuses` 及 Focus 详情)和 `POST /api/setup/first-run/query`,以及实现已放行、本段 2026-08-16 补录的三条 GET:**不改 allowlist 语义,只把路径与隐私边界写回合同**——`GET /api/sessions/recent-transcript`(Chat 回放;payload 含 `sessionId`/`projectId` + 转写原文 `speaker`/`text`,可选 `origin`/`turnId`/`ts`;转写不是记忆权威)、`GET /api/memory/recent`(菜单最近记忆;含 `claim` 全文与 `trust`/`source`/`taint`/`expiresAt`/`ts`)、`GET /api/projects/:id/memory`(已放行 helper,移动页面尚未调用;返回该项目 M1-M3 活跃投影;行含 `id`/`tier`/`claim`/`trust`/`source`/`taint`/`expiresAt`,其中 `claim` 为全文、`taint` 为数组;不含 `ts`)。`GET /api/setup/probe` 仍不在白名单,LAN 面 403 `mobile_lan_route_rejected`,由 console `remote-mobile` 门跳过向导并直挂移动树,不得把该码映射成桌面 `app`,也不得旁路 `token_mismatch`/`origin_rejected`/`host_rejected`/`setup_local_only`。移动 Attention/Focus DTO 与确认 outcome 复用 contracts 严格 schema,移动 Focus 详情只投方向、义务、泳道与逐字符串脱敏后的轨迹摘要,不返回 repo note、artifact ref、sessionId 或原始 event payload。其余写口、setup 配置写口、`/dev/*`、S3 与全文 `screen_text` 均拒;recovery-only composition root 不消费本开关,沿用既有监听配置。既有无业务 payload 的 `/health`、`/readyz` 与 console 静态壳保持无 token 探测/取资产语义,不得由此增开业务路由。该面是 **LAN 明文 HTTP/WS + 长期 capability token** 的 dogfood 临时边界,不等于设备配对或端到端加密;Noise 与逐设备身份留 M2,不得暴露到不受信网络。WS 上行只接受既有 `turn.text`、`confirm.decision`、只登记 session 而不转发 pipeline 的 `voice.mode` 与 `console.heartbeat`;二进制音频、`confirm.click`、播放水位和采集控制均拒。移动文本复用既有 `turn.text` 与 VoiceHub 广播语义,不得在 M1 另造跨 Brain/tool 的接纳 outbox 或回执协议。确认移动裁决使用 `confirm.decision {sessionId,receiptId,decision:"accept"|"reject"|"withdraw"}`;daemon 按卡原 session+receipt 定向消费,跨 session 不命中。`mobile_lan` 没有设备配对/PIN 身份,不得接受或拒绝 `runtime_effect` S2 gate,此类非终态裁决只向发起 socket 返回 `untrusted_source`,不得广播导致其他屏幕清卡,并保持原卡/receipt 待受信屏幕处理;手机仍须保留 `withdraw`。`withdraw` 只撤下当前 presentation,若关联 runtime gate/receipt 则保持 pending 等桌面裁决或超时。`GET /api/attention` 的 confirmation 条目投影 durable `expiresAt`;`GET /api/focuses` 的 `fourState` 复用 contracts 的 `FocusFourStateCounts`,用一个聚合 SQL 给出 `queued/running/needsYou/settled`,四组互斥且覆盖 obligation 全状态。
+- **M1 移动 LAN 临时访问面(2026-08-11;PG-01B 止损 2026-09-04)**:`SAYDO_MOBILE_LAN=1` 是独立显式开关;未开启时不改变缺省 `127.0.0.1` 监听与 G1 拒绝语义,开启后监听 IPv4 `0.0.0.0`,受身份门保护的请求只接受带 daemon 端口的 RFC 1918 IPv4 Host、RFC 1918 socket peer 与 capability token;Host 自报 localhost 但 peer 非环回必须拒。浏览器带 Origin 时要求与 Host 同源;同源 GET 天然缺 Origin 时只接受同 Host Referer,且 `Sec-Fetch-Site` 存在时必须为 `same-origin`;非浏览器缺来源证明仍拒。来源标为 `via="mobile_lan"`。**现役(PG-01B)**:远程 HTTP 业务 `/api/**` 一律 403(`remote_business_forbidden`);远程 WS 业务连接 fail-closed。只保留无业务 payload 的 `/health`、`/readyz` 与 console 静态壳;recovery-only composition root 不消费本开关,沿用既有监听配置,且同样受远程业务 403。下列历史只读白名单 / WS 上行白名单为 `designed/deferred`(DF-REMOTE-REOPEN),不得当作现役入口——业务 HTTP API 曾放行 M1 所需只读投影(`/api/attention`、`/api/focuses` 及 Focus 详情)和 `POST /api/setup/first-run/query`,以及 `GET /api/sessions/recent-transcript`(Chat 回放;payload 含 `sessionId`/`projectId` + 转写原文 `speaker`/`text`,可选 `origin`/`turnId`/`ts`;转写不是记忆权威)、`GET /api/memory/recent`(菜单最近记忆;含 `claim` 全文与 `trust`/`source`/`taint`/`expiresAt`/`ts`)、`GET /api/projects/:id/memory`(已放行 helper,移动页面尚未调用;返回该项目 M1-M3 活跃投影;行含 `id`/`tier`/`claim`/`trust`/`source`/`taint`/`expiresAt`,其中 `claim` 为全文、`taint` 为数组;不含 `ts`)。`GET /api/setup/probe` 仍不在白名单。移动 Attention/Focus DTO 与确认 outcome 复用 contracts 严格 schema,移动 Focus 详情只投方向、义务、泳道与逐字符串脱敏后的轨迹摘要,不返回 repo note、artifact ref、sessionId 或原始 event payload。该面是 **LAN 明文 HTTP/WS + 长期 capability token** 的 dogfood 临时边界,不等于设备配对或端到端加密;Noise 与逐设备身份留 M2,不得暴露到不受信网络。WS 上行历史白名单(designed/deferred)曾接受 `turn.text`、`confirm.decision`、只登记 session 而不转发 pipeline 的 `voice.mode` 与 `console.heartbeat`;二进制音频、`confirm.click`、播放水位和采集控制均拒。`GET /api/attention` 的 confirmation 条目投影 durable `expiresAt`;`GET /api/focuses` 的 `fourState` 复用 contracts 的 `FocusFourStateCounts`。
 
 ### T18b 当前模型槽、对话单发与首跑合同(2026-08-11)
 
@@ -1375,6 +1375,7 @@ issueDispatchReceipt(i:{ packageId:Id; revision:number; decidedVia:"voice"|"scre
   // A3-armed:本点执行就绪现势**预检**(同 §13 covered 块复核规则,尽早反馈)——但**非权威点**,权威复核在 confirmAndDispatch 事务内
 confirmAndDispatch(i:{ packageId:Id; revision:number; mode:"direct_to_review"|"step_confirm";
   receiptId:Id }): { taskId:Id; dispatchId:Id };   // route=hopper 且 grants 非空 ⇒ 拒(P0.5 前 route 恒 tier1)
+  // PG-01B:现役可调用 enum/default route 仅 step_confirm;传入 direct_to_review 或包 mode=direct 一律 fail-closed(`direct_mode_not_wired`)。schema 双值保留兼容读取,不删。
   // A3-armed 权威现势复核(Codex 23 A-3):本工具事务内(与收据消费/包 approve/task 创建原子)从当前类型完整清单
   // 重生成 skeleton + 现读 evidence,比对 checklistDigest/evidenceDigest/per-key state——漂移 ⇒ 拒 readiness_stale
   // (reason:evidence_changed|checklist_changed|type_changed|provider_error),收据置终态 voided_by_conflict(§3 既有词表复用,evidence-change 原因入 audit)不可补发
@@ -1545,6 +1546,7 @@ promoteProject(i:{ projectId:Id; title:string; type:"coding"|"planning"|"researc
 > **字段级真相源=`packages/contracts/src/types/focus.ts`(已导出)与 daemon DDL;本章只记语义与不变量,禁止复写字段清单(防双真相)。**本章为 Focus Contract v0.3.x 实现后的 canonical 收口;历史设计文档见 OctoAgent docs/product/2026-08-04-SayDo-Focus-Contract-v0*。
 
 - **Focus**:一件持续的事;lifecycle=captured/active/dormant/closed/abandoned/archived,closed 只能 fork 不能 reopen;revision 链 CAS 演进,`focus_events` 为 append-only 事件流,**`seq` 为 per-focus 单调序**(WS 增量去重键=`(focusId, seq)`)。Focus 引用 0..N 个 Project(承载边界),可不属于任何项目;主轴倒置后 project=资源,Focus=呈现主轴。
+- **lifecycle HTTP 写口(PG-01B)**:归档 = `POST /api/focuses/:id/archive`(理由必填,写 `archived`,audit `focus.archived`);放弃 = 独立 `POST /api/focuses/:id/abandon`(理由必填,写 `abandoned`,独立 audit `focus.abandoned`)。放弃不得经 `/archive`、不得写 `archived`。放弃仅对 canonical 来源态开放:`active|dormant|archived`(与 writeTx 边表一致);`captured`/`closed` fail-closed。archive 旧端点保持原语义(N/N-1 兼容)。
 - **FocusObligation**:七态(open/in_progress/waiting/deferred/blocked+resolved/superseded),owner∈{human,agent,external};未结集合 OPEN_SET 单源于 contracts。`openByOwner` 聚合投影口径=**仅 obligation 未结集合**,不含 task/确认卡;仅作文字描述呈现,数字徽章全站单源=attention(11 §0.1-3)。
 - **attention 账本**:四色 read model(§5.2);**`attention_acks.item_id` 的 ack 仅作用于当前颜色为 calm(green/gray)的条目**——条目颜色升级(绿→橙/灰→蓝)时无视 ack 必然重现;与 `CallbackOutboxEntry.ackedAt`(回叫送达账,§6)**分账,不共享语义**。
 - **确认环(pending confirmation)**:kind 枚举以 `live/confirm.ts` 为准(focus_anchor/focus_obligation/focus_obligation_resolve/focus_create_anchor/focus_revision/focus_lane_split/dispatch/runtime_effect/readiness);**义务候选在 accept 前无 obligation ID,pending 过期即删——候选丢失,不宣称回流**(v0.4 工作项=逐 kind 降格落账+confirmation lifecycle events+双计时器统一,见 OctoAgent docs/product/2026-08-08-console重构方案-v4收口.md §F1/§F8)。
@@ -1557,7 +1559,7 @@ promoteProject(i:{ projectId:Id; title:string; type:"coding"|"planning"|"researc
 - **过期降格 saga**:仅 expired 终局触发;focus_obligation 候选按 `downgrade_payload_json` 经 FocusWriteTx 降格落账(actorKind='daemon',provenance='confirm_expired';幂等=事件流查 confirmation_downgraded.receiptRef);降格义务按 owner 进 attention 各色区;防风暴=同 session+focus 日限 5 条,超限聚合(provenance='confirm_expired_batch',detail.items 自包含);双扫描恢复,三败 abandoned+工程告警义务。
 - **控制轮(control turn)**:确认终局/降格完成/期待调整后由 daemon 注入 system 角色消息驱动 Brain 续办;不写转写、不刷新 idle/收尾定时器、计费 origin='control';深度上限 3;remainingIntent 为结构性辅助(工具参数显式携带,处理后正文即清只留 digest)——不宣称结构性解决多诉求漏答。
 - **focus_expectations(期待聚合,管理层)**:与执行边界(签名包/任务 budget)分离,单向派生永不反向写权威;logical_key=lineage 根+criterion 文本 hash+序次;每键至多一 active 一 pending_ack;adjust→pending_ack→AI 复述→`expectation_ack`(第 11 确认 kind,consumer-owned finalize 四合一事务 CAS);dismissed/to_screen/stale/expired 均保留 pending_ack 不丢调整意图,仅 rejected 与用户 withdraw 才 supersede;dispatch 编译只读 active,已 settle 任务的调整 applies_from='next_dispatch'。
-- **screen_text 双文本**:仅 via='local' console peer 收全文(hub peer.via 判定);tailnet 只收脱敏 sentences;"放屏幕"话术门=本轮投递 succeeded≥1。
+- **screen_text 双文本**:仅 via='local' console peer 收全文(hub peer.via 判定)。**PG-01B 止损(2026-09-04,`safe_default=remote_business_403`)**:远程 console WS 业务连接 fail-closed,via='tailnet' 不得连上。历史口径「tailnet 只收脱敏 sentences」标 `designed/deferred`(DF-REMOTE-REOPEN),不得当作现役入口。"放屏幕"话术门=本轮投递 succeeded≥1。
 - **A7 证据门**:FocusWriteTx resolve 共享写门——agent 义务 done 必须携带判别结构 evidence(artifact/task/event 三查:存在+同 Focus+现势),直达路径同受约束。
 - **A6**:console 心跳(30s,仅有 session 时发)/daemon 90s 超时视同断开并取消 idle 收场定时器。
 

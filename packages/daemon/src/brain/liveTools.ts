@@ -378,6 +378,20 @@ function toolError(code: string, message: string, retryable = false): { ok: fals
   return { ok: false, code, message, retryable };
 }
 
+/** PG-01B:现役可调用 dispatch mode 仅 step_confirm;direct 保留 schema,调用 fail-closed。 */
+export const ACTIVE_DISPATCH_MODE = "step_confirm" as const;
+
+export function parseActiveDispatchMode(
+  raw: unknown
+): { ok: true; mode: "step_confirm" } | { ok: false; code: "direct_mode_not_wired"; message: string } {
+  if (raw === ACTIVE_DISPATCH_MODE) return { ok: true, mode: ACTIVE_DISPATCH_MODE };
+  return {
+    ok: false,
+    code: "direct_mode_not_wired",
+    message: "直达验收档 designed/deferred,现役拍板仅逐步确认;旧 direct 值 fail-closed,不能拍板"
+  };
+}
+
 /**
  * confirmAndDispatch 的执行体(09 §13):词表环 accept 后与 Brain 工具面共用同一实现。
  * 前置:Gate 0 已关(enabled 且非 bypass)、收据 decision=accept 且 outcome=pending(§3:accept 后等消费)。
@@ -414,6 +428,11 @@ export function dispatchApprovedPackage(
   const pkg = getPackage(deps.db, i.packageId, i.revision);
   if (!pkg) throw new Error(`package not found: ${i.packageId} rev ${i.revision}`);
   if (receipt.refDigest !== pkg.digest) throw new Error("receipt refDigest does not match package digest(revision 漂移拒 dispatch)");
+  const activeMode = parseActiveDispatchMode(i.mode);
+  if (!activeMode.ok) throw new Error(`${activeMode.code}:${activeMode.message}`);
+  if (pkg.mode !== ACTIVE_DISPATCH_MODE) {
+    throw new Error("direct_mode_not_wired:直达验收档 designed/deferred,旧包 mode=direct_to_review fail-closed,不能拍板");
+  }
   if (pkg.mode !== i.mode) throw new Error(`mode mismatch: package=${pkg.mode} requested=${i.mode}`);
   // A6 dispatch 闸(双闸之二):proposed TTL 到期不可 dispatch(receipt 在期不豁免;§12-1)——
   // proposed→approved 前的最后关卡;approve 已过则包已非 proposed,此处对 approved 包不拦(拍板即消费入队)
@@ -877,7 +896,7 @@ export function registerLiveTools(reg: ToolRegistry, deps: LiveToolsDeps): void 
         plan: body.plan,
         cost: { expected: { known: false }, p95: { known: false }, max: maxCost, currency: "CNY" },
         risks: body.risks,
-        mode: "step_confirm", // P0 单档(3.4 注:直达档 P0.5-C 由屏幕/配置启用,不在语音拍板轮询问)
+        mode: "step_confirm", // PG-01B:现役仅逐步确认;直达档 designed/deferred,不在语音拍板询问
         preauthorizedEffects: [],
         effectPolicyVersion: "e2/0.1.0",
         ...(readinessRef ? { readinessRef } : {}) // Codex 21 A3:就绪绑定进包(§0.1 签名域)
@@ -985,7 +1004,7 @@ export function registerLiveTools(reg: ToolRegistry, deps: LiveToolsDeps): void 
       if (pkg.mode === "direct_to_review" || pkg.preauthorizedEffects.length > 0) {
         return toolError(
           "direct_mode_not_wired",
-          "直达验收档的语音确认需逐条念读预授权清单(10 #12),P0 语音拍板环未接——走屏幕或改逐步确认档"
+          "直达验收档 designed/deferred,本批未开放;现役只能使用逐步确认,旧 direct 包不能拍板"
         );
       }
       // turnRef daemon 自取当前轮(§9 DDL CHECK:voice 裁决缺 turn_ref 非法;不信 Brain 报)
@@ -1031,17 +1050,19 @@ export function registerLiveTools(reg: ToolRegistry, deps: LiveToolsDeps): void 
         properties: {
           packageId: { type: "string" },
           revision: { type: "integer" },
-          mode: { type: "string", enum: ["direct_to_review", "step_confirm"] },
+          mode: { type: "string", enum: ["step_confirm"] },
           receiptId: { type: "string" }
         }
       }
     },
     (args) => {
       const a = (args ?? {}) as Record<string, unknown>;
+      const mode = parseActiveDispatchMode(a["mode"]);
+      if (!mode.ok) return toolError(mode.code, mode.message);
       return dispatchApprovedPackage(deps, {
         packageId: String(a["packageId"] ?? ""),
         revision: Number(a["revision"] ?? 0),
-        mode: a["mode"] === "direct_to_review" ? "direct_to_review" : "step_confirm",
+        mode: mode.mode,
         receiptId: String(a["receiptId"] ?? "")
       });
     }

@@ -313,31 +313,12 @@ describe("WS 契约(09 §10)", () => {
     desktop.close();
   });
 
-  it("mobile_lan WS 只开放文本、定向裁决、会话登记与心跳", async () => {
-    const seen: string[] = [];
-    let decisionVia = "";
+  it("mobile_lan WS 业务连接 fail-closed", async () => {
     hub.setEvents({
-      verifyUpgrade: () => ({ ok: true, via: "mobile_lan" }),
-      onVoiceMode: () => seen.push("voice.mode"),
-      onTurnText: () => seen.push("turn.text"),
-      onConfirmDecision: (_message, via) => {
-        seen.push("confirm.decision");
-        decisionVia = via ?? "";
-      },
-      onConfirmClick: () => seen.push("confirm.click"),
-      onPlayout: () => seen.push("tts.playout")
+      verifyUpgrade: () => ({ ok: true, via: "mobile_lan" })
     });
-    const mobile = await connect("console");
-    mobile.send(JSON.stringify({ t: "voice.mode", sessionId: SES, mode: "ptt" }));
-    mobile.send(JSON.stringify({ t: "turn.text", sessionId: SES, turnId: newId("ses"), text: "继续", typed: true }));
-    mobile.send(JSON.stringify({ t: "confirm.decision", sessionId: SES, receiptId: "apr_mobile", decision: "withdraw" }));
-    mobile.send(JSON.stringify({ t: "confirm.click", sessionId: SES, receiptId: "apr_mobile", digest: "digest", decision: "accept" }));
-    mobile.send(JSON.stringify({ t: "tts.playout", sessionId: SES, sentenceId: "s1", watermarkMs: 10 }));
-    mobile.send(Buffer.from([0x01, 0, 0, 0, 1, 7]));
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(seen).toEqual(["voice.mode", "turn.text", "confirm.decision"]);
-    expect(decisionVia).toBe("mobile_lan");
-    mobile.close();
+    await expect(connect("console")).rejects.toThrow(/closed 4003/);
+    expect(hub.peerCount("console")).toBe(0);
   });
 
   it("同时只接受一个 pipeline peer，旧 peer 关闭后才允许替换", async () => {
@@ -711,82 +692,54 @@ describe("WS 契约(09 §10)", () => {
     pipeline.close();
   });
 
-  it("M2 native.reply 只投同 session mobile_lan，且复用 TTS 脱敏出口", async () => {
-    await hub.close();
-    await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
-    server = createServer();
-    hub = new VoiceHub(server, silentLog, {
-      verifyUpgrade: (req) => ({
-        ok: true,
-        via: req.url?.includes("client=mobile") ? "mobile_lan" : "local"
+  it("sendTtsSay 出口经 redactText:绝对路径不进 pipeline tts.say", async () => {
+    const pipeline = await connect("pipeline");
+    const secretPath = "/Users/" + "someone" + "/.saydo/.env";
+    const raw = `任务这边,我需要读取 ${secretPath} 里的配置,可以吗?`;
+    const waitP = nextJson(pipeline, (m) => m["t"] === "tts.say" && m["sentenceId"] === "s-redact-path");
+    expect(
+      hub.sendTtsSay({
+        t: "tts.say",
+        sessionId: SES,
+        sentenceId: "s-redact-path",
+        text: raw,
+        interruptible: true
       })
-    });
-    server.listen(0, "127.0.0.1");
-    await once(server, "listening");
-    const addr = server.address();
-    if (typeof addr === "object" && addr) port = addr.port;
+    ).toBe(true);
+    const got = await waitP;
+    expect(got["text"]).not.toBe(raw);
+    expect(got["text"]).not.toContain(secretPath);
+    expect(got["text"]).not.toContain("/Users/");
+    expect(got["text"]).toContain("某个配置文件");
+    pipeline.close();
+  });
 
-    const pipeline = await connect("pipeline", VOICE_WS_PROTOCOL_VERSION, "?client=local");
-    const mobile = await connect("console", VOICE_WS_PROTOCOL_VERSION, "?client=mobile");
-    const otherMobile = await connect("console", VOICE_WS_PROTOCOL_VERSION, "?client=mobile-other");
-    const desktop = await connect("console", VOICE_WS_PROTOCOL_VERSION, "?client=local");
-    const otherSession = newId("ses");
-    let bound = 0;
-    const bothBound = new Promise<void>((resolve) => {
-      hub.setEvents({
-        onVoiceMode: () => {
-          bound += 1;
-          if (bound === 2) resolve();
-        }
-      });
-    });
-    mobile.send(JSON.stringify({ t: "voice.mode", sessionId: SES, mode: "ptt" }));
-    otherMobile.send(JSON.stringify({ t: "voice.mode", sessionId: otherSession, mode: "ptt" }));
-    await bothBound;
-
-    const leaked: string[] = [];
-    otherMobile.on("message", (data, binary) => {
-      if (!binary && String(data).includes('"t":"native.reply"')) leaked.push("other-session");
-    });
-    desktop.on("message", (data, binary) => {
-      if (!binary && String(data).includes('"t":"native.reply"')) leaked.push("desktop");
-    });
-    const reply = nextJson(mobile, (msg) => msg["t"] === "native.reply");
-    const pipelineSay = nextJson(pipeline, (msg) => msg["t"] === "tts.say");
-    const nativeTurnId = newId("ses");
+  it("sendTtsSay 出口经 redactText:redactSpans 客户数据不进 pipeline tts.say", async () => {
+    const pipeline = await connect("pipeline");
+    const customer = "张三的备注是 VIP";
+    const raw = `客户${customer}`;
+    const waitP = nextJson(pipeline, (m) => m["t"] === "tts.say" && m["sentenceId"] === "s-redact-span");
     expect(
       hub.sendTtsSay(
         {
           t: "tts.say",
           sessionId: SES,
-          sentenceId: `s-${SES}-1`,
-          text: `路径 ${["", "Users", "alice"].join("/")}/secret.txt；令牌 Bearer abcdefghijkl`,
+          sentenceId: "s-redact-span",
+          text: raw,
           interruptible: true
         },
-        [],
-        "assistant_reply",
-        nativeTurnId
+        [{ value: customer, dataClass: "customer" }]
       )
     ).toBe(true);
-    await pipelineSay;
-    expect(await reply).toMatchObject({
-      t: "native.reply",
-      sessionId: SES,
-      turnId: nativeTurnId,
-      sentenceId: `s-${SES}-1`,
-      origin: "assistant_reply",
-      text: "路径 某个文件；令牌 一处凭据"
-    });
-    await new Promise<void>((resolve) => setImmediate(resolve));
-    expect(leaked).toEqual([]);
-
+    const got = await waitP;
+    expect(got["text"]).not.toBe(raw);
+    expect(got["text"]).not.toContain(customer);
+    expect(got["text"]).not.toContain("张三");
+    expect(got["text"]).toContain("一处客户数据");
     pipeline.close();
-    mobile.close();
-    otherMobile.close();
-    desktop.close();
   });
 
-  it("M2 mobile_lan 下行白名单拒 ASR 与二进制，只放 native.reply", async () => {
+  it("M2 远程 console 不得连上,local 仍可收 tts.say", async () => {
     await hub.close();
     await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
     server = createServer();
@@ -802,34 +755,24 @@ describe("WS 契约(09 §10)", () => {
     if (typeof addr === "object" && addr) port = addr.port;
 
     const pipeline = await connect("pipeline", VOICE_WS_PROTOCOL_VERSION, "?client=local");
-    const mobile = await connect("console", VOICE_WS_PROTOCOL_VERSION, "?client=mobile");
+    await expect(connect("console", VOICE_WS_PROTOCOL_VERSION, "?client=mobile")).rejects.toThrow(/closed 4003/);
+    const desktop = await connect("console", VOICE_WS_PROTOCOL_VERSION, "?client=local");
     const bound = new Promise<void>((resolve) => hub.setEvents({ onVoiceMode: () => resolve() }));
-    mobile.send(JSON.stringify({ t: "voice.mode", sessionId: SES, mode: "ptt" }));
+    desktop.send(JSON.stringify({ t: "voice.mode", sessionId: SES, mode: "ptt" }));
     await bound;
-    const receivedTypes: string[] = [];
-    let binaryCount = 0;
-    mobile.on("message", (data, binary) => {
-      if (binary) binaryCount += 1;
-      else receivedTypes.push(String((JSON.parse(String(data)) as { t?: string }).t));
-    });
-
-    hub.injectPipelineMsg({ t: "asr.final", sessionId: SES, turnId: newId("ses"), text: "不得下发" });
-    pipeline.send(Buffer.from([0x02, 0, 0, 0, 1, 0]), { binary: true });
-    const reply = nextJson(mobile, (msg) => msg["t"] === "native.reply");
-    hub.sendNativeReply({
-      sessionId: SES,
-      turnId: SES,
-      sentenceId: "s-allow",
-      text: "允许下发",
-      origin: "system"
-    });
-    await reply;
-    await new Promise<void>((resolve) => setImmediate(resolve));
-    expect(receivedTypes).toEqual(["native.reply"]);
-    expect(binaryCount).toBe(0);
-
+    const pipelineSay = nextJson(pipeline, (msg) => msg["t"] === "tts.say");
+    expect(
+      hub.sendTtsSay({
+        t: "tts.say",
+        sessionId: SES,
+        sentenceId: `s-${SES}-1`,
+        text: "本地口播",
+        interruptible: true
+      })
+    ).toBe(true);
+    expect(await pipelineSay).toMatchObject({ t: "tts.say", text: "本地口播" });
     pipeline.close();
-    mobile.close();
+    desktop.close();
   });
 
   it("pipeline 不在线时 tts.say 返回 false，调用方不得据此 arm 确认", () => {
@@ -1152,27 +1095,21 @@ describe("capture ingress 评审 B-5(2026-08-26):pipeline (re)join 采集模式�
     pipeline.close();
   });
 
-  it("mobile_lan 的 voice.mode 不留档:pipeline join 无重放(登记消息不得改采集模式)", async () => {
-    let modeSeen = 0;
+  it("mobile_lan 不得连上,也就不能借 voice.mode 改采集模式", async () => {
     hub.setEvents({
-      verifyUpgrade: () => ({ ok: true, via: "mobile_lan" }),
-      onVoiceMode: () => { modeSeen += 1; }
+      verifyUpgrade: () => ({ ok: true, via: "mobile_lan" })
     });
-    const mobile = await connect("console");
-    mobile.send(JSON.stringify({ t: "voice.mode", sessionId: SES, mode: "hands_free" }));
-    await vi.waitFor(() => expect(modeSeen).toBe(1));
-
-    hub.setEvents({}); // 清 verifyUpgrade:pipeline 是 local-only,带 mobile_lan via 会被拒连
+    await expect(connect("console")).rejects.toThrow(/closed 4003/);
+    hub.setEvents({});
     const { ws: pipeline, messages } = await connectCollecting("pipeline");
     await new Promise((r) => setTimeout(r, 50));
     expect(messages.some((m) => m["t"] === "voice.mode")).toBe(false);
-    mobile.close();
     pipeline.close();
   });
 });
 
 describe("W2 迟到评审 A1 回收:console peer via 标注(语音工具环 S3 门的探测面)", () => {
-  it("verifyUpgrade 返回 via=tailnet 的 console 在连 ⇒ hasTailnetConsole()=true;断开归 false", async () => {
+  it("verifyUpgrade 返回 via=tailnet 的 console 不得连上,hasTailnetConsole 保持 false", async () => {
     await hub.close();
     await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
     server = createServer();
@@ -1182,11 +1119,9 @@ describe("W2 迟到评审 A1 回收:console peer via 标注(语音工具环 S3 �
     const addr = server.address();
     if (typeof addr === "object" && addr) port = addr.port;
     expect(hub.hasTailnetConsole()).toBe(false);
-    const ws = await connect("console");
-    expect(hub.hasTailnetConsole()).toBe(true);
-    ws.close();
-    await new Promise((r) => setTimeout(r, 100));
+    await expect(connect("console")).rejects.toThrow(/closed 4003/);
     expect(hub.hasTailnetConsole()).toBe(false);
+    expect(hub.peerCount("console")).toBe(0);
   });
 
   it("via=local(或未校验)的 console 不触发 tailnet 判定;pipeline peer 不计入", async () => {
@@ -1197,7 +1132,7 @@ describe("W2 迟到评审 A1 回收:console peer via 标注(语音工具环 S3 �
     pipelineWs.close();
   });
 
-  it("第四轮终验 B1:tailnet 来源自称 pipeline 拒连(role 自报不可绕 S3 门/不可注入伪造转写)", async () => {
+  it("第四轮终验 B1:tailnet 来源 pipeline 与 console 均拒连", async () => {
     await hub.close();
     await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
     server = createServer();
@@ -1207,14 +1142,12 @@ describe("W2 迟到评审 A1 回收:console peer via 标注(语音工具环 S3 �
     const addr = server.address();
     if (typeof addr === "object" && addr) port = addr.port;
     await expect(connect("pipeline")).rejects.toThrow(/closed 4003/);
-    // 同来源 console 照常可连(S2 面);hasTailnetConsole 如实计数
-    const consoleWs = await connect("console");
-    expect(hub.hasTailnetConsole()).toBe(true);
+    await expect(connect("console")).rejects.toThrow(/closed 4003/);
+    expect(hub.hasTailnetConsole()).toBe(false);
     expect(hub.peerCount("pipeline")).toBe(0);
-    consoleWs.close();
   });
 
-  it("M1 mobile_lan console 计入远程 S3 门,且不得自称 pipeline", async () => {
+  it("M1 mobile_lan pipeline 与 console 均拒连", async () => {
     await hub.close();
     await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
     server = createServer();
@@ -1224,10 +1157,9 @@ describe("W2 迟到评审 A1 回收:console peer via 标注(语音工具环 S3 �
     const addr = server.address();
     if (typeof addr === "object" && addr) port = addr.port;
     await expect(connect("pipeline")).rejects.toThrow(/closed 4003/);
-    const consoleWs = await connect("console");
-    expect(hub.hasTailnetConsole()).toBe(true);
+    await expect(connect("console")).rejects.toThrow(/closed 4003/);
+    expect(hub.hasTailnetConsole()).toBe(false);
     expect(hub.peerCount("pipeline")).toBe(0);
-    consoleWs.close();
   });
 });
 

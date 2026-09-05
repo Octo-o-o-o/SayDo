@@ -49,12 +49,12 @@
 - **当前批次指针:**
 <!-- schedule-pointer:begin -->
 schema_version=1
-revision=2
-active=none
-next=PG-01B
+revision=3
+active=PG-01B
+next=none
 last_closed=PROC-01
 evidence_ref=e2e/evidence/process-convergence-proc-01.md
-updated_at=2026-09-03
+updated_at=2026-09-04
 <!-- schedule-pointer:end -->
 **PG-01A 已于 2026-09-02 收口**:implementation commit `2a786ed`(parent=PG-00 evidence `79211f6`,36 路径),evidence `e2e/evidence/project-gap-pg-01a.md`(E 为其后继 evidence commit,不自指)。收口依据:C0/C1 经 owner 三轮有界恢复(决策单第 6–9 节)后 fresh Codex ordinal 4 语义 GREEN、FG-1 根因修复 fresh Codex ordinal 1 GREEN、同 I 的 clean worktree 完整 `just ci` exit 0、中英文 docs 页面隔离 Chromium QA pass、Q0 truth report 绑定 I(986 对象全部 `unresolved`,按 D2 安全缺省 `owner_downgraded_with_public_limit`,G-A1 记 `repo_downgraded` 非 closed)。deployed_status 全部 `blocks_expansion`,待另行部署授权后按官网/快照 digest 核对。唯一 P2 ledger 新增 `P2-001`(eslint 不覆盖 test-only 文件)。此行 supersede 2026-08-31 的 `active=PG-01A,next=none` 指针。**上一批 `w54b-wiring` 已于 2026-08-27 收口**,收口 SHA `9417b6d`(代码 `8941e1c` + 证据 `9417b6d`)。收口依据:四轮零上下文独立复审(Codex `gpt-5.6-sol`+max)+ 三轮独立返工(Grok `grok-4.6`+xhigh),W5.4-b **自身引入的 A 级 = 0**(首轮 5 条全部 CONFIRMED_FIXED;返工引入的 1 条 A 级生产回归已关闭;末轮提出的 BYOA 多 spawn 不重验经归属核验属基线既有缺陷,按 owner 裁决转独立安全线)。遗留 6 条 B/C 见 `e2e/evidence/w54b-batch.md` §18.4。门禁:`just ci` exit 0(daemon 2174 passed/6 skipped、console 279)、`playwright` exit 0(36 passed)。**未决**:`IMPL-PROMPT-15` §3.5 的第 2 条(方案 §8 残余形式确认)与第 3 条(ADR-002 状态更正确认)在代码与文档中均无书面确认痕迹,如实记为**未见确认**,不当作已处置。
   以下为历史批次记录(原文保留,不承担当前坐标):`w54b-wiring` 2026-08-21 开批,交接 = `docs/plan/IMPL-PROMPT-15-W54B-WIRING.md`,owner 停点已确认;范围 = C1 配置/自检 → C2 executor 接线 → C3 console/话术。前置状态:`w54b-canonical-preface` 工作已完成并过双路评审(Codex 89 + 一致性 subagent,五 A 十 B + 三小项全回修,findings 89 §B/§C)——canonical 终态**已入库**(`5036bee`,与记录层 `ad8adb1` 分批提交;owner 2026-08-21 已授权,基于工作区先行实施亦经 owner 三项批复覆盖);`w54a` readback 已补(报告 `docs/review/2026-08-21-w54a-impl-readback.fable.md`:台账 22 条 [ok]19/[warn]2/[divergent]1/[fail]0,六文件 vitest 321 passed exit 0,独立降档扫描 215 条 down=0,A 级 0;B 级 1 = `AdapterKind` 未 import contracts 词表,列入本批 C1 清偿)。`w54a-claude-cli` 已收口(2026-08-20;评审 2 返工末码 `54b981cc0e38dbb4d66f8b5868761c208b3b1617`,evidence `e2e/evidence/w54a-claude-cli.md`;spike `e2e/spikes/claude-cli-tier1/`,fixture `packages/daemon/test/fixtures/claude-cli/2.1.220/`)。`cmdeffect-hardening` 已收口(2026-08-19;代码 `e79d1d8101be11e3bd6051841e6a37574cd38d37`,evidence `e2e/evidence/cmdeffect-hardening.md`;评审 1 返工 `068e392153d4bd571ce373dceb6adfa427290059`;评审 2 返工 `115353e48970a8ee818d4c1cfd189dd00f11a1c9`;O-1 落地 `adc2b9a88364df8f43198f856fa3cdd35f06adb2`)。`remote-mobile-w0` 已收口(2026-08-16;代码 `addfd1965a5144223df3bfa3f7c407976664929a`,evidence `e2e/evidence/remote-mobile-w0.md`)。完成定义=LAN `remote-mobile` 代码 + 临时 Chromium/LAN 证据,不部署常驻、不宣称真机狗粮。**W5.4-b 现势(2026-08-26 更正,supersede 此前把 C3 记为未实施的判断):C1(配置/自检)、C2(executor 接线)与 C3(设置页 Tier1 卡 + 任务详情 adapter/observedModel + 跨平台话术 + backend prompt 保护)代码均已实现**;C1/C2 入库 `4c4bf96`,C1 有界 `system/init` 物理探针与三条 C3 验收锚由 `e2e/evidence/w54b-batch.md` §10 标 [ok](该节明写「supersede 本文 §1、§2、§6 中『C1 init 未实现 / C3 未做』的现势判断」),后续回修见同文件 §12、§13。批次状态 = **收口候选**,待独立零上下文复审绿灯后关批(evidence §10 原文口径:「只形成关批候选;双向审计与独立复审绿前不宣称 W5.4-b 已收口」);live 冒烟与 conformance 仍归 W5.4-c。evidence `e2e/evidence/w54b-batch.md`。**A3-armed 已收口 2026-07-28,evidence `e2e/evidence/a3-armed-batch.md`(源码层结论,不等于本机 deep readiness 已武装)。

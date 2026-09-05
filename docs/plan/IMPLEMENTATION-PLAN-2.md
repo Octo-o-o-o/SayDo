@@ -9,12 +9,12 @@
 
 <!-- schedule-pointer:begin -->
 schema_version=1
-revision=2
-active=none
-next=PG-01B
+revision=3
+active=PG-01B
+next=none
 last_closed=PROC-01
 evidence_ref=e2e/evidence/process-convergence-proc-01.md
-updated_at=2026-09-03
+updated_at=2026-09-04
 <!-- schedule-pointer:end -->
 
 > 本节是 2026-08-29 起 PLAN-2 的唯一当前排产坐标。下方 §0 现状锚点与 §1 W1–W9 / 合同轮 / `ai-supply` 为历史原文，只增加 superseded/disposition，不删除历史节点、不重写既有 evidence。当前现势指针见本节顶部 schedule-pointer 块,由 `scripts/schedule-pointer.mjs` 守护;不得手写第二套 active/next。字段逐字来自 `docs/plan/2026-08-28-project-gap-closure-program.md` §20 批卡与 D17 §4.2；不新增功能、不另造控制平台。`PLAN2-default-all` 已 `superseded`；未被 exact 选入的未来项一律 deferred，取消“未回复则缺省全做”。

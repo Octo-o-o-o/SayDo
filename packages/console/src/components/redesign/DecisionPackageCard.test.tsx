@@ -10,6 +10,24 @@ const BASE: DecisionPackageView = decisionPackageFixtures[0]!.pkg;
 const DEMO_REF = { artifactId: "art_01AAAAAAAAAAAAAAAAAAAAAAAA", version: 1 };
 const PROJECT_ID = "prj_01AAAAAAAAAAAAAAAAAAAAAAAA";
 
+describe("DecisionPackageCard 现役逐步确认", () => {
+  it("不提供一口气跑完 selector", () => {
+    const html = renderToStaticMarkup(<DecisionPackageCard pkg={BASE} />);
+    expect(html).not.toContain("一口气跑完");
+    expect(html).toContain("按逐步确认执行");
+    expect(html).not.toContain("disabled");
+  });
+
+  it("旧 selectedMode=direct_to_review fail-closed 不可拍板", () => {
+    const html = renderToStaticMarkup(
+      <DecisionPackageCard pkg={{ ...BASE, selectedMode: "direct_to_review" }} />
+    );
+    expect(html).toContain("不能从这里拍板");
+    expect(html).toContain("disabled");
+    expect(html).not.toContain("一口气跑完");
+  });
+});
+
 describe("DecisionPackageCard 看小样", () => {
   it("有 demoRef 且有 projectId 渲染「看小样」按钮", () => {
     const html = renderToStaticMarkup(

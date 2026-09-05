@@ -7,10 +7,13 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { jcsDigest } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
 import { handleTaskAction } from "../src/api/actions.js";
+import { abandonFocusApi, archiveFocusApi, createFocusApi } from "../src/api/focuses.js";
 import { seedConsoleFixture } from "../src/api/fixture.js";
-import type { AuditSink } from "../src/obs/audit.js";
+import { changeFocusLifecycle } from "../src/focus/registry.js";
+import type { AuditEvent, AuditSink } from "../src/obs/audit.js";
 import { canonicalizeWorkspace } from "../src/projects/workspace.js";
 
 const nullAudit: AuditSink = { record: () => ({ id: "aud_x" }) };
@@ -126,6 +129,7 @@ describe("request-manual-merge + 未知动作", () => {
 
   it("未知动作 404;未知任务 404", () => {
     expect(handleTaskAction(db, nullAudit, RDY, "explode", {}, NOW).status).toBe(404);
+    expect(handleTaskAction(db, nullAudit, RDY, "abandon", {}, NOW).status).toBe(404);
     expect(handleTaskAction(db, nullAudit, "tsk_01ZZZZZZZZZZZZZZZZZZZZZZZZ", "cancel", {}, NOW).status).toBe(404);
   });
 });
@@ -176,5 +180,71 @@ describe("verify-merge(MergeProof 核验按需触发形态:git 现读 treeSha �
     expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(RDY) as { status: string }).status).toBe(
       "review_approved_waiting_merge"
     );
+  });
+});
+
+describe("PG-01B abandon reason 先 trim 再非空", () => {
+  it("纯空白 reason 返回 400 且 lifecycle 不变", () => {
+    const created = createFocusApi(db, nullAudit, { title: "blank-reason" }, NOW);
+    const id = (created.payload as { id: string }).id;
+    changeFocusLifecycle(db, id, { to: "active", reason: "activate", actorKind: "user" });
+    const before = (db.prepare("SELECT lifecycle FROM focuses WHERE id=?").get(id) as { lifecycle: string }).lifecycle;
+    expect(before).toBe("active");
+    const out = abandonFocusApi(db, nullAudit, id, { reason: "   " });
+    expect(out.status).toBe(400);
+    const after = (db.prepare("SELECT lifecycle FROM focuses WHERE id=?").get(id) as { lifecycle: string }).lifecycle;
+    expect(after).toBe("active");
+  });
+
+  it("非空值写入 abandoned,独立 audit 不落理由原文;archive 原语义不变", () => {
+    const recorded: AuditEvent[] = [];
+    const audit: AuditSink = {
+      record: (e) => {
+        recorded.push(e);
+        return { id: "aud_x" };
+      }
+    };
+    const created = createFocusApi(db, audit, { title: "trim-reason" }, NOW);
+    const id = (created.payload as { id: string }).id;
+    changeFocusLifecycle(db, id, { to: "active", reason: "activate", actorKind: "user" });
+    const reason = "不再做了";
+    const out = abandonFocusApi(db, audit, id, { reason: `  ${reason}  ` });
+    expect(out.status).toBe(200);
+    expect(out.payload).toEqual({ ok: true, id, lifecycle: "abandoned" });
+    const row = db.prepare("SELECT lifecycle FROM focuses WHERE id=?").get(id) as { lifecycle: string };
+    expect(row.lifecycle).toBe("abandoned");
+    const abandoned = recorded.find((e) => e.action === "focus.abandoned");
+    expect(abandoned?.action).toBe("focus.abandoned");
+    expect(abandoned?.actor).toBe("owner");
+    expect(abandoned?.meta?.["focusId"]).toBe(id);
+    expect(typeof abandoned?.meta?.["eventId"]).toBe("string");
+    expect(abandoned?.meta?.["closedActivations"]).toBe(0);
+    expect(abandoned?.meta).not.toHaveProperty("reason");
+    const serialized = JSON.stringify(abandoned);
+    expect(serialized).not.toContain(reason);
+    expect(abandoned?.refDigest).toBe(jcsDigest(reason));
+
+    const eventId = abandoned?.meta?.["eventId"];
+    const lifecycleEvent = db
+      .prepare("SELECT type, payload_json FROM focus_events WHERE id = ?")
+      .get(eventId) as { type: string; payload_json: string } | undefined;
+    expect(lifecycleEvent).toBeDefined();
+    if (lifecycleEvent === undefined) {
+      throw new Error("expected focus_events row for focus.abandoned eventId");
+    }
+    expect(lifecycleEvent.type).toBe("lifecycle_changed");
+    const payload = JSON.parse(lifecycleEvent.payload_json);
+    expect(payload.reason).toBe("不再做了");
+    expect(payload.reason).not.toBe("  不再做了  ");
+    expect(payload.from).toBe("active");
+    expect(payload.to).toBe("abandoned");
+
+    const archivedFocus = createFocusApi(db, audit, { title: "archive-keep" }, NOW);
+    const archiveId = (archivedFocus.payload as { id: string }).id;
+    const archived = archiveFocusApi(db, audit, archiveId, { reason: "先放下" });
+    expect(archived.status).toBe(200);
+    expect(archived.payload).toEqual({ ok: true, id: archiveId, lifecycle: "archived" });
+    const archivedEvent = recorded.find((e) => e.action === "focus.archived");
+    expect(archivedEvent?.meta?.["reason"]).toBe("先放下");
   });
 });

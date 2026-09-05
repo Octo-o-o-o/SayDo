@@ -14,7 +14,7 @@ export const expectationFixtures: { name: string; expectation: ExpectationView }
         { text: "义骁过一遍并拍板", state: "untested" }
       ],
       artifacts: { expected: 2, delivered: 1 },
-      budget: { spent: 14.5, max: 25, currency: "CNY" }
+      budget: { known: true, spent: 14.5, max: 25, currency: "CNY" }
     }
   },
   {
@@ -29,7 +29,7 @@ export const expectationFixtures: { name: string; expectation: ExpectationView }
         { text: "每月 1 号早 8 点前发出", state: "untested" }
       ],
       artifacts: { expected: 3, delivered: 1 },
-      budget: { spent: 23.6, max: 60, currency: "CNY" }
+      budget: { known: true, spent: 23.6, max: 60, currency: "CNY" }
     }
   }
 ];

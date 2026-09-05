@@ -151,8 +151,9 @@ export interface DecisionPackageView {
   risks: string[];
   preauthorizedEffects: { effect: string; spokenForm: string; ttlHours: number }[];
   expiresInH?: number;
-  /** AI 推荐只占徽章不占预选位(handoff §4.5/拍板纪律) */
+  /** AI 推荐只占徽章不占预选位(handoff §4.5/拍板纪律)。direct_to_review=designed/deferred,现役仅 step_confirm。 */
   recommendedMode?: "step_confirm" | "direct_to_review";
+  /** schema 兼容读取;现役仅 step_confirm;旧 direct_to_review 必须 fail-closed,不可拍板。 */
   selectedMode?: "step_confirm" | "direct_to_review" | null;
   /** 决策包所属项目(看小样读口归属断言) */
   projectId?: string;
@@ -212,10 +213,18 @@ export interface ApprovalView {
 
 /* ---------- 期待(OPEN QUESTION:demo v2.1 增量,未在交接清单——见 ExpectationGroup.tsx 头注) ---------- */
 export type ExpectationItemState = "pass_verify" | "pass_claim" | "untested" | "at_risk" | "adjusted";
+export type FocusBudgetView =
+  | { known: false }
+  | { known: true; spent: number; max: number; currency: "CNY" | "USD" };
+
+export function focusBudgetCopy(budget: FocusBudgetView): string {
+  return budget.known ? `¥${budget.spent} / ¥${budget.max}` : "还没有确切数字";
+}
+
 export interface ExpectationView {
   revision: number;
   direction: string;
   acceptance: { text: string; state: ExpectationItemState; note?: string }[];
   artifacts: { expected: number; delivered: number };
-  budget: { spent: number; max: number; currency: "CNY" | "USD" };
+  budget: FocusBudgetView;
 }

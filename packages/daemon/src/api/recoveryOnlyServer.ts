@@ -14,6 +14,7 @@ import { parseReprobeNames, probeAllCliCapabilities, reprobeCliCapabilities } fr
 import { loadCliRuntimeReceiptIndex, loadPendingCliRuntimeRegistry } from "../config/cliRuntime.js";
 import { loadOrCreateCapToken } from "../net/capToken.js";
 import { extractToken, verifyIdentity, type IdentityVia } from "../net/identity.js";
+import { remoteHttpBusinessDecision } from "../net/remoteSurface.js";
 import { readT2Config } from "../net/t2.js";
 import type { Logger } from "../obs/logger.js";
 import type { AuditSink } from "../obs/audit.js";
@@ -427,6 +428,16 @@ export function startRecoveryOnlyServer(input: RecoveryOnlyServerInput): void {
           ok: false,
           code: identity.code ?? "identity_rejected",
           message: "G1 identity check failed",
+          retryable: false
+        });
+        return;
+      }
+      const remoteHttp = remoteHttpBusinessDecision({ via: identity.via, pathname });
+      if (!remoteHttp.allow) {
+        json(res, 403, {
+          ok: false,
+          code: remoteHttp.code,
+          message: remoteHttp.message,
           retryable: false
         });
         return;

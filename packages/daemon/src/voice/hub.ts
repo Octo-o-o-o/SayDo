@@ -23,6 +23,7 @@ import type { Logger } from "../obs/logger.js";
 import { redactText } from "./redactor.js";
 import type { RedactSpan } from "./redactor.js";
 import type { IdentityVia } from "../net/identity.js";
+import { remoteVoiceWsDecision } from "../net/remoteSurface.js";
 
 export const VOICE_WS_PROTOCOL_VERSION = 1;
 
@@ -196,6 +197,12 @@ export class VoiceHub {
         return;
       }
       via = v.via;
+    }
+    const remoteWs = remoteVoiceWsDecision(via);
+    if (!remoteWs.allow) {
+      this.safeWarn("voice ws: remote business connection rejected", { code: remoteWs.code, via });
+      ws.close(4003, remoteWs.code);
+      return;
     }
     const url = new URL(req.url ?? "/", "http://localhost");
     const token = url.searchParams.get("token") ?? undefined;

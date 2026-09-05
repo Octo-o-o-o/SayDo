@@ -1,8 +1,9 @@
-// Focus 写口(批 2):POST 新建 / archive / reopen。
+// Focus 写口(批 2):POST 新建 / archive / reopen;PG-01B 增 POST abandon。
 // create=registry.createFocus + 可选归空间 + 可选首 revision(direction);
-// archive/reopen 走 changeFocusLifecycle + audit。
+// archive/reopen/abandon 走 changeFocusLifecycle + 独立 audit。abandon 不得写 archived。
 
 import { z } from "zod";
+import { jcsDigest } from "@saydo/contracts";
 import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
 import { createFocus, changeFocusLifecycle } from "../focus/registry.js";
@@ -27,6 +28,13 @@ const createBody = z.object({
 const archiveBody = z.object({
   reason: z.string().min(1)
 });
+
+const abandonBody = z.object({
+  reason: z.string().trim().min(1)
+});
+
+/** writeTx 边表:active|dormant|archived → abandoned。captured/closed 不开放。 */
+const ABANDON_FROM = new Set(["active", "dormant", "archived"]);
 
 export function createFocusApi(
   db: Db,
@@ -156,6 +164,66 @@ export function archiveFocusApi(
       return err(409, e.code, e.message);
     }
     return err(409, "archive_failed", e instanceof Error ? e.message : String(e));
+  }
+}
+
+/** active|dormant|archived → abandoned;理由必填;独立 audit,绝不写 archived。 */
+export function abandonFocusApi(
+  db: Db,
+  audit: AuditSink,
+  focusId: string,
+  body: unknown
+): ApiResponse {
+  const parsed = abandonBody.safeParse(body ?? {});
+  if (!parsed.success) return err(400, "invalid_input", "abandon 需要 reason");
+
+  const focus = db.prepare("SELECT id, lifecycle FROM focuses WHERE id = ?").get(focusId) as
+    | { id: string; lifecycle: string }
+    | undefined;
+  if (!focus) return err(404, "not_found", `focus ${focusId} not found`);
+  if (!ABANDON_FROM.has(focus.lifecycle)) {
+    return err(409, "abandon_from_invalid", `abandon 仅限 active/dormant/archived,当前 ${focus.lifecycle}`);
+  }
+
+  const acts = db
+    .prepare(
+      `SELECT id, session_id, focus_id FROM focus_activations
+       WHERE focus_id = ? AND status = 'active'`
+    )
+    .all(focusId) as Array<{ id: string; session_id: string; focus_id: string }>;
+  for (const a of acts) {
+    try {
+      closeActivation(db, {
+        activationId: a.id,
+        sessionId: a.session_id,
+        focusId: a.focus_id,
+        actorKind: "user"
+      });
+    } catch {
+      // 竞态已关:忽略
+    }
+  }
+
+  try {
+    const reason = parsed.data.reason;
+    const r = changeFocusLifecycle(db, focusId, {
+      to: "abandoned",
+      reason,
+      actorKind: "user"
+    });
+    // E3:abandon 独立 audit 不落理由原文;关联只走顶层 refDigest。
+    audit.record({
+      actor: "owner",
+      action: "focus.abandoned",
+      refDigest: jcsDigest(reason),
+      meta: { focusId, eventId: r.eventId, closedActivations: acts.length }
+    });
+    return { status: 200, payload: { ok: true, id: focusId, lifecycle: "abandoned" } };
+  } catch (e) {
+    if (e instanceof FocusWriteError) {
+      return err(409, e.code, e.message);
+    }
+    return err(409, "abandon_failed", e instanceof Error ? e.message : String(e));
   }
 }
 

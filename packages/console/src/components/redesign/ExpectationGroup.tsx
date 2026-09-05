@@ -5,7 +5,7 @@
 
 import { AlertTriangle, ArrowRight, Check, Clock, Flag, History, Package, Wallet } from "lucide-react";
 import { Chip, ProgressTrack, RailItem, RailSection } from "./shared";
-import type { ExpectationItemState, ExpectationView } from "./types";
+import { focusBudgetCopy, type ExpectationItemState, type ExpectationView } from "./types";
 
 const EXP_STATE: Record<ExpectationItemState, { label: string; color: string; icon: typeof Check }> = {
   pass_verify: { label: "机器验过", color: "var(--color-success)", icon: Check },
@@ -23,7 +23,7 @@ export function ExpectationGroup({ expectation, onEdit }: {
   const exp = expectation;
   const riskCount = exp.acceptance.filter(a => a.state === "at_risk").length;
   const artPct = exp.artifacts.expected ? (exp.artifacts.delivered / exp.artifacts.expected) * 100 : 0;
-  const budPct = exp.budget.max ? (exp.budget.spent / exp.budget.max) * 100 : 0;
+  const budPct = exp.budget.known && exp.budget.max ? (exp.budget.spent / exp.budget.max) * 100 : 0;
   return (
     <RailSection
       title="期待"
@@ -60,8 +60,8 @@ export function ExpectationGroup({ expectation, onEdit }: {
       <RailItem
         icon={Wallet}
         onClick={onEdit ? () => onEdit({ kind: "budget" }) : undefined}
-        title={`预算 ¥${exp.budget.spent} / 熔断 ¥${exp.budget.max}`}
-        sub={<ProgressTrack pct={budPct} warn={budPct >= 80} />}
+        title={`预算 ${focusBudgetCopy(exp.budget)}`}
+        sub={exp.budget.known ? <ProgressTrack pct={budPct} warn={budPct >= 80} /> : undefined}
       />
     </RailSection>
   );

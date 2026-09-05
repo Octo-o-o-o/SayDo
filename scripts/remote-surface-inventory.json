@@ -1,0 +1,2164 @@
+{
+  "schema_version": 1,
+  "comment": "PG-01B remote surface exact-set. recovery is a composition root, not IdentityVia. Each entry has exact HTTP method or protocol NOT_APPLICABLE, via, and per-via outcome. Remote via (tailnet/mobile_lan) HTTP business /api/** and WS business connections are fail-closed; health/readiness/static_shell remain reachable.",
+  "grammar": {
+    "http_method_eq": "req.method === \"METHOD\" block or same-statement",
+    "http_method_ne_post_remainder": "after if (req.method !== \"POST\") 405, remainder is POST",
+    "http_get_projection": "function routeConsoleApi; p === PATH / regex.exec(p)",
+    "http_literal": "(pathname|u.pathname|p) === \"PATH\"",
+    "http_regex": "/^PATH$/",
+    "http_prefix": "pathname.startsWith(\"PATH\")",
+    "http_s3_face": "pathname.startsWith(\"/api/s3/\") and approve-merge regex → POST",
+    "skip_guard_prefixes": "/api/ /ws/ /dev/ /api/setup/",
+    "static_shell": "serveConsoleStatic( → GET /*",
+    "safe_redirect": "writeHead(308 → GET 308:localhost",
+    "health_readiness": "unscoped /health /readyz → GET",
+    "ws_method": "NOT_APPLICABLE",
+    "ws_switch": "switch (msg.t) case \"MSG\"",
+    "ws_quoted": "dotted message tokens",
+    "ws_path": "path: \"/ws/voice\"",
+    "unix_listen": "server.listen(sockPath)",
+    "unix_post_gate": "req.method !== \"POST\" || url !== /gate",
+    "unix_win32_loopback": "process.platform === \"win32\" + listenGateHttp",
+    "guard_http": "remoteHttpBusinessDecision",
+    "guard_ws": "remoteVoiceWsDecision"
+  },
+  "source_roots": {
+    "main": "packages/daemon/src/index.ts",
+    "recovery": "packages/daemon/src/api/recoveryOnlyServer.ts",
+    "voice": "packages/daemon/src/voice/hub.ts",
+    "tier1": "packages/daemon/src/tier1/gateServer.ts"
+  },
+  "entries": [
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "DELETE",
+      "path": "/api/session/:id/task-context",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/*",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "static_shell",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "allow",
+        "tailnet": "allow"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/approvals",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/artifacts/:id/diff",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/artifacts/:id/versions/:id",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/attention",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/config",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/costs",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/desktop/summary",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/focuses",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/focuses/:id",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/focuses/:id/activations/:id/transcript",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/focuses/:id/artifacts",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/focuses/:id/sessions",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/focuses/:id/timeline",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/memory/recent",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/outbox",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/overview",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/pairing-info",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/projects/:id/artifacts",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/projects/:id/artifacts/export",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/projects/:id/memory",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/projects/:id/settings",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/projects/:id/tasks",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/sessions/recent-transcript",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/setup/cli-capability",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/setup/probe",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/spaces",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/tasks/:id",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/value-report",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/dev/latency-report",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/health",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "health",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "allow",
+        "tailnet": "allow"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/readyz",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "readiness",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "allow",
+        "tailnet": "allow"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "308:localhost",
+      "message": null,
+      "via": [
+        "local"
+      ],
+      "class": "safe_redirect",
+      "outcome": {
+        "local": "allow"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/approvals/:id/decide",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/artifacts/:id/realize",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/attention/:id/ack",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/focuses",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/focuses/:id/abandon",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/focuses/:id/archive",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/focuses/:id/artifacts",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/focuses/:id/expectations/:id/adjust",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/focuses/:id/expectations/:id/withdraw",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/focuses/:id/lanes/:id/redo-from",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/focuses/:id/lanes/:id/retire",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/focuses/:id/reopen",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/focuses/:id/space",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/memory/:id/(approve|reject)",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/obligations/:id/resolve",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/obligations/:id/waiting-on",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/outbox/:id/ack",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/projects/:id/foundation/bootstrap",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/projects/:id/settings/overrides",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/s3*",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/session/:id/task-context",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/sessions/:id/focus-anchor",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/cli-capability/confirm",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/cli-capability/reprobe",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/config",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/first-run/query",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/project-overrides/clear-invalid",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/restart",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/secret",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/test",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/spaces",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/spaces/:id/delete",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/spaces/:id/rename",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/tasks/:id/:action",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/tasks/:id/approve-merge",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/tasks/:id/explain",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/value-report/manual",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/dev/inject",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/dev/say",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/dev/seed-fixture",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/*",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "static_shell",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "allow",
+        "tailnet": "allow"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/desktop/summary",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/setup/cli-capability",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/setup/probe",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/api/setup/project-overrides/invalid",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/health",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "health",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "allow",
+        "tailnet": "allow"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "/readyz",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "readiness",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "allow",
+        "tailnet": "allow"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "GET",
+      "path": "308:localhost",
+      "message": null,
+      "via": [
+        "local"
+      ],
+      "class": "safe_redirect",
+      "outcome": {
+        "local": "allow"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/cli-capability/confirm",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/cli-capability/reprobe",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/config",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/first-run/query",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/project-overrides/clear-invalid",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/restart",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/secret",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "recovery",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/setup/test",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "/ws/voice",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "asr.final",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "asr.hotwords",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "asr.partial",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "audio.frame",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "barge_in",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "confirm.card",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "confirm.click",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "confirm.countdown",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "confirm.decision",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "confirm.resolved",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "console.heartbeat",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "focus.entity",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "hello.ack",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "latency.stage",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "native.reply",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "pipeline.health",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "pipeline.restart_ack",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "pipeline.restart_pending",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "screen_text",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "session.project",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "tts.playout",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "tts.say",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "turn.done_speaking",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "turn.listen_again",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "turn.text",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "vad.speech",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "voice.mode",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "tier1",
+      "protocol": "Unix",
+      "method": "POST",
+      "path": "/gate",
+      "message": null,
+      "via": [
+        "not_applicable"
+      ],
+      "class": "local_only",
+      "outcome": {
+        "not_applicable": "local_only"
+      }
+    }
+  ]
+}

@@ -20,9 +20,12 @@ import {
   getProjectTasks,
   getTaskDetail
 } from "../src/api/console.js";
+import { abandonFocusApi, archiveFocusApi, createFocusApi } from "../src/api/focuses.js";
+import { changeFocusLifecycle } from "../src/focus/registry.js";
 import type { AuditSink } from "../src/obs/audit.js";
 
 const PRJ = "prj_01F1XT0RE0A000000000000000";
+const NOW = "2026-09-04T00:00:00.000Z";
 const nullAudit: AuditSink = { record: () => ({ id: "aud_x" }) };
 
 describe("console API(fixture 投影)", () => {
@@ -151,5 +154,55 @@ describe("console API(fixture 投影)", () => {
     expect(projected).not.toHaveProperty("sessionId");
     expect(JSON.stringify(detail)).not.toContain(`${["", "Users", "owner"].join("/")}/private.txt`);
     expect(JSON.stringify(detail)).not.toContain("sk-mobile-secret-value-123456");
+  });
+});
+
+describe("PG-01B abandon 独立写口", () => {
+  let db: Db;
+  const recorded: Array<{ action: string; meta: Record<string, unknown> }> = [];
+  const audit: AuditSink = {
+    record: (e) => {
+      recorded.push({ action: e.action, meta: (e.meta ?? {}) as Record<string, unknown> });
+      return { id: "aud_x" };
+    }
+  };
+
+  beforeAll(() => {
+    db = openDb(join(mkdtempSync(join(tmpdir(), "saydo-abandon-")), "saydo.db"));
+  });
+
+  it("abandon 写 abandoned 并记独立 audit;不经 archive", () => {
+    recorded.length = 0;
+    const created = createFocusApi(db, audit, { title: "abandon-active" }, NOW);
+    const id = (created.payload as { id: string }).id;
+    changeFocusLifecycle(db, id, { to: "active", reason: "activate", actorKind: "user" });
+    const out = abandonFocusApi(db, audit, id, { reason: "不再做了" });
+    expect(out.status).toBe(200);
+    expect(out.payload).toEqual({ ok: true, id, lifecycle: "abandoned" });
+    const row = db.prepare("SELECT lifecycle FROM focuses WHERE id=?").get(id) as { lifecycle: string };
+    expect(row.lifecycle).toBe("abandoned");
+    expect(recorded.some((e) => e.action === "focus.abandoned")).toBe(true);
+    expect(recorded.some((e) => e.action === "focus.archived")).toBe(false);
+  });
+
+  it("archive 仍写 archived,语义不变", () => {
+    recorded.length = 0;
+    const created = createFocusApi(db, audit, { title: "archive-keep" }, NOW);
+    const id = (created.payload as { id: string }).id;
+    const out = archiveFocusApi(db, audit, id, { reason: "先放下" });
+    expect(out.status).toBe(200);
+    expect(out.payload).toEqual({ ok: true, id, lifecycle: "archived" });
+    const row = db.prepare("SELECT lifecycle FROM focuses WHERE id=?").get(id) as { lifecycle: string };
+    expect(row.lifecycle).toBe("archived");
+    expect(recorded.some((e) => e.action === "focus.archived")).toBe(true);
+  });
+
+  it("captured/closed 与缺理由 fail-closed", () => {
+    const created = createFocusApi(db, audit, { title: "captured-no-abandon" }, NOW);
+    const id = (created.payload as { id: string }).id;
+    expect(abandonFocusApi(db, audit, id, { reason: "想放弃" }).status).toBe(409);
+    expect(abandonFocusApi(db, audit, id, {}).status).toBe(400);
+    const missing = abandonFocusApi(db, audit, "foc_missing", { reason: "x" });
+    expect(missing.status).toBe(404);
   });
 });

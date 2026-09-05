@@ -1,9 +1,38 @@
+import { execFileSync } from "node:child_process";
 import { request } from "node:http";
-import { mkdtempSync, realpathSync } from "node:fs";
+import { mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { networkInterfaces, tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { reservePort, startDaemonProcess, type DaemonProcess } from "./helpers/daemonProcess.js";
+
+function daemonSpawnEnv(extra: Record<string, string | undefined> = {}): Record<string, string | undefined> {
+  try {
+    execFileSync("/bin/ps", ["-o", "lstart=", "-p", String(process.pid)], { encoding: "utf8", timeout: 2000 });
+    return extra;
+  } catch {
+    const preload = join(tmpdir(), `saydo-ps-preload-${process.pid}.cjs`);
+    writeFileSync(
+      preload,
+      `"use strict";
+const cp = require("node:child_process");
+const orig = cp.execFileSync;
+cp.execFileSync = function (file, args, options) {
+  const f = String(file);
+  if (f === "ps" || f.endsWith("/ps")) {
+    const out = "Thu Jan  1 00:00:00 2026\\n";
+    if (options && options.encoding && options.encoding !== "buffer") return out;
+    return Buffer.from(out);
+  }
+  return orig.apply(this, arguments);
+};
+`
+    );
+    const prev = process.env["NODE_OPTIONS"] ?? "";
+    const flag = `--require ${preload}`;
+    return { ...extra, NODE_OPTIONS: prev ? `${prev} ${flag}` : flag };
+  }
+}
 
 function mobileRequest(
   daemon: DaemonProcess,
@@ -63,10 +92,11 @@ function privateLanAddress(): string {
 }
 
 describe("SAYDO_MOBILE_LAN 真实进程访问链", () => {
-  it("默认关时远程连接拒绝;显式开时只读路由放行、setup 写口仍拒绝", async () => {
+  it("默认关时远程连接拒绝;显式开时业务 /api 一律 403,health/readyz 可探", async () => {
     const closed = await startDaemonProcess({
       home: realpathSync(mkdtempSync(join(tmpdir(), "saydo-mobile-closed-"))),
-      port: await reservePort()
+      port: await reservePort(),
+      env: daemonSpawnEnv()
     });
     try {
       await expect(mobileRequest(closed, "/api/focuses")).rejects.toMatchObject({ code: "ECONNREFUSED" });
@@ -79,17 +109,23 @@ describe("SAYDO_MOBILE_LAN 真实进程访问链", () => {
     const opened = await startDaemonProcess({
       home: realpathSync(mkdtempSync(join(tmpdir(), "saydo-mobile-open-"))),
       port: await reservePort(),
-      env: { SAYDO_MOBILE_LAN: "1" }
+      env: daemonSpawnEnv({ SAYDO_MOBILE_LAN: "1" })
     });
     try {
+      const health = await mobileRequest(opened, "/health");
+      expect(health.status, health.body).toBe(200);
+      expect(JSON.parse(health.body)).toMatchObject({ ok: true, service: "saydo-daemon" });
+      const readyz = await mobileRequest(opened, "/readyz");
+      expect(readyz.status).toBeGreaterThanOrEqual(200);
       const allowed = await mobileRequest(opened, "/api/focuses");
-      expect(allowed.status, allowed.body).toBe(200);
-      expect(JSON.parse(allowed.body)).toEqual([]);
+      expect(allowed.status, allowed.body).toBe(403);
+      expect(allowed.body).toContain("remote_business_forbidden");
       const browserGet = await mobileRequest(opened, "/api/focuses", "GET", {
         origin: undefined,
         referer: `http://${privateLanAddress()}:${opened.port}/#/m`
       });
-      expect(browserGet.status, browserGet.body).toBe(200);
+      expect(browserGet.status, browserGet.body).toBe(403);
+      expect(browserGet.body).toContain("remote_business_forbidden");
       const missingOrigin = await mobileRequest(opened, "/api/focuses", "GET", { origin: undefined });
       expect(missingOrigin.status).toBe(403);
       expect(missingOrigin.body).toContain("origin_rejected");
@@ -117,33 +153,28 @@ describe("SAYDO_MOBILE_LAN 真实进程访问链", () => {
       expect(spoofedLocal.body).toContain("host_rejected");
       const setupWrite = await mobileRequest(opened, "/api/setup/config", "POST");
       expect(setupWrite.status).toBe(403);
-      expect(setupWrite.body).toContain("mobile_lan_route_rejected");
-      // voice-fix-backend:历史回放 + 记忆只读 两条放行
+      expect(setupWrite.body).toContain("remote_business_forbidden");
       const recentTranscript = await mobileRequest(opened, "/api/sessions/recent-transcript?limit=40");
-      expect(recentTranscript.status, recentTranscript.body).toBe(200);
-      expect(JSON.parse(recentTranscript.body)).toMatchObject({
-        sessionId: null,
-        projectId: null,
-        turns: []
-      });
+      expect(recentTranscript.status, recentTranscript.body).toBe(403);
+      expect(recentTranscript.body).toContain("remote_business_forbidden");
       const memory = await mobileRequest(
         opened,
         "/api/projects/prj_01F1XT0RE0A000000000000000/memory"
       );
-      expect(memory.status, memory.body).toBe(200);
-      expect(JSON.parse(memory.body)).toEqual([]);
+      expect(memory.status, memory.body).toBe(403);
+      expect(memory.body).toContain("remote_business_forbidden");
       const recentMemory = await mobileRequest(opened, "/api/memory/recent?limit=30");
-      expect(recentMemory.status, recentMemory.body).toBe(200);
-      expect(Array.isArray(JSON.parse(recentMemory.body))).toBe(true);
+      expect(recentMemory.status, recentMemory.body).toBe(403);
+      expect(recentMemory.body).toContain("remote_business_forbidden");
       const pairing = await mobileRequest(opened, "/api/pairing-info");
       expect(pairing.status).toBe(403);
-      expect(pairing.body).toContain("mobile_lan_route_rejected");
+      expect(pairing.body).toContain("remote_business_forbidden");
       const artVer = await mobileRequest(
         opened,
         "/api/artifacts/art_01AAAAAAAAAAAAAAAAAAAAAAAA/versions/1?project=prj_01F1XT0RE0A000000000000000"
       );
       expect(artVer.status).toBe(403);
-      expect(artVer.body).toContain("mobile_lan_route_rejected");
+      expect(artVer.body).toContain("remote_business_forbidden");
       expect(opened.output()).toContain('listen="0.0.0.0"');
       expect(opened.output()).toContain("mobileLan=true");
     } finally {

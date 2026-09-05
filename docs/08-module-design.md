@@ -98,8 +98,8 @@ interface DecisionPackage {
   demoRef?: ArtifactRef;                   // 与实现同源,元素与 plan 编号互引
   cost: { expected: number; p95: number; max: number };
   risks: string[];
-  mode: "direct_to_review" | "step_confirm";   // 执行模式两档(04 §5.4),拍板时定
-  preauthorizedEffects: EffectClass[];         // 直达验收档的预授权清单——必须可朗读、随包签署
+  mode: "direct_to_review" | "step_confirm";   // 底层两档 schema 保留(04 §5.4);现役仅 step_confirm。direct_to_review=designed/deferred(PG-01B,D3 未签),拍板不可选
+  preauthorizedEffects: EffectClass[];         // 直达验收档预授权清单(designed/deferred);现役逐步确认恒空——必须可朗读、随包签署
 }
 
 // 预授权效果类:由 E2 从计划推导,Brain 不得自由声明;无约束参数的效果类不可预授权
@@ -180,7 +180,7 @@ SayDo(logo → #/)
 | 路由 | 页面 | 归属 |
 |---|---|---|
 | `#/` | **Dashboard(主入口)**:开始区(「开始新对话」/「选择项目继续」;冷启动为 Hero 态)+「待你处理」聚合条(待验收/待审批/未读回叫,跨项目直达)+ 项目卡网格 | 全局 |
-| `#/p/:id/chat` | 对话页:转写流(内联「就绪复述确认卡」:candidate 未确认不算 covered,确认后形成 confirmed ReadinessBinding)+ 右栏「任务卡草稿 + 就绪绑定」+ 决策包卡(含执行模式选择);内含会话历史(续接入口) | 项目 |
+| `#/p/:id/chat` | 对话页:转写流(内联「就绪复述确认卡」:candidate 未确认不算 covered,确认后形成 confirmed ReadinessBinding)+ 右栏「任务卡草稿 + 就绪绑定」+ 决策包卡(现役仅逐步确认,无直达档 selector;direct_to_review=designed/deferred);内含会话历史(续接入口) | 项目 |
 | `#/p/:id/tasks` | 任务看板(队列/执行中/等验收/已交付;熔断与预算进度) | 项目 |
 | `#/p/:id/task/:tid` | 任务详情 = review 证据视图 → 合并(S3 屏幕强认证);内嵌该任务审批记录 | 项目 |
 | `#/p/:id/memory` | 项目记忆(M1–M3;M0 用户档案在全局设置) | 项目 |

@@ -99,7 +99,7 @@
 | Context Pack | 每次建会话临时拼接的小上下文切片(≠ 持久知识库) |
 | 决策包(DecisionPackage) | 就绪时给用户拍板的三件套:成果预览 + 计划(人机分工)+ Demo |
 | 两把钥匙 | Epistemic(证据够了)与 Authority(有权者批准)分离(04 §2.5) |
-| 直达验收 / 逐步确认 | 执行模式两档:拍板即授权整包(预授权清单)/ 每个出圈动作与步骤边界确认(04 §5.4;S3 门槛与档位无关) |
+| 直达验收 / 逐步确认 | 执行模式两档(现役仅逐步确认;直达验收档 designed/deferred,PG-01B):拍板即授权整包(预授权清单)/ 每个出圈动作与步骤边界确认(04 §5.4;S3 门槛与档位无关) |
 | taint / provenance | 记忆条目的污染标记 / 来源链(04 §1.4) |
 | M3a/M3b/M3c/M3d/WS4 | Hopper 里程碑(以其 SCHEMA-FREEZE-M3A 为准):M3a=平台 schema(已冻结)/ **M3b=command/executor + decision enforcement** / **M3c=usage 记账** / M3d=workflow / **WS4=Console·decision·notification 面**(除 M3a 外均未实现;能力按运行时握手判断,不按里程碑名) |
 | Tier 1 / Tier 2 | agent 集成两级按**执行中审批能力**分:Tier 1=交互式审批(Claude Code CLI `PreToolUse` hooks;Cursor CLI `beforeShellExecution` hooks,当前稳定缺省)/ Tier 2=预授权 + kill_and_resume(Codex 经 Hopper exec)(03 §5、07 D8) |

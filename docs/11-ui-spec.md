@@ -23,7 +23,7 @@
 5. **有账的沉默**:待命卡写明在等什么、叫醒条件、到期兜底;等外部永不悬空。
 6. **判断可见、可推翻**:AI 的自由裁量显式列出,每条带 why,用户可推翻。
 7. **所闻即所签**:口播原文=签署内容;预授权超 3 项强制屏幕同显;语音授权不得弱于屏幕。
-8. **历史不可变,贯穿情感层**:已放弃≠已收官≠已归档,三种停机三种文案;closed 只能 fork。
+8. **历史不可变,贯穿情感层**:已放弃≠已收官≠已归档,三种停机三种文案;closed 只能 fork。Records「放弃」走独立 `POST /api/focuses/:id/abandon` 写 `abandoned`,不得经 `/archive` 或写 `archived`(PG-01B)。
 9. **阻塞式诚实**:「学习中」为一等状态;不懂装懂比让用户等更糟。
 10. **渠道只是 transport,账本是真相**:一切通知渠道与「今天」页同一 attention 账本,一处处理全网作废。
 
@@ -263,6 +263,7 @@
 | route=tier1 / hopper | mono 小徽章 `T1` / `HP`,muted 色;仅任务详情显示(用户不需要懂路由) |
 | 成本 known | mono 数字 + "元";预算进度条用 ink→warning(80%)→error(100%)三段 |
 | 成本 unknown | 文本"还没有确切数字",**禁 0/禁空** |
+| 期待/Focus 级预算无来源 | 显式 unknown 形状;文案「还没有确切数字」;**禁渲染 0/0、¥0 / ¥0 或用 0 冒充未知**(PG-01B) |
 | 成本 subscription | 文本"订阅额度内(已用 N 次)",不折算金额 |
 | 回叫升级 L0/L1/L2 | `phone`/`monitor-speaker`/`bell-ring` 图标 + 时间线行,颜色恒 muted(历史记录不再警示) |
 | 记忆 trust 层 | user_stated=ink 描边;user_approved=success 描边;auto_low_impact=muted;candidate/third_party=faint + `flask-conical`(待复核) |
@@ -369,6 +370,8 @@
 
 ### 5.6b M1 移动 Web shell(2026-08-11)
 
+> **现役口径(PG-01B,`safe_default=remote_business_403`)**:`via="tailnet"` / `via="mobile_lan"` 的 HTTP 业务 `/api/**` 一律 403,远程 WS 业务连接 fail-closed。只保留无业务 payload 的 `/health`、`/readyz` 与 console 静态壳。下文「真实 `mobile_lan` 进入 `remote-mobile` 直挂 `MobileApp` / 读 `/api/attention` / VoiceHub 业务」为 designed/deferred(DF-REMOTE-REOPEN),不得当作现役入口;本机 `via="local"` 窄视口与原生强制移动壳不变。
+
 窄屏 `<768px` 在 `VoiceProvider` 与 `SetupProvider` 内、`SetupBootstrapBoundary` 之后、桌面 `Layout` 前切换到独立 `.m-root` 组件树;视口实时切换不得重建主 WS。首启判定由 `SetupBootstrapBoundary` 统一消费(§5.8a):本机窄视口与原生强制移动壳共用该门;真实 `mobile_lan` 不开放 setup probe,LAN 撞 `mobile_lan_route_rejected` 时进入 `remote-mobile` 直挂 `MobileApp`,不得静默套用桌面向导,也不得把该码映射成桌面 `app`。移动 hash 表固定为 `#/m`、`#/m/things`、`#/m/focus/:id`、`#/m/lane/:focusId/:laneId`、`#/m/card/:kind/:id`、`#/m/chat`;本机 localhost 宽屏进入移动路由须重定向到对应桌面页,桌面 hash 缩窄时反向映射对应移动页;`remote-mobile` 宽屏仍保持移动树(iPhone 横屏不得落到桌面 `Layout`)。移动 Today 直接读取桌面 Today 同一个 `/api/attention` 投影,不得复制球权推导。M1 CardResolver 使用仅供前端缓存/导航的 `MobileCardRef(kind+entityId+focus/lane hint)`;带 revision/digest 的 durable CardRef 与精确回执端点属 M2。
 
 M1 确认卡只呈现当前数据面可证明的三段:问题、durable `expiresAt` 倒计时、动作行。动作固定为“做”(副文字节点直接逐字渲染当前卡的 `prompt_text`,不加前后缀、不另造建议)、“不要 · 不按这个来”、“撤销 · 当我没问过”;过期文案是“过期自动搁置”。建议/代价/证据/锚点属 M1.5,不得填演示数据。`mobile_lan` 不具备 S2 配对身份,runtime approval 在手机裁决时如实提示回受信桌面处理,不得伪装成 voice 放行。stale 卡只说“这张卡已不在待办里(可能已在桌面处理,或已过期搁置)”并在存在真实 focus/lane 目标时给“去泳道看”,不得伪称已由桌面处理;missing 零动作。底部只提供菜单钮与文本输入条;话筒图标的唯一行为是聚焦输入,placeholder 固定“用键盘上的话筒说话”,不得实现假按住说话。连接呈现由 `connecting/online/offline` 状态机驱动,非 online 时只禁发送按钮,输入与键盘话筒仍可编辑草稿。M-Chat 直接复用分树外 VoiceProvider 的既有 `turn.text` 与 VoiceHub 广播,桌面与手机同开时回复在双端同显;M1 不新增跨 Brain/tool 的接纳 outbox 或回执协议,per-session 多端定向留 M2。
@@ -402,13 +405,13 @@ shadcn 原样(Input/Select/Switch/Tabs);设置页每项带一句 muted 说明;�
 
 > 取代「基础层最多三张一键卡 / mixed 自动降级 / one-key 独立卡」合同。实施照抄源=本小节;旧三席推荐槽退役。
 
-**门层级**:`SetupProvider` 内、`AppContent` 外挂 `SetupBootstrapBoundary`。桌面与本机/原生强制移动壳在判定完成前一律不挂载今天页/`Layout`/`MobileApp`。真实 `mobile_lan` 仍不开放 setup probe 与完整 setup API;console 仅当失败码为 `mobile_lan_route_rejected` 时进入 `remote-mobile`(自己取移动路由并直挂 `MobileApp`,不走 `AppContent`/`useMobileViewport`/桌面 `Layout`)。不得把该码映射成 `app`。`token_mismatch`/`origin_rejected`/`host_rejected`/`setup_local_only` 仍停错误卡。
+**门层级**:`SetupProvider` 内、`AppContent` 外挂 `SetupBootstrapBoundary`。桌面与本机/原生强制移动壳在判定完成前一律不挂载今天页/`Layout`/`MobileApp`。真实 `mobile_lan` 仍不开放 setup probe 与完整 setup API。**现役(PG-01B)**:远程 HTTP 业务 `/api/**` 403、远程 WS fail-closed,不得把 `remote-mobile` 当作现役业务入口。历史口径「console 仅当失败码为 `mobile_lan_route_rejected` 时进入 `remote-mobile`(自己取移动路由并直挂 `MobileApp`,不走 `AppContent`/`useMobileViewport`/桌面 `Layout`)」为 designed/deferred(DF-REMOTE-REOPEN)。不得把该码映射成 `app`。`token_mismatch`/`origin_rejected`/`host_rejected`/`setup_local_only` 仍停错误卡。
 
 **判定**:
 
 - `loading`:全屏品牌(朱印 icon + 「说到 SayDo」组合字标,与页头同款)置于呼吸文案上方 +「正在看这台机器的资源…」呼吸动效。**300ms 延迟出现**(§5.9 例外):300ms 内判定完成则一帧 Loading 都不闪;超过才显示。这是「禁全屏 spinner」的唯一首启例外,不得用于其它页面。
 - `probe` 失败:第三态错误卡「没连上本机服务/读不到配置」+ 重试。`probe=null` 不得当成 `dialogReady=true` 的 fail-open,不得渲染成「已配好」。
-- `remote-mobile`:仅 `mobile_lan_route_rejected`。直挂移动树,宽屏不重定向桌面。
+- `remote-mobile`:仅 `mobile_lan_route_rejected`。历史口径「直挂移动树,宽屏不重定向桌面」为 designed/deferred(DF-REMOTE-REOPEN,PG-01B),不得当作现役业务入口;现役远程只保留 health/static shell。
 - 未配好且未 peek:直接渲染向导,不先挂 `Layout`。
 - 已配好或已 peek:挂载 `AppContent`;桌面 peek 后保留顶栏 `SetupBanner`。配置成功(晋升重启完成)后清除 `peeked`,并按完成流刷新判定或整页进入 `#/chat-new`。本机移动壳 peek 后的返回入口=移动菜单内「完成配置」(仅未配好时显示,跳桌面向导路由并提示宽窗)。已配好用户仍会经过首载 Loading 门,但不误进向导、不改配置。`remote-mobile` 即使已 peek 也不落到 `app`。
 
@@ -507,7 +510,7 @@ shadcn 原样(Input/Select/Switch/Tabs);设置页每项带一句 muted 说明;�
 | 四色收件箱条目 | 左色条(橙/蓝/绿/灰)+标题+Focus 归属+needs 标签;绿/灰带「知道了」(ack),橙/蓝无 ack(源数据驱动消失) | ② |
 | 任务状态 chip | CHIP_TABLE 16 呈现态四联映射(状态→颜色→图标→文案)全站唯一渲染表,消费 TaskRowView.viewStatus,禁读原始 status | ② |
 | 球权徽章 | owner 三色(我来做/需要你/外部);数字徽章全站单源=attention,openByOwner 仅文字描述 | ② |
-| 决策包卡 | 做出来什么样/做不做/每步谁做/验收标准/成本熔断/预授权(所闻即所签)/怎么跑二选一无默认;「看小样」动作(s1 批 08-20)打开 DemoFrame 内联预览 | ③b |
+| 决策包卡 | 做出来什么样/做不做/每步谁做/验收标准/成本熔断/预授权(所闻即所签)/怎么跑现役仅逐步确认(每步问你);直达验收档 designed/deferred,不提供现役 selector,旧 `selectedMode=direct_to_review` fail-closed 不可拍板(PG-01B);「看小样」动作(s1 批 08-20)打开 DemoFrame 内联预览 | ③b |
 | DemoFrame | 决策包「看小样」内联渲染(s1-demo-wiring 批 `5c48eb4`,08-20):iframe `sandbox=""` 零 allow 渲染 srcdoc,产物版本经 `/api/artifacts/:id/versions/:version` 拉取;红线=沙箱零权限、token 不进 URL;另有「在产物库查看」链接 | s1 |
 | 确认卡 | 按 daemon 真实 kind 枚举投影;倒计时;「也可以直接开口回答」;超时语义按 v0.4 落账机制 | ③b |
 | 进度对齐卡 | AI 主动对账:决策包步进/产物计数/下一步在谁 | ③a |

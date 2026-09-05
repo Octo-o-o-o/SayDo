@@ -13,6 +13,7 @@ import { handleTaskAction } from "../src/api/actions.js";
 import { verifyIdentity } from "../src/net/identity.js";
 import { parseT2Config } from "../src/net/t2.js";
 import { daemonListenAddress, mobileLanApiAllowed, mobileLanEnabled } from "../src/net/mobileLan.js";
+import { remoteHttpBusinessDecision } from "../src/net/remoteSurface.js";
 import { consoleBaseUrl, renderNtfyMessage } from "../src/callback/ntfy.js";
 import type { AuditSink } from "../src/obs/audit.js";
 
@@ -189,13 +190,36 @@ describe("M1 移动 LAN 显式开关", () => {
     ).toMatchObject({ ok: false, code: "origin_rejected" });
   });
 
-  it("HTTP 只开放移动只读投影与 first-run query", () => {
-    expect(mobileLanApiAllowed("GET", "/api/attention")).toBe(true);
-    expect(mobileLanApiAllowed("GET", "/api/focuses/foc_1")).toBe(true);
-    expect(mobileLanApiAllowed("GET", "/api/sessions/recent-transcript")).toBe(true);
-    expect(mobileLanApiAllowed("GET", "/api/memory/recent")).toBe(true);
-    expect(mobileLanApiAllowed("GET", "/api/projects/prj_1/memory")).toBe(true);
-    expect(mobileLanApiAllowed("POST", "/api/setup/first-run/query")).toBe(true);
+  it("远程 via 的 HTTP 业务 path 一律 remote_business_forbidden;本机与 health 仍放行", () => {
+    const remotePaths = [
+      "/api/attention",
+      "/api/focuses/foc_1",
+      "/api/sessions/recent-transcript",
+      "/api/memory/recent",
+      "/api/projects/prj_1/memory",
+      "/api/setup/first-run/query",
+      "/api/setup/probe",
+      "/api/setup/config",
+      "/api/focuses",
+      "/api/overview",
+      "/api/pairing-info",
+      "/api/artifacts/art_01AAAAAAAAAAAAAAAAAAAAAAAA/versions/1"
+    ];
+    for (const pathname of remotePaths) {
+      expect(remoteHttpBusinessDecision({ via: "mobile_lan", pathname })).toEqual({
+        allow: false,
+        code: "remote_business_forbidden",
+        message: "远程面不开放业务 API"
+      });
+      expect(remoteHttpBusinessDecision({ via: "tailnet", pathname })).toEqual({
+        allow: false,
+        code: "remote_business_forbidden",
+        message: "远程面不开放业务 API"
+      });
+    }
+    expect(remoteHttpBusinessDecision({ via: "local", pathname: "/api/attention" })).toEqual({ allow: true });
+    expect(remoteHttpBusinessDecision({ via: "mobile_lan", pathname: "/health" })).toEqual({ allow: true });
+    expect(remoteHttpBusinessDecision({ via: "tailnet", pathname: "/readyz" })).toEqual({ allow: true });
     expect(mobileLanApiAllowed("POST", "/api/setup/config")).toBe(false);
     expect(mobileLanApiAllowed("POST", "/api/setup/cli-capability/reprobe")).toBe(false);
     expect(mobileLanApiAllowed("GET", "/api/setup/probe")).toBe(false);

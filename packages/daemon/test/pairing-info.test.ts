@@ -1,10 +1,39 @@
-import { mkdtempSync, realpathSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir, type NetworkInterfaceInfo } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { lanIpv4FromInterfaces, pairingInfoPayload } from "../src/net/pairingInfo.js";
 import { mobileLanApiAllowed } from "../src/net/mobileLan.js";
 import { reservePort, startDaemonProcess } from "./helpers/daemonProcess.js";
+
+function daemonSpawnEnv(extra: Record<string, string | undefined> = {}): Record<string, string | undefined> {
+  try {
+    execFileSync("/bin/ps", ["-o", "lstart=", "-p", String(process.pid)], { encoding: "utf8", timeout: 2000 });
+    return extra;
+  } catch {
+    const preload = join(tmpdir(), `saydo-ps-preload-${process.pid}.cjs`);
+    writeFileSync(
+      preload,
+      `"use strict";
+const cp = require("node:child_process");
+const orig = cp.execFileSync;
+cp.execFileSync = function (file, args, options) {
+  const f = String(file);
+  if (f === "ps" || f.endsWith("/ps")) {
+    const out = "Thu Jan  1 00:00:00 2026\\n";
+    if (options && options.encoding && options.encoding !== "buffer") return out;
+    return Buffer.from(out);
+  }
+  return orig.apply(this, arguments);
+};
+`
+    );
+    const prev = process.env["NODE_OPTIONS"] ?? "";
+    const flag = `--require ${preload}`;
+    return { ...extra, NODE_OPTIONS: prev ? `${prev} ${flag}` : flag };
+  }
+}
 
 function iface(partial: Partial<NetworkInterfaceInfo> & { address: string }): NetworkInterfaceInfo {
   const family = partial.family ?? "IPv4";
@@ -73,7 +102,8 @@ describe("GET /api/pairing-info 仅本机", () => {
   it("本机来源返回 lanIp/port/开关;进程默认未开手机访问", async () => {
     const daemon = await startDaemonProcess({
       home: realpathSync(mkdtempSync(join(tmpdir(), "saydo-pairing-local-"))),
-      port: await reservePort()
+      port: await reservePort(),
+      env: daemonSpawnEnv()
     });
     try {
       const res = await daemon.api("/api/pairing-info");

@@ -1,6 +1,5 @@
 // DecisionPackageCard(demo pkgHtml 六节):做出来什么样/做不做/每步谁做/验收标准/成本熔断/预授权(所闻即所签)。
-// 「怎么跑」二选一无默认预选,AI 推荐只占徽章不占预选位(handoff §4.5/拍板纪律);
-// 不置可否按「每步问你」处理(中性);动作全部 onAction 回调。
+// 「怎么跑」现役仅逐步确认;直达验收档 designed/deferred,旧 direct 值 fail-closed 不可拍板。
 
 import { AlertTriangle, Check, Flag, Package, Shield, X } from "lucide-react";
 import { ActionRow, Btn, card, Mono, StageTag } from "./shared";
@@ -18,11 +17,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export function DecisionPackageCard({ pkg, onAction }: {
   pkg: DecisionPackageView;
-  /** select_mode:中性二选一(无默认);approve 仅在已选模式后可用;revise/expect 回调 */
+  /** approve 现役仅 step_confirm;旧 selectedMode=direct_to_review fail-closed;revise/expect 回调 */
   onAction?: (action: "select_mode" | "approve" | "revise" | "edit_expectation", payload?: string) => void;
 }) {
   const approved = pkg.status === "approved";
-  const canApprove = !!pkg.selectedMode && !approved;
+  const blockedDirect = pkg.selectedMode === "direct_to_review";
+  const canApprove = !approved && !blockedDirect;
   return (
     <div style={card} data-decision-package={pkg.id}>
       <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center", flexWrap: "wrap" }}>
@@ -109,49 +109,20 @@ export function DecisionPackageCard({ pkg, onAction }: {
 
       {!approved && (
         <Section title="怎么跑?">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)", marginTop: "var(--space-3)" }}>
-            {([
-              { mode: "step_confirm" as const, title: "每步问你", desc: "每到一个计划步边界就停下来,你确认了再走。第一次合作建议这样。" },
-              { mode: "direct_to_review" as const, title: "一口气跑完", desc: "中间不打扰你,跑完直接等你验收。熔断条件不变。", p05: true }
-            ]).map((m) => {
-              const selected = pkg.selectedMode === m.mode;
-              return (
-                <button
-                  key={m.mode}
-                  type="button"
-                  onClick={() => onAction?.("select_mode", m.mode)}
-                  style={{
-                    padding: "var(--space-4)",
-                    borderRadius: "var(--radius-md)",
-                    border: `1.5px solid ${selected ? "var(--active-ink)" : "var(--line)"}`,
-                    background: selected ? "var(--selected-wash)" : "var(--surface-soft)",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    position: "relative"
-                  }}
-                >
-                  {pkg.recommendedMode === m.mode ? (
-                    <span
-                      style={{
-                        position: "absolute", top: -9, right: 12, fontSize: 10, padding: "2px 8px",
-                        borderRadius: "var(--radius-pill)", background: "var(--surface-raised)",
-                        border: "1px solid var(--active-ink-border)", color: "var(--active-ink)"
-                      }}
-                    >
-                      我建议
-                    </span>
-                  ) : null}
-                  <div style={{ fontWeight: 500 }}>{m.title}{m.p05 ? <> <StageTag>P0.5</StageTag></> : null}</div>
-                  <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginTop: 4 }}>{m.desc}</div>
-                </button>
-              );
-            })}
-          </div>
+          {blockedDirect ? (
+            <div style={{ fontSize: "var(--text-sm)", color: "var(--color-warning)", marginTop: "var(--space-3)" }}>
+              这份包带着直达验收档,本期 designed/deferred,不能从这里拍板。现役只按逐步确认执行。
+            </div>
+          ) : (
+            <div style={{ fontSize: "var(--text-sm)", marginTop: "var(--space-3)" }}>
+              按逐步确认执行(每步问你)。直达验收档 designed/deferred,不在现役入口。
+            </div>
+          )}
           <ActionRow>
             <Btn variant="seal" disabled={!canApprove} onClick={() => onAction?.("approve")}>拍板,开始</Btn>
             <Btn onClick={() => onAction?.("edit_expectation")}>改期待</Btn>
             <Btn onClick={() => onAction?.("revise")}>还要改改</Btn>
-            <span style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>不置可否就按「每步问你」处理 · 二选一没有默认选中</span>
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>不置可否就按「每步问你」处理</span>
           </ActionRow>
         </Section>
       )}

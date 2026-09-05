@@ -108,19 +108,10 @@ describe("④e screen_text via 定向(a/b)", () => {
     });
   }
 
-  it("a) tailnet peer 永收不到 screen_text;b) local peer 收到且 turnId 正确", async () => {
+  it("a) tailnet console WS 连接被拒(4003);b) local peer 收到全文且 turnId 正确", async () => {
     const local = await connect("console", "local");
-    const tailnet = await connect("console", "tailnet");
-    let tailnetGot = false;
-    tailnet.on("message", (d, bin) => {
-      if (bin) return;
-      try {
-        const m = JSON.parse(String(d)) as { t?: string };
-        if (m.t === "screen_text") tailnetGot = true;
-      } catch {
-        /* ignore */
-      }
-    });
+    // PG-01B:远程业务面 fail-closed——via=tailnet 根本连不上,不是「连上但收不到」
+    await expect(connect("console", "tailnet")).rejects.toThrow(/^closed 4003$/);
     const ses = newId("ses");
     const turn = newId("ses");
     const got = nextJson(local, (m) => m["t"] === "screen_text");
@@ -134,19 +125,15 @@ describe("④e screen_text via 定向(a/b)", () => {
     const msg = await got;
     expect(msg["turnId"]).toBe(turn);
     expect(msg["text"]).toContain("token=secret");
-    // 短暂等待确认 tailnet 无泄漏
-    await new Promise((r) => setTimeout(r, 50));
-    expect(tailnetGot).toBe(false);
-    // predicate 单测
+    // 无存活 tailnet console peer,定向 predicate 投递 succeeded=0
     const onlyTail = hub.sendToConsolePeers((m) => m.via === "tailnet", {
       t: "screen_text",
       sessionId: ses,
       turnId: turn,
       text: "leak-test"
     });
-    expect(onlyTail.succeeded).toBe(1); // 定向到 tailnet 可发,但 sendScreenText 永不
+    expect(onlyTail.succeeded).toBe(0);
     local.close();
-    tailnet.close();
   });
 });
 

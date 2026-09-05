@@ -112,6 +112,7 @@ describe("deriveExpectations", () => {
       { text: "提案 demo.html", state: "untested" }
     ]);
     expect(exp![0]!.artifacts).toEqual({ expected: 2, delivered: 1 });
+    expect(exp![0]!.budget).toEqual({ known: false });
   });
 });
 

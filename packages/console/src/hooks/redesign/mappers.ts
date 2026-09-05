@@ -273,8 +273,7 @@ export function deriveExpectations(
         state: "untested" as const
       })),
       artifacts: { expected: expected.length, delivered: deliveredCount },
-      // OPEN QUESTION:focus 级预算 API 未暴露;P0 用 0/0 占位,Money 呈现「还没有确切数字」归组件后续
-      budget: { spent: 0, max: 0, currency: "CNY" }
+      budget: { known: false }
     }
   ];
 }

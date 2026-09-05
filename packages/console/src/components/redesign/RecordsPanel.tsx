@@ -36,6 +36,7 @@ export function RecordsPanel({ focus, lanes, dependencies, segments, events, onA
   onExpandSegment?: (sessionRef: string) => Promise<string[] | null> | string[] | null;
 }) {
   const canArchive = ["active", "captured", "dormant"].includes(focus.lifecycle);
+  const canAbandon = ["active", "dormant", "archived"].includes(focus.lifecycle);
   const canReopen = focus.lifecycle === "archived";
   const canFork = focus.lifecycle === "closed";
   const emit = (a: RecordsAction) => onAction?.(a);
@@ -47,7 +48,7 @@ export function RecordsPanel({ focus, lanes, dependencies, segments, events, onA
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: 6, flexWrap: "wrap" }}>
         <span style={{ fontSize: "var(--text-xl)", fontWeight: 600 }}>记录 · {focus.title}</span>
         {canArchive ? <Btn onClick={() => emit({ type: "archive" })}>归档(封存可重开)</Btn> : null}
-        {canArchive ? <Btn onClick={() => emit({ type: "abandon" })}>放弃(主动中止)</Btn> : null}
+        {canAbandon ? <Btn onClick={() => emit({ type: "abandon" })}>放弃(主动中止)</Btn> : null}
         {canReopen ? <Btn variant="ink-outline" onClick={() => emit({ type: "reopen" })}>重开</Btn> : null}
         {canFork ? <Btn variant="primary" icon={Plus} onClick={() => emit({ type: "fork" })}>fork 一件新的</Btn> : null}
       </div>

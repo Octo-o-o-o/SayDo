@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { computeGrantDigest, renderSpoken, type EffectGrant } from "@saydo/contracts";
 import { openDb } from "../src/storage/db.js";
 import { InterceptCounter, issuePreauthorizedReceipt, matchGrant, renderGrantChecklist } from "../src/approvals/directMode.js";
+import { parseActiveDispatchMode } from "../src/brain/liveTools.js";
 import type { AuditSink } from "../src/obs/audit.js";
 
 const nullAudit: AuditSink = { record: () => ({ id: "aud_x" }) };
@@ -96,6 +97,19 @@ describe("preauthorized 子收据(09 §3)", () => {
     expect(() =>
       issuePreauthorizedReceipt(db, nullAudit, { grant: g, parentPackageDigest: PARENT_DIGEST, taskId: "tsk_01AAAAAAAAAAAAAAAAAAAAAAAA", effectText: g.spokenForm }, NOW)
     ).toThrow(/parent dispatch receipt/);
+  });
+});
+
+describe("PG-01B 现役 dispatch mode", () => {
+  it("仅 step_confirm 可调用;direct_to_review fail-closed", () => {
+    expect(parseActiveDispatchMode("step_confirm")).toEqual({ ok: true, mode: "step_confirm" });
+    const blocked = parseActiveDispatchMode("direct_to_review");
+    expect(blocked.ok).toBe(false);
+    if (!blocked.ok) {
+      expect(blocked.code).toBe("direct_mode_not_wired");
+      expect(blocked.message).toContain("不能拍板");
+    }
+    expect(parseActiveDispatchMode(undefined).ok).toBe(false);
   });
 });
 

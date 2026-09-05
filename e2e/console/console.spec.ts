@@ -71,6 +71,87 @@ async function connectTestPipeline(): Promise<WebSocket> {
   throw new Error("test pipeline did not become voice-ready");
 }
 
+function lanOrigin(port: number): string {
+  return `http://${runtime.lanAddress}:${port}`;
+}
+
+async function lanJson(
+  port: number,
+  path: string,
+  init: { method?: string; token?: string; body?: string } = {}
+): Promise<{ status: number; body: Record<string, unknown> }> {
+  const origin = lanOrigin(port);
+  const headers: Record<string, string> = {
+    origin,
+    "x-saydo-token": init.token ?? token
+  };
+  if (init.body !== undefined) headers["content-type"] = "application/json";
+  const response = await fetch(`${origin}${path}`, {
+    method: init.method ?? "GET",
+    headers,
+    body: init.body
+  });
+  const text = await response.text();
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text) as unknown;
+  } catch {
+    parsed = { raw: text };
+  }
+  const body =
+    parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : { value: parsed };
+  return { status: response.status, body };
+}
+
+async function expectLanBusinessForbidden(
+  port: number,
+  path: string,
+  init: { method?: string; token?: string; body?: string } = {}
+): Promise<void> {
+  const result = await lanJson(port, path, init);
+  expect(result.status, JSON.stringify(result.body)).toBe(403);
+  expect(result.body["code"]).toBe("remote_business_forbidden");
+}
+
+function expectLanVoiceWsRejected(port: number, capToken: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(`ws://${runtime.lanAddress}:${port}/ws/voice?token=${capToken}`);
+    const timer = setTimeout(() => {
+      ws.close();
+      reject(new Error("LAN voice WS did not close"));
+    }, 3_000);
+    const onBusiness = () => {
+      clearTimeout(timer);
+      ws.removeEventListener("message", onBusiness);
+      ws.close();
+      reject(new Error("LAN voice WS delivered a business payload"));
+    };
+    ws.addEventListener("message", onBusiness);
+    ws.addEventListener("close", (event) => {
+      clearTimeout(timer);
+      ws.removeEventListener("message", onBusiness);
+      if (event.code === 4003) {
+        resolve();
+        return;
+      }
+      reject(new Error(`LAN voice WS closed ${event.code} ${event.reason}`));
+    });
+  });
+}
+
+async function expectLanProbeError(page: Page, url: string): Promise<void> {
+  const probe = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/setup/probe");
+  await page.goto(url);
+  const probeRes = await probe;
+  expect(probeRes.status()).toBe(403);
+  await expect(probeRes.json()).resolves.toMatchObject({ code: "remote_business_forbidden" });
+  await expect(page.locator("[data-setup-bootstrap=probe-error]")).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator("[data-setup-bootstrap=remote-mobile]")).toHaveCount(0);
+  await expect(page.locator("[data-mobile-shell]")).toHaveCount(0);
+}
+
 // 11 页路由表(08 §6)
 const PAGES: { name: string; hash: string; probe: string }[] = [
   { name: "dashboard", hash: "/dashboard", probe: "[data-page=dashboard]" },
@@ -217,96 +298,64 @@ test("M1 窄屏渲染移动树，视口切换不重建 WS Provider，宽屏重�
   expect(await page.evaluate(() => (window as unknown as { __saydoVoiceMounts?: number }).__saydoVoiceMounts)).toBe(1);
 });
 
-test("M1 M-Chat 呈现既有 first-run 端点开场白", async ({ page }) => {
+test("M1 LAN first-run 业务 query 403，不挂 remote-mobile 开场白", async ({ page }) => {
+  await expectLanBusinessForbidden(runtime.firstRunPort, "/api/setup/first-run/query", {
+    method: "POST",
+    token: runtime.firstRunToken,
+    body: "{}"
+  });
   await page.setViewportSize({ width: 390, height: 844 });
-  const firstRunResponse = page.waitForResponse(
-    (response) => new URL(response.url()).pathname === "/api/setup/first-run/query"
+  await expectLanProbeError(
+    page,
+    `${lanOrigin(runtime.firstRunPort)}/?token=${runtime.firstRunToken}#/m/chat`
   );
-  await page.goto(
-    `http://${runtime.lanAddress}:${runtime.firstRunPort}/?token=${runtime.firstRunToken}#/m/chat`
-  );
-  await page.waitForLoadState("networkidle");
-  expect((await firstRunResponse).status()).toBe(200);
-  await expect(page.locator("[data-setup-bootstrap=remote-mobile]")).toHaveCount(1);
-  await expect(page.locator("[data-mobile-transcript]" )).toContainText("第一次来?随便说三件你这周要办的事");
+  await expect(page.locator("[data-mobile-transcript]")).toHaveCount(0);
+  await expect(page.locator("[data-mobile-page=today]")).toHaveCount(0);
 });
 
-test("M1 真浏览器经 RFC1918 地址读取 Today，同源 GET 缺 Origin 仍通过浏览器来源门", async ({ page }) => {
+test("M1 真浏览器经 RFC1918 读业务 API 得 403，不挂移动业务树", async ({ page }) => {
+  const health = await fetch(`${lanOrigin(PORT)}/health`);
+  expect(health.status).toBe(200);
+  expect(await health.json()).toMatchObject({ ok: true, service: "saydo-daemon" });
+  const shell = await fetch(`${lanOrigin(PORT)}/?token=${token}`);
+  expect(shell.status).toBe(200);
+  expect(await shell.text()).toMatch(/<!doctype html>/i);
+  await expectLanBusinessForbidden(PORT, "/api/attention");
   await page.setViewportSize({ width: 390, height: 844 });
-  const attentionReq = page.waitForRequest((request) => new URL(request.url()).pathname === "/api/attention");
-  await page.goto(`http://${runtime.lanAddress}:${PORT}/?token=${token}#/m`);
-  await expect(page.locator("[data-mobile-page=today]")).toBeVisible();
-  const headers = await (await attentionReq).allHeaders();
-  expect(headers["origin"]).toBeUndefined();
-  expect(headers["referer"]).toContain(`http://${runtime.lanAddress}:${PORT}/`);
-  const site = headers["sec-fetch-site"];
-  if (site !== undefined) expect(site).toBe("same-origin");
-  await expect(page.locator("[data-setup-bootstrap=remote-mobile]")).toHaveCount(1);
-  await expect(page.locator("[data-mobile-page=today]")).not.toContainText("正在翻今天的账");
-  await expect(page.locator("[data-mobile-page=today]")).not.toContainText("读取失败");
+  await expectLanProbeError(page, `${lanOrigin(PORT)}/?token=${token}#/m`);
+  await expect(page.locator("[data-mobile-page=today]")).toHaveCount(0);
 });
 
-test("M1 LAN Things 直挂移动树", async ({ page }) => {
+test("M1 LAN Things 不挂移动业务树", async ({ page }) => {
+  await expectLanBusinessForbidden(PORT, "/api/focuses");
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`http://${runtime.lanAddress}:${PORT}/?token=${token}#/m/things`);
-  await page.waitForLoadState("networkidle");
-  await expect(page.locator("[data-setup-bootstrap=remote-mobile]")).toHaveCount(1);
-  await expect(page.locator("[data-mobile-page=things]")).toBeVisible();
+  await expectLanProbeError(page, `${lanOrigin(PORT)}/?token=${token}#/m/things`);
+  await expect(page.locator("[data-mobile-page=things]")).toHaveCount(0);
   await expect(page.locator("[data-page=today]")).toHaveCount(0);
-  await expect(page.locator("[data-mobile-page=things]")).not.toContainText("Focus 读取失败");
 });
 
-test("M1 LAN 横屏仍强制移动树,不走桌面 Today", async ({ page }) => {
+test("M1 LAN 横屏也不挂移动或桌面业务树", async ({ page }) => {
   await page.setViewportSize({ width: 1000, height: 844 });
-  await page.goto(`http://${runtime.lanAddress}:${PORT}/?token=${token}#/m`);
-  await page.waitForLoadState("networkidle");
-  await expect(page.locator("[data-setup-bootstrap=remote-mobile]")).toHaveCount(1);
-  await expect(page.locator("[data-mobile-page=today]")).toBeVisible();
+  await expectLanProbeError(page, `${lanOrigin(PORT)}/?token=${token}#/m`);
+  await expect(page.locator("[data-mobile-page=today]")).toHaveCount(0);
   await expect(page.locator("[data-page=today]")).toHaveCount(0);
   await expect(page).toHaveURL(/#\/m$/);
 });
 
-test("M1 文本经既有 dialog 链收到回复，抢先消息不消费 first-run", async ({ page }) => {
-  const pipeline = await connectTestPipeline();
+test("M1 LAN 文本业务 WS 被拒，dialog 链不可用", async ({ page }) => {
+  await expectLanVoiceWsRejected(PORT, token);
   await page.setViewportSize({ width: 390, height: 844 });
-  let firstRunQueries = 0;
-  page.on("request", (request) => {
-    if (new URL(request.url()).pathname === "/api/setup/first-run/query") firstRunQueries += 1;
-  });
-  try {
-    await page.goto(`http://${runtime.lanAddress}:${PORT}/?token=${token}#/m`);
-    await expect(page.locator("[data-mobile-page=today]")).toBeVisible();
-    await page.locator(".m-composer input").fill("撤销");
-    await page.locator(".m-send").click();
-    await expect(page).toHaveURL(/#\/m\/chat$/);
-    await expect(page.locator(".m-composer input")).toHaveValue("");
-    await expect(page.locator("[data-mobile-transcript]")).toContainText("撤销");
-    await expect(page.locator("[data-mobile-transcript]")).toContainText("最近没有可撤销的操作。");
-    expect(firstRunQueries).toBe(0);
-  } finally {
-    pipeline.close();
-  }
+  await expectLanProbeError(page, `${lanOrigin(PORT)}/?token=${token}#/m`);
+  await expect(page.locator(".m-composer input")).toHaveCount(0);
+  await expect(page.locator("[data-mobile-transcript]")).toHaveCount(0);
 });
 
-test("M1 WS 写入异常时保留移动草稿", async ({ page }) => {
+test("M1 LAN WS 到不了 online，不挂移动草稿壳", async ({ page }) => {
+  await expectLanVoiceWsRejected(PORT, token);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`http://${runtime.lanAddress}:${PORT}/?token=${token}#/m`);
-  await expect(page.locator("[data-mobile-shell]")).toHaveAttribute("data-dstat", "online");
-  await page.locator(".m-composer input").fill("不能静默丢掉的草稿");
-  await page.evaluate(() => {
-    const original = WebSocket.prototype.send;
-    WebSocket.prototype.send = function (data) {
-      if (typeof data === "string" && data.includes('"t":"turn.text"')) {
-        WebSocket.prototype.send = original;
-        throw new Error("simulated websocket write failure");
-      }
-      return original.call(this, data);
-    };
-  });
-  await page.locator(".m-send").click();
-  await expect(page).toHaveURL(/#\/m$/);
-  await expect(page.locator(".m-composer input")).toHaveValue("不能静默丢掉的草稿");
-  await expect(page.locator(".m-toast")).toContainText("还没发出去，草稿给你留着了。");
+  await expectLanProbeError(page, `${lanOrigin(PORT)}/?token=${token}#/m`);
+  await expect(page.locator("[data-mobile-shell]")).toHaveCount(0);
+  await expect(page.locator(".m-composer input")).toHaveCount(0);
 });
 
 test("M1 WS 首连失败不会永久卡在 connecting", async ({ page }) => {
@@ -334,6 +383,41 @@ test("M1 浏览器真实断网后 WS 重连恢复 online，草稿始终可编辑
   await context.setOffline(false);
   await expect(page.locator("[data-mobile-shell]" )).toHaveAttribute("data-dstat", "online", { timeout: 10_000 });
   await expect(page.locator(".m-composer input")).toHaveValue("断网时保留这段草稿");
+});
+
+test("M1 本机 queueText 成功：清草稿、跳聊天、transcript 出现原文", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await open(page, "/m");
+  await expect(page.locator("[data-mobile-shell]")).toHaveAttribute("data-dstat", "online");
+  const draft = "本机发送草稿守护句";
+  await page.locator(".m-composer input").fill(draft);
+  await expect(page.locator(".m-send")).toBeEnabled();
+  await page.locator(".m-send").click();
+  await expect(page).toHaveURL(/#\/m\/chat$/);
+  await expect(page.locator(".m-composer input")).toHaveValue("");
+  await expect(page.locator("[data-mobile-transcript]")).toContainText(draft);
+  await expect(page.locator(".m-toast")).toContainText(`已发送:"${draft}"`);
+});
+
+test("M1 本机 queueText 写入异常：保留草稿并提示失败", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await open(page, "/m");
+  await expect(page.locator("[data-mobile-shell]")).toHaveAttribute("data-dstat", "online");
+  await page.locator(".m-composer input").fill("不能静默丢掉的草稿");
+  await page.evaluate(() => {
+    const original = WebSocket.prototype.send;
+    WebSocket.prototype.send = function (data) {
+      if (typeof data === "string" && data.includes('"t":"turn.text"')) {
+        WebSocket.prototype.send = original;
+        throw new Error("simulated websocket write failure");
+      }
+      return original.call(this, data);
+    };
+  });
+  await page.locator(".m-send").click();
+  await expect(page).toHaveURL(/#\/m$/);
+  await expect(page.locator(".m-composer input")).toHaveValue("不能静默丢掉的草稿");
+  await expect(page.locator(".m-toast")).toContainText("还没发出去，草稿给你留着了。");
 });
 
 test("桌面 fresh origin 通过真实逃生口进入，并在整页重载后保持选择", async ({ page }) => {

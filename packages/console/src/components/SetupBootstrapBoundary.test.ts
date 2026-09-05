@@ -92,8 +92,14 @@ describe("SetupBootstrapBoundary 判定", () => {
     ).toBe("remote-mobile");
   });
 
-  it("token_mismatch/origin_rejected/host_rejected/setup_local_only 仍停错误卡", () => {
-    const blocked = ["token_mismatch", "origin_rejected", "host_rejected", "setup_local_only"] as const;
+  it("token_mismatch/origin_rejected/host_rejected/setup_local_only/remote_business_forbidden 仍停错误卡", () => {
+    const blocked = [
+      "token_mismatch",
+      "origin_rejected",
+      "host_rejected",
+      "setup_local_only",
+      "remote_business_forbidden"
+    ] as const;
     for (const code of blocked) {
       expect(
         resolveSetupBootstrapState({

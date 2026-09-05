@@ -25,6 +25,7 @@ import { recordCliSubscriptionInvocation, recordTtsChars } from "./cost/ledger.j
 import { loadOrCreateCapToken } from "./net/capToken.js";
 import { extractToken, verifyIdentity } from "./net/identity.js";
 import { daemonListenAddress, mobileLanApiAllowed, mobileLanEnabled } from "./net/mobileLan.js";
+import { remoteHttpBusinessDecision, remoteVoiceWsDecision } from "./net/remoteSurface.js";
 import { pairingInfoPayload } from "./net/pairingInfo.js";
 import { LatencyCollector } from "./obs/latency.js";
 import {
@@ -62,7 +63,7 @@ import {
 import { createFocusArtifact, listFocusArtifacts, realizeArtifactApi } from "./api/artifacts.js";
 import { adjustExpectationApi, withdrawExpectationApi } from "./api/expectations.js";
 import { ackAttentionApi, getAttention } from "./api/attention.js";
-import { archiveFocusApi, createFocusApi, reopenFocusApi } from "./api/focuses.js";
+import { abandonFocusApi, archiveFocusApi, createFocusApi, reopenFocusApi } from "./api/focuses.js";
 import { getActivationTranscript, getFocusTimeline } from "./api/focusTimeline.js";
 import { redoFromLaneApi, retireLaneApi } from "./api/lanes.js";
 import { resolveObligationApi, setWaitingOnApi } from "./api/obligations.js";
@@ -938,6 +939,19 @@ server.on("request", (req, res) => {
       return;
     }
     const idvVia = idv.via; // 阶段 B:来源面标注(local=受信终端 / tailnet=手机薄版)
+    const remoteHttp = remoteHttpBusinessDecision({ via: idvVia, pathname });
+    if (!remoteHttp.allow) {
+      res.writeHead(403, { "content-type": "application/json" });
+      res.end(
+        JSON.stringify({
+          ok: false,
+          code: remoteHttp.code,
+          message: remoteHttp.message,
+          retryable: false
+        })
+      );
+      return;
+    }
     if (idvVia === "mobile_lan" && !mobileLanApiAllowed(req.method, pathname)) {
       res.writeHead(403, { "content-type": "application/json" });
       res.end(
@@ -1751,6 +1765,7 @@ server.on("request", (req, res) => {
       const mFocusSpace = /^\/api\/focuses\/([^/]+)\/space$/.exec(pathname);
       const mFocusArt = /^\/api\/focuses\/([^/]+)\/artifacts$/.exec(pathname);
       const mFocusArchive = /^\/api\/focuses\/([^/]+)\/archive$/.exec(pathname);
+      const mFocusAbandon = /^\/api\/focuses\/([^/]+)\/abandon$/.exec(pathname);
       const mFocusReopen = /^\/api\/focuses\/([^/]+)\/reopen$/.exec(pathname);
       const mTaskCtx = /^\/api\/session\/([^/]+)\/task-context$/.exec(pathname);
       const mLaneRetire = /^\/api\/focuses\/([^/]+)\/lanes\/([^/]+)\/retire$/.exec(pathname);
@@ -1772,6 +1787,7 @@ server.on("request", (req, res) => {
         mFocusSpace ||
         mFocusArt ||
         mFocusArchive ||
+        mFocusAbandon ||
         mFocusReopen ||
         mTaskCtx ||
         mLaneRetire ||
@@ -1819,6 +1835,8 @@ server.on("request", (req, res) => {
               out = createFocusApi(db, audit, parsed, nowIso);
             } else if (mFocusArchive) {
               out = archiveFocusApi(db, audit, mFocusArchive[1] as string, parsed);
+            } else if (mFocusAbandon) {
+              out = abandonFocusApi(db, audit, mFocusAbandon[1] as string, parsed);
             } else if (mFocusReopen) {
               out = reopenFocusApi(db, audit, mFocusReopen[1] as string);
             } else if (mSpaceRename) {
@@ -3066,7 +3084,16 @@ const voiceHub: VoiceHub = new VoiceHub(server, log.child({ mod: "voice" }), {
       if (trace) log.info("latency trace complete", { ...trace });
     }
   },
-  verifyUpgrade: (req) => checkIdentity(req),
+  verifyUpgrade: (req) => {
+    const idv = checkIdentity(req);
+    if (!idv.ok) return idv;
+    const remoteWs = remoteVoiceWsDecision(idv.via);
+    const via = idv.via;
+    if (!remoteWs.allow) {
+      return via === undefined ? { ok: false, code: remoteWs.code } : { ok: false, code: remoteWs.code, via };
+    }
+    return via === undefined ? { ok: true } : { ok: true, via };
+  },
   // ④e A6:console peer 全部离线 → 取消 idle 收场,防 K2 幽灵收尾
   onConsoleSessionOffline: (sessionId) => {
     try {

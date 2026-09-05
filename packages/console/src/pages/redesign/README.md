@@ -54,7 +54,7 @@
 
 | 字段 | 语义 |
 |---|---|
-| `focus` | FocusView:lifecycle 决定按钮区(活跃=归档/放弃,archived=重开,closed=fork) |
+| `focus` | FocusView:lifecycle 决定按钮区(活跃=归档/放弃,archived=重开/放弃,closed=fork);放弃走独立 /abandon |
 | `lanes` | 支线航迹 `{id,title,eventCount,retired?}`:eventCount 渲染圆点数,retired 不亮当前水位 |
 | `dependencies` | ObligationView[](waiting 态依赖):展示「X 等 Y」,解除依赖走 onAction |
 | `segments` | 会话段 `{sessionRef,label,turnCount,closed,transcriptAvailable}`;closed=false=中断缺尾,transcriptAvailable=false=未存转写占位 |
