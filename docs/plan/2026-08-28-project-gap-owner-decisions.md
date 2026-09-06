@@ -2,7 +2,7 @@
 
 > 日期：2026-08-28
 > 对应方案：`docs/plan/2026-08-28-project-gap-closure-program.md` v7
-> 状态：D17 已签（2026-08-29）；D1/D14 的首批目标人群与语音非必需约束于 2026-08-31 部分裁决，后续实施授权见第 6 节；PG-01A 三文件恢复与本地 I/E 提交授权见第 7 节，C1 三项 blocker 的再次有界恢复见第 8 节。D1–D16 与 D18–D19 未因此整体签署，产品支持档位未晋级；D17 的历史授权仍只覆盖 PG-00
+> 状态：D17 已签（2026-08-29）；D1/D14 的首批目标人群与语音非必需约束于 2026-08-31 部分裁决，后续实施授权见第 6 节；PG-01A 三文件恢复与本地 I/E 提交授权见第 7 节，C1 三项 blocker 的再次有界恢复见第 8 节；AS-01-AS-02 隐私批授权见第 10 节（来源为 owner 直接提交统一实施 Prompt，不是 D17 扩权）。D1–D16 与 D18–D19 未因此整体签署，产品支持档位未晋级；D17 的历史授权仍只覆盖 PG-00
 > 规则：本文件是 D1–D19 的唯一签署载体；方案正文中的缺省动作不是签名，也不是已实施状态
 
 ## 1. 签署方法
@@ -119,6 +119,7 @@ AI supply 的十项既有决策继续只在
 | 2026-08-31 | 首批用户与后续实施 | 登记第 6 节新授权；首批同时服务开发者与普通用户，完整语音非必需；不改写 D17，也不把未给出的子决策标为已签 | PG-01A 起的既定治理链 | supervisor |
 | 2026-08-31 | PG-01A 有界恢复与本地提交 | 登记第 7 节对上一轮明确问题的批准；只补入向导测试与两份现役投影，恢复本地 I/E 流程，不扩大外部权限 | PG-01A | supervisor |
 | 2026-08-31 | PG-01A C1 三项 blocker 恢复 | 登记第 8 节新授权；处理 B1/B2/B3，维持一次修复和一次 fresh readback、本地 I/E 边界，保留旧 RED | PG-01A | supervisor |
+| 2026-09-06 | AS-01-AS-02 隐私批 | 登记第 10 节；来源是 owner 于 2026-09-05 直接提交《SayDo 工程改进统一实施 Prompt · Astra》，默认近期组合 PG-01B → AS-01/AS-02；不改写 D17 原话；PG-01B 已入 main 但无 `--finalize` 记录 | AS-01-AS-02 | supervisor |
 
 ## 6. 2026-08-31 后续实施授权
 
@@ -194,3 +195,14 @@ owner 本次回复原文：
 - 最终报告给出实际 candidate、独立 verdict、focused/full 实证、公开声明限制和未执行事项。真实范围/权限/凭证或预算阻塞时固化 handoff，不假绿，不因软上下文或旧预算重新询问。
 
 本节只覆盖上述夜间 PG-01A 恢复，不改变未签产品/架构决策，也不授权对外推送、合并晋升、部署、发布、真实产品 AI/connector 调用或用户数据删除。
+
+## 10. 2026-09-05/06 AS-01-AS-02 隐私批授权
+
+来源：owner 在 2026-09-05 本新任务直接提交《SayDo 工程改进统一实施 Prompt · Astra》（仓内 `docs/plan/IMPL-PROMPT-engineering-unified.astra.md`）作为实施请求，并按其 §1 默认近期组合 **PG-01B → AS-01/AS-02** 接续。这不是仅合并文档的旧研究任务，也不是 D17 扩权。本节不编造逐字引语，不改写上方 D17 原话。
+
+登记边界：
+
+- 前置：PG-01B 已入 `main`。implementation `ebd449080bb0e476eb2dd3334ee0b152cb3a7eeb`，evidence commit `99d51106c9caaefcf55f72bff1a17a78abf58be9`，证据正文 `e2e/evidence/pg-01b-20260905.md`（不是原批卡旧文件名 `e2e/evidence/project-gap-pg-01b.md`）。原始七项 gate log 与 receipt SHA 已核验；代码从 I 到 E 无变。journal R129 记录 owner 已知情接受 `--finalize` 程序性债并合并。不清旧账、不伪称 finalized、不重做 PG-01B。PLAN-2 曾把 `active=PG-01B` 留作滞后文字，不否认已经入 main 的实现。
+- 产品范围仅同一隐私批的 contract → implementation 两阶段（凭据写前拒绝、私有 write set Git 保护、三类失败可见与恢复）。不自动实施 AS-03..07、PG-02 或其它候选。
+- 本登记不授权 commit/push/merge/install/deploy、真实 provider 调用或付费探针。合同阶段只改 canonical/排产/有限共享 schema；implementation 另阶段再改 daemon/console。
+- 旧 D17 仍只覆盖 PG-00 导入；不得把 D17 当作本批授权。

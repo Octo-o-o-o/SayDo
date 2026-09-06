@@ -428,7 +428,7 @@ interface SourceRef {
 }
 ```
 
-- **写路径**:`raw → candidate → 检查(冲突/taint/policy) → trusted`;直入 trusted 仅 `user_stated` 与 `auto_low_impact`(**`auto_low_impact` P0 起须过独立机械判定器,owner 2026-07-24:⟺ `source ∈ {git-tracked repo_file, user_edit}` ∧ 内容为事实性陈述(非指令/副作用)——repo_file 来源默认带 taint 待复核;含 `curl|sh`/部署/删除等指令词或第三方来源一律降 candidate;判定为机械规则、不经 Brain**);**M0 只接受 user_stated/user_approved**。
+- **写路径**:`raw → candidate → 检查(冲突/taint/policy) → trusted`;直入 trusted 仅 `user_stated` 与 `auto_low_impact`(**`auto_low_impact` P0 起须过独立机械判定器,owner 2026-07-24:⟺ `source ∈ {git-tracked repo_file, user_edit}` ∧ 内容为事实性陈述(非指令/副作用)——repo_file 来源默认带 taint 待复核;含 `curl|sh`/部署/删除等指令词或第三方来源一律降 candidate;判定为机械规则、不经 Brain**);**M0 只接受 user_stated/user_approved**。**凭据字面量闸(AS-01,先于 classify 与 `requestedTrust`)**:`MemoryLedger.add`(含 supersedes/`remember`)在 insert 前扫描 **claim 与将落盘的 `source.quote`/`source.ref` 字符串**,规则唯一实现为 contracts `findCredentialLiteralSpans` / `CREDENTIAL_GRAMMAR`(不是 `credentialKindSchema`——后者只是 kind 枚举,不含长度或字符集)。PEM:`-----BEGIN [A-Z ]{0,40}PRIVATE KEY-----` 至对应 `END` 块,内文最长 524288。token:起始前一字符不得属于 `[A-Za-z0-9_]`;`sk-`+`[A-Za-z0-9-]{16,256}`;`ghp_`+`[A-Za-z0-9]{16,256}`;`github_pat_`+`[A-Za-z0-9_]{16,256}`;`xox[baprs]-`+`[A-Za-z0-9-]{16,256}`;`AKIA`/`ASIA`+恰好 16 位 `[0-9A-Z]`。命中 ⇒ 抛/返回 `memory_secret_literal`,不 insert,账本无原文;audit 只记 `{kind, spanDigest}`;错误/日志/TTS 不得回显命中原文。`user_stated`/`user_approved` 不能绕过。有限豁免一律完整覆盖语义(`CREDENTIAL_EXEMPTION_SCOPE=covers_whole_span`,不按 PEM/token 分叉、不使用 any_overlap):独立 `env:[A-Z][A-Z0-9_]{0,63}`、`sha256:`+64 hex、SayDo id、`${NAME}`/`$NAME` 不作为凭据证据;仅当某豁免覆盖整段凭据跨度才跳过该命中;合法 ID 只覆盖 token 末尾、PEM 正文局部引用不得豁免(PEM 内文含 `env:OPENAI_API_KEY` 等声明豁免仍命中 pem_private_key;`sk-`+16A+`-`+合法 mem_ id 仍命中 openai_sk)。已声明 kind × 已声明豁免只检查完整覆盖、无相交、仅局部相交;语法不可能交叉的组合标不适用。`CREDENTIAL_PLACEHOLDERS` 仍仅整串等起止豁免;合法长 literal 含子串不得整段豁免;`sk-test` 后追加 13 个 A 使 body=17 仍命中 openai_sk。不纳入 TTS 表其余项:路径、客户数字、>=20 字符泛长串、熵估计。路径不是凭据 kind。格式外供应商 token = 已知漏检;同形假 token 仍命中、不承诺可准确区分。已有明文 secret 不自动 forget,用户走既有 forget 两阶段(10 #38)。**逐条隔离**:中央 guard 拒写只作用于该次 `add`;不得因一条命中回滚外层事务还声称「其它工作继续」。生产消费者与恢复协议见执行卡 §4.2。
 - **forget_hard(append-only 的唯一例外)**:tombstone 事件存 **target ids/digests + generation**(不留敏感正文)+ **就地覆写**历史相关事件的 claim/source 字段,`memoryGeneration`(持久计数器,与 tombstone 同事务)强制 +1;清除是多目标操作(FTS 行、投影文件段、派生摘要、**源快照正文**——按 claim 关联的 snapshotId 定位删除 bodyPath,§4.1),**重放遇 tombstone 按 target 集重执行清除、清除操作幂等**——崩溃在"追加 tombstone 后 / 覆写前"可靠重放收敛,无独立 job 表(独立 job/phase 表降 P1,§14-A6 2026-07-24)。**备份例外(owner 2026-07-24 拍板)**:自动快照备份是不可变整体文件,P0 **不做备份内逐条清除**——hard-forget 时把 backup store 登记为"待过期",靠保留期(`[params].backup_retention_days`,缺省 30 天)到期整份过期删除闭合;话术**如实告知**(10 #38:"备份里的副本最多再留 N 天,到期随备份一起消失"),不说"所有副本已立即删除"。注意:`memory_fts` 用普通 FTS 表(非 external-content),删除用标准 SQL `DELETE FROM memory_fts WHERE rowid = ?`(**不是** FTS5 的 `'delete'` control——后者仅 external-content 用且实测报 SQL logic error)。
 - **投影**:P0 **不落 current_projection 表**——启动时全量重放入内存,`knowledge/*.md` 即文件投影;人工编辑 Markdown ⇒ daemon 监测 diff ⇒ 生成 `correct(source.kind=user_edit)` 事件回账本。
 
@@ -1156,6 +1156,20 @@ bypass = false                         # 恒 false;为 true 时 dispatch 一律�
 [params]                               # 缺省参数表(实施可调,入配置不硬编码)
 foundation_budget_min = 5              # 奠基墙钟上限(分钟);超限产 partial manifest
 foundation_budget_tokens = 200000
+# AS-01-AS-02:凭据命中或私有 write set 保护不足 ≠ 预算 partial。命中/保护失败在首次 raw staging 写入前终止本次新 generation:
+# 不 mkdir staging、不 writeKnowledgeDocs、不 publish、不改 current.json 与旧 generation status;不得把旧 manifest 改成 partial 同时发布新版。
+# 将落盘 raw 文档(组装后扫描,FOUNDATION_RAW_PERSIST_DOCS):core.md / inventory.md / build-test-run.md / conventions.md / manifest-gen-N.json。
+# `.cursor/rules` 实际读取上限(KNOWLEDGE_PRIVACY_LIMITS / classifyRulesReadBound;直系 *.md|*.mdc,不递归):
+#   单文件 65536B(engineering,不是 KEY_FILES FILE_SIZE_LIMIT)、文件数 16、dirent 32、名称 255B(POSIX NAME_MAX)、
+#   名称缓冲 4096B、读取合计 131072B。safeHits relativeSource 经 foundationRulesRelativeSource:普通名 identity 最长 269=len(.cursor/rules/)+NAME_MAX;非普通名上限 784=len(.cursor/rules/_enc/)+3*NAME_MAX,取消未登记 240。
+#   2000 字只是通过读取上限后的 conventions 切片,不能代替磁盘读取上限。
+#   枚举必须 opendir 逐条,先 stat 再读;超界 foundation_build_restricted,首次 staging 前失败,旧 pointer/status 不变。
+#   禁止 readdirSync/readFileSync 整目录整文件后再检查或截取扫描;不把 KEY_FILES oversized skip 套到 rules;不新增全仓扫描。
+# 必须消除 core.md 等工作区原文行,不得写入 this.workspace 或其它绝对本机路径;路径不是凭据 kind。
+# HTTP/本地 DTO 仍用现有 BootstrapResult({ok, code?, message?, generation?, status?, progressLine?, factsEmitted?, invalidatedOld?});
+# 失败时 code ∈ {foundation_build_restricted, git_protection_insufficient},并带 failureClass
+# (foundation_refresh_failed_kept_old | foundation_first_build_unavailable) 与脱敏 safeHits[](相对来源须过 isSafeRelativeSource:POSIX 相对,拒绝对/盘符/UNC/穿越段/反斜杠/控制字符(Unicode Cc 封闭集 U+0000..U+001F ∪ U+007F ∪ U+0080..U+009F,不含 U+0020/U+007E/U+00A0),允许文件名 foo..bar.md;rules 来源一律经 foundationRulesRelativeSource:普通名 identity 最长 269,非普通名百分号编码最长 784,取消未登记 240;POSIX 合法 a\\b.md 与含该控制字符集的直系名必须可表示且定位串无反斜杠/控制字符/凭据原文,不得以含 U+007F 的 identity 进 safeHits;非 Windows 真机实测)。
+# 不另造第二 DTO;旧成功 {ok:true, generation, status, progressLine} 兼容保持。生产消费者见 IMPL-PROMPT-ecc-as01-as02-privacy.md。
 interview_question_budget = 8          # 采访问题预算
 receipt_timeout_sec = 45               # 收据超时(按档终局)
 evaluator_deep_review_max_per_session = 3   # 异族深评每会话上限(§11 规则 6;去重键 sessionId+evidenceDigest+trigger,冷却 60s)
@@ -1298,7 +1312,7 @@ type DialogCliOneshotEnvelope = {
 1. **digest 确定性**:同签名域输入同 digest;**跨状态变更 digest 不变**;revision 变 digest 必变;effectPolicyVersion 变 ⇒ 旧包拒绝 dispatch(需重签);**proposed TTL(R-A 补完 2026-07-27,Codex 21 A6)**:proposed 行缺 proposed_at 被 DDL 拒 / 同项目双活跃 proposed 被唯一索引拒(含同包新 revision)/ TTL 到期后 dispatch 拒(package_expired,receipt 在期不豁免)/ expires_at·proposed_at 无独立写点(DAO 接口面断言 updatePackageExpiry 类方法不存在)/ expired 包重提 = 新 revision 非复活 / 调度器崩溃重启后到期包仍被扫到(幂等)。
 2. **预授权反例**(整包拒签/拒 dispatch):①route=hopper 且 grants 非空 ②step_confirm 包携带 grants ③effect 枚举外 ④必填约束缺任一 ⑤spokenForm ≠ 重渲染 ⑥branchPattern 命中保护分支 ⑦带 postinstall 的包 ⑧ttl 过期 grant 命中 ⑨package revision 漂移 ⑩Gate 0 未关。
 3. **收据**:单次消费;nonce 重复拒绝;S3 非 screen 拒绝(CHECK);push+S3 拒绝;**voice 裁决缺 turn_ref 拒(DDL CHECK,SOL 反例)**;超时按档终局;timeout_parked 恢复必须新收据+grant 复验;voided_by_conflict 不重试;edit 作废重签链(W5a 已实施:旧张 superseded_by_edit + 新张新 nonce/新 refDigest、编辑重估 S3 拒、修改建议单次消费);**词表外 decided_via/auth_strength 拒、screen 弱认证拒、runtime_effect 缺父包拒(§9 矩阵机械化 CHECK 反例,2026-07-24)**。
-4. **记忆**:forget_hard 传播(FTS/投影/摘要全清)+ 重放幂等收敛;否定不复活;M0 拒收第三方与 taint;expiresAt 到期不入 pack;投影可全量重放再生(含 tombstone 例外)。**快照拆表(M1,2026-07-25 Codex 13b 补)**:同 pack 内容表恒一行(幂等 upsert);每次使用各落一行 `context_snapshot_uses`(**同毫秒重复也各记**,审计计数如实);跨会话复用各记;`rebuild=1` 可回读;篡改 body_json 后 `verifyPackDigest` 失败。**成本条目(M4)**:`kind` 前缀词表(llm.*/asr.seconds/tts.chars/hopper.run/**tier1.run**(2026-08-21 增,§9 注),非法 kind 反例);llm.* 行四 usage 键必填 + `cached_input_tokens<=input_tokens` 断言;订阅行形状照 §11-5;**tier1.run 行断言**:source='subscription'、amount NULL、known 0、requests=1、meta 含 num_turns。
+4. **记忆**:forget_hard 传播(FTS/投影/摘要全清)+ 重放幂等收敛;否定不复活;M0 拒收第三方与 taint;expiresAt 到期不入 pack;投影可全量重放再生(含 tombstone 例外)。**凭据闸(AS-01)**:claim 含 PEM 或声明 token literal(按 `CREDENTIAL_GRAMMAR` 字符集/长度/边界,不是 `credentialKindSchema`) ⇒ `add`/`remember` 拒 `memory_secret_literal`、账本无该条、audit 无原文;`requestedTrust=user_stated` 仍拒;错误信息含命中原文 ⇒ 测试红。`env:OPENAI_API_KEY`、`sha256:`+64 hex、SayDo id、占位整串 `sk-test`/`ghp_fixture_not_a_real_secret`、`${NAME}` 可过;`sk-`+16 构造假 token 仍命中;`sk-test` 后追加 13 个 A(body=17)仍命中 openai_sk;PEM 内文含 `env:OPENAI_API_KEY` 等声明豁免仍命中 pem_private_key;`sk-`+16A+`-`+合法 mem_ id 仍命中 openai_sk(豁免只覆盖末尾不得跳过整段)。foundation 扫描组装后的五件落盘文档且不得含原始绝对 workspace ⇒ 无新 staging/无新 generation/`current.json` 不变;旧 generation 不得被改成 `partial`;首次无旧知识不得返回「仍用旧底座」。**`.cursor/rules` 读取上限**:1 个小 `a.md` 通过;16 文件合计 131072B / 单文件 65536B / 32 dirent / 255B 名 / 4096B 名称缓冲为临界通过;第 17 个规则文件、65537B 文件、33 dirent、256B 名、名称缓冲 4097B、合计 131073B ⇒ `foundation_build_restricted` 且不得 `readFileSync` 全文再截 2000、不得 `readdirSync` 整目录后再检查。`relativeSource=rules/foo..bar.md` 可过;`.cursor/rules/`+227B 普通名(241 字符)与 +255B 普通名(269 字符)的 identity 形式可过;POSIX 合法 `a\\b.md` 经 `foundationRulesRelativeSource` 可进 safeHits 且定位串不得含反斜杠/控制字符/凭据字面量,并与 `ab.md`、`a%5Cb.md` 区分;含 U+0001/U+001F/U+007F/U+0080/U+009F 的直系名须走安全表示,定位串不得含该字符,不得以含 U+007F 的 identity 进 safeHits;空格/U+007E/U+00A0 保持 identity;超 `relativeSourceMaxChars=784` 拒;取消未登记 240,不得缩短 NAME_MAX,不得拒声明支持的 rules 名,不得把文件名规范化成另一个文件。控制字符=Unicode Cc 封闭集 U+0000..U+001F ∪ U+007F ∪ U+0080..U+009F。`C:/windows/secret.env`、`//host/share/x`、`../x` 拒。Git:非 git 标 `not_git` 仍可本地写;等价 ignore 不覆盖;已跟踪 `foundation/core.md` 停本次投影不 untrack;根外 symlink 拒写;只读 ignore 创建失败不清空用户文件。一条记忆拒写不得回滚 `reanchorDraft` 整事务或中止同批其它提名。三类失败 class 互不冒充成功。**快照拆表(M1,2026-07-25 Codex 13b 补)**:同 pack 内容表恒一行(幂等 upsert);每次使用各落一行 `context_snapshot_uses`(**同毫秒重复也各记**,审计计数如实);跨会话复用各记;`rebuild=1` 可回读;篡改 body_json 后 `verifyPackDigest` 失败。**成本条目(M4)**:`kind` 前缀词表(llm.*/asr.seconds/tts.chars/hopper.run/**tier1.run**(2026-08-21 增,§9 注),非法 kind 反例);llm.* 行四 usage 键必填 + `cached_input_tokens<=input_tokens` 断言;订阅行形状照 §11-5;**tier1.run 行断言**:source='subscription'、amount NULL、known 0、requests=1、meta 含 num_turns。
 5. **outbox**:同 dedupeKey 活跃唯一、历史可再入队(第二次 step_boundary/blocked 合法);**dedupe_key NOT NULL(NULL 互异绕活跃唯一索引被 DDL 拒,SOL 反例)**;settle 四项缺一不叫;DND 补叫(snoozedUntil);resolution-timeout 重升级;取消冻结活跃条目;至少一次口径(重复 ≤1)。
 6. **取消/改需求**:cancel_settled 前禁 re-drop;旧 run 晚到事件转历史不回叫;新卡新 idemKey(复用拒绝)。
 7. **崩溃恢复**:两阶段 dispatch(binding NULL 行重放);hopper_commands ≠confirmed 重放;Tier 1 无终态 marker 的活跃 run 按 backend 恢复钥匙分流(2026-08-21 W5.4-b 前置修订):`cursor` 沿既有 (adapter, nativeSessionId, cwd) 三元组;`claude_code` 增第四条件 `native_session_confirmed=1`(四元组,§11 claude_code 承载段;既有 cursor 行为不变)——失败均降级"摘要+diff 注入新会话"。带 `finalize_pending_json` 的 run 不走该恢复分支:重建 executor 后解除 outbox/审计故障须按原 failed/blocked 收敛且 spawn=0;pending 后用户取消须收敛到 task/run 双 cancel_settled、marker 清空且 failed/blocked outbox/审计均为零。
@@ -1485,17 +1499,19 @@ DecisionPackage 的存储列 `project_id`、正文 `projectId`、task `project_i
 
 ```typescript
 remember(i:{ projectId?:Id; tier:"M0"|"M1"|"M2"|"M3"; claim:string; source:SourceRef;
-  trust:"user_stated"|"user_approved"; readinessKey?:string }): { memId:Id };
+  trust:"user_stated"|"user_approved"; readinessKey?:string }): { memId:Id } | { ok:false; code:"memory_secret_literal"; message:string; retryable:false };
   // 用户亲述/确认才可直入 trusted;readinessKey = 就绪候选绑定(A3-armed 2026-07-28):带 key 时走 §13 covered 语义块
   // 四闸(词表/来源 daemon 自取/trust 只可 user_stated/projectId 会话自取),audit `memory.readiness_key_bound`;
   // 注意:签名中 source/projectId 实施为 daemon 自取(Brain 无 source 入参,liveTools 现实现),此处保留字段仅为 schema 完整
+  // AS-01:凭据闸先于四闸与 requestedTrust;命中走统一 toolError 形状,message 不得含命中原文;foundation 错误不得塞进 remember 工具码
 confirmReadiness(i:{}): { presented:{ key:string; label:string; claim:string }[]; control:"await_user" };
   // A3-armed:就绪复述确认环发起——daemon 机械渲染候选绑定清单(renderReadinessChecklist,Brain 不得改写),
   // TTS 播 + 屏幕卡,进入 confirm 环(kind=readiness);用户封闭肯定 ⇒ 确认事务内逐 key 落 ReadinessBinding
   // (同 key 旧绑定自动 superseded)+ 升格 user_approved;否认/修正 ⇒ 环作废零升格。信息确认环 ≠ dispatch 授权环(10 两环差异)
   // sessionId 与 turnId 由 ToolContext 自取;成功呈现后必须返回 await_user,本轮 oneshot 立即停止。
 forget(i:{ memId:Id }): { state:"marked"|"purged"; affected:Id[] }; // 两阶段:先 marked 后 purged(10 #38);readiness 绑定联动见 §13 covered 块
-addHotword(i:{ term:string; canonical:string }): { ok:true };       // 误听纠正写 M0 热词
+addHotword(i:{ term:string; canonical:string }): { ok:true } | { ok:false; code:"memory_secret_literal"; message:string; retryable:false };
+  // 误听纠正写 M0 热词;凭据闸与 remember 同一 grammar;命中不得 {ok:true}
 resolveProject(i:{ }): { match?:Id; confidence:number; suggestPathOrScreen:true; control:"await_user" };
   // daemon 只读当前 heard user turn；仅唯一 name_only 合法，含路径/需求载荷/零匹配/多匹配 fail-closed；
   // 机械播路径/屏幕引导后终止工具环；不形成 candidate/presentation/confirmation

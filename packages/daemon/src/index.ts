@@ -96,6 +96,7 @@ import { BrainTools } from "./brain/tools.js";
 import { DecisionPackageFactory } from "./packages/factory.js";
 import { ArtifactStore } from "./artifacts/store.js";
 import { MemoryLedger } from "./memory/ledger.js";
+import { isMemorySecretLiteralError, memorySecretLiteralReject } from "./memory/credentialLiterals.js";
 import { approveCandidate, nominateFromSession, projectM1Notes, rejectCandidate } from "./memory/growth.js";
 import { bootstrapProjectFoundation } from "./memory/foundationOps.js";
 import { MemoryFts } from "./memory/fts.js";
@@ -1621,11 +1622,16 @@ server.on("request", (req, res) => {
             // 批准后刷新 M1 人可读投影(账本 -> <workspace>/.saydo/knowledge/m1-notes.md)
             if (mMemAct[2] === "approve" && ev.op === "add" && ev.projectId) {
               const workspace = verifiedProjectWorkspace(db, ev.projectId);
-              if (workspace) projectM1Notes(memoryLedger, ev.projectId, workspace);
+              if (workspace) projectM1Notes(memoryLedger, ev.projectId, workspace, new Date().toISOString(), { audit });
             }
             res.writeHead(200, { "content-type": "application/json" });
             res.end(JSON.stringify({ ok: true, action: mMemAct[2], eventId: ev.id }));
           } catch (err) {
+            if (isMemorySecretLiteralError(err)) {
+              res.writeHead(409, { "content-type": "application/json" });
+              res.end(JSON.stringify(memorySecretLiteralReject(err)));
+              return;
+            }
             res.writeHead(409, { "content-type": "application/json" });
             res.end(JSON.stringify({ ok: false, code: "memory_action_failed", message: projectCaughtText(err, "memory_action_failed", 200), retryable: false }));
           }

@@ -263,3 +263,88 @@ describe("§12-4 崩溃相位重放(tombstone 后/覆写前)", () => {
     expect(recovered.fts.count()).toBe(0);
   });
 });
+
+describe("AS-01 MemoryLedger.add 凭据闸", () => {
+  const token = () => ["sk", "-", "A".repeat(16)].join("");
+  let actions: { action: string; meta?: Record<string, unknown> }[];
+  let gated: MemoryLedger;
+  let gatedDb: Db;
+
+  beforeEach(() => {
+    actions = [];
+    gatedDb = openDb(join(mkdtempSync(join(tmpdir(), "saydo-mem-priv-")), "saydo.db"));
+    gated = new MemoryLedger({
+      db: gatedDb,
+      audit: {
+        record: (e) => {
+          actions.push({ action: e.action, ...(e.meta ? { meta: e.meta } : {}) });
+          return { id: "aud_x" };
+        }
+      },
+      now: TS
+    });
+  });
+
+  it("claim / source.quote / source.ref 命中不 insert,audit 仅 kind+spanDigest", () => {
+    const secret = token();
+    const cases = [
+      { claim: `口径 ${secret}`, source: { kind: "user_utterance" as const, ref: "t1" } },
+      { claim: "干净事实", source: { kind: "user_utterance" as const, ref: "t2", quote: secret } },
+      { claim: "干净事实", source: { kind: "user_utterance" as const, ref: secret } }
+    ];
+    for (const input of cases) {
+      expect(() => gated.add({ tier: "M1", ...input })).toThrow(/没记下/);
+      const n = gatedDb.prepare("SELECT COUNT(*) AS n FROM memory_events WHERE claim = ?").get(input.claim) as { n: number };
+      expect(n.n).toBe(0);
+    }
+    const rejected = actions.filter((a) => a.action === "memory.secret_literal_rejected");
+    expect(rejected.length).toBe(3);
+    const dumped = JSON.stringify(rejected);
+    expect(dumped).not.toContain(secret);
+    for (const row of rejected) {
+      const hits = row.meta?.["hits"] as { kind: string; spanDigest: string }[];
+      expect(hits.length).toBeGreaterThan(0);
+      expect(hits[0]?.kind).toBeDefined();
+      expect(hits[0]?.spanDigest.startsWith("sha256:")).toBe(true);
+    }
+  });
+
+  it("supersedes 与 requestedTrust 不能绕过", () => {
+    const secret = token();
+    const prior = gated.add({
+      tier: "M1",
+      claim: "旧口径",
+      source: { kind: "user_utterance", ref: "t0" },
+      requestedTrust: "user_stated"
+    });
+    expect(() =>
+      gated.add({
+        tier: "M1",
+        claim: `新口径 ${secret}`,
+        source: { kind: "user_utterance", ref: "t1" },
+        requestedTrust: "user_stated",
+        supersedes: prior.id
+      })
+    ).toThrow(/没记下/);
+    expect(() =>
+      gated.add({
+        tier: "M1",
+        claim: `批准 ${secret}`,
+        source: { kind: "user_utterance", ref: "t2" },
+        requestedTrust: "user_approved"
+      })
+    ).toThrow(/没记下/);
+    expect(gated.project().some((m) => m.claim.includes(secret))).toBe(false);
+  });
+
+  it("豁免可过", () => {
+    const digest = "sha256:" + "b".repeat(64);
+    const ev = gated.add({
+      tier: "M1",
+      claim: `密钥走 env:OPENAI_API_KEY 摘要 ${digest}`,
+      source: { kind: "user_utterance", ref: "t3" },
+      requestedTrust: "user_stated"
+    });
+    expect(ev.claim).toContain("env:OPENAI_API_KEY");
+  });
+});

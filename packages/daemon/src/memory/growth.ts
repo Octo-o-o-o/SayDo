@@ -6,12 +6,14 @@
 // M1 人可读投影(AGENTS.md 互通写侧,04 §1.2):trusted M1 渲染到 <workspace>/.saydo/knowledge/
 // m1-notes.md——账本为真相源,文件是投影;P0 无 watcher,人工改文件不回写(要改对 SayDo 说)。
 
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import type { MemoryEvent } from "@saydo/contracts";
+import type { GitProtectionResult, MemoryEvent } from "@saydo/contracts";
 import type { AuditSink } from "../obs/audit.js";
 import type { MemoryLedger, ProjectedMemory } from "./ledger.js";
 import { isImperative } from "./classify.js";
+import { isMemorySecretLiteralError } from "./credentialLiterals.js";
+import { ensureGitProtection, writePrivateLeafSync } from "./gitProtection.js";
 
 /** 决策性标记(命中其一才提名——保守窄口,防候选淹没 review 面) */
 const DECISION_MARKERS =
@@ -51,25 +53,34 @@ export function nominateFromSession(
   // 且限定本项目 ∪ 全局;seen 只作本次批内去重
   const seen = new Set<string>();
   const out: MemoryEvent[] = [];
+  let skipped = 0;
   for (const text of input.userTurns) {
     if (out.length >= limit) break;
     const t = text.trim();
     if (!isNominatable(t) || seen.has(t) || deps.ledger.hasClaimHistory(t, input.projectId)) continue;
     seen.add(t);
-    out.push(
-      deps.ledger.add({
-        tier: "M1",
-        projectId: input.projectId,
-        claim: t,
-        source: { kind: "user_utterance", ref: `session:${input.sessionId}`, quote: t }
-      })
-    );
+    try {
+      out.push(
+        deps.ledger.add({
+          tier: "M1",
+          projectId: input.projectId,
+          claim: t,
+          source: { kind: "user_utterance", ref: `session:${input.sessionId}`, quote: t }
+        })
+      );
+    } catch (err) {
+      if (isMemorySecretLiteralError(err)) {
+        skipped += 1;
+        continue;
+      }
+      throw err;
+    }
   }
-  if (out.length > 0) {
+  if (out.length > 0 || skipped > 0) {
     deps.audit.record({
       actor: "daemon",
       action: "memory.session_nominated",
-      meta: { sessionId: input.sessionId, projectId: input.projectId, count: out.length }
+      meta: { sessionId: input.sessionId, projectId: input.projectId, count: out.length, skipped }
     });
   }
   return out;
@@ -146,19 +157,50 @@ export function renderM1Notes(facts: readonly ProjectedMemory[], generatedAt: st
   return lines.join("\n");
 }
 
-/** 投影落盘(workspace 存在才写;返回是否写了) */
+export interface ProjectM1NotesOpts {
+  /** 同一 bootstrap 边界已验证的保护结果;传入则不再查询。 */
+  protection?: GitProtectionResult;
+  audit?: AuditSink;
+  /** 未传入 protection 时转给 ensureGitProtection;用于边界 Git 计数。 */
+  noteGitCall?: () => void;
+}
+
+/** 投影落盘(workspace 存在且 Git 保护通过才写;返回是否写了) */
 export function projectM1Notes(
   ledger: MemoryLedger,
   projectId: string,
   workspacePath: string,
-  now = new Date().toISOString()
+  now = new Date().toISOString(),
+  opts: ProjectM1NotesOpts = {}
 ): boolean {
   if (!existsSync(workspacePath)) return false;
+  const protection =
+    opts.protection ??
+    ensureGitProtection(workspacePath, {
+      ...(opts.noteGitCall ? { noteGitCall: opts.noteGitCall } : {})
+    });
+  if (protection.status !== "protected" && protection.status !== "not_git") {
+    opts.audit?.record({
+      actor: "daemon",
+      action: "memory.m1_notes_skipped",
+      meta: { projectId, status: protection.status }
+    });
+    return false;
+  }
   const facts = ledger
     .project(now)
     .filter((m) => m.tier === "M1" && m.projectId === projectId && TRUSTED.includes(m.trust));
+  const leafRel = ".saydo/knowledge/m1-notes.md";
   const dir = join(workspacePath, ".saydo", "knowledge");
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "m1-notes.md"), renderM1Notes(facts, now));
+  const written = writePrivateLeafSync(workspacePath, leafRel, renderM1Notes(facts, now));
+  if (written.status !== "protected") {
+    opts.audit?.record({
+      actor: "daemon",
+      action: "memory.m1_notes_skipped",
+      meta: { projectId, status: written.status }
+    });
+    return false;
+  }
   return true;
 }

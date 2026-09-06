@@ -4,14 +4,138 @@
 
 import { useState } from "react";
 import { Settings2 } from "lucide-react";
+import type { GitProtectionResult, KnowledgePrivacyPrescription, KnowledgePrivacySafeHit } from "@saydo/contracts";
 import { api, isRemoteOrigin } from "../lib/api";
+import { ApiError } from "../lib/apiError";
 import { useAsync } from "../lib/useAsync";
 import { EmptyState, ErrorCard, PaperCard, Mono, SectionTitle } from "../components/ui";
+
+type FoundationFailureFields = {
+  message: string;
+  safeHits: KnowledgePrivacySafeHit[];
+  overflowCount?: number;
+  gitProtection?: GitProtectionResult;
+  prescription?: KnowledgePrivacyPrescription;
+};
+
+export type FoundationBootstrapView =
+  | { kind: "success"; generation: number; status: string; progressLine: string }
+  | ({ kind: "refresh_failed" } & FoundationFailureFields)
+  | ({ kind: "first_build_unavailable" } & FoundationFailureFields)
+  | ({ kind: "git_protection" } & FoundationFailureFields)
+  | { kind: "generic"; message: string };
+
+function gitOverlay(apiErr: ApiError): Pick<FoundationFailureFields, "gitProtection" | "prescription"> {
+  if (apiErr.code !== "git_protection_insufficient") return {};
+  return {
+    ...(apiErr.gitProtection ? { gitProtection: apiErr.gitProtection } : {}),
+    prescription: apiErr.prescription ?? "fix_git_ignore_or_untrack"
+  };
+}
+
+function failureFields(apiErr: ApiError): FoundationFailureFields {
+  return {
+    message: apiErr.message,
+    safeHits: apiErr.safeHits ?? [],
+    ...(apiErr.overflowCount !== undefined ? { overflowCount: apiErr.overflowCount } : {}),
+    ...gitOverlay(apiErr)
+  };
+}
+
+export function foundationViewFromError(err: unknown): FoundationBootstrapView {
+  const apiErr = err instanceof ApiError ? err : undefined;
+  if (apiErr?.failureClass === "foundation_refresh_failed_kept_old") {
+    return { kind: "refresh_failed", ...failureFields(apiErr) };
+  }
+  if (apiErr?.failureClass === "foundation_first_build_unavailable") {
+    return { kind: "first_build_unavailable", ...failureFields(apiErr) };
+  }
+  if (apiErr?.code === "git_protection_insufficient") {
+    return { kind: "git_protection", ...failureFields(apiErr) };
+  }
+  if (apiErr?.code === "foundation_build_restricted") {
+    return { kind: "first_build_unavailable", ...failureFields(apiErr) };
+  }
+  const message = err instanceof Error ? err.message : String(err);
+  return { kind: "generic", message: `奠基失败:${message}` };
+}
+
+function SafeHitsList({ hits }: { hits: KnowledgePrivacySafeHit[] }) {
+  if (hits.length === 0) return null;
+  return (
+    <ul data-foundation-safe-hits style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: "var(--text-xs)" }}>
+      {hits.map((hit, i) => (
+        <li key={`${hit.relativeSource}:${hit.line ?? ""}:${hit.kind}:${i}`} data-safe-hit>
+          {hit.relativeSource}
+          {hit.line !== undefined ? `:${hit.line}` : ""}
+          {` ${hit.kind} ${hit.prescription}`}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** 奠基结果纯展示(无 hook),供静态渲染测试三态与成功态。 */
+export function FoundationBootstrapResultView({ result }: { result: FoundationBootstrapView }) {
+  if (result.kind === "success") {
+    return (
+      <p data-foundation-result style={{ margin: "10px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+        {`generation ${result.generation}(${result.status}):${result.progressLine}`}
+      </p>
+    );
+  }
+  if (result.kind === "generic") {
+    return (
+      <p data-foundation-result style={{ margin: "10px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+        {result.message}
+      </p>
+    );
+  }
+  const title =
+    result.kind === "refresh_failed"
+      ? "底座未更新,仍用上一版"
+      : result.kind === "first_build_unavailable"
+        ? "知识底座还没建起来"
+        : "这次私有知识没写进去,Git 还没保护好";
+  const gitLine =
+    result.kind === "git_protection"
+      ? undefined
+      : result.gitProtection || result.prescription === "fix_git_ignore_or_untrack"
+        ? "这次私有知识没写进去,Git 还没保护好"
+        : undefined;
+  const prescription =
+    result.kind === "git_protection" || result.prescription === "fix_git_ignore_or_untrack"
+      ? (result.prescription ?? "fix_git_ignore_or_untrack")
+      : result.prescription;
+  const gitProtection = "gitProtection" in result ? result.gitProtection : undefined;
+  return (
+    <div data-foundation-result data-foundation-kind={result.kind} style={{ margin: "10px 0 0" }}>
+      <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{title}</p>
+      {gitLine ? (
+        <p data-foundation-git-line style={{ margin: "6px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+          {gitLine}
+        </p>
+      ) : null}
+      {prescription ? (
+        <p data-foundation-prescription style={{ margin: "6px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+          {`处方:${prescription}`}
+        </p>
+      ) : null}
+      {gitProtection ? (
+        <p data-foundation-git-protection style={{ margin: "6px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+          {gitProtection.status}
+          {gitProtection.relativeTarget ? ` ${gitProtection.relativeTarget}` : ""}
+        </p>
+      ) : null}
+      <SafeHitsList hits={result.safeHits} />
+    </div>
+  );
+}
 
 export function ProjectSettings({ projectId }: { projectId: string }) {
   const [refresh, setRefresh] = useState(0);
   const { data, error } = useAsync(() => api.projectSettings(projectId), [projectId, refresh]);
-  const [foundationMsg, setFoundationMsg] = useState<string | null>(null);
+  const [foundationView, setFoundationView] = useState<FoundationBootstrapView | null>(null);
   const [busy, setBusy] = useState(false);
   const [ovMsg, setOvMsg] = useState<string | null>(null);
   if (error) return <ErrorCard message="项目设置加载失败" detail={error} />;
@@ -26,11 +150,18 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
   ];
   const runBootstrap = () => {
     setBusy(true);
-    setFoundationMsg(null);
+    setFoundationView(null);
     void api
       .bootstrapFoundation(projectId)
-      .then((r) => setFoundationMsg(`generation ${r.generation}(${r.status}):${r.progressLine}`))
-      .catch((e: Error) => setFoundationMsg(`奠基失败:${e.message}`))
+      .then((r) =>
+        setFoundationView({
+          kind: "success",
+          generation: r.generation,
+          status: r.status,
+          progressLine: r.progressLine
+        })
+      )
+      .catch((e: unknown) => setFoundationView(foundationViewFromError(e)))
       .finally(() => setBusy(false));
   };
   return (
@@ -161,11 +292,7 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
         >
           {busy ? "奠基中(读关键文件)" : "奠基 / 重奠基"}
         </button>
-        {foundationMsg ? (
-          <p data-foundation-result style={{ margin: "10px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
-            {foundationMsg}
-          </p>
-        ) : null}
+        {foundationView ? <FoundationBootstrapResultView result={foundationView} /> : null}
       </PaperCard>
       {/* 危险区(11 §5.8:单独分组 + error 描边) */}
       <div

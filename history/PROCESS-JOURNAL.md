@@ -3543,3 +3543,107 @@ unit economics 决定扩张;持续承担账号/API、CI/设备、证据刷新、
 未手工改写状态抹平。owner 知情后决定按现有证据合并,finalize 与 handoff 模板合规另作跟进项。
 另记:`~/.octoworkflow/` 全套脚本在本批作业中途被另一进程整体升级,本批已按新契约重建控制目录。
 未 push、未发布公开快照;这不是托管 CI、真人场次或部署验收。
+
+
+## R130 · AS 前置重新对账与合同初审（2026-09-06）
+
+**输入**：统一实施 Prompt，默认 PG-01B 后推进 AS-01/AS-02。研究分支的旧排产指针与 main 不同。
+
+**行动**：启动漏查 main，误做重复 PG 候选；发现 main 已含 PG I/E 后停止晋升并保留重复产物。重新以真实 E 建立 AS 隔离候选，按 SHA 带入28份来源，冻结 AS-C1..C4。合同初审首次输出格式无效，按 plan_recovery 替换为全新 reviewer，不消费失效报告。
+
+**产出**：有效 ordinal 1 RED 四项 P1；控制、来源、原始日志留 ignored 任务目录，完整日志名称/字节数/SHA-256见本批停止证据。
+
+**结论**：PG前置按真实已合并证据跳过；AS合同未绿，自动进入修复1。主树研究/journal未覆盖；未提交、未合并。
+
+## R131 · AS 合同回修1与第二轮评审（2026-09-06）
+
+**输入**：RAW-SOURCE、GRAMMAR、RELATIVE-PATH、COST-EVIDENCE 四项范围内P1。
+
+**行动**：独立Grok补齐原文来源与统一grammar，修相对来源判定，成本分清现有约束与工程选择；执行合同focused后派全新只读reviewer。
+
+**产出**：contracts schemas18/privacy8与文档门通过；ordinal2 RED两项：rules真实读取上限未冻结、PLAN-2 focused遗漏lifecycle/growth测试。旧成本到新读取上限使用显式映射保留根因预算。
+
+**结论**：不以focused绿替代语义评审；有进展且预算允许，进入修复2。未改daemon/Console。
+
+## R132 · AS 合同回修2与第三轮评审（2026-09-06）
+
+**输入**：rules读取上限与focused清单不全等。
+
+**行动**：冻结单文件、文件数、枚举和缓冲边界，统一执行卡/PLAN-2/scope测试路径；完成合同focused，派新只读reviewer。
+
+**产出**：schemas18/privacy11及文档门通过；ordinal3 RED两项：占位符任意重叠豁免绕过、来源240字符上限与规则文件名合同冲突。前两项具体问题闭合，但来源边界按原root保守续记。
+
+**结论**：validator=diagnose_and_repair_fresh，允许最后一次产品修复和唯一策略重置；不重置总预算，不进入implementation。
+
+## R133 · AS 合同回修3、第四轮RED与停止（2026-09-06）
+
+**输入**：占位符豁免与safeHits来源长度冲突；全新实施上下文。
+
+**行动**：独立Grok先探针诊断，改整串等起止豁免，完整相对来源改为269字符并同步canonical/schema/tests。完成合同focused后派第四轮全新只读reviewer。
+
+**产出**：schemas18/privacy13与合同文档检查通过；第四轮确认上述两项具体问题修复，但发现声明支持的POSIX反斜杠rules名称被安全来源schema拒绝。最终 `AS-C3-SAFE-SOURCE-GRAMMAR-CONFLICT` 为P1，报告落 research/codex-findings/2026-09-06-ecc-as-privacy-contract-review.md。
+
+**结论**：review receipt已机械入账，validator=valid/stop_for_owner；repair3/3、rereview3/3、strategy reset1/1，无悬挂预留。未finalize，未做产品full gate，未进入daemon/Console implementation或PG-02。P2为空，未提前sweep。过程归档另存隔离证据副本，原审查候选指纹保持不变。下一步需owner具名授权恢复cycle；本轮RED与成本不得覆盖。全部日志名称/字节数/SHA-256见 e2e/evidence/2026-09-06-ecc-as-privacy-contract-stop.md。
+
+
+## R134 · AS合同解除次数停止与恢复初审（2026-09-06）
+
+**输入**：owner要求“继续往下对应，不要被修复次数限制。”原c1/STOP账本完整保留。
+
+**行动**：建立contract/owner-recovery-1；授权unbounded_review精确override校验通过。独立Grok实现规则来源安全表示，普通名兼容、特殊名可定位；合同focused通过后派全新只读reviewer。
+
+**产出**：schemas18/privacy17；ordinal1 RED两P1，PEM局部豁免与DEL遗漏。原始日志文件名、字节数与SHA-256见本轮GREEN证据日志索引。
+
+**结论**：自动继续范围内修复；次数仅作账本分段，不再作为请owner重授权的理由。未改daemon/Console。
+
+## R135 · AS合同恢复回修1（2026-09-06）
+
+**输入**：PEM正文引用不应豁免整块，定位串控制字符遗漏DEL。
+
+**行动**：Grok修PEM完整覆盖与Cc封闭集，focused后独立复审。
+
+**产出**：schemas18/privacy19；ordinal2确认两项具体问题修复，但token任意局部覆盖仍会整串豁免，RED一P1。显式映射保留同类豁免根因成本。
+
+**结论**：不因focused绿越过review，继续修统一覆盖语义。
+
+## R136 · AS合同恢复回修2（2026-09-06）
+
+**输入**：token局部豁免P1。
+
+**行动**：Grok把所有kind统一为完整覆盖，去掉token/block分叉，验证有限kind与豁免关系后独立复审。
+
+**产出**：schemas18/privacy20；ordinal3确认局部覆盖闭合，报告PEM内文上界P1。机械账本保守保留AS-C1扫描覆盖历史成本，具体新成因与成本映射区别另有对账记录。
+
+**结论**：以新实施上下文回修PEM边界，不抹旧报告、不降验收。
+
+## R137 · AS合同恢复回修3、GREEN与Fable交接（2026-09-06）
+
+**输入**：PEM标记/内文计数P1；owner追加要求当前部分收口后给Claude Code的Fable5.1新会话交接prompt。
+
+**行动**：Grok诊断指出旧探针重复拼标记的构造争议，保留原证据，把标记常量和分隔符显式分开并补内文边界测试。全新只读reviewer按canonical独立构造当前输入，ordinal4 GREEN，AS-C1..C4全过，无P0/P1和新增P2。
+
+**产出**：cycle_state登记真实review completion，独立validator=valid/full_gate；GREEN后contract-docs经record-gate执行exit0，schemas18/privacy21、typecheck、文档/隐私/指针门全过。finalize真实status=finalized。原始报告与日志索引见 e2e/evidence/2026-09-06-ecc-as-privacy-contract-green.md；报告归档 research/codex-findings/2026-09-06-ecc-as-privacy-contract-recovery-1-review.md。
+
+**结论**：合同阶段已结算，无悬挂预留；daemon/Console implementation未启动。按owner要求只生成Fable5.1续推prompt，不启动下一部分。P2ledger为空且未提前sweep；未跑AS产品just ci/Playwright，未提交、合并、部署。旧R130–R133/STOP及全部RED原样保留；新的证据增量不冒充冻结候选身份。
+
+## R138 · AS implementation 端到端隐私批:Fable 监督、四轮修复、恢复 cycle GREEN 与本地完整门(2026-09-06)
+
+**输入**:owner 要求 Fable 5.1 承接 supervisor,从已 finalized 的 contract 继续 AS-01/AS-02 implementation(M1–M8 一起做),继续原范围不受修复次数限制;保留独立评审与质量门;未授权提交/合并/部署。
+
+**行动**:新建 implementation/c1 控制目录(acceptance M1–M8 各 P1、三维 coverage 16 例、三门 wrapper hash 锁定、owner 授权 sidecar、contract baseline)。Grok 一次实施 M1–M8(21 路径全在 exact-set)。c1 四轮零上下文 Codex 评审:RED 5→2→2→1 项 P1,每轮 supervisor 正常环境复跑 focused 并作为原始证据;两次无效评审(reviewer 拒审、manifest 键名不合)按 review_invalid 程序性替代,不占产品预算。c1 产品修复 3/3(第三次为 diagnose_and_repair_fresh + strategy reset)与复审 3/3 结算后 validator 仅因次数 stop_for_owner,按 owner 授权新建 owner-recovery-1 衔接 blocker/根因/累计成本。恢复 cycle 首次修复闭合 P1-M6-02(rules 标题 span 归属安全表示来源),ordinal 1 GREEN;record-gate 执行 focused-privacy、local-ci(just ci)、local-browser(Playwright)全部 exit 0,finalize status=finalized;唯一 P2 ledger 空,最终 sweep 一次 no_items。
+
+**产出**:最终候选 HEAD `99d51106c9caaefcf55f72bff1a17a78abf58be9`、fingerprint `1d0050bce5fc81953fdebcf75f240b8784fb9f5da3676858028f5d259fc728a8`;final.json SHA-256 `f2551c5023e95c24ca5f5a8155b440c75c67777015600ca235717f16a4711275`;证据 `e2e/evidence/as-01-as-02-privacy.md`(含门禁与全部原始日志 bytes/SHA);评审报告归档 `research/codex-findings/2026-09-06-ecc-as-privacy-implementation-*.md`。
+
+**结论**:执行和检查都跑完了,等 owner 验收;未 commit/push/merge/install/deploy,不是交付。not_run:Windows 真机、live provider、常驻 runtime、真实 .saydo 数据、托管 CI。下一步只在 owner 授权后按 I/E 两提交法提交并在干净 post-commit HEAD 重跑完整门;不自动开 PG-02/AS-03..07。
+
+**追补(owner 授权提交后)**:I=`7ab7ab394f97a9c1e9a666d218ac41cee3d2ef45`(feat(as-01-as-02),36 个产品路径,父提交 main `99d51106…`)。在 I 的干净 clone 重跑完整门全部 exit 0:doc-links files=139 broken=0、emoji、schedule-pointer(补 main ref 后)、`just ci`(daemon 134 passed | 2 skipped、console 290、contracts 132、pytest 34)、playwright 38 passed;日志 bytes/SHA 见证据文档「post-commit 干净 HEAD 完整门」。证据/journal/评审与 prompt 归档随 E 提交入库(E 记录 I,不自指);未 push/merge,不是交付。
+
+## R139 · AS-01-AS-02 关批、release HEAD 完整门、ff 合并与私有归档推送(2026-09-06)
+
+**输入**:owner 授权提交后回复「请按你的建议继续往下实施」;我先前建议的下一步为关批、合并 main、推送私有归档,公开快照另行确认。
+
+**行动**:提交 `d7193b8`(chore(plan)):排产指针 revision 4→5、`last_closed=AS-01-AS-02`、`active=none`、`next=PG-02`、evidence_ref 指向 `e2e/evidence/as-01-as-02-privacy.md`;PLAN-2 批卡标已收口并记 I/E;HANDOFF 由 `schedule-pointer.mjs --render` 同步并加收口行;README 同步。指针 `--check`/`--self-test`、emoji、doc-links、public-tree-privacy `--fs`、`git diff --check` 全过。在 `d7193b8` 的干净 `--shared` clone(tracked 零 dirty)重跑:文档门、`just ci`(node + python 双矩阵绿,console 290、daemon 134 passed | 2 skipped、pytest 34)、`pnpm exec playwright test`(38 passed)全部 exit 0(日志 post-closeout-docs/ci/playwright,488/105683/4977 bytes,SHA-256 `8d7d887c…`/`d8134230…`/`b5b122da…`,留 ignored 控制目录);临时 clone 已删。主树仍检出其它任务分支且 dirty,故用 ref-only 快进:`git fetch <clone> codex/as-privacy-20260906:main`,main `99d5110`→`d7193b8`;`git push origin main` 成功,origin/main=`d7193b8`。
+
+**产出**:main = origin/main = `d7193b8`(I `7ab7ab3` → E `21ed284` → 关批 `d7193b8`);PG-02 为 next 且未开工。
+
+**结论**:AS-01-AS-02 已合并入 main 并推送私有归档,此批交付了。公开快照(`scripts/publish-public-snapshot.sh`,须从 clean main 检出且 origin/main 已等于目标 SHA)属 owner checkpoint,未执行,待 owner 确认;PG-02 不自动开始。

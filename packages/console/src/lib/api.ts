@@ -236,6 +236,7 @@ export const api = {
   // W2 阶段 C:记忆候选人批(只提名、人批准)+ 项目奠基(仅受信终端)
   approveMemory: (id: string) => apiPost<{ ok: true; eventId: string }>(`/api/memory/${id}/approve`, {}),
   rejectMemory: (id: string) => apiPost<{ ok: true; eventId: string }>(`/api/memory/${id}/reject`, {}),
+  // 成功形保持 {ok:true, generation, status, progressLine};失败 409 由 apiErrorFromResponse 按 contracts schema 解析
   bootstrapFoundation: (projectId: string) =>
     apiPost<{ ok: true; generation: number; status: string; progressLine: string }>(
       `/api/projects/${projectId}/foundation/bootstrap`,

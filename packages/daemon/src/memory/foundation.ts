@@ -10,12 +10,16 @@
 
 import { execFileSync } from "node:child_process";
 import {
+  closeSync,
   copyFileSync,
   existsSync,
   lstatSync,
   mkdirSync,
+  opendirSync,
+  openSync,
   readdirSync,
   readFileSync,
+  readSync,
   realpathSync,
   renameSync,
   rmSync,
@@ -25,8 +29,30 @@ import {
   writeFileSync
 } from "node:fs";
 import { basename, dirname, isAbsolute, join } from "node:path";
-import { textDigest } from "@saydo/contracts";
+import {
+  classifyRulesReadBound,
+  findCredentialLiteralSpans,
+  foundationRulesRelativeSource,
+  isFoundationRulesFileName,
+  KNOWLEDGE_PRIVACY_LIMITS,
+  knowledgePrivacySafeHitSchema,
+  textDigest,
+  type CredentialHit,
+  type GitProtectionResult,
+  type KnowledgePrivacySafeHit,
+  type RulesDirentBoundInput
+} from "@saydo/contracts";
 import { estimateTokens } from "./compiler.js";
+import {
+  ensureGitProtection,
+  GitProtectionInsufficientError,
+  GIT_PROTECTION_INSUFFICIENT_MESSAGE,
+  guardPrivateDir,
+  guardPrivateLeaf,
+  mapPrivateDirWriteError,
+  removeUnfollowed,
+  writePrivateLeafSync
+} from "./gitProtection.js";
 
 export const FOUNDATION_SCHEMA_VERSION = 1;
 
@@ -68,10 +94,41 @@ const LANG_BY_EXT: Record<string, string> = {
   ".sql": "SQL"
 };
 
-/** 每个关键文件的摘录上限(chars;超出截断并标注) */
-const EXCERPT_LIMIT = 6_000;
-/** 单文件尺寸上限(bytes;超过只记清单不读内容——binary/超大文件排除) */
-const FILE_SIZE_LIMIT = 512 * 1024;
+export const FOUNDATION_BUILD_RESTRICTED_CODE = "foundation_build_restricted" as const;
+
+export class FoundationBuildRestrictedError extends Error {
+  readonly code = FOUNDATION_BUILD_RESTRICTED_CODE;
+  readonly safeHits: KnowledgePrivacySafeHit[];
+  readonly overflowCount: number;
+  readonly auditHits: CredentialHit[];
+  readonly prescription = "remove_source_literal" as const;
+
+  constructor(opts: { safeHits: KnowledgePrivacySafeHit[]; overflowCount: number; auditHits: CredentialHit[]; message: string }) {
+    super(opts.message);
+    this.name = "FoundationBuildRestrictedError";
+    this.safeHits = opts.safeHits;
+    this.overflowCount = opts.overflowCount;
+    this.auditHits = opts.auditHits;
+  }
+}
+
+export function isFoundationBuildRestrictedError(err: unknown): err is FoundationBuildRestrictedError {
+  if (err instanceof FoundationBuildRestrictedError) return true;
+  if (!(err instanceof Error)) return false;
+  return (err as { code?: unknown }).code === FOUNDATION_BUILD_RESTRICTED_CODE;
+}
+
+interface TextSpan {
+  start: number;
+  end: number;
+  source: string;
+}
+
+interface AssembledDoc {
+  name: string;
+  text: string;
+  spans: TextSpan[];
+}
 
 function removeLink(path: string): void {
   try {
@@ -164,7 +221,17 @@ export interface FoundationBuilderOptions {
   clock?: () => number;
   /** 奠基产物入账本回调(B3 -> B2,08 §依赖图;daemon 接线到 ledger.add,classifyTrust 自然分级) */
   onFact?: (fact: FoundationFact) => void;
+  /** 测试观察:每次喂给 findCredentialLiteralSpans 的字符数。无钩子时不调用。 */
+  onScan?: (chars: number) => void;
 }
+
+interface SourcePersist {
+  slice: string;
+  mapOffset: (sliceOffset: number) => number;
+  lineSource: string;
+}
+
+const TRANSFORMED_SOURCES = new Set(["package.json", "justfile", "Justfile", "manifest-gen-N.json"]);
 
 export class FoundationBuilder {
   private readonly workspace: string;
@@ -174,6 +241,15 @@ export class FoundationBuilder {
   private readonly budgets: { walltimeMs: number; tokens: number };
   private readonly clock: () => number;
   private readonly onFact: ((fact: FoundationFact) => void) | undefined;
+  private readonly onScan: ((chars: number) => void) | undefined;
+  /** 当前 bootstrap 边界已发起的 Git 子进程数(含保护查询)。warmup 不计。 */
+  gitSubprocessCount = 0;
+  /** 本次 bootstrap 已验证的保护结果,供同边界投影复用。 */
+  lastGitProtection: GitProtectionResult | undefined = undefined;
+  private gitBoundaryActive = false;
+  private gitProtectionQueryCount = 0;
+  private cachedHead: { value: string | undefined } | undefined;
+  private cachedTree: { value: string | undefined } | undefined;
 
   constructor(opts: FoundationBuilderOptions) {
     this.workspace = opts.workspace;
@@ -183,10 +259,27 @@ export class FoundationBuilder {
     this.budgets = opts.budgets ?? { ...DEFAULT_FOUNDATION_BUDGETS };
     this.clock = opts.clock ?? (() => Date.now());
     this.onFact = opts.onFact;
+    this.onScan = opts.onScan;
   }
 
-  /** 首次奠基(阻塞式,04 §1.2)。staging 构建 -> 校验 -> 原子发布;失败保留旧 generation。 */
+  /** 首次奠基(阻塞式,04 §1.2)。组装扫描 -> 保护验证 -> staging 构建 -> 校验 -> 原子发布;失败保留旧 generation。 */
   bootstrap(now = new Date().toISOString()): FoundationManifest {
+    this.gitSubprocessCount = 0;
+    this.gitProtectionQueryCount = 0;
+    this.lastGitProtection = undefined;
+    this.cachedHead = undefined;
+    this.cachedTree = undefined;
+    this.gitBoundaryActive = true;
+    try {
+      return this.bootstrapBound(now);
+    } finally {
+      this.gitBoundaryActive = false;
+      this.cachedHead = undefined;
+      this.cachedTree = undefined;
+    }
+  }
+
+  private bootstrapBound(now: string): FoundationManifest {
     const t0 = this.clock();
     const generation = this.currentGeneration() + 1;
     const files = this.listFiles();
@@ -200,6 +293,7 @@ export class FoundationBuilder {
     // 预算内读关键文件(确定序;超限如实 partial,不装读过)
     const keyFiles: { path: string; digest: string; bytes: number }[] = [];
     const excerpts = new Map<string, string>();
+    const persists = new Map<string, SourcePersist>();
     const skipped: { path: string; reason: string }[] = [];
     let tokensSpent = 0;
     let scanned = 0;
@@ -226,7 +320,7 @@ export class FoundationBuilder {
       }
       const abs = join(this.workspace, rel);
       const size = statSync(abs).size;
-      if (size > FILE_SIZE_LIMIT) {
+      if (size > KNOWLEDGE_PRIVACY_LIMITS.fileSizeLimitBytes) {
         skipped.push({ path: rel, reason: "oversized" });
         scanned += 1;
         continue;
@@ -234,11 +328,21 @@ export class FoundationBuilder {
       const raw = readFileSync(abs, "utf8");
       // AGENTS/CLAUDE 的 managed pointer 由本 builder 在 publish 后更新，不属于用户输入；
       // manifest 对其规范化，避免每代刚发布就因 generation 指针变化而自漂移。
-      const normalized = rel === "AGENTS.md" || rel === "CLAUDE.md" ? stripManagedKnowledgeBlock(raw) : raw;
-      const excerpt =
-        normalized.length > EXCERPT_LIMIT
-          ? `${normalized.slice(0, EXCERPT_LIMIT)}\n\n[截断:原文 ${normalized.length} chars]`
+      const stripped = rel === "AGENTS.md" || rel === "CLAUDE.md";
+      const normalized = stripped ? stripManagedKnowledgeBlock(raw) : raw;
+      const slice =
+        normalized.length > KNOWLEDGE_PRIVACY_LIMITS.excerptLimitChars
+          ? normalized.slice(0, KNOWLEDGE_PRIVACY_LIMITS.excerptLimitChars)
           : normalized;
+      const excerpt =
+        normalized.length > KNOWLEDGE_PRIVACY_LIMITS.excerptLimitChars
+          ? `${slice}\n\n[截断:原文 ${normalized.length} chars]`
+          : slice;
+      persists.set(rel, {
+        slice,
+        mapOffset: stripped ? (offset) => originalOffsetFromStripped(raw, offset) : (offset) => offset,
+        lineSource: stripped ? raw : slice
+      });
       tokensSpent += estimateTokens(excerpt);
       keyFiles.push({ path: rel, digest: textDigest(normalized), bytes: Buffer.byteLength(normalized) });
       excerpts.set(rel, excerpt);
@@ -259,11 +363,55 @@ export class FoundationBuilder {
       createdAt: now
     };
 
-    // staging 构建 knowledge 文档 -> 校验 -> 发布(原子切换)
+    const rules = this.readCursorRules(persists);
+    const assembled = this.assembleKnowledgeDocs(manifest, excerpts, rules, persists);
+    const manifestJson = JSON.stringify(manifest, null, 2);
+    const manifestSlice =
+      manifestJson.length > KNOWLEDGE_PRIVACY_LIMITS.excerptLimitChars
+        ? manifestJson.slice(0, KNOWLEDGE_PRIVACY_LIMITS.excerptLimitChars)
+        : manifestJson;
+    persists.set("manifest-gen-N.json", {
+      slice: manifestSlice,
+      mapOffset: (offset) => offset,
+      lineSource: manifestSlice
+    });
+    this.assertAssembledPrivacy(
+      [
+        assembled.core,
+        assembled.inventory,
+        assembled.buildRun,
+        assembled.conventions,
+        { name: "manifest-gen-N.json", text: manifestJson, spans: [{ start: 0, end: manifestJson.length, source: "manifest-gen-N.json" }] }
+      ],
+      generation,
+      persists
+    );
+    const protection = ensureGitProtection(this.workspace, {
+      noteGitCall: () => this.noteGit("protection")
+    });
+    this.lastGitProtection = protection;
+    if (protection.status !== "protected" && protection.status !== "not_git") {
+      throw new GitProtectionInsufficientError(protection, GIT_PROTECTION_INSUFFICIENT_MESSAGE);
+    }
+    this.assertPrivateDirsWritable();
+    this.assertPrivateLeavesWritable(generation);
+
+    // staging 构建 knowledge 文档 -> 校验 -> 发布(原子切换);扫描与保护均已通过
+    const stagingRel = `.saydo/foundation/staging-gen-${generation}`;
     const staging = join(this.foundationDir, `staging-gen-${generation}`);
-    rmSync(staging, { recursive: true, force: true });
-    mkdirSync(staging, { recursive: true });
-    this.writeKnowledgeDocs(staging, manifest, excerpts);
+    this.removePrivatePath(staging, stagingRel);
+    this.mkdirPrivateDir(staging, stagingRel);
+    try {
+      this.writeAssembledDocs(staging, assembled);
+    } catch (err) {
+      try {
+        removeUnfollowed(staging);
+      } catch {
+        // 映射前清掉不完整 staging
+      }
+      if (err instanceof GitProtectionInsufficientError) throw err;
+      this.failPrivateWrite(stagingRel, err);
+    }
     this.validateStaging(staging);
     this.publish(staging, manifest);
     // 第四轮终验 B2 回修:publish(原子切换)之后的收尾步骤失败不得把"已发布的 generation"
@@ -324,83 +472,388 @@ export class FoundationBuilder {
     return JSON.parse(readFileSync(p, "utf8")) as { generation: number; manifest: string };
   }
 
-  private writeKnowledgeDocs(staging: string, m: FoundationManifest, excerpts: Map<string, string>): void {
+  private assembleKnowledgeDocs(
+    m: FoundationManifest,
+    excerpts: Map<string, string>,
+    rules: { name: string; excerpt: string }[],
+    persists: ReadonlyMap<string, SourcePersist>
+  ): { core: AssembledDoc; inventory: AssembledDoc; buildRun: AssembledDoc; conventions: AssembledDoc } {
     const langs = Object.entries(m.inventory.byLanguage).sort((a, b) => b[1] - a[1]);
     const langLine = langs.map(([l, n]) => `${l}(${n})`).join(" / ") || "(未识别)";
 
+    const agentsSource = excerpts.has("AGENTS.md") ? "AGENTS.md" : excerpts.has("CLAUDE.md") ? "CLAUDE.md" : undefined;
     const agentsRaw = excerpts.get("AGENTS.md") ?? excerpts.get("CLAUDE.md");
     const agents = agentsRaw ? stripManagedKnowledgeBlock(agentsRaw) : undefined;
-    const core = [
-      `# 项目知识底座(generation ${m.generation})`,
-      "",
-      `- 工作区:${this.workspace}`,
-      `- 状态:${m.status}${m.partialReason ? `(${m.partialReason};如实:还没读完,按已读部分回答)` : ""}`,
-      `- repoHead:${m.repoHead ?? "(非 git 仓)"}`,
-      `- 语言主体:${langLine}`,
-      "",
-      "## 文档指针",
-      "",
-      "- inventory.md:文件清单与语言分布",
-      "- build-test-run.md:构建/测试/运行命令(机械抽取,未运行验证)",
-      "- conventions.md:既有 agent 约定吸收(AGENTS.md/CLAUDE.md/.cursor/rules)",
-      "",
-      "## 最高优先约束(AGENTS.md 首段摘录)",
-      "",
-      agents ? agents.split("\n").slice(0, 20).join("\n") : "(无 AGENTS.md/CLAUDE.md)"
-    ].join("\n");
+    const agentsHead = agents ? agents.split("\n").slice(0, 20).join("\n") : "(无 AGENTS.md/CLAUDE.md)";
+    const core = joinSegments([
+      {
+        text: [
+          `# 项目知识底座(generation ${m.generation})`,
+          "",
+          "- 工作区:本地项目",
+          `- 状态:${m.status}${m.partialReason ? `(${m.partialReason};如实:还没读完,按已读部分回答)` : ""}`,
+          `- repoHead:${m.repoHead ?? "(非 git 仓)"}`,
+          `- 语言主体:${langLine}`,
+          "",
+          "## 文档指针",
+          "",
+          "- inventory.md:文件清单与语言分布",
+          "- build-test-run.md:构建/测试/运行命令(机械抽取,未运行验证)",
+          "- conventions.md:既有 agent 约定吸收(AGENTS.md/CLAUDE.md/.cursor/rules)",
+          "",
+          "## 最高优先约束(AGENTS.md 首段摘录)",
+          "",
+          ""
+        ].join("\n"),
+        source: "core.md"
+      },
+      { text: agentsHead, source: agentsSource ?? "core.md" }
+    ]);
 
-    const inventory = [
-      `# 清单(generation ${m.generation})`,
-      "",
-      `- 候选快照文件:${m.inventory.files}`,
-      `- 语言分布:${langLine}`,
-      "",
-      "## 关键文件",
-      "",
-      ...m.inventory.keyFiles.map((k) => `- ${k.path}(${k.bytes}B, ${k.digest.slice(0, 12)})`),
-      "",
-      "## 跳过清单(如实可见)",
-      "",
-      ...(m.inventory.skipped.length > 0 ? m.inventory.skipped.map((s) => `- ${s.path}:${s.reason}`) : ["- (无)"])
-    ].join("\n");
+    const inventory = joinSegments([
+      {
+        text: [
+          `# 清单(generation ${m.generation})`,
+          "",
+          `- 候选快照文件:${m.inventory.files}`,
+          `- 语言分布:${langLine}`,
+          "",
+          "## 关键文件",
+          "",
+          ...m.inventory.keyFiles.map((k) => `- ${k.path}(${k.bytes}B, ${k.digest.slice(0, 12)})`),
+          "",
+          "## 跳过清单(如实可见)",
+          "",
+          ...(m.inventory.skipped.length > 0 ? m.inventory.skipped.map((s) => `- ${s.path}:${s.reason}`) : ["- (无)"])
+        ].join("\n"),
+        source: "inventory.md"
+      }
+    ]);
 
-    const buildRun = [`# 构建/测试/运行(机械抽取;unverified——未运行验证)`, ""];
+    const buildParts: { text: string; source: string }[] = [
+      { text: `# 构建/测试/运行(机械抽取;unverified——未运行验证)\n`, source: "build-test-run.md" }
+    ];
     const pkgRaw = excerpts.get("package.json");
     if (pkgRaw) {
       try {
         const scripts = (JSON.parse(pkgRaw) as { scripts?: Record<string, string> }).scripts ?? {};
-        buildRun.push("## package.json scripts", "");
-        for (const [k, v] of Object.entries(scripts)) buildRun.push(`- \`${k}\`: ${v}`);
+        let block = "\n## package.json scripts\n\n";
+        for (const [k, v] of Object.entries(scripts)) block += `- \`${k}\`: ${v}\n`;
+        buildParts.push({ text: block, source: "package.json" });
       } catch {
-        buildRun.push("(package.json 解析失败)");
+        buildParts.push({ text: "\n(package.json 解析失败)", source: "package.json" });
       }
     }
+    const justSource = excerpts.has("justfile") ? "justfile" : excerpts.has("Justfile") ? "Justfile" : undefined;
     const just = excerpts.get("justfile") ?? excerpts.get("Justfile");
-    if (just) {
-      buildRun.push("", "## justfile 任务", "");
+    if (just && justSource) {
+      let block = "\n## justfile 任务\n\n";
       for (const line of just.split("\n")) {
         const t = /^([A-Za-z][\w-]*)\s*:(?!=)/.exec(line);
-        if (t) buildRun.push(`- \`${t[1]}\``);
+        if (t) block += `- \`${t[1]}\`\n`;
       }
+      buildParts.push({ text: block, source: justSource });
     }
+    const buildRun = joinSegments(buildParts);
 
-    const conventions = [`# 既有 agent 约定(输入侧互通,04 §1.2)`, ""];
+    const conventionParts: { text: string; source: string }[] = [
+      { text: `# 既有 agent 约定(输入侧互通,04 §1.2)\n\n`, source: "conventions.md" }
+    ];
+    const pushPersisted = (heading: string, source: string, body: string): void => {
+      const persist = persists.get(source);
+      const slice = persist?.slice ?? body;
+      const rest = body.startsWith(slice) ? body.slice(slice.length) : "";
+      // 标题含 KEY_FILES 相对路径或 rules 原始文件名,必须与正文切片同源;仅纯模板可标文档名。
+      conventionParts.push({ text: heading, source });
+      conventionParts.push({ text: slice, source });
+      conventionParts.push({ text: `${rest}\n\n`, source: "conventions.md" });
+    };
     for (const src of ["AGENTS.md", "CLAUDE.md"]) {
       const ex = excerpts.get(src);
-      if (ex) conventions.push(`## ${src}`, "", stripManagedKnowledgeBlock(ex), "");
+      if (ex) pushPersisted(`## ${src}\n\n`, src, stripManagedKnowledgeBlock(ex));
     }
-    const rulesDir = join(this.workspace, ".cursor", "rules");
-    if (existsSync(rulesDir)) {
-      for (const f of readdirSync(rulesDir).sort()) {
-        if (!f.endsWith(".md") && !f.endsWith(".mdc")) continue;
-        conventions.push(`## .cursor/rules/${f}`, "", readFileSync(join(rulesDir, f), "utf8").slice(0, 2000), "");
+    for (const [rel, ex] of excerpts) {
+      if (rel === "AGENTS.md" || rel === "CLAUDE.md") continue;
+      pushPersisted(`## ${rel}\n\n`, rel, ex);
+    }
+    for (const rule of rules) {
+      const loc = foundationRulesRelativeSource(rule.name);
+      pushPersisted(`## .cursor/rules/${rule.name}\n\n`, loc, rule.excerpt);
+    }
+    const conventions = joinSegments(conventionParts);
+
+    return {
+      core: { name: "core.md", ...core },
+      inventory: { name: "inventory.md", ...inventory },
+      buildRun: { name: "build-test-run.md", ...buildRun },
+      conventions: { name: "conventions.md", ...conventions }
+    };
+  }
+
+  private writeAssembledDocs(
+    staging: string,
+    assembled: { core: AssembledDoc; inventory: AssembledDoc; buildRun: AssembledDoc; conventions: AssembledDoc }
+  ): void {
+    writeFileSync(join(staging, "core.md"), assembled.core.text);
+    writeFileSync(join(staging, "inventory.md"), assembled.inventory.text);
+    writeFileSync(join(staging, "build-test-run.md"), assembled.buildRun.text);
+    writeFileSync(join(staging, "conventions.md"), assembled.conventions.text);
+  }
+
+  private scanCredentialSpans(text: string): ReturnType<typeof findCredentialLiteralSpans> {
+    this.onScan?.(text.length);
+    return findCredentialLiteralSpans(text);
+  }
+
+  private assertAssembledPrivacy(
+    docs: AssembledDoc[],
+    generation: number,
+    persists: ReadonlyMap<string, SourcePersist>
+  ): void {
+    const workspaceNeedle = this.workspace;
+    for (const doc of docs) {
+      if (workspaceNeedle.length > 0 && doc.text.includes(workspaceNeedle)) {
+        throw this.restrictedError({
+          safeHits: [],
+          overflowCount: 0,
+          auditHits: [],
+          generation
+        });
+      }
+    }
+    let totalChars = 0;
+    for (const doc of docs) totalChars += doc.text.length;
+    if (totalChars > KNOWLEDGE_PRIVACY_LIMITS.maxScanCharsPerFoundationBuild) {
+      throw this.restrictedError({
+        safeHits: [],
+        overflowCount: 0,
+        auditHits: [],
+        generation
+      });
+    }
+
+    const reported: KnowledgePrivacySafeHit[] = [];
+    const auditHits: CredentialHit[] = [];
+    const seenKeys = new Set<string>();
+    let overflowCount = 0;
+
+    const assembledEntries: Array<{
+      source: string;
+      kind: CredentialHit["kind"];
+      literal: string;
+      assembledStart: number;
+      doc: AssembledDoc;
+    }> = [];
+    for (const doc of docs) {
+      const spans = this.scanCredentialSpans(doc.text);
+      for (const span of spans) {
+        const source = sourceAt(doc.spans, span.start) ?? doc.name;
+        const literal = doc.text.slice(span.start, span.end);
+        auditHits.push({ kind: span.kind, spanDigest: textDigest(literal) });
+        assembledEntries.push({ source, kind: span.kind, literal, assembledStart: span.start, doc });
       }
     }
 
-    writeFileSync(join(staging, "core.md"), core);
-    writeFileSync(join(staging, "inventory.md"), inventory);
-    writeFileSync(join(staging, "build-test-run.md"), buildRun.join("\n"));
-    writeFileSync(join(staging, "conventions.md"), conventions.join("\n"));
+    if (auditHits.length === 0) return;
+
+    const pushSafe = (source: string, kind: CredentialHit["kind"], line: number | undefined): void => {
+      const key = `${source}|${line ?? ""}|${kind}`;
+      if (seenKeys.has(key)) return;
+      if (
+        seenKeys.size >= KNOWLEDGE_PRIVACY_LIMITS.maxDedupeKeysPerFlow ||
+        reported.length >= KNOWLEDGE_PRIVACY_LIMITS.maxReportedHits
+      ) {
+        overflowCount += 1;
+        return;
+      }
+      const parsed = knowledgePrivacySafeHitSchema.safeParse({
+        relativeSource: source,
+        ...(line !== undefined ? { line } : {}),
+        kind,
+        prescription: "remove_source_literal"
+      });
+      if (!parsed.success) {
+        overflowCount += 1;
+        return;
+      }
+      seenKeys.add(key);
+      reported.push(parsed.data);
+    };
+
+    const transformedDone = new Set<string>();
+    for (const entry of assembledEntries) {
+      const persist = persists.get(entry.source);
+      if (TRANSFORMED_SOURCES.has(entry.source)) {
+        const key = `${entry.source}|${entry.kind}|${entry.literal}`;
+        if (transformedDone.has(key)) continue;
+        transformedDone.add(key);
+        const haystack = persist?.slice ?? "";
+        const lines = lineNumbersOfLiteral(haystack, entry.literal);
+        if (lines.length === 0) pushSafe(entry.source, entry.kind, undefined);
+        else for (const line of lines) pushSafe(entry.source, entry.kind, line);
+        continue;
+      }
+      const covering = entry.doc.spans.find(
+        (span) => entry.assembledStart >= span.start && entry.assembledStart < span.end
+      );
+      if (!persist || covering === undefined || covering.source !== entry.source) {
+        pushSafe(entry.source, entry.kind, undefined);
+        continue;
+      }
+      const local = entry.assembledStart - covering.start;
+      // 文件名/标题命中与正文切片同源,但不在 persist.slice 内,省略 line。
+      if (local < 0 || !persist.slice.startsWith(entry.literal, local)) {
+        pushSafe(entry.source, entry.kind, undefined);
+        continue;
+      }
+      pushSafe(entry.source, entry.kind, lineNumberAt(persist.lineSource, persist.mapOffset(local)));
+    }
+
+    throw this.restrictedError({ safeHits: reported, overflowCount, auditHits, generation });
+  }
+
+  private assertPrivateDirsWritable(): void {
+    for (const rel of [".saydo/foundation", ".saydo/knowledge"]) {
+      const g = guardPrivateDir(this.workspace, rel);
+      if (g.status !== "protected") {
+        throw new GitProtectionInsufficientError(g, GIT_PROTECTION_INSUFFICIENT_MESSAGE);
+      }
+    }
+  }
+
+  private mkdirPrivateDir(abs: string, relativeDir: string): void {
+    const g = guardPrivateDir(this.workspace, relativeDir);
+    if (g.status !== "protected") {
+      throw new GitProtectionInsufficientError(g, GIT_PROTECTION_INSUFFICIENT_MESSAGE);
+    }
+    try {
+      mkdirSync(abs, { recursive: true });
+    } catch (err) {
+      this.failPrivateWrite(relativeDir, err);
+    }
+  }
+
+  private failPrivateWrite(relativeDir: string, err?: unknown): never {
+    throw new GitProtectionInsufficientError(
+      mapPrivateDirWriteError(this.workspace, relativeDir, err),
+      GIT_PROTECTION_INSUFFICIENT_MESSAGE
+    );
+  }
+
+  private assertPrivateLeavesWritable(generation: number): void {
+    for (const rel of [
+      `.saydo/foundation/manifest-gen-${generation}.json`,
+      ".saydo/foundation/current.json.tmp"
+    ]) {
+      const g = guardPrivateLeaf(this.workspace, rel);
+      if (g.status !== "protected") {
+        throw new GitProtectionInsufficientError(g, GIT_PROTECTION_INSUFFICIENT_MESSAGE);
+      }
+    }
+  }
+
+  private writePrivateLeaf(relativeLeaf: string, contents: string): void {
+    const g = writePrivateLeafSync(this.workspace, relativeLeaf, contents);
+    if (g.status !== "protected") {
+      throw new GitProtectionInsufficientError(g, GIT_PROTECTION_INSUFFICIENT_MESSAGE);
+    }
+  }
+
+  private removePrivatePath(abs: string, relativeLeaf: string): void {
+    try {
+      removeUnfollowed(abs);
+    } catch {
+      const g = guardPrivateLeaf(this.workspace, relativeLeaf);
+      throw new GitProtectionInsufficientError(
+        g.status === "protected" ? { status: "write_failed", relativeTarget: relativeLeaf } : g,
+        GIT_PROTECTION_INSUFFICIENT_MESSAGE
+      );
+    }
+  }
+
+  private restrictedError(opts: {
+    safeHits: KnowledgePrivacySafeHit[];
+    overflowCount: number;
+    auditHits: CredentialHit[];
+    generation: number;
+  }): FoundationBuildRestrictedError {
+    const previous = opts.generation - 1;
+    const message =
+      previous > 0
+        ? "底座没更新,还在用上一版,按屏幕处方处理后再奠基"
+        : "知识底座还没建起来,先按屏幕处方处理,再在项目设置里重试";
+    return new FoundationBuildRestrictedError({ ...opts, message });
+  }
+
+  private readCursorRules(persists: Map<string, SourcePersist>): { name: string; excerpt: string }[] {
+    const rulesDir = join(this.workspace, ".cursor", "rules");
+    if (!existsSync(rulesDir)) return [];
+    const collected: RulesDirentBoundInput[] = [];
+    const dir = opendirSync(rulesDir);
+    try {
+      for (;;) {
+        const ent = dir.readSync();
+        if (ent === null) break;
+        const name = ent.name;
+        const abs = join(rulesDir, name);
+        let isRulesFile = false;
+        let sizeBytes: number | undefined;
+        try {
+          const st = lstatSync(abs);
+          isRulesFile = st.isFile() && isFoundationRulesFileName(name);
+          if (isRulesFile) sizeBytes = st.size;
+        } catch {
+          isRulesFile = false;
+        }
+        collected.push(sizeBytes === undefined ? { name, isRulesFile } : { name, isRulesFile, sizeBytes });
+        const bound = classifyRulesReadBound(collected);
+        if (bound.reason !== "ok") {
+          throw this.restrictedError({
+            safeHits: [],
+            overflowCount: 0,
+            auditHits: [],
+            generation: this.currentGeneration() + 1
+          });
+        }
+      }
+    } finally {
+      dir.closeSync();
+    }
+
+    const files = collected
+      .filter((d) => d.isRulesFile)
+      .slice()
+      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    const out: { name: string; excerpt: string }[] = [];
+    for (const file of files) {
+      const abs = join(rulesDir, file.name);
+      const text = this.readRulesFileBounded(abs);
+      const loc = foundationRulesRelativeSource(file.name);
+      const slice = text.slice(0, KNOWLEDGE_PRIVACY_LIMITS.ruleFileExcerptChars);
+      persists.set(loc, { slice, mapOffset: (offset) => offset, lineSource: slice });
+      out.push({ name: file.name, excerpt: slice });
+    }
+    return out;
+  }
+
+  private readRulesFileBounded(abs: string): string {
+    const limit = KNOWLEDGE_PRIVACY_LIMITS.ruleFileReadLimitBytes;
+    const fd = openSync(abs, "r");
+    try {
+      const buf = Buffer.alloc(limit + 1);
+      const n = readSync(fd, buf, 0, limit + 1, 0);
+      if (n > limit) {
+        throw this.restrictedError({
+          safeHits: [],
+          overflowCount: 0,
+          auditHits: [],
+          generation: this.currentGeneration() + 1
+        });
+      }
+      return buf.subarray(0, n).toString("utf8");
+    } finally {
+      closeSync(fd);
+    }
   }
 
   /** 完整性校验(03 §3.2.3:core.md 引用存在,无 broken ref);失败抛出 ⇒ 不发布,旧 generation 保留 */
@@ -420,18 +873,39 @@ export class FoundationBuilder {
    * 两次 rename 之间(微秒级)崩溃 ⇒ 指针新/symlink 旧,下次发布自愈;current.json 是唯一真相源。
    */
   private publish(staging: string, manifest: FoundationManifest): void {
+    const genRel = `.saydo/knowledge/gen-${manifest.generation}`;
     const genDir = join(this.knowledgeDir, `gen-${manifest.generation}`);
-    rmSync(genDir, { recursive: true, force: true });
-    mkdirSync(genDir, { recursive: true });
-    for (const f of readdirSync(staging)) copyFileSync(join(staging, f), join(genDir, f));
+    const foundationRel = ".saydo/foundation";
+    this.removePrivatePath(genDir, genRel);
+    this.mkdirPrivateDir(genDir, genRel);
+    try {
+      for (const f of readdirSync(staging)) copyFileSync(join(staging, f), join(genDir, f));
+    } catch (err) {
+      this.failPrivateWrite(genRel, err);
+    }
     const manifestFile = `manifest-gen-${manifest.generation}.json`;
-    writeFileSync(join(this.foundationDir, manifestFile), JSON.stringify(manifest, null, 2));
-    // 原子切换 1:current.json(真相源)
-    const tmp = join(this.foundationDir, "current.json.tmp");
-    writeFileSync(tmp, JSON.stringify({ generation: manifest.generation, manifest: manifestFile }));
-    renameSync(tmp, join(this.foundationDir, "current.json"));
-    // 原子切换 2:knowledge/current symlink(外部消费视图)
-    replaceSymlink(join(this.knowledgeDir, "current"), `gen-${manifest.generation}`, "dir");
+    try {
+      this.writePrivateLeaf(
+        `.saydo/foundation/${manifestFile}`,
+        JSON.stringify(manifest, null, 2)
+      );
+      // 原子切换 1:current.json(真相源)
+      const tmp = join(this.foundationDir, "current.json.tmp");
+      this.writePrivateLeaf(
+        ".saydo/foundation/current.json.tmp",
+        JSON.stringify({ generation: manifest.generation, manifest: manifestFile })
+      );
+      renameSync(tmp, join(this.foundationDir, "current.json"));
+    } catch (err) {
+      if (err instanceof GitProtectionInsufficientError) throw err;
+      this.failPrivateWrite(foundationRel, err);
+    }
+    // 已成功 rename 之后的收尾不得翻转已发布 generation
+    try {
+      replaceSymlink(join(this.knowledgeDir, "current"), `gen-${manifest.generation}`, "dir");
+    } catch {
+      // current.json 是唯一真相源;symlink 下次发布自愈
+    }
     // generation 1 曾把四件知识文档直接写在 knowledge/ 根。保留这些旧消费路径，但改为
     // 跟随 current 的兼容 symlink，避免泛路径消费者永远读到首代陈旧内容。
     try {
@@ -439,7 +913,11 @@ export class FoundationBuilder {
     } catch {
       // current 是唯一现役消费视图；兼容链接失败不反转已完成的 generation 发布，下次奠基重试。
     }
-    rmSync(staging, { recursive: true, force: true });
+    try {
+      this.removePrivatePath(staging, `.saydo/foundation/staging-gen-${manifest.generation}`);
+    } catch {
+      // staging 残留下次奠基删除;不翻转已发布 generation
+    }
     // 版本化收尾(不属于切换原子性;失败下次 commit 收编——B2 回修:注释此前这么说但没 catch,
     // git 异常会把已完成的原子发布伪装成失败)
     try {
@@ -459,13 +937,17 @@ export class FoundationBuilder {
   private commitKnowledge(generation: number): void {
     const gitEnv = { ...process.env };
     delete gitEnv["GIT_INDEX_FILE"];
-    const git = (args: string[]) =>
-      execFileSync("git", args, {
+    const git = (args: string[]) => {
+      this.noteGit("general");
+      return execFileSync("git", args, {
         cwd: this.knowledgeDir,
         encoding: "utf8",
         stdio: ["ignore", "pipe", "pipe"],
-        env: gitEnv
+        env: gitEnv,
+        timeout: KNOWLEDGE_PRIVACY_LIMITS.gitTimeoutMs,
+        maxBuffer: KNOWLEDGE_PRIVACY_LIMITS.gitMaxBufferBytes
       });
+    };
     if (!existsSync(join(this.knowledgeDir, ".git"))) {
       git(["init", "-q"]);
       git(["config", "user.email", "saydo@local"]);
@@ -518,19 +1000,57 @@ export class FoundationBuilder {
 
   // ---- 私有:git 原语(-z 解析,不按换行 split;03 §3.3.1) ----
 
+  private noteGit(kind: "general" | "protection"): void {
+    if (!this.gitBoundaryActive) return;
+    this.gitSubprocessCount += 1;
+    if (kind === "protection") this.gitProtectionQueryCount += 1;
+    if (
+      this.gitProtectionQueryCount > KNOWLEDGE_PRIVACY_LIMITS.gitProtectionQueryMaxPerBoundary ||
+      this.gitSubprocessCount > KNOWLEDGE_PRIVACY_LIMITS.gitSubprocessMaxPerBoundary
+    ) {
+      throw new GitProtectionInsufficientError({ status: "query_failed" }, GIT_PROTECTION_INSUFFICIENT_MESSAGE);
+    }
+  }
+
+  private gitTimeoutOrBuffer(err: unknown): boolean {
+    const e = err as { code?: unknown; killed?: unknown; signal?: unknown; message?: unknown };
+    const code = typeof e.code === "string" ? e.code : "";
+    const message = typeof e.message === "string" ? e.message : String(err);
+    if (code === "ETIMEDOUT" || e.killed === true || (typeof e.signal === "string" && e.signal.length > 0)) return true;
+    return code === "ENOBUFS" || code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" || /maxBuffer/i.test(message);
+  }
+
   private git(args: string[]): string | undefined {
+    this.noteGit("general");
     try {
-      return execFileSync("git", args, { cwd: this.workspace, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-    } catch {
+      return execFileSync("git", args, {
+        cwd: this.workspace,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: KNOWLEDGE_PRIVACY_LIMITS.gitTimeoutMs,
+        maxBuffer: KNOWLEDGE_PRIVACY_LIMITS.gitMaxBufferBytes
+      });
+    } catch (err) {
+      if (this.gitBoundaryActive && this.gitTimeoutOrBuffer(err)) {
+        throw new GitProtectionInsufficientError({ status: "query_failed" }, GIT_PROTECTION_INSUFFICIENT_MESSAGE);
+      }
       return undefined;
     }
   }
 
   private gitHead(): string | undefined {
+    if (this.gitBoundaryActive) {
+      if (!this.cachedHead) this.cachedHead = { value: this.git(["rev-parse", "HEAD"])?.trim() };
+      return this.cachedHead.value;
+    }
     return this.git(["rev-parse", "HEAD"])?.trim();
   }
 
   private gitTree(): string | undefined {
+    if (this.gitBoundaryActive) {
+      if (!this.cachedTree) this.cachedTree = { value: this.git(["rev-parse", "HEAD^{tree}"])?.trim() };
+      return this.cachedTree.value;
+    }
     return this.git(["rev-parse", "HEAD^{tree}"])?.trim();
   }
 
@@ -540,7 +1060,12 @@ export class FoundationBuilder {
 
   private gitIsAncestor(base: string, head: string): boolean {
     try {
-      execFileSync("git", ["merge-base", "--is-ancestor", base, head], { cwd: this.workspace, stdio: "ignore" });
+      execFileSync("git", ["merge-base", "--is-ancestor", base, head], {
+        cwd: this.workspace,
+        stdio: "ignore",
+        timeout: KNOWLEDGE_PRIVACY_LIMITS.gitTimeoutMs,
+        maxBuffer: KNOWLEDGE_PRIVACY_LIMITS.gitMaxBufferBytes
+      });
       return true;
     } catch {
       return false;
@@ -602,4 +1127,63 @@ export function renderProgressLine(m: FoundationManifest): string {
 function termsOf(path: string): string[] {
   const name = basename(path).replace(/\.[^.]+$/, "");
   return name.split(/[^A-Za-z0-9\u3400-\u9fff]+/).filter((t) => t.length >= 2);
+}
+
+function joinSegments(parts: { text: string; source: string }[]): { text: string; spans: TextSpan[] } {
+  let text = "";
+  const spans: TextSpan[] = [];
+  for (const part of parts) {
+    const start = text.length;
+    text += part.text;
+    spans.push({ start, end: text.length, source: part.source });
+  }
+  return { text, spans };
+}
+
+function sourceAt(spans: TextSpan[], index: number): string | undefined {
+  for (const span of spans) {
+    if (index >= span.start && index < span.end) return span.source;
+  }
+  return spans.length > 0 ? spans[spans.length - 1]!.source : undefined;
+}
+
+function lineNumberAt(text: string, index: number): number {
+  let line = 1;
+  const end = Math.min(index, text.length);
+  for (let i = 0; i < end; i += 1) {
+    if (text.charCodeAt(i) === 10) line += 1;
+  }
+  return line;
+}
+
+function lineNumbersOfLiteral(text: string, literal: string): number[] {
+  if (literal.length === 0 || text.length === 0) return [];
+  const lines: number[] = [];
+  let from = 0;
+  while (from <= text.length - literal.length) {
+    const idx = text.indexOf(literal, from);
+    if (idx === -1) break;
+    lines.push(lineNumberAt(text, idx));
+    from = idx + 1;
+  }
+  return lines;
+}
+
+/** 剥离受管块后的偏移 -> 原文偏移。只走匹配点,不凭据扫描。 */
+function originalOffsetFromStripped(original: string, strippedOffset: number): number {
+  if (strippedOffset <= 0) return 0;
+  const re = /\n?<!-- saydo:knowledge:begin -->[\s\S]*?<!-- saydo:knowledge:end -->\n?/g;
+  let stripped = 0;
+  let orig = 0;
+  for (const match of original.matchAll(re)) {
+    const start = match.index ?? 0;
+    const before = start - orig;
+    if (strippedOffset < stripped + before) return orig + (strippedOffset - stripped);
+    stripped += before;
+    if (strippedOffset === stripped) return start;
+    stripped += 1;
+    orig = start + match[0].length;
+  }
+  if (strippedOffset <= stripped + (original.length - orig)) return orig + (strippedOffset - stripped);
+  return original.length;
 }

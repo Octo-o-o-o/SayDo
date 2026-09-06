@@ -83,6 +83,11 @@ import { claimDigestOf, listCandidates, renderReadinessChecklist } from "../eval
 import { getMemoryEvent } from "../storage/dao/memory.js";
 import type { RuntimeApprovalFlow } from "../tier1/approvalFlow.js";
 import type { MemoryLedger } from "../memory/ledger.js";
+import {
+  assertPersistableStrings,
+  isMemorySecretLiteralError,
+  memorySecretLiteralReject
+} from "../memory/credentialLiterals.js";
 import type { HotwordStore } from "../memory/hotwords.js";
 import type { LiveVoiceSessions } from "../live/voiceSessions.js";
 import type { ConfirmationLoop } from "../live/confirm.js";
@@ -1312,6 +1317,13 @@ export function registerLiveTools(reg: ToolRegistry, deps: LiveToolsDeps): void 
     },
     (args, ctx) => {
       const a = (args ?? {}) as Record<string, unknown>;
+      const claim = String(a["claim"] ?? "");
+      try {
+        assertPersistableStrings([claim]);
+      } catch (err) {
+        if (isMemorySecretLiteralError(err)) return memorySecretLiteralReject(err);
+        throw err;
+      }
       const trust = a["trust"];
       if (trust !== "user_stated" && trust !== "user_approved") {
         return toolError("invalid_trust", "remember 只接受 user_stated/user_approved(09 §13)");
@@ -1342,26 +1354,31 @@ export function registerLiveTools(reg: ToolRegistry, deps: LiveToolsDeps): void 
         if (!turn) return toolError("readiness_key_turn_missing", "当前轮没有可回读的用户转写,就绪候选记不了(09 §13 四闸)");
         boundTurnText = turn.text;
       }
-      const ev = deps.ledger.add({
-        tier: a["tier"] as "M0" | "M1" | "M2" | "M3",
-        ...(projectId !== undefined ? { projectId } : {}),
-        claim: String(a["claim"] ?? ""),
-        // source daemon 自取(溯源锚 = 当前转写轮;不信 Brain 报——防伪造 SourceRef)。
-        // ref 形状 = 裸 turnId(09 §4 SourceRef 现文;W1.8 统一)——"transcript:<sid>#<tid>" 是
-        // §4.1 snapshotLocator(快照器捕获时产出),写进 ref 会让快照回读永 miss(Codex 18 A-2)
-        source: { kind: "user_utterance", ref: ctx.turnId },
-        requestedTrust: trust,
-        ...(readinessKey !== undefined ? { readinessKey } : {})
-      });
-      if (readinessKey !== undefined && boundTurnText !== undefined) {
-        // 审计带该轮转写 digest(Codex 23 A-2 增强:抽查回读可机械化;正文不入 audit——隐私纪律)
-        deps.audit.record({
-          actor: "daemon",
-          action: "memory.readiness_key_bound",
-          meta: { memId: ev.id, key: readinessKey, projectId, sessionId: ctx.sessionId, turnId: ctx.turnId, turnTextDigest: claimDigestOf(boundTurnText) }
+      try {
+        const ev = deps.ledger.add({
+          tier: a["tier"] as "M0" | "M1" | "M2" | "M3",
+          ...(projectId !== undefined ? { projectId } : {}),
+          claim,
+          // source daemon 自取(溯源锚 = 当前转写轮;不信 Brain 报——防伪造 SourceRef)。
+          // ref 形状 = 裸 turnId(09 §4 SourceRef 现文;W1.8 统一)——"transcript:<sid>#<tid>" 是
+          // §4.1 snapshotLocator(快照器捕获时产出),写进 ref 会让快照回读永 miss(Codex 18 A-2)
+          source: { kind: "user_utterance", ref: ctx.turnId },
+          requestedTrust: trust,
+          ...(readinessKey !== undefined ? { readinessKey } : {})
         });
+        if (readinessKey !== undefined && boundTurnText !== undefined) {
+          // 审计带该轮转写 digest(Codex 23 A-2 增强:抽查回读可机械化;正文不入 audit——隐私纪律)
+          deps.audit.record({
+            actor: "daemon",
+            action: "memory.readiness_key_bound",
+            meta: { memId: ev.id, key: readinessKey, projectId, sessionId: ctx.sessionId, turnId: ctx.turnId, turnTextDigest: claimDigestOf(boundTurnText) }
+          });
+        }
+        return { memId: ev.id };
+      } catch (err) {
+        if (isMemorySecretLiteralError(err)) return memorySecretLiteralReject(err);
+        throw err;
       }
-      return { memId: ev.id };
     }
   );
 
@@ -1465,8 +1482,21 @@ export function registerLiveTools(reg: ToolRegistry, deps: LiveToolsDeps): void 
     },
     (args, ctx) => {
       const a = (args ?? {}) as Record<string, unknown>;
+      const term = String(a["term"] ?? "");
+      const canonical = String(a["canonical"] ?? "");
+      try {
+        assertPersistableStrings([term, canonical]);
+      } catch (err) {
+        if (isMemorySecretLiteralError(err)) return memorySecretLiteralReject(err);
+        throw err;
+      }
       // sourceRef 进 SourceRef.ref:裸 turnId(09 §4;W1.8 与 remember 同口径)
-      deps.hotwords.add(String(a["term"] ?? ""), String(a["canonical"] ?? ""), ctx.turnId);
+      try {
+        deps.hotwords.add(term, canonical, ctx.turnId);
+      } catch (err) {
+        if (isMemorySecretLiteralError(err)) return memorySecretLiteralReject(err);
+        throw err;
+      }
       deps.onHotwordsChanged?.();
       return { ok: true };
     }

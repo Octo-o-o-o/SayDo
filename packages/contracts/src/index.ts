@@ -13,6 +13,7 @@ export * from "./types/project.js";
 export * from "./types/package.js";
 export * from "./types/approval.js";
 export * from "./types/memory.js";
+export * from "./types/knowledgePrivacy.js";
 export * from "./types/sourceverify.js";
 export * from "./types/contextpack.js";
 export * from "./types/task.js";

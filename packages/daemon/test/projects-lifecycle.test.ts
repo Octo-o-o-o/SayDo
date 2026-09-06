@@ -11,7 +11,8 @@ import { MemoryLedger } from "../src/memory/ledger.js";
 import { createProjectDraft, promoteProject, reanchorDraft } from "../src/projects/lifecycle.js";
 import { getProject } from "../src/storage/dao/projects.js";
 import type { AuditSink } from "../src/obs/audit.js";
-import type { Project } from "@saydo/contracts";
+import { newId, type Project } from "@saydo/contracts";
+import { insertMemoryEvent } from "../src/storage/dao/memory.js";
 
 const TS = () => new Date("2026-07-24T00:00:00.000Z");
 const NOW = "2026-07-24T12:00:00.000Z";
@@ -144,5 +145,36 @@ describe("draft 全流程:re-anchor 候选并入", () => {
     ).toThrow(/not found/);
     reanchorDraft(db, ledger, audit, { draftId: draft.id, targetId: target.id }, NOW);
     expect(() => reanchorDraft(db, ledger, audit, { draftId: draft.id, targetId: target.id }, NOW)).toThrow(/draft/);
+  });
+
+  it("两条中一条命中凭据:另一条并入、draft archived、merged=1、审计 skipped", () => {
+    const secret = ["ghp", "_", "B".repeat(16)].join("");
+    ledger.add({
+      tier: "M1",
+      projectId: draft.id,
+      claim: "导出格式要 CSV",
+      source: { kind: "user_utterance", ref: "turn@1" },
+      requestedTrust: "user_stated"
+    });
+    insertMemoryEvent(db, {
+      id: newId("mem"),
+      ts: NOW,
+      op: "add",
+      tier: "M1",
+      projectId: draft.id,
+      claim: `可能要支持 ${secret}`,
+      source: { kind: "user_utterance", ref: "turn@2" },
+      trust: "user_stated"
+    });
+    const r = reanchorDraft(db, ledger, audit, { draftId: draft.id, targetId: target.id }, NOW);
+    expect(r.merged).toBe(1);
+    expect(r.draft.status).toBe("archived");
+    const mergedFacts = ledger.project().filter((m) => m.projectId === target.id && m.source.kind === "import");
+    expect(mergedFacts).toHaveLength(1);
+    expect(mergedFacts[0]?.claim).toBe("导出格式要 CSV");
+    expect(JSON.stringify(mergedFacts)).not.toContain(secret);
+    const reanchorAudit = auditActions.find((a) => a.action === "project.reanchor");
+    expect(reanchorAudit?.meta?.["merged"]).toBe(1);
+    expect(reanchorAudit?.meta?.["skipped"]).toBe(1);
   });
 });

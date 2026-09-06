@@ -140,7 +140,7 @@ Brain 通过工具指挥 daemon,工具集与引擎无关:
   ~/.saydo/profile.md             # M0:用户档案(跨项目)
 ```
 
-真相源边界:执行域以 Hopper 事件溯源为真相;对话域以**记忆事件账本**为真相,Markdown 文件与 SQLite 索引都是可重建投影(源码/Git 永远是代码事实的最终权威,见 04 §1.4)。一切可恢复(daemon 重启后任务和会话都能接上);知识库默认 gitignore(可显式选择提交以团队共享)。
+真相源边界:执行域以 Hopper 事件溯源为真相;对话域以**记忆事件账本**为真相,Markdown 文件与 SQLite 索引都是可重建投影(源码/Git 永远是代码事实的最终权威,见 04 §1.4)。一切可恢复(daemon 重启后任务和会话都能接上);知识库默认 gitignore(可显式选择提交以团队共享)。**AS-01-AS-02**:daemon 对声明私有 write set(`<workspace>/.saydo/foundation/` 含 `staging-gen-*`、`<workspace>/.saydo/knowledge/` 投影)做 create-only ignore 与实际保护验证——无覆盖文件则写最小规则,已有等价规则(经 `git check-ignore -v` 覆盖声明 write set)接受且不覆盖用户文件;已跟踪目标停**本次**私有投影并保留文件与人工配置,不自动 `git rm`、不清历史、不把既有手工共享当作继续写入新私有生成物的无条件豁免。私有投影文档(`core.md` 等与 `manifest-gen-N.json`)不得写入原始绝对 workspace 路径。声明支持的 `.cursor/rules` 直系读取受 contracts `classifyRulesReadBound` 有限上限约束,超界不发布新 generation。不新增 `knowledgeShare` / `projectOverrides` 共享字段或 DDL;不把整个 `.saydo` 改成字节全等 `*`。
 
 ## 7. 部署拓扑与移动连接
 

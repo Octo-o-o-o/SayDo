@@ -397,6 +397,8 @@ readiness/Context Pack 双闸已追平；两项重建失败只暂停 Brain/tool�
 
 shadcn 原样(Input/Select/Switch/Tabs);设置页每项带一句 muted 说明;危险区(删除项目/hard-forget)单独分组 + error 描边。五槽位模型配置用表格而非五张卡。
 
+**项目设置奠基(正式路径,AS-01-AS-02)**:桌面 hash `#/p/:id/settings` → 路由 page `psettings` → `ProjectSettings`(源码 `App.tsx` 现役)。奠基/重奠基按钮消费既有 `POST /api/projects/:id/foundation/bootstrap` 与 `ErrorCard`/结果行,区分三类失败:单条记忆未保存不走此按钮;刷新失败仍展示旧有效知识且文案为未更新;首次无底座不得显示 generation 成功。脱敏元数据仅相对来源/行号/分类/处方;`relativeSource` 须过 `isSafeRelativeSource`(POSIX `/` 相对;拒绝对/盘符/UNC/穿越段/反斜杠/控制字符(Unicode Cc 封闭集 U+0000..U+001F ∪ U+007F ∪ U+0080..U+009F,不含 U+0020/U+007E/U+00A0);允许 `foo..bar.md`;本批未做 Windows 真机实测)。rules 来源由 contracts `foundationRulesRelativeSource` 产生:普通名 identity 最长 269=len(.cursor/rules/)+NAME_MAX;非普通名 `.cursor/rules/_enc/`+UTF-8 百分号编码最长 784;取消未登记 240;POSIX 合法 `a\\b.md` 与含该控制字符集/凭据字面量的直系名必须可表示,定位串不得含反斜杠/控制字符/凭据原文,不得以含 U+007F 的 identity 进 safeHits,不得把文件改名为另一个文件。不新增共享设置行、`knowledgeShare` 或 `projectOverrides` 字段。修复后同一按钮可重试;不要求关闭保护。AS-07 才动 §5.8a。
+
 **Tier1 开发执行器卡(W5.4-b)**:`GlobalSettings` 在五槽位配置之外单列一张「开发执行器」卡,展示生效 adapter、模型、pin 版本、登录态、自检结论与五小时窗重置时间。五小时窗没有 durable 限流记录时写「没有已知限流记录」,不得写“额度充足”;登录态与实测版本只来自 `POST /api/setup/test {scope:"tier1"}` 的物理探针,未跑时写「未测试」,不得从配置推断。自检红显示首条处方;identity 新写入时明确提示重启后才会武装。任务详情的每次 Tier1 run 同行展示 adapter + `observedModel`;后者只读不可变审计证据,缺证据写「未观测」,不得拿配置模型代填。
 
 向导的视觉与交互合同见 §5.8a。槽状态必须消费 probe 的 `mode/effective/reason/fallbackTo`,不得从配置形状推导;cheap 回落时固定显示"实际走对话档模型计费"。若 recovery violation 指向失效 project override,门禁须提供明确的"清除失效覆盖"动作,说明项目随后继承全局配置,不得让用户只能手改 SQLite。完成流在发起 restart 前先把目标 hash 置为 `#/chat-new`,使协调重载保留导航意图;live self-test 通过后必须刷新 setup 判定:新 probe 已武装则 `SetupBootstrapBoundary` 就地翻到应用并挂载 `AppContent`;仍未武装则整页进入已写入的 `#/chat-new`,由 `SetupProvider` 重新 probe。不得停留在启动前的向导快照上等人手刷新。

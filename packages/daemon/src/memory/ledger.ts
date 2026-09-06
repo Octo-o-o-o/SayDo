@@ -10,6 +10,7 @@ import type { Db } from "../storage/db.js";
 import { insertMemoryEvent, listMemoryEvents } from "../storage/dao/memory.js";
 import type { AuditSink } from "../obs/audit.js";
 import { classifyTrust, assertWritable } from "./classify.js";
+import { assertPersistableStrings, isMemorySecretLiteralError } from "./credentialLiterals.js";
 
 /** 内存投影里的一条 active 记忆(events 重放派生) */
 export interface ProjectedMemory {
@@ -87,6 +88,25 @@ export class MemoryLedger {
 
   /** 写一条 add/correct(经写路径分级);trust 由 classify 决定,不信调用方自报(除 user_stated/approved) */
   add(input: AddInput): AddedMemoryEvent {
+    // AS-01:凭据闸先于 classify / requestedTrust / supersedes / insert。
+    try {
+      const persistable = [input.claim, input.source.ref];
+      if (typeof input.source.quote === "string") persistable.push(input.source.quote);
+      assertPersistableStrings(persistable);
+    } catch (err) {
+      if (isMemorySecretLiteralError(err)) {
+        this.audit.record({
+          actor: "daemon",
+          action: "memory.secret_literal_rejected",
+          meta: {
+            tier: input.tier,
+            ...(input.projectId ? { projectId: input.projectId } : {}),
+            hits: err.hits.map((hit) => ({ kind: hit.kind, spanDigest: hit.spanDigest }))
+          }
+        });
+      }
+      throw err;
+    }
     const { trust, taint } = classifyTrust({
       tier: input.tier,
       claim: input.claim,

@@ -4,7 +4,8 @@
 
 ## 当前入口
 
-- `IMPLEMENTATION-PLAN-2.md`:当前唯一排产源。
+- `IMPLEMENTATION-PLAN-2.md`:当前唯一排产源。`AS-01-AS-02`(PG-01B 后、PG-02 前)已于 2026-09-06 收口;指针 `active=none`、`next=PG-02`(未开工)。
+- `IMPL-PROMPT-ecc-as01-as02-privacy.md`:AS-01-AS-02 隐私批唯一执行卡(contract → implementation)。
 - `MIGRATION.md`:2026-07-29 双目录合并的执行记录、路径映射与回滚说明。
 - `REPO-MERGE-PROPOSAL.md`:2026-07-25 的 v2 前置方案;已由 `MIGRATION.md` 的实况执行记录 supersede。
 
@@ -19,7 +20,7 @@
   标准 Git 两提交本地候选流程导入 `IMPLEMENTATION-PLAN-2.md` 后才能实施，未签路线只保持候选或
   deferred。
 - `2026-08-28-project-gap-owner-decisions.md`：D1–D19 的唯一签署载体；当前只有 D17 是导入
-  A 级风险关闭链的必要决策，其他选择按触发线后置。
+  A 级风险关闭链的必要决策，其他选择按触发线后置。第 10 节登记 2026-09-05 owner 直接提交统一实施 Prompt 后的 AS-01-AS-02 授权,不改写 D17 原话。
 - `2026-08-28-project-gap-d17-import-spec.md`：D17 绑定的 PLAN-2/HANDOFF 标准 Git 导入规格与旧节点
   disposition；在当前专用 feature branch 上用 explicit pathspec 形成本地 I/E 两提交，以 clean
   validation worktree 复审。未签 D17 前只读，不能据此直接改排产源；条件包不进入当前活动队列。

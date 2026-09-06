@@ -5,11 +5,23 @@
 // 仅受信终端——奠基写仓库文件,不对 tailnet 开)。
 
 import { existsSync } from "node:fs";
-import { idSchema } from "@saydo/contracts";
+import {
+  idSchema,
+  type GitProtectionResult,
+  type KnowledgePrivacyFailureClass,
+  type KnowledgePrivacyPrescription,
+  type KnowledgePrivacySafeHit
+} from "@saydo/contracts";
 import type { AuditSink } from "../obs/audit.js";
 import type { Db } from "../storage/db.js";
 import type { MemoryLedger } from "./ledger.js";
-import { FoundationBuilder, renderProgressLine, type FoundationManifest } from "./foundation.js";
+import {
+  FoundationBuilder,
+  isFoundationBuildRestrictedError,
+  renderProgressLine,
+  type FoundationManifest
+} from "./foundation.js";
+import { isGitProtectionInsufficientError } from "./gitProtection.js";
 import { projectM1Notes } from "./growth.js";
 import { verifiedProjectWorkspace } from "../storage/dao/projects.js";
 
@@ -19,6 +31,8 @@ export interface BootstrapDeps {
   audit: AuditSink;
   /** 预算([params] foundation_budget_min/foundation_budget_tokens;调用方读配置) */
   budgets?: { walltimeMs: number; tokens: number };
+  /** 仅投影步骤可注入;bootstrap 复用已验证保护结果时不应被调用。 */
+  projectM1NotesGit?: { noteGitCall?: () => void };
 }
 
 export interface BootstrapResult {
@@ -30,6 +44,11 @@ export interface BootstrapResult {
   progressLine?: string;
   factsEmitted?: number;
   invalidatedOld?: number;
+  failureClass?: KnowledgePrivacyFailureClass;
+  safeHits?: KnowledgePrivacySafeHit[];
+  overflowCount?: number;
+  gitProtection?: { status: GitProtectionResult["status"]; relativeTarget?: string };
+  prescription?: KnowledgePrivacyPrescription;
 }
 
 /** 项目奠基(首次/重奠基同链;重奠基 ⇒ generation+1 ⇒ 旧 Context Pack 失效重编译,见 live/pack.ts) */
@@ -90,10 +109,49 @@ export function bootstrapProjectFoundation(deps: BootstrapDeps, projectId: strin
       }
     }
   });
+  const previousGeneration = builder.currentGeneration();
   let manifest: FoundationManifest;
   try {
     manifest = builder.bootstrap(now);
   } catch (err) {
+    if (isFoundationBuildRestrictedError(err) || isGitProtectionInsufficientError(err)) {
+      const failureClass: KnowledgePrivacyFailureClass =
+        previousGeneration > 0 ? "foundation_refresh_failed_kept_old" : "foundation_first_build_unavailable";
+      const code = err.code;
+      const gitProtection = isGitProtectionInsufficientError(err) ? err.gitProtection : undefined;
+      const safeHits = isFoundationBuildRestrictedError(err) ? err.safeHits : [];
+      const overflowCount = isFoundationBuildRestrictedError(err) ? err.overflowCount : undefined;
+      const auditHits = isFoundationBuildRestrictedError(err) ? err.auditHits : [];
+      const prescription = isGitProtectionInsufficientError(err) ? err.prescription : "remove_source_literal";
+      deps.audit.record({
+        actor: "daemon",
+        action: "foundation.bootstrap_failed",
+        meta: {
+          projectId,
+          code,
+          failureClass,
+          hits: auditHits.map((hit) => ({ kind: hit.kind, spanDigest: hit.spanDigest })),
+          ...(gitProtection ? { gitProtection: gitProtection.status } : {})
+        }
+      });
+      return {
+        ok: false,
+        code,
+        message: err.message,
+        failureClass,
+        safeHits,
+        ...(overflowCount !== undefined && overflowCount > 0 ? { overflowCount } : {}),
+        ...(gitProtection
+          ? {
+              gitProtection: {
+                status: gitProtection.status,
+                ...(gitProtection.relativeTarget ? { relativeTarget: gitProtection.relativeTarget } : {})
+              }
+            }
+          : {}),
+        prescription
+      };
+    }
     // 发布失败保留旧 generation(builder.publish 原子性);如实报错
     deps.audit.record({
       actor: "daemon",
@@ -106,7 +164,11 @@ export function bootstrapProjectFoundation(deps: BootstrapDeps, projectId: strin
   if (oldFacts.length > 0) {
     deps.ledger.invalidate("invalidate", oldFacts, `refoundation: superseded by gen-${manifest.generation}`, "M1", projectId);
   }
-  projectM1Notes(deps.ledger, projectId, workspace, now);
+  projectM1Notes(deps.ledger, projectId, workspace, now, {
+    ...(builder.lastGitProtection ? { protection: builder.lastGitProtection } : {}),
+    audit: deps.audit,
+    ...(deps.projectM1NotesGit?.noteGitCall ? { noteGitCall: deps.projectM1NotesGit.noteGitCall } : {})
+  });
   deps.audit.record({
     actor: "daemon",
     action: "foundation.bootstrap",

@@ -23,7 +23,11 @@ const POINTER_KEYS = Object.freeze([
   "updated_at"
 ]);
 const BATCH_ID_RE = /^(PROC-\d+|PG-\d+[A-Z]?)$/;
+/** 有限附加批 ID:只接受本批唯一组合,不是任意 AS 编号。 */
+const EXTRA_BATCH_IDS = Object.freeze(["AS-01-AS-02"]);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const PLAN2_CHAIN_ARROW = "PROC-01 → PG-01B → AS-01-AS-02 → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop";
+const PLAN2_CHAIN_ASSERT = "PLAN2_chain == PROC-01>PG-01B>AS-01-AS-02>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop";
 const OID_RE = /\b[0-9a-f]{40}\b/i;
 const SHORT_OID_RE = /^[0-9a-f]{7,40}$/i;
 
@@ -123,7 +127,7 @@ function parseRevision(raw, label) {
 }
 
 function parseBatchId(raw, label, field) {
-  if (!BATCH_ID_RE.test(raw)) {
+  if (!BATCH_ID_RE.test(raw) && !EXTRA_BATCH_IDS.includes(raw)) {
     throw new Error(`${label} ${field} 不是合法批 id:${raw}`);
   }
   return raw;
@@ -256,6 +260,12 @@ function check() {
     throw new Error(`revision 回退:候选 ${revision} < main ${mainRevision}`);
   }
   checkCardStatus(planText, planFields);
+  if (!planText.includes(PLAN2_CHAIN_ARROW)) {
+    throw new Error("PLAN-2 唯一串行链与冻结全等串不一致");
+  }
+  if (!planText.includes(PLAN2_CHAIN_ASSERT)) {
+    throw new Error("PLAN-2 链断言与冻结全等串不一致");
+  }
   const evidencePath = join(REPO_ROOT, planFields.evidence_ref);
   if (!existsSync(evidencePath)) {
     throw new Error(`evidence_ref 不存在:${planFields.evidence_ref}`);
@@ -366,6 +376,22 @@ function mutateActiveAndNext(text, planFields) {
   return mutated;
 }
 
+function mutateDropAsFromChain(planText) {
+  const mutated = planText.replace(PLAN2_CHAIN_ARROW, "PROC-01 → PG-01B → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop");
+  if (mutated === planText) {
+    throw new Error("self-test 未能从唯一串行链去掉 AS-01-AS-02");
+  }
+  return mutated;
+}
+
+function mutateIllegalExtraBatchId(text, planFields) {
+  const mutated = text.replace(new RegExp(`^active=${planFields.active}$`, "m"), "active=AS-03");
+  if (mutated === text) {
+    throw new Error("self-test 未能把 active 改成非法 AS-03");
+  }
+  return mutated;
+}
+
 function mutateClosedCardUnstarted(planText, lastClosed) {
   const prefix = `### ${lastClosed} `;
   const lines = planText.split("\n");
@@ -430,6 +456,19 @@ function selfTest() {
         apply() {
           writeFileSync(join(worktree, PLAN_REL), mutateClosedCardUnstarted(planText, planFields.last_closed));
         }
+      },
+      {
+        name: "非法附加批 id AS-03",
+        apply() {
+          writeFileSync(join(worktree, PLAN_REL), mutateIllegalExtraBatchId(planText, planFields));
+          writeFileSync(join(worktree, HANDOFF_REL), mutateIllegalExtraBatchId(handoffText, planFields));
+        }
+      },
+      {
+        name: "唯一串行链去掉 AS-01-AS-02",
+        apply() {
+          writeFileSync(join(worktree, PLAN_REL), mutateDropAsFromChain(planText));
+        }
       }
     ];
 
@@ -471,8 +510,8 @@ function selfTest() {
   if (failed) {
     fail(failed.message ?? String(failed));
   }
-  if (results.length !== 4) {
-    fail("self-test 未跑满四个坏例");
+  if (results.length !== 6) {
+    fail("self-test 未跑满六个坏例");
   }
   process.stdout.write("[ok] schedule-pointer self-test\n");
 }

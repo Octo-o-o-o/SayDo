@@ -29,6 +29,7 @@ export class HotwordStore {
     if (t === "" || c === "") throw new Error("hotword term/canonical must be non-empty");
     if (t.includes(SEP) || c.includes(SEP)) throw new Error(`hotword must not contain "${SEP}"`);
     if (/[\r\n]/.test(t) || /[\r\n]/.test(c)) throw new Error("hotword must be single-line");
+    // AS-01:ledger.add 凭据闸失败原样抛出,本层不捕获、不伪装成功。
     return this.ledger.add({
       tier: "M0",
       claim: `${PREFIX}${t}${SEP}${c}`,

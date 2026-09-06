@@ -5,17 +5,20 @@
 // kill -9 一致性(current.json 唯一真相源;半切换自愈)。
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { newId } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
 import { createSqliteAuditSink } from "../src/storage/dao/misc.js";
 import { insertProject } from "../src/storage/dao/projects.js";
+import { insertMemoryEvent } from "../src/storage/dao/memory.js";
 import { MemoryLedger } from "../src/memory/ledger.js";
 import { FoundationBuilder } from "../src/memory/foundation.js";
 import { bootstrapProjectFoundation } from "../src/memory/foundationOps.js";
 import { approveCandidate, isNominatable, nominateFromSession, projectM1Notes, rejectCandidate } from "../src/memory/growth.js";
+import { isMemorySecretLiteralError, MemorySecretLiteralError, memorySecretLiteralReject } from "../src/memory/credentialLiterals.js";
 import { compileLivePack, effectiveMemoryGeneration } from "../src/live/pack.js";
 import { SessionManager } from "../src/session/manager.js";
 import { LiveVoiceSessions } from "../src/live/voiceSessions.js";
@@ -310,5 +313,328 @@ describe("奠基生产接线 + generation 失效(IMPL-5 §3-C 验收)", () => {
     } finally {
       rmSync(managed, { recursive: true, force: true });
     }
+  });
+});
+
+describe("AS-01/AS-02 生长闭环隐私闸", () => {
+  function secretToken(): string {
+    return ["sk", "-", "C".repeat(16)].join("");
+  }
+
+  it("nominate 一轮命中不阻断其余轮,审计带 skipped", () => {
+    const secret = secretToken();
+    const dirty = `这个项目以后都统一用 ${secret}`;
+    const clean = "接口口径是驼峰,数据库列名统一用蛇形";
+    const out = nominateFromSession(
+      { ledger, audit },
+      { sessionId: "ses_01GR0WPRIV0000000000000001", projectId: PRJ, userTurns: [dirty, clean] }
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0] && out[0].op === "add" ? out[0].claim : "").toBe(clean);
+    expect(ledger.project().some((m) => m.claim.includes(secret))).toBe(false);
+    const row = db.prepare("SELECT meta_json FROM audit_log WHERE action=?").get("memory.session_nominated") as
+      | { meta_json: string }
+      | undefined;
+    expect(row).toBeDefined();
+    const meta = JSON.parse(row!.meta_json) as { count: number; skipped: number };
+    expect(meta.count).toBe(1);
+    expect(meta.skipped).toBe(1);
+    expect(row!.meta_json).not.toContain(secret);
+  });
+
+  it("bootstrap 首次命中 => foundation_first_build_unavailable", () => {
+    const repo = makeRepo();
+    const secret = secretToken();
+    writeFileSync(join(repo, "AGENTS.md"), `# 约定\n- 密钥 ${secret}\n`);
+    seedProject(repo);
+    const r = bootstrapProjectFoundation({ db, ledger, audit }, PRJ);
+    expect(r.ok).toBe(false);
+    expect(r.code).toBe("foundation_build_restricted");
+    expect(r.failureClass).toBe("foundation_first_build_unavailable");
+    expect(r.generation).toBeUndefined();
+    expect(existsSync(join(repo, ".saydo", "foundation", "staging-gen-1"))).toBe(false);
+    expect(JSON.stringify(r)).not.toContain(secret);
+  });
+
+  it("已有 generation 再命中 => foundation_refresh_failed_kept_old 且 currentGeneration 不变", () => {
+    const repo = makeRepo();
+    seedProject(repo);
+    expect(bootstrapProjectFoundation({ db, ledger, audit }, PRJ).generation).toBe(1);
+    const secret = secretToken();
+    writeFileSync(join(repo, "AGENTS.md"), `# 约定\n- 密钥 ${secret}\n`);
+    const before = readFileSync(join(repo, ".saydo", "foundation", "current.json"), "utf8");
+    const r = bootstrapProjectFoundation({ db, ledger, audit }, PRJ);
+    expect(r.ok).toBe(false);
+    expect(r.failureClass).toBe("foundation_refresh_failed_kept_old");
+    expect(new FoundationBuilder({ workspace: repo }).currentGeneration()).toBe(1);
+    expect(readFileSync(join(repo, ".saydo", "foundation", "current.json"), "utf8")).toBe(before);
+  });
+
+  it("保护不足 => git_protection_insufficient", () => {
+    const repo = makeRepo();
+    mkdirSync(join(repo, ".saydo", "foundation"), { recursive: true });
+    writeFileSync(join(repo, ".saydo", "foundation", "core.md"), "tracked\n");
+    execFileSync("git", ["add", "-f", ".saydo/foundation/core.md"], { cwd: repo, stdio: "ignore" });
+    execFileSync("git", ["commit", "-qm", "track private"], { cwd: repo, stdio: "ignore" });
+    seedProject(repo);
+    const r = bootstrapProjectFoundation({ db, ledger, audit }, PRJ);
+    expect(r.ok).toBe(false);
+    expect(r.code).toBe("git_protection_insufficient");
+    expect(r.gitProtection?.status).toBe("insufficient");
+    expect(existsSync(join(repo, ".saydo", "foundation", "core.md"))).toBe(true);
+    expect(new FoundationBuilder({ workspace: repo }).currentGeneration()).toBe(0);
+  });
+
+  it("首次构建 .saydo/foundation 被常规文件占位 => write_failed", () => {
+    const repo = makeRepo();
+    mkdirSync(join(repo, ".saydo"));
+    writeFileSync(join(repo, ".saydo", "foundation"), "not-a-dir\n");
+    seedProject(repo);
+    const r = bootstrapProjectFoundation({ db, ledger, audit }, PRJ);
+    expect(r.ok).toBe(false);
+    expect(r.code).toBe("git_protection_insufficient");
+    expect(r.gitProtection?.status).toBe("write_failed");
+    expect(r.failureClass).toBe("foundation_first_build_unavailable");
+    expect(existsSync(join(repo, ".saydo", "foundation", "staging-gen-1"))).toBe(false);
+  });
+
+  it("已有 generation 后 .saydo/foundation 为 0o555 => kept_old", () => {
+    if (process.getuid?.() === 0) return;
+    const repo = makeRepo();
+    seedProject(repo);
+    expect(bootstrapProjectFoundation({ db, ledger, audit }, PRJ).generation).toBe(1);
+    const foundationDir = join(repo, ".saydo", "foundation");
+    const before = readFileSync(join(foundationDir, "current.json"), "utf8");
+    chmodSync(foundationDir, 0o555);
+    try {
+      const r = bootstrapProjectFoundation({ db, ledger, audit }, PRJ);
+      expect(r.ok).toBe(false);
+      expect(r.code).toBe("git_protection_insufficient");
+      expect(r.gitProtection?.status).toBe("write_failed");
+      expect(r.failureClass).toBe("foundation_refresh_failed_kept_old");
+      expect(readFileSync(join(foundationDir, "current.json"), "utf8")).toBe(before);
+      expect(new FoundationBuilder({ workspace: repo }).currentGeneration()).toBe(1);
+    } finally {
+      chmodSync(foundationDir, 0o755);
+    }
+  });
+
+  it("approveCandidate 对含凭据候选抛 memory_secret_literal 且候选不变", () => {
+    const secret = secretToken();
+    const candidateId = newId("mem");
+    insertMemoryEvent(db, {
+      id: candidateId,
+      ts: "2026-07-26T12:00:00.000Z",
+      op: "add",
+      tier: "M1",
+      projectId: PRJ,
+      claim: `以后都统一用 ${secret}`,
+      source: { kind: "user_utterance", ref: "t-cand" },
+      trust: "candidate"
+    });
+    expect(() => approveCandidate({ ledger, audit }, candidateId)).toThrow(MemorySecretLiteralError);
+    const still = ledger.project().find((m) => m.id === candidateId);
+    expect(still?.trust).toBe("candidate");
+    expect(still?.claim).toContain(secret);
+    try {
+      approveCandidate({ ledger, audit }, candidateId);
+      throw new Error("expected reject");
+    } catch (err) {
+      expect(isMemorySecretLiteralError(err)).toBe(true);
+      const body = memorySecretLiteralReject(err as MemorySecretLiteralError);
+      expect(body).toMatchObject({
+        ok: false,
+        code: "memory_secret_literal",
+        retryable: false,
+        failureClass: "memory_item_not_saved"
+      });
+      expect(body.message).not.toContain(secret);
+      expect(JSON.stringify(body)).not.toContain(secret);
+    }
+  });
+
+  it("projectM1Notes:根外 symlink 不写不改用户文件,审计只记 projectId+status", () => {
+    const repo = makeRepo();
+    seedProject(repo);
+    const outside = mkdtempSync(join(tmpdir(), "saydo-m1-out-"));
+    writeFileSync(join(outside, "keep.txt"), "keep\n");
+    symlinkSync(outside, join(repo, ".saydo"));
+    ledger.add({
+      tier: "M1",
+      projectId: PRJ,
+      claim: "这个项目以后都统一用 pnpm 管依赖",
+      source: { kind: "user_utterance", ref: "t-m1" },
+      requestedTrust: "user_stated"
+    });
+    const wrote = projectM1Notes(ledger, PRJ, repo, new Date().toISOString(), { audit });
+    expect(wrote).toBe(false);
+    expect(existsSync(join(outside, "knowledge", "m1-notes.md"))).toBe(false);
+    expect(readFileSync(join(outside, "keep.txt"), "utf8")).toBe("keep\n");
+    const row = db.prepare("SELECT meta_json FROM audit_log WHERE action=?").get("memory.m1_notes_skipped") as
+      | { meta_json: string }
+      | undefined;
+    expect(row).toBeDefined();
+    expect(JSON.parse(row!.meta_json)).toEqual({ projectId: PRJ, status: "outside_root" });
+  });
+
+  it("projectM1Notes:m1-notes.md 已 tracked 时 approve 后不覆盖且记 skipped", () => {
+    const repo = makeRepo();
+    seedProject(repo);
+    const notesDir = join(repo, ".saydo", "knowledge");
+    mkdirSync(notesDir, { recursive: true });
+    const notesPath = join(notesDir, "m1-notes.md");
+    writeFileSync(notesPath, "USER KEEP\n");
+    execFileSync("git", ["add", "-f", ".saydo/knowledge/m1-notes.md"], { cwd: repo, stdio: "ignore" });
+    execFileSync("git", ["commit", "-qm", "track m1-notes"], { cwd: repo, stdio: "ignore" });
+    const [cand] = nominateFromSession(
+      { ledger, audit },
+      { sessionId: "ses_01GR0WAPPR0000000000000001", projectId: PRJ, userTurns: ["这个项目以后都统一用 pnpm 管依赖"] }
+    );
+    expect(cand).toBeDefined();
+    const ev = approveCandidate({ ledger, audit }, cand!.id);
+    const wrote = projectM1Notes(ledger, ev.projectId ?? PRJ, repo, new Date().toISOString(), { audit });
+    expect(wrote).toBe(false);
+    expect(readFileSync(notesPath, "utf8")).toBe("USER KEEP\n");
+    const row = db.prepare("SELECT meta_json FROM audit_log WHERE action=?").get("memory.m1_notes_skipped") as
+      | { meta_json: string }
+      | undefined;
+    expect(row).toBeDefined();
+    const meta = JSON.parse(row!.meta_json) as { projectId: string; status: string };
+    expect(meta.projectId).toBe(PRJ);
+    expect(meta.status).toBe("insufficient");
+    expect(Object.keys(meta).sort()).toEqual(["projectId", "status"]);
+  });
+
+  it("projectM1Notes:protected/not_git 正常写入;传入 protection 不再查询", () => {
+    const repo = makeRepo();
+    seedProject(repo);
+    ledger.add({
+      tier: "M1",
+      projectId: PRJ,
+      claim: "这个项目以后都统一用 pnpm 管依赖",
+      source: { kind: "user_utterance", ref: "t-ok" },
+      requestedTrust: "user_stated"
+    });
+    let reusedCalls = 0;
+    const protectedWrite = projectM1Notes(ledger, PRJ, repo, new Date().toISOString(), {
+      protection: { status: "protected" },
+      audit,
+      noteGitCall: () => {
+        reusedCalls += 1;
+      }
+    });
+    expect(protectedWrite).toBe(true);
+    expect(reusedCalls).toBe(0);
+    expect(readFileSync(join(repo, ".saydo", "knowledge", "m1-notes.md"), "utf8")).toContain("统一用 pnpm");
+
+    const nogit = mkdtempSync(join(tmpdir(), "saydo-m1-nogit-"));
+    writeFileSync(join(nogit, "README.md"), "x\n");
+    let nogitCalls = 0;
+    const nogitWrite = projectM1Notes(ledger, PRJ, nogit, new Date().toISOString(), {
+      audit,
+      noteGitCall: () => {
+        nogitCalls += 1;
+      }
+    });
+    expect(nogitWrite).toBe(true);
+    expect(nogitCalls).toBeLessThanOrEqual(5);
+    expect(existsSync(join(nogit, ".saydo", "knowledge", "m1-notes.md"))).toBe(true);
+  });
+
+  it("bootstrap 投影复用已验证保护结果,不再额外触发保护查询", () => {
+    const repo = makeRepo();
+    seedProject(repo);
+    let extra = 0;
+    const r = bootstrapProjectFoundation(
+      {
+        db,
+        ledger,
+        audit,
+        projectM1NotesGit: {
+          noteGitCall: () => {
+            extra += 1;
+          }
+        }
+      },
+      PRJ
+    );
+    expect(r.ok).toBe(true);
+    expect(extra).toBe(0);
+    expect(existsSync(join(repo, ".saydo", "knowledge", "m1-notes.md"))).toBe(true);
+  });
+
+  it("approve 投影自成边界,保护查询不超过 5 次", () => {
+    const repo = makeRepo();
+    seedProject(repo);
+    const [cand] = nominateFromSession(
+      { ledger, audit },
+      { sessionId: "ses_01GR0WAPQ0000000000000001", projectId: PRJ, userTurns: ["这个项目以后都统一用 pnpm 管依赖"] }
+    );
+    const ev = approveCandidate({ ledger, audit }, cand!.id);
+    let queries = 0;
+    const wrote = projectM1Notes(ledger, ev.projectId ?? PRJ, repo, new Date().toISOString(), {
+      audit,
+      noteGitCall: () => {
+        queries += 1;
+      }
+    });
+    expect(wrote).toBe(true);
+    expect(queries).toBeGreaterThan(0);
+    expect(queries).toBeLessThanOrEqual(5);
+    expect(readFileSync(join(repo, ".saydo", "knowledge", "m1-notes.md"), "utf8")).toContain("统一用 pnpm");
+  });
+
+  it("projectM1Notes:未跟踪的根外叶子 symlink,approve 后不跟随且记 outside_root", () => {
+    const repo = makeRepo();
+    seedProject(repo);
+    const outsideDir = mkdtempSync(join(tmpdir(), "saydo-m1-leaf-out-"));
+    const outside = join(outsideDir, "victim.md");
+    writeFileSync(outside, "OUTSIDE-KEEP\n");
+    const notesDir = join(repo, ".saydo", "knowledge");
+    mkdirSync(notesDir, { recursive: true });
+    const notesPath = join(notesDir, "m1-notes.md");
+    symlinkSync(outside, notesPath);
+    const [cand] = nominateFromSession(
+      { ledger, audit },
+      { sessionId: "ses_01GR0WAPX00000000000000001", projectId: PRJ, userTurns: ["这个项目以后都统一用 pnpm 管依赖"] }
+    );
+    const ev = approveCandidate({ ledger, audit }, cand!.id);
+    const wrote = projectM1Notes(ledger, ev.projectId ?? PRJ, repo, new Date().toISOString(), { audit });
+    expect(wrote).toBe(false);
+    expect(readFileSync(outside, "utf8")).toBe("OUTSIDE-KEEP\n");
+    expect(lstatSync(notesPath).isSymbolicLink()).toBe(true);
+    const row = db.prepare("SELECT meta_json FROM audit_log WHERE action=?").get("memory.m1_notes_skipped") as
+      | { meta_json: string }
+      | undefined;
+    expect(row).toBeDefined();
+    expect(JSON.parse(row!.meta_json)).toEqual({ projectId: ev.projectId ?? PRJ, status: "outside_root" });
+  });
+
+  it("projectM1Notes:指向根内 README 的叶子 symlink 不改 README,记 write_failed", () => {
+    const repo = makeRepo();
+    seedProject(repo);
+    const readme = join(repo, "README.md");
+    const before = readFileSync(readme, "utf8");
+    const notesDir = join(repo, ".saydo", "knowledge");
+    mkdirSync(notesDir, { recursive: true });
+    const notesPath = join(notesDir, "m1-notes.md");
+    symlinkSync(readme, notesPath);
+    const [cand] = nominateFromSession(
+      { ledger, audit },
+      { sessionId: "ses_01GR0WAPX00000000000000002", projectId: PRJ, userTurns: ["这个项目以后都统一用 pnpm 管依赖"] }
+    );
+    const ev = approveCandidate({ ledger, audit }, cand!.id);
+    const wrote = projectM1Notes(ledger, ev.projectId ?? PRJ, repo, new Date().toISOString(), { audit });
+    expect(wrote).toBe(false);
+    expect(readFileSync(readme, "utf8")).toBe(before);
+    expect(lstatSync(notesPath).isSymbolicLink()).toBe(true);
+    const row = db.prepare("SELECT meta_json FROM audit_log WHERE action=?").get("memory.m1_notes_skipped") as
+      | { meta_json: string }
+      | undefined;
+    expect(row).toBeDefined();
+    const meta = JSON.parse(row!.meta_json) as { projectId: string; status: string };
+    expect(meta.projectId).toBe(ev.projectId ?? PRJ);
+    expect(meta.status).toBe("write_failed");
+    expect(Object.keys(meta).sort()).toEqual(["projectId", "status"]);
   });
 });

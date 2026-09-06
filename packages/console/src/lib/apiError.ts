@@ -1,3 +1,16 @@
+import {
+  gitProtectionResultSchema,
+  knowledgePrivacyErrorCodeSchema,
+  knowledgePrivacyFailureClassSchema,
+  knowledgePrivacyPrescriptionSchema,
+  knowledgePrivacySafeHitSchema,
+  type GitProtectionResult,
+  type KnowledgePrivacyErrorCode,
+  type KnowledgePrivacyFailureClass,
+  type KnowledgePrivacyPrescription,
+  type KnowledgePrivacySafeHit
+} from "@saydo/contracts";
+
 // daemon 传输层错误的单一真相(09 §1261 统一错误形状 `{ok:false, code, message, retryable}`)。
 //
 // 起因(2026-08-12 实测):前端此前只把失败拼成 `${status} ${path}`,daemon 给的 code/message/
@@ -39,10 +52,27 @@ export class ApiError extends Error {
   readonly hint?: string;
   /** 出错的请求路径,只进"原始错误"折叠区,不进主文案 */
   readonly path?: string;
+  readonly failureClass?: KnowledgePrivacyFailureClass;
+  readonly safeHits?: KnowledgePrivacySafeHit[];
+  readonly overflowCount?: number;
+  readonly gitProtection?: GitProtectionResult;
+  readonly prescription?: KnowledgePrivacyPrescription;
 
   constructor(
     message: string,
-    opts: { kind: ApiFailureKind; retryable: boolean; code?: string; status?: number; hint?: string; path?: string }
+    opts: {
+      kind: ApiFailureKind;
+      retryable: boolean;
+      code?: string;
+      status?: number;
+      hint?: string;
+      path?: string;
+      failureClass?: KnowledgePrivacyFailureClass;
+      safeHits?: KnowledgePrivacySafeHit[];
+      overflowCount?: number;
+      gitProtection?: GitProtectionResult;
+      prescription?: KnowledgePrivacyPrescription;
+    }
   ) {
     super(message);
     this.name = "ApiError";
@@ -52,6 +82,11 @@ export class ApiError extends Error {
     this.status = opts.status;
     this.hint = opts.hint;
     this.path = opts.path;
+    this.failureClass = opts.failureClass;
+    this.safeHits = opts.safeHits;
+    this.overflowCount = opts.overflowCount;
+    this.gitProtection = opts.gitProtection;
+    this.prescription = opts.prescription;
   }
 
   /** 折叠区用的技术细节(状态码/code/路径);主文案永远只用 message */
@@ -93,11 +128,65 @@ export function apiErrorFromNetwork(cause: unknown, path?: string): ApiError {
  * retryable 一律**优先采信 daemon 响应体**(契约字段),缺字段时才按状态码兜底,
  * 免得前端自己那套猜测和 daemon 的真实语义打架。
  */
+const PRIVACY_CODE_MESSAGES: Record<KnowledgePrivacyErrorCode, string> = {
+  memory_secret_literal: "这条我没记下,里面有一处凭据,改掉源文再让我记",
+  foundation_build_restricted: "知识底座还没建起来",
+  git_protection_insufficient: "这次私有知识没写进去,Git 还没保护好"
+};
+
+function privacyMessage(code: KnowledgePrivacyErrorCode, failureClass?: KnowledgePrivacyFailureClass): string {
+  if (failureClass === "foundation_refresh_failed_kept_old") return "底座未更新,仍用上一版";
+  if (failureClass === "foundation_first_build_unavailable") return "知识底座还没建起来";
+  if (code === "git_protection_insufficient") return PRIVACY_CODE_MESSAGES.git_protection_insufficient;
+  if (code === "memory_secret_literal") return PRIVACY_CODE_MESSAGES.memory_secret_literal;
+  return PRIVACY_CODE_MESSAGES.foundation_build_restricted;
+}
+
+function parseKnowledgePrivacyFields(body: unknown): {
+  code?: KnowledgePrivacyErrorCode;
+  failureClass?: KnowledgePrivacyFailureClass;
+  safeHits?: KnowledgePrivacySafeHit[];
+  overflowCount?: number;
+  gitProtection?: GitProtectionResult;
+  prescription?: KnowledgePrivacyPrescription;
+  mappedMessage?: string;
+} {
+  const rec = asRecord(body);
+  const codeParsed = knowledgePrivacyErrorCodeSchema.safeParse(rec["code"]);
+  if (!codeParsed.success) return {};
+  const failureClassParsed = knowledgePrivacyFailureClassSchema.safeParse(rec["failureClass"]);
+  const prescriptionParsed = knowledgePrivacyPrescriptionSchema.safeParse(rec["prescription"]);
+  const gitProtectionParsed = gitProtectionResultSchema.safeParse(rec["gitProtection"]);
+  let safeHits: KnowledgePrivacySafeHit[] | undefined;
+  if (Array.isArray(rec["safeHits"])) {
+    const parsed: KnowledgePrivacySafeHit[] = [];
+    for (const item of rec["safeHits"]) {
+      const hit = knowledgePrivacySafeHitSchema.safeParse(item);
+      if (hit.success) parsed.push(hit.data);
+    }
+    safeHits = parsed;
+  }
+  const overflowRaw = rec["overflowCount"];
+  const overflowCount =
+    typeof overflowRaw === "number" && Number.isInteger(overflowRaw) && overflowRaw >= 0 ? overflowRaw : undefined;
+  const failureClass = failureClassParsed.success ? failureClassParsed.data : undefined;
+  return {
+    code: codeParsed.data,
+    ...(failureClass ? { failureClass } : {}),
+    ...(safeHits ? { safeHits } : {}),
+    ...(overflowCount !== undefined ? { overflowCount } : {}),
+    ...(gitProtectionParsed.success ? { gitProtection: gitProtectionParsed.data } : {}),
+    ...(prescriptionParsed.success ? { prescription: prescriptionParsed.data } : {}),
+    mappedMessage: privacyMessage(codeParsed.data, failureClass)
+  };
+}
+
 export function apiErrorFromResponse(status: number, body: unknown, path?: string): ApiError {
   const raw = asRecord(body) as DaemonErrorBody;
   const code = asString(raw.code);
   const daemonMessage = asString(raw.message);
   const declaredRetryable = typeof raw.retryable === "boolean" ? raw.retryable : undefined;
+  const privacy = parseKnowledgePrivacyFields(body);
 
   if (code === "starting" || (status === 503 && code === undefined)) {
     return new ApiError("SayDo 服务正在启动", {
@@ -139,6 +228,21 @@ export function apiErrorFromResponse(status: number, body: unknown, path?: strin
       code,
       status,
       path
+    });
+  }
+
+  if (privacy.code !== undefined) {
+    return new ApiError(privacy.mappedMessage ?? PRIVACY_CODE_MESSAGES[privacy.code], {
+      kind: "client",
+      retryable: declaredRetryable ?? false,
+      code: privacy.code,
+      status,
+      path,
+      ...(privacy.failureClass ? { failureClass: privacy.failureClass } : {}),
+      ...(privacy.safeHits ? { safeHits: privacy.safeHits } : {}),
+      ...(privacy.overflowCount !== undefined ? { overflowCount: privacy.overflowCount } : {}),
+      ...(privacy.gitProtection ? { gitProtection: privacy.gitProtection } : {}),
+      ...(privacy.prescription ? { prescription: privacy.prescription } : {})
     });
   }
 

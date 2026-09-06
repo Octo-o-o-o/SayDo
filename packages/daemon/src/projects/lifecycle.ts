@@ -10,6 +10,7 @@ import { newId, type Project, type ProjectType } from "@saydo/contracts";
 import type { Db } from "../storage/db.js";
 import { getProject, insertProject, promoteProjectRow, archiveReanchoredRow } from "../storage/dao/projects.js";
 import type { MemoryLedger } from "../memory/ledger.js";
+import { isMemorySecretLiteralError } from "../memory/credentialLiterals.js";
 import type { AuditSink } from "../obs/audit.js";
 import { managedProjectPath } from "./workspace.js";
 
@@ -98,26 +99,35 @@ export function reanchorDraft(
 
   const tx = db.transaction(() => {
     let count = 0;
+    let skipped = 0;
     for (const m of ledger.project(now)) {
       if (m.projectId !== input.draftId) continue;
-      ledger.add({
-        tier: m.tier === "M0" ? "M1" : m.tier,
-        projectId: input.targetId,
-        claim: m.claim,
-        source: { kind: "import", ref: `reanchor:${input.draftId}` },
-        ...(m.expiresAt ? { expiresAt: m.expiresAt } : {}),
-        ...(m.taint && m.taint.length > 0 ? { taint: m.taint } : {})
-      });
-      count += 1;
+      try {
+        ledger.add({
+          tier: m.tier === "M0" ? "M1" : m.tier,
+          projectId: input.targetId,
+          claim: m.claim,
+          source: { kind: "import", ref: `reanchor:${input.draftId}` },
+          ...(m.expiresAt ? { expiresAt: m.expiresAt } : {}),
+          ...(m.taint && m.taint.length > 0 ? { taint: m.taint } : {})
+        });
+        count += 1;
+      } catch (err) {
+        if (isMemorySecretLiteralError(err)) {
+          skipped += 1;
+          continue;
+        }
+        throw err;
+      }
     }
     archiveReanchoredRow(db, { id: input.draftId, reanchoredTo: input.targetId, updatedAt: now });
-    return count;
+    return { count, skipped };
   });
-  const merged = tx();
+  const { count: merged, skipped } = tx();
   audit.record({
     actor: "daemon",
     action: "project.reanchor",
-    meta: { draftId: input.draftId, targetId: input.targetId, merged }
+    meta: { draftId: input.draftId, targetId: input.targetId, merged, skipped }
   });
   return { merged, draft: getProject(db, input.draftId) as Project };
 }

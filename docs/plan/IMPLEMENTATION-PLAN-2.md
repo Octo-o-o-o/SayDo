@@ -9,23 +9,23 @@
 
 <!-- schedule-pointer:begin -->
 schema_version=1
-revision=3
-active=PG-01B
-next=none
-last_closed=PROC-01
-evidence_ref=e2e/evidence/process-convergence-proc-01.md
-updated_at=2026-09-04
+revision=5
+active=none
+next=PG-02
+last_closed=AS-01-AS-02
+evidence_ref=e2e/evidence/as-01-as-02-privacy.md
+updated_at=2026-09-06
 <!-- schedule-pointer:end -->
 
-> 本节是 2026-08-29 起 PLAN-2 的唯一当前排产坐标。下方 §0 现状锚点与 §1 W1–W9 / 合同轮 / `ai-supply` 为历史原文，只增加 superseded/disposition，不删除历史节点、不重写既有 evidence。当前现势指针见本节顶部 schedule-pointer 块,由 `scripts/schedule-pointer.mjs` 守护;不得手写第二套 active/next。字段逐字来自 `docs/plan/2026-08-28-project-gap-closure-program.md` §20 批卡与 D17 §4.2；不新增功能、不另造控制平台。`PLAN2-default-all` 已 `superseded`；未被 exact 选入的未来项一律 deferred，取消“未回复则缺省全做”。
+> 本节是 2026-08-29 起 PLAN-2 的唯一当前排产坐标。下方 §0 现状锚点与 §1 W1–W9 / 合同轮 / `ai-supply` 为历史原文，只增加 superseded/disposition，不删除历史节点、不重写既有 evidence。当前现势指针见本节顶部 schedule-pointer 块,由 `scripts/schedule-pointer.mjs` 守护;不得手写第二套 active/next。字段原逐字来自 `docs/plan/2026-08-28-project-gap-closure-program.md` §20 批卡与 D17 §4.2；2026-09-06 在 PG-01B 与 PG-02 之间插入唯一批 ID `AS-01-AS-02`（owner 决策单第 10 节，不是 D17 扩权）。不新增功能平台。`PLAN2-default-all` 已 `superseded`；未被 exact 选入的未来项一律 deferred，取消“未回复则缺省全做”。
 
 ### 唯一串行链
 
 ```text
-PROC-01 → PG-01B → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop
+PROC-01 → PG-01B → AS-01-AS-02 → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop
 ```
 
-断言形态：`PLAN2_chain == PROC-01>PG-01B>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop`。
+断言形态：`PLAN2_chain == PROC-01>PG-01B>AS-01-AS-02>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop`。
 
 PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代码批，也不占用 active/next。
 
@@ -78,7 +78,7 @@ PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代�
 - 回滚上限：只能回到更保守文案或关闭投影，不能恢复已证伪 claim。`safe_default=unsupported_or_conditional + repo_closed_only + no_deploy`
 - 批卡摘要（program §20.4）：claim-only，规模 S；canonical_change=yes。按 D2 安全缺省先降级 986 source 合同与 connector-readiness 引用，不逐条修 986 个 source；只修 active claim roots 和生成真相，不新增 generator 平台。G-A2 在本批只做 stop-loss（删除“本地 CI 等效”总括说法，改成“本地 Node/Python 基线”），由 PG-03 唯一关闭。
 
-### PG-01B · runtime-entry-stoploss
+### PG-01B · runtime-entry-stoploss——**状态:已收口(2026-09-05;I `ebd449080bb0e476eb2dd3334ee0b152cb3a7eeb`,evidence `e2e/evidence/pg-01b-20260905.md`;无 `--finalize` 记录,owner 知情合并见 R129,不伪称 finalized)**
 
 - depends_on：PG-01A evidence commit
 - A-ID exact-set：`close_set=[G-A6]`；`stop_loss_set=[G-A3]`
@@ -86,13 +86,25 @@ PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代�
 - scope roots：`packages/daemon/src/net/**`、`packages/daemon/src/index.ts`、`packages/daemon/src/voice/hub.ts`、`packages/daemon/src/api/recoveryOnlyServer.ts`、`packages/daemon/src/tier1/gateServer.ts`（仅证明 Unix socket 不属于远程面）、对应 remote/mobile/console/recovery/voice WS API tests、`packages/daemon/src/brain/liveTools.ts`、`packages/console/src/**` 中 action/budget/remote 消费点、`packages/daemon/src/api/**` 的 touched exact-set、`docs/09-data-contracts.md`、`docs/10-voice-ux-spec.md`、`docs/11-ui-spec.md`、`scripts/{pairing-url-corpus.json,remote-surface-inventory.json,check-remote-surface-inventory.mjs,test-remote-surface-inventory.mjs}`
 - focused gate：`FG-PG01B-RUNTIME` = `pnpm --filter @saydo/console exec vitest run src/hooks/redesign/mappers.test.ts src/components/redesign/DecisionPackageCard.test.tsx src/lib/apiError.test.ts`；`pnpm --filter @saydo/daemon exec vitest run test/console-actions.test.ts test/console-api.test.ts test/p05c-direct-mode.test.ts test/mobile-lan-process.test.ts test/pairing-info.test.ts test/t2-thin.test.ts test/logger.test.ts`；`node scripts/test-pairing-url-corpus.mjs`；`[new] node scripts/check-remote-surface-inventory.mjs`；`[new] node scripts/test-remote-surface-inventory.mjs`
 - full gate：`just ci`；`pnpm exec playwright test`
-- evidence path：`e2e/evidence/project-gap-pg-01b.md`
+- evidence path：`e2e/evidence/pg-01b-20260905.md`
 - 回滚上限：保持入口 hidden/403/unknown；如兼容客户端失败，返回稳定 typed unsupported/error，不恢复不安全读取。`safe_default=hidden + remote_business_403 + budget_unknown`
 - 批卡摘要（program §20.4）：runtime safety，规模 M；canonical_change=yes。`direct_to_review` 保留设计合同并标 `designed/deferred`，从 active selector/default route/public claim 移除，不删 schema。remote business API 统一 fail-closed；只保留无业务 payload health/static shell 与安全跳转；abandon 不再映射 archive；0/0 改 unknown。G-A9 不在本批关闭。G-A3 本批只记 stop-loss，由 PG-02 关闭。
 
+### AS-01-AS-02 · privacy-write-guard——**状态:已收口(2026-09-06;I `7ab7ab394f97a9c1e9a666d218ac41cee3d2ef45`,E `21ed2840b11d824f970528b94f1366f8300206a8`,evidence `e2e/evidence/as-01-as-02-privacy.md`;contract 与 implementation 两阶段均有 `--finalize`,独立零上下文 GREEN 与 I 干净 HEAD 完整门见证据)**
+
+- depends_on：PG-01B evidence commit（实际路径 `e2e/evidence/pg-01b-20260905.md`；I `ebd449080bb0e476eb2dd3334ee0b152cb3a7eeb`；E `99d51106c9caaefcf55f72bff1a17a78abf58be9`；无 `--finalize`，不清旧账）
+- A-ID exact-set：`close_set=[M1,M2,M3,M4,M5,M6,M7,M8]`；`stop_loss_set=[]`
+- deferred exact-set：`[DF-KNOWLEDGE-SHARE,DF-AS-03,DF-AS-04,DF-AS-05,DF-AS-06,DF-AS-07]`
+- scope roots：见 `docs/plan/IMPL-PROMPT-ecc-as01-as02-privacy.md` implementation exact-set；canonical 限 03/04/09/10/11 与 `docs/modules/b-memory.md`。不含 `packages/daemon/src/net/**`、`knowledgeShare`、`projectOverrides` 新字段、DDL
+- focused gate：`FG-AS01AS02-PRIVACY` = `pnpm --filter @saydo/daemon exec vitest run test/memory.test.ts test/memory-foundation.test.ts test/credential-literals.test.ts test/git-protection.test.ts test/live-tools-remember-privacy.test.ts test/projects-lifecycle.test.ts test/memory-growth.test.ts`；`pnpm --filter @saydo/contracts typecheck`；`pnpm --filter @saydo/contracts exec vitest run test/schemas.test.ts test/knowledge-privacy.test.ts`；`pnpm --filter @saydo/console typecheck`；`pnpm --filter @saydo/console exec vitest run src/pages/ProjectSettings.test.tsx`。与唯一执行卡 `docs/plan/IMPL-PROMPT-ecc-as01-as02-privacy.md` §7 同一 exact 测试集（含 reanchor / nomination 恢复路径）。其中 `credential-literals.test.ts` / `git-protection.test.ts` / `live-tools-remember-privacy.test.ts` / `ProjectSettings.test.tsx` 标 `[new]`，建立前不得当现役门禁调用
+- full gate：`just ci`；`pnpm exec playwright test`
+- evidence path：`e2e/evidence/as-01-as-02-privacy.md`
+- 回滚上限：停受影响新写入/新 generation/本次私有投影；保留旧有效数据、用户文件与已建保护。不回放被拒原文，不自动删库/改 Git 历史。`safe_default=refuse_new_secret_write + keep_old_generation + create_only_ignore`
+- 批卡摘要（统一方案 §3）：daemon 隐私批，规模 M；canonical_change=yes。凭据写前拒绝、Git 私有 write set create-only、三类失败可见与恢复同一批交付。合同阶段不改 daemon 行为。收口后接回 PG-02，不自动开 PG-02。
+
 ### PG-02 · minimal-truth-gate-bootstrap
 
-- depends_on：PG-01B evidence commit
+- depends_on：AS-01-AS-02 evidence commit
 - A-ID exact-set：`close_set=[G-A3]`；`stop_loss_set=[]`
 - deferred exact-set：`[DF-CLAIM-GENERATOR,DF-AI-DRAFT-FULL,DF-SP4-FORMATIVE,DF-SP5-READ,DF-SP7-CALIBRATE]`
 - scope roots：`docs/06-references.md`、`docs/09-data-contracts.md`、`docs/11-ui-spec.md`、`packages/contracts/**`、最小 release/support projection、`scripts/{check-capability-ledger.mjs,check-action-reachability.mjs,check-support-matrix.mjs}` 及对应 mutation self-tests；`ai-supply-scope` 在本批重分类，不下沉全部 45k 行草案
