@@ -4,9 +4,11 @@
 
 ## 当前入口
 
-- `IMPLEMENTATION-PLAN-2.md`:当前唯一排产源。`AS-01-AS-02`(PG-01B 后、PG-02 前)已于 2026-09-06 收口;2026-09-09 在其后、PG-02 前插入的 `GAP-02-consolidation` 同日收口;指针 `active=none`、`next=PG-02`(未开工)。
+- `IMPLEMENTATION-PLAN-2.md`:当前唯一排产源。`AS-01-AS-02`(PG-01B 后、PG-02 前)已于 2026-09-06 收口;2026-09-09 在其后、PG-02 前插入的 `GAP-02-consolidation` 同日收口;同日晚在其后插入的 `EMAIL-A-outbound`(邮件出站阶段 A)亦已收口;指针 `active=none`、`next=PG-02`(未开工)。
 - `IMPL-PROMPT-2026-09-09-gap-consolidation.md`:GAP-02-consolidation 缺口收敛批唯一执行卡(§1 SD-1/2/3 + §2 九条 + §3 默认做项)。
 - `IMPL-PROMPT-ecc-as01-as02-privacy.md`:AS-01-AS-02 隐私批唯一执行卡(contract → implementation)。
+- `IMPL-PROMPT-2026-09-09-gap-residuals.md`:2026-09-09 晚的研究档案入库 + GAP-02 残项 + `EMAIL-A-outbound` 执行卡(三段均已合并入 main,决策单第 12 节);证据 `e2e/evidence/gap-02-residual.md` 与 `e2e/evidence/email-a-outbound.md`。
+- [工程改进统一方案 · Astra](2026-09-05-engineering-unified.astra.md) / [统一实施 Prompt](IMPL-PROMPT-engineering-unified.astra.md)：2026-09-05 的工程缺口与 ECC 交接入口；其近期组合 PG-01B → AS-01/AS-02 已于 09-05/09-06 收口，Prompt 转为历史材料，候选核验状态见方案末尾状态注。
 - `MIGRATION.md`:2026-07-29 双目录合并的执行记录、路径映射与回滚说明。
 - `REPO-MERGE-PROPOSAL.md`:2026-07-25 的 v2 前置方案;已由 `MIGRATION.md` 的实况执行记录 supersede。
 
@@ -35,6 +37,10 @@
 
 - `2026-09-02-quick-start-distribution.md`：一条命令安装（`install.sh` / `install.ps1`,官网托管）+ R2 镜像 `dl.saydo.octoooo.com` 的渠道裁决、脚本行为、版本钉住/刷新纪律、托管位置与两端实测证据。发布/分发面的独立小批,不改变 PLAN-2 串行链。
 
+### 邮件通道评估（2026-09-08）
+
+- `2026-09-08-email-channel-consolidated.fable.md`：owner 提出"通知调度改标准邮件服务"后，Fable 自查与 Codex 分析的交叉比对终稿。结论为邮件作 L1 出站通道（阶段 A，可排小批）与 P1 文字轮次通道下的输入 adapter（阶段 B），不替代 outbox/升级链/审批内核，不自建 IMAP/SMTP；附 Web Push / CalDAV / HTTPS+CloudEvents 三个独立候选与 owner 待决项。不是排产源;owner 决策单第 11 节已同意阶段 A 进入排产候选。
+
 ### 月度双向对账（2026-09-02）
 
 - 报告在 `docs/review/2026-09-02-monthly-docs-commit-crosscheck.md`：R114 修复复核、08-27 之后全部变更对账、全月 SHA 解析与 commit 覆盖的机械核验、A/B/C 处置与 owner 待决。
@@ -60,12 +66,17 @@
 - `2026-08-24-ai-supply-review-loop-archive.md`：v1–v20 共 20 轮「终审 + 回修」的过程记账，
   原为主方案 §17，已归档为过程证据，不再随方案演进。
 
-### 借鉴评估
+### 工程缺口与 ECC（2026-09-05）
 
+当前方案与 Prompt 见上方统一入口。工程缺口的成本约束和 ECC 最新隐私/恢复范围已统一，诊断、分发、供给等重叠项去重。九份被替代方案/Prompt 已移至 [归档索引](archive/2026-09-05-engineering-unified/README.md)，原路径仅跳转，不再列为平行候选。原研究与审查继续保留在 `research/`，不把旧 GREEN 当统一稿或产品验收。
+
+### 其它借鉴评估
+
+- `2026-09-07-soc-agent-borrowing-assessment.md`:soc-agent(`llm-net/soc-agent`,MIT)。复审结论是零借鉴点;不 supersede `docs/07` D13/D15/D18,不导入 PLAN-2。
 - `2026-09-03-tailcat-borrowing-assessment.fable.md`:Tailcat(`tailscale/tailcat`)对照当前 T2/LAN 组网。结论是不能整面替换系统 Tailscale;不 supersede `docs/07` D13。
-- `2026-08-13-deepseek-harness-borrowing-assessment.fable.md`:DeepSeek Harness 对照。不替换 Hopper / voiced daemon。
+- `2026-08-13-deepseek-harness-borrowing-assessment.fable.md`:DeepSeek Harness 对照。不替换 Hopper / voiced daemon。2026-09-09 状态注:第一刀 D-01/D-05/D-02+D-14 已逐项核验并回写结论,见该文件末尾。
+- `2026-09-08-deepseek-harness-sd-borrowing.md`:DeepSeek Harness 增量建议 SD-1/2/3(owner 2026-09-08 提供)。三项已于同日核验成立,随 GAP-02-consolidation 入库(journal R141/R142);「明确不提」四条核验同意无价值,不再复查。
 
 ## 历史锁版
 
-`IMPLEMENTATION-PLAN.md` 与 `IMPL-PROMPT*.md` 均是已发生批次的锁版交接材料。文件内出现的旧绝对路径、
-双仓措辞与当时状态只用于追溯，不再构成当前操作指令;当前开工链以根 `HANDOFF.md` 为准。
+除「当前入口」明确列出的执行卡与统一 Prompt 外，`IMPLEMENTATION-PLAN.md` 与旧 `IMPL-PROMPT*.md` 是历史交接材料。旧绝对路径、双仓措辞与当时状态只用于追溯；实际开工链以 PLAN-2 为准，运行坐标结合 `HANDOFF.md` 核验。

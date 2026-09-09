@@ -75,3 +75,35 @@ test("VIEW-01 看板:回前台触发一次重取", async ({ page }) => {
   await expect.poll(() => detailRequests, { timeout: 5_000 }).toBeGreaterThanOrEqual(before + 1);
   await expect(page.locator(`[data-board-lane-group="${FOC}"]`)).toBeVisible();
 });
+
+test("VIEW-01 看板:占位「重试」只重拉该 Focus 的 detail,不重拉列表与 attention", async ({ page }) => {
+  test.setTimeout(60_000);
+  const detailUrl = `**/api/focuses/${FOC}`;
+  await page.route(detailUrl, (route) =>
+    route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: false, code: "server_error", message: "测试注入的 500", retryable: false })
+    })
+  );
+  await open(page, "/board");
+  const placeholder = page.locator(`[data-board-detail-error="${FOC}"]`);
+  await expect(placeholder).toBeVisible({ timeout: 15_000 });
+
+  const counts = { list: 0, attention: 0, detail: 0 };
+  page.on("request", (req) => {
+    const p = new URL(req.url()).pathname;
+    if (p === "/api/focuses") counts.list += 1;
+    else if (p === "/api/attention") counts.attention += 1;
+    else if (p === `/api/focuses/${FOC}`) counts.detail += 1;
+  });
+  await page.unroute(detailUrl);
+  const before = { ...counts };
+  await page.locator(`[data-board-detail-retry="${FOC}"]`).click();
+  await expect(placeholder).toHaveCount(0, { timeout: 10_000 });
+  // 定向重试:只多了该 detail 的请求;列表/attention 计数不变(GAP-02 残项 2.2)
+  expect(counts.detail).toBeGreaterThanOrEqual(before.detail + 1);
+  expect(counts.list).toBe(before.list);
+  expect(counts.attention).toBe(before.attention);
+  await expect(page.locator(`[data-board-lane-group="${FOC}"]`)).toBeVisible();
+});

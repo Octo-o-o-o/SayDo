@@ -798,7 +798,8 @@ export const MIGRATIONS: ReadonlyArray<Migration> = [
   { version: 28, apply: applyDdlV28FocusExpectations },
   { version: 29, apply: applyDdlV29RestartPending },
   { version: 30, apply: applyDdlV30NativeSessionConfirmed },
-  { version: 31, apply: applyDdlV31FinalizePending }
+  { version: 31, apply: applyDdlV31FinalizePending },
+  { version: 32, apply: applyDdlV32OutboxThreadMessageId }
 ];
 
 // v29(D1 可分发运行时):可恢复退出使用 additive marker,不扩 tier1 run 状态机。
@@ -817,6 +818,13 @@ export function applyDdlV30NativeSessionConfirmed(db: DbLike): void {
     "native_session_confirmed",
     "INTEGER NOT NULL DEFAULT 0 CHECK(native_session_confirmed IN (0,1))"
   );
+}
+
+// v32(EMAIL-A 阶段 A):callback_outbox.thread_message_id——邮件通道每任务一线程的 Message-ID 锚。
+// additive 可空列;老库缺省 NULL,不改 outbox 状态机与活跃唯一索引。生产迁移前须有可恢复点(PG-05 红线),
+// 本函数只做 ADD COLUMN,无逆向 DDL。
+export function applyDdlV32OutboxThreadMessageId(db: DbLike): void {
+  addColumnIfMissing(db, "callback_outbox", "thread_message_id", "TEXT");
 }
 
 // v31(路径一终态原子提交):失败/阻塞事务写失败后的 durable 收口意图。

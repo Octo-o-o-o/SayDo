@@ -1,7 +1,7 @@
 // useRecordsPageData:记录页 hook。
 // 数据源:getFocusDetail(lanes/events/obligations)+ timeline 的 session_segment 项。
-// VIEW-01:失效来源=本页动作 reload + 主 WS 事件 + 回前台 + 有界兜底(useRefreshSignal);
-// 同刻单在途、卸载/切 focus abort、晚到响应丢弃(pageLoader)。
+// VIEW-01:失效来源=本页动作 reload + 主 WS 事件 + 回前台 + 有界兜底;同刻单在途、卸载/切 focus abort、
+// 晚到响应丢弃——全部由 pageSession 承载,本 hook 只是 React 薄包装(纯会话可无 DOM 单测)。
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet } from "../../lib/api";
@@ -20,8 +20,7 @@ import {
   type FocusListRow,
   type TranscriptResponse
 } from "./mappers";
-import { createPageLoader, type PageLoader } from "./pageLoader";
-import { useRefreshSignal } from "./useRefreshSignal";
+import { createPageSession, type PageSession, type PageSessionCallbacks, type PageSessionRefresh } from "./pageSession";
 
 export interface RecordsPageDataState {
   view: RecordsPageView | null;
@@ -95,11 +94,25 @@ async function loadRecords(
   };
 }
 
+/** 纯会话:记录页数据序列(供 hook 与单测共用) */
+export function createRecordsPageSession(
+  focusId: string,
+  currentSessionId: string | null | undefined,
+  callbacks: PageSessionCallbacks<RecordsPageView>,
+  refresh?: PageSessionRefresh
+): PageSession {
+  return createPageSession<RecordsPageView>({
+    load: (signal) => loadRecords(focusId, currentSessionId, signal),
+    callbacks,
+    ...(refresh ? { refresh } : {})
+  });
+}
+
 export function useRecordsPageData(focusId: string, currentSessionId?: string | null): RecordsPageDataState {
   const [view, setView] = useState<RecordsPageView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const loaderRef = useRef<PageLoader | null>(null);
+  const sessionRef = useRef<PageSession | null>(null);
   const hasViewRef = useRef(false);
 
   useEffect(() => {
@@ -107,8 +120,7 @@ export function useRecordsPageData(focusId: string, currentSessionId?: string | 
     setLoading(true);
     setError(null);
     setView(null);
-    const loader = createPageLoader<RecordsPageView>({
-      load: (signal) => loadRecords(focusId, currentSessionId, signal),
+    const session = createRecordsPageSession(focusId, currentSessionId, {
       onResult: (next) => {
         hasViewRef.current = true;
         setView(next);
@@ -121,16 +133,15 @@ export function useRecordsPageData(focusId: string, currentSessionId?: string | 
         setLoading(false);
       }
     });
-    loaderRef.current = loader;
-    loader.run();
+    sessionRef.current = session;
+    session.run();
     return () => {
-      loader.dispose();
-      loaderRef.current = null;
+      session.dispose();
+      sessionRef.current = null;
     };
   }, [focusId, currentSessionId]);
 
-  useRefreshSignal(() => loaderRef.current?.run());
-  const reload = useCallback(() => loaderRef.current?.run(), []);
+  const reload = useCallback(() => sessionRef.current?.run(), []);
 
   const onExpandSegment = useCallback(
     async (sessionRef: string): Promise<string[] | null> => {

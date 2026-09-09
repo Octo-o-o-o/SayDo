@@ -10,6 +10,7 @@ import {
   sendMobileConfirmDecision,
   type MobileConfirmDecision
 } from "../confirmDecision";
+import { confirmCardCopy } from "../../lib/confirmCardCopy";
 import { useMobileFocus } from "../hooks";
 import { MobileHeader, MobileNotice } from "../MobileChrome";
 import { confirmDestinationHint, confirmSettlementToast } from "../toasts";
@@ -111,6 +112,11 @@ export function MobileConfirmCard({
   const [unavailable, setUnavailable] = useState(() => !item.expiresAt || Date.parse(item.expiresAt) <= Date.now());
   const [runtimeRestricted, setRuntimeRestricted] = useState(false);
   const markExpired = useCallback(() => setUnavailable(true), []);
+  // 按 daemon 投影的确认环 kind 定文案(与桌面 Chat 同一映射):memory 记/不用记;未知/缺失 kind 回落 确认/不
+  const copy = confirmCardCopy(item.confirmKind);
+  const isMemory = item.confirmKind === "memory";
+  const acceptSub = isMemory ? "记到项目记忆" : confirmAcceptSubtext(item.title);
+  const rejectSub = isMemory ? "过期即丢,不记" : CONFIRM_REJECT_SUBTEXT;
   const decide = async (decision: MobileConfirmDecision) => {
     if (unavailable || (runtimeRestricted && decision !== "withdraw")) return;
     if (!item.sessionId || !item.refId) {
@@ -140,8 +146,8 @@ export function MobileConfirmCard({
   return (
     <div data-mobile-page="confirm">
       <MobileHeader title="确认卡" crumb={item.focusTitle ?? "等你拍板"} back={back} />
-      <article className="m-confirm-card">
-        <span className="m-confirm-kicker">等你拍板</span>
+      <article className="m-confirm-card" data-confirm-kind={item.confirmKind ?? "unknown"}>
+        <span className="m-confirm-kicker">{copy.label ?? "等你拍板"}</span>
         <h1>{item.title}</h1>
         {item.expiresAt ? (
           <DurableCountdown expiresAt={item.expiresAt} onExpired={markExpired} />
@@ -150,12 +156,12 @@ export function MobileConfirmCard({
         )}
         <div className="m-confirm-actions">
           <button type="button" className="m-confirm-do" disabled={working !== null || unavailable || runtimeRestricted} onClick={() => void decide("accept")}>
-            <strong>{working === "accept" ? "记账中" : "做"}</strong>
-            <span>{confirmAcceptSubtext(item.title)}</span>
+            <strong>{working === "accept" ? "记账中" : copy.accept}</strong>
+            <span>{acceptSub}</span>
           </button>
           <button type="button" disabled={working !== null || unavailable || runtimeRestricted} onClick={() => void decide("reject")}>
-            <strong>{working === "reject" ? "记账中" : "不要"}</strong>
-            <span>{CONFIRM_REJECT_SUBTEXT}</span>
+            <strong>{working === "reject" ? "记账中" : copy.reject}</strong>
+            <span>{rejectSub}</span>
           </button>
           <button type="button" className="m-confirm-undo" disabled={working !== null || unavailable} onClick={() => void decide("withdraw")}>
             <strong>{working === "withdraw" ? "撤下中" : "撤销"}</strong>
@@ -163,7 +169,7 @@ export function MobileConfirmCard({
           </button>
         </div>
         <a className="m-say-change" href="#/m/chat">想换方向，去说改</a>
-        <p className="m-confirm-principle">过期自动搁置并记账，不会偷偷执行。</p>
+        <p className="m-confirm-principle">{isMemory ? "过期即丢，不会偷偷记。" : "过期自动搁置并记账，不会偷偷执行。"}</p>
         {error ? <MobileNotice tone="error">{error}</MobileNotice> : null}
       </article>
     </div>

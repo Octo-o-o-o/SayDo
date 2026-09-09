@@ -12,7 +12,8 @@ export const SECRET_NAME_WHITELIST = [
   "DEEPSEEK_API_KEY", // 单家直连(09 §11 [providers.api.deepseek] 已有样例);一键上手路径的唯一必填 key
   "DOUBAO_TTS_API_KEY",
   "VOLC_APP_ID",
-  "VOLC_ACCESS_TOKEN"
+  "VOLC_ACCESS_TOKEN",
+  "SMTP_PASSWORD" // EMAIL-A:回叫邮件通道 SMTP 凭据;只经 /api/setup/secret 落 .env(0600),不进日志
 ] as const;
 export type SecretName = (typeof SECRET_NAME_WHITELIST)[number];
 

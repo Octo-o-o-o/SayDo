@@ -3749,3 +3749,126 @@ unit economics 决定扩张;持续承担账号/API、CI/设备、证据刷新、
 **产出**:关批提交与本条随后快进入 main。
 
 **结论**:GAP-02-consolidation 关批;合并、推送、快照结果以 R150 为准。PG-02 为 next,未开工,须另有具名授权与完整合同。
+
+## R150 · GAP-02-consolidation 合并/推送/公开快照追记与 §3 三项立项(2026-09-09)
+
+**输入**:R149 关批提交 `1ccca4835a62668f1c7d5796deefe40b94df6227`(含 journal R149);owner 授权四项。
+
+**行动**:主树检出其它分支且 dirty,`git fetch <worktree> sd-harness-borrow:main` ref-only 快进 `25a9924..1ccca48`(main 祖先校验通过),`git push origin main` 成功(origin/main=`1ccca48`)。公开快照在临时 clean clone(main 检出、upstream origin/main、`git status --porcelain --untracked-files=all` 空、私有探针锚复制为 owner-only)执行 `bash scripts/publish-public-snapshot.sh public "" 1ccca48…`:首跑因 clone 未拉 public 对象、找不到上一快照父提交 `7909afc` 而 fatal(exit 128,未推送任何东西);补 `git fetch public main` 后重跑:隐私探针路径锚校验 [ok]、`check-public-tree-privacy --ref --require-private-probes` scanned=2039 hits=0、剔除 `artifacts/release/copyright`,推送 `7909afc..53a3cd2`;临时 clone 已删。§3 三项立项登记到 `docs/plan/2026-08-28-project-gap-owner-decisions.md` 第 11 节(邮件阶段 A 进入排产候选、§5 问 2–4 按方案建议缺省;DSH D-01 挂 PG-04 同批候选;WS token 维持 DF-REMOTE-REOPEN),不插入唯一串行链、不开工。
+
+**产出**:`public/main = 53a3cd298b5894026ccc9f58f3639acfafdf6900`(`snapshot: 2026-09-09 from internal 1ccca48`)。本条与决策单第 11 节随后续提交快进推送私有归档;该提交本身不再做公开快照(同 R140 口径)。
+
+**结论**:GAP-02-consolidation 交付了(合并、私有归档推送、公开快照三步完成)。教训一条:从 file:// 临时 clone 发快照要先 `git fetch public main`,否则脚本在 commit-tree 取父提交时 fatal。PG-02 未开工。
+
+
+> R151–R158 为补记:原稿写于 2026-09-05 主树(当时 HEAD `bcf8ea8`,编号 R129–R136),与 main 同期 R129–R136 冲突,2026-09-09 随研究档案入库时顺延重编号;正文未改。
+
+## R151 · ECC 调研与双项目借鉴方案（2026-09-05）
+
+**输入**：owner 要求核对 ECC 互联网描述与源码，并给 SayDo、ContextView 各写借鉴 MD，独立 review 后修订。源码固定 e04ea0b9，SayDo 基线 bcf8ea85；ContextView 使用含未提交规范的隔离快照。
+
+**行动**：独立实施；R1 4 P1、R2 前4项闭合但新增接收文件缺失P1，依预算修订；一次最终P2 sweep处理3项；全新R3 GREEN。每个候选一名零上下文reviewer，未改产品代码/排产源。
+
+**产出**：三份正文、118条源码证据、两仓目录入口与评审核验记录 `research/codex-findings/2026-09-05-ecc-research-review.md`。门禁9/9，ContextView负例 `Ran 144 tests in 87.079s / OK`。日志名称、字节数和SHA-256见该核验记录；日志不入Git。
+
+**结论**：文档候选通过独立复核并修订，冻结语义 fingerprint `7089536f83a122527091f8a2bff75306c6a7a62935693bfd5affde7977652e44`；产品实施仍需进入原排产。保留两仓并发新增的另一份同日评估，索引按当前内容增量合并。未commit/push/install。
+
+## R152 · ECC 两方案的 Astra 比较与重写（2026-09-05）
+
+**输入**：owner 给出 Fable 已有方案，要求完整逐项比较优劣，再分别写两个 `.astra.md`。比较以本次冻结 Fable 原始评估和旧 Codex 方案为准；并行新增的 Fable consolidated 稿保留。
+
+**行动**：在独立 clone 研究与撰写，Fable 决策优先级作为底稿，吸收旧 Codex 证据/验收边界；逐条覆盖 SayDo 65 + ContextView 74 项，并处理旧稿 37 项和 Deferred 13 项。有效 R1 修 Git grammar P1，R2 补评审副本和实际接收工作区的链接依赖，R3 全新只读复审 GREEN；唯一一次最终 P2 sweep 已核验。
+
+**产出**：两仓 `docs/plan/2026-09-05-ecc-borrowing-assessment.astra.md`、对应复审核验记录及本仓 `research/ecc-astra/2026-09-05-delivery-evidence.json`。最终候选 fingerprint `4e816187028a01f41d91df68e5a8033cc0c6c66d2883a8dd39b4fadd0dec1cbe`；12 项冻结文档门禁通过，负例测试原始输出 `Ran 148 tests in 84.338s / OK`。排产门第一次因 clone 缺本地 main 失败，补与已验证 origin/main 相同的本地引用后单项重跑成功，未动产品/排产。各日志名、字节数、SHA-256 见 `research/codex-findings/2026-09-05-ecc-astra-review.md`；原始日志不入 Git。
+
+**结论**：独立文档方案可供 owner 选择；产品建议尚未实施。冻结 foundation 六门不代替原工作区并行 WP-02 的九门；不声称 runtime/live 验收。仅收口本轮文档与索引，保留其它工作区变更；未 commit/push/install。
+
+## R153 · Astra 项目缺口评估与独立复审（2026-09-05）
+
+**输入**：owner 要求阅读当前项目，判断架构、性能、工具、外部连接、体验与 UI 交互中值得投入的缺口，保存 Astra 后缀报告并再次 review；范围排除外部用户实际使用与反馈建议。基线为本次 `git log` 读取的 `bcf8ea855f25b177888d9159f75e49214f3dd892`。
+
+**行动**：在独立 detached worktree 读取 canonical、排产与生产代码，以临时 SQLite、合成延迟 trace 和生产看板 hook 的浏览器 fixture 复现关键行为；一名零上下文 reviewer 独立取证，结论 GREEN，0 项 blocker、1 条 P2 范围措辞意见。manifest validator 返回 `valid/full_gate`，两项冻结报告门禁 exit 0，finalizer 返回 `finalized`；唯一一次最终 P2 sweep 收窄 PG-02、SP3c、SP6 载体条件，随后受影响文档门禁 exit 0。
+
+**产出**：`docs/review/2026-09-05-project-gaps-Astra.md`，原样复审记录 `research/codex-findings/2026-09-05-project-gaps-Astra-review.md`，探针、唯一 P2 ledger 与收口证据 `research/astra-gap/`。原始日志仅存该目录 ignored `.local/`，文件名、字节数与 SHA-256 见 `delivery-evidence.json`。收口复制逐文件核对与隔离工作区 bytes 全等。
+
+**结论**：优先保留现有 daemon/SQLite/contracts 架构，关注 UI 操作与状态闭环、语音统计和流式路径、凭据审计及升级恢复；新增建议不改变现役排产。GREEN 仅评价建议报告，不代表产品验收。未改生产代码，未跑本轮全量 `just ci`、真实 provider、真机或生产升级；未 commit/push/install，保留原工作区其它未提交变更。
+
+## R154 · 工程缺口综合方案与实施交接（2026-09-05）
+
+**输入**：owner 提供 Fable 工程缺口扫描，要求全文逐项比较两稿优缺点，形成新的 Astra 综合方案与后续 Grok CLI 实施/独立 Codex review 的 prompt。本轮不启动产品实施。
+
+**行动**：独立 detached worktree 固定同一产品 HEAD 与两份未提交原稿，逐项处置 Fable 29 个条目、Astra 11 个方向；通过纯解析器、内存 collector、源码接线读取及原合成探针确认关键比较事实。把语音观测/音频/LLM、页面刷新/聚合读口、诊断/升级拆开，默认首批沿 PLAN-2 的 PG-01B。
+
+**产出**：`docs/plan/2026-09-05-engineering-gap-consolidated.astra.md` 与 `docs/plan/IMPL-PROMPT-engineering-gap-consolidated.astra.md`；比较证据 `research/astra-gap-synthesis/`；独立审查记录 `research/codex-findings/2026-09-05-engineering-gap-synthesis-astra-review.md`。原始日志仅存 ignored `.local/`，文件名、字节数、SHA-256 在收口记录中。
+
+**结论**：独立审查 GREEN，0 blocker/0 P2；manifest validator=valid/full_gate，两项受控文档/探针门 exit 0，finalizer=finalized。唯一一次最终 P2 sweep 无待处理项，方案/prompt 与被审候选 bytes 全等。原两稿保持原样，不修改 PLAN-2 或产品代码，未 commit/push/install。
+
+## R155 · ECC 最终统一稿与后续实施交接（2026-09-05）
+
+**输入**：owner 要求最终对比 Fable/Astra 融合稿，统一双方调研，生成 SayDo/ContextView 实施 prompt，并判断 OctoWorkFlow 可优化处及其它项目深研候选。
+
+**行动**：独立 clone 固定源码和旧输入；Grok 撰写与两次返工，fresh Codex 独立评审；R3 GREEN，文档门发现单行正则被当链接，等价文字修正经 R4 GREEN。manifest validator valid/full_gate，12 项门禁 exit 0（ContextView 148 tests in 79.170s，OK），finalizer finalized。R1 隔离偏差只用可复现诊断，不使用通过项。最终 P2 sweep 一次；保留控制证据便携性 P2。
+
+**产出**：本仓 `docs/plan/2026-09-05-ecc-borrowing-final.md`、同目录 `2026-09-05-ecc-implementation-prompt.md`；`research/ecc/2026-09-05-ecc-unified-research.md` 为统一维护源，ContextView 保存相同内容及其独立方案/prompt。证据在 `research/ecc-final/`，收口说明 `research/codex-findings/2026-09-05-ecc-final-review.md`。原始日志名/字节数/SHA-256 在 `delivery-evidence.json`。
+
+**结论**：第一批 SayDo AS-01/02；ContextView 在 WP-02 前置后独立 ECC intake。OctoWorkFlow 优先收敛 main/outcome/installed 与工具版本，再补证据依赖闭包和 collector 历史统计。其它项目只初筛。旧研究和方案仅加替代指针，保留原文与并行变更。未实施产品、未改排产、未 commit/push/install。
+
+## R156 · 工程缺口方案按持续成本收窄（2026-09-05）
+
+**输入**：owner 在讨论实际回报与持续成本后，明确要求“按你的建议进行调整，包括文档和Prompt。”范围为已有综合方案和后续实施入口，不启动产品施工或改变排产。
+
+**行动**：在独立 detached worktree 修订两份原 Astra 文件：保留核心修复与远程止损，明确远程功能损失和安全重开条件；页面以现有事件/动作/前台恢复优先并配有界兜底，取消固定轮询频率；语音按观测瓶颈选一处；被动诊断解耦分发；升级、gist、供应方和连接器按具体触发后置。每批补四行回报、持续成本与上限、用户负担、维护和停止条件，不新增治理平台。
+
+**产出**：更新 `docs/plan/2026-09-05-engineering-gap-consolidated.astra.md`、`docs/plan/IMPL-PROMPT-engineering-gap-consolidated.astra.md`；独立报告 `research/codex-findings/2026-09-05-engineering-gap-cost-revision-astra-review.md`；修订前后文件摘要与收据 `research/astra-gap-synthesis/cost-revision/`。日志 `cost-revision-docs.log` 为 543 字节，SHA-256 `c54f37b2a16082d8c5837af93aa9a9bb4b9321a2bcff2f1902c340eb39ca19fb`，正文留 ignored `.local/`。
+
+**结论**：零上下文 reviewer GREEN，0 blocker/0 P2；supervisor 登记真实 review completion 后 validator=valid/full_gate，受控文档门 exit 0，finalizer=finalized。本次新授权修订唯一最终 P2 sweep 无待处理项，接收时两文与被审版本 bytes 全等。原两稿、旧评审与旧计数保留；仅更新本轮文件与本条 journal，不改产品/canonical/PLAN-2，不提交或部署。产品全量门与真实 provider/runtime 未运行；reviewer 的非必需探针因无 tsx 未运行成功，事实以源码核验，未用其宣称性能改善。
+
+## R157 · ECC 方案与 Prompt 按持续成本收窄（2026-09-05）
+
+**输入**：owner 明确要求按上一条收益/后续成本建议调整两项目文档和 Prompt。本轮只修订已有唯一终稿，不实施产品或更改排产。
+
+**行动**：隔离 detached clone 中由 Grok 修订九个文件；SayDo 保留写前拒绝与 Git 防护，延期共享设置，补三类失败与恢复；ContextView 取消独立全量 intake，仅让有消费者且未覆盖的 AC-03/05/07 随已授权 WP 吸收。新鲜度、脱敏定位、去重、重试、无合格项 no-change 和延期触发同步到验收/索引/研究。
+
+**产出**：两仓既有 `docs/plan/2026-09-05-ecc-borrowing-final.md` 与 `2026-09-05-ecc-implementation-prompt.md`；统一研究源/镜像和索引同步。本次独立报告、候选摘要与门禁收据在 `research/ecc-final/scope-revision/`，既有最终评审记录追加本次结果，旧 R1–R4 原样保留。
+
+**结论**：一名 fresh Codex 初审 GREEN，A1–A6 全部满足，0 blocker/0 P2；validator valid/full_gate，十三门 exit 0（ContextView 148 tests in 72.696s OK，Cargo build/test/clippy 通过），finalizer finalized。唯一最终 P2 sweep 无变更；九文件接收 bytes 与 reviewed candidate 一致。未改产品/canonical/排产，未 commit/push/install，不验收并行代码。日志文件名/字节数/SHA-256 见本次 delivery-evidence.json。
+
+## R158 · 工程缺口与 ECC 合并为唯一交接入口（2026-09-05）
+
+**输入**：owner 要求完整阅读既有 ECC 最终方案与 Prompt，判断与工程缺口方案的先后或合并关系；若合并则合并方案/Prompt 并归档冗余，避免冲突。本轮只改文档及索引。
+
+**行动**：独立 detached worktree 对照两组最新正文和真实 canonical/排产/源码，统一为 PG-01B 后接 AS-01/AS-02 隐私批，再回原安全链；保留失败可见与恢复同批、四行持续成本约束与条件候选。九份原文按字节和 SHA-256 归档，原路径改短跳转，旧研究及审查保留。首审发现 Prompt 报告落点冲突 P1，按同一持久预算修复一次；fresh reviewer R2 GREEN。
+
+**产出**：`docs/plan/2026-09-05-engineering-unified.astra.md`、`docs/plan/IMPL-PROMPT-engineering-unified.astra.md`，以及 `docs/plan/archive/2026-09-05-engineering-unified/`。独立报告 `research/codex-findings/2026-09-05-engineering-unified-astra-review.md`；原始 RED、来源清单、26 文件摘要、机械收据与唯一 P2 ledger 在 `research/engineering-unified/`。冻结 HEAD `bcf8ea855f25b177888d9159f75e49214f3dd892`，fingerprint `dcf9d16d9892df7cb983ad7305d1992e0ad8e32afaefce28793df8d9caa23ba0`。日志 `unified-docs.log` 为 563 字节，SHA-256 `8ef5aeba972dfc876a42844da7fc7341b78ca79e27f58f8941ebb1a755dc84a6`，正文仅存 ignored `.local/`。
+
+**结论**：独立 R2 GREEN，0 blocker/0 P2；真实 review completion 登记后 validator=valid/full_gate，受控文档门 exit 0、finalizer=finalized。仅一次最终 P2 sweep，无待处理项；主树 26 文件接收与被审字节一致，保留其它会话变更。产品批按统一 Prompt 的具名授权与合并证据激活，本轮未改 canonical/PLAN-2；未实施产品、运行产品全量门或 provider/runtime，未 commit/push/merge/install/deploy。
+
+## R159 · 研究档案入库(§1)与 GAP-02 残项(§2)候选(2026-09-09)
+
+**输入**:owner 交付执行卡 `docs/plan/IMPL-PROMPT-2026-09-09-gap-residuals.md`(§0 授权 §1–§3 含本地 commit;合并/push/公开快照/指针为 checkpoint)。起点 main `c9f9c52`;主树停在 `codex/ecc-research-20260905`(`bcf8ea8`),挂 6 个修改 + 88 个未跟踪研究/评审文件。
+
+**行动**:§1 从 main 建 worktree `../SayDo-wt-ingest` / 分支 `docs/research-ingest-20260909`,按 `git ls-files --others` 清单逐文件复制并 `cmp` 全等,explicit pathspec 入库(排除 main 已有的 gap-consolidation 执行卡);`docs/plan/README.md`、`research/README.md`、08-13 DSH 评估以 main 为底手工并入;主树 journal 未入库条目实为 R129–R136 共 8 条(执行卡只提 R129),全部改编号 R151–R158 补记,`AGENTS.md` / `project-profile.md` 主树版本丢弃;隐私门首跑命中两处本机绝对家目录路径,改 `~/` 前缀。§2 在 `../SayDo-wt-residual` / 分支 `gap-02-residual-20260909`(基于 §1 提交):2.1 contracts `attentionItemSchema.confirmKind`(additive)、daemon 投影 `pending_confirmations.kind`、console 单源 `lib/confirmCardCopy`(桌面 Chat 与移动 CardPage 共用;memory 记/不用记、表外或缺失 kind 回落 确认/不);2.2 抽 `hooks/redesign/pageSession` 纯会话,四页 hook 改薄包装,`createBoardPageSession.retryDetail` 只重拉该 detail 且失败保留占位,三页各补失效重取 + dispose 无残留用例,Playwright 增定向重试用例。
+
+**产出**:§1 `e7a6ceb`(92 files);§2 `a0c82cb`(22 files)。文档门与受影响 vitest 全绿(见证据)。
+
+**结论**:两段都是候选,未合并、未 push;主树未 checkout main、`sd-harness-borrow` 未删(执行卡前置条件「主树无未提交差异」未满足且可能有并发会话,留 owner)。口径偏离两处如实登记:journal 编号从 R151–R158 顺延;桌面表外 kind 文案由「做/不要」统一为「确认/不」。
+
+## R160 · 邮件出站阶段 A 候选(§3)、完整门禁与候选交付(2026-09-09)
+
+**输入**:执行卡 §3(决策单第 11 节已同意进入排产候选;只做到可审查候选,插批位置与实施授权由 owner 决定)。
+
+**行动**:canonical 先行——04 §4 升级链 L1 加邮件(可选,与 ntfy 并存)、07 D11 P0.5 候选、09 §6.3 `threadMessageId?` 与 v32 additive DDL 注(PG-05 可恢复点红线)、C4 依赖行;PLAN-2 新增「候选批卡」小节登记 `EMAIL-A-outbound`(不改指针、不插链,`schedule-pointer --check` 通过);代码候选 `callback/email.ts`(三键解析、复用 ntfy 渲染 + 整体 redactor、四类事件、每任务一线程、node:net/tls 最小 SMTP submission 客户端,无新依赖)、sweep 可选 email dep(任一通道成功才 notified,DND 只发一次)、index 注入与两通道皆未配置 warn、DDL v32 / DAO / contracts、secret 白名单 `SMTP_PASSWORD`、env 模板;14 例单测。首轮 `just ci` 在 `dec54d2` 红:公开树隐私门命中测试夹具 `/Users/...` 路径,改 `/opt/saydo-fixture/` 后 `fc3c662` 重跑绿;随后 Playwright 全量。
+
+**产出**:`17dd011`(canonical + 批卡)、`dec54d2`(代码候选)、`fc3c662`(夹具修复);证据 `e2e/evidence/gap-02-residual.md`(随 E 提交入库,不自指)。
+
+**结论**:执行和检查都跑完了,等 owner 验收:§1 合并、§2 合并、§3 插批位置与是否实施(含是否要 OS 机密存储而非 `.env`、临时 SMTP 凭据做真实发送)、是否补独立零上下文评审。真实 SMTP 发送 not_run;自检不算独立 GREEN;未 merge/push/公开快照。
+
+## R161 · owner 授权全部合并,EMAIL-A-outbound 插批与收口(2026-09-09)
+
+**输入**:owner 回复「都合并,并且都按最完整的方式推进实施」(决策单第 12 节登记)。
+
+**行动**:`git fetch ../SayDo-wt-residual gap-02-residual-20260909:main` ref-only ff(main `c9f9c52`→`5eb083a`);主树 6 个旧版修改文件 `git stash` 留存,核对 88 个未跟踪副本与 main 全等(仅两处路径前缀为本批有意修改)后删除并 `checkout main`;删除已合并且干净的 `sd-harness-borrow` 分支/worktree。在 worktree 分支 `email-a-outbound` 上按 AS/GAP-02 同法插批:候选卡移入唯一串行链(GAP-02-consolidation 后、PG-02 前),链串/断言/`schedule-pointer.mjs` 三处同步,指针 revision 7→8(`--check`/`--self-test` 通过),HANDOFF `--render` + 现役行;关批 HEAD 重跑 typecheck 与 FG-EMAIL-A(72 passed)+ contracts(135),产品代码相对完整门禁 HEAD `fc3c662` 无变化;收口指针 revision 8→9(`active=none`、`next=PG-02`、`last_closed=EMAIL-A-outbound`)。
+
+**产出**:`1409d71`(插批);本 E 提交(`e2e/evidence/email-a-outbound.md`、决策单第 12 节、README、HANDOFF 收口行、本条)。
+
+**结论**:§1/§2/§3 全部交付到本地 main;EMAIL-A-outbound 已收口,PG-02 仍为 next 未开工。真实 SMTP 发送 not_run;无独立零上下文评审;未 push / 公开快照(待 owner 一句话)。

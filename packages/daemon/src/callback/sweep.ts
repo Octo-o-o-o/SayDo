@@ -1,7 +1,7 @@
 // 回叫 sweep(S2):按优先级与 escalation 分级选路。
 // L0 = 语音(console peer ∧ TTS 健康 ∧ 不 busy,经 arbitrate);
-// L1 = 桌面通知 + ntfy;L2 电话不做(escalation 上限 1)。
-// DND:只推低优先级 ntfy 一次并 snooze,不语音不桌面。
+// L1 = 桌面通知 + ntfy + 邮件(EMAIL-A,可选,与 ntfy 并列;任一投递成功即 notified);L2 电话不做(escalation 上限 1)。
+// DND:只推低优先级 ntfy / 邮件各一次并 snooze,不语音不桌面。投递失败绝不写 notified。
 // micHeldByMeeting 无数据源,调用方恒传 false。
 
 import { renderTier1BlockedReason, type OutboxTrigger } from "@saydo/contracts";
@@ -11,6 +11,7 @@ import { redactText } from "../voice/redactor.js";
 import { CallbackEngine } from "./engine.js";
 import { PRIORITY, reconnectFirstLine, type ArbitrationResult, type PendingCallback } from "./arbitration.js";
 import type { NtfyMessage, OutboxRowForNotify } from "./ntfy.js";
+import type { EmailMessage } from "./email.js";
 
 export const L0_ACK_WINDOW_MS = 30_000;
 export const ESCALATION_CAP = 1;
@@ -35,6 +36,15 @@ export interface SweepDeps {
     post: (msg: NtfyMessage) => Promise<boolean>;
     render: (db: Db, entry: OutboxRowForNotify) => NtfyMessage;
   };
+  /** EMAIL-A(可选):未注入 = 未配置 */
+  email?: {
+    enabled: boolean;
+    send: (msg: EmailMessage) => Promise<boolean>;
+    /** 非四类事件返回 null(不发) */
+    render: (db: Db, entry: OutboxRowForNotify) => EmailMessage | null;
+    /** 投递成功后落线程锚 */
+    recordThread: (entryId: string, messageId: string) => void;
+  };
   dnd: {
     inWindow(now: Date): boolean;
     windowEnd(now: Date): string | null;
@@ -56,6 +66,7 @@ export interface SweepReport {
   consoleSay: number;
   desktopSent: number;
   ntfySent: number;
+  emailSent: number;
   snoozed: number;
   queued: number;
   l1Notified: number;
@@ -80,6 +91,7 @@ function emptyReport(): SweepReport {
     consoleSay: 0,
     desktopSent: 0,
     ntfySent: 0,
+    emailSent: 0,
     snoozed: 0,
     queued: 0,
     l1Notified: 0,
@@ -273,6 +285,24 @@ export async function runCallbackSweep(deps: SweepDeps, now: Date): Promise<Swee
   return report;
 }
 
+/** EMAIL-A:渲染 + 投递一封;成功落线程锚。失败/非四类事件/未配置 ⇒ false */
+async function deliverEmail(deps: SweepDeps, row: OutboxRow, report: SweepReport, dnd: boolean): Promise<boolean> {
+  if (!deps.email?.enabled) return false;
+  const msg = deps.email.render(deps.db, { id: row.id, task_id: row.task_id, trigger: row.trigger, settle_json: row.settle_json });
+  if (!msg) return false;
+  const toSend: EmailMessage = dnd ? { ...msg, text: `(免打扰时段)${msg.text}` } : msg;
+  let ok = false;
+  try {
+    ok = await deps.email.send(toSend);
+  } catch {
+    ok = false;
+  }
+  if (!ok) return false;
+  report.emailSent += 1;
+  deps.email.recordThread(row.id, msg.messageId);
+  return true;
+}
+
 async function deliverDnd(deps: SweepDeps, now: Date, nowIso: string, report: SweepReport): Promise<void> {
   const until = deps.dnd.windowEnd(now);
   const due = [...loadDue(deps.db, nowIso, "pending"), ...loadDue(deps.db, nowIso, "requeued")];
@@ -293,7 +323,14 @@ async function deliverDnd(deps: SweepDeps, now: Date, nowIso: string, report: Sw
         deps.log.info("callback DND ntfy pushed", { entryId: row.id });
       }
     }
-    if ((sent || !deps.ntfy.enabled) && until) {
+    const emailSent = await deliverEmail(deps, row, report, true);
+    if (emailSent) {
+      sent = true;
+      deps.audit.record({ actor: "daemon", action: "callback.dnd_pushed", meta: { entryId: row.id, channel: "email" } });
+      deps.log.info("callback DND email pushed", { entryId: row.id });
+    }
+    const anyPushChannel = deps.ntfy.enabled || deps.email?.enabled === true;
+    if ((sent || !anyPushChannel) && until) {
       deps.engine.snooze(row.id, until);
       report.snoozed += 1;
     }
@@ -325,7 +362,8 @@ async function deliverL1(deps: SweepDeps, row: OutboxRow, nowHm: string, report:
     }
     if (ntfyOk) report.ntfySent += 1;
   }
-  if (!desktopOk && !ntfyOk) {
+  const emailOk = await deliverEmail(deps, row, report, false);
+  if (!desktopOk && !ntfyOk && !emailOk) {
     if (!deps.l1FailWarned.has(row.id)) {
       deps.l1FailWarned.add(row.id);
       deps.log.warn("callback L1 delivery failed; entry stays for retry", { entryId: row.id, state: row.state });
@@ -348,6 +386,7 @@ async function deliverL1(deps: SweepDeps, row: OutboxRow, nowHm: string, report:
     entryId: row.id,
     desktop: desktopOk,
     ntfy: ntfyOk,
+    email: emailOk,
     state: row.state
   });
 }

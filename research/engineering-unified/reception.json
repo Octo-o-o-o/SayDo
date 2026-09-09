@@ -1,0 +1,48 @@
+{
+  "task": "engineering-unified",
+  "scope": "主工作区接收校验；不把接收树指纹冒充隔离候选。",
+  "journal": "R136",
+  "reviewed_files": 26,
+  "archives": 9,
+  "checks": [
+    {
+      "name": "handoff",
+      "exit_code": 0,
+      "output": "{\"contract_errors\": [], \"owner_override_reason\": null, \"owner_override_rules\": [], \"policy_version\": 2, \"risk_violations\": [], \"status\": \"valid\", \"unapproved_violations\": []}\n"
+    },
+    {
+      "name": "emoji",
+      "exit_code": 0,
+      "output": "[ok] emoji gate: clean\n"
+    },
+    {
+      "name": "doc-links",
+      "exit_code": 0,
+      "output": "[ok] active document links: files=150 broken=0\n"
+    },
+    {
+      "name": "archive-integrity",
+      "exit_code": 0,
+      "output": "[ok] 9 original archive hashes; 9 non-executable redirects; unchanged schedule/canonical; one unified workflow contract\n"
+    },
+    {
+      "name": "diff-check",
+      "exit_code": 0,
+      "output": ""
+    },
+    {
+      "name": "received-file-hashes",
+      "exit_code": 0,
+      "output": "[ok] 26 reviewed files plus final review report match delivered hashes\n"
+    }
+  ],
+  "not_performed": [
+    "product implementation",
+    "schedule activation",
+    "commit",
+    "push",
+    "merge",
+    "install",
+    "deploy"
+  ]
+}

@@ -186,3 +186,18 @@ D-04 可替换 Loop 运行时 / D-06 prompt 分段插件 / D-10 凭据 yaml 层 
 | api-docs.deepseek.com/updates | 官方基准声明 | 确认 harness 用于 V4-Flash 打榜 |
 | 新浪/网易等转述 | 仅作开源日舆论定位 | 不引用其架构细节;以源码为准 |
 | SayDo 源码 + PLAN-2 + 03 架构 | 承重盘点 | 实读;记忆 stub 未误判为未做 |
+
+> **状态注(2026-09-09,Fable 逐项核验 main `25a9924` 后回写;下列结论已核验,后续不必再复查)**
+>
+> | 条目 | 结论 | 依据 / 去向 |
+> |---|---|---|
+> | D-01 请求重建不变量 | 仍成立(工具轮 assistant/tool 消息不进 transcript,无 digest 断言;`brain/dialogLoop.ts:472-488,800,823`) | 价值中低;列为 `IMPL-PROMPT-2026-09-09-gap-consolidation.md` §3 待 owner 具名项,可与 PG-04 同批 |
+> | D-05 组装后 keyless snapshot | **已满足,不再是缺口**:`test/live-wiring.e2e.test.ts` 用真实 `registerLiveTools` + 脚本化 provider + ledger/DB 回读;SD-1/SD-2 测试同口径 | 关闭 |
+> | D-02 单调 deny | **核验无价值**:`brain/registry.ts` dispatch 无 hook/listener 管线,不存在“先拒后放”的面;hook 管线出现前无对象 | 关闭 |
+> | D-14 enforcement 分档字段 | 部分:`byoa/provider.ts:456-462` 审计 meta 内联 cage 值,`cage.ts` 无类型化等级 | 有价值(小),Prompt §2.9 |
+> | D-03 inbox/steer | 核验无价值:steer 仅执行侧 `queued_delta`(`tier1/operations.ts:76`),对话侧插话走 abort 旧轮;无 live 注入后端前不做 | 关闭 |
+> | D-07 session fork | `forked_from` 是死列(`storage/ddl.ts:924` 有列,全源无读写);无 Focus fork 需求前不实现也不删 | 关闭 |
+> | D-08 seam 纪律 / D-11 asked-decided 成对 / D-17 compaction / D-18 spill / D-19 token meter / D-20 skills 策略 / D-30 ACP / D-32 生成目录 / D-33 dump-config / D-41 abort 合成错误 | **核验无价值或已满足**:D-11 由 `confirmation_ledger` presented/finalized 覆盖;D-33 并入 HOST-01 doctor;其余无触发证据,与统一方案 CONTEXT-01/READ-01 结论一致 | 关闭 |
+> | D-09 | 08-27 勘误已关闭 | — |
+>
+> 第一刀 `borrow-dsh-invariants` 批名作废;有价值残项已并入 2026-09-09 缺口收敛 Prompt。

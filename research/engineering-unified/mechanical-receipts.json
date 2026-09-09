@@ -1,0 +1,160 @@
+{
+  "task": "engineering-unified",
+  "stage": "plan-and-prompt",
+  "cycle": "20260905",
+  "review_1_validator": {
+    "next_action": "auto_repair_once",
+    "policy_mode": "policy",
+    "policy_revision": "2.4.2",
+    "policy_source": "policy:policy.frozen.json",
+    "rule_ids": [],
+    "status": "valid"
+  },
+  "review_2_validator": {
+    "next_action": "full_gate",
+    "policy_mode": "policy",
+    "policy_revision": "2.4.2",
+    "policy_source": "policy:policy.frozen.json",
+    "rule_ids": [],
+    "status": "valid"
+  },
+  "review_receipts": [
+    {
+      "schema_version": 1,
+      "receipt_id": "engineering-unified-review-1",
+      "action": "rereview",
+      "terminal": "completed",
+      "candidate_head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+      "diff_fingerprint": "93b51736ec156a18e20367b5e166e75658166f3e30f0de2d889efc5900eaab36",
+      "review_ordinal": 1,
+      "consumed": {
+        "repair": false,
+        "rereview": false,
+        "strategy_reset": false
+      },
+      "cost_kind": "none",
+      "blocker_id_map": [],
+      "evidence_refs": [
+        "review:review.md",
+        "case:unchanged-fingerprint"
+      ],
+      "task": "engineering-unified",
+      "stage": "plan-and-prompt",
+      "cycle": "20260905",
+      "control_sha256": "cff80714d4d650ef5022b320dbdd15e7d0ded1cb7372f80db8d7bb48fed1f89a",
+      "manifest_sha256": "623cbeab40078f8739bfa3e9916e2cae313dc5081cbec4224af9eba0871f3d3d"
+    },
+    {
+      "schema_version": 1,
+      "receipt_id": "engineering-unified-repair-1",
+      "action": "repair",
+      "terminal": "completed",
+      "candidate_head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+      "diff_fingerprint": "dcf9d16d9892df7cb983ad7305d1992e0ad8e32afaefce28793df8d9caa23ba0",
+      "review_ordinal": 1,
+      "consumed": {
+        "repair": true,
+        "rereview": false,
+        "strategy_reset": false
+      },
+      "cost_kind": "product",
+      "blocker_id_map": [],
+      "evidence_refs": [
+        "review:review.md",
+        "case:report-path-unified"
+      ],
+      "task": "engineering-unified",
+      "stage": "plan-and-prompt",
+      "cycle": "20260905",
+      "control_sha256": "cff80714d4d650ef5022b320dbdd15e7d0ded1cb7372f80db8d7bb48fed1f89a",
+      "manifest_sha256": "623cbeab40078f8739bfa3e9916e2cae313dc5081cbec4224af9eba0871f3d3d"
+    },
+    {
+      "schema_version": 1,
+      "receipt_id": "engineering-unified-review-2",
+      "action": "rereview",
+      "terminal": "completed",
+      "candidate_head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+      "diff_fingerprint": "dcf9d16d9892df7cb983ad7305d1992e0ad8e32afaefce28793df8d9caa23ba0",
+      "review_ordinal": 2,
+      "consumed": {
+        "repair": false,
+        "rereview": true,
+        "strategy_reset": false
+      },
+      "cost_kind": "product",
+      "blocker_id_map": [],
+      "evidence_refs": [
+        "review:review-r2.md",
+        "case:unchanged-fingerprint"
+      ],
+      "task": "engineering-unified",
+      "stage": "plan-and-prompt",
+      "cycle": "20260905",
+      "control_sha256": "cff80714d4d650ef5022b320dbdd15e7d0ded1cb7372f80db8d7bb48fed1f89a",
+      "manifest_sha256": "a6c0609ad46f2f3bf520a6913872f29204c93a8e1e8aa7cdff7d54d31c12b549"
+    }
+  ],
+  "finalizer": {
+    "control": {
+      "acceptance_file": "acceptance.frozen.json",
+      "acceptance_sha256": "ec1174c0c0936a95cb56d3abe812b06b0c6f016c10abec9817d9633be0439471",
+      "cycle_state_file": "cycle-state.json",
+      "gate_spec_file": "gates.frozen.json",
+      "gate_spec_sha256": "952191f9b181d890a1cf940e96f013ec657900d79f69ab4dbcae694313c07a98",
+      "policy_file": "policy.frozen.json",
+      "policy_revision": "2.4.2",
+      "policy_sha256": "996871d90109a558c9f2399ba80babaa98b8bd1cbac68215aa26cdd491f8ccc0",
+      "schema_version": 2,
+      "task": "engineering-unified"
+    },
+    "final": {
+      "candidate_head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+      "cycle": "20260905",
+      "diff_fingerprint": "dcf9d16d9892df7cb983ad7305d1992e0ad8e32afaefce28793df8d9caa23ba0",
+      "gate_evidence": [
+        {
+          "attempt": 1,
+          "exit_code": 0,
+          "log_sha256": "8ef5aeba972dfc876a42844da7fc7341b78ca79e27f58f8941ebb1a755dc84a6",
+          "name": "unified-docs"
+        }
+      ],
+      "policy_revision": "2.4.2",
+      "policy_sha256": "996871d90109a558c9f2399ba80babaa98b8bd1cbac68215aa26cdd491f8ccc0",
+      "recorded_at": "2026-09-05T14:59:42Z",
+      "review_manifest_sha256": "a6c0609ad46f2f3bf520a6913872f29204c93a8e1e8aa7cdff7d54d31c12b549",
+      "review_ordinal": 2,
+      "runtime_receipt": {
+        "acceptance_file": "acceptance.frozen.json",
+        "acceptance_sha256": "ec1174c0c0936a95cb56d3abe812b06b0c6f016c10abec9817d9633be0439471",
+        "candidate_head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+        "control_schema_version": 2,
+        "cycle": "20260905",
+        "cycle_control_sha256": "c475adf0bbeca5ca43afffe721bc8c1932ddf2fcdf53e356f2f80bc2ddc61b3d",
+        "cycle_state_sha256": "698b64daf3778222dd07a8dbe395c18124217b7cdb41bc61de361e557624881a",
+        "diff_fingerprint": "dcf9d16d9892df7cb983ad7305d1992e0ad8e32afaefce28793df8d9caa23ba0",
+        "policy_revision": "2.4.2",
+        "policy_sha256": "996871d90109a558c9f2399ba80babaa98b8bd1cbac68215aa26cdd491f8ccc0",
+        "recorded_at": "2026-09-05T14:59:40Z",
+        "review_ordinal": 2,
+        "schema_version": 1,
+        "stage": "plan-and-prompt",
+        "task": "engineering-unified"
+      },
+      "schema_version": 1,
+      "stage": "plan-and-prompt",
+      "task": "engineering-unified"
+    },
+    "rule_ids": [],
+    "status": "finalized"
+  },
+  "budget": {
+    "repair_rounds_reserved": 1,
+    "repair_rounds_used": 1,
+    "rereview_rounds_reserved": 1,
+    "rereview_rounds_used": 1,
+    "strategy_resets_reserved": 0,
+    "strategy_resets_used": 0
+  }
+}

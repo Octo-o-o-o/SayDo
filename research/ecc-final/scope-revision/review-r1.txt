@@ -1,0 +1,68 @@
+# ECC 范围修订只读复审 R1
+
+Verdict：GREEN
+
+三维结论：
+
+- [ok] scope：SayDo 第一批保持 AS-01/AS-02 保护边界并延期共享建设；ContextView 已取消独立全量 intake。
+- [ok] operability：两个未来 prompt 的前置、消费者条件、恢复路径、阶段和停止条件闭合，且 `validate_handoff` 均 exit 0。
+- [ok] integrity：候选 HEAD、fingerprint、9 个输出 hash、before hash、研究镜像和变更边界均核验一致。
+
+## A1–A6 对账
+
+| 验收项 | 状态 | 结论与证据 |
+| --- | --- | --- |
+| A1 | [ok] | 凭据检测限定于窄 literal grammar，并覆盖 ledger、remember、foundation 全部实际输入；Git 保护包含非 Git、worktree `.git`、等价 ignore、tracked、根外 symlink 和写失败。共享 schema/UI/DDL 明确延期，既有人工共享配置和用户文件保留。证据：`SayDo/docs/plan/2026-09-05-ecc-borrowing-final.md:83`、`:85`、`:92`、`:120`、`:130`、`:132`、`:134`、`:154`；实施约束见 `SayDo/docs/plan/2026-09-05-ecc-implementation-prompt.md:56`、`:109`、`:145`、`:151`。 |
+| A2 | [ok] | 三类失败、新鲜度诚实、脱敏来源定位、去重、现有重试恢复和边界开销均形成正反验收；未引入通知中心、持久化遥测或新 blocked 状态。证据：`SayDo/docs/plan/2026-09-05-ecc-borrowing-final.md:158`、`:162`、`:168`、`:170`、`:172`、`:174`、`:178`；prompt 覆盖矩阵与实施范围见 `SayDo/docs/plan/2026-09-05-ecc-implementation-prompt.md:109`、`:155`。 |
+| A3 | [ok] | ContextView 已改为 AC-03/05/07 有消费者且有真实缺口时并入既有 WP；AC-01/02/04 延期，AC-06 移出本批；无合格项允许 no-change，不新建消费者、cycle、专用 ledger 或 freeze。证据：`ContextView/docs/plan/2026-09-05-ecc-borrowing-final.md:79`、`:83`、`:89`、`:99`、`:118`、`:124`；prompt 闭环见 `ContextView/docs/plan/2026-09-05-ecc-implementation-prompt.md:39`、`:43`、`:80`、`:84`、`:87`、`:91`、`:145`、`:156`、`:184`。 |
+| A4 | [ok] | 两份 prompt 均只有一个与 `control/CONTRACT.md` 相同的 workflow-v2/roles 块；SayDo 保持统一设计、统一实现两阶段，ContextView 复用目标 WP 的 control/cycle/ledger。机械入口、预算、单语义子会话和禁止自动 commit/push/install 均保留。证据：两份 prompt 的 `:8-17`；SayDo `:73-167`；ContextView `:76-184`。 |
+| A5 | [ok] | 统一研究镜像逐字节一致；附录机械计数为 E 表 110 行、legacy source 118 行、历史测试 12 行，修订前各行均保留。当前范围与历史 R3/R4、十二门已明确分离。证据：`SayDo/research/ecc/2026-09-05-ecc-unified-research.md:3`、`:140`、`:220`、`:337`、`:462`、`:484`；索引见 `SayDo/docs/plan/README.md:69`、`SayDo/research/README.md:22`、`ContextView/docs/README.md:81`。 |
+| A6 | [ok] | `source-manifest` 的 9 个目标与跨仓候选清单一致，9 个输出 hash 和全部 before hash 均匹配；短检查确认无越界改动、坏链接、私人路径、镜像漂移或历史表变更。证据：`control/source-manifest.json:3`、`:7`、`:22`；`SayDo/research/ecc-final/scope-candidate-manifest.json:4`、`:51`。 |
+
+## 问题清单
+
+- P0/P1：无。
+- Deferred P2：无。
+- 全量门禁：本 reviewer 未运行；按合同留待语义 GREEN 后由 supervisor 执行。
+
+本次实跑的 focused checks 均 exit 0：candidate fingerprint 精确匹配；`scope-artifacts` 输出 `result=PASS, scope_files=9, errors=[]`；两个 handoff 均返回 `status=valid`；9 个目标文档的 emoji 定向检查为 clean。
+
+```review-manifest
+{
+  "verdict": "GREEN",
+  "review_ordinal": 1,
+  "candidate_head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+  "diff_fingerprint": "7bf13516076dd44abf3721275e9f2c3dd3cbd1b1ad2b4b2d5df18376647458a9",
+  "review_scope": "workflow-final",
+  "blockers": [],
+  "p2_ledger_delta": [],
+  "focused_gates": [
+    {
+      "name": "candidate-fingerprint",
+      "exit_code": 0,
+      "summary": "SayDo HEAD and git-diff-v1 fingerprint exactly match the frozen candidate identity."
+    },
+    {
+      "name": "scope-artifacts",
+      "exit_code": 0,
+      "summary": "PASS; scope_files=9; errors=[]."
+    },
+    {
+      "name": "validate-handoff-saydo",
+      "exit_code": 0,
+      "summary": "status=valid; contract_errors=[], risk_violations=[], unapproved_violations=[]."
+    },
+    {
+      "name": "validate-handoff-contextview",
+      "exit_code": 0,
+      "summary": "status=valid; contract_errors=[], risk_violations=[], unapproved_violations=[]."
+    },
+    {
+      "name": "scope-target-emoji",
+      "exit_code": 0,
+      "summary": "The nine target documents contain no forbidden pictographic characters."
+    }
+  ],
+  "stop_reason": null
+}
+```

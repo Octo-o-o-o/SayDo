@@ -23,11 +23,11 @@ const POINTER_KEYS = Object.freeze([
   "updated_at"
 ]);
 const BATCH_ID_RE = /^(PROC-\d+|PG-\d+[A-Z]?)$/;
-/** 有限附加批 ID:只接受这两个唯一插批 ID(AS-01-AS-02 2026-09-06;GAP-02-consolidation 2026-09-09),不是任意 AS/GAP 编号。 */
-const EXTRA_BATCH_IDS = Object.freeze(["AS-01-AS-02", "GAP-02-consolidation"]);
+/** 有限附加批 ID:只接受这三个唯一插批 ID(AS-01-AS-02 2026-09-06;GAP-02-consolidation 2026-09-09;EMAIL-A-outbound 2026-09-09 晚),不是任意 AS/GAP/EMAIL 编号。 */
+const EXTRA_BATCH_IDS = Object.freeze(["AS-01-AS-02", "GAP-02-consolidation", "EMAIL-A-outbound"]);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const PLAN2_CHAIN_ARROW = "PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop";
-const PLAN2_CHAIN_ASSERT = "PLAN2_chain == PROC-01>PG-01B>AS-01-AS-02>GAP-02-consolidation>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop";
+const PLAN2_CHAIN_ARROW = "PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → EMAIL-A-outbound → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop";
+const PLAN2_CHAIN_ASSERT = "PLAN2_chain == PROC-01>PG-01B>AS-01-AS-02>GAP-02-consolidation>EMAIL-A-outbound>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop";
 const OID_RE = /\b[0-9a-f]{40}\b/i;
 const SHORT_OID_RE = /^[0-9a-f]{7,40}$/i;
 
@@ -377,7 +377,7 @@ function mutateActiveAndNext(text, planFields) {
 }
 
 function mutateDropAsFromChain(planText) {
-  const mutated = planText.replace(PLAN2_CHAIN_ARROW, "PROC-01 → PG-01B → GAP-02-consolidation → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop");
+  const mutated = planText.replace(PLAN2_CHAIN_ARROW, "PROC-01 → PG-01B → GAP-02-consolidation → EMAIL-A-outbound → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop");
   if (mutated === planText) {
     throw new Error("self-test 未能从唯一串行链去掉 AS-01-AS-02");
   }

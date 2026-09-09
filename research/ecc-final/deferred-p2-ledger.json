@@ -1,0 +1,26 @@
+{
+  "task": "ecc-final-20260905",
+  "final_sweeps_used": 1,
+  "entries": [
+    {
+      "id": "ecc-final-r1-p2-context-apache-line-anchor",
+      "first_seen_candidate": "bcf8ea855f25b177888d9159f75e49214f3dd892/dfef6281bfff83eea5d2d85e49b09b9931541832e033fe083d59e789e5b99dcd",
+      "location": "ContextView/docs/plan/2026-09-05-ecc-borrowing-final.md:129",
+      "evidence": "终稿引用 check_acceptance.py:745-746，实际 Apache-2.0 比较与失败分支位于 747-748。",
+      "impact": "不改变机制结论，但证据锚点未落在实际判定行。",
+      "status": "resolved",
+      "last_validated_candidate": "final-repair-1",
+      "resolution": "Verified Apache-2.0 comparison at 747-748; corrected exact anchor in final sweep."
+    },
+    {
+      "id": "portable-control-evidence-coordinate",
+      "first_seen_candidate": "87b5685899e12ebf4c9aa17ce7d86aa1069729626020758b7d50dc454a26752b",
+      "location": "research/ecc/2026-09-05-ecc-unified-research.md:16",
+      "evidence": "research/ecc/2026-09-05-ecc-unified-research.md:16",
+      "impact": "控制证据与 runtime 位于交付双仓之外；正文已经内嵌事实且未来 prompt 会重读当前状态，因此不阻断当前文档交付，但独立搬运时需随附这些坐标。",
+      "status": "deferred",
+      "last_validated_candidate": "701edc0008d8af260478377f077a0bd6452e23098a1fd36cd894736fd9a4a191",
+      "resolution": "unresolved"
+    }
+  ]
+}

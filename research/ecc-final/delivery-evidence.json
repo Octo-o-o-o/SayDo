@@ -1,0 +1,307 @@
+{
+  "task": "ecc-final-20260905",
+  "reviewed_candidate": {
+    "algorithm": "git-diff-v1",
+    "fingerprint": "68133536a8d91e77373154e19c2881994f9ecbe3e3ccb6a7043ac098f7cedd4a",
+    "head": "bcf8ea855f25b177888d9159f75e49214f3dd892"
+  },
+  "status": "finalized",
+  "review_ordinal": 4,
+  "product_code_implemented": false,
+  "committed": false,
+  "pushed": false,
+  "installed": false,
+  "outputs": [
+    {
+      "project": "SayDo",
+      "path": "docs/plan/2026-09-05-ecc-borrowing-final.md",
+      "reviewed_sha256": "81def400f581d59469f744673aa504dfefc8fe472ac835b35cff44e3321925f3",
+      "delivered_sha256": "bdf398b3667158af388fe04cb80a78beddbfe7161994e55a0eee80c728db2d51",
+      "post_review_changes": "review/gate status metadata only"
+    },
+    {
+      "project": "SayDo",
+      "path": "docs/plan/2026-09-05-ecc-implementation-prompt.md",
+      "reviewed_sha256": "22073b529a97f78f085b9e4f8dc8a4bbb56988ede26d20b45a1263769b404529",
+      "delivered_sha256": "6dde5866d5e250cd522f8c9ff604114bb7ad4929791caf019680e56610c872fe",
+      "post_review_changes": "review/gate status metadata only"
+    },
+    {
+      "project": "SayDo",
+      "path": "research/ecc/2026-09-05-ecc-unified-research.md",
+      "reviewed_sha256": "beab204663477cfb0c1a433bd1904b7e50b237bd8b9a21d819960c13cea75ee5",
+      "delivered_sha256": "44c5968eb33bd1e6191c5790058f42fc204dd656307b9393fb3d6ff1f664aa66",
+      "post_review_changes": "review/gate status metadata only"
+    },
+    {
+      "project": "ContextView",
+      "path": "docs/plan/2026-09-05-ecc-borrowing-final.md",
+      "reviewed_sha256": "5b1410f468aca45ec45aa66a590fd324ee9f1c30f83790be1f44b054c4f347b2",
+      "delivered_sha256": "9eeee8b400c8ed5dffbfbd41056a5e2410dd654275190c14a0030c75410a973d",
+      "post_review_changes": "review/gate status metadata only"
+    },
+    {
+      "project": "ContextView",
+      "path": "docs/plan/2026-09-05-ecc-implementation-prompt.md",
+      "reviewed_sha256": "3611276ac3b24c341b6bca4bdefa44efdfd80acf6aceb9d7161f7625dd34ae78",
+      "delivered_sha256": "96e0a829dcc11df78f0106ead4735e62f06d3e9adbdc6d733bfdd62d8e8e64de",
+      "post_review_changes": "review/gate status metadata only"
+    },
+    {
+      "project": "ContextView",
+      "path": "docs/research/2026-09-05-ecc-unified-research.md",
+      "reviewed_sha256": "beab204663477cfb0c1a433bd1904b7e50b237bd8b9a21d819960c13cea75ee5",
+      "delivered_sha256": "44c5968eb33bd1e6191c5790058f42fc204dd656307b9393fb3d6ff1f664aa66",
+      "post_review_changes": "review/gate status metadata only"
+    }
+  ],
+  "historical_sources_preserved": [
+    {
+      "project": "SayDo",
+      "path": "docs/plan/2026-09-05-ecc-borrowing-assessment.fable.md",
+      "preserved_body_sha256": "510d95df2832c52066445531bc35e6db04f999f364eb8a5a2e4732eba817ebff",
+      "archive_pointer_added": true
+    },
+    {
+      "project": "SayDo",
+      "path": "docs/plan/2026-09-05-ecc-borrowing-assessment.astra.md",
+      "preserved_body_sha256": "9b45dbc7c39cec1ef35cc0a6c84bbf4b9682d6c288b105d2bb08955a46bcf2ee",
+      "archive_pointer_added": true
+    },
+    {
+      "project": "SayDo",
+      "path": "docs/plan/2026-09-05-ecc-borrowing-consolidated.fable.md",
+      "preserved_body_sha256": "736a5f92996f7699baa7762d7459da034f4cf29cf1736aa8201138da7b7c4538",
+      "archive_pointer_added": true
+    },
+    {
+      "project": "SayDo",
+      "path": "docs/plan/2026-09-05-ecc-borrowing-plan.md",
+      "preserved_body_sha256": "3584548f6f257b26060175158dc8a87a90e09f40525242b680897214005af27d",
+      "archive_pointer_added": true
+    },
+    {
+      "project": "SayDo",
+      "path": "research/ecc/2026-09-05-ecc-project-research.md",
+      "preserved_body_sha256": "7d6d695a8fb56bd4d838527851643b2a45cb0d5240fb03071af3520626da8716",
+      "archive_pointer_added": true
+    },
+    {
+      "project": "ContextView",
+      "path": "docs/plan/2026-09-05-ecc-borrowing-assessment.fable.md",
+      "preserved_body_sha256": "642bb259ae5d0576c45f1f0f520f8b88a839bd21965894fcadc19e68efdd2a3c",
+      "archive_pointer_added": true
+    },
+    {
+      "project": "ContextView",
+      "path": "docs/plan/2026-09-05-ecc-borrowing-assessment.astra.md",
+      "preserved_body_sha256": "9b281d6bf3f00a0c9acaa22a5ddb1dd133cef5d493e7e3205e9649a60c15bbf9",
+      "archive_pointer_added": true
+    },
+    {
+      "project": "ContextView",
+      "path": "docs/plan/2026-09-05-ecc-borrowing-consolidated.fable.md",
+      "preserved_body_sha256": "b4457a1a16cb9967da70c285786086f1bd3756b0cec298906169728c103d12e9",
+      "archive_pointer_added": true
+    },
+    {
+      "project": "ContextView",
+      "path": "docs/research/2026-09-05-ecc-borrowing-plan.md",
+      "preserved_body_sha256": "f621d289677aad8938f49e35fd6246f82acd97517849d0d275c4ed39460fce9f",
+      "archive_pointer_added": true
+    },
+    {
+      "project": "ContextView",
+      "path": "docs/research/2026-09-05-ecc-everything-claude-code-research.md",
+      "preserved_body_sha256": "82e0fd1d2eb9c20ae7da6531735a2873a8e44ecaf93abe2b52d4946ff3a3f88a",
+      "archive_pointer_added": true
+    },
+    {
+      "project": "ContextView",
+      "path": "docs/research/2026-09-05-ecc-project-research.md",
+      "preserved_body_sha256": "d5cc822c589c1a40f34de995c6ce0a7e16aac58ca85f123bac2a4688e3aa25bd",
+      "archive_pointer_added": true
+    }
+  ],
+  "gate_evidence": [
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "b8ae3e2cccfc49de99c6d42442ad54fa7bba7d27d19290b955f946bccee7fb4f",
+      "name": "diff-check"
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "f1d4cceadefb91e05c9578f80dec88f9d5ed2bca7e619ea5831638669999db48",
+      "name": "final-artifacts"
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "9a199845ee6a45ce7a8cf135def9c00b008d5bc121781e8e9da3b13141a3e9b1",
+      "name": "emoji-check"
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "81f2e0d660247fd279f884a2ab907663bb2db564149f3c7f513a65f1cf248c47",
+      "name": "saydo-doc-links"
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "af0ca00039623e8aff56044f1d2eaa34476bc63202871584761c65c18e441d5b",
+      "name": "saydo-privacy"
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "fc2f3873016746968618ff5f6b77e6f7d274e51d682c47a90db9f270359ebc80",
+      "name": "saydo-schedule"
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "dd3e2c511117cdc6a3705df0a1acde8083a6532c808619b3dc242803aab5b804",
+      "name": "context-docs-structure"
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "3eca32845dadbc8ad3f5007e244a7652f52f195525ff559ceedf7cd5a1ec9e0f",
+      "name": "context-acceptance-structure"
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "602c6376daef557ec215f66ee8ea756ab20cb93eb39d3ae35a212300833f0dc6",
+      "name": "context-traceability"
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "d4c5741a2d171f1de1a106cda09f7a2100d54c1743bfc7eaa448722716dbc007",
+      "name": "context-corpus"
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "049e4231281d32d8f7483b36ca8cf1239f5b6960bbb75ee794326bf241e982e5",
+      "name": "context-semantic-team"
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "91426fe7c0ac9527405d5eeb611a7aa8941a5a68449d2ee2cea15963e7a819a4",
+      "name": "context-negative-tests"
+    }
+  ],
+  "logs": [
+    {
+      "file": "implementation-r0.log",
+      "bytes": 3565669,
+      "sha256": "9362855ce6df4a7168aff048ecb35c1b99bc9ae106afbc82136ae8744d78a74b",
+      "duration_seconds": 1383.55,
+      "status": "completed"
+    },
+    {
+      "file": "review-r1.log",
+      "bytes": 1290887,
+      "sha256": "67030713c7b252dcc1dca09841d86ef1a04fd2300acde0aea050922755e91f00",
+      "duration_seconds": 1734.331,
+      "status": "completed"
+    },
+    {
+      "file": "repair-r1.log",
+      "bytes": 2727563,
+      "sha256": "7a59a107e88c042032c9c07982b89d18fbe52a5cb741a0b9c0a5944703ba7971",
+      "duration_seconds": 938.514,
+      "status": "completed"
+    },
+    {
+      "file": "review-r2.log",
+      "bytes": 2629764,
+      "sha256": "f35878191c21711a8861bfa61c8c784f6ee61cd91f0590fb06cc47f0873f833c",
+      "duration_seconds": 1961.019,
+      "status": "completed"
+    },
+    {
+      "file": "repair-r2.log",
+      "bytes": 3967937,
+      "sha256": "fa5a2852e7ac43b19fb660bf329886cf4ac9c270219e9ff6316b5c78955a5caf",
+      "duration_seconds": 1232.525,
+      "status": "completed"
+    },
+    {
+      "file": "review-r3.log",
+      "bytes": 993656,
+      "sha256": "e3090a467f87e0d5b6f63c3cd9da08d49349dbf4f50b68594bebfd614e34d3ca",
+      "duration_seconds": 1394.22,
+      "status": "completed"
+    },
+    {
+      "file": "review-r4.log",
+      "bytes": 154072,
+      "sha256": "a9e7289f31d235c2ddf134c186dcd3b9e5cb263c9743403660ccc2d57fc7983a",
+      "duration_seconds": 409.517,
+      "status": "completed"
+    },
+    {
+      "file": "final-gates.log",
+      "bytes": 1355,
+      "sha256": "c1b935455c8c97d98650e45cb62a50d7d59058a738abe9d45db3d1cd9332eac9",
+      "duration_seconds": 5.017,
+      "status": "failed"
+    },
+    {
+      "file": "final-gates-r4.log",
+      "bytes": 5828,
+      "sha256": "d74f9579730c479ea0cacaf7e71c5d535f7d8705310d15d3f3863109afba13f7",
+      "duration_seconds": 87.338,
+      "status": "completed"
+    }
+  ],
+  "test_summary": "Ran 148 tests in 79.170s; OK",
+  "review_provenance": "R1 diagnostics only due late search scope deviation; R2 full independent review; R3 semantic GREEN; R4 equivalent one-line formatting change GREEN.",
+  "deferred_p2": [
+    "portable-control-evidence-coordinate"
+  ],
+  "receiver_post_checks": {
+    "SayDo_emoji": {
+      "exit_code": 0,
+      "summary": "emoji gate: clean"
+    },
+    "SayDo_doc_links": {
+      "exit_code": 0,
+      "summary": "files=148 broken=0"
+    },
+    "SayDo_privacy": {
+      "exit_code": 0,
+      "summary": "scanned=2033 binary=108 excluded=8 hits=0"
+    },
+    "SayDo_schedule_pointer": {
+      "command": "node scripts/schedule-pointer.mjs --check",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "[fail] revision 回退:候选 2 < main 3\n",
+      "caused_by_this_task": false,
+      "basis": "IMPLEMENTATION-PLAN-2.md equals HEAD; task did not change schedule; current main advanced independently."
+    },
+    "ContextView_docs": {
+      "exit_code": 0,
+      "summary": "check_docs.py PASS; root files 10; canonical docs 22"
+    },
+    "both_handoff_validators": {
+      "exit_code": 0,
+      "summary": "status=valid"
+    },
+    "six_main_output_digests": {
+      "exit_code": 0,
+      "summary": "All delivered SHA values match; unified mirror byte-identical"
+    },
+    "ContextView_receiver_HEAD": "b05c272b808343cde19883b29beae153161fdfa6",
+    "SayDo_receiver_HEAD": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+    "SayDo_main_at_closeout": "99d51106c9caaefcf55f72bff1a17a78abf58be9"
+  }
+}

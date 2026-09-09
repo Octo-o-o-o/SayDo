@@ -1,0 +1,103 @@
+# 结论
+
+[ok] **GREEN**。候选身份匹配，前轮 A3 的两个 P1 均已闭环；本轮未发现新的可达 P0/P1。A1、A2、A4、A5、A6 维持通过。唯一既有 P2 继续 deferred。
+
+本结论是六正文的独立语义评审 GREEN；冻结十二文档门仍须由 supervisor 后续执行并登记。
+
+## A1–A6
+
+- **A1 [ok]**：两份 final 明确比较 Fable consolidated、Astra 与旧 Codex，并给出选择理由。SayDo 覆盖 AS-01..07、原 65 行及融合改动；ContextView 覆盖 AC-01..07、原 74 行及融合改动。见 `SayDo/docs/plan/2026-09-05-ecc-borrowing-final.md:37`、`:258`、`:332`、`:345`；`ContextView/docs/plan/2026-09-05-ecc-borrowing-final.md:29`、`:208`、`:293`、`:312`。有限源码复核支持其关键纠错：SayDo 当前 ledger 尚无首次写前凭据闸，project override 仅有 models/budget；ContextView 当前 cutoff、18 family、8+12 Doctor 规则和闭合 field-map 均与终稿一致。
+
+- **A2 [ok]**：统一报告是自足机制融合稿，两仓镜像字节一致。机械核对结果为 E01..E110 无缺漏；旧 source 118 条、旧 test 12 条，均无 missing/extra/duplicate。历史 stable/测试结论明确未冒充本轮验证。ECC 本地源码为 2.2.1，npm 公开观察为 2.2.0，仓库 SHA 未写成 npm 源码 SHA。见 `SayDo/research/ecc/2026-09-05-ecc-unified-research.md:12`、`:34`、`:219`、`:336`、`:461`及 `evidence/internet-observation.json:4`。
+
+- **A3 [ok]**：两个既有 P1 已关闭。
+  - 首次产品写入后均强制用免费 `action=implement` 将 BEFORE 身份迁移到 CURRENT，再做 fresh review；GREEN/RED 都先由 `cycle_state --advance action=rereview` 登记，随后独立 validator 消费。见 SayDo prompt `:118-128`；ContextView prompt `:116-126`。
+  - RED 路径明确为 reserve/start repair、候选迁移、reserve/start rereview、新 ordinal 复审，且不因 fingerprint 清零预算。
+  - 两项目均拆成独立 `contract` 与 `implementation` stage/control/cycle；每阶段一次初审、最多三次复审，全绿时合计两次语义评审。ContextView 原单 cycle 六评审溢出已消失。见 SayDo prompt `:73-85`；ContextView prompt `:71-83`。
+  - HEAD 前进按现场 reconcile；SayDo 等待 PG-01B 后按 D17 进入唯一排产源，ContextView 等待 WP-02 第一刀后以新 HEAD 和当时九门/parity 施工。没有重复 owner 审批或范围外自动施工。见 SayDo prompt `:20-40`；ContextView prompt `:20-38`、`:157-173`。
+  - Grok/Codex 模型、effort、隔离及 CLI 参数与当前 `--help`、冻结 policy/runtime 相符。
+
+- **A4 [ok]**：报告准确区分 OctoWorkFlow main、OWFOutcome 和 installed runtime；receipt、doctor、collector、adopt、`report_conventions` 均列为已有成果而非重造对象。两个 telemetry probe 仅归为 observability 缺口，没有夸大为控制失效，也明确不安装全局 hooks 自动 trust。见统一报告 `:147-168`及 `evidence/octoworkflow-facts.json:2-64`。
+
+- **A5 [ok]**：其它项目仍是浅层初筛。报告明确 190 是 git 目录、去重 identity 为 175；优先 7 项和次级 5 项都写成待验证问题，没有从 README 推断源码质量。见统一报告 `:170-200`。
+
+- **A6 [ok，含既有 Deferred P2]**：六正文状态、唯一 final SoT 和旧资料归档边界明确。SayDo 的 Gate 0、S3、trust/M0、冻结 verify、首次 raw write 前拒写、整次 generation 不发布及 tracked/ignore 语义均保留；ContextView 的 18 family、cutoff、facets、双 oracle、闭合 field-map、Apache-2.0 原创 corpus、8+12 规则和 128-bit+volume 边界均保留。六正文定向卫生检查无 emoji、secret、真实家目录或隐藏 Unicode。
+
+## 实证清单
+
+- `git rev-parse HEAD`：SayDo=`bcf8ea855f25b177888d9159f75e49214f3dd892`；ContextView=`492fd5fe7183fc5517fb6a1ca811d8d5233eb1f3`。
+- `python3 runtime/candidate_fingerprint.py` 输出：`fingerprint=701edc0008d8af260478377f077a0bd6452e23098a1fd36cd894736fd9a4a191`，HEAD 与模板一致。
+- 六文件实物 SHA-256 与 `SayDo/research/ecc-final/candidate-manifest.json:152-182` 全部一致；两份 unified SHA-256 均为 `beab204663477cfb0c1a433bd1904b7e50b237bd8b9a21d819960c13cea75ee5`，`cmp -s` exit 0。
+- 两份 `validate_handoff.py --policy runtime/v2-policy.json` 均 exit 0，原始摘要为：`status=valid`，`contract_errors=[]`，`risk_violations=[]`，`unapproved_violations=[]`。
+- 状态机纯机制探针输出：`bootstrap_manifest_errors=[]`、`implement_transition_errors=[]`、`review1_green_transition_errors=[]`、`settled_green_validation=[[], "full_gate"]`、`review1_red_transition_errors=[]`、`repair_transition_errors=[]`、`review2_transition_errors=[]`；两个独立 stage 初始六项预算计数均为 0。空 blocker RED 返回 `red_without_blockers`，连续免费 implement 被拒绝。
+- 实际代码支持该顺序：`runtime/cycle_state.py:489-518`、`:553-585`、`:1360-1456`、`:1533-1609`；settled-state 独立消费见 `runtime/validate_review_manifest.py:1410-1661`。因此无需要求新 RED 与登记前的空 `current_blockers` 一致。
+- `grok --help`、`codex exec --help`、三个 runtime CLI 的 `--help/--print-schema` 均 exit 0；所需 model、reasoning、sandbox/read-only、reserve/start/advance、freeze/preflight/record-gate 参数存在。Codex help 同时产生一条受限环境 PATH-alias warning，不影响参数核验。
+- `bash SayDo/scripts/check-emoji.sh <六文件>` exit 0：`[ok] emoji gate: clean`；定向扫描输出 `personal_path_hits=0`、`secret_literal_hits=0`、`hidden_unicode_hits=0`、`relative_sot_links=present`。
+- 最终 manifest 按实际函数签名和冻结 policy 校验输出：`{"errors":[],"next_action":"reconcile"}`。前两次直接函数探针因缺少必要参数、未加载 policy 返回错误，已按 `runtime/validate_review_manifest.py:1271` 的真实签名纠正，未计作候选门禁。
+
+## P0/P1
+
+- **P0：无。**
+- **P1：无。**
+- `future-candidate-transition-missing`：已解决。
+- `contextview-review-budget-overflow`：已解决。
+
+## 唯一 P2 delta / P3
+
+- **Deferred P2 `portable-control-evidence-coordinate`**：两仓正文中的 `control/...`、`control/runtime/` 坐标在独立候选内仍不存在，实物位于冻结包 sibling `evidence/` 与 `runtime/`。关键事实已经内嵌，未来 prompt 又要求重读现场状态，因此不阻断本次交付。本轮仅更新复核 fingerprint，不新增 P2。
+- **P3：无。**
+
+## 未做项
+
+未运行产品 live、联网探针、依赖安装、ECC 全量测试、`just ci`、ContextView 六门/九门、Cargo 或产品 runtime；未验收并行 WP-02；未修改、提交或推送文件；未读取 R1、实施日志或 supervisor 决策笔记；未重新开放式审计全部 118 条源码事实或 190 个 git 目录。冻结十二文档门按约定留给 supervisor。
+
+```review-manifest
+{
+  "verdict": "GREEN",
+  "review_ordinal": 3,
+  "candidate_head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+  "diff_fingerprint": "701edc0008d8af260478377f077a0bd6452e23098a1fd36cd894736fd9a4a191",
+  "review_scope": "workflow-final",
+  "blockers": [],
+  "p2_ledger_delta": [
+    {
+      "id": "portable-control-evidence-coordinate",
+      "first_seen_candidate": "87b5685899e12ebf4c9aa17ce7d86aa1069729626020758b7d50dc454a26752b",
+      "location": "research/ecc/2026-09-05-ecc-unified-research.md:16",
+      "evidence": "research/ecc/2026-09-05-ecc-unified-research.md:16",
+      "impact": "控制证据与 runtime 位于交付双仓之外；正文已经内嵌事实且未来 prompt 会重读当前状态，因此不阻断当前文档交付，但独立搬运时需随附这些坐标。",
+      "status": "deferred",
+      "last_validated_candidate": "701edc0008d8af260478377f077a0bd6452e23098a1fd36cd894736fd9a4a191",
+      "resolution": "unresolved"
+    }
+  ],
+  "focused_gates": [
+    {
+      "name": "candidate-identity",
+      "exit_code": 0,
+      "summary": "HEAD 与 git-diff-v1 fingerprint 均匹配冻结候选。"
+    },
+    {
+      "name": "handoff-contracts",
+      "exit_code": 0,
+      "summary": "两份 implementation prompt 均通过冻结 runtime 的 validate_handoff。"
+    },
+    {
+      "name": "workflow-transition-mechanism",
+      "exit_code": 0,
+      "summary": "首次 implement、GREEN 消费、RED 后 repair/rereview ordinal 以及双阶段预算的纯机制探针通过。"
+    },
+    {
+      "name": "unchanged-body-and-index-parity",
+      "exit_code": 0,
+      "summary": "镜像报告字节一致；E01..E110、118 source、12 test 坐标机械核对通过。"
+    },
+    {
+      "name": "six-doc-hygiene",
+      "exit_code": 0,
+      "summary": "六正文 emoji、个人路径、secret literal、隐藏 Unicode 与相对 SoT 存在性检查通过。"
+    }
+  ],
+  "stop_reason": null
+}
+```

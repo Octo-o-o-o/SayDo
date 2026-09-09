@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "task": "ecc-scope-20260905",
+  "outputs": [
+    {
+      "project": "SayDo",
+      "path": "docs/plan/2026-09-05-ecc-borrowing-final.md",
+      "sha256": "65b92b1ba3502ead48b28d9d12ed429272bf9dea3b25df1789d6aa6c7f411d6d"
+    },
+    {
+      "project": "SayDo",
+      "path": "docs/plan/2026-09-05-ecc-implementation-prompt.md",
+      "sha256": "e8e0bcaecfa914269fca2bb27f1f6af5e283a38f4dfafdf2faa5b24fb3f95ab2"
+    },
+    {
+      "project": "SayDo",
+      "path": "research/ecc/2026-09-05-ecc-unified-research.md",
+      "sha256": "6df1abf56d743f0861da698c17cf9378d0a84117690ab46cb74b430124c68e15"
+    },
+    {
+      "project": "SayDo",
+      "path": "docs/plan/README.md",
+      "sha256": "389cf633de18356488dd23b69f23da0b073c11752792226033ad8b6c7e17b885"
+    },
+    {
+      "project": "SayDo",
+      "path": "research/README.md",
+      "sha256": "86f7605feed1d0df6d5fd4ffaac09761db534df9bd909e48eda77ca9793e09cc"
+    },
+    {
+      "project": "ContextView",
+      "path": "docs/plan/2026-09-05-ecc-borrowing-final.md",
+      "sha256": "6388276154d432a201135ca79b005dbdc4303c7bd62d1128761c3410bd385340"
+    },
+    {
+      "project": "ContextView",
+      "path": "docs/plan/2026-09-05-ecc-implementation-prompt.md",
+      "sha256": "18eb8e0c243b53bb0943c91da11c99b0fc41283ef33ba8e6f8f9b7246c333e24"
+    },
+    {
+      "project": "ContextView",
+      "path": "docs/research/2026-09-05-ecc-unified-research.md",
+      "sha256": "6df1abf56d743f0861da698c17cf9378d0a84117690ab46cb74b430124c68e15"
+    },
+    {
+      "project": "ContextView",
+      "path": "docs/README.md",
+      "sha256": "83f3cf7ef856d1db51500a4f355e09d2af29898500da93ecab20f87d95ae0994"
+    }
+  ],
+  "source_heads": {
+    "SayDo": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+    "ContextView": "b05c272b808343cde19883b29beae153161fdfa6"
+  }
+}

@@ -206,3 +206,26 @@ owner 本次回复原文：
 - 产品范围仅同一隐私批的 contract → implementation 两阶段（凭据写前拒绝、私有 write set Git 保护、三类失败可见与恢复）。不自动实施 AS-03..07、PG-02 或其它候选。
 - 本登记不授权 commit/push/merge/install/deploy、真实 provider 调用或付费探针。合同阶段只改 canonical/排产/有限共享 schema；implementation 另阶段再改 daemon/console。
 - 旧 D17 仍只覆盖 PG-00 导入；不得把 D17 当作本批授权。
+
+## 11. 2026-09-09 GAP-02-consolidation 收口授权与 §3 三项立项
+
+来源：owner 在 2026-09-09 对本会话交付候选的四项 checkpoint 回复「都同意，授权你完整的实施，按照你的建议对应」。本节不编造逐字引语之外的内容，不改写上方 D17 原话，不是 D17 扩权。
+
+登记边界：
+
+- 已按授权执行：插批 `GAP-02-consolidation`（AS-01-AS-02 后、PG-02 前，提交 `4fe4666`）、关批（指针 revision 7，`last_closed=GAP-02-consolidation`、`next=PG-02`）、ref-only 快进合并 main 并推送私有归档（main = origin/main = `1ccca4835a62668f1c7d5796deefe40b94df6227`）、公开快照（`public/main = 53a3cd298b5894026ccc9f58f3639acfafdf6900`，`snapshot: 2026-09-09 from internal 1ccca48…`，隐私探针 scanned=2039 hits=0）。
+- §3 三项按执行卡 `docs/plan/IMPL-PROMPT-2026-09-09-gap-consolidation.md` §3 的建议**立项**（登记为具名候选，不在本节直接开工，不插入当前唯一串行链）：
+  1. **邮件出站通道阶段 A**（方案 `docs/plan/2026-09-08-email-channel-consolidated.fable.md` §4.1；该文件截至本节仍只在主树未提交研究稿中）：owner 同意进入排产候选（该文 §5 问 1 = 是）。§5 问 2–4 按该文建议缺省登记：邮件与 ntfy 并列可选（任一配置即启用）；阶段 B 等阶段 A 用过再议；Web Push / CalDAV 不各开独立候选。开批前置：先改 04 §4 / 07 D11 / 09 §6.3（`thread_message_id` additive 迁移须走 PG-05 的可恢复点纪律）与 `docs/modules/c-control-bridge.md` C4，再以独立批卡与执行卡导入 PLAN-2；真实发送实测需 owner 提供临时邮箱 SMTP 凭据，本机不代填。
+  2. **DSH D-01 实发 messages 可从 transcript 重建**（`docs/plan/2026-08-13-deepseek-harness-borrowing-assessment.fable.md` D-01）：最小形态 = 工具轮 assistant/tool 消息 digest 落 transcript + 重建断言测试；登记为 PG-04（audit-new-write-safety）开批时的同批候选，由 PG-04 执行卡决定是否纳入，不改 PG-04 现有 A-ID / scope / gate 字段。
+  3. **Console WS `?token=` 明文**（`packages/console/src/lib/api.ts`）：属 PG-01B deferred `DF-REMOTE-REOPEN`，本地环回下不动；立项 = 维持该 deferred ID 归属，重开远程面时一并处理。
+- 本节不授权上述三项的 commit/push/merge/deploy、真实 provider 或 SMTP 调用；各自开批时另有具名授权与完整合同。PG-02 仍为 next，未开工。
+
+## 12. 2026-09-09 晚 研究档案入库、GAP-02 残项与 EMAIL-A-outbound 合并/实施授权
+
+来源:owner 对执行卡 `docs/plan/IMPL-PROMPT-2026-09-09-gap-residuals.md` 候选交付的四项 checkpoint 回复「都合并,并且都按最完整的方式推进实施」。本节不编造逐字引语之外的内容,不改写上方 D17 原话,不是 D17 扩权。
+
+登记边界:
+
+- 已按授权执行:§1 研究档案入库(`e7a6ceb`)、§2 GAP-02 残项(`a0c82cb`)、§3 EMAIL-A canonical/代码候选(`17dd011`→`dec54d2`→`fc3c662`,E `5eb083a`)ref-only ff 入 main;主树 `git stash`(6 个旧版修改文件,stash 留存)后 `checkout main`,删除已合并的 `sd-harness-borrow` 分支与 worktree;插批 `EMAIL-A-outbound`(GAP-02-consolidation 后、PG-02 前,`1409d71`,revision 7→8)并同批收口(revision 8→9,`last_closed=EMAIL-A-outbound`、`next=PG-02`,evidence `e2e/evidence/email-a-outbound.md`)。
+- 「最完整推进实施」的落地口径:邮件通道代码、canonical、批卡、单测、完整门禁均已入库;**真实 SMTP 发送仍 not_run**(需 owner 提供临时邮箱凭据,本机不代填);凭据落点沿用现役 `/api/setup/secret` → `.env.pending`(0600),未新造 OS keychain 路径;阶段 B / Web Push / CalDAV 保持 deferred。
+- 本节不含 push 私有归档、公开快照、rc、部署;独立零上下文评审未具名(执行卡为直接实施路径)。PG-02 仍为 next,未开工。

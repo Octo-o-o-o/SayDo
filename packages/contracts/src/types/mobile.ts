@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { idSchema } from "../ids.js";
 import { tsSchema } from "./common.js";
+import { confirmKindSchema } from "./confirmation.js";
 import {
   focusFourStateCountsSchema,
   focusLifecycleSchema,
@@ -35,7 +36,9 @@ export const attentionItemSchema = z.strictObject({
   laneId: idSchema.nullable().optional(),
   sourceKind: attentionSourceKindSchema.optional(),
   refId: z.string().min(1).optional(),
-  ackedAt: tsSchema.optional()
+  ackedAt: tsSchema.optional(),
+  /** confirmation 条目的确认环 kind(与 CONFIRM_KINDS 同源;GAP-02 残项 2.1):移动卡按 kind 定按钮文案 */
+  confirmKind: confirmKindSchema.optional()
 });
 export type AttentionItem = z.infer<typeof attentionItemSchema>;
 

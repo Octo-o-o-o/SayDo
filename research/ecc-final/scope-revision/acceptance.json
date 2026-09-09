@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "task": "ecc-scope-20260905",
+  "stage": "scope-documents",
+  "cycle": "c1",
+  "required_dimensions": [
+    "scope",
+    "operability",
+    "integrity"
+  ],
+  "acceptance_items": [
+    {
+      "id": "A1",
+      "severity": "P1"
+    },
+    {
+      "id": "A2",
+      "severity": "P1"
+    },
+    {
+      "id": "A3",
+      "severity": "P1"
+    },
+    {
+      "id": "A4",
+      "severity": "P1"
+    },
+    {
+      "id": "A5",
+      "severity": "P1"
+    },
+    {
+      "id": "A6",
+      "severity": "P1"
+    }
+  ],
+  "required_gates": [
+    "scope-artifacts",
+    "saydo-emoji",
+    "saydo-doc-links",
+    "saydo-privacy",
+    "context-docs",
+    "context-structure",
+    "context-traceability",
+    "context-corpus",
+    "context-semantic",
+    "context-negative-tests",
+    "context-cargo-build",
+    "context-cargo-test",
+    "context-cargo-clippy"
+  ]
+}

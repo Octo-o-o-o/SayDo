@@ -1,0 +1,37 @@
+{
+  "task": "ecc-scope-20260905",
+  "source_heads": {
+    "SayDo": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+    "ContextView": "b05c272b808343cde19883b29beae153161fdfa6"
+  },
+  "targets": {
+    "SayDo": [
+      "docs/plan/2026-09-05-ecc-borrowing-final.md",
+      "docs/plan/2026-09-05-ecc-implementation-prompt.md",
+      "research/ecc/2026-09-05-ecc-unified-research.md",
+      "docs/plan/README.md",
+      "research/README.md"
+    ],
+    "ContextView": [
+      "docs/plan/2026-09-05-ecc-borrowing-final.md",
+      "docs/plan/2026-09-05-ecc-implementation-prompt.md",
+      "docs/research/2026-09-05-ecc-unified-research.md",
+      "docs/README.md"
+    ]
+  },
+  "before": {
+    "SayDo": {
+      "docs/plan/2026-09-05-ecc-borrowing-final.md": "bdf398b3667158af388fe04cb80a78beddbfe7161994e55a0eee80c728db2d51",
+      "docs/plan/2026-09-05-ecc-implementation-prompt.md": "6dde5866d5e250cd522f8c9ff604114bb7ad4929791caf019680e56610c872fe",
+      "research/ecc/2026-09-05-ecc-unified-research.md": "44c5968eb33bd1e6191c5790058f42fc204dd656307b9393fb3d6ff1f664aa66",
+      "docs/plan/README.md": "dbf7930f3578c124b83e89b22503ff95ee5b4ff2d72d2cf943cfb0aa5163f131",
+      "research/README.md": "ab039f88311e5c30fa0837316d03174f27debe6b82486a2c478cb077025bfae7"
+    },
+    "ContextView": {
+      "docs/plan/2026-09-05-ecc-borrowing-final.md": "9eeee8b400c8ed5dffbfbd41056a5e2410dd654275190c14a0030c75410a973d",
+      "docs/plan/2026-09-05-ecc-implementation-prompt.md": "96e0a829dcc11df78f0106ead4735e62f06d3e9adbdc6d733bfdd62d8e8e64de",
+      "docs/research/2026-09-05-ecc-unified-research.md": "44c5968eb33bd1e6191c5790058f42fc204dd656307b9393fb3d6ff1f664aa66",
+      "docs/README.md": "2d6768b2375c6f5563785bfc248c7e02b1c8fd5baf9235fe8d354c42a3fb3e41"
+    }
+  }
+}

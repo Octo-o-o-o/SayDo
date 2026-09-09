@@ -119,6 +119,8 @@ describe("attention §5.2", () => {
     const confirmation = items.find((i) => i.id.startsWith("conf:") && i.color === "orange");
     expect(confirmation).toBeTruthy();
     expect(confirmation?.expiresAt).toBe(exp);
+    // GAP-02 残项 2.1:confirmation 条目投影确认环 kind,移动卡据此定按钮文案
+    expect(confirmation?.confirmKind).toBe("focus_obligation");
     expect(items.some((i) => i.title === "选渠道" && i.color === "orange")).toBe(true);
     expect(items.some((i) => i.title === "发邮件" && i.color === "blue")).toBe(true);
     expect(items.some((i) => i.title === "写草稿" && i.color === "green")).toBe(true);

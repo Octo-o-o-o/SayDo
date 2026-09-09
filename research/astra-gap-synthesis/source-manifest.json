@@ -1,0 +1,24 @@
+{
+  "source_head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+  "sources": [
+    {
+      "file": "docs/plan/2026-09-05-engineering-gap-scan.fable.md",
+      "bytes": 24764,
+      "lines": 233,
+      "sha256": "341d74b4deefb2906abbb814165ea23b9ce9d7440c98960ac8beddc393b9442c"
+    },
+    {
+      "file": "docs/review/2026-09-05-project-gaps-Astra.md",
+      "bytes": 22205,
+      "lines": 194,
+      "sha256": "fba29af98de8549764b4f2728e669714b28632008492e5f75e60375d1a94b276"
+    },
+    {
+      "file": "research/codex-findings/2026-09-05-project-gaps-Astra-review.md",
+      "bytes": 10403,
+      "lines": 122,
+      "sha256": "4918efe0b41a5ebf31ed5e8ca443f0f22d40f1a0917a82f9752caf8da548938c"
+    }
+  ],
+  "source_documents_changed": false
+}

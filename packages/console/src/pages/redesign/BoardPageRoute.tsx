@@ -25,7 +25,7 @@ const toastStyle: CSSProperties = {
 };
 
 export function BoardPageRoute() {
-  const { view, loading, error, reload } = useBoardPageData();
+  const { view, loading, error, reload, retryDetail } = useBoardPageData();
   const [modal, setModal] = useState<TaskModalTarget | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -74,7 +74,8 @@ export function BoardPageRoute() {
 
   return (
     <>
-      <BoardPage view={view} onNavigate={onNavigate} onAction={onAction} onRetryDetail={reload} />
+      {/* 占位「重试」只重拉该 Focus 的 detail(GAP-02 残项 2.2);动作成功后的 reload 仍是整页 */}
+      <BoardPage view={view} onNavigate={onNavigate} onAction={onAction} onRetryDetail={retryDetail} />
       {toast ? (
         <div role="status" data-toast style={toastStyle}>
           {toast}

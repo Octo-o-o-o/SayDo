@@ -1,0 +1,81 @@
+{
+  "task": "engineering-unified",
+  "authorization": "owner 请求判断 ECC/工程缺口方案的先后或合并；若合并则合并文档并归档冗余。",
+  "source_head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+  "archive": [
+    {
+      "original_path": "docs/plan/2026-09-05-ecc-borrowing-assessment.astra.md",
+      "archive_path": "docs/plan/archive/2026-09-05-engineering-unified/2026-09-05-ecc-borrowing-assessment.astra.md",
+      "bytes": 37967,
+      "sha256": "0b80ffaa974daffc4a0326f790ca24795f5448ed745cdbf4228c2212a1f3f22d"
+    },
+    {
+      "original_path": "docs/plan/2026-09-05-ecc-borrowing-assessment.fable.md",
+      "archive_path": "docs/plan/archive/2026-09-05-engineering-unified/2026-09-05-ecc-borrowing-assessment.fable.md",
+      "bytes": 39018,
+      "sha256": "7d93f98a59617de25d496d506d34131612118316094c54aae0228c179b0f1864"
+    },
+    {
+      "original_path": "docs/plan/2026-09-05-ecc-borrowing-consolidated.fable.md",
+      "archive_path": "docs/plan/archive/2026-09-05-engineering-unified/2026-09-05-ecc-borrowing-consolidated.fable.md",
+      "bytes": 19635,
+      "sha256": "dba698cf2cb12621f4277fac9c8fe530cbacb11a443dacfe4121fe3bad4f05c5"
+    },
+    {
+      "original_path": "docs/plan/2026-09-05-ecc-borrowing-final.md",
+      "archive_path": "docs/plan/archive/2026-09-05-engineering-unified/2026-09-05-ecc-borrowing-final.md",
+      "bytes": 39967,
+      "sha256": "65b92b1ba3502ead48b28d9d12ed429272bf9dea3b25df1789d6aa6c7f411d6d"
+    },
+    {
+      "original_path": "docs/plan/2026-09-05-ecc-borrowing-plan.md",
+      "archive_path": "docs/plan/archive/2026-09-05-engineering-unified/2026-09-05-ecc-borrowing-plan.md",
+      "bytes": 22348,
+      "sha256": "1175320d93e3cd29d930c6688bda9b29106ec3775e631a8ce70ae123048249fd"
+    },
+    {
+      "original_path": "docs/plan/2026-09-05-ecc-implementation-prompt.md",
+      "archive_path": "docs/plan/archive/2026-09-05-engineering-unified/2026-09-05-ecc-implementation-prompt.md",
+      "bytes": 29264,
+      "sha256": "e8e0bcaecfa914269fca2bb27f1f6af5e283a38f4dfafdf2faa5b24fb3f95ab2"
+    },
+    {
+      "original_path": "docs/plan/2026-09-05-engineering-gap-consolidated.astra.md",
+      "archive_path": "docs/plan/archive/2026-09-05-engineering-unified/2026-09-05-engineering-gap-consolidated.astra.md",
+      "bytes": 31454,
+      "sha256": "a527f2ce59fe692070ca98215c7ef4fe88e1c142d8e48ec4e2eab6458ec85ba7"
+    },
+    {
+      "original_path": "docs/plan/2026-09-05-engineering-gap-scan.fable.md",
+      "archive_path": "docs/plan/archive/2026-09-05-engineering-unified/2026-09-05-engineering-gap-scan.fable.md",
+      "bytes": 24764,
+      "sha256": "341d74b4deefb2906abbb814165ea23b9ce9d7440c98960ac8beddc393b9442c"
+    },
+    {
+      "original_path": "docs/plan/IMPL-PROMPT-engineering-gap-consolidated.astra.md",
+      "archive_path": "docs/plan/archive/2026-09-05-engineering-unified/IMPL-PROMPT-engineering-gap-consolidated.astra.md",
+      "bytes": 22049,
+      "sha256": "fe996a266c282f29adf6081b7d1a52113d02d558bbc7d506666fe88aaf75acc7"
+    }
+  ],
+  "read_only_evidence": "docs/review/2026-09-05-project-gaps-Astra.md",
+  "scope": "文档合并、归档与入口整理；无产品实施/排产激活/提交部署。",
+  "unchanged_inputs": [
+    {
+      "file": "docs/plan/IMPLEMENTATION-PLAN-2.md",
+      "sha256": "b144e64c2e8b4b9ca899463cb2e76baeea5e16b05eb353f2a2bc656c5b9a6b18"
+    },
+    {
+      "file": "docs/plan/2026-08-28-project-gap-owner-decisions.md",
+      "sha256": "983452a68e35a793b9394ced759e5b8ded43f83a00ae72b4925d30c45a75d9a6"
+    },
+    {
+      "file": "docs/09-data-contracts.md",
+      "sha256": "df6643bd36a58e4aaa883755766814a7aacad0991e0bbfc47b20e90b45c1fb39"
+    },
+    {
+      "file": "docs/review/2026-09-05-project-gaps-Astra.md",
+      "sha256": "fba29af98de8549764b4f2728e669714b28632008492e5f75e60375d1a94b276"
+    }
+  ]
+}

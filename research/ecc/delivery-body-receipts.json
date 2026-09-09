@@ -1,0 +1,41 @@
+{
+  "reviewed_candidate": {
+    "algorithm": "git-diff-v1",
+    "fingerprint": "7089536f83a122527091f8a2bff75306c6a7a62935693bfd5affde7977652e44",
+    "head": "bcf8ea855f25b177888d9159f75e49214f3dd892"
+  },
+  "files": [
+    {
+      "path": "research/ecc/2026-09-05-ecc-project-research.md",
+      "reviewed_body_sha256": "45fd5bf4c258c2fc412c9f6a8594970d9a97154356ef54a8fe07b68c28cd7602",
+      "delivered_sha256": "7d6d695a8fb56bd4d838527851643b2a45cb0d5240fb03071af3520626da8716"
+    },
+    {
+      "path": "docs/plan/2026-09-05-ecc-borrowing-plan.md",
+      "reviewed_body_sha256": "eeabf4d64a4ad487c5a6b311361b47d0fcc0ad1b445a65f4dcbf53805f6c4add",
+      "delivered_sha256": "d73582a085ed9026f251e8563cd59d24b9cef5f7151787aefab7b97ee0756995"
+    },
+    {
+      "path": "research/ecc/2026-09-05-contextview-ecc-borrowing-plan.md",
+      "reviewed_body_sha256": "a275eb697c316a2af2775b66bbbe37bb0a9c1c5d74c42d434ec48c203aa5dade",
+      "delivered_sha256": "a8a70f9f7004e5918d1ad001d2610ca8fd90085cc8ea57bbf323fc2603c6eef6"
+    }
+  ],
+  "review_archives": [
+    {
+      "round": 1,
+      "raw_sha256": "8bc38eaca071cf09377a78a6a5ec6f3d6a8b2aae08c7a34236157ef33cd40418",
+      "archive_sha256": "bfd0bd68da44e2a5c2ea2ce70e7297380833be13af0806aea15969cebd25372f"
+    },
+    {
+      "round": 2,
+      "raw_sha256": "032c8882db58d342b7b7f27d18da9a9700063b55f1bee80e8e480db6e4cb9448",
+      "archive_sha256": "54f0215c38f324c0e002b53982d610be20db9eeb76db77e9353c50b141ef9e35"
+    },
+    {
+      "round": 3,
+      "raw_sha256": "42d2f5052cf7480af1360ab04caf9d01d655fc43b01dbb8fc8538b25d3a372ab",
+      "archive_sha256": "42d2f5052cf7480af1360ab04caf9d01d655fc43b01dbb8fc8538b25d3a372ab"
+    }
+  ]
+}

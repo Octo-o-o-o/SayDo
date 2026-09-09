@@ -39,6 +39,8 @@ export const callbackOutboxEntrySchema = z.strictObject({
   ackedAt: tsSchema.optional(),
   resolvedAt: tsSchema.optional(),
   snoozedUntil: tsSchema.optional(),
+  /** EMAIL-A:该条目已发邮件的 Message-ID(每任务一线程锚;additive 可空,DDL v32) */
+  threadMessageId: z.string().min(1).optional(),
   createdAt: tsSchema,
   updatedAt: tsSchema
 });

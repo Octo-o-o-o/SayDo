@@ -1,6 +1,6 @@
 // useReviewPageData:验收面 hook。复用 TaskDetail 同源 GET /api/tasks/:id,不改 TaskDetail.tsx 行为。
-// VIEW-01:失效来源=本页动作 reload + 主 WS 事件 + 回前台 + 有界兜底(useRefreshSignal);
-// 同刻单在途、卸载/切 task abort、晚到响应丢弃(pageLoader)。
+// VIEW-01:失效来源=本页动作 reload + 主 WS 事件 + 回前台 + 有界兜底;同刻单在途、卸载/切 task abort、
+// 晚到响应丢弃——全部由 pageSession 承载,本 hook 只是 React 薄包装(纯会话可无 DOM 单测)。
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, apiGet } from "../../lib/api";
@@ -11,8 +11,7 @@ import {
   type FocusListRow,
   type TaskDetailPayload
 } from "./mappers";
-import { createPageLoader, type PageLoader } from "./pageLoader";
-import { useRefreshSignal } from "./useRefreshSignal";
+import { createPageSession, type PageSession, type PageSessionCallbacks, type PageSessionRefresh } from "./pageSession";
 
 export interface ReviewPageDataState {
   view: ReviewPageView | null;
@@ -63,11 +62,24 @@ async function loadReview(taskId: string, signal: AbortSignal): Promise<ReviewPa
   return { ctx, focusTitle };
 }
 
+/** 纯会话:验收面数据序列(供 hook 与单测共用;refresh 缺省挂 window/document) */
+export function createReviewPageSession(
+  taskId: string,
+  callbacks: PageSessionCallbacks<ReviewPageView>,
+  refresh?: PageSessionRefresh
+): PageSession {
+  return createPageSession<ReviewPageView>({
+    load: (signal) => loadReview(taskId, signal),
+    callbacks,
+    ...(refresh ? { refresh } : {})
+  });
+}
+
 export function useReviewPageData(taskId: string): ReviewPageDataState {
   const [view, setView] = useState<ReviewPageView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const loaderRef = useRef<PageLoader | null>(null);
+  const sessionRef = useRef<PageSession | null>(null);
   const hasViewRef = useRef(false);
 
   useEffect(() => {
@@ -75,8 +87,7 @@ export function useReviewPageData(taskId: string): ReviewPageDataState {
     setLoading(true);
     setError(null);
     setView(null);
-    const loader = createPageLoader<ReviewPageView>({
-      load: (signal) => loadReview(taskId, signal),
+    const session = createReviewPageSession(taskId, {
       onResult: (next) => {
         hasViewRef.current = true;
         setView(next);
@@ -89,16 +100,15 @@ export function useReviewPageData(taskId: string): ReviewPageDataState {
         setLoading(false);
       }
     });
-    loaderRef.current = loader;
-    loader.run();
+    sessionRef.current = session;
+    session.run();
     return () => {
-      loader.dispose();
-      loaderRef.current = null;
+      session.dispose();
+      sessionRef.current = null;
     };
   }, [taskId]);
 
-  useRefreshSignal(() => loaderRef.current?.run());
-  const reload = useCallback(() => loaderRef.current?.run(), []);
+  const reload = useCallback(() => sessionRef.current?.run(), []);
 
   return { view, loading, error, reload };
 }

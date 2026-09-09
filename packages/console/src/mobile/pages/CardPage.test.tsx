@@ -25,7 +25,8 @@ describe("M-Confirm 三段式", () => {
       updatedAt: "2026-08-11T12:00:00.000Z",
       expiresAt: "2099-08-11T12:00:00.000Z",
       sessionId: "ses_0123456789ABCDEFGHJKMNPQ",
-      refId: "apr_mobile"
+      refId: "apr_mobile",
+      confirmKind: "focus_obligation"
     };
     const html = renderToStaticMarkup(<MobileConfirmCard item={item} back="/m" />);
     expect(html.match(/<button/g)).toHaveLength(3);
@@ -50,9 +51,59 @@ describe("M-Confirm 三段式", () => {
       updatedAt: "2026-08-11T12:00:00.000Z",
       expiresAt: "2099-08-11T12:00:00.000Z",
       sessionId: "ses_0123456789ABCDEFGHJKMNPQ",
-      refId: "apr_short"
+      refId: "apr_short",
+      confirmKind: "dispatch"
     };
     const html = renderToStaticMarkup(<MobileConfirmCard item={item} back="/m" />);
     expect(html).toContain("<span>继续推进</span>");
+  });
+
+  it("memory kind:按钮记/不用记,标记信息确认不是授权,不说自动执行(GAP-02 残项 2.1)", () => {
+    const item: AttentionItem = {
+      id: "conf:apr_memory",
+      color: "orange",
+      title: "记住:这个项目用 pnpm",
+      focusId: null,
+      focusTitle: null,
+      action: "open_confirm",
+      updatedAt: "2026-08-11T12:00:00.000Z",
+      expiresAt: "2099-08-11T12:00:00.000Z",
+      sessionId: "ses_0123456789ABCDEFGHJKMNPQ",
+      refId: "apr_memory",
+      confirmKind: "memory"
+    };
+    const html = renderToStaticMarkup(<MobileConfirmCard item={item} back="/m" />);
+    expect(html).toContain('data-confirm-kind="memory"');
+    expect(html).toContain("记忆 · 信息确认 · 不是授权");
+    expect(html).toContain("<strong>记</strong>");
+    expect(html).toContain("<strong>不用记</strong>");
+    expect(html).not.toContain("<strong>做</strong>");
+    expect(html).not.toContain("<strong>不要</strong>");
+    expect(html).toContain("不会偷偷记");
+    expect(html).not.toContain("不会偷偷执行");
+    expect(html.match(/<button/g)).toHaveLength(3);
+  });
+
+  it("表外/缺失 kind 回落确认/不,不把未知动作说成自动执行", () => {
+    const base: AttentionItem = {
+      id: "conf:apr_unknown",
+      color: "orange",
+      title: "一个新类型的确认",
+      focusId: null,
+      focusTitle: null,
+      action: "open_confirm",
+      updatedAt: "2026-08-11T12:00:00.000Z",
+      expiresAt: "2099-08-11T12:00:00.000Z",
+      sessionId: "ses_0123456789ABCDEFGHJKMNPQ",
+      refId: "apr_unknown"
+    };
+    for (const item of [base, { ...base, confirmKind: "something_new" as AttentionItem["confirmKind"] }]) {
+      const html = renderToStaticMarkup(<MobileConfirmCard item={item} back="/m" />);
+      expect(html).toContain("<strong>确认</strong>");
+      expect(html).toContain("<strong>不</strong>");
+      expect(html).not.toContain("<strong>做</strong>");
+      expect(html).toContain("不按这个来");
+      expect(html).toContain("<strong>撤销</strong>");
+    }
   });
 });

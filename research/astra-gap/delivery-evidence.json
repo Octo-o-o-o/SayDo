@@ -1,0 +1,117 @@
+{
+  "task": "astra-project-gaps",
+  "source_head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+  "review": {
+    "verdict": "GREEN",
+    "reviewer": "gpt-5.6-sol/max",
+    "context": "fresh_zero_context",
+    "ordinal": 1,
+    "blockers": 0,
+    "p2": 1,
+    "reviewed_report_sha256": "cd5507a0449561b2653c8fa931c73ef3d5bed11eb63f3519abb8f11b043a055b",
+    "reviewed_report_snapshot": "research/astra-gap/.local/reviewed-report.md",
+    "candidate_fingerprint": "a8bde2f9c6bada083653bf4d8ebc81c3231e71f996dd29c98c6b5fe621f13c51",
+    "manifest_validator": {
+      "next_action": "full_gate",
+      "policy_mode": "policy",
+      "policy_revision": "2.4.2",
+      "policy_source": "policy:policy.frozen.json",
+      "rule_ids": [],
+      "status": "valid"
+    },
+    "finalize_status": "finalized"
+  },
+  "final_p2_sweeps": 1,
+  "final_p2_changes": "只收窄既定载体/条件措辞并补入复审记录；未重跑通用语义评审。",
+  "reviewed_candidate_gates": [
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "a4b3639b7b4d7fe980c93ed114a04c7152f658e1588a0d54841c6d87d0737bb9",
+      "name": "report-docs"
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "8c65b412d1e3cb2d64a5a3a353b19d915a95fa211bae9daf8f0649805d3868a6",
+      "name": "report-probes"
+    }
+  ],
+  "final_document_checks": {
+    "command": "bash docs/plan/astra-gap-review-control/docs-gate.sh",
+    "exit_code": 0,
+    "output": "[ok] emoji gate: clean\n[ok] active document links: files=139 broken=0\n"
+  },
+  "logs": [
+    {
+      "file": "research/astra-gap/.local/report-docs.log",
+      "bytes": 268,
+      "sha256": "a4b3639b7b4d7fe980c93ed114a04c7152f658e1588a0d54841c6d87d0737bb9"
+    },
+    {
+      "file": "research/astra-gap/.local/report-probes.log",
+      "bytes": 914,
+      "sha256": "8c65b412d1e3cb2d64a5a3a353b19d915a95fa211bae9daf8f0649805d3868a6"
+    },
+    {
+      "file": "research/astra-gap/.local/final-document-checks.log",
+      "bytes": 70,
+      "sha256": "1a4431b9be4412b42ea11ac256cdbb0dee39d55b97587688f5f2aa56bbdcbd37"
+    }
+  ],
+  "files": [
+    {
+      "file": "docs/review/2026-09-05-project-gaps-Astra.md",
+      "bytes": 22205,
+      "sha256": "fba29af98de8549764b4f2728e669714b28632008492e5f75e60375d1a94b276"
+    },
+    {
+      "file": "research/codex-findings/2026-09-05-project-gaps-Astra-review.md",
+      "bytes": 10403,
+      "sha256": "4918efe0b41a5ebf31ed5e8ca443f0f22d40f1a0917a82f9752caf8da548938c"
+    },
+    {
+      "file": "research/astra-gap/structural-probes.mts",
+      "bytes": 2703,
+      "sha256": "b78c9f7046925c359f572a27ef2359e6dd4be01a1f752e62c9860c0bc5bc1617"
+    },
+    {
+      "file": "research/astra-gap/board-hook-probe.mjs",
+      "bytes": 4780,
+      "sha256": "7011f4c5e6b3f48ba76fa5e9f381ddb3129441849be7bec14c4c45602ba01b05"
+    },
+    {
+      "file": "research/astra-gap/deferred-p2.json",
+      "bytes": 748,
+      "sha256": "90decf126225547bf5806418c40ad2ab182811d29e84b4070ee9b314974136fa"
+    }
+  ],
+  "not_run": [
+    "full just ci",
+    "real provider calls",
+    "production upgrade",
+    "physical-device tests"
+  ],
+  "product_code_changes": false,
+  "commit_or_push": false,
+  "procedural_events": [
+    {
+      "operation": "initial emoji check",
+      "result": "failed",
+      "reason": "worktree root node_modules symlink was not ignored by directory-only pattern",
+      "resolution": "replaced task-owned top-level symlinks with ignored dependency directories containing symlinks; retry returned [ok] emoji gate: clean"
+    },
+    {
+      "operation": "initial review policy freeze",
+      "result": "invalid",
+      "reason": "missing_cycle_state",
+      "resolution": "initialized the first cycle state, froze policy and acceptance, validated handoff, preflight_ok; no reviewer was dispatched before preflight"
+    },
+    {
+      "operation": "review registration and gate recording",
+      "result": "corrected",
+      "reason": "initial receipt lacked modern task/stage/cycle/hash binding; gate recorder disallowed caller log path",
+      "resolution": "bound actual control/manifest hashes, let gate recorder own its logs; validator valid and finalize finalized"
+    }
+  ]
+}

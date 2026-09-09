@@ -1,0 +1,44 @@
+{
+  "final_sweep_status": "completed",
+  "items": [
+    {
+      "id": "ECC-R1-P2-001",
+      "first_seen_candidate": "bcf8ea855f25b177888d9159f75e49214f3dd892/32fd336f9206de58508d7addad27fb3ccc15aeee9100f83bfed26ce6a0f05cbf",
+      "location": "research/ecc/evidence-index.json:950-995",
+      "evidence": "聚合项 958-963 的 exit_code=0 被明确限定为包装进程真实退出码，summary 同时声明聚合 failed；982-995 两条具体失败记录仍各为 exit_code=1。日志 SHA 匹配，原文含 18 passed/2 failed、16 passed/6 failed 与 DONE fail=1。",
+      "impact": "原先把包装退出码与子测试聚合状态混写的歧义已消除，不能再把包装绿解释成测试全绿。",
+      "status": "fixed",
+      "last_validated_candidate": "bcf8ea855f25b177888d9159f75e49214f3dd892/7089536f83a122527091f8a2bff75306c6a7a62935693bfd5affde7977652e44",
+      "resolution": "保留包装进程实际 exit_code=0，在 summary 明示 aggregate failed，并以两条独立子记录保存非零退出码。"
+    },
+    {
+      "id": "ECC-R1-P2-002",
+      "first_seen_candidate": "bcf8ea855f25b177888d9159f75e49214f3dd892/32fd336f9206de58508d7addad27fb3ccc15aeee9100f83bfed26ce6a0f05cbf",
+      "location": "research/ecc/2026-09-05-ecc-project-research.md:186,443",
+      "evidence": "冻结 ECC e04ea0b9 的 tracked rules/*.md 机械计数为 122，其中 rules/README.md 1 个、规则正文 121 个；报告两处当前正文均写 122 并注明含 README。",
+      "impact": "规则文件总数与规则正文数的统计口径现已明确，不再有 121/122 歧义。",
+      "status": "fixed",
+      "last_validated_candidate": "bcf8ea855f25b177888d9159f75e49214f3dd892/7089536f83a122527091f8a2bff75306c6a7a62935693bfd5affde7977652e44",
+      "resolution": "总数统一为 122，并显式拆出 README 1 个与规则正文 121 个。"
+    },
+    {
+      "id": "ECC-R1-P2-003",
+      "first_seen_candidate": "bcf8ea855f25b177888d9159f75e49214f3dd892/32fd336f9206de58508d7addad27fb3ccc15aeee9100f83bfed26ce6a0f05cbf",
+      "location": "docs/plan/2026-09-05-ecc-borrowing-plan.md:224-242",
+      "evidence": "草案现为 sourceRevision: RuntimeIdentity[\"sourceRevision\"]；packages/contracts/src/runtime.ts:5-10 将其约束为 7-64 位小写裸 hex，docs/09-data-contracts.md:14 的 Digest 仍是 sha256:<hex>。",
+      "impact": "未来照抄草案不会再为同名 sourceRevision 引入第二种不兼容编码。",
+      "status": "fixed",
+      "last_validated_candidate": "bcf8ea855f25b177888d9159f75e49214f3dd892/7089536f83a122527091f8a2bff75306c6a7a62935693bfd5affde7977652e44",
+      "resolution": "InstallReceipt 草案复用既有 RuntimeIdentity.sourceRevision 类型与裸 hex 语义，不再使用 Digest。"
+    }
+  ],
+  "started_at": "2026-09-05T02:49:40.198933+00:00",
+  "completed_at": "2026-09-05T02:49:40.212397+00:00",
+  "evidence": {
+    "rules_markdown": 122,
+    "rules_body": 121,
+    "wrapper_exit_code": 0,
+    "source_revision_type": "RuntimeIdentity.sourceRevision"
+  },
+  "verified_by": "review-r3"
+}

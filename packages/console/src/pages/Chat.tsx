@@ -50,34 +50,9 @@ export function firstRunAssistantTurn(result: FirstRunQueryResult): { key: strin
   return { key: `onboarding-${result.turnId ?? "first"}`, text: result.message };
 }
 
-/**
- * GAP-02 2.1:生产确认卡按 kind 定文案。memory(SD-2 普通 M0 记忆提议)是信息确认不是授权,
- * 超时不自动记(过期即丢),按钮是「记 / 不用记」;其它 kind 沿用「做 / 不要」与倒计时自动执行说明。
- */
-export function confirmCardCopy(kind: string): {
-  label: string | null;
-  accept: string;
-  reject: string;
-  countdownHint: string;
-  idleHint: string;
-} {
-  if (kind === "memory") {
-    return {
-      label: "记忆 · 信息确认 · 不是授权",
-      accept: "记",
-      reject: "不用记",
-      countdownHint: "倒计时结束这条不记(过期即丢);点按钮,或直接开口回答",
-      idleHint: "点按钮,或直接开口回答"
-    };
-  }
-  return {
-    label: null,
-    accept: "做",
-    reject: "不要",
-    countdownHint: "倒计时结束自动执行;点按钮,或直接说\"好\"/\"不要\"",
-    idleHint: "点按钮,或直接说\"好\"/\"不要\""
-  };
-}
+// 生产确认卡 kind 文案单源在 lib/confirmCardCopy(与移动 CardPage 共用;GAP-02 残项 2.1)
+import { confirmCardCopy } from "../lib/confirmCardCopy";
+export { confirmCardCopy };
 
 export function ChatExampleCards({ onPick }: { onPick: (text: string) => void }) {
   return (

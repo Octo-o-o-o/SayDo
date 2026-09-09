@@ -1,0 +1,16 @@
+{
+  "task": "astra-project-gaps",
+  "final_sweep_count": 1,
+  "items": [
+    {
+      "id": "ASTRA-P2-001",
+      "first_seen_candidate": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+      "location": "docs/review/2026-09-05-project-gaps-Astra.md:20",
+      "evidence": "docs/plan/IMPLEMENTATION-PLAN-2.md:93；docs/plan/2026-08-28-project-gap-closure-program.md:1808",
+      "impact": "条件包关联可能被误读为 PG-02、SP3c 或 SP6 已承载并授权对应实现。",
+      "status": "fixed",
+      "last_validated_candidate": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+      "resolution": "最终 P2 sweep：收窄 PG-02 聚合读口/失效刷新、SP3c 流式化载体与 SP6 SaaS 条件的措辞；不新增实施授权。"
+    }
+  ]
+}

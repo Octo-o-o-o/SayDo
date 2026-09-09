@@ -151,6 +151,7 @@ localhost 控制台,不适合作为默认桌面入口；原生 `.dmg/.msi/.deb` 
 ### D11 通知/推送:ntfy 起步,直连收尾(定稿)
 
 - P0:**ntfy**(自托管,32k stars,自带 `X-Call` 电话 TTS)+ OS 桌面通知(macOS=`osascript`;Windows=toast,失败同构降 ntfy;工程 ADR-003)——一天接通。
+- P0.5 候选(EMAIL-A 阶段 A,2026-09-09 决策单第 11 节立项):**标准邮件(SMTP submission 出站)**作 L1 与 ntfy 并列的可选通道(任一配置即启用),不自建 IMAP/SMTP 服务、不替代 outbox/升级链/审批内核;客户端只用 Node 内置 `net`/`tls`,不新增依赖;阶段 B(入站文字轮次)后议,Web Push / CalDAV 不另开。
 - P1(随移动端):**自建 APNs(JWT ES256 HTTP/2)/ FCM(OAuth)直连**,抄 OctoDesk 推送隐私契约(payload 只带 opaque id + meta 白名单、token 只存 digest);PushKit/CallKit 承载"来电式汇报"。
 - P2:电话回叫用 Realtime SIP **呼入**模型(外呼要 Twilio + 自建媒体桥,成本运维高,进阶可选)。
 

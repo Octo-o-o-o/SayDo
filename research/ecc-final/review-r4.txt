@@ -1,0 +1,74 @@
+## 结论
+
+[ok] GREEN。单行文字化修正未引入可达 P0/P1。五份正文 SHA 未变；前轮 A1–A6 按未变内容维持通过。既有 `portable-control-evidence-coordinate` 继续 deferred，本轮 delta 为空。
+
+## 单行语义
+
+ContextView prompt 第 80 行（冻结坐标 `frozen-review/ContextView/docs/plan/2026-09-05-ecc-implementation-prompt.md:80`）将正则：
+
+`^[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$`，长度不超过 64
+
+改写为 ASCII 字母或数字片段、片段间单个 `.`、`_` 或 `-`、长度不超过 64。非空片段、分隔符位置及长度约束等价，默认值 `ecc-docs-intake` 仍合法。
+
+机器核验输出：
+
+- `normalized_equal=yes`
+- `differing_line=80`
+- `old_lines=207`
+- `new_lines=207`
+- manifest：`non_target_json_equal=true`、`unchanged_outputs=5`、`changed_outputs=1`
+- 唯一变化路径：`ContextView:docs/plan/2026-09-05-ecc-implementation-prompt.md`
+
+因此其余 206 行逐字节不变，两阶段、候选迁移、Grok/Codex、门禁和授权范围均完整保留。候选 manifest 中仅该 prompt SHA 更新为 `3611276ac3b24c341b6bca4bdefa44efdfd80acf6aceb9d7161f7625dd34ae78`；六份实物 SHA 均匹配 manifest。
+
+## 实际命令输出
+
+- ContextView `PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_docs.py`：exit 0；`check_docs.py PASS`，`root files: 10`，`canonical docs: 22`。
+- SayDo handoff validator：exit 0；`status=valid`，三个 violation/error 数组均为空。
+- ContextView handoff validator：exit 0；`status=valid`，三个 violation/error 数组均为空。
+- `candidate_fingerprint.py --expect 681335...`：exit 0；HEAD=`bcf8ea855f25b177888d9159f75e49214f3dd892`，fingerprint=`68133536a8d91e77373154e19c2881994f9ecbe3e3ccb6a7043ac098f7cedd4a`。
+- 非门禁取证中曾遇到一次 zsh 变量名冲突及两次系统 `diff` 选项不兼容；均未写文件，已用普通变量及 `git diff --no-index` 重跑成功。
+
+## 未执行项
+
+未运行完整 12 门、全量 ECC/118 条或其它项目审计；完整 12 门按约定留给 supervisor 在本次 GREEN 后重跑。未修改、提交或推送文件，未读取其它历史文件。除系统要求读取 `impl-review` 规程外，业务取证仅限指定四路径。
+
+```review-manifest
+{
+  "verdict": "GREEN",
+  "review_ordinal": 4,
+  "candidate_head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+  "diff_fingerprint": "68133536a8d91e77373154e19c2881994f9ecbe3e3ccb6a7043ac098f7cedd4a",
+  "review_scope": "workflow-final",
+  "blockers": [],
+  "p2_ledger_delta": [],
+  "focused_gates": [
+    {
+      "name": "candidate-identity",
+      "exit_code": 0,
+      "summary": "HEAD 与 git-diff-v1 fingerprint 匹配给定模板，门禁后复算无漂移。"
+    },
+    {
+      "name": "single-line-and-manifest-parity",
+      "exit_code": 0,
+      "summary": "五正文 SHA 未变，目标 prompt 仅第 80 行等价改写，六份实物 SHA 均匹配候选 manifest。"
+    },
+    {
+      "name": "context-docs-structure",
+      "exit_code": 0,
+      "summary": "check_docs.py PASS；root files 10，canonical docs 22。"
+    },
+    {
+      "name": "saydo-handoff",
+      "exit_code": 0,
+      "summary": "SayDo implementation prompt 校验 status=valid，无合同、风险或未授权违规。"
+    },
+    {
+      "name": "contextview-handoff",
+      "exit_code": 0,
+      "summary": "ContextView implementation prompt 校验 status=valid，无合同、风险或未授权违规。"
+    }
+  ],
+  "stop_reason": null
+}
+```

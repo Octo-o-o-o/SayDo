@@ -5,6 +5,7 @@
 // GET 过滤=当前色 green/gray 且有 ack 记录;橙/蓝升级后无视历史 ack 必重现。
 
 import {
+  isConfirmKind,
   OPEN_SET,
   type AttentionColor,
   type AttentionItem,
@@ -85,7 +86,7 @@ export function computeAttentionItems(db: Db): AttentionItem[] {
   {
     const rows = db
       .prepare(
-        `SELECT pc.receipt_id, pc.prompt_text, pc.presented_at, pc.expires_at, pc.session_id, pc.focus_id,
+        `SELECT pc.receipt_id, pc.kind, pc.prompt_text, pc.presented_at, pc.expires_at, pc.session_id, pc.focus_id,
                 f.title AS focus_title, f.lifecycle
          FROM pending_confirmations pc
          LEFT JOIN focuses f ON f.id = pc.focus_id
@@ -93,6 +94,7 @@ export function computeAttentionItems(db: Db): AttentionItem[] {
       )
       .all(nowIso) as Array<{
       receipt_id: string;
+      kind: string;
       prompt_text: string;
       presented_at: string;
       expires_at: string;
@@ -116,7 +118,9 @@ export function computeAttentionItems(db: Db): AttentionItem[] {
         sessionId: r.session_id,
         expiresAt: r.expires_at,
         sourceKind: "confirmation",
-        refId: r.receipt_id
+        refId: r.receipt_id,
+        // kind 与 CONFIRM_KINDS 同源;表外值不投(strict schema),呈现层按未知 kind 回落
+        ...(isConfirmKind(r.kind) ? { confirmKind: r.kind } : {})
       });
     }
   }

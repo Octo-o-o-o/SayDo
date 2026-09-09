@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "project": "contextview",
+  "source_base_head": "3ae72e47ae2b770dabd31b5948736fc38a5e45ef",
+  "files": [
+    {
+      "path": "docs/README.md",
+      "sha256": "c384bc6c63a60929bfc3e50367c86e27fb3b7ab3066ca735aa90dead06578d3c"
+    },
+    {
+      "path": "docs/research/2026-09-05-ecc-borrowing-plan.md",
+      "sha256": "a275eb697c316a2af2775b66bbbe37bb0a9c1c5d74c42d434ec48c203aa5dade"
+    },
+    {
+      "path": "docs/research/2026-09-05-ecc-project-research.md",
+      "sha256": "45fd5bf4c258c2fc412c9f6a8594970d9a97154356ef54a8fe07b68c28cd7602"
+    },
+    {
+      "path": "docs/research/ecc-evidence-index.json",
+      "sha256": "1238c7a318068e3e17f76494c3738f984197f56328c944211e14829f98d45f79"
+    }
+  ]
+}

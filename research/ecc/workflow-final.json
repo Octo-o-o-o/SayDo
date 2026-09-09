@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "task": "ecc-research-20260905",
+  "stage": "research-docs",
+  "cycle": "c1",
+  "candidate_head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+  "diff_fingerprint": "7089536f83a122527091f8a2bff75306c6a7a62935693bfd5affde7977652e44",
+  "review_ordinal": 3,
+  "policy_revision": "2.4.2",
+  "policy_sha256": "996871d90109a558c9f2399ba80babaa98b8bd1cbac68215aa26cdd491f8ccc0",
+  "review_manifest_sha256": "3cbc5e40797c778be3a5e129aad76f9e315f8ba43fe2f15013ddea8542857b96",
+  "gate_evidence": [
+    {
+      "name": "diff-check",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "emoji-check",
+      "exit_code": 0,
+      "log_sha256": "e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3"
+    },
+    {
+      "name": "research-evidence",
+      "exit_code": 0,
+      "log_sha256": "fad83e18836eed4b7407e75993a7e6efa3a901e4416a3e819a687e1d257eff91"
+    },
+    {
+      "name": "context-docs-structure",
+      "exit_code": 0,
+      "log_sha256": "6d1060fc4133d300a7c29724624c955a79cb035673a4e59e1de9e4ed844eb40b"
+    },
+    {
+      "name": "context-acceptance-structure",
+      "exit_code": 0,
+      "log_sha256": "bb5dd7c4f07430849cfa6330488c1c2798b4d6188295fa026eb27e1e97c7a78c"
+    },
+    {
+      "name": "context-traceability",
+      "exit_code": 0,
+      "log_sha256": "232a4f4acd0ec1d6bf33f45f96a698ce84ef155c23556c2f4a983aec05909887"
+    },
+    {
+      "name": "context-corpus",
+      "exit_code": 0,
+      "log_sha256": "3719f72a2e0107174ca73594dbbc7f1fd33e6d447d6acffb84f047a88b15123e"
+    },
+    {
+      "name": "context-semantic-team",
+      "exit_code": 0,
+      "log_sha256": "22b8e7a0bd3e11fd438235f2cd7debad9060c369dc525aa3f8aee4de0b497be9"
+    },
+    {
+      "name": "context-negative-tests",
+      "exit_code": 0,
+      "log_sha256": "066f11387001092d0fa8c3e4089eeb8e379b05fa77446459a967950ad00ddb5f"
+    }
+  ],
+  "runtime_receipt": {
+    "schema_version": 1,
+    "policy_revision": "2.4.2",
+    "policy_sha256": "996871d90109a558c9f2399ba80babaa98b8bd1cbac68215aa26cdd491f8ccc0",
+    "cycle_control_sha256": "4e39151a1961126126e3d1b4a077bfc66de6b9564963750c7ce4d80ea2ce2d5d",
+    "cycle_state_sha256": "d1ed889cab2be7a5cd157c5cf31315eedd0cd1246ab7633b11ef0eee8e64f470",
+    "control_schema_version": 2,
+    "task": "ecc-research-20260905",
+    "stage": "research-docs",
+    "cycle": "c1",
+    "candidate_head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+    "diff_fingerprint": "7089536f83a122527091f8a2bff75306c6a7a62935693bfd5affde7977652e44",
+    "review_ordinal": 3,
+    "recorded_at": "2026-09-05T03:06:23Z",
+    "acceptance_file": "acceptance.frozen.json",
+    "acceptance_sha256": "add41c69f7b90267b6c5b2cceeb8fb66dbb473019f98eff5ddf9b6f5cf1affd5"
+  },
+  "recorded_at": "2026-09-05T03:08:56Z"
+}

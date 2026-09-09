@@ -1,0 +1,40 @@
+{
+  "task": "ecc-scope-20260905",
+  "checks": [
+    {
+      "name": "saydo-doc-links",
+      "exit_code": 0,
+      "output": "[ok] active document links: files=148 broken=0\n"
+    },
+    {
+      "name": "saydo-emoji",
+      "exit_code": 0,
+      "output": "[ok] emoji gate: clean\n"
+    },
+    {
+      "name": "saydo-privacy",
+      "exit_code": 0,
+      "output": "[ok] public-tree-privacy scanned=2048 binary=108 excluded=8 hits=0\n"
+    },
+    {
+      "name": "context-docs",
+      "exit_code": 0,
+      "output": "check_docs.py PASS\nroot files: 10\ncanonical docs: 22\n"
+    },
+    {
+      "name": "saydo-handoff",
+      "exit_code": 0,
+      "output": "{\"contract_errors\": [], \"owner_override_reason\": null, \"owner_override_rules\": [], \"policy_version\": 2, \"risk_violations\": [], \"status\": \"valid\", \"unapproved_violations\": []}\n"
+    },
+    {
+      "name": "context-handoff",
+      "exit_code": 0,
+      "output": "{\"contract_errors\": [], \"owner_override_reason\": null, \"owner_override_rules\": [], \"policy_version\": 2, \"risk_violations\": [], \"status\": \"valid\", \"unapproved_violations\": []}\n"
+    },
+    {
+      "name": "received-hashes",
+      "exit_code": 0,
+      "output": "{\"received_files\": 9, \"research_mirror_equal\": true, \"errors\": []}\n"
+    }
+  ]
+}

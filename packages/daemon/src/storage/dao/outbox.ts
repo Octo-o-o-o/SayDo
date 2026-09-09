@@ -48,6 +48,7 @@ export function getOutboxEntry(db: Db, id: string): CallbackOutboxEntry | null {
     ...(row["acked_at"] ? { ackedAt: row["acked_at"] } : {}),
     ...(row["resolved_at"] ? { resolvedAt: row["resolved_at"] } : {}),
     ...(row["snoozed_until"] ? { snoozedUntil: row["snoozed_until"] } : {}),
+    ...(row["thread_message_id"] ? { threadMessageId: row["thread_message_id"] } : {}),
     createdAt: row["created_at"],
     updatedAt: row["updated_at"]
   });
@@ -122,4 +123,9 @@ export function resolveActiveEntriesForTask(db: Db, taskId: string, now: string,
         )
         .run({ taskId, now });
   return result.changes;
+}
+
+/** EMAIL-A:记录该条目已发邮件的 Message-ID(线程锚);只在投递成功后写,不改 state */
+export function setOutboxThreadMessageId(db: Db, id: string, messageId: string, now: string): void {
+  db.prepare("UPDATE callback_outbox SET thread_message_id=?, updated_at=? WHERE id=?").run(messageId, now, id);
 }

@@ -1,0 +1,18 @@
+{
+  "task": "astra-gap-cost-revision",
+  "stage": "plan-and-prompt",
+  "cycle": "20260905",
+  "authorization": "owner：按你的建议进行调整，包括文档和Prompt。",
+  "scope": "只修订综合方案与后续实施入口；不改产品或排产。",
+  "predecessor": "astra-gap-synthesis 已 finalized、0 blocker；本次为收口后新增成本取舍修订，不覆盖旧证据、不重开产品批。",
+  "prior_files": [
+    {
+      "file": "docs/plan/2026-09-05-engineering-gap-consolidated.astra.md",
+      "sha256": "fef13279bb86c19d7ed691d57f17d6cb9ab3d368d3946902d40ffd7cd805d799"
+    },
+    {
+      "file": "docs/plan/IMPL-PROMPT-engineering-gap-consolidated.astra.md",
+      "sha256": "c96df7ae86bab3fd39a7801c7635acdffde5ba4c11706198757596bf223620db"
+    }
+  ]
+}

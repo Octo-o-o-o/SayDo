@@ -2,8 +2,9 @@
 // 数据源:focuses 列表 + 各 focus detail(lanes/obligations) + attention(组头徽章橙+蓝计数,单源)。
 // 任务:P0 从 attention 的 task 项投影到对应 focus 泳道(无 focus 任务列表 API)。
 // VIEW-01:detail 单条失败保留该事(占位错误 + 重试);失效来源=本页动作 reload + 主 WS 事件 +
-// 回前台 + 有界兜底(useRefreshSignal);同刻单在途、卸载 abort、晚到响应丢弃(pageLoader)。
-// 仍是 N+2 扇出,聚合读口归 VIEW-02。
+// 回前台 + 有界兜底;同刻单在途、卸载 abort、晚到响应丢弃——由 pageSession 承载。
+// GAP-02 残项 2.2:占位「重试」= retryDetail(focusId) 只重拉该 Focus 的 detail(不重拉列表/attention),
+// 失败仍保留占位;首屏尚未成功时退回整页重拉。仍是 N+2 扇出,聚合读口归 VIEW-02。
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet } from "../../lib/api";
@@ -19,8 +20,7 @@ import {
   type FocusDetailPayload,
   type FocusListRow
 } from "./mappers";
-import { createPageLoader, type PageLoader } from "./pageLoader";
-import { useRefreshSignal } from "./useRefreshSignal";
+import { createPageSession, type PageSession, type PageSessionCallbacks, type PageSessionRefresh } from "./pageSession";
 
 const BOARD_LIFECYCLES = new Set(["active", "captured", "dormant"]);
 const MAIN_LANE = { id: "__main__", title: "主线" };
@@ -30,6 +30,8 @@ export interface BoardPageDataState {
   loading: boolean;
   error: string | null;
   reload: () => void;
+  /** 单 Focus 定向重试:只重拉该 detail;失败仍保留占位 */
+  retryDetail: (focusId: string) => void;
 }
 
 /** 单个 Focus 的 detail 拉取结果:失败时 detail=null 且 error 为人话 */
@@ -130,7 +132,24 @@ export function assembleBoardView(
   return { groups, detailErrors, approxStatusTaskIds };
 }
 
-async function loadBoard(signal: AbortSignal): Promise<BoardPageView> {
+/** 单 Focus detail 拉取:失败不抛(保留该事 + 人话错误);调用方 abort 时才抛 */
+async function fetchBoardDetail(id: string, signal: AbortSignal): Promise<BoardDetailResult> {
+  try {
+    const detail = await apiGet<FocusDetailPayload>(`/api/focuses/${encodeURIComponent(id)}`, signal);
+    return { id, detail, error: null };
+  } catch (e: unknown) {
+    if (signal.aborted) throw e;
+    return { id, detail: null, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export interface BoardLoadResult {
+  list: FocusListRow[];
+  attention: AttentionItemRow[];
+  details: BoardDetailResult[];
+}
+
+async function loadBoard(signal: AbortSignal): Promise<BoardLoadResult> {
   const [list, at] = await Promise.all([
     apiGet<FocusListRow[]>("/api/focuses", signal),
     apiGet<{ items: AttentionItemRow[] }>("/api/attention", signal)
@@ -138,30 +157,80 @@ async function loadBoard(signal: AbortSignal): Promise<BoardPageView> {
   const attention = at.items ?? [];
   const boardFocuses = (list ?? []).filter((f) => BOARD_LIFECYCLES.has(f.lifecycle));
   // 并行拉详情(规模受 focuses 列表 LIMIT 200 约束;P0 可接受);单条失败不拖垮整板
-  const details = await Promise.all(
-    boardFocuses.map(async (f): Promise<BoardDetailResult> => {
-      try {
-        const detail = await apiGet<FocusDetailPayload>(`/api/focuses/${encodeURIComponent(f.id)}`, signal);
-        return { id: f.id, detail, error: null };
-      } catch (e: unknown) {
-        if (signal.aborted) throw e;
-        return { id: f.id, detail: null, error: e instanceof Error ? e.message : String(e) };
+  const details = await Promise.all(boardFocuses.map((f) => fetchBoardDetail(f.id, signal)));
+  return { list: list ?? [], attention, details };
+}
+
+export interface BoardPageSession extends PageSession {
+  retryDetail(focusId: string): void;
+}
+
+/** 纯会话:看板数据序列 + 单 Focus 定向重试(供 hook 与单测共用) */
+export function createBoardPageSession(
+  callbacks: PageSessionCallbacks<BoardPageView>,
+  refresh?: PageSessionRefresh
+): BoardPageSession {
+  let raw: { list: FocusListRow[]; attention: AttentionItemRow[]; details: Map<string, BoardDetailResult> } | null = null;
+  const retries = new Map<string, AbortController>();
+  let disposed = false;
+  const emit = () => {
+    if (!raw) return;
+    callbacks.onResult(assembleBoardView(raw.list, raw.attention, [...raw.details.values()]));
+  };
+  const session = createPageSession<BoardLoadResult>({
+    load: loadBoard,
+    callbacks: {
+      onResult: (res) => {
+        raw = { list: res.list, attention: res.attention, details: new Map(res.details.map((d) => [d.id, d])) };
+        emit();
+      },
+      onError: callbacks.onError
+    },
+    ...(refresh ? { refresh } : {})
+  });
+  return {
+    run: () => session.run(),
+    inFlight: () => session.inFlight(),
+    dispose: () => {
+      disposed = true;
+      for (const c of retries.values()) c.abort();
+      retries.clear();
+      session.dispose();
+    },
+    retryDetail: (focusId) => {
+      if (disposed) return;
+      // 首屏还没成功过:没有可局部替换的底,退回整页重拉
+      if (!raw) {
+        session.run();
+        return;
       }
-    })
-  );
-  return assembleBoardView(list ?? [], attention, details);
+      retries.get(focusId)?.abort();
+      const controller = new AbortController();
+      retries.set(focusId, controller);
+      fetchBoardDetail(focusId, controller.signal).then(
+        (result) => {
+          if (disposed || controller.signal.aborted || retries.get(focusId) !== controller || !raw) return;
+          retries.delete(focusId);
+          raw.details.set(focusId, result);
+          emit();
+        },
+        () => {
+          // 仅 abort 会走到这里(dispose / 被更新的重试取代):丢弃
+        }
+      );
+    }
+  };
 }
 
 export function useBoardPageData(): BoardPageDataState {
   const [view, setView] = useState<BoardPageView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const loaderRef = useRef<PageLoader | null>(null);
+  const sessionRef = useRef<BoardPageSession | null>(null);
   const hasViewRef = useRef(false);
 
   useEffect(() => {
-    const loader = createPageLoader<BoardPageView>({
-      load: loadBoard,
+    const session = createBoardPageSession({
       onResult: (next) => {
         hasViewRef.current = true;
         setView(next);
@@ -174,16 +243,16 @@ export function useBoardPageData(): BoardPageDataState {
         setLoading(false);
       }
     });
-    loaderRef.current = loader;
-    loader.run();
+    sessionRef.current = session;
+    session.run();
     return () => {
-      loader.dispose();
-      loaderRef.current = null;
+      session.dispose();
+      sessionRef.current = null;
     };
   }, []);
 
-  useRefreshSignal(() => loaderRef.current?.run());
-  const reload = useCallback(() => loaderRef.current?.run(), []);
+  const reload = useCallback(() => sessionRef.current?.run(), []);
+  const retryDetail = useCallback((focusId: string) => sessionRef.current?.retryDetail(focusId), []);
 
-  return { view, loading, error, reload };
+  return { view, loading, error, reload, retryDetail };
 }

@@ -1,0 +1,14 @@
+{
+  "checks_exit_code": 0,
+  "output_excerpt": [
+    "handoff status=valid",
+    "[ok] emoji gate: clean",
+    "[ok] active document links: files=148 broken=0",
+    "[ok] Fable 29 / Astra 11 coverage; source hashes; document links; whitespace; one workflow contract"
+  ],
+  "reviewed_document_hashes_match": true,
+  "prior_canonical_schedule_and_evidence_unchanged": true,
+  "review_and_log_hashes_match": true,
+  "journal_entry": "R134",
+  "commit_push_install_deploy": "not_run"
+}

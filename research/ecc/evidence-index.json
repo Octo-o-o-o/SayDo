@@ -1,0 +1,1046 @@
+{
+  "sources": [
+    {
+      "id": "e-version",
+      "project": "ecc",
+      "path": "VERSION",
+      "start_line": 1,
+      "end_line": 1,
+      "claim": "本地 VERSION 为未发布 2.2.1"
+    },
+    {
+      "id": "e-pkg-ver",
+      "project": "ecc",
+      "path": "package.json",
+      "start_line": 1,
+      "end_line": 4,
+      "claim": "npm 包名 ecc-universal 版本 2.2.1"
+    },
+    {
+      "id": "e-pkg-bin",
+      "project": "ecc",
+      "path": "package.json",
+      "start_line": 33,
+      "end_line": 38,
+      "claim": "license MIT；homepage GitHub"
+    },
+    {
+      "id": "e-pkg-deps",
+      "project": "ecc",
+      "path": "package.json",
+      "start_line": 2,
+      "end_line": 4,
+      "claim": "description 自称跨 harness OS"
+    },
+    {
+      "id": "e-pkg-runtime-deps",
+      "project": "ecc",
+      "path": "package.json",
+      "start_line": 479,
+      "end_line": 485,
+      "claim": "runtime 依赖 toml/ajv/js-yaml/sql.js"
+    },
+    {
+      "id": "e-license",
+      "project": "ecc",
+      "path": "LICENSE",
+      "start_line": 1,
+      "end_line": 13,
+      "claim": "MIT Copyright 2026 Affaan Mustafa"
+    },
+    {
+      "id": "e-readme-counts",
+      "project": "ecc",
+      "path": "README.md",
+      "start_line": 165,
+      "end_line": 174,
+      "claim": "README 宣称 68 agents / 286 skills / 94 commands"
+    },
+    {
+      "id": "e-readme-official",
+      "project": "ecc",
+      "path": "README.md",
+      "start_line": 66,
+      "end_line": 68,
+      "claim": "官方安装通道 WARNING"
+    },
+    {
+      "id": "e-eccjs-commands",
+      "project": "ecc",
+      "path": "scripts/ecc.js",
+      "start_line": 9,
+      "end_line": 106,
+      "claim": "CLI 子命令表含 setup/install/doctor/memory/control-pane/ito"
+    },
+    {
+      "id": "e-eccjs-dryrun",
+      "project": "ecc",
+      "path": "scripts/ecc.js",
+      "start_line": 212,
+      "end_line": 214,
+      "claim": "--dry-run 只设置 ECC_DRY_RUN=1"
+    },
+    {
+      "id": "e-eccjs-spawn",
+      "project": "ecc",
+      "path": "scripts/ecc.js",
+      "start_line": 264,
+      "end_line": 290,
+      "claim": "子命令 spawnSync 到独立脚本"
+    },
+    {
+      "id": "e-caps-guided",
+      "project": "ecc",
+      "path": "scripts/lib/harness-capabilities.js",
+      "start_line": 31,
+      "end_line": 50,
+      "claim": "Claude guidedReady true"
+    },
+    {
+      "id": "e-caps-codex",
+      "project": "ecc",
+      "path": "scripts/lib/harness-capabilities.js",
+      "start_line": 54,
+      "end_line": 68,
+      "claim": "Codex channel=native-plugin；hooks.mode=native-trust"
+    },
+    {
+      "id": "e-caps-kimi",
+      "project": "ecc",
+      "path": "scripts/lib/harness-capabilities.js",
+      "start_line": 70,
+      "end_line": 85,
+      "claim": "Kimi guided 但 hooks 未配置"
+    },
+    {
+      "id": "e-caps-cursor",
+      "project": "ecc",
+      "path": "scripts/lib/harness-capabilities.js",
+      "start_line": 87,
+      "end_line": 103,
+      "claim": "Cursor advanced + adapter hooks"
+    },
+    {
+      "id": "e-caps-list-end",
+      "project": "ecc",
+      "path": "scripts/lib/harness-capabilities.js",
+      "start_line": 217,
+      "end_line": 243,
+      "claim": "Hermes/OpenClaw advanced；能力表在此结束"
+    },
+    {
+      "id": "e-targets",
+      "project": "ecc",
+      "path": "scripts/lib/install-manifests.js",
+      "start_line": 8,
+      "end_line": 8,
+      "claim": "SUPPORTED_INSTALL_TARGETS 15 项"
+    },
+    {
+      "id": "e-profiles",
+      "project": "ecc",
+      "path": "manifests/install-profiles.json",
+      "start_line": 1,
+      "end_line": 12,
+      "claim": "minimal profile 不含 hooks-runtime"
+    },
+    {
+      "id": "e-profiles-full",
+      "project": "ecc",
+      "path": "manifests/install-profiles.json",
+      "start_line": 73,
+      "end_line": 80,
+      "claim": "full profile 描述为全部已分类 modules"
+    },
+    {
+      "id": "e-path-safety",
+      "project": "ecc",
+      "path": "scripts/lib/path-safety.js",
+      "start_line": 6,
+      "end_line": 14,
+      "claim": "install-state 不可信；引用 GHSA-hfpv-w6mp-5g95"
+    },
+    {
+      "id": "e-path-assert",
+      "project": "ecc",
+      "path": "scripts/lib/path-safety.js",
+      "start_line": 81,
+      "end_line": 104,
+      "claim": "assertWithinTrustedRoot fail-closed"
+    },
+    {
+      "id": "e-atomic",
+      "project": "ecc",
+      "path": "scripts/lib/atomic-write.js",
+      "start_line": 7,
+      "end_line": 35,
+      "claim": "临时文件 wx+fsync+rename"
+    },
+    {
+      "id": "e-install-state-schema",
+      "project": "ecc",
+      "path": "scripts/lib/install-state.js",
+      "start_line": 91,
+      "end_line": 93,
+      "claim": "schemaVersion 必须 ecc.install.v1"
+    },
+    {
+      "id": "e-install-state-ops",
+      "project": "ecc",
+      "path": "scripts/lib/install-state.js",
+      "start_line": 186,
+      "end_line": 211,
+      "claim": "operation 必须含 ownership 与可选 contentSha256"
+    },
+    {
+      "id": "e-managed-ops",
+      "project": "ecc",
+      "path": "scripts/lib/install-lifecycle.js",
+      "start_line": 121,
+      "end_line": 123,
+      "claim": "doctor/repair 只回放 ownership=managed"
+    },
+    {
+      "id": "e-hook-consent",
+      "project": "ecc",
+      "path": "scripts/lib/install/hook-consent.js",
+      "start_line": 12,
+      "end_line": 36,
+      "claim": "hooks 六组能力披露"
+    },
+    {
+      "id": "e-doctor-cli",
+      "project": "ecc",
+      "path": "scripts/doctor.js",
+      "start_line": 8,
+      "end_line": 15,
+      "claim": "doctor 诊断 install-state 漂移"
+    },
+    {
+      "id": "e-doctor-empty",
+      "project": "ecc",
+      "path": "scripts/doctor.js",
+      "start_line": 89,
+      "end_line": 111,
+      "claim": "无问题 exit 0；有 issue exit 1"
+    },
+    {
+      "id": "e-uninstall",
+      "project": "ecc",
+      "path": "scripts/uninstall.js",
+      "start_line": 13,
+      "end_line": 22,
+      "claim": "uninstall 只删 install-state 记录的 managed 文件"
+    },
+    {
+      "id": "e-autoupdate",
+      "project": "ecc",
+      "path": "scripts/auto-update.js",
+      "start_line": 12,
+      "end_line": 18,
+      "claim": "auto-update pull 最新并按原 request 重装"
+    },
+    {
+      "id": "e-mem-trust",
+      "project": "ecc",
+      "path": "scripts/lib/memory-vault-format.js",
+      "start_line": 5,
+      "end_line": 18,
+      "claim": "ecc.memory.v1；trust 仅 unreviewed"
+    },
+    {
+      "id": "e-mem-cli-safety",
+      "project": "ecc",
+      "path": "scripts/memory.js",
+      "start_line": 71,
+      "end_line": 77,
+      "claim": "工具记忆永远 unreviewed；create-only；拒凭据形态"
+    },
+    {
+      "id": "e-mem-roots",
+      "project": "ecc",
+      "path": "scripts/lib/memory-vault.js",
+      "start_line": 59,
+      "end_line": 71,
+      "claim": "project/team 在仓内 .ecc/memory；user 在 ~/.ecc/memory"
+    },
+    {
+      "id": "e-mem-gitignore",
+      "project": "ecc",
+      "path": "scripts/lib/memory-vault.js",
+      "start_line": 37,
+      "end_line": 37,
+      "claim": "PROJECT_MEMORY_GITIGNORE fail-closed 模板"
+    },
+    {
+      "id": "e-mem-schema-json",
+      "project": "ecc",
+      "path": "schemas/memory.schema.json",
+      "start_line": 54,
+      "end_line": 60,
+      "claim": "JSON Schema trust 枚举仅 unreviewed"
+    },
+    {
+      "id": "e-mem-design",
+      "project": "ecc",
+      "path": "docs/design/ecc-memory-vault.md",
+      "start_line": 15,
+      "end_line": 27,
+      "claim": "markdown 真相；不静默变规则；create-only"
+    },
+    {
+      "id": "e-hook-flags",
+      "project": "ecc",
+      "path": "scripts/lib/hook-flags.js",
+      "start_line": 5,
+      "end_line": 8,
+      "claim": "ECC_HOOKS_ENABLED 缺省 true"
+    },
+    {
+      "id": "e-hook-empty-id",
+      "project": "ecc",
+      "path": "scripts/hooks/check-hook-enabled.js",
+      "start_line": 7,
+      "end_line": 10,
+      "claim": "缺 hookId 打印 yes 并 exit 0"
+    },
+    {
+      "id": "e-plugin-default",
+      "project": "ecc",
+      "path": ".claude-plugin/plugin.json",
+      "start_line": 25,
+      "end_line": 37,
+      "claim": "hooks_enabled default true；hook_profile standard"
+    },
+    {
+      "id": "e-hooks-events",
+      "project": "ecc",
+      "path": "hooks/hooks.json",
+      "start_line": 1,
+      "end_line": 12,
+      "claim": "PreToolUse Bash dispatcher"
+    },
+    {
+      "id": "e-session-start-instinct",
+      "project": "ecc",
+      "path": "scripts/hooks/session-start.js",
+      "start_line": 35,
+      "end_line": 40,
+      "claim": "instinct 缺省阈值 0.7、最多注入 6"
+    },
+    {
+      "id": "e-instinct-boost",
+      "project": "ecc",
+      "path": "scripts/lib/instinct-relevance.js",
+      "start_line": 22,
+      "end_line": 28,
+      "claim": "项目/栈 boost 0.25/0.2 可压过更高全局 confidence"
+    },
+    {
+      "id": "e-statusline-ctx",
+      "project": "ecc",
+      "path": "scripts/hooks/ecc-statusline.js",
+      "start_line": 104,
+      "end_line": 117,
+      "claim": "转播 context_window.remaining_percentage"
+    },
+    {
+      "id": "e-monitor-ctx",
+      "project": "ecc",
+      "path": "scripts/hooks/ecc-context-monitor.js",
+      "start_line": 18,
+      "end_line": 30,
+      "claim": "context 35/25 阈值；loop 需 5 次全同"
+    },
+    {
+      "id": "e-metrics-failopen",
+      "project": "ecc",
+      "path": "scripts/hooks/ecc-metrics-bridge.js",
+      "start_line": 199,
+      "end_line": 205,
+      "claim": "读成本失败 fail-open"
+    },
+    {
+      "id": "e-precompact",
+      "project": "ecc",
+      "path": "scripts/hooks/pre-compact.js",
+      "start_line": 1,
+      "end_line": 12,
+      "claim": "compact 前写 LLM 摘要；失败降级"
+    },
+    {
+      "id": "e-session-schema",
+      "project": "ecc",
+      "path": "scripts/lib/session-adapters/canonical-session.js",
+      "start_line": 7,
+      "end_line": 10,
+      "claim": "ecc.session.v1"
+    },
+    {
+      "id": "e-session-registry",
+      "project": "ecc",
+      "path": "scripts/lib/session-adapters/registry.js",
+      "start_line": 35,
+      "end_line": 42,
+      "claim": "默认 claude-history/dmux/codex-worktree/opencode"
+    },
+    {
+      "id": "e-mcp-redact",
+      "project": "ecc",
+      "path": "scripts/lib/mcp-inventory/canonical-mcp.js",
+      "start_line": 3,
+      "end_line": 9,
+      "claim": "secret 值不进 canonical；只留 env 键名"
+    },
+    {
+      "id": "e-mcp-policy",
+      "project": "ecc",
+      "path": "docs/MCP-CONNECTOR-POLICY.md",
+      "start_line": 1,
+      "end_line": 18,
+      "claim": "默认只 chrome-devtools"
+    },
+    {
+      "id": "e-mcp-codex-toml",
+      "project": "ecc",
+      "path": "scripts/lib/mcp-inventory/readers/codex.js",
+      "start_line": 7,
+      "end_line": 25,
+      "claim": "Codex MCP 用 @iarna/toml，缺依赖则降级解析器"
+    },
+    {
+      "id": "e-worktree",
+      "project": "ecc",
+      "path": "scripts/lib/worktree-lifecycle/lifecycle.js",
+      "start_line": 7,
+      "end_line": 25,
+      "claim": "worktree 状态机含 dirty 永不自动 GC"
+    },
+    {
+      "id": "e-worktree-gc",
+      "project": "ecc",
+      "path": "scripts/lib/worktree-lifecycle/lifecycle.js",
+      "start_line": 149,
+      "end_line": 150,
+      "claim": "cleanup 只计划 merged 或 stale-clean"
+    },
+    {
+      "id": "e-loopback",
+      "project": "ecc",
+      "path": "scripts/lib/loopback-guard.js",
+      "start_line": 3,
+      "end_line": 10,
+      "claim": "loopback Host 门防 DNS rebinding"
+    },
+    {
+      "id": "e-cp-server",
+      "project": "ecc",
+      "path": "scripts/lib/control-pane/server.js",
+      "start_line": 36,
+      "end_line": 40,
+      "claim": "control-pane 默认 127.0.0.1:8765"
+    },
+    {
+      "id": "e-cp-sqljs",
+      "project": "ecc",
+      "path": "scripts/lib/control-pane/state.js",
+      "start_line": 7,
+      "end_line": 13,
+      "claim": "control pane 依赖 sql.js；默认 DB 在 ~/.claude"
+    },
+    {
+      "id": "e-cp-entry",
+      "project": "ecc",
+      "path": "scripts/control-pane.js",
+      "start_line": 24,
+      "end_line": 40,
+      "claim": "可 read-only；macOS 可 open 浏览器"
+    },
+    {
+      "id": "e-ecc2-readme",
+      "project": "ecc",
+      "path": "ecc2/README.md",
+      "start_line": 1,
+      "end_line": 6,
+      "claim": "ecc2 自称为 alpha 非 GA"
+    },
+    {
+      "id": "e-ecc2-cargo",
+      "project": "ecc",
+      "path": "ecc2/Cargo.toml",
+      "start_line": 1,
+      "end_line": 8,
+      "claim": "Rust crate ecc-tui 0.1.0 MIT"
+    },
+    {
+      "id": "e-ecc2-eval",
+      "project": "ecc",
+      "path": "ecc2/README.md",
+      "start_line": 73,
+      "end_line": 87,
+      "claim": "harness-eval 仅本地 recorded measurements"
+    },
+    {
+      "id": "e-cross-harness",
+      "project": "ecc",
+      "path": "docs/architecture/cross-harness.md",
+      "start_line": 22,
+      "end_line": 32,
+      "claim": "上游文档仍写 Codex hooks 为 instruction-backed；与当前 native plugin 实现漂移"
+    },
+    {
+      "id": "e-compliance",
+      "project": "ecc",
+      "path": "docs/architecture/harness-adapter-compliance.md",
+      "start_line": 36,
+      "end_line": 40,
+      "claim": "Claude Native；矩阵由脚本渲染"
+    },
+    {
+      "id": "e-token-opt",
+      "project": "ecc",
+      "path": "docs/token-optimization.md",
+      "start_line": 25,
+      "end_line": 32,
+      "claim": "推荐默认 sonnet/haiku 降档"
+    },
+    {
+      "id": "e-security-unofficial",
+      "project": "ecc",
+      "path": "SECURITY.md",
+      "start_line": 67,
+      "end_line": 72,
+      "claim": "点名非官方 npm 包"
+    },
+    {
+      "id": "e-changelog-220",
+      "project": "ecc",
+      "path": "CHANGELOG.md",
+      "start_line": 5,
+      "end_line": 12,
+      "claim": "2.2.0 发布节；guided setup 与所有权"
+    },
+    {
+      "id": "e-selective-design",
+      "project": "ecc",
+      "path": "docs/SELECTIVE-INSTALL-DESIGN.md",
+      "start_line": 19,
+      "end_line": 32,
+      "claim": "可组合安装而非 all-or-nothing"
+    },
+    {
+      "id": "e-session-contract",
+      "project": "ecc",
+      "path": "docs/SESSION-ADAPTER-CONTRACT.md",
+      "start_line": 10,
+      "end_line": 20,
+      "claim": "session snapshot 为观测合同"
+    },
+    {
+      "id": "e-llm-main",
+      "project": "ecc",
+      "path": "src/llm/__main__.py",
+      "start_line": 1,
+      "end_line": 6,
+      "claim": "src/llm 是独立 Python CLI 入口"
+    },
+    {
+      "id": "e-registry-adapters",
+      "project": "ecc",
+      "path": "scripts/lib/install-targets/registry.js",
+      "start_line": 18,
+      "end_line": 34,
+      "claim": "15 个 install target adapter 列表"
+    },
+    {
+      "id": "s-plan2-chain",
+      "project": "saydo",
+      "path": "docs/plan/IMPLEMENTATION-PLAN-2.md",
+      "start_line": 22,
+      "end_line": 26,
+      "claim": "唯一串行链 PROC-01 到 owner-stop"
+    },
+    {
+      "id": "s-handoff-ptr",
+      "project": "saydo",
+      "path": "HANDOFF.md",
+      "start_line": 49,
+      "end_line": 58,
+      "claim": "schedule-pointer next=PG-01B last_closed=PROC-01"
+    },
+    {
+      "id": "s-trust",
+      "project": "saydo",
+      "path": "docs/09-data-contracts.md",
+      "start_line": 423,
+      "end_line": 431,
+      "claim": "Trust 词表与 candidate→trusted 写路径"
+    },
+    {
+      "id": "s-gate0",
+      "project": "saydo",
+      "path": "docs/05-roadmap.md",
+      "start_line": 63,
+      "end_line": 75,
+      "claim": "Gate 0 六类缺口不关闭不得 dispatch"
+    },
+    {
+      "id": "s-memory-mod",
+      "project": "saydo",
+      "path": "docs/modules/b-memory.md",
+      "start_line": 15,
+      "end_line": 19,
+      "claim": "记忆账本 candidate 闸与 M0 边界"
+    },
+    {
+      "id": "s-adr005",
+      "project": "saydo",
+      "path": "docs/adr/design/ADR-005-execution-single-route.md",
+      "start_line": 7,
+      "end_line": 12,
+      "claim": "生产执行路线仅 Tier1"
+    },
+    {
+      "id": "s-cli-preview",
+      "project": "saydo",
+      "path": "packages/cli/README.md",
+      "start_line": 18,
+      "end_line": 24,
+      "claim": "公开包仅 daemon+console 不含 pipeline"
+    },
+    {
+      "id": "s-agents-hard",
+      "project": "saydo",
+      "path": "AGENTS.md",
+      "start_line": 1,
+      "end_line": 12,
+      "claim": "canonical 与 PLAN-2 分界"
+    },
+    {
+      "id": "s-dsh-no-replace",
+      "project": "saydo",
+      "path": "docs/plan/2026-08-13-deepseek-harness-borrowing-assessment.fable.md",
+      "start_line": 12,
+      "end_line": 14,
+      "claim": "DSH 不替换 Hopper/daemon"
+    },
+    {
+      "id": "s-c-bridge",
+      "project": "saydo",
+      "path": "docs/modules/c-control-bridge.md",
+      "start_line": 1,
+      "end_line": 6,
+      "claim": "执行域 Hopper、对话域 daemon"
+    },
+    {
+      "id": "c-agents-scope",
+      "project": "contextview",
+      "path": "AGENTS.md",
+      "start_line": 7,
+      "end_line": 8,
+      "claim": "当前阶段无产品运行时"
+    },
+    {
+      "id": "c-oracles",
+      "project": "contextview",
+      "path": "AGENTS.md",
+      "start_line": 37,
+      "end_line": 42,
+      "claim": "仅两 oracle；cutoff 2026-09-04；禁止 MVP 裁剪"
+    },
+    {
+      "id": "c-readme",
+      "project": "contextview",
+      "path": "README.md",
+      "start_line": 1,
+      "end_line": 12,
+      "claim": "Contexpect 规范已冻结尚未实施运行时"
+    },
+    {
+      "id": "c-facets",
+      "project": "contextview",
+      "path": "docs/architecture/data-and-truth-model.md",
+      "start_line": 7,
+      "end_line": 18,
+      "claim": "六个 facet 互不蕴含"
+    },
+    {
+      "id": "c-f01",
+      "project": "contextview",
+      "path": "docs/requirements/2026-09-04-contexpect-complete-product-requirements.md",
+      "start_line": 418,
+      "end_line": 428,
+      "claim": "F-01 配置残留不是可运行安装"
+    },
+    {
+      "id": "c-f08",
+      "project": "contextview",
+      "path": "docs/requirements/2026-09-04-contexpect-complete-product-requirements.md",
+      "start_line": 491,
+      "end_line": 498,
+      "claim": "F-08 Doctor 确定性规则；LLM 不能单独红 CI"
+    },
+    {
+      "id": "c-f12",
+      "project": "contextview",
+      "path": "docs/requirements/2026-09-04-contexpect-complete-product-requirements.md",
+      "start_line": 562,
+      "end_line": 573,
+      "claim": "F-12 importer 不得补造未暴露事件"
+    },
+    {
+      "id": "c-wp01",
+      "project": "contextview",
+      "path": "docs/process/implementation-plan.md",
+      "start_line": 43,
+      "end_line": 59,
+      "claim": "WP-01 本阶段只交付文档与合同"
+    },
+    {
+      "id": "c-compat",
+      "project": "contextview",
+      "path": "acceptance/compatibility-matrix.yaml",
+      "start_line": 16,
+      "end_line": 27,
+      "claim": "Codex macOS live_status installed；fabricated_native_evidence false"
+    },
+    {
+      "id": "c-license",
+      "project": "contextview",
+      "path": "LICENSE",
+      "start_line": 1,
+      "end_line": 3,
+      "claim": "Apache-2.0"
+    },
+    {
+      "id": "e-pkg-bin-map",
+      "project": "ecc",
+      "path": "package.json",
+      "start_line": 439,
+      "end_line": 446,
+      "claim": "bin 入口 ecc/ecc-universal/ecc-control-pane/ecc-memory-mcp"
+    },
+    {
+      "id": "e-pkg-sqljs",
+      "project": "ecc",
+      "path": "package.json",
+      "start_line": 480,
+      "end_line": 484,
+      "claim": "sql.js 为 runtime 依赖"
+    },
+    {
+      "id": "e-modules-count",
+      "project": "ecc",
+      "path": "manifests/install-modules.json",
+      "start_line": 1,
+      "end_line": 8,
+      "claim": "install-modules version 与首个 module 列表开头"
+    },
+    {
+      "id": "s-agents-emoji",
+      "project": "saydo",
+      "path": "AGENTS.md",
+      "start_line": 60,
+      "end_line": 72,
+      "claim": "硬规则零 emoji、Gate0、S3、契约不分叉"
+    },
+    {
+      "id": "c-f09-authority",
+      "project": "contextview",
+      "path": "docs/requirements/2026-09-04-contexpect-complete-product-requirements.md",
+      "start_line": 500,
+      "end_line": 512,
+      "claim": "F-09 ProjectionAuthority 不含 ECC"
+    },
+    {
+      "id": "c-docs-index",
+      "project": "contextview",
+      "path": "docs/README.md",
+      "start_line": 1,
+      "end_line": 8,
+      "claim": "文档集状态：规范尚未实施运行时"
+    },
+    {
+      "id": "e-codex-plugin-manifest",
+      "project": "ecc",
+      "path": ".codex-plugin/plugin.json",
+      "start_line": 22,
+      "end_line": 25,
+      "claim": "Codex native plugin 绑定 skills/、.mcp.json、hooks/codex-hooks.json"
+    },
+    {
+      "id": "e-codex-hooks-sessionstart",
+      "project": "ecc",
+      "path": "hooks/codex-hooks.json",
+      "start_line": 1,
+      "end_line": 17,
+      "claim": "Codex native hook 仅登记 SessionStart command；Claude profile 分离"
+    },
+    {
+      "id": "e-codex-plugin-readme-trust",
+      "project": "ecc",
+      "path": ".codex-plugin/README.md",
+      "start_line": 64,
+      "end_line": 74,
+      "claim": "plugin 安装不授权 hook；须 /hooks 显式审查并按定义 hash 信任"
+    },
+    {
+      "id": "e-codex-plugin-readme-legacy",
+      "project": "ecc",
+      "path": ".codex-plugin/README.md",
+      "start_line": 80,
+      "end_line": 87,
+      "claim": "legacy sync-ecc-to-codex.sh 单列，非 native plugin / marketplace"
+    },
+    {
+      "id": "e-mcp-json-native",
+      "project": "ecc",
+      "path": ".mcp.json",
+      "start_line": 1,
+      "end_line": 7,
+      "claim": "Codex native 默认 MCP 仅 chrome-devtools"
+    },
+    {
+      "id": "e-claude-plugin-mcp-empty",
+      "project": "ecc",
+      "path": ".claude-plugin/plugin.json",
+      "start_line": 39,
+      "end_line": 39,
+      "claim": "Claude plugin mcpServers 为空对象，不得推广为 Codex native"
+    },
+    {
+      "id": "e-codex-legacy-toml-mcp",
+      "project": "ecc",
+      "path": ".codex/config.toml",
+      "start_line": 41,
+      "end_line": 71,
+      "claim": "legacy Codex 参考配置仍列六 MCP 服务器兼容层"
+    },
+    {
+      "id": "e-cross-harness-native-caveat",
+      "project": "ecc",
+      "path": "docs/architecture/cross-harness.md",
+      "start_line": 143,
+      "end_line": 145,
+      "claim": "同文档仍写 Codex hook parity instruction-backed unless native surface exists"
+    },
+    {
+      "id": "e-compliance-codex",
+      "project": "ecc",
+      "path": "docs/architecture/harness-adapter-compliance.md",
+      "start_line": 40,
+      "end_line": 40,
+      "claim": "compliance 矩阵仍标 Codex Instruction-backed，与 capabilities 实现漂移"
+    },
+    {
+      "id": "c-field-map-relpath",
+      "project": "contextview",
+      "path": "scripts/contexpect_contract.py",
+      "start_line": 1641,
+      "end_line": 1642,
+      "claim": "field-to-claim 路径合同固定为 {family_id}-{surface}.yaml"
+    },
+    {
+      "id": "c-field-map-foreign",
+      "project": "contextview",
+      "path": "scripts/check_acceptance.py",
+      "start_line": 216,
+      "end_line": 253,
+      "claim": "额外 field-to-claim 文件报 foreign/extra/count 三重失败"
+    },
+    {
+      "id": "c-field-map-schema-path",
+      "project": "contextview",
+      "path": "scripts/contexpect_schema.py",
+      "start_line": 484,
+      "end_line": 503,
+      "claim": "field map 路径必须等于 family_id-surface 合同路径"
+    },
+    {
+      "id": "c-field-map-negtest",
+      "project": "contextview",
+      "path": "tests/acceptance/test_false_greens.py",
+      "start_line": 735,
+      "end_line": 763,
+      "claim": "负例锁定 extra foreign field-map 失败"
+    },
+    {
+      "id": "c-corpus-license-gate",
+      "project": "contextview",
+      "path": "scripts/check_acceptance.py",
+      "start_line": 740,
+      "end_line": 748,
+      "claim": "development static fixture 强制 license==Apache-2.0"
+    },
+    {
+      "id": "c-corpus-required-fields",
+      "project": "contextview",
+      "path": "scripts/contexpect_contract.py",
+      "start_line": 32,
+      "end_line": 36,
+      "claim": "CUTOFF 固定；LICENSE_ID=Apache-2.0"
+    },
+    {
+      "id": "c-corpus-fixture-fields",
+      "project": "contextview",
+      "path": "scripts/contexpect_contract.py",
+      "start_line": 449,
+      "end_line": 460,
+      "claim": "corpus fixture 必填 license/digest/live_tested，无再分发字段"
+    },
+    {
+      "id": "c-prd-corpus-third-party",
+      "project": "contextview",
+      "path": "docs/requirements/2026-09-04-contexpect-complete-product-requirements.md",
+      "start_line": 1007,
+      "end_line": 1013,
+      "claim": "第三方配置须记录来源、许可、再分发、脱敏与 digest"
+    },
+    {
+      "id": "s-classify-import",
+      "project": "saydo",
+      "path": "packages/daemon/src/memory/classify.ts",
+      "start_line": 23,
+      "end_line": 74,
+      "claim": "import 属第三方 kind，分类器返回 candidate；M0 抛错；requestedTrust 先于第三方检查"
+    },
+    {
+      "id": "s-ledger-no-self-trust",
+      "project": "saydo",
+      "path": "packages/daemon/src/memory/ledger.ts",
+      "start_line": 88,
+      "end_line": 116,
+      "claim": "Ledger.add 经 classify 决定 trust，不信调用方自报（除 user_stated/approved）"
+    },
+    {
+      "id": "s-compiler-third-party-exclude",
+      "project": "saydo",
+      "path": "packages/daemon/src/memory/compiler.ts",
+      "start_line": 89,
+      "end_line": 108,
+      "claim": "third_party 默认全排除；M0 拒非 user_stated/approved 与 taint"
+    },
+    {
+      "id": "s-compiler-candidate-annotate",
+      "project": "saydo",
+      "path": "packages/daemon/src/memory/compiler.ts",
+      "start_line": 181,
+      "end_line": 197,
+      "claim": "candidate 非 M0 只读标注 [候选未确认]；taint 一并标注"
+    },
+    {
+      "id": "s-approve-candidate",
+      "project": "saydo",
+      "path": "packages/daemon/src/memory/growth.ts",
+      "start_line": 78,
+      "end_line": 97,
+      "claim": "人确认 approveCandidate：user_approved 新事件 supersedes 候选"
+    },
+    {
+      "id": "s-pack-trust-order",
+      "project": "saydo",
+      "path": "docs/09-data-contracts.md",
+      "start_line": 524,
+      "end_line": 524,
+      "claim": "编译优先级 candidate 只读标注，third_party 默认排除"
+    }
+  ],
+  "tests": [
+    {
+      "name": "ecc-help-catalog-doctor-memory-isolated",
+      "command": "HOME=/tmp/ecc-research-20260905-home node scripts/ecc.js --help; node scripts/ecc.js catalog profiles; node scripts/doctor.js --json; node scripts/memory.js doctor --json; node scripts/memory.js init --scope project --json",
+      "exit_code": 0,
+      "summary": "隔离 HOME 下 help/catalog/doctor 空收据/memory doctor 空仓/memory init 均 exit 0；未安装到用户配置。包装脚本后半因 zsh 未分词未跑单测。",
+      "log_file": "ecc-offline-tests-20260905.log",
+      "log_sha256": "982a273a816af49e0ef9e266b8622ed0f2dd543a4665b71f7b0901fd4af1432e"
+    },
+    {
+      "name": "ecc-unit-subset-no-npm-install",
+      "command": "HOME=/tmp/ecc-research-20260905-home node tests/lib/{path-safety,memory-vault,install-state,hook-consent,loopback-guard,harness-capabilities,session-adapters,mcp-inventory,worktree-lifecycle,instinct-relevance,skill-evolution}.test.js tests/hooks/ecc-context-monitor.test.js tests/scripts/{doctor,ecc,memory}.test.js tests/ci/catalog.test.js",
+      "exit_code": 0,
+      "summary": "exit_code=0 是包装进程的实际退出码，不代表子测试通过。包装脚本未传播子测试失败；聚合状态为 failed，失败子文件有 mcp-inventory.test.js（exit 1，18 passed/2 failed，缺 toml）和 ecc.test.js（exit 1，16 passed/6 failed，缺 ajv/sql.js）。其余 14 个文件 Failed 0。个别子进程退出码见下面单独记录；未 npm install。",
+      "log_file": "ecc-unit-tests-20260905.log",
+      "log_sha256": "13df73276909a2d8fec4ad921db5292b48a4a8e4b61139e528de22963a151863"
+    },
+    {
+      "name": "ecc-path-safety-unit",
+      "command": "node tests/lib/path-safety.test.js",
+      "exit_code": 0,
+      "summary": "Passed 12 Failed 0",
+      "log_file": "ecc-unit-tests-20260905.log",
+      "log_sha256": "13df73276909a2d8fec4ad921db5292b48a4a8e4b61139e528de22963a151863"
+    },
+    {
+      "name": "ecc-memory-vault-unit",
+      "command": "node tests/lib/memory-vault.test.js",
+      "exit_code": 0,
+      "summary": "Passed 35 Failed 0；含 gitignore fail-closed",
+      "log_file": "ecc-unit-tests-20260905.log",
+      "log_sha256": "13df73276909a2d8fec4ad921db5292b48a4a8e4b61139e528de22963a151863"
+    },
+    {
+      "name": "ecc-mcp-inventory-unit",
+      "command": "node tests/lib/mcp-inventory.test.js",
+      "exit_code": 1,
+      "summary": "18 passed 2 failed：Codex TOML 与 merge 计数；环境无 @iarna/toml",
+      "log_file": "ecc-unit-tests-20260905.log",
+      "log_sha256": "13df73276909a2d8fec4ad921db5292b48a4a8e4b61139e528de22963a151863"
+    },
+    {
+      "name": "ecc-router-unit",
+      "command": "node tests/scripts/ecc.test.js",
+      "exit_code": 1,
+      "summary": "16 passed 6 failed：install/control-pane/session-inspect/work-items 缺 ajv/sql.js",
+      "log_file": "ecc-unit-tests-20260905.log",
+      "log_sha256": "13df73276909a2d8fec4ad921db5292b48a4a8e4b61139e528de22963a151863"
+    },
+    {
+      "name": "contextview-docs-structure",
+      "command": "python3 scripts/check_docs.py",
+      "exit_code": 0,
+      "summary": "PASS；root files 10；canonical docs 22",
+      "log_file": "contextview-gates-20260905.log",
+      "log_sha256": "5417b033c60d7320f6eb45536b2788a12d7fa6d43e56d6cb1a6441c30e0bdc56"
+    },
+    {
+      "name": "contextview-acceptance-structure",
+      "command": "python3 scripts/check_acceptance.py --structure",
+      "exit_code": 0,
+      "summary": "PASS",
+      "log_file": "contextview-gates-20260905.log",
+      "log_sha256": "5417b033c60d7320f6eb45536b2788a12d7fa6d43e56d6cb1a6441c30e0bdc56"
+    },
+    {
+      "name": "contextview-traceability",
+      "command": "python3 scripts/check_acceptance.py --traceability",
+      "exit_code": 0,
+      "summary": "249 statements = 249 rows PASS",
+      "log_file": "contextview-gates-20260905.log",
+      "log_sha256": "5417b033c60d7320f6eb45536b2788a12d7fa6d43e56d6cb1a6441c30e0bdc56"
+    },
+    {
+      "name": "contextview-corpus",
+      "command": "python3 scripts/check_acceptance.py --corpus",
+      "exit_code": 0,
+      "summary": "19/19 static coordinates；2 declared oracles；589 doctor cases PASS",
+      "log_file": "contextview-gates-20260905.log",
+      "log_sha256": "5417b033c60d7320f6eb45536b2788a12d7fa6d43e56d6cb1a6441c30e0bdc56"
+    },
+    {
+      "name": "contextview-semantic-team",
+      "command": "python3 scripts/check_semantic_team.py",
+      "exit_code": 0,
+      "summary": "PASS；16 scenarios；5 malformed fixtures",
+      "log_file": "contextview-gates-20260905.log",
+      "log_sha256": "5417b033c60d7320f6eb45536b2788a12d7fa6d43e56d6cb1a6441c30e0bdc56"
+    },
+    {
+      "name": "contextview-validator-negative-tests",
+      "command": "TMPDIR=/tmp python3 -m unittest discover -s tests/acceptance -p 'test_*.py'",
+      "exit_code": 0,
+      "summary": "Ran 144 tests in 89.595s OK",
+      "log_file": "contextview-gates-20260905.log",
+      "log_sha256": "5417b033c60d7320f6eb45536b2788a12d7fa6d43e56d6cb1a6441c30e0bdc56"
+    }
+  ]
+}

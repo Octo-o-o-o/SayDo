@@ -1,0 +1,120 @@
+# 结论
+
+[fail] **RED**。A1、A2、A4、A5、A6 通过；A3 存在两个可达的 P1：两份未来 prompt 缺少实施后候选身份迁移，ContextView 的单 cycle 评审数量还超过冻结预算。两项均在既定范围内，不需要 owner 决策。
+
+## A1–A6
+
+- **A1 [ok]**：两份 final 均实际吸收并裁决 Fable consolidated、Astra 和旧 Codex 内容。SayDo 覆盖 AS-01..07、原 Fable 65 行及 S-01..07/S-C1..C10；ContextView 覆盖 AC-01..07、原 Fable 74 行及 CV-01..13/CV-C1..C7。机械核对原 E-ID 无遗漏，并补入 E-109/E-110。`docs/plan/2026-09-05-ecc-borrowing-final.md:37`、`:75`、`:258`、`:345`；`ContextView/docs/plan/2026-09-05-ecc-borrowing-final.md:29`、`:78`、`:208`、`:312`。源码核实支持对首批范围、installer 存在、Codex native plugin、18 family、Windows 128-bit+volume 等纠正。
+- **A2 [ok]**：统一报告为机制融合稿而非旧稿串接；两仓镜像字节一致。附录 A/B/C 分别完整包含 E-01..E-110、118 个旧 source、12 条旧 test；source/test 索引逐项匹配，118 个源码坐标均存在且行号有效。报告明确区分本轮核验与历史自报，保留失败、exit code、日志 SHA 和“未复跑”边界；git 源码 2.2.1、npm 2.2.0、仓 SHA 与 npm 发布坐标未混用。`research/ecc/2026-09-05-ecc-unified-research.md:3`、`:12`、`:34`、`:219`、`:336`、`:461`。
+- **A3 [fail]**：模型、CLI 参数、handoff contract、PG-01B/WP-02 前置和产品完整门禁描述本身均正确；但实际状态机编排存在下列两个 P1。格式 validator 的 `status=valid` 不能覆盖运行时 transition 和预算错误。
+- **A4 [ok]**：报告区分 OctoWorkFlow main、OWFOutcome 和 installed runtime；已存在的 receipt、doctor、collector、adopt、`report_conventions` 均标为“不重造”。两个 telemetry probe 被准确描述为 observability 缺口，没有升级为控制失效，也明确反对全局 hook 自动 trust。`research/ecc/2026-09-05-ecc-unified-research.md:147`、`:159`、`:161`、`:163`。
+- **A5 [ok]**：扫描范围明确限定为四个直层位置；190 是 git 目录数，去重 identity 为 175，不冒充独立产品数。优先 7 个和次级 5 个均写成待验证问题，没有据 README 推断源码质量。`research/ecc/2026-09-05-ecc-unified-research.md:170`、`:172`、`:174`。
+- **A6 [ok，含一项 Deferred P2]**：六文件的状态、唯一 final SoT、旧资料归档边界诚实。SayDo 保留 Gate 0、S3、trust/M0、冻结 verify、首次 raw write 前拒写、整 generation 不发布和 Git tracked/ignore 语义；ContextView 保留 18 family、cutoff、六 facets、双 oracle、闭合 field-map、Apache-2.0 原创 corpus、8+12 规则及 128-bit+volume 边界。六文件通过 emoji、敏感路径/secret、隐藏 Unicode 和相对链接定向扫描。控制证据别名的可移植性问题记为 P2。
+
+## 实证清单
+
+- `git rev-parse HEAD`：SayDo=`bcf8ea855f25b177888d9159f75e49214f3dd892`；ContextView=`492fd5fe7183fc5517fb6a1ca811d8d5233eb1f3`。
+- `python3 ../runtime/candidate_fingerprint.py` 输出：`{"algorithm":"git-diff-v1","fingerprint":"87b5685899e12ebf4c9aa17ce7d86aa1069729626020758b7d50dc454a26752b","head":"bcf8ea855f25b177888d9159f75e49214f3dd892"}`。
+- Candidate manifest 的六个输出摘要与实物 SHA-256 全部一致；两份 unified 报告 SHA-256 均为 `beab204663477cfb0c1a433bd1904b7e50b237bd8b9a21d819960c13cea75ee5`，`cmp -s` 返回 `0`。见 `research/ecc-final/candidate-manifest.json:152`。
+- 两次 `validate_handoff.py --policy ../runtime/v2-policy.json` 均 exit 0，原始状态均为 `"status":"valid","contract_errors":[],"risk_violations":[],"unapproved_violations":[]`。
+- E/source/test 机械核对输出：`A=110`、`B=118`、`C=12`；`source_missing=[]`、`source_extra=[]`、`source_mismatch=0`；`test_missing=[]`、`test_extra=[]`、`test_mismatch=0`；118 个坐标 `missing=[]`、`range_bad=[]`。
+- 状态机源码要求候选变化必须由合法 implement/repair 收据授权，并且 GREEN 必须是 completed rereview：`runtime/cycle-state.md:38`、`:41`；`runtime/cycle_state.py:570`、`:577`。定向调用 `transition_errors` 原始输出：
+  - `rereview_new_candidate ['unauthorized_candidate_change']`
+  - `implement_with_green ['green_without_completed_rereview', 'unauthorized_candidate_change']`
+- ContextView prompt 单一 `$STAGE=ac01-ac07/$CYCLE=c1` 见 `ContextView/docs/plan/2026-09-05-ecc-implementation-prompt.md:78`；六个计划 review 点见 `:116`、`:118`、`:122`、`:124`、`:128`、`:130`。机械计数输出：`canonical_reviews=3`、`candidate_reviews=3`、`allowed_total_reviews=4`；冻结预算为 repair 3、rereview 3，见 `runtime/v2-policy.json:4`。
+- `bash scripts/check-emoji.sh <六文件>` exit 0，输出 `[ok] emoji gate: clean`；定向扫描输出 `privacy_or_secret_hits=[]`、`hidden_unicode_hits=[]`、`relative_links=8 missing=[]`。
+
+## P0/P1
+
+- **P0：无。**
+- **P1 `future-candidate-transition-missing`（A3）**：两份 prompt 都在旧 HEAD/fingerprint 上 init/preflight，随后实施、review，最后才执行唯一一次 `--advance`，没有登记首次 `action=implement` 候选迁移并更新后续 identity。照字面用 rereview 收据会触发 `unauthorized_candidate_change`；改用 implement 收据又不能消费首轮 GREEN。SayDo 见 `docs/plan/2026-09-05-ecc-implementation-prompt.md:89`、`:97`、`:99`；ContextView 同类位置为 `:87`、`:95`、`:97`。
+- **P1 `contextview-review-budget-overflow`（A3）**：ContextView 把三次 canonical review 和三次 candidate review 放入同一个 stage/cycle。即使全部一次 GREEN，也需要六轮 review、五次 review 后候选迁移，超过初审加三次 rereview以及三次 repair 的冻结上限，正式流程无法走到最终九门。
+
+## 唯一 P2 delta / P3
+
+- **Deferred P2 `portable-control-evidence-coordinate`**：统一报告及 ContextView final 使用 `control/internet-observation.json`、`control/octoworkflow-facts.json`、`control/workspace-inventory.json`、`control/context-current-AGENTS.md`、`control/runtime/` 等坐标，但这些字面路径不存在于两个交付候选；实物位于冻结包 sibling `evidence/` 和 `runtime/`。正文已内嵌相关事实，且未来 prompt 会重读现场状态，因此当前不升级为 P1。
+- **P3：无。**
+
+## 未做项
+
+未运行产品 live、联网探针、依赖安装、ECC 全量测试、`just ci`、ContextView 六门/九门、Cargo 或产品 runtime；未修改、提交、推送任何文件；未读取 R1 报告、实施日志、supervisor 决策笔记；未验收并行 WP-02。冻结十二文档门未运行，按约定留给修复后取得语义 GREEN 的 supervisor。
+
+```review-manifest
+{
+  "verdict": "RED",
+  "review_ordinal": 2,
+  "candidate_head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+  "diff_fingerprint": "87b5685899e12ebf4c9aa17ce7d86aa1069729626020758b7d50dc454a26752b",
+  "review_scope": "workflow-final",
+  "blockers": [
+    {
+      "id": "future-candidate-transition-missing",
+      "severity": "P1",
+      "summary": "两份未来 prompt 均缺少实施后合法的 implement 候选迁移，首轮 GREEN 无法按所写顺序被状态机消费",
+      "evidence": "docs/plan/2026-09-05-ecc-implementation-prompt.md:99",
+      "in_scope": true,
+      "needs_owner_decision": false,
+      "acceptance_item": "A3"
+    },
+    {
+      "id": "contextview-review-budget-overflow",
+      "severity": "P1",
+      "summary": "ContextView 单一 stage/cycle 计划六轮顺序评审，超过冻结的初审加三次复审及三次修复预算",
+      "evidence": "ContextView/docs/plan/2026-09-05-ecc-implementation-prompt.md:116",
+      "in_scope": true,
+      "needs_owner_decision": false,
+      "acceptance_item": "A3"
+    }
+  ],
+  "p2_ledger_delta": [
+    {
+      "id": "portable-control-evidence-coordinate",
+      "first_seen_candidate": "87b5685899e12ebf4c9aa17ce7d86aa1069729626020758b7d50dc454a26752b",
+      "location": "research/ecc/2026-09-05-ecc-unified-research.md:16",
+      "evidence": "文中的 control/internet-observation.json 等控制证据坐标在两个候选内不存在，实物位于冻结审查包的 sibling evidence/runtime",
+      "impact": "交付离开本次冻结审查包后不能按字面坐标回溯控制证据，但关键事实已嵌入正文，不阻断当前合同判断",
+      "status": "deferred",
+      "last_validated_candidate": "87b5685899e12ebf4c9aa17ce7d86aa1069729626020758b7d50dc454a26752b",
+      "resolution": "unresolved"
+    }
+  ],
+  "focused_gates": [
+    {
+      "name": "candidate-identity",
+      "exit_code": 0,
+      "summary": "SayDo HEAD 与 git-diff-v1 fingerprint 和冻结候选一致"
+    },
+    {
+      "name": "saydo-handoff-contract",
+      "exit_code": 0,
+      "summary": "validate_handoff status=valid，contract/risk/unapproved violations 均为空"
+    },
+    {
+      "name": "contextview-handoff-contract",
+      "exit_code": 0,
+      "summary": "validate_handoff status=valid，contract/risk/unapproved violations 均为空"
+    },
+    {
+      "name": "unified-report-parity",
+      "exit_code": 0,
+      "summary": "镜像字节一致；E/source/test 为 110/118/12，索引和源码坐标机械核对无缺失"
+    },
+    {
+      "name": "six-doc-hygiene",
+      "exit_code": 0,
+      "summary": "emoji、secret/真实家目录、隐藏 Unicode 和相对链接定向扫描均无阻断项"
+    },
+    {
+      "name": "runtime-transition-probe",
+      "exit_code": 0,
+      "summary": "成功复现新候选 rereview 被 unauthorized_candidate_change 拒绝，implement 携 GREEN 被 green_without_completed_rereview 拒绝"
+    },
+    {
+      "name": "contextview-review-budget-count",
+      "exit_code": 0,
+      "summary": "计划评审为 canonical 3 加 candidate 3，冻结 cycle 可用总评审数为 4"
+    }
+  ],
+  "stop_reason": null
+}
+```

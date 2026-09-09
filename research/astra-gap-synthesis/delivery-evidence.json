@@ -1,0 +1,128 @@
+{
+  "task": "astra-gap-synthesis",
+  "source_head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+  "reviewed_candidate_fingerprint": "bf119ec422359cec3e7e876ea9dc0a6950f85eacde9a68eaa89bc0c266089114",
+  "source_documents": "research/astra-gap-synthesis/source-manifest.json",
+  "review": {
+    "verdict": "GREEN",
+    "reviewer": "gpt-5.6-sol/max",
+    "context": "fresh_zero_context",
+    "ordinal": 1,
+    "blockers": 0,
+    "p2": 0,
+    "validator": {
+      "next_action": "full_gate",
+      "policy_mode": "policy",
+      "policy_revision": "2.4.2",
+      "policy_source": "policy:policy.frozen.json",
+      "rule_ids": [],
+      "status": "valid"
+    },
+    "finalize_status": "finalized",
+    "main_documents_unchanged_after_review": true,
+    "raw_review_sha256": "d0356b3f33f67ccd191d2d8e0dcdabec94df1c9d7fe6ee4b9d7b6473ed170bb6"
+  },
+  "fable_coverage": 29,
+  "astra_coverage": 11,
+  "final_p2_sweeps": 1,
+  "reviewed_candidate_gates": [
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "8f4b9dc0745464d96a4c87d8c6bcb15e894417284b9f9e051f47d910beb854e0",
+      "name": "synthesis-docs"
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "0469bc2d485165556a848b80a06f2c63745a291f79ddbafc7bdd6e6dfde544d4",
+      "name": "synthesis-probes"
+    }
+  ],
+  "final_document_checks": {
+    "command": "bash docs/plan/astra-gap-synthesis-control/docs-gate.sh",
+    "exit_code": 0,
+    "output_excerpt": [
+      "handoff status=valid",
+      "[ok] emoji gate: clean",
+      "[ok] active document links: files=142 broken=0",
+      "[ok] Fable 29 / Astra 11 coverage; source hashes; document links; whitespace; one workflow contract"
+    ]
+  },
+  "logs": [
+    {
+      "file": "research/astra-gap-synthesis/.local/synthesis-docs.log",
+      "bytes": 543,
+      "sha256": "8f4b9dc0745464d96a4c87d8c6bcb15e894417284b9f9e051f47d910beb854e0"
+    },
+    {
+      "file": "research/astra-gap-synthesis/.local/synthesis-probes.log",
+      "bytes": 1411,
+      "sha256": "0469bc2d485165556a848b80a06f2c63745a291f79ddbafc7bdd6e6dfde544d4"
+    }
+  ],
+  "files": [
+    {
+      "file": "docs/plan/2026-09-05-engineering-gap-consolidated.astra.md",
+      "bytes": 24600,
+      "sha256": "fef13279bb86c19d7ed691d57f17d6cb9ab3d368d3946902d40ffd7cd805d799"
+    },
+    {
+      "file": "docs/plan/IMPL-PROMPT-engineering-gap-consolidated.astra.md",
+      "bytes": 17185,
+      "sha256": "c96df7ae86bab3fd39a7801c7635acdffde5ba4c11706198757596bf223620db"
+    },
+    {
+      "file": "research/astra-gap-synthesis/comparative-probes.mts",
+      "bytes": 2522,
+      "sha256": "748275b87fed6eb8ebecaf6039312e50ed094018813e47ca7c31dd99abcfa8f2"
+    },
+    {
+      "file": "research/astra-gap-synthesis/check-artifacts.py",
+      "bytes": 1302,
+      "sha256": "6cd3e75fa05f0d98d196a82aae1672ab31d82aa85796de4d3b4e56da3d2d8541"
+    },
+    {
+      "file": "research/astra-gap-synthesis/coverage.json",
+      "bytes": 611,
+      "sha256": "deceab3a04c42dd0a229f034d5834a643c0a54ae49c01986d777fe55d977df7d"
+    },
+    {
+      "file": "research/astra-gap-synthesis/source-manifest.json",
+      "bytes": 745,
+      "sha256": "52629864092b31ab939556230c96f425fdb912bd90eac20139a43856e076e5e7"
+    },
+    {
+      "file": "research/astra-gap-synthesis/deferred-p2.json",
+      "bytes": 186,
+      "sha256": "f889ffc9159cbe666c1a2d200a6ba6dec51508f7aaf29f9c0374b7ff52143a54"
+    },
+    {
+      "file": "research/codex-findings/2026-09-05-engineering-gap-synthesis-astra-review.md",
+      "bytes": 10538,
+      "sha256": "531603a6889865b231a735bbfa8875c98390b4939b35e42024dd0320dfb6b3f0"
+    }
+  ],
+  "product_code_changes": false,
+  "schedule_changes": false,
+  "commit_push_install": false,
+  "not_run": [
+    "product full just ci",
+    "real provider calls",
+    "running runtime inspection",
+    "physical devices",
+    "deploy or upgrade"
+  ],
+  "procedural_events": [
+    {
+      "operation": "initial freeze",
+      "result": "missing_freeze_inputs",
+      "resolution": "added explicit policy before dispatch; preflight_ok"
+    },
+    {
+      "operation": "initial cycle-state advance",
+      "result": "missing_manifest",
+      "resolution": "passed original Markdown report instead of extracted JSON; advance and validation succeeded"
+    }
+  ]
+}

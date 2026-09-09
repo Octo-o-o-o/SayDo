@@ -36,10 +36,10 @@
 
 ## C4 · 回叫引擎(CallbackEngine)
 
-- **职责**:durable outbox 状态机 + PagerDuty 式升级链(L0 语音 → L1 桌面+ntfy → L2 电话 P1)+ 免打扰/输出仲裁。**不做**:消费原始事件(**只认 settle 后状态**,08 §3 硬规则 ②)、内容生成(C6 给 one_liner)。
+- **职责**:durable outbox 状态机 + PagerDuty 式升级链(L0 语音 → L1 桌面+ntfy/邮件(EMAIL-A 候选,可选并列) → L2 电话 P1)+ 免打扰/输出仲裁。**不做**:消费原始事件(**只认 settle 后状态**,08 §3 硬规则 ②)、内容生成(C6 给 one_liner)。
 - **接口面**:`CallbackOutboxEntry`(09 §6.3:trigger 七值/occurrenceKey 口径表/dedupeKey 四段 NOT NULL/活跃唯一索引/requeued 唯一语义/取消与返工冻结 superseded);投递口径=至少一次+dedupe 收敛(诚实注记);回叫话术 10 #29–#35。
 - **设计要点**:① settle 四项缺一不叫(proof 齐备才写 outbox);② 重建接通第一句=原因;③ DND 窗口 snooze 补叫;ack 后 resolution-timeout(缺省 30min)重升级;④ 输出仲裁:同时多事件按优先级序播报,不叠音(02 §5);⑤ 多任务回叫聚合=P1(05 §6 盲区表态,P0 兜底=通知优先级+仲裁)。
-- **依赖**:C3(settle 态)、C6(摘要)、A2(重建会话)、ntfy(E1 供给);被 D1 通知页消费。
+- **依赖**:C3(settle 态)、C6(摘要)、A2(重建会话)、ntfy(E1 供给)、邮件 SMTP submission(EMAIL-A 候选,可选,与 ntfy 并列;凭据经 setup secret 白名单 `SMTP_PASSWORD`);被 D1 通知页消费。
 - **失效与恢复**:重启扫活跃条目,同 dedupeKey 不重复入队("重启只叫一次");拨出成功与落盘间的重复窗口如实声明(≤1 次是测试断言不是上界)。
 - **验证归属**:§12-5 全绿(dedupe NOT NULL 反例/settle 缺一不叫/DND 补叫/重升级/取消冻结)。
 - **分期**:P0(L2 电话 P1)。

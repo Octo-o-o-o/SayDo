@@ -9,11 +9,11 @@
 
 <!-- schedule-pointer:begin -->
 schema_version=1
-revision=7
+revision=9
 active=none
 next=PG-02
-last_closed=GAP-02-consolidation
-evidence_ref=e2e/evidence/gap-02-consolidation.md
+last_closed=EMAIL-A-outbound
+evidence_ref=e2e/evidence/email-a-outbound.md
 updated_at=2026-09-09
 <!-- schedule-pointer:end -->
 
@@ -22,10 +22,10 @@ updated_at=2026-09-09
 ### 唯一串行链
 
 ```text
-PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop
+PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → EMAIL-A-outbound → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop
 ```
 
-断言形态：`PLAN2_chain == PROC-01>PG-01B>AS-01-AS-02>GAP-02-consolidation>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop`。
+断言形态：`PLAN2_chain == PROC-01>PG-01B>AS-01-AS-02>GAP-02-consolidation>EMAIL-A-outbound>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop`。
 
 PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代码批，也不占用 active/next。
 
@@ -113,6 +113,19 @@ PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代�
 - evidence path：`e2e/evidence/gap-02-consolidation.md`
 - 回滚上限：只能回到更保守档位（git hooks 绕过维持提级、M0 记忆只出提议、账本失败如实播报、日志降级不阻塞、审计 fail-closed）；不放宽 Gate 0 / S0–S3 / 审计不可变 / TTS 脱敏；不改 WS 词表、不改 DDL。`safe_default=keep_escalation + refuse_self_reported_trust + honest_ledger_outcome + no_ws_vocab_change`
 - 批卡摘要（执行卡 `docs/plan/IMPL-PROMPT-2026-09-09-gap-consolidation.md`）：缺口收敛小批，规模 M；canonical_change=yes。§1 SD-1/2/3（账本回执如实播报、M0 记忆提议确认环、package-script 执行归 S2）+ §2 九条（确认卡 kind 单源、git hooks 绕过 grammar、对话审计去原文、延迟观测准确性、redesign 失效刷新与局部失败、弹窗键盘闭环、`saydo doctor`、logger 背压隔离、BYOA 笼分档类型化）+ §3 移动确认路径核实。PG-02..06 批卡 A-ID / scope / gate 不改；PG-02 `depends_on` 按执行卡 §0 保持原文，关批时由 owner 决定是否补写。收口后接回 PG-02，不自动开 PG-02。
+
+### EMAIL-A-outbound · email-outbound-stage-a——**状态:已收口(2026-09-09 晚;I 链 `17dd011`→`dec54d2`→`fc3c662`,插批 `1409d71`,evidence `e2e/evidence/email-a-outbound.md`;owner 决策单第 12 节授权合并与实施;完整门禁绑定 `fc3c662`;无独立零上下文评审;真实 SMTP 发送 not_run)**
+
+- depends_on：GAP-02-consolidation evidence commit(已收口);canonical 先行项(04 §4 / 07 D11 / 09 §6.3 `thread_message_id` / C4)已随 I 链入库
+- A-ID exact-set：`close_set=[]`；`stop_loss_set=[]`(通道扩展,不关闭 program A 级项)
+- deferred exact-set：`[DF-EMAIL-B-INBOUND,DF-WEB-PUSH,DF-CALDAV]`(阶段 B 邮件入站文字轮次 adapter 待阶段 A 用过再议;Web Push / CalDAV 不各开独立候选)
+- scope roots：`packages/daemon/src/callback/**`(新增 `email.ts`,`sweep.ts` 增可选 `email` dep)、`packages/daemon/src/index.ts` SweepDeps 注入点与两通道皆未配置 warn、`packages/daemon/src/voice/redactor.ts` 复用(只读)、`packages/daemon/src/config/envFile.ts` secret 白名单加 `SMTP_PASSWORD`、`packages/daemon/src/storage/{ddl.ts,dao/outbox.ts}` v32 additive `thread_message_id`、`packages/contracts/src/types/outbox.ts` additive `threadMessageId`、`templates/saydo.env.example`、`packages/daemon/test/callback-email.test.ts`
+- focused gate：`FG-EMAIL-A` = `pnpm --filter @saydo/daemon exec vitest run test/callback-email.test.ts test/callback-sweep.test.ts test/callback.test.ts test/callback-ack.test.ts test/callback-desktop.test.ts test/focus-batch3.test.ts test/focus-rebuild-migration.test.ts`；`pnpm --filter @saydo/contracts exec vitest run`；`pnpm -r typecheck`
+- full gate：`just ci`；`pnpm exec playwright test`
+- evidence path：`e2e/evidence/email-a-outbound.md`(候选期证据 `e2e/evidence/gap-02-residual.md`)
+- 回滚上限：三键未配置即通道关闭,行为与现役一致;`thread_message_id` 为可空 additive 列不回退;`safe_default=email_off_when_unconfigured + notified_only_after_delivery + redactor_on_subject_and_reason + deeplink_without_token`
+- not_run：真实 SMTP 发送(需 owner 提供临时邮箱凭据,本机不代填);真实收件端线程展示
+- 批卡摘要：通知通道扩展,规模 S;canonical_change=yes(已随候选回写)。只发 ready_for_review / blocked / failed / approval_request;每任务一线程;DND 只发一次;全通道失败留 pending;不新增依赖(Node `net`/`tls` 最小 SMTP submission 客户端)。不做 IMAP/入站、不做 Web Push、不做 CalDAV。
 
 ### PG-02 · minimal-truth-gate-bootstrap
 

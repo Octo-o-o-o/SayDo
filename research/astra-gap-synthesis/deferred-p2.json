@@ -1,0 +1,6 @@
+{
+  "task": "astra-gap-synthesis",
+  "final_sweep_count": 1,
+  "items": [],
+  "result": "独立 reviewer 无 P2 delta；最终 sweep 核对无悬挂项，不修改方案或 prompt。"
+}

@@ -117,6 +117,8 @@ import {
 import { Retrieval } from "./memory/retrieval.js";
 import { CallbackEngine, dndWindowEnd } from "./callback/engine.js";
 import { consoleBaseUrl, postNtfy, renderNtfyMessage } from "./callback/ntfy.js";
+import { renderEmailMessage, resolveEmailTarget, sendEmailSmtp } from "./callback/email.js";
+import { setOutboxThreadMessageId } from "./storage/dao/outbox.js";
 import { inDndWindow } from "./recovery/reconciler.js";
 import { pickConsolePeerForTask, runCallbackSweep } from "./callback/sweep.js";
 import { notifyDesktop } from "./callback/desktop.js";
@@ -3546,6 +3548,11 @@ const ntfyTarget = RECOVERY_ONLY ? null : (() => {
   }
   return { server, topic };
 })();
+// EMAIL-A:邮件与 ntfy 并列可选;两者都未配置时 L1 只剩桌面通知(如实 warn,不假装有推送面)
+const emailTarget = RECOVERY_ONLY ? null : resolveEmailTarget(readSaydoEnv());
+if (!RECOVERY_ONLY && ntfyTarget === null && emailTarget === null) {
+  log.warn("callback L1 push channels off (NTFY_TOPIC and SMTP_HOST/SMTP_FROM/EMAIL_TO both missing): desktop notification only");
+}
 let callbackSweepBusy = false;
 const l1FailWarned = new Set<string>();
 const consoleBase = consoleBaseUrl(t2Cfg.tailnetHosts, PORT);
@@ -3606,6 +3613,12 @@ if (!RECOVERY_ONLY) scheduleRuntimeInterval(() => {
             enabled: ntfyTarget !== null,
             post: async (msg) => (ntfyTarget ? postNtfy(ntfyTarget, msg) : false),
             render: (d, entry) => renderNtfyMessage(d, entry, { consoleBase })
+          },
+          email: {
+            enabled: emailTarget !== null,
+            send: async (msg) => (emailTarget ? sendEmailSmtp(emailTarget, msg) : false),
+            render: (d, entry) => (emailTarget ? renderEmailMessage(d, entry, { consoleBase, from: emailTarget.from }) : null),
+            recordThread: (entryId, messageId) => setOutboxThreadMessageId(db, entryId, messageId, new Date().toISOString())
           },
           dnd: {
             inWindow: (now) => {

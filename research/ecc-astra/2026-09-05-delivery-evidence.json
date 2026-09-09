@@ -1,0 +1,328 @@
+{
+  "reviewed_candidate": "4e816187028a01f41d91df68e5a8033cc0c6c66d2883a8dd39b4fadd0dec1cbe",
+  "review_ordinal": 3,
+  "reviewed_bodies": {
+    "SayDo": {
+      "path": "docs/plan/2026-09-05-ecc-borrowing-assessment.astra.md",
+      "sha256": "e858089109d4ea91bf32abdd92728e97805eb0b107a15cfbf3db0ea87239f98f"
+    },
+    "ContextView": {
+      "path": "docs/plan/2026-09-05-ecc-borrowing-assessment.astra.md",
+      "sha256": "758498a426b8cf469689f91562a050eab3e633bac99d1b654375aa346deb4c84"
+    }
+  },
+  "sources": {
+    "SayDo": {
+      "head": "bcf8ea855f25b177888d9159f75e49214f3dd892",
+      "inputs": [
+        {
+          "path": "docs/plan/2026-09-05-ecc-borrowing-assessment.fable.md",
+          "sha256": "bdaf6fa5ea82037415664e39daaa44d39d55cde726decccd0fec615f438ebe35"
+        },
+        {
+          "path": "docs/plan/2026-09-05-ecc-borrowing-plan.md",
+          "sha256": "d73582a085ed9026f251e8563cd59d24b9cef5f7151787aefab7b97ee0756995"
+        },
+        {
+          "path": "research/ecc/2026-09-05-ecc-project-research.md",
+          "sha256": "7d6d695a8fb56bd4d838527851643b2a45cb0d5240fb03071af3520626da8716"
+        },
+        {
+          "path": "research/ecc/evidence-index.json",
+          "sha256": "1238c7a318068e3e17f76494c3738f984197f56328c944211e14829f98d45f79"
+        },
+        {
+          "path": "research/codex-findings/2026-09-05-ecc-research-r1.md",
+          "sha256": "bfd0bd68da44e2a5c2ea2ce70e7297380833be13af0806aea15969cebd25372f",
+          "role": "preexisting-link-dependency"
+        },
+        {
+          "path": "research/codex-findings/2026-09-05-ecc-research-r2.md",
+          "sha256": "54f0215c38f324c0e002b53982d610be20db9eeb76db77e9353c50b141ef9e35",
+          "role": "preexisting-link-dependency"
+        },
+        {
+          "path": "research/codex-findings/2026-09-05-ecc-research-r3.md",
+          "sha256": "42d2f5052cf7480af1360ab04caf9d01d655fc43b01dbb8fc8538b25d3a372ab",
+          "role": "preexisting-link-dependency"
+        },
+        {
+          "path": "research/codex-findings/2026-09-05-ecc-research-review.md",
+          "sha256": "448da62cf9a3604e6fae09a9f1ba70f37a4100dc756097d80ba44ceaf456e5b9",
+          "role": "preexisting-link-dependency"
+        },
+        {
+          "path": "research/ecc/2026-09-05-contextview-ecc-borrowing-plan.md",
+          "sha256": "a8a70f9f7004e5918d1ad001d2610ca8fd90085cc8ea57bbf323fc2603c6eef6",
+          "role": "preexisting-link-dependency"
+        },
+        {
+          "path": "research/ecc/contextview-delivery-manifest.json",
+          "sha256": "277454c2c637dbed079a6b6a49ad7e75faad03c401f3909820e1cf8e9191f8af",
+          "role": "preexisting-link-dependency"
+        },
+        {
+          "path": "research/ecc/contextview-reviewed-manifest.json",
+          "sha256": "6c2b2d206cf44ed50058ad80c1d52ee8ccbd3ca5a7bf038074ae807917ae470d",
+          "role": "preexisting-link-dependency"
+        },
+        {
+          "path": "research/ecc/deferred-p2-ledger.json",
+          "sha256": "dacaaad93ca18c3b7e8e6f1213efcfba3d6f5e2dce5363323db9ae36d00447f3",
+          "role": "preexisting-link-dependency"
+        },
+        {
+          "path": "research/ecc/delivery-body-receipts.json",
+          "sha256": "0abebae7fb8a325193918877cc4c883447d32acd1b999aa06652b001cdd33edf",
+          "role": "preexisting-link-dependency"
+        },
+        {
+          "path": "research/ecc/final-gate-evidence.json",
+          "sha256": "09c4e21f09eb1b6b9cb9de3fdb2c927142d06274497bb51828768579b130f776",
+          "role": "preexisting-link-dependency"
+        },
+        {
+          "path": "research/ecc/workflow-final.json",
+          "sha256": "1e6c00a984831d3708547dd48e2fcc3bf4a71f7d630830143040b53ae700806f",
+          "role": "preexisting-link-dependency"
+        }
+      ]
+    },
+    "ContextView": {
+      "head": "492fd5fe7183fc5517fb6a1ca811d8d5233eb1f3",
+      "inputs": [
+        {
+          "path": "docs/plan/2026-09-05-ecc-borrowing-assessment.fable.md",
+          "sha256": "70537e90cba8fbfe9b2ea7c3d9818d92f5b935cf6f8d737d4cb08b1f8e5c4171"
+        },
+        {
+          "path": "docs/research/2026-09-05-ecc-borrowing-plan.md",
+          "sha256": "6cb206df12ad90ade90a637cf2eebfdb6b54155c280cc8d710326b25939f3bea"
+        },
+        {
+          "path": "docs/research/2026-09-05-ecc-everything-claude-code-research.md",
+          "sha256": "43ff9943f4942567701139703789ef19ee71c0c34a486f2dd868310d18867a7b"
+        },
+        {
+          "path": "docs/research/2026-09-05-ecc-project-research.md",
+          "sha256": "d5cc822c589c1a40f34de995c6ce0a7e16aac58ca85f123bac2a4688e3aa25bd"
+        },
+        {
+          "path": "docs/research/ecc-evidence-index.json",
+          "sha256": "1238c7a318068e3e17f76494c3738f984197f56328c944211e14829f98d45f79"
+        },
+        {
+          "path": "docs/research/2026-09-05-ecc-review-and-delivery.md",
+          "sha256": "448da62cf9a3604e6fae09a9f1ba70f37a4100dc756097d80ba44ceaf456e5b9",
+          "role": "preexisting-link-dependency"
+        },
+        {
+          "path": "docs/research/2026-09-05-ecc-review-r1.md",
+          "sha256": "bfd0bd68da44e2a5c2ea2ce70e7297380833be13af0806aea15969cebd25372f",
+          "role": "preexisting-link-dependency"
+        },
+        {
+          "path": "docs/research/2026-09-05-ecc-review-r2.md",
+          "sha256": "54f0215c38f324c0e002b53982d610be20db9eeb76db77e9353c50b141ef9e35",
+          "role": "preexisting-link-dependency"
+        },
+        {
+          "path": "docs/research/2026-09-05-ecc-review-r3.md",
+          "sha256": "42d2f5052cf7480af1360ab04caf9d01d655fc43b01dbb8fc8538b25d3a372ab",
+          "role": "preexisting-link-dependency"
+        }
+      ],
+      "concurrent_work": "Original worktree has untracked Cargo.toml, crates/ctxpect-core and crates/ctxpect-schema plus contexpect-wp02-core acceptance contract. In progress, not validated by this task; snapshot is committed foundation."
+    },
+    "ECC": {
+      "head": "e04ea0b9cc8248686edf5ac751cadff550e162b8",
+      "inputs": []
+    }
+  },
+  "gates": [
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "187b2b4c51f7da09fff516c424a5ed05f663bd138875f47d03071aa2cf760e14",
+      "name": "diff-check",
+      "command": "git diff --check",
+      "log_name": "diff-check-attempt-1.log",
+      "log_bytes": 198
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "eefa96732d5fcf7725ec05fc3c979a7d18c8a9a16ac50035152dde272f548afa",
+      "name": "astra-evidence",
+      "command": "python3 docs/plan/ecc-astra-20260905/astra-evidence.py",
+      "log_name": "astra-evidence-attempt-1.log",
+      "log_bytes": 327
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "fefc983db17c3af9b34756eeb5b82200c6bd1fa3087468e0b137136f42636cba",
+      "name": "emoji-check",
+      "command": "bash scripts/check-emoji.sh",
+      "log_name": "emoji-check-attempt-1.log",
+      "log_bytes": 221
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "5c997a6f9d3078fea3fe871b44aa27523929905483b9b6b1c50c5d9c0d22f20f",
+      "name": "saydo-doc-links",
+      "command": "node scripts/check-doc-links.mjs",
+      "log_name": "saydo-doc-links-attempt-1.log",
+      "log_bytes": 245
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "db62901f694ea007a50f3cef9253ee3fd3f968fbab88bd7108b9183ab245cc91",
+      "name": "saydo-privacy",
+      "command": "node scripts/check-public-tree-privacy.mjs --fs",
+      "log_name": "saydo-privacy-attempt-1.log",
+      "log_bytes": 265
+    },
+    {
+      "attempt": 2,
+      "exit_code": 0,
+      "log_sha256": "7bb96ada5a03a41ad3dc56bb53cc8f9ebf8fedf01709f2da7e76d62c674113d8",
+      "name": "saydo-schedule",
+      "command": "node scripts/schedule-pointer.mjs --check",
+      "log_name": "saydo-schedule-attempt-2.log",
+      "log_bytes": 281
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "c29e43520349cf4532932626d7f27b4e4472c96528b878d091be86e2880d1a40",
+      "name": "context-docs-structure",
+      "command": "python3 scripts/check_docs.py",
+      "log_name": "context-docs-structure-attempt-1.log",
+      "log_bytes": 251
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "e5674f31165ceead3bc22f306e235707665e6e99f1beaa356b76ced66350d3f2",
+      "name": "context-acceptance-structure",
+      "command": "python3 scripts/check_acceptance.py --structure",
+      "log_name": "context-acceptance-structure-attempt-1.log",
+      "log_bytes": 235
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "34433fd85c6f7b5914739121abef8dce555a34c0f2f34fc45d3b4b7d138f4631",
+      "name": "context-traceability",
+      "command": "python3 scripts/check_acceptance.py --traceability",
+      "log_name": "context-traceability-attempt-1.log",
+      "log_bytes": 290
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "36cb1efc46b106ec6625761dc71f0e22177af4ddc153bfa09ffb99230025440e",
+      "name": "context-corpus",
+      "command": "python3 scripts/check_acceptance.py --corpus",
+      "log_name": "context-corpus-attempt-1.log",
+      "log_bytes": 343
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "00195790710c806f5c94bf30466c4815add38cf4bcc294bb3231efcbf7d42869",
+      "name": "context-semantic-team",
+      "command": "python3 scripts/check_semantic_team.py",
+      "log_name": "context-semantic-team-attempt-1.log",
+      "log_bytes": 262
+    },
+    {
+      "attempt": 1,
+      "exit_code": 0,
+      "log_sha256": "5509aed621af91a548604d2cf2224b1991c42342d1e66ee47c3322d007e96e96",
+      "name": "context-negative-tests",
+      "command": "TMPDIR=/tmp python3 -m unittest discover -s tests/acceptance -p 'test_*.py'",
+      "log_name": "context-negative-tests-attempt-1.log",
+      "log_bytes": 2653
+    }
+  ],
+  "logs": [
+    {
+      "exit_code": 0,
+      "log_bytes": 2709484,
+      "log_sha256": "5f704e0fbeedd374a58b05fb64b542a8f4bc96f9bf05551f0fcbac3cc341ae07",
+      "status": "completed",
+      "name": "implementation-r0.log"
+    },
+    {
+      "exit_code": -15,
+      "log_bytes": 1531239,
+      "log_sha256": "4de4b2791542ad06a0b9c9af4f3af306a992951b10347a160cfd09bffa1cef75",
+      "status": "timeout",
+      "name": "review-r1.log"
+    },
+    {
+      "exit_code": 0,
+      "log_bytes": 637592,
+      "log_sha256": "0f9c5d8184e0eaef0ee12bee459026a11efa9dfaa1cae601f9242cc130a0a528",
+      "status": "completed",
+      "name": "review-r1-replacement.log"
+    },
+    {
+      "exit_code": 0,
+      "log_bytes": 1945836,
+      "log_sha256": "1a41dba0bbb31a0d680af67cee7c033cba042433159ebadf7b7c4178cb8da9e4",
+      "status": "completed",
+      "name": "repair-r1.log"
+    },
+    {
+      "exit_code": 0,
+      "log_bytes": 1386264,
+      "log_sha256": "3b5ac9c3bde817e7e852edf16fd0a54884699eea3da5f77d9fe32eaffd979725",
+      "status": "completed",
+      "name": "review-r2.log"
+    },
+    {
+      "exit_code": 0,
+      "log_bytes": 658382,
+      "log_sha256": "c22c7782a491a3eea7b10b3dd1a9c089d39dd40576e29715693535d7b09ecf61",
+      "status": "completed",
+      "name": "review-r3.log"
+    },
+    {
+      "exit_code": 1,
+      "log_bytes": 2677,
+      "log_sha256": "7355247f3d8136eb82f8a9bfaf17bc43a86802904c2e2fad9d8a0af48e03793c",
+      "status": "failed",
+      "name": "final-gates.log"
+    }
+  ],
+  "files": {
+    "SayDo": {
+      "plan": {
+        "path": "docs/plan/2026-09-05-ecc-borrowing-assessment.astra.md",
+        "sha256": "9b45dbc7c39cec1ef35cc0a6c84bbf4b9682d6c288b105d2bb08955a46bcf2ee",
+        "lines": 385
+      },
+      "review": {
+        "path": "research/codex-findings/2026-09-05-ecc-astra-review.md",
+        "sha256": "e85dd98a698f2100946021a72f124907d2bce0f357cb48a036a6951eeb21c6b9"
+      }
+    },
+    "ContextView": {
+      "plan": {
+        "path": "docs/plan/2026-09-05-ecc-borrowing-assessment.astra.md",
+        "sha256": "9b281d6bf3f00a0c9acaa22a5ddb1dd133cef5d493e7e3205e9649a60c15bbf9",
+        "lines": 360
+      },
+      "review": {
+        "path": "docs/research/2026-09-05-ecc-astra-review.md",
+        "sha256": "e85dd98a698f2100946021a72f124907d2bce0f357cb48a036a6951eeb21c6b9"
+      }
+    }
+  },
+  "metadata_policy": "Only review-stage status and final supervisor evidence are registered; recommendations unchanged."
+}

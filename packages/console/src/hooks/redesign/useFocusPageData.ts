@@ -1,7 +1,8 @@
 // useFocusPageData:Focus 对话页数据 hook(接线合同 README FocusPageView)。
 // 数据源:GET /api/focuses/:id + /timeline + /api/focuses 列表(openByOwner) + transcript 懒加载。
-// VIEW-01:失效来源=本页动作 reload + 主 WS 事件 + 回前台 + 有界兜底(useRefreshSignal);
-// 同刻单在途、卸载/切 focus abort、晚到响应丢弃(pageLoader)。后台刷新按 seq 合并进已翻出的时间线。
+// VIEW-01:失效来源=本页动作 reload + 主 WS 事件 + 回前台 + 有界兜底;同刻单在途、卸载/切 focus abort、
+// 晚到响应丢弃——全部由 pageSession 承载,本 hook 只是 React 薄包装(纯会话可无 DOM 单测)。
+// 后台刷新按 seq 合并进已翻出的时间线。
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet } from "../../lib/api";
@@ -21,8 +22,7 @@ import {
   type FocusListRow,
   type TranscriptResponse
 } from "./mappers";
-import { createPageLoader, type PageLoader } from "./pageLoader";
-import { useRefreshSignal } from "./useRefreshSignal";
+import { createPageSession, type PageSession, type PageSessionCallbacks, type PageSessionRefresh } from "./pageSession";
 
 const TIMELINE_LIMIT = 50;
 
@@ -38,7 +38,7 @@ export interface FocusPageDataState {
   onExpandSegment: (sessionRef: string) => Promise<string[] | null>;
 }
 
-interface FocusLoadResult {
+export interface FocusLoadResult {
   view: FocusPageView;
   liveRefs: ReadonlySet<string>;
   nextCursor: number | null;
@@ -120,6 +120,20 @@ function mergeBySeq(a: readonly TimelineItem[], b: readonly TimelineItem[], live
   return markLiveSegments([...bySeq.values()].sort((x, y) => x.seq - y.seq), liveRefs);
 }
 
+/** 纯会话:Focus 页数据序列(供 hook 与单测共用) */
+export function createFocusPageSession(
+  focusId: string,
+  currentSessionId: string | null | undefined,
+  callbacks: PageSessionCallbacks<FocusLoadResult>,
+  refresh?: PageSessionRefresh
+): PageSession {
+  return createPageSession<FocusLoadResult>({
+    load: (signal) => loadFocus(focusId, currentSessionId, signal),
+    callbacks,
+    ...(refresh ? { refresh } : {})
+  });
+}
+
 export function useFocusPageData(focusId: string, currentSessionId?: string | null): FocusPageDataState {
   const [view, setView] = useState<FocusPageView | null>(null);
   const [loading, setLoading] = useState(true);
@@ -130,7 +144,7 @@ export function useFocusPageData(focusId: string, currentSessionId?: string | nu
   const liveRefsRef = useRef<ReadonlySet<string>>(new Set());
   const focusIdRef = useRef(focusId);
   focusIdRef.current = focusId;
-  const loaderRef = useRef<PageLoader | null>(null);
+  const sessionRef = useRef<PageSession | null>(null);
   const hasViewRef = useRef(false);
   // 用户已向上翻页:后台刷新只合并首页,不回退游标
   const pagedRef = useRef(false);
@@ -144,8 +158,7 @@ export function useFocusPageData(focusId: string, currentSessionId?: string | nu
     timelineRef.current = [];
     setNextCursor(null);
 
-    const loader = createPageLoader<FocusLoadResult>({
-      load: (signal) => loadFocus(focusId, currentSessionId, signal),
+    const session = createFocusPageSession(focusId, currentSessionId, {
       onResult: (res) => {
         liveRefsRef.current = res.liveRefs;
         const merged = hasViewRef.current
@@ -164,16 +177,15 @@ export function useFocusPageData(focusId: string, currentSessionId?: string | nu
         setLoading(false);
       }
     });
-    loaderRef.current = loader;
-    loader.run();
+    sessionRef.current = session;
+    session.run();
     return () => {
-      loader.dispose();
-      loaderRef.current = null;
+      session.dispose();
+      sessionRef.current = null;
     };
   }, [focusId, currentSessionId]);
 
-  useRefreshSignal(() => loaderRef.current?.run());
-  const reload = useCallback(() => loaderRef.current?.run(), []);
+  const reload = useCallback(() => sessionRef.current?.run(), []);
 
   const loadOlder = useCallback(async () => {
     if (nextCursor == null) return;
