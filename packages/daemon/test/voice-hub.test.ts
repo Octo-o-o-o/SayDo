@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WebSocket } from "ws";
 import { newId } from "@saydo/contracts";
 import { VoiceHub, VOICE_WS_PROTOCOL_VERSION } from "../src/voice/hub.js";
+import { LatencyCollector } from "../src/obs/latency.js";
 import type { Logger } from "../src/obs/logger.js";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -1260,5 +1261,32 @@ describe("dogfood 冻结尸检回修(2026-07-28):死链诚实化", () => {
     await new Promise((r) => setTimeout(r, 150));
     expect(warns.some((w) => w.includes("no pipeline peer"))).toBe(true);
     console_.close();
+  });
+});
+
+describe("GAP-02 2.4 延迟观测真实接线(voice/hub.ts latency.stage → onLatencyStage → LatencyCollector)", () => {
+  it("pipeline 注入 latency.stage 经 hub 事件进 collector;playout 经 tts.playout 派生;五段齐结算 completed", async () => {
+    const collector = new LatencyCollector();
+    const turnId = newId("ses");
+    let clock = 1000;
+    const now = () => (clock += 100);
+    hub.setEvents({
+      onLatencyStage: (msg) => void collector.record(msg.turnId, msg.stage, now()),
+      onPlayout: (msg) => {
+        const m = /^s-(.+)-\d+$/.exec(msg.sentenceId);
+        if (m) collector.record(m[1] as string, "playout_start", now());
+      }
+    });
+    for (const stage of ["vad_end", "asr_final", "llm_first_token", "tts_first_byte"] as const) {
+      hub.injectPipelineMsg({ t: "latency.stage", sessionId: SES, turnId, stage, atMs: 1 });
+    }
+    hub.injectPipelineMsg({ t: "tts.playout", sessionId: SES, sentenceId: `s-${turnId}-0`, watermarkMs: 1 });
+    expect(collector.countsSnapshot().completed).toBe(1);
+    expect(collector.traces()[0]!.turnId).toBe(turnId);
+    expect(collector.report().slo.status).toBe("undeterminable"); // n=1 <20,不给 pass
+    // 迟到的重复段不复活已结算轮
+    hub.injectPipelineMsg({ t: "latency.stage", sessionId: SES, turnId, stage: "vad_end", atMs: 1 });
+    expect(collector.countsSnapshot().late).toBe(1);
+    expect(collector.pendingSize()).toBe(0);
   });
 });

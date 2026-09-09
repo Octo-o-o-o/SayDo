@@ -118,6 +118,8 @@ async function request<T>(path: string, init: RequestInit, policy: RequestPolicy
       return await requestOnce<T>(path, init, policy);
     } catch (err) {
       const apiErr = toApiError(err, path);
+      // 调用方已 abort(页面卸载/切参):不再退避重试,直接把错误交回给序列器丢弃
+      if (init.signal?.aborted) throw apiErr;
       if (attempt >= retryAllowance(apiErr, policy.idempotent)) throw apiErr;
       await sleep(nextBackoffDelayMs(attempt));
       attempt += 1;
@@ -125,8 +127,12 @@ async function request<T>(path: string, init: RequestInit, policy: RequestPolicy
   }
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
-  return request<T>(path, { headers: { "x-saydo-token": capToken() } }, { idempotent: true, expectJson: true });
+export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
+  return request<T>(
+    path,
+    { headers: { "x-saydo-token": capToken() }, ...(signal ? { signal } : {}) },
+    { idempotent: true, expectJson: true }
+  );
 }
 
 /** 动作写口(接线批任务②;G1 同 token 门;失败抛 daemon 的 {code,message} 人话) */

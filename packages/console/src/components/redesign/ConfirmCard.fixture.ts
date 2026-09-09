@@ -43,6 +43,16 @@ export const confirmCardFixtures: { name: string; data: ConfirmCardData }[] = [
     }
   },
   {
+    name: "memory · 普通 M0 记忆提议(SD-2;超时不记)",
+    data: {
+      receiptId: "mrc_1",
+      kind: "memory",
+      keys: ["有一条关于你的偏好:提交信息用中文。记不记?"],
+      secondsLeft: null,
+      resolved: null
+    }
+  },
+  {
     name: "已接受(你确认过,进 trusted)",
     data: { receiptId: "rc_5", kind: "readiness", keys: ["三条已确认"], secondsLeft: null, resolved: "accepted" }
   },

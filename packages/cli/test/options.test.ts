@@ -40,6 +40,19 @@ describe("CLI 参数", () => {
     expect(parseCliOptions(["up", "--home", "/tmp/saydo"], { SAYDO_DAEMON_PORT: "48124" }).port).toBe(47100);
   });
 
+  it("doctor 接受 --json,其它命令拒绝", () => {
+    expect(parseCliOptions(["doctor", "--home", "/tmp/saydo", "--json"])).toEqual({
+      command: "doctor",
+      home: resolve("/tmp/saydo"),
+      port: 47100,
+      openBrowser: true,
+      json: true
+    });
+    expect(parseCliOptions(["doctor", "--home", "/tmp/saydo"]).json).toBe(false);
+    expect(() => parseCliOptions(["status", "--json"])).toThrow(/仅 doctor/);
+    expect(() => parseCliOptions(["doctor", "--json", "--json"])).toThrow(/参数重复/);
+  });
+
   it("拒绝未知命令与非法端口", () => {
     expect(() => parseCliOptions(["start"])).toThrow(/用法/);
     expect(() => parseCliOptions(["up", "--port", "0"])).toThrow(/端口非法/);

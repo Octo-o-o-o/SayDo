@@ -7,9 +7,15 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
-import { newId } from "@saydo/contracts";
+import {
+  CONFIRM_KINDS,
+  NON_SEMANTIC_CONFIRM_KINDS as CONTRACT_NON_SEMANTIC_KINDS,
+  SEMANTIC_MUTATION_KINDS as CONTRACT_SEMANTIC_KINDS,
+  newId
+} from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
 import {
+  CONFIRM_KIND_PARITY,
   ConfirmationLoop,
   NON_SEMANTIC_CONFIRM_KINDS,
   SEMANTIC_MUTATION_KINDS,
@@ -267,11 +273,12 @@ describe("confirmation_ledger ④a", () => {
   });
 
   it("g) classifier 穷举:PendingPayload 每个 kind 必须在 SEMANTIC 或 NON_SEMANTIC 之一", () => {
-    // 以类型字面量构造全 kind 表(expectation_ack 仅在 SEMANTIC 集合,尚无 PendingPayload 形态)
+    // 以类型字面量构造全 kind 表(memory = SD-2 普通记忆提议环;GAP-02 2.1 起单源在 @saydo/contracts)
     const pendingKinds = [
       "dispatch",
       "runtime_effect",
       "readiness",
+      "memory",
       "project_anchor",
       "focus_anchor",
       "focus_obligation",
@@ -291,6 +298,12 @@ describe("confirmation_ledger ④a", () => {
     }
     // 新 kind 未登记=失败:SEMANTIC 必须含 expectation_ack
     expect(semantic.has("expectation_ack")).toBe(true);
+    // GAP-02 2.1:daemon 导出的两集合就是 contracts 单源(同一引用),并集与 CONFIRM_KINDS 全等且无重复
+    expect(SEMANTIC_MUTATION_KINDS).toBe(CONTRACT_SEMANTIC_KINDS);
+    expect(NON_SEMANTIC_CONFIRM_KINDS).toBe(CONTRACT_NON_SEMANTIC_KINDS);
+    expect(new Set([...semantic, ...nonSemantic])).toEqual(new Set(CONFIRM_KINDS));
+    expect(new Set(CONFIRM_KINDS)).toEqual(new Set(pendingKinds));
+    expect(CONFIRM_KIND_PARITY).toBe(true);
     // isFocusSemanticKind 与集合一致
     for (const k of SEMANTIC_MUTATION_KINDS) {
       expect(ConfirmationLoop.isFocusSemanticKind(k)).toBe(true);

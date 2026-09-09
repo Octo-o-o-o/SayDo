@@ -90,7 +90,7 @@ import {
 } from "../memory/credentialLiterals.js";
 import type { HotwordStore } from "../memory/hotwords.js";
 import type { LiveVoiceSessions } from "../live/voiceSessions.js";
-import type { ConfirmationLoop } from "../live/confirm.js";
+import type { ConfirmationLoop, MemoryPendingPayload } from "../live/confirm.js";
 import { redactForSpeech } from "../voice/redactor.js";
 import { assessDeep, evidenceDigestOf, type DeepAssessInput, type DeepReviewGovernor } from "../evaluator/readiness.js";
 import { explainResult } from "../summary/explain.js";
@@ -1300,7 +1300,8 @@ export function registerLiveTools(reg: ToolRegistry, deps: LiveToolsDeps): void 
     {
       name: "remember",
       description:
-        "记一条用户亲述/确认的事实(偏好类必须先问过用户记不记);来源锚系统自取当前对话轮。" +
+        "记一条用户亲述的事实;来源锚系统自取当前对话轮。trust 只能是 user_stated(用户亲口说的原话/事实)。" +
+        "tier=M0(用户偏好/权限类)不会直接写入:系统会把这条偏好复述给用户问“记不记”,用户确认后才记——你不要自己问、不要自己复述、不要重复调用;" +
         "用户亲口给出某就绪清单项时带 readinessKey(候选绑定,之后经 confirmReadiness 复述确认才算覆盖;绝不给用户没说过的内容标 key)",
       parameters: {
         type: "object",
@@ -1310,7 +1311,7 @@ export function registerLiveTools(reg: ToolRegistry, deps: LiveToolsDeps): void 
           projectId: { type: "string" },
           tier: { type: "string", enum: ["M0", "M1", "M2", "M3"] },
           claim: { type: "string" },
-          trust: { type: "string", enum: ["user_stated", "user_approved"] },
+          trust: { type: "string", enum: ["user_stated"] },
           readinessKey: { type: "string" }
         }
       }
@@ -1325,10 +1326,52 @@ export function registerLiveTools(reg: ToolRegistry, deps: LiveToolsDeps): void 
         throw err;
       }
       const trust = a["trust"];
-      if (trust !== "user_stated" && trust !== "user_approved") {
-        return toolError("invalid_trust", "remember 只接受 user_stated/user_approved(09 §13)");
-      }
       const readinessKey = typeof a["readinessKey"] === "string" && a["readinessKey"] !== "" ? a["readinessKey"] : undefined;
+      // SD-2(09 §4/§13):user_approved 在任何工具入口都不可自报——只能由确认环(readiness / memory)产生;
+      // 带 readinessKey 时沿用四闸③的既有错误码(readiness_key_trust),其余入口报 trust_not_self_reportable
+      if (trust === "user_approved" && readinessKey === undefined) {
+        return toolError("trust_not_self_reportable", "user_approved 不是 remember 可自报的值——确认升格只由确认环产生(09 §4/§13)");
+      }
+      if (trust !== "user_stated" && trust !== "user_approved") {
+        return toolError("invalid_trust", "remember 只接受 user_stated(09 §13)");
+      }
+      const tier = a["tier"];
+      if (tier !== "M0" && tier !== "M1" && tier !== "M2" && tier !== "M3") {
+        return toolError("invalid_tier", "tier 只能是 M0–M3");
+      }
+      if (tier === "M0" && readinessKey === undefined) {
+        // SD-2:普通 M0 不凭模型自报的 trust 直落 trusted——先出提议、经确认环、确认消费后才写账本(memoryConfirm)。
+        // 提议正文留在 pending payload,不先写 ledger(不写 candidate、不伪装 readinessKey、不降 M1)。
+        if (claim.trim() === "") return toolError("empty_claim", "偏好内容为空,记不了");
+        if (deps.confirm.pending(ctx.sessionId)) {
+          return toolError("confirm_busy", "现在有别的确认在等用户答复,先裁决那件再记偏好");
+        }
+        // projectId 优先取会话锚定项目(同四闸④精神,防跨项目污染);会话无项目时才用 Brain 自报
+        const sesProject = deps.sessions.ensureSession(ctx.sessionId).session.projectId;
+        const projectIdForMemory = sesProject ?? (typeof a["projectId"] === "string" && a["projectId"] !== "" ? (a["projectId"] as string) : undefined);
+        const claimDigest = claimDigestOf(claim);
+        const receiptId = newId("mrc");
+        const sentenceId = `s-memory-${ctx.turnId}`;
+        const promptText = `有一条关于你的偏好:${claim}。记不记?`;
+        const enqueued = deps.say(ctx.sessionId, sentenceId, promptText, { turnId: ctx.turnId, origin: "confirmation" });
+        if (enqueued === false) return toolError("tts_unavailable", "偏好确认句没有呈现到在线语音或本会话控制台,这条没记");
+        const payload: MemoryPendingPayload = {
+          kind: "memory",
+          tier: "M0",
+          claim,
+          claimDigest,
+          ...(projectIdForMemory ? { projectId: projectIdForMemory } : {}),
+          sourceTurnId: ctx.turnId
+        };
+        const presented = deps.confirm.tryPresent(ctx.sessionId, { receiptId, sentenceId, promptText, payload });
+        if (!presented) return toolError("confirm_busy", "确认状态发生竞争,这条偏好没登记,稍后再试");
+        deps.audit.record({
+          actor: "daemon",
+          action: "memory.m0_proposed",
+          meta: { sessionId: ctx.sessionId, turnId: ctx.turnId, receiptId, claimDigest, ...(projectIdForMemory ? { projectId: projectIdForMemory } : {}) }
+        });
+        return { ok: true, presented: true, receiptId, control: "await_user" };
+      }
       let projectId = typeof a["projectId"] === "string" ? (a["projectId"] as string) : undefined;
       let boundTurnText: string | undefined;
       if (readinessKey !== undefined) {
@@ -1356,7 +1399,7 @@ export function registerLiveTools(reg: ToolRegistry, deps: LiveToolsDeps): void 
       }
       try {
         const ev = deps.ledger.add({
-          tier: a["tier"] as "M0" | "M1" | "M2" | "M3",
+          tier,
           ...(projectId !== undefined ? { projectId } : {}),
           claim,
           // source daemon 自取(溯源锚 = 当前转写轮;不信 Brain 报——防伪造 SourceRef)。

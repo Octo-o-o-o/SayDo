@@ -96,6 +96,7 @@ import { BrainTools } from "./brain/tools.js";
 import { DecisionPackageFactory } from "./packages/factory.js";
 import { ArtifactStore } from "./artifacts/store.js";
 import { MemoryLedger } from "./memory/ledger.js";
+import { confirmMemoryProposal } from "./memory/m0Confirm.js";
 import { isMemorySecretLiteralError, memorySecretLiteralReject } from "./memory/credentialLiterals.js";
 import { approveCandidate, nominateFromSession, projectM1Notes, rejectCandidate } from "./memory/growth.js";
 import { bootstrapProjectFoundation } from "./memory/foundationOps.js";
@@ -868,6 +869,9 @@ server.on("request", (req, res) => {
         pipelineHealthAgeMs: Number.isFinite(readiness.healthAgeMs) ? readiness.healthAgeMs : null,
         asr: readiness.pipeline.asr,
         tts: readiness.pipeline.tts,
+        // GAP-02 2.8:普通日志写失败/溢出只降级不阻塞业务,这里让降级可见(审计写失败不在此,它 fail-closed 抛错)
+        loggerDegraded: log.health().degraded,
+        logger: log.health(),
         recovery: RECOVERY_ONLY
           ? { active: true, mode: "recovery_only", violations: activeConfigValidation.violations }
           : { active: false, mode: "normal" },
@@ -2231,8 +2235,10 @@ function serveConsoleStatic(urlPath: string, res: ServerResponse): boolean {
   return true;
 }
 
-// M3 五段延迟收集(latency.stage 事件 -> trace + JSONL 行)
-const latencyCollector = new LatencyCollector();
+// M3 五段延迟收集(latency.stage 事件 -> trace + JSONL 行)。GAP-02 2.4:pending 容量 500 / TTL 120s,
+// 定时清扫把未出声超时轮与已出声缺段轮结算进分母;时钟统一 performance.now()(daemon 到达时刻)。
+const latencyCollector = new LatencyCollector({ maxTraces: 500, maxPending: 500, pendingTtlMs: 120_000 });
+setInterval(() => latencyCollector.sweep(performance.now()), 15_000).unref();
 
 // ---- A3 对话环最小 live 形态(5.4 可日用):asr.final -> 对话档 LLM -> tts.say ----
 // ~/.saydo/.env 读取(密钥不进配置文件;只读进本进程解析器,不回写 process.env)
@@ -2909,6 +2915,8 @@ const liveDialog: LiveDialog = new LiveDialog({
   ensureProjectAnchorReady,
   readinessAssemble,
   readinessConfirm,
+  // SD-2:普通 M0 记忆确认环 accept 后写账本(user_approved 只由此产生)
+  memoryConfirm: (input) => confirmMemoryProposal({ db, ledger: memoryLedger, audit }, input),
   readinessInstructions,
   loadFocusTranscript: loadFocusTranscriptLines,
   // F27+接线补:Focus delta(此前从未接线)+[当前 Focus]背景段;stage 0 恒空(基线 diff 为空)
@@ -2922,7 +2930,13 @@ const liveDialog: LiveDialog = new LiveDialog({
     if (st === 0) return "";
     return [focusBrainInstructionDelta(st), renderFocusContextSection(db, sid)].filter(Boolean).join("\n\n");
   },
-  onLlmArrived: (turnId, atMs) => void latencyCollector.record(turnId, "llm_first_token", atMs),
+  onLlmArrived: (turnId, atMs, meta) =>
+    void latencyCollector.record(
+      turnId,
+      "llm_first_token",
+      atMs,
+      meta.toolCallsMade > 0 ? "tool" : meta.control ? "control" : undefined
+    ),
   configuredProvider: "api:openrouter"
 });
 liveDialogRef = liveDialog;
@@ -2981,11 +2995,15 @@ const voiceHub: VoiceHub = new VoiceHub(server, log.child({ mod: "voice" }), {
       log.warn("dialog turn rejected in recovery-only mode", { sessionId: msg.sessionId, turnId: msg.turnId });
       return;
     }
+    latencyCollector.start(msg.turnId, voiceHub.currentVoiceMode() === "hands_free" ? "hands_free" : "ptt", performance.now());
     void liveDialog.onAsrFinal(msg.sessionId, msg.turnId, msg.text).catch((err) =>
       log.error("dialog loop error", { error: projectCaughtText(err, "log_failed", 200) })
     );
   },
   onBargeIn: (msg) => {
+    // 打断轮从延迟 pending 结算为 cancelled,不再滞留到 TTL(GAP-02 2.4)
+    const bargedTurn = turnIdOfSentence(msg.truncatedSentenceId);
+    if (bargedTurn) latencyCollector.settle(bargedTurn, "cancelled");
     if (!RECOVERY_ONLY) liveDialog.onBargeIn(msg.sessionId, msg.truncatedSentenceId);
   },
   // W4 3.9:console 编辑后文本轮(11 §5.10 纠 ASR 误听)——作用户轮喂对话环(typed provenance;
@@ -3023,6 +3041,7 @@ const voiceHub: VoiceHub = new VoiceHub(server, log.child({ mod: "voice" }), {
       });
       return;
     }
+    latencyCollector.start(msg.turnId, "text", performance.now());
     void liveDialog.onAsrFinal(msg.sessionId, msg.turnId, msg.text).catch((err) =>
       log.error("turn.text dialog error", { error: projectCaughtText(err, "log_failed", 200) })
     );

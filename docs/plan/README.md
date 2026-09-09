@@ -4,7 +4,8 @@
 
 ## 当前入口
 
-- `IMPLEMENTATION-PLAN-2.md`:当前唯一排产源。`AS-01-AS-02`(PG-01B 后、PG-02 前)已于 2026-09-06 收口;指针 `active=none`、`next=PG-02`(未开工)。
+- `IMPLEMENTATION-PLAN-2.md`:当前唯一排产源。`AS-01-AS-02`(PG-01B 后、PG-02 前)已于 2026-09-06 收口;2026-09-09 在其后、PG-02 前插入的 `GAP-02-consolidation` 同日收口;指针 `active=none`、`next=PG-02`(未开工)。
+- `IMPL-PROMPT-2026-09-09-gap-consolidation.md`:GAP-02-consolidation 缺口收敛批唯一执行卡(§1 SD-1/2/3 + §2 九条 + §3 默认做项)。
 - `IMPL-PROMPT-ecc-as01-as02-privacy.md`:AS-01-AS-02 隐私批唯一执行卡(contract → implementation)。
 - `MIGRATION.md`:2026-07-29 双目录合并的执行记录、路径映射与回滚说明。
 - `REPO-MERGE-PROPOSAL.md`:2026-07-25 的 v2 前置方案;已由 `MIGRATION.md` 的实况执行记录 supersede。

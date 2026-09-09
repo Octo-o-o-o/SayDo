@@ -6,7 +6,7 @@
 // index.ts 只装配本模块;e2e 直接构造(注入 fake provider/fake say)。
 
 import type { Db } from "../storage/db.js";
-import type { NativeReplyOrigin } from "@saydo/contracts";
+import { textDigest, type NativeReplyOrigin } from "@saydo/contracts";
 import type { AuditSink } from "../obs/audit.js";
 import type { LlmProvider } from "../providers/types.js";
 import type { Logger } from "../obs/logger.js";
@@ -28,7 +28,8 @@ import type {
   ConfirmChannel,
   ConfirmOutcome,
   PendingConfirmation,
-  FocusPendingPayload
+  FocusPendingPayload,
+  MemoryPendingPayload
 } from "./confirm.js";
 import {
   ConfirmationLoop as ConfirmationLoopClass,
@@ -105,7 +106,8 @@ export interface LiveDialogDeps {
   /** Context Pack live 编译(缺省 null = 不注入) */
   packDeps?: LivePackDeps | null;
   /** M3 llm_first_token 埋点(P0 非流式以响应到达近似) */
-  onLlmArrived?: (turnId: string, atMs: number) => void;
+  /** M3 llm_first_token 近似;meta 让延迟收集器按 origin 打标(工具轮 / 控制轮不与文本/语音轮混一个分布,GAP-02 2.4) */
+  onLlmArrived?: (turnId: string, atMs: number, meta: { toolCallsMade: number; control: boolean }) => void;
   /** invocation 审计的 configured_provider 标签(index.ts 从配置推导) */
   configuredProvider?: string;
   /** 用户轮已写入 durable transcript 后通知 once 协调器；拒收/写入失败不得提前消费 marker。 */
@@ -130,6 +132,16 @@ export interface LiveDialogDeps {
     receiptId: string;
     candidates: ReadinessCandidate[];
   }) => { bindingIds: string[] };
+  /**
+   * SD-2:普通 M0 记忆确认环 accept 后的写账本消费(09 §4 / §13 kind=memory)。
+   * index.ts 组装 = memory/m0Confirm.confirmMemoryProposal 闭包;缺省 undefined ⇒ 确认不落账、如实说。
+   */
+  memoryConfirm?: (input: {
+    sessionId: string;
+    turnId: string;
+    receiptId: string;
+    payload: MemoryPendingPayload;
+  }) => { memId: string; duplicate: boolean };
   /** 项目归属确认 accept 的原子消费；内部完成 post-commit readiness/Pack/event 投递。 */
   projectAnchorAccept?: (
     sessionId: string,
@@ -499,7 +511,10 @@ export class LiveDialog {
 
     if (st.cancelled || st.userTurnInFlight) return;
 
-    d.onLlmArrived?.(turnId, out.llmArrivedAtMs);
+    d.onLlmArrived?.(turnId, out.llmArrivedAtMs, {
+      toolCallsMade: "toolCallsMade" in out ? (out as { toolCallsMade: number }).toolCallsMade : 0,
+      control: true
+    });
     if (!d.registry && out.usage && out.observedModel) {
       this.recordStep(
         sessionId,
@@ -897,7 +912,10 @@ export class LiveDialog {
       });
       return;
     }
-    d.onLlmArrived?.(turnId, out.llmArrivedAtMs);
+    d.onLlmArrived?.(turnId, out.llmArrivedAtMs, {
+      toolCallsMade: "toolCallsMade" in out ? (out as { toolCallsMade: number }).toolCallsMade : 0,
+      control: false
+    });
     if (out.errorCode === "observed_model_missing") {
       d.audit.record({ actor: "daemon", action: "dialog.observed_model_missing", meta: { sessionId, turnId } });
     }
@@ -1013,12 +1031,14 @@ export class LiveDialog {
       // golden s1-b2 的生产 gate):结果/完成句式只能由回叫链(C4)在真实 settle/task_done 播报出现——
       // 对话轮 Brain 自发念且会话项目无任何活跃/待验收任务 = 违规,逐句拦下不播(audit 留痕;合规句照播)
       if (this.violatesResultPhraseRule(ensured.session.projectId, s.text)) {
+        // GAP-02 2.3:审计不可变且敏感 payload 只记 digest(E3)——模型句子原文不进审计与日志,只留 sentenceId + textDigest
+        const blockedDigest = textDigest(s.text);
         d.audit.record({
           actor: "daemon",
           action: "dialog.result_phrase_blocked",
-          meta: { sessionId, sentenceId: s.sentenceId, text: s.text.slice(0, 80) }
+          meta: { sessionId, sentenceId: s.sentenceId, textDigest: blockedDigest }
         });
-        d.log.warn(`result phrase blocked (10 §4-1 runtime gate): ${s.text.slice(0, 60)}`);
+        d.log.warn(`result phrase blocked (10 §4-1 runtime gate): sentence=${s.sentenceId} digest=${blockedDigest.slice(0, 19)}`);
         continue;
       }
       // F07(E2 eval):冒号后被切出的空句(如"。")不播不入账
@@ -1058,6 +1078,10 @@ export class LiveDialog {
     }
     if (outcome.kind !== "not_pending" && outcome.pending.payload.kind === "readiness") {
       this.handleReadinessOutcome(sessionId, turnId, outcome);
+      return;
+    }
+    if (outcome.kind !== "not_pending" && outcome.pending.payload.kind === "memory") {
+      this.handleMemoryOutcome(sessionId, turnId, outcome);
       return;
     }
     if (outcome.kind !== "not_pending" && outcome.pending.payload.kind === "project_anchor") {
@@ -1715,6 +1739,45 @@ export class LiveDialog {
         // 就绪确认卡屏幕面未接(11 §5.6a 随 console 批)——环作废如实说,不指向不存在的卡
         d.audit.record({ actor: "daemon", action: "readiness.confirm_abandoned", meta: { sessionId, receiptId: outcome.pending.receiptId } });
         this.sayAndTrack(sessionId, `s-readiness-${turnId}`, "那这次先不确认。想核对的时候说一声,我重新念一遍。");
+        return;
+      }
+    }
+  }
+
+  /** SD-2:普通 M0 记忆确认环裁决(10 #36 "记不记";只有确认过的偏好才说"记住了") */
+  private handleMemoryOutcome(sessionId: string, turnId: string, outcome: Exclude<ConfirmOutcome, { kind: "not_pending" }>): void {
+    const d = this.deps;
+    const pl = outcome.pending.payload as MemoryPendingPayload;
+    const receiptId = outcome.pending.receiptId;
+    switch (outcome.kind) {
+      case "accepted": {
+        if (!d.memoryConfirm) {
+          d.audit.record({ actor: "daemon", action: "memory.m0_confirm_unwired", meta: { sessionId, turnId, receiptId } });
+          this.sayAndTrack(sessionId, `s-memory-${turnId}`, "你确认的我听到了,但记忆通道没接好,这条先没记,你在屏幕上看一眼。");
+          return;
+        }
+        try {
+          d.memoryConfirm({ sessionId, turnId, receiptId, payload: pl });
+          this.sayAndTrack(sessionId, `s-memory-${turnId}`, "记住了。");
+        } catch (err) {
+          d.log.warn("memory confirm failed", { error: String(err).slice(0, 160) });
+          this.sayAndTrack(sessionId, `s-memory-${turnId}`, "记的时候出了问题,这条先没记——稍后我再跟你确认一遍。");
+        }
+        return;
+      }
+      case "rejected": {
+        d.audit.record({ actor: "owner", action: "memory.m0_rejected", meta: { sessionId, turnId, receiptId, claimDigest: pl.claimDigest } });
+        this.sayAndTrack(sessionId, `s-memory-${turnId}`, "好,这条不记。");
+        return;
+      }
+      case "reread":
+      case "invalidated_reread": {
+        this.replayConfirmation(sessionId, outcome.pending, turnId);
+        return;
+      }
+      case "to_screen": {
+        d.audit.record({ actor: "daemon", action: "memory.m0_abandoned", meta: { sessionId, receiptId } });
+        this.sayAndTrack(sessionId, `s-memory-${turnId}`, "那这条先不记。想记的时候再说一声。");
         return;
       }
     }

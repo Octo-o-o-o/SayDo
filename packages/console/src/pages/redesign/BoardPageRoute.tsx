@@ -74,7 +74,7 @@ export function BoardPageRoute() {
 
   return (
     <>
-      <BoardPage view={view} onNavigate={onNavigate} onAction={onAction} />
+      <BoardPage view={view} onNavigate={onNavigate} onAction={onAction} onRetryDetail={reload} />
       {toast ? (
         <div role="status" data-toast style={toastStyle}>
           {toast}

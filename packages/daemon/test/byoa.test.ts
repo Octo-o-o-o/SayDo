@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { buildCageArgv } from "../src/providers/byoa/cage.js";
+import { CAGE_LEVELS, buildCageArgv } from "../src/providers/byoa/cage.js";
 import {
   parseClaudeLine,
   parseCodexLine,
@@ -207,6 +207,35 @@ describe("buildCageArgv 参数集合快照(09 §11 规则 4)", () => {
     expect(a.args).toContain("--disable-builtin-mcps");
     expect(a.args).toContain("--no-custom-instructions");
     expect(a.args.slice(-2)).toEqual(["-p", ""]);
+  });
+});
+
+describe("CAGE_LEVELS 分档单源(GAP-02 2.9;07 D18 纪律 1)", () => {
+  it("四家老 CLI 的档位与 argv 对应;enforcement 只有 ask+tripwire 是 partial", () => {
+    expect(CAGE_LEVELS.claude_cli).toEqual({ level: "tool-deny", enforcement: "full" });
+    const claude = buildCageArgv({ provider: "claude_cli", cwd: "/tmp/c" });
+    expect(claude.args.slice(claude.args.indexOf("--tools"), claude.args.indexOf("--tools") + 2)).toEqual(["--tools", ""]);
+
+    expect(CAGE_LEVELS.grok_cli).toEqual({ level: "tool-deny", enforcement: "full" });
+    const grok = buildCageArgv({ provider: "grok_cli", cwd: "/tmp/c", promptFile: "/tmp/p" });
+    expect(grok.args.slice(grok.args.indexOf("--tools"), grok.args.indexOf("--tools") + 2)).toEqual(["--tools", ""]);
+
+    expect(CAGE_LEVELS.codex_cli).toEqual({ level: "write-sandbox", enforcement: "full" });
+    const codex = buildCageArgv({ provider: "codex_cli", cwd: "/tmp/c" });
+    expect(codex.args.slice(codex.args.indexOf("-s"), codex.args.indexOf("-s") + 2)).toEqual(["-s", "read-only"]);
+
+    expect(CAGE_LEVELS.cursor_cli).toEqual({ level: "ask+tripwire", enforcement: "partial" });
+    const cursor = buildCageArgv({ provider: "cursor_cli", cwd: "/tmp/c" });
+    expect(cursor.args).toContain("--mode");
+    expect(cursor.args).toContain("ask");
+    for (const forbidden of ["-f", "--force", "--yolo"]) expect(cursor.args).not.toContain(forbidden);
+  });
+
+  it("七家全部登记;partial 只有 cursor", () => {
+    const providers = Object.keys(CAGE_LEVELS).sort();
+    expect(providers).toEqual(["claude_cli", "codex_cli", "copilot_cli", "cursor_cli", "gemini_cli", "grok_cli", "qwen_cli"]);
+    const partial = providers.filter((p) => CAGE_LEVELS[p as keyof typeof CAGE_LEVELS].enforcement === "partial");
+    expect(partial).toEqual(["cursor_cli"]);
   });
 });
 

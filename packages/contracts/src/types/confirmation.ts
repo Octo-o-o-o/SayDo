@@ -5,6 +5,40 @@ import { z } from "zod";
 import { idSchema } from "../ids.js";
 import { digestSchema, tsSchema } from "./common.js";
 
+/**
+ * 确认环 kind 单源(09 §15.1;GAP-02 2.1):daemon `live/confirm.ts` 的分类器与 console 确认卡都 import 本表,
+ * 不得再造第二份枚举(AGENTS.md 硬规则 5)。SEMANTIC = consumer-owned finalize 的 focus 语义 mutation(六个 focus_* +
+ * expectation_ack);NON_SEMANTIC = 轻终局 accept(dispatch / runtime_effect / readiness / memory / project_anchor)。
+ * 两集合不相交,并集 = CONFIRM_KINDS = PendingPayload 每个 kind(daemon 侧有编译期 parity 断言)。
+ */
+export const SEMANTIC_MUTATION_KINDS = [
+  "focus_anchor",
+  "focus_obligation",
+  "focus_obligation_resolve",
+  "focus_create_anchor",
+  "focus_revision",
+  "focus_lane_split",
+  "expectation_ack"
+] as const;
+export type SemanticMutationKind = (typeof SEMANTIC_MUTATION_KINDS)[number];
+
+export const NON_SEMANTIC_CONFIRM_KINDS = [
+  "dispatch",
+  "runtime_effect",
+  "readiness",
+  "memory",
+  "project_anchor"
+] as const;
+export type NonSemanticConfirmKind = (typeof NON_SEMANTIC_CONFIRM_KINDS)[number];
+
+export const CONFIRM_KINDS = [...SEMANTIC_MUTATION_KINDS, ...NON_SEMANTIC_CONFIRM_KINDS] as const;
+export const confirmKindSchema = z.enum(CONFIRM_KINDS);
+export type ConfirmKind = z.infer<typeof confirmKindSchema>;
+
+export function isConfirmKind(value: string): value is ConfirmKind {
+  return (CONFIRM_KINDS as readonly string[]).includes(value);
+}
+
 /** ledger 八终局(与 ConfirmationLoop hooks/onResolve 对齐)。
  * 映射说明(代码现状):Focus 语义 mutation 的 accept 走 hold→commitConsume,
  * 终局 outcome 写 'accepted'(无独立 'consumed' 值);非 Focus accept 经 lightFinalize 同写 'accepted'。

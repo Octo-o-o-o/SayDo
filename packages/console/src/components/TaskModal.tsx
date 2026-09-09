@@ -1,10 +1,11 @@
 // 任务详情弹窗三型(批 3):拍板 / 在办 / 启动。
 // 打开时 POST task-context,关闭 DELETE;完成动作后关弹窗并回调 onDone 刷新看板。
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { api, apiDelete, apiGet, apiPost } from "../lib/api";
 import { useVoice } from "../shell/VoiceContext";
+import { useDialogKeyboard } from "./useDialogKeyboard";
 
 export type TaskModalTarget =
   | {
@@ -146,6 +147,7 @@ export function TaskModal({ target, onClose, onDone }: Props) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   // 打开:设 task-context + 拉详情
   useEffect(() => {
@@ -222,6 +224,9 @@ export function TaskModal({ target, onClose, onDone }: Props) {
     }
     onClose();
   };
+
+  // 11 §9 弹窗键盘合同:Escape 等同「关闭」(同样清 task-context),Tab 环内循环,关闭后焦点回触发控件
+  useDialogKeyboard(panelRef, { onClose: () => void close() });
 
   const finish = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -423,7 +428,7 @@ export function TaskModal({ target, onClose, onDone }: Props) {
 
   return (
     <div style={overlay} data-component="task-modal" role="dialog" aria-modal="true">
-      <div style={panel}>
+      <div style={panel} ref={panelRef} tabIndex={-1}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
           <h2 style={{ fontSize: "var(--text-md)", fontWeight: 600, margin: 0 }}>{title}</h2>
           <button type="button" style={{ ...btnGhost, height: 28, padding: "0 8px" }} onClick={() => void close()} aria-label="关闭">

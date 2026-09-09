@@ -23,7 +23,7 @@ const READ_ONLY_HEADS = new Set([
 ]);
 
 /**
- * worktree 内写类(S1):改文件/建目录/本地 git 操作(04 §5.1:改代码、跑测试、本地 commit 自动放行)。
+ * worktree 内写类(S1):改文件/建目录/本地 git 操作(04 §5.1:改代码、跑登记好的验证、本地 commit 自动放行)。
  *
  * **任意代码执行入口(node/python/python3/tsx/just)已于 2026-08-15 移出本表**:它们可执行任意代码——
  * 发网络请求、读写 worktree 外路径,效果上限远高于 S1;按 S1 自动放行 = 让 S3 级效果无人过目
@@ -47,11 +47,20 @@ const GIT_READ_SUB = new Set(["status", "diff", "log", "show", "rev-parse", "ls-
 /** git 本地写子命令(S1;push 单独处理) */
 const GIT_LOCAL_SUB = new Set(["add", "commit", "checkout", "switch", "restore", "stash", "merge", "rebase", "cherry-pick", "reset", "tag", "worktree", "init", "rm", "mv", "clean", "apply"]);
 
-/** 包管理器三档(评审 1 A4 / 评审 2 A8):S1 白名单 / S2 安装类 / S3 发布登录;未知动词 S2 */
+/** 包管理器三档(评审 1 A4 / 评审 2 A8):S1 只读查询 / S2 安装类与脚本执行类 / S3 发布登录;未知动词 S2 */
 const PKG_MANAGERS = new Set(["pnpm", "npm", "yarn", "pip", "pip3", "uv", "cargo", "go", "brew", "gem", "poetry"]);
-const PKG_S1 = new Set([
-  "run", "test", "build", "start", "dev", "lint", "typecheck", "check", "format", "fmt",
-  "exec", "ls", "list", "outdated", "why", "view", "info", "--version"
+/** 包管理器只读查询(保持既有 S1 语义,不放宽到 S0) */
+const PKG_QUERY_S1 = new Set(["ls", "list", "outdated", "why", "view", "info", "--version"]);
+/**
+ * package-script / 本地 bin 执行动词(SD-3,2026-09-08):`pnpm run x` / `pnpm test` / `pnpm exec <bin>` /
+ * `cargo run` / `go build` 等都执行 package.json 脚本、构建脚本或本地 bin——与 node/just 一样是任意代码入口
+ * (脚本正文与 runner 配置都是 agent 可写的),按能力分类,不按语言名/测试工具名豁免。
+ * 未登记形态一律走 `install_dependency`(S2,确认一次);高频合法用途照旧走登记 verify:gate 层
+ * `matchesFrozenVerify` 先于本表命中 ⇒ `run_registered_verify`,冻结 argv + 配置闭包,不经本表。
+ * 已知限制(不在本条承诺内):verify 冻结闭包不含脚本的间接 import,verifier 抗篡改另行立项。
+ */
+const PKG_SCRIPT_EXEC = new Set([
+  "run", "test", "build", "start", "dev", "lint", "typecheck", "check", "format", "fmt", "exec"
 ]);
 const PKG_S2 = new Set([
   "install", "i", "add", "ci", "update", "upgrade", "sync", "dlx", "x",
@@ -61,12 +70,6 @@ const PKG_S3 = new Set([
   "publish", "login", "logout", "adduser", "token", "deprecate", "unpublish"
 ]);
 const PKG_FETCH_HEADS = new Set(["npx", "bunx", "pipx"]);
-/** pnpm/yarn/npm exec 后仍按 S1 的本地 bin。不含 tsx/ts-node(与 08-15 任意代码入口移出 S1 同理);不含 wrangler(DEPLOY S3) */
-const PKG_EXEC_S1_TOOLS = new Set([
-  "vitest", "jest", "mocha", "tsc", "eslint", "prettier", "biome", "oxlint",
-  "playwright", "vite", "vitepress", "next", "nuxt", "astro", "turbo", "nx",
-  "tsup", "rollup", "esbuild", "webpack", "babel", "swc", "knip", "prisma", "drizzle-kit"
-]);
 const PKG_DIR_READ_VERBS = new Set(["ls", "list", "view", "info", "outdated", "why", "--version"]);
 const G_COREUTILS = new Set(["gsed", "gawk", "gcp", "gmv", "grm", "gln", "gtee", "gchmod", "gfind"]);
 
@@ -434,6 +437,49 @@ function classifyGitPush(rest: string[]): EffectDescriptor {
   return { kind: "push_branch", ...(branch ? { target: branch } : {}) };
 }
 
+/**
+ * GAP-02 2.2(AS-05 剩余 grammar):绕过 hooks 的 git 形态。`commit`/`merge` 的 `--no-verify` 与 `commit` 的 `-n`
+ * (含短选项簇 `-an`/`-nm msg`)⇒ 本地 hooks 绕过;`push --no-verify` ⇒ pre-push 绕过。
+ * 不得误伤:`merge -n` = --no-stat、`cherry-pick -n` = --no-commit、`push -n` = --dry-run、`am` 无 -n;
+ * 取值参数(`-m msg`/`-F file`/`--author=`…)后的 token 是值不是旗标;`--` 之后是 pathspec。
+ */
+function gitHooksBypass(sub: string, rest: string[]): "push" | "local" | undefined {
+  if (sub !== "commit" && sub !== "merge" && sub !== "push") return undefined;
+  const valued = sub === "commit"
+    ? new Set(["-m", "--message", "-F", "--file", "-C", "--reuse-message", "-c", "--reedit-message", "--author", "--date",
+      "-t", "--template", "--fixup", "--squash", "--cleanup", "--trailer", "--pathspec-from-file", "-S", "--gpg-sign"])
+    : sub === "merge"
+      ? new Set(["-m", "-F", "--file", "-s", "--strategy", "-X", "--strategy-option", "-S", "--gpg-sign", "--into-name"])
+      : new Set(["-o", "--push-option", "--receive-pack", "--exec", "--repo"]);
+  let bypass = false;
+  for (let i = 0; i < rest.length; i++) {
+    const p = rest[i]!;
+    if (p === "--") break;
+    if (!p.startsWith("-")) continue;
+    if (p === "--no-verify") {
+      bypass = true;
+      continue;
+    }
+    if (p.startsWith("--")) {
+      const key = p.includes("=") ? p.slice(0, p.indexOf("=")) : p;
+      if (valued.has(key) && !p.includes("=")) i += 1;
+      continue;
+    }
+    // 短选项簇:只有 commit 的 `n` 是 --no-verify;遇到取值短选项后簇内剩余字符是值,簇尾则吃下一个 token
+    const cluster = p.slice(1);
+    for (let j = 0; j < cluster.length; j++) {
+      const ch = cluster[j]!;
+      if (valued.has(`-${ch}`)) {
+        if (j === cluster.length - 1) i += 1;
+        break;
+      }
+      if (sub === "commit" && ch === "n") bypass = true;
+    }
+  }
+  if (!bypass) return undefined;
+  return sub === "push" ? "push" : "local";
+}
+
 function gitConfigFileOutside(rest: string[]): boolean {
   for (let i = 0; i < rest.length; i++) {
     const p = rest[i]!;
@@ -499,16 +545,15 @@ function applyPkgDirOutside(d: EffectDescriptor, verb: string, cls: PathClass | 
   return d;
 }
 
+/**
+ * `<pm> exec <bin …>`:内层命令先按全表分类(rm -rf / 等 S3 面不降级),再取"至少 S2"地板。
+ * SD-3:原按 bin 名(vitest/vite/eslint…)放回 S1 的工具名特权已删——这些 bin 都加载 agent 可写的
+ * 配置文件/插件(`vitest --config ./x.ts` 在配置加载期就执行任意代码),词面上无法与安全用法区分。
+ */
 function classifyExecInner(innerCmd: string): EffectDescriptor {
   const inner = commandToEffect(innerCmd);
-  const innerHead = basenameHead(tokenize(innerCmd.trim())[0] ?? "").replace(/^\\+/, "").toLowerCase();
-  const s3ish = RISK_ORDER.indexOf(inner.kind) >= RISK_ORDER.indexOf("merge_to_protected");
-  if (PKG_EXEC_S1_TOOLS.has(innerHead)) {
-    if (s3ish) return inner;
-    return { kind: "write_worktree", target: "pkg-exec-tool" };
-  }
   if (RISK_ORDER.indexOf(inner.kind) >= RISK_ORDER.indexOf("install_dependency")) return inner;
-  return floorS2(inner, "pkg-exec-unknown");
+  return floorS2(inner, "pkg-exec-bin");
 }
 
 function pkgCallScript(rest: string[]): string | undefined {
@@ -797,14 +842,16 @@ function classifyPkg(head: string, parts: string[]): EffectDescriptor {
     if (head === "go" && verb === "run") {
       const target = parts.slice(2).find((p) => !p.startsWith("-")) ?? "";
       if (isGoRemoteRunTarget(target)) return { kind: "install_dependency", target: target.slice(0, 60) };
-      return { kind: "write_worktree" };
+      // SD-3:本地 go run 与 node 同档——执行的是 worktree 内任意代码,不因语言名豁免
+      return { kind: "install_dependency", target: "go-run" };
     }
     if (PKG_S3.has(verb)) return { kind: "send_external", target: "pkg-publish" };
     if (PKG_S2.has(verb)) {
       const pkgs = parts.slice(2).filter((p) => !p.startsWith("-"));
       return { kind: "install_dependency", target: pkgs.join(",") || "(lockfile)" };
     }
-    if (PKG_S1.has(verb)) return { kind: "write_worktree" };
+    if (PKG_SCRIPT_EXEC.has(verb)) return { kind: "install_dependency", target: `pkg-script:${verb}` };
+    if (PKG_QUERY_S1.has(verb)) return { kind: "write_worktree" };
     return { kind: "install_dependency", target: `${head} ${verb}`.trim().slice(0, 60) };
   }
   const { rest, dirClass } = peelPkgGlobals(head, parts);
@@ -817,7 +864,9 @@ function classifyPkg(head: string, parts: string[]): EffectDescriptor {
   } else if (PKG_S2.has(verb)) {
     const pkgs = rest.slice(1).filter((p) => !p.startsWith("-"));
     d = { kind: "install_dependency", target: pkgs.join(",") || "(lockfile)" };
-  } else if (PKG_S1.has(verb)) {
+  } else if (PKG_SCRIPT_EXEC.has(verb)) {
+    d = { kind: "install_dependency", target: `pkg-script:${verb}` };
+  } else if (PKG_QUERY_S1.has(verb)) {
     d = { kind: "write_worktree" };
   } else {
     d = { kind: "install_dependency", target: `${head} ${verb}`.trim().slice(0, 60) };
@@ -1000,6 +1049,10 @@ function classifySegmentGivenHead(s: string, parts: string[], head: string, touc
     d = applyCOutside(d, cOutside);
     if (cExec || execPathOutside) d = floorKind(d, "delete_data", "git-c-exec");
     if (sawGlobal) d = floorS2(d, "git-global");
+    // GAP-02 2.2:绕过 hooks 只取较高者;push --no-verify 与 -c core.hooksPath 同档 S3,本地 commit/merge 绕过 floor S2
+    const hooksBypass = gitHooksBypass(sub, rest);
+    if (hooksBypass === "push") d = floorKind(d, "delete_data", "git-hooks-bypass");
+    else if (hooksBypass === "local") d = floorS2(d, "git-hooks-bypass");
     return base(d);
   }
 

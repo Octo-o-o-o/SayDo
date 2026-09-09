@@ -3647,3 +3647,105 @@ unit economics 决定扩张;持续承担账号/API、CI/设备、证据刷新、
 **产出**:main = origin/main = `d7193b8`(I `7ab7ab3` → E `21ed284` → 关批 `d7193b8`);PG-02 为 next 且未开工。
 
 **结论**:AS-01-AS-02 已合并入 main 并推送私有归档,此批交付了。公开快照(`scripts/publish-public-snapshot.sh`,须从 clean main 检出且 origin/main 已等于目标 SHA)属 owner checkpoint,未执行,待 owner 确认;PG-02 不自动开始。
+
+## R140 · AS-01-AS-02 公开快照与 Opus 5.0 交接(2026-09-06)
+
+**输入**:owner「都确认」公开快照与 PG-02 继续,并要求为 Opus 5.0 新会话准备续推 prompt(Fable 5.1 限额将尽)。
+
+**行动**:在私有归档 main=`5d3c25ef4592323a6b76b68126d2bd09be560973` 的独立 clean clone(main 检出、upstream origin/main、含未跟踪文件全干净、隐私探针 owner-only)运行 `bash scripts/publish-public-snapshot.sh public "" 5d3c25ef…`:隐私探针路径锚校验通过、`check-public-tree-privacy --ref --require-private-probes` scanned=2020 hits=0、剔除 `artifacts/release/copyright`,推送成功;临时 clone 已删。撰写 `prompts/2026-09-06-pg02-opus-handoff.md`(handoff 校验 valid,零 emoji,无本机绝对路径):PG-02 起按 PLAN-2 链续推、授权边界(PG-02 具名授权;PG-03…06 为 preaccepted next stage;每批 commit/push/公开快照仍当次确认;次数限制默认 3/3/1)、AS 期间可复用的监督机制与踩坑。
+
+**产出**:`public/main = 7909afc4a9c715a8b7293a2c75ac4c0b344274d4`(`snapshot: 2026-09-06 from internal 5d3c25e`)。本条与 prompt 归档随后续 journal 提交快进推送私有归档;该提交本身未再做公开快照。
+
+**结论**:AS-01-AS-02 全部收口动作完成:合并、私有归档推送、公开快照。下一批 PG-02 由 Opus 5.0 新会话按上述 prompt 承接,未开工。
+
+## R141 · deepseek-harness 借鉴三项(SD-1/2/3)review 后实施(2026-09-08)
+
+**输入**:owner 提供《从 deepseek-harness 借鉴的增量改进建议》并要求「按核验结果实施保留项」。审查基线 `bcf8ea8`,实施基线 main `25a9924`(多出 AS-01/02 七个提交)。主树挂着其它分支未提交改动,施工在独立 worktree(分支 `sd-harness-borrow`)。
+
+**行动**:先用项目自己的 vitest 在 main 上复现三项均仍成立(remember 失败后"记下了"照播;M0 自报 user_approved/user_stated 直落 trusted;`pnpm exec vitest --config` 空 registry allow/S1 零确认)。SD-1:`dialogLoop` 增加逐工具按真实回执形状归类的 `LedgerActionRecord`(persisted/pending/failed/unknown/noop,`tool_failed` 归 unknown 不推导"未写入")与 `presentLedgerOutcome`,API 与 CLI 两出口共用;任一账本动作 failed/unknown ⇒ 整轮换系统按结果写的句子(部分成功分开说),宣告"记下了"只在确有 persisted 时放行;非账本工具失败沿用既有 CLI 合同。SD-2:先改 canonical(09 §4 写路径、§13 remember 签名与普通记忆确认环、b-memory、10 #36b),再实现:`remember` 的 `user_approved` 在任何入口不可自报(`trust_not_self_reportable`;带 readinessKey 沿用四闸③码);tier=M0 无 readinessKey 只出提议——confirm 环新增 `kind=memory` 载荷(claim/claimDigest/projectId/sourceTurnId,收据前缀 `mrc_`)、机械确认句"有一条关于你的偏好:{claim}。记不记?"、`memory/m0Confirm.ts` 消费(digest 校验、同 claim+同来源轮幂等、audit `memory.m0_proposed/m0_confirmed/m0_rejected`),`dialog.ts` 新增 memory 分支与 `memoryConfirm` 依赖,index.ts 接线;M1–M3 user_stated 与 `MemoryLedger.add` 可信路径不变。SD-3:`cmdEffect` 删除 `PKG_EXEC_S1_TOOLS` 工具名特权,package-script 执行动词(run/test/build/start/dev/lint/typecheck/check/format/fmt/exec)与本地 `go run`/`cargo run`/`poetry run` 等按能力归 S2(`install_dependency`),只读查询保持 S1,S3 不降级;canonical 同步 04 §5.1/§5.4、10 #14、golden c14b;登记 verify 仍在 gate 层先于分类命中。
+
+**产出**:未提交候选在 `../SayDo-wt-sd-borrow`(基于 main `25a9924`),15 个文件改动 + 新增 `packages/daemon/src/memory/m0Confirm.ts`、`packages/daemon/test/memory-m0-confirm.test.ts`。测试:dialog-loop 新增 SD-1 用例 13 个(含 A 成功/B 失败、tool_failed unknown、await_user 停住、CLI 部分成功);memory-m0-confirm 11 个(真实 registerLiveTools→ConfirmationLoop→ledger→临时 SQLite 回读:自报 user_approved 零写入、M0 只出提议、正确确认一次写入且重复消费幂等、否认/改 claim/过期/撤销/错会话/click digest 不符零写入、readiness 与 M1 路径不受影响);live-wiring e2e 新增全链 2 个;tier1-cmd-effect 改 S1→S2 断言 20 余处并新增 SD-3 组(空 registry 拒确认后 deny、参数变体、同效 run/test 路径、S3 不降级、登记 verify 合同不变、临时目录 `vitest --config` 写工作树外哨兵阳性对照)。门禁:emoji clean、doc-links files=139 broken=0、`git diff --check` 0;`just ci` 第一轮因我并发启动 vitest 污染临时根而红(不作证据),无并发重跑 exit 0(daemon 135 files/2274 passed | 6 skipped,console 290,contracts 132,cli 49,pytest 34;日志 just-ci-2.log 101795 bytes,SHA-256 `3596c8d5…`)。
+
+**结论**:三项执行和检查都跑完了,等 owner 验收;未 commit/push/merge,不是交付。自检不算独立 GREEN。本条只修未登记入口,verify 冻结闭包不含间接 import 的限制仍在(`enumerateConfigClosureKeys("node verify.mjs")` 只含 verify.mjs),未承诺 verifier 抗篡改;PLAN-2 未新增批卡,是否排产由 owner 决定;console 确认卡对 `kind=memory` 走通用 confirm.card 文本,未加专属样式。
+
+**追记(2026-09-09)**:按 IMPL-PROMPT-2026-09-09-gap-consolidation §1 复跑四个测试文件(341 passed)与 `pnpm -r typecheck`(exit 0)后,以两提交法在分支 `sd-harness-borrow` 落本地提交:I `b41525538602659a2137bd96d489b2d7077c1561`(feat(gap-02),17 路径);本条随 E 提交入库。未 push、未合并,后续 GAP-02 条目在同一分支顺延。
+
+## R142 · GAP-02-consolidation 开工:§1 收口与 2.1 确认卡 kind 单源(2026-09-09)
+
+**输入**:owner 交付 `docs/plan/IMPL-PROMPT-2026-09-09-gap-consolidation.md`(全新会话自足实施卡)。启动核验:main 仍 `25a9924`(与执行卡写作基线一致),主树挂在 `codex/ecc-research-20260905`(bcf8ea8,落后 main)且有大量未提交 docs/research,只读不施工;`../SayDo-wt-sd-borrow`(分支 `sd-harness-borrow`)存在且 `git diff --stat` 与 R141 一致(16 文件 + 2 新增)。
+
+**行动**:§1 复跑四个测试文件(341 passed)与 `pnpm -r typecheck`(exit 0),两提交法落 I `b415255`(feat(gap-02) SD-1/2/3,17 路径)+ E `5b4d5dc`(chore(evidence) gap-02 sd,R141 追记)。2.1:`@saydo/contracts` `types/confirmation.ts` 新增 `SEMANTIC_MUTATION_KINDS`/`NON_SEMANTIC_CONFIRM_KINDS`/`CONFIRM_KINDS`/`confirmKindSchema`/`isConfirmKind`;daemon `live/confirm.ts` 改 re-export + `CONFIRM_KIND_PARITY` 编译期断言(PendingPayload kind 与 CONFIRM_KINDS 互相覆盖);console redesign `ConfirmKind` 改 import 自 contracts,`KIND_GROUP` 补 `memory`(记忆)/`project_anchor`(项目锚定)/`expectation_ack`(期待确认),表外 kind 经 `confirmKindGroupLabel` 显示「确认」;生产 `pages/Chat.tsx` 抽 `confirmCardCopy(kind)`:memory 显示「记忆 · 信息确认 · 不是授权」、按钮「记 / 不用记」、倒计时说明改「结束这条不记」;fixture 增 memory 卡;09 §15.1 确认环 kind 句改单源口径,11 确认卡行补 memory。移动 `CardPage` 只渲染 daemon 的 prompt_text(不认 confirm kind),memory 文案由 daemon 句子承载,未改。
+
+**产出**:I `dc3b18c`。测试:contracts confirm-kinds 3 + schemas(21 passed);daemon confirmation-ledger g) 加集合全等断言(10 passed);console ConfirmCard 4 + Chat 2(20 passed);三包 typecheck 0,eslint 0。
+
+**结论**:执行卡 §0 要求批卡与指针同步为 owner checkpoint;本会话按自主运行约束先在独立分支完成全部授权条目,插批与指针改动以单独提交交付(见 R150),owner 不同意可单独回退。
+
+## R143 · 2.2 git hooks 绕过 grammar 与 2.3 对话审计去原文(2026-09-09)
+
+**输入**:`cmdEffect.ts` 里 `git commit --no-verify`/`-n` 仍 `GIT_LOCAL_SUB` → S1,`push --no-verify` 与普通 push 同档;`dialog.ts` `dialog.result_phrase_blocked` 把模型句子 `text.slice(0,80)` 写入不可变审计与日志。
+
+**行动**:2.2 新增 `gitHooksBypass(sub, rest)`:commit/merge 的 `--no-verify`、commit 的 `-n`(短选项簇逐字符,遇取值短选项停止;`--` 后不看;取值长选项吃下一个 token)⇒ `floorS2(target git-hooks-bypass)`;push 的 `--no-verify` ⇒ `floorKind delete_data`(S3,与 `-c core.hooksPath` 同档);merge -n / cherry-pick -n / push -n 不误伤;04 §5.1 表加行。2.3 meta 改 `{sessionId, sentenceId, textDigest}`(contracts `textDigest`,`sha256:` 前缀),warn 日志只留 sentenceId 与 digest 前缀;`grep "text: s.text"` 零命中。
+
+**产出**:I `c69aa23`(2.2,tier1-cmd-effect 新增 18 行表驱动 + target 断言)、`c130ed1`(2.3,live-wiring 结果句式闸测试断言审计行不含原文、textDigest 形态)。tier1 + live-wiring 323 passed。
+
+**结论**:两条止损各自独立提交;PG-04 的 envelope/白名单未动。
+
+## R144 · 2.7 saydo doctor(子会话实施,主会话一手核验)(2026-09-09)
+
+**输入**:cli 只有 `up|status|open`,status 只 dump `/health`。委派子会话实施(禁 git 写、禁 daemon vitest/just ci/playwright)。
+
+**行动**:子会话新增 `packages/cli/src/doctor.ts`(`readInstalledIdentity`/`inspectHome`/`collectDoctor`/`renderDoctorText`)与 `doctor [--json]`:TCP 探端口 → `/health` identity/buildId/protocolVersion 与 `dist/build-metadata.json` 比对(runtime_stale / protocol_mismatch)→ `/readyz` pipelineConnected/voice.reason/asr/tts(pipeline_absent / voice_degraded / recovery_only)→ SAYDO_HOME 下 `config.toml.pending` / `.env.pending` / `cli-runtime.pending.json` 存在性(config_pending)→ `stateRootDigest` 与 `homeDigest` 比对(home_mismatch);输出只含 digest、版本标识、固定候选文件名与状态词;退出码 0/1/2。主会话复跑 `pnpm --filter @saydo/cli typecheck` 0、`test` 62 passed | 1 skipped(既有 skip),README 与 cli README 命令表加 doctor,docs/site 内容稿同步。
+
+**产出**:I `2759916`。子会话报告的实跑证据:scratch esbuild 打包对空闲端口 exit 2(daemon_not_running),对假 daemon 四组 exit 1(源码树无 build-metadata ⇒ installed_unknown warn),隐私探针 `countPublicPrivacyHits` 5 份输出 0 命中。
+
+**结论**:五种判定各有 fixture 用例;已知限制如实:源码树运行恒 `installed_unknown`(exit 1);"配置世代"无 daemon 字段,只能以 pending 候选文件存在性表示;recovery-only server 的 `/readyz` 无 pipeline 字段 ⇒ 记 unknown。未对真 recovery-only daemon 与真实发布包实测。HOST-02 不做。
+
+## R145 · 2.9 BYOA 笼分档类型化与 2.8 logger 背压隔离(2026-09-09)
+
+**输入**:`cage.ts` 分档只在注释,`provider.ts` 审计内联三元判档;`logger.ts` 每条 `appendFileSync` 无 try/catch,ENOSPC/EACCES 直接冒进业务调用栈;`audit.ts` 同形态但审计不可变。
+
+**行动**:2.9 `CAGE_LEVELS: Record<CageProvider,{level,enforcement}>`(tool-deny/write-sandbox = full,ask+tripwire = partial;新三家沿用既有 tool-deny 审计口径),provider 审计 `cage` 改引用并加 `cageEnforcement`,`CliCapability.cage` 在 provider 非 null 时带上(两处 builder),09 §11 规则 4 与 07 D18 纪律 1 补字段单源。2.8 logger 机器流改有界队列(缺省 2000)+ `fs/promises.appendFile` 异步合并写,失败只计数并降级,`DaemonLogger.health()` 暴露 `degraded/writeFailures/dropped/queued/lastError`,`flush()`,进程 exit 同步冲刷;`Logger` 接口不变(测试 fake 不受影响);`/readyz` 新增 `loggerDegraded` + `logger`;审计文件 sink 同步写、失败抛 `AuditWriteError`(带 code,可挂钩子);E3 补「日志可降级、审计不可」。
+
+**产出**:I `b3c2009`(2.9;byoa CAGE_LEVELS 2 用例 + cli-capability 2 处断言,187 passed)、`b525aef`(2.8;logger.test 6 passed 含写失败不抛/恢复、有界队列溢出计数、stderr EPIPE、审计 EISDIR 仍抛)。
+
+**结论**:`/readyz` 的 `loggerDegraded` 未做端到端 HTTP 断言(依赖真实 daemon 起动),以 logger 单测 + 字段接线为证;AS-03 真实 CLI conformance 探针未做。
+
+## R146 · 2.5 VIEW-01 与 2.6 A11Y-01(子会话实施,主会话一手核验)及 §3 移动确认核实(2026-09-09)
+
+**输入**:redesign 四页 hook 只依赖手动 tick,detail 失败静默丢项,WS 事件不触发页面失效;TaskModal / Modals 无 Escape / focus trap;`mobile/confirmDecision.ts` 直连 `/ws/`。委派 console 子会话。
+
+**行动**:2.5 `lib/dataInvalidate.ts`(`saydo:data-invalidate` window 事件,由既有主 WS 在 `focus.entity` / `confirm.resolved` / 非首连 `hello.ack` 发射)+ `hooks/redesign/useRefreshSignal.ts`(失效事件 / visibilitychange 回前台 / 60 s 有界兜底,后台标签页停表)+ `pageLoader.ts`(单在途、在途期间合并补拉、dispose abort、晚到丢弃;`apiGet` 接 `AbortSignal`,已 abort 不重试);四 hook 改 loader + signal,后台刷新失败保留旧视图;`assembleBoardView` 保留 detail 失败的 Focus 并给 `detailErrors`,`BoardLaneGroup` 渲染 `[warn]` 占位 + 重试;颜色近似任务标「状态待核实」。2.6 `useDialogKeyboard`(纯判定 + 安装器 + React 包装)接入 TaskModal 与 ModalFrame(补 aria-modal),11 §9 加弹窗键盘合同。§3:执行卡所指 `console/src/net/remoteSurface.ts` 不存在,实际是 daemon 侧 `net/remoteSurface.ts`;`mobile_lan` 下 `/api/**` 与 `/ws/**` 在更上游 403 / 4003 fail-closed,`SetupBootstrapBoundary` 只认已不可达的 `mobile_lan_route_rejected`,`MobileApp` 不挂载 ⇒ `sendMobileConfirmDecision` 无触发路径,未失效,不改代码。主会话复跑:console typecheck 0、全量 vitest 40 files 316 passed、eslint 0、emoji/doc-links [ok],审阅 `api.ts`/`useVoiceChannel.ts` 共享改动。
+
+**产出**:I `6e4ea74`(2.5)、`ac8df81`(2.6)。新增测试:useRefreshSignal 4、pageLoader 4、useBoardPageData 3、useDialogKeyboard 9;Playwright `e2e/console/redesign-refresh.spec.ts` 2 例(随完整门跑)。
+
+**结论**:仓内无 DOM 测试环境且禁新依赖,验收里「Testing Library 渲染生产 hook」改为纯模块 + fake timers 覆盖同一批验收点,React 薄包装只经 typecheck/eslint + Playwright;N+2 扇出未解决,不宣称;重试是整页 reload 而非单条 detail 补拉。残留:若 DF-REMOTE-REOPEN 只重开 HTTP 不开 WS,`sendMobileConfirmDecision` 需再映射 typed unsupported。
+
+## R147 · 2.4 VOBS-01 语音延迟观测准确性(2026-09-09)
+
+**输入**:`obs/latency.ts` 只判 P50、partial Map 无容量/TTL、分母只有 completed、字段名过度承诺。
+
+**行动**:重写 `LatencyCollector`:`{maxTraces:500,maxPending:500,pendingTtlMs:120000,endedGraceMs:5000}`,`start(turnId, origin, atMs)` 登记来源,`record` 重复段保留首个计 duplicate、已结算轮迟到事件计 late 不复活,`settle(turnId,"cancelled")` 供 barge-in,`sweep(nowMs)` 结算 timeout(未出声超 TTL)与 missing_segment(已出声缺段过宽限),完整轮非有限/逆序计 invalid 排除分布外,pending 满计 overflow。`decompose` 输出 `slo.status/internalStatus`(pass 仅 n>=20 且 P50<=1500 且 P90<=2500;`passPublish` = status==="pass")、`counts`、`byOrigin`(text/ptt/hands_free/control/tool/unknown 各自 n/P50/P90/status)、`clock=daemon_arrival`、`segmentNotes`(llm_first_token / tts_first_byte 是响应到达 / 整句合成完成的近似);WS 词表不改。接线:`index.ts` asr.final 按 `voiceHub.currentVoiceMode()` 打 ptt/hands_free,turn.text 打 text,`onLlmArrived(turnId, atMs, {toolCallsMade, control})` 收窄为 tool/control,barge-in 结算 cancelled,15 s 定时 sweep(unref);`/dev/latency-report` 输出新字段;03 §3 SLO 句补同判口径。
+
+**产出**:I `9a398a2`。测试:`test/latency-report.test.ts` 12(新;P90 超限 fail、n<20 undeterminable、非法时间戳、origin 分布、TTL/宽限、容量、取消、重复/迟到、旧构造签名兼容)+ voice-hub 1(pipeline 注入 latency.stage 经 `onLatencyStage` 与 tts.playout 派生 playout_start 结算 completed,迟到段计 late)+ live-wiring 1(文本轮 onAsrFinal → onLlmArrived meta {0,false});improvements-m 既有用例不变。
+
+**结论**:origin 是全局采集模式近似(hub `lastVoiceMode` 非 per-session);文本轮没有 vad_end/asr_final,按合同结算为 missing_segment 计入 byOrigin.text 分母(如实,不另造三段分布);真实供应方基线 `not_run`。
+
+## R148 · GAP-02-consolidation 插批候选、门禁链与候选交付(2026-09-09)
+
+**输入**:§2 全部条目与 §3 默认做项已入库(I 链 `b415255`…`9a398a2`);执行卡 §5 要求批卡、指针、focused / full gate 与 evidence。
+
+**行动**:PLAN-2 插批 `GAP-02-consolidation`(AS-01-AS-02 后、PG-02 前),指针 revision 5→6(`active=GAP-02-consolidation`,`next=none`,`last_closed=AS-01-AS-02`),链串与 `scripts/schedule-pointer.mjs` 同步(`--check` [ok],`--self-test` 六坏例通过),HANDOFF `--render` + 现役行,docs/plan/README 同步,执行卡入库 → `4fe4666`;journal R142–R147 → `2158ae0`。门禁在 HEAD `2158ae0` 干净树上串行跑(不并发 vitest):focused(daemon 10 文件 556、contracts 21、console 62、cli 62|1 skip、typecheck、emoji、doc-links、pointer、diff --check 全 0)→ `just ci` exit 0(daemon 2313 passed | 6 skipped,console 316,contracts 135,cli 62,platform 72|14 skipped,pytest 34)→ `pnpm exec playwright test` 40 passed,跑完恢复 `e2e/screenshots`。日志 focused.log 12923 B `4fb608a5…`、just-ci.log 112257 B `6416c6f0…`、playwright.log 5220 B `be7b5dbc…`(scratchpad,不入 Git)。
+
+**产出**:`e2e/evidence/gap-02-consolidation.md`(逐条裁决表、验收形态偏离、门禁与日志摘要、not_run、owner checkpoint),随本条以 `chore(evidence): gap-02-consolidation` 入库。
+
+**结论**:执行和检查都跑完了,等 owner 验收。未 push、未合并、未公开快照;插批与指针为 owner checkpoint 候选(`4fe4666` 可单独回退);独立零上下文评审未做,自检不算独立 GREEN。
+
+## R149 · GAP-02-consolidation 关批、owner 授权合并/推送/公开快照(2026-09-09)
+
+**输入**:owner 回复「都同意,授权你完整的实施,按照你的建议对应」:同意插批、合并 `sd-harness-borrow` 到 main 并 push 私有归档、公开快照、§3 三项立项。
+
+**行动**:关批提交(chore(plan)):指针 revision 6→7,`last_closed=GAP-02-consolidation`、`active=none`、`next=PG-02`,evidence_ref 指向 `e2e/evidence/gap-02-consolidation.md`;PLAN-2 批卡标已收口并记 I 链 / 插批 / E `2fe2857`;HANDOFF `--render` + 收口行;README 同步。门禁:`schedule-pointer --check`/`--self-test`、emoji、doc-links(files=140 broken=0)、`check-public-tree-privacy --fs`(scanned=2039 hits=0)、`git diff --check` 全过。主树仍检出 `codex/ecc-research-20260905` 且 dirty,故合并用 ref-only 快进(`git fetch <worktree> sd-harness-borrow:main`),再 `git push origin main`;公开快照在临时 clean clone(main 检出、upstream origin/main、私有探针锚复制为 owner-only)上按 R140 同法执行 `scripts/publish-public-snapshot.sh public "" <sha>`。实际 SHA 与快照结果见 R150 追记。
+
+**产出**:关批提交与本条随后快进入 main。
+
+**结论**:GAP-02-consolidation 关批;合并、推送、快照结果以 R150 为准。PG-02 为 next,未开工,须另有具名授权与完整合同。

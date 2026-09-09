@@ -51,7 +51,7 @@ async function fetchJson(url: string, init?: RequestInit): Promise<{ response: R
   return { response, body };
 }
 
-function portIsOccupied(port: number): Promise<boolean> {
+export function portIsOccupied(port: number): Promise<boolean> {
   return new Promise((resolveOccupied) => {
     const socket = createConnection({ host: "127.0.0.1", port });
     const finish = (occupied: boolean) => {

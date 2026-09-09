@@ -126,7 +126,7 @@
 | daemon | 核心守护进程(TypeScript / Node 22):对话与任务状态的唯一持有者;托管控制台网页;审批门、账本、审计都在这 | 缺省端口 47100;只监听本机回环 |
 | console | Web 控制台(Vite + React);桌面与手机(移动壳路由)共用一套 | 由 daemon 直接托管,浏览器打开即用 |
 | pipeline | 语音管线(Python):桌面浏览器的云端听与说(火山豆包 ASR / TTS) | 可选;不起则用打字或浏览器系统语音 |
-| saydo CLI | `saydo up / status / open`:前台持有 daemon、探活、开控制台 | 可选;与直接起 daemon 二选一 |
+| saydo CLI | `saydo up / status / open / doctor`:前台持有 daemon、探活、开控制台、只读诊断 | 可选;与直接起 daemon 二选一 |
 | contracts | 数据契约包(zod schema、状态机、digest):各组件不分叉的类型单源 | 开发者关心 |
 | 执行器 | 拍板后在 worktree 里真的改代码的 agent(当前 Cursor CLI) | 可选;没有不影响对话与记账 |
 
@@ -198,6 +198,7 @@ pnpm install && pnpm -r build
 saydo up        # 前台持有 daemon,Ctrl+C 优雅退出并可续接任务
 saydo status    # 探活:0=已连上 / 1=端口空闲 / 2=端口冲突
 saydo open      # 打开控制台
+saydo doctor    # 只读诊断:版本/配置待生效/pipeline/语音上游与下一步;--json 机器可读;0=正常 1=降级 2=故障
 ```
 
 源码开发形态使用 `pnpm --filter @saydo/cli build` 后运行 `node packages/cli/dist/cli.mjs up`。同一个数据目录 `~/.saydo` 同时只允许一个实例。

@@ -25,7 +25,7 @@
 
 - **职责**:结构化日志(JSONL)+ `audit_log` 审计 sink(敏感 payload 不记原文,记 digest)+ 关键横切事件(Gate 0 状态、dev profile 横幅、BYOA invocation、billing-switch、canary 触发)。**不做**:P0 指标面板(P1)、把日志当审计(两条流分开:日志可轮转,审计不可变)。
 - **接口面**:`audit_log` DDL(09 §9);invocation 记录字段集(07 D18);日志风格 = 11 §8(纯文本标记 `[ok]/[warn]/[fail]`,**禁 pictographic 字符**,NO_COLOR 约定)。
-- **设计要点**:① 审计事件是安全合同的一部分(tripwire/作废/拒启动都必须落痕,复评 B7);② 隐私:转写原文/密钥值永不进日志,引用用 digest/turn_ref;③ 每条审计带 actor(owner/brain/daemon/bridge)。
+- **设计要点**:① 审计事件是安全合同的一部分(tripwire/作废/拒启动都必须落痕,复评 B7);② 隐私:转写原文/密钥值永不进日志,引用用 digest/turn_ref;③ 每条审计带 actor(owner/brain/daemon/bridge)。④ **背压隔离(GAP-02 2.8)**:普通日志机器流是有界队列 + 异步写,ENOSPC/EACCES 等写失败与队列溢出只计数并降级(丢弃普通日志、`Logger.health()` 暴露 `degraded/writeFailures/dropped`,`GET /readyz` 以 `loggerDegraded` 上报),不冒进业务调用栈;审计 sink 保持同步写且失败 fail-closed(抛 `AuditWriteError` 给调用方,可挂失败钩子让其可见),**日志可降级、审计不可**。
 - **依赖**:被全部模块调用(唯一全局依赖方向,08 §3)。
 - **验证归属**:随各安全测试断言审计痕(§12-9/-10 的"+审计"从句);0.1(日志底座随脚手架)。
 - **分期**:P0 日志+审计 / P1 指标。

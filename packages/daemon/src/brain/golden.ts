@@ -115,7 +115,7 @@ export const COVERAGE_GOLDEN: GoldenCase[] = [
   },
   { id: "c13", scene: "#13 拒绝单条 grant", utterance: "好,改防火墙那条不批——碰到它的时候我会先问你,其他照旧。", mustContain: ["不批", "先问你", "其他照旧"] },
   { id: "c14a", scene: "#14 模式复述·直达(designed/deferred,非现役主动话术)", utterance: "直达验收档本期不开放,我按每步问你来跑。", mustContain: ["每步问你"], mustNotContain: ["一口气跑到等你验收"] },
-  { id: "c14b", scene: "#14 模式复述·逐步", utterance: "好,每步问你——改代码、跑测试不会吵你。", mustContain: ["每步问你", "不会吵你"] },
+  { id: "c14b", scene: "#14 模式复述·逐步", utterance: "好,每步问你——改代码、跑登记好的测试不会吵你。", mustContain: ["每步问你", "不会吵你"] },
   {
     id: "c16",
     scene: "#16 Gate 0 未关拒绝开工(逆风)",

@@ -4,7 +4,7 @@
 > 均为中途旧段,与 §1 自相矛盾——已按 git log + 运行时配置 + 独立对账裁决清理(裁决记录:
 > `e2e/evidence/closeout-verification.md` §3.1)。本版为**单一真相**:所有状态均经收口会话独立核实。
 >
-> **开工先读**:本文件 → 本仓 `AGENTS.md` → `docs/plan/IMPLEMENTATION-PLAN-2.md`(**唯一排产源**;2026-08-29 PG-00 导入、2026-09-06 插入 AS-01-AS-02 后当前唯一串行链 = `PROC-01 → PG-01B → AS-01-AS-02 → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop`，历史 W1–W9 + 合同轮原文保留) → `docs/plan/2026-08-28-project-gap-closure-program.md` → `docs/plan/2026-08-28-project-gap-d17-import-spec.md` → `docs/plan/2026-08-28-project-gap-owner-decisions.md` → `docs/plan/IMPLEMENTATION-PLAN.md`(首发计划,已收口,仅作出处索引)→ `docs/09`(数据契约,照抄源)/`docs/10`(话术)/`docs/11`(UI)/`docs/modules/a-e`(分域导航)。
+> **开工先读**:本文件 → 本仓 `AGENTS.md` → `docs/plan/IMPLEMENTATION-PLAN-2.md`(**唯一排产源**;2026-08-29 PG-00 导入、2026-09-06 插入 AS-01-AS-02、2026-09-09 插入 GAP-02-consolidation 后当前唯一串行链 = `PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop`，历史 W1–W9 + 合同轮原文保留) → `docs/plan/2026-08-28-project-gap-closure-program.md` → `docs/plan/2026-08-28-project-gap-d17-import-spec.md` → `docs/plan/2026-08-28-project-gap-owner-decisions.md` → `docs/plan/IMPLEMENTATION-PLAN.md`(首发计划,已收口,仅作出处索引)→ `docs/09`(数据契约,照抄源)/`docs/10`(话术)/`docs/11`(UI)/`docs/modules/a-e`(分域导航)。
 > 此前开工先读链（PLAN-2 后直接到首发计划、未列入缺口治理三文件）由本行 supersede。
 > 唯一活动仓 = `~/WorkSpace/SayDo`(远端两个,2026-08-20 起:origin = 私有归档 `github.com/Octo-o-o-o/SayDo-archive`(全史,日常 push);public = 公开快照仓 `github.com/Octo-o-o-o/SayDo`,经 `scripts/publish-public-snapshot.sh` 更新,推前跑隐私探针);设计、实现、证据与过程档案均在本仓。旧路径 `voice-coding` 是指向 SayDo 的兼容链接，冻结冷档是 `voice-coding.archive-20260729`，映射见 `docs/plan/MIGRATION.md`。
 
@@ -49,13 +49,15 @@
 - **当前批次指针:**
 <!-- schedule-pointer:begin -->
 schema_version=1
-revision=5
+revision=7
 active=none
 next=PG-02
-last_closed=AS-01-AS-02
-evidence_ref=e2e/evidence/as-01-as-02-privacy.md
-updated_at=2026-09-06
+last_closed=GAP-02-consolidation
+evidence_ref=e2e/evidence/gap-02-consolidation.md
+updated_at=2026-09-09
 <!-- schedule-pointer:end -->
+**GAP-02-consolidation 已于 2026-09-09 收口**:I 链 `b415255`…`9a398a2`(10 个产品提交,父=main `25a99242a3863ba24ba7fc7a4b382c880c2c18d6`),插批 `4fe4666`,E `2fe28579044131915c807b587c94ff70ebe366f3`(evidence `e2e/evidence/gap-02-consolidation.md`,记录 I 不自指)。收口依据:owner 2026-09-09 确认插批、合并与公开快照;HEAD `2158ae0` 干净树串行 focused / `just ci`(daemon 2313 passed | 6 skipped、console 316、contracts 135、cli 62、pytest 34)/ playwright 40 passed 全绿;无独立零上下文评审(执行卡为直接实施路径)。本指针 `last_closed=GAP-02-consolidation`、`active=none`、`next=PG-02`(PG-02 未开工,须另有具名授权与完整合同)。此行 supersede 下方「GAP-02-consolidation 现役」行。
+**GAP-02-consolidation 现役(2026-09-09,候选待 owner 确认插批)**:AS-01-AS-02 已入 main(I `7ab7ab394f97a9c1e9a666d218ac41cee3d2ef45`,E `21ed2840b11d824f970528b94f1366f8300206a8`,evidence `e2e/evidence/as-01-as-02-privacy.md`)。本指针 `last_closed=AS-01-AS-02`、`active=GAP-02-consolidation`、`next=none`。执行卡 `docs/plan/IMPL-PROMPT-2026-09-09-gap-consolidation.md`;候选在分支 `sd-harness-borrow`(基于 main `25a9924`),未合并、未 push。此行 supersede 下方 `active=none,next=PG-02` 的描述;若 owner 不同意插批,回退本指针与批卡即可,产品候选不受影响。
 **AS-01-AS-02 已于 2026-09-06 收口**:I `7ab7ab394f97a9c1e9a666d218ac41cee3d2ef45`(feat(as-01-as-02),父=main `99d51106c9caaefcf55f72bff1a17a78abf58be9`,36 路径),E `21ed2840b11d824f970528b94f1366f8300206a8`(evidence `e2e/evidence/as-01-as-02-privacy.md`,记录 I 不自指)。收口依据:contract/owner-recovery-1 ordinal 4 GREEN + implementation/owner-recovery-1 ordinal 1 GREEN(两阶段均 `--finalize`),三个冻结门 record-gate exit 0,I 的干净 clone 重跑 `just ci`(daemon 134 passed | 2 skipped、console 290、contracts 132、pytest 34)与 playwright 38 passed 全绿;唯一 P2 ledger 空,最终 sweep 一次 no_items。本指针 `last_closed=AS-01-AS-02`、`active=none`、`next=PG-02`(PG-02 未开工,须另有具名授权与完整合同)。此行 supersede 下方「AS-01-AS-02 现役」行。
 **AS-01-AS-02 现役(2026-09-06)**:PG-01B 已入 main(I `ebd449080bb0e476eb2dd3334ee0b152cb3a7eeb`,E `99d51106c9caaefcf55f72bff1a17a78abf58be9`,evidence `e2e/evidence/pg-01b-20260905.md`);无 `--finalize` 记录,owner 知情合并见 journal R129,不伪称 finalized。本指针 `last_closed=PG-01B`、`active=AS-01-AS-02`。执行卡 `docs/plan/IMPL-PROMPT-ecc-as01-as02-privacy.md`。此行 supersede 滞后的 `active=PG-01B`。
 **PG-01A 已于 2026-09-02 收口**:implementation commit `2a786ed`(parent=PG-00 evidence `79211f6`,36 路径),evidence `e2e/evidence/project-gap-pg-01a.md`(E 为其后继 evidence commit,不自指)。收口依据:C0/C1 经 owner 三轮有界恢复(决策单第 6–9 节)后 fresh Codex ordinal 4 语义 GREEN、FG-1 根因修复 fresh Codex ordinal 1 GREEN、同 I 的 clean worktree 完整 `just ci` exit 0、中英文 docs 页面隔离 Chromium QA pass、Q0 truth report 绑定 I(986 对象全部 `unresolved`,按 D2 安全缺省 `owner_downgraded_with_public_limit`,G-A1 记 `repo_downgraded` 非 closed)。deployed_status 全部 `blocks_expansion`,待另行部署授权后按官网/快照 digest 核对。唯一 P2 ledger 新增 `P2-001`(eslint 不覆盖 test-only 文件)。此行 supersede 2026-08-31 的 `active=PG-01A,next=none` 指针。**上一批 `w54b-wiring` 已于 2026-08-27 收口**,收口 SHA `9417b6d`(代码 `8941e1c` + 证据 `9417b6d`)。收口依据:四轮零上下文独立复审(Codex `gpt-5.6-sol`+max)+ 三轮独立返工(Grok `grok-4.6`+xhigh),W5.4-b **自身引入的 A 级 = 0**(首轮 5 条全部 CONFIRMED_FIXED;返工引入的 1 条 A 级生产回归已关闭;末轮提出的 BYOA 多 spawn 不重验经归属核验属基线既有缺陷,按 owner 裁决转独立安全线)。遗留 6 条 B/C 见 `e2e/evidence/w54b-batch.md` §18.4。门禁:`just ci` exit 0(daemon 2174 passed/6 skipped、console 279)、`playwright` exit 0(36 passed)。**未决**:`IMPL-PROMPT-15` §3.5 的第 2 条(方案 §8 残余形式确认)与第 3 条(ADR-002 状态更正确认)在代码与文档中均无书面确认痕迹,如实记为**未见确认**,不当作已处置。

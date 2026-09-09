@@ -15,6 +15,28 @@ export type CageProvider =
   | "copilot_cli";
 export type CodexReasoning = "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
+/**
+ * 笼分档单源(GAP-02 2.9;07 D18 纪律 1 分档表 / 09 §11 规则 4):provider 审计 `cage`/`cageEnforcement` 与
+ * `/api/setup/cli-capability` 每项 `cage` 都引用本表,不再内联三元。
+ * enforcement:tool-deny / write-sandbox 是事前 allow 式(full);ask+tripwire 只有事后检测(partial)。
+ * 本表只是声明档位,不是真实 CLI conformance 探针(AS-03 另立)。
+ */
+export type CageLevelName = "tool-deny" | "write-sandbox" | "ask+tripwire";
+export type CageEnforcement = "full" | "partial";
+export interface CageLevel {
+  level: CageLevelName;
+  enforcement: CageEnforcement;
+}
+export const CAGE_LEVELS: Readonly<Record<CageProvider, CageLevel>> = Object.freeze({
+  claude_cli: { level: "tool-deny", enforcement: "full" },
+  grok_cli: { level: "tool-deny", enforcement: "full" },
+  gemini_cli: { level: "tool-deny", enforcement: "full" },
+  qwen_cli: { level: "tool-deny", enforcement: "full" },
+  copilot_cli: { level: "tool-deny", enforcement: "full" },
+  codex_cli: { level: "write-sandbox", enforcement: "full" },
+  cursor_cli: { level: "ask+tripwire", enforcement: "partial" }
+});
+
 export interface CageInput {
   provider: CageProvider;
   /** 会话专用空目录(cwd);奠基只读例外时传只读仓路径 */

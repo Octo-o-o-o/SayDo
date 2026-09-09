@@ -17,7 +17,7 @@ npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.
 saydo up
 ```
 
-默认打开 `http://localhost:47100`。远程终端可加 `--no-open`；按 `Ctrl+C` 优雅停止。
+默认打开 `http://localhost:47100`。远程终端可加 `--no-open`；按 `Ctrl+C` 优雅停止。`saydo status` 探活，`saydo open` 打开控制台，`saydo doctor`（可加 `--json`）做只读诊断：已安装/运行版本、配置待生效、pipeline 与语音上游状态及下一步，输出不含路径与密钥。
 
 当前包只启动 daemon 与 Web 控制台。语音 pipeline、macOS launchd 常驻服务和源码开发仍按仓库安装说明操作。Windows 与 Linux 当前以前台方式运行，不包含 Scheduled Task 或 systemd 常驻安装。
 

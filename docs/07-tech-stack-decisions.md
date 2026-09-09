@@ -251,6 +251,8 @@ daemon 静态托管的单页应用(麦克风采集、任务看板、决策包/De
 | codex_cli | **write-sandbox(限写不限读)** | `--ignore-user-config --ignore-rules -s read-only --ephemeral -c tools.web_search=false -c model_reasoning_effort=<档> -C <空目录>`——隔离用户 config 的 MCP/feature、关服务端搜索、会话不落盘;**读盘不可挡** | 双 ack+self-test+身份登记豁免齐备才武装 |
 | cursor_cli | **ask+tripwire(检测型,最弱档)** | `-p --mode ask --trust` + 空目录 cwd——ask 只读但可读盘、无零工具旗标;**tripwire 是事后检测非事前防止**(tool_call 完成事件里内容已回给模型) | 双 ack+self-test+流内 observedModel 齐备才武装 |
 
+分档在代码里由 `packages/daemon/src/providers/byoa/cage.ts` 的 `CAGE_LEVELS` 类型化(`{level, enforcement}`;tool-deny / write-sandbox = `full`,ask+tripwire = `partial`;GAP-02 2.9),审计与 setup capability 输出引用同一表;新三家(gemini/qwen/copilot)沿用既有 tool-deny 审计口径登记为 full,真实 conformance 探针仍归 AS-03。
+
 **每次 BYOA/api 调用须落不可变 invocation 记录**(生效 profile、provider、argv digest、cwd、笼档、requestedModel、observedModel、observedModelSource、observedModelExempted、tool 事件计数、所引证据 digest)——审计可证"实际调用与声明绑定一致"。无状态一发一收,刻意砍 resume。唯一例外:奠基/调研任务显式传只读仓 cwd。配置面不提供解笼开关。thinking/cheap/evaluator 的生产与 self-test 调用统一使用逐次新建并清理的空目录 cwd,prompt 头部硬禁命令与读文件;tripwire 在流式读到任何 tool_call 事件时仍立即终止并作废,仅当零正文消费且无 model 冲突时允许在全调用唯一重试预算内用强化禁令重试一次;首发 unknown_event 允许同参再发一次,与 tripwire 共用该预算;再次触发或 schema 仍非法即失败,不得再发第三次请求。POSIX 子进程用独立进程组,直接父进程退出或生命周期 abort 时均收口整个进程树。
 2. **异族按模型家族判**:API 与 CLI evaluator 都按实际模型家族判定。CLI evaluator 还须同族 ack 与隔离 ack 双齐、真实 self-test 通过;`observedModelSource="unknown"` 永不武装。familyFixed 供给只有绝对路径与内容 digest 登记一致、且落豁免审计时才可用 `verified_binary_default` 代替流内 model。
 

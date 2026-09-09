@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { brandTrustedFailure, projectUntrustedFailureText } from "@saydo/platform";
 import { CLI_PROTOCOL_VERSION } from "./buildIdentity.js";
+import { collectDoctor, readInstalledIdentity, renderDoctorText } from "./doctor.js";
 import { consoleUrl, openExternal } from "./open.js";
 import { parseCliOptions } from "./options.js";
 import { probeDaemon } from "./probe.js";
@@ -9,6 +10,18 @@ import { distributionPaths, holdAttached, runOwned } from "./supervisor.js";
 
 async function main(): Promise<void> {
   const options = parseCliOptions(process.argv.slice(2));
+  if (options.command === "doctor") {
+    // 只读诊断:不走 ownership 探针(不读 token),不发 provider 请求。
+    const report = await collectDoctor({
+      home: options.home,
+      port: options.port,
+      protocolVersion: CLI_PROTOCOL_VERSION,
+      installed: readInstalledIdentity(import.meta.dirname, CLI_PROTOCOL_VERSION)
+    });
+    process.stdout.write(options.json ? `${JSON.stringify(report)}\n` : renderDoctorText(report));
+    process.exitCode = report.exitCode;
+    return;
+  }
   const probe = await probeDaemon(options.home, options.port, CLI_PROTOCOL_VERSION);
   if (options.command === "status") {
     process.stdout.write(`${JSON.stringify(probe)}\n`);

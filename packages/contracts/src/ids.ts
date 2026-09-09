@@ -24,6 +24,8 @@ export const ID_PREFIXES = {
   s3BootstrapIntent: "s3i",
   readinessBinding: "rbd",
   readinessReceipt: "rrc",
+  /** SD-2:普通 M0 记忆提议确认收据(confirm 环 kind=memory) */
+  memoryReceipt: "mrc",
   projectAnchor: "anc",
   event: "evt",
   // Focus Contract v0

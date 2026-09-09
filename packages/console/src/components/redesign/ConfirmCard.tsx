@@ -6,6 +6,7 @@ import { Check, MessageSquare } from "lucide-react";
 import { ActionRow, Btn, card, StageTag } from "./shared";
 import type { ConfirmCardData, ConfirmKind } from "./types";
 
+/** kind → 分组文案;Record<ConfirmKind,…> 让 contracts 新增 kind 时这里编译失败,不静默漏项 */
 const KIND_GROUP: Record<ConfirmKind, string> = {
   focus_anchor: "锚定确认",
   focus_create_anchor: "锚定确认",
@@ -13,10 +14,19 @@ const KIND_GROUP: Record<ConfirmKind, string> = {
   focus_obligation_resolve: "义务确认",
   focus_revision: "修订确认",
   focus_lane_split: "修订确认",
+  expectation_ack: "期待确认",
   dispatch: "派发确认",
   runtime_effect: "效果授权",
-  readiness: "就绪复述"
+  readiness: "就绪复述",
+  memory: "记忆",
+  project_anchor: "项目锚定"
 };
+/** 运行期仍可能收到表外 kind(旧 daemon / 未来新增):显示通用「确认」,不渲染空前缀 */
+const KIND_GROUP_FALLBACK = "确认";
+
+export function confirmKindGroupLabel(kind: string): string {
+  return (KIND_GROUP as Record<string, string | undefined>)[kind] ?? KIND_GROUP_FALLBACK;
+}
 
 function fmtLeft(sec: number): string {
   const mm = Math.floor(sec / 60).toString().padStart(2, "0");
@@ -43,7 +53,7 @@ export function ConfirmCard({ data, onAction }: {
         <MessageSquare size={15} aria-hidden />
         <strong>跟你确认几点</strong>
         <span style={{ fontSize: "var(--text-xs)", fontFamily: "var(--font-mono)", padding: "1px 6px", borderRadius: "var(--radius-2xs)", border: "1px solid var(--line)", color: "var(--text-muted)" }}>
-          {KIND_GROUP[data.kind]} · 信息确认 · 不是授权
+          {confirmKindGroupLabel(data.kind)} · 信息确认 · 不是授权
         </span>
         <span style={{ flex: 1 }} />
         {!resolved && typeof data.secondsLeft === "number" ? (

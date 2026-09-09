@@ -19,7 +19,7 @@ export function boardColumnOf(vs: ViewStatus): 0 | 1 | 2 | 3 {
 
 const COL_LABELS = ["队列 / 收到", "进行中", "需要你", "已收尾"];
 
-function BoardCard({ task, onOpen }: { task: TaskView; onOpen?: () => void }) {
+function BoardCard({ task, onOpen, approxStatus }: { task: TaskView; onOpen?: () => void; approxStatus?: boolean }) {
   return (
     <button
       type="button"
@@ -35,6 +35,16 @@ function BoardCard({ task, onOpen }: { task: TaskView; onOpen?: () => void }) {
       <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
         <StatusChip status={task.viewStatus} deadline={task.parkedDeadline} />
         <RiskBadge risk={task.riskLevel} />
+        {approxStatus ? (
+          // VIEW-01:状态只是按提醒颜色推断,不伪装成确定状态
+          <span
+            data-status-approx
+            title="这个状态是按提醒颜色推断的,以任务详情为准"
+            style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", border: "1px dashed var(--line)", borderRadius: "var(--radius-pill)", padding: "1px 6px" }}
+          >
+            状态待核实
+          </span>
+        ) : null}
       </div>
       <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap", marginTop: 4 }}>
         {task.projectTitle ? (
@@ -75,13 +85,18 @@ function ObBoardCard({ ob, onOpen }: { ob: ObligationView; onOpen?: () => void }
   );
 }
 
-export function BoardLaneGroup({ data, collapsed, onToggleCollapse, onOpenTask, onOpenObligation, onOpenFocus }: {
+export function BoardLaneGroup({ data, collapsed, onToggleCollapse, onOpenTask, onOpenObligation, onOpenFocus, detailError, onRetryDetail, approxStatusTaskIds }: {
   data: BoardLaneGroupData;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
   onOpenTask?: (task: TaskView) => void;
   onOpenObligation?: (ob: ObligationView) => void;
   onOpenFocus?: () => void;
+  /** VIEW-01:这件事的 detail 没拉下来(义务/支线缺席),占位说明 + 重试;不把它从看板上抹掉 */
+  detailError?: string | undefined;
+  onRetryDetail?: (() => void) | undefined;
+  /** VIEW-01:viewStatus 按提醒颜色近似的任务 id,卡上标「状态待核实」 */
+  approxStatusTaskIds?: ReadonlySet<string>;
 }) {
   const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
   const multi = data.lanes.length > 1;
@@ -91,7 +106,7 @@ export function BoardLaneGroup({ data, collapsed, onToggleCollapse, onOpenTask, 
     const tasks = (data.tasksByLane[laneId] ?? []).filter(t => boardColumnOf(t.viewStatus) === ci);
     const obs = ci === 2 ? (data.obligationsByLane[laneId] ?? []) : [];
     const cards = [
-      ...tasks.map(t => <BoardCard key={t.id} task={t} onOpen={onOpenTask ? () => onOpenTask(t) : undefined} />),
+      ...tasks.map(t => <BoardCard key={t.id} task={t} onOpen={onOpenTask ? () => onOpenTask(t) : undefined} approxStatus={approxStatusTaskIds?.has(t.id)} />),
       ...obs.map(o => <ObBoardCard key={o.id} ob={o} onOpen={onOpenObligation ? () => onOpenObligation(o) : undefined} />)
     ];
     const key = `${laneId}:${ci}`;
@@ -158,6 +173,25 @@ export function BoardLaneGroup({ data, collapsed, onToggleCollapse, onOpenTask, 
         )}
         {collapsed ? <ChevronRight size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
       </button>
+      {detailError ? (
+        <div
+          role="status"
+          data-board-detail-error={data.focus.id}
+          style={{ display: "flex", gap: "var(--space-3)", alignItems: "center", flexWrap: "wrap", margin: "0 8px 8px", padding: "8px 10px", borderRadius: "var(--radius-sm)", border: "1px dashed var(--color-error)", fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}
+        >
+          <span>[warn] 这件事的详情没拉下来(义务与支线暂缺):{detailError}</span>
+          {onRetryDetail ? (
+            <button
+              type="button"
+              onClick={onRetryDetail}
+              data-board-detail-retry={data.focus.id}
+              style={{ fontSize: "var(--text-xs)", color: "var(--active-ink)", padding: "4px 8px", borderRadius: "var(--radius-xs)", background: "none", border: "1px solid var(--line)", cursor: "pointer" }}
+            >
+              重试
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {collapsed ? null : data.lanes.map(lane => (
         <div key={lane.id} style={{ display: "grid", gridTemplateColumns: "140px repeat(4, minmax(190px, 1fr))", gap: 8, padding: "0 8px 8px" }}>
           <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", padding: "8px 6px", display: "flex", gap: 4, alignItems: "center" }}>

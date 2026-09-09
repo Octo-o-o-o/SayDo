@@ -134,6 +134,8 @@ describe("probeCliCapability", () => {
     expect(cap.found).toBe(false);
     expect(cap.auth.status).toBe("not_found");
     expect(cap.models).toEqual([]);
+    // GAP-02 2.9:capability 带笼分档单源(未安装也声明档位;不是 conformance 结果)
+    expect(cap.cage).toEqual({ level: "write-sandbox", enforcement: "full" });
     expect(cap.auth.fixHint).toContain("API");
   });
 
@@ -159,6 +161,7 @@ describe("probeCliCapability", () => {
     expect(cap.enumerable).toBe(true);
     expect(cap.models.length).toBe(5);
     expect(cap.provider).toBe("cursor_cli");
+    expect(cap.cage).toEqual({ level: "ask+tripwire", enforcement: "partial" });
   });
 
   it("cursor 未登录 ⇒ 丢弃并行发出的模型列表,只提示登录", async () => {

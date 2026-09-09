@@ -47,6 +47,8 @@
 | 字段 | 语义 |
 |---|---|
 | `groups` | BoardLaneGroupData[](组件库类型):每组 = 一个 Focus 的 `{focus, lanes, tasksByLane, obligationsByLane, needCount, collapsed?}`;空数组=渲染空态文案 |
+| `detailErrors?` | `Record<focusId, string>`:detail 拉失败的 Focus(VIEW-01)。该组仍在 `groups` 里(义务/支线缺席,attention 任务照挂主线),组头下渲染占位错误 + 「重试」(`onRetryDetail(focusId)`);不得把它从看板上抹掉 |
+| `approxStatusTaskIds?` | `string[]`:`viewStatus` 只是按 attention 颜色近似的任务 id;卡片旁加「状态待核实」标签,不伪装成确定状态 |
 
 页面行为:列头四列固定(队列/进行中/需要你/已收尾);组折叠是页面级呈现状态,初始取 `collapsed`,缺省休眠(dormant)收起。卡片点击经 `onAction`(`open_task`/`open_obligation`,弹窗归接线线);组头 `onOpenFocus` 走 `onNavigate({page:"focus"})`(当前组头点击优先折叠,与 demo 一致)。
 

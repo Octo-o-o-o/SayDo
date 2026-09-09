@@ -9,23 +9,23 @@
 
 <!-- schedule-pointer:begin -->
 schema_version=1
-revision=5
+revision=7
 active=none
 next=PG-02
-last_closed=AS-01-AS-02
-evidence_ref=e2e/evidence/as-01-as-02-privacy.md
-updated_at=2026-09-06
+last_closed=GAP-02-consolidation
+evidence_ref=e2e/evidence/gap-02-consolidation.md
+updated_at=2026-09-09
 <!-- schedule-pointer:end -->
 
-> 本节是 2026-08-29 起 PLAN-2 的唯一当前排产坐标。下方 §0 现状锚点与 §1 W1–W9 / 合同轮 / `ai-supply` 为历史原文，只增加 superseded/disposition，不删除历史节点、不重写既有 evidence。当前现势指针见本节顶部 schedule-pointer 块,由 `scripts/schedule-pointer.mjs` 守护;不得手写第二套 active/next。字段原逐字来自 `docs/plan/2026-08-28-project-gap-closure-program.md` §20 批卡与 D17 §4.2；2026-09-06 在 PG-01B 与 PG-02 之间插入唯一批 ID `AS-01-AS-02`（owner 决策单第 10 节，不是 D17 扩权）。不新增功能平台。`PLAN2-default-all` 已 `superseded`；未被 exact 选入的未来项一律 deferred，取消“未回复则缺省全做”。
+> 本节是 2026-08-29 起 PLAN-2 的唯一当前排产坐标。下方 §0 现状锚点与 §1 W1–W9 / 合同轮 / `ai-supply` 为历史原文，只增加 superseded/disposition，不删除历史节点、不重写既有 evidence。当前现势指针见本节顶部 schedule-pointer 块,由 `scripts/schedule-pointer.mjs` 守护;不得手写第二套 active/next。字段原逐字来自 `docs/plan/2026-08-28-project-gap-closure-program.md` §20 批卡与 D17 §4.2；2026-09-06 在 PG-01B 与 PG-02 之间插入唯一批 ID `AS-01-AS-02`（owner 决策单第 10 节，不是 D17 扩权）；2026-09-09 在 AS-01-AS-02 与 PG-02 之间插入唯一批 ID `GAP-02-consolidation`（执行卡 `IMPL-PROMPT-2026-09-09-gap-consolidation.md` §0 排产关系，与 AS 同法插批；owner 2026-09-09 已确认插批）。不新增功能平台。`PLAN2-default-all` 已 `superseded`；未被 exact 选入的未来项一律 deferred，取消“未回复则缺省全做”。
 
 ### 唯一串行链
 
 ```text
-PROC-01 → PG-01B → AS-01-AS-02 → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop
+PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop
 ```
 
-断言形态：`PLAN2_chain == PROC-01>PG-01B>AS-01-AS-02>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop`。
+断言形态：`PLAN2_chain == PROC-01>PG-01B>AS-01-AS-02>GAP-02-consolidation>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop`。
 
 PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代码批，也不占用 active/next。
 
@@ -101,6 +101,18 @@ PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代�
 - evidence path：`e2e/evidence/as-01-as-02-privacy.md`
 - 回滚上限：停受影响新写入/新 generation/本次私有投影；保留旧有效数据、用户文件与已建保护。不回放被拒原文，不自动删库/改 Git 历史。`safe_default=refuse_new_secret_write + keep_old_generation + create_only_ignore`
 - 批卡摘要（统一方案 §3）：daemon 隐私批，规模 M；canonical_change=yes。凭据写前拒绝、Git 私有 write set create-only、三类失败可见与恢复同一批交付。合同阶段不改 daemon 行为。收口后接回 PG-02，不自动开 PG-02。
+
+### GAP-02-consolidation · gap-consolidation——**状态:已收口(2026-09-09;I 链 `b415255`→`dc3b18c`→`c69aa23`→`c130ed1`→`2759916`→`b3c2009`→`b525aef`→`6e4ea74`→`ac8df81`→`9a398a2`,插批 `4fe4666`,E `2fe28579044131915c807b587c94ff70ebe366f3`,evidence `e2e/evidence/gap-02-consolidation.md`;owner 2026-09-09 确认插批与合并;无独立零上下文评审,自检门禁全绿见证据)**
+
+- depends_on：AS-01-AS-02 evidence commit（I `7ab7ab394f97a9c1e9a666d218ac41cee3d2ef45`，E `21ed2840b11d824f970528b94f1366f8300206a8`，evidence `e2e/evidence/as-01-as-02-privacy.md`）
+- A-ID exact-set：`close_set=[G-B14]`；`stop_loss_set=[G-B12-partial(doctor 只读诊断,不含 upgrade/uninstall)]`
+- deferred exact-set：`[DF-EMAIL-OUTBOUND-A,DF-DSH-D01-TRANSCRIPT-REBUILD,DF-REMOTE-REOPEN,DF-VIEW-02,DF-VOICE-01,DF-VOICE-02,DF-READ-01,DF-CONTEXT-01,DF-HOST-02,DF-AS-03,DF-AS-04,DF-AS-06,DF-AS-07]`（§3 待 owner 具名与 §4 明确不做；PG-02..06 批卡内容不吞并）
+- scope roots：`packages/contracts/src/types/confirmation.ts`、`packages/daemon/src/live/{confirm.ts,dialog.ts}`、`packages/daemon/src/tier1/cmdEffect.ts`、`packages/daemon/src/obs/{latency.ts,logger.ts,audit.ts}`、`packages/daemon/src/voice/hub.ts`、`packages/daemon/src/index.ts`（延迟接线、/readyz 字段、cli-capability）、`packages/daemon/src/providers/byoa/{cage.ts,provider.ts}`、`packages/daemon/src/config/cliCapability.ts`、`packages/daemon/src/memory/m0Confirm.ts`、`packages/daemon/src/brain/{dialogLoop.ts,liveTools.ts,golden.ts}`、`packages/console/src/components/redesign/{types.ts,ConfirmCard.tsx,ConfirmCard.fixture.ts,Modals.tsx,BoardLaneGroup.tsx}`、`packages/console/src/components/{TaskModal.tsx,useDialogKeyboard.ts}`、`packages/console/src/hooks/redesign/**`、`packages/console/src/pages/redesign/**`、`packages/console/src/pages/Chat.tsx`、`packages/console/src/lib/{api.ts,dataInvalidate.ts}`、`packages/console/src/voice/useVoiceChannel.ts`、`packages/cli/src/{doctor.ts,cli.ts,options.ts,probe.ts}`、对应测试、`README.md`、canonical 限 03/04/07/09/10/11 与 `docs/modules/{b-memory,e-crosscutting}.md`。不含 `packages/daemon/src/net/**`、DDL、审计 envelope/白名单（PG-04）、VIEW-02 聚合读口
+- focused gate：`FG-GAP02-CONSOLIDATION` = `pnpm --filter @saydo/daemon exec vitest run test/dialog-loop.test.ts test/memory-m0-confirm.test.ts test/tier1-cmd-effect.test.ts test/live-wiring.e2e.test.ts test/logger.test.ts test/latency-report.test.ts test/confirmation-ledger.test.ts test/byoa.test.ts test/cli-capability.test.ts test/voice-hub.test.ts`；`pnpm --filter @saydo/contracts exec vitest run test/confirm-kinds.test.ts test/schemas.test.ts`；`pnpm --filter @saydo/console exec vitest run src/hooks/redesign src/components/redesign src/components/useDialogKeyboard.test.ts src/pages/Chat.test.tsx`；`pnpm --filter @saydo/cli test`；`pnpm -r typecheck`；`bash scripts/check-emoji.sh`；`node scripts/check-doc-links.mjs`；`node scripts/schedule-pointer.mjs --check`；`git diff --check`。其中 `memory-m0-confirm.test.ts` / `latency-report.test.ts` / `confirm-kinds.test.ts` / `useDialogKeyboard.test.ts` / `hooks/redesign/{useRefreshSignal,pageLoader,useBoardPageData}.test.ts` / `cli/test/doctor.test.ts` 标 `[new]`，随本批建立
+- full gate：`just ci`；`pnpm exec playwright test`（跑完 `git checkout -- e2e/screenshots`）
+- evidence path：`e2e/evidence/gap-02-consolidation.md`
+- 回滚上限：只能回到更保守档位（git hooks 绕过维持提级、M0 记忆只出提议、账本失败如实播报、日志降级不阻塞、审计 fail-closed）；不放宽 Gate 0 / S0–S3 / 审计不可变 / TTS 脱敏；不改 WS 词表、不改 DDL。`safe_default=keep_escalation + refuse_self_reported_trust + honest_ledger_outcome + no_ws_vocab_change`
+- 批卡摘要（执行卡 `docs/plan/IMPL-PROMPT-2026-09-09-gap-consolidation.md`）：缺口收敛小批，规模 M；canonical_change=yes。§1 SD-1/2/3（账本回执如实播报、M0 记忆提议确认环、package-script 执行归 S2）+ §2 九条（确认卡 kind 单源、git hooks 绕过 grammar、对话审计去原文、延迟观测准确性、redesign 失效刷新与局部失败、弹窗键盘闭环、`saydo doctor`、logger 背压隔离、BYOA 笼分档类型化）+ §3 移动确认路径核实。PG-02..06 批卡 A-ID / scope / gate 不改；PG-02 `depends_on` 按执行卡 §0 保持原文，关批时由 owner 决定是否补写。收口后接回 PG-02，不自动开 PG-02。
 
 ### PG-02 · minimal-truth-gate-bootstrap
 

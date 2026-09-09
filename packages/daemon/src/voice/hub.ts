@@ -182,6 +182,11 @@ export class VoiceHub {
     this.wss.on("connection", (ws, req) => this.onConnection(ws, req));
   }
 
+  /** 最近一次 console 登记的采集模式(ptt / hands_free);延迟观测按此给语音轮打 origin(全局近似,非 per-session) */
+  currentVoiceMode(): "ptt" | "hands_free" | undefined {
+    return this.lastVoiceMode?.mode;
+  }
+
   setEvents(events: VoiceHubEvents): void {
     this.events = events;
   }

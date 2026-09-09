@@ -2,9 +2,9 @@
 // 与 daemon 真实形状一致;FocusObligation 直接 import 自 @saydo/contracts(权威源)。
 // 规则:呈现层不自创字段;派生只读字段(producedBy/realizedAt)只用于展示。
 
-import type { FocusObligation } from "@saydo/contracts";
+import type { ConfirmKind, FocusObligation } from "@saydo/contracts";
 
-export type { FocusObligation };
+export type { ConfirmKind, FocusObligation };
 
 /* ---------- attention(handoff §3 原文) ---------- */
 export type AttentionColor = "orange" | "blue" | "green" | "gray";
@@ -110,11 +110,7 @@ export interface ArtifactView {
   createdAt: string;
 }
 
-/* ---------- 确认卡(handoff §3 真实枚举;无独立 memory 类型) ---------- */
-export type ConfirmKind =
-  | "focus_anchor" | "focus_obligation" | "focus_obligation_resolve"
-  | "focus_create_anchor" | "focus_revision" | "focus_lane_split"
-  | "dispatch" | "runtime_effect" | "readiness";
+/* ---------- 确认卡(kind 单源 = @saydo/contracts CONFIRM_KINDS,与 daemon live/confirm.ts 同源;GAP-02 2.1) ---------- */
 
 export interface ConfirmCardData {
   receiptId: string;

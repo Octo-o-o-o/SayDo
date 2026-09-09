@@ -46,6 +46,13 @@ saydo up
 
 该包支持 macOS、Windows 与 Linux，启动 daemon + Web 控制台；Windows/Linux 当前以前台方式运行。语音 pipeline、macOS launchd 常驻和源码开发仍走下方开发安装。远程终端可加 `--no-open`，按 `Ctrl+C` 优雅停止。
 
+| 命令 | 作用 |
+|---|---|
+| `saydo up` | 前台持有 daemon，`Ctrl+C` 优雅退出并可续接任务 |
+| `saydo status` | 探活：0=已连上 / 1=端口空闲 / 2=端口冲突 |
+| `saydo open` | 打开控制台 |
+| `saydo doctor` | 只读诊断：已安装/运行版本、数据目录 digest、配置待生效、pipeline 与语音上游状态及下一步；`--json` 输出机器可读；退出码 0=正常 / 1=有降级 / 2=有故障 |
+
 ## 开发
 
 ```bash

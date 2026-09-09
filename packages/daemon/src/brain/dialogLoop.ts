@@ -31,7 +31,7 @@ export const LEDGER_CLAIM_RE =
   /(记下了|已记下|办结了|已办结|销账|落账了|已落账|都齐了|两笔都齐|拆好了|已拆出|现在拆线|正在拆线)/;
 /** ④e 话术门:J10 同族——"放屏幕"宣告须本轮 screen_text 投递 succeeded≥1(dialog 层判定) */
 export const SCREEN_CLAIM_RE = /(细节放屏幕|放屏幕上了|放屏幕上|我放屏幕|细节有点多,\s*我放屏幕)/;
-/** 账本写类工具白名单:本轮碰过任一(即使 pending 确认)即不拦 */
+/** 账本写类工具白名单(SD-1:宣告放行看的是实际结果 persisted,不再只看"本轮碰过") */
 export const LEDGER_WRITE_TOOLS = new Set([
   "proposeObligation",
   "proposeObligationResolve",
@@ -43,6 +43,117 @@ export const LEDGER_WRITE_TOOLS = new Set([
   "suspendSession",
   "remember"
 ]);
+
+/**
+ * SD-1(2026-09-08,借 deepseek-harness"事实由系统结果给出"):本轮账本动作的结果视图。
+ * - persisted:服务端回执带持久化对象(remember 的 memId / propose* 的 done:true / 拍板与暂停的 ok:true);
+ * - pending:已建提议、等用户确认(control=await_user);
+ * - failed:handler 明确拒绝(ok:false 且非 tool_failed)——未写入;
+ * - unknown:handler 抛错被 registry 折叠为 tool_failed,或回执形状不识别——不能凭错误码推导"未写入",
+ *   呈现层只说"没确认到",不暗示重试;
+ * - noop:工具正常返回但没有动作(如需要用户进一步选择)。
+ * 口播由本视图产生,模型正文不得覆盖 failed/unknown。
+ */
+export type LedgerActionOutcome = "persisted" | "pending" | "failed" | "unknown" | "noop";
+export interface LedgerActionRecord {
+  tool: string;
+  outcome: LedgerActionOutcome;
+  code?: string;
+  /** 服务端返回的对象 id(memId/receiptId/focusId…),供审计与测试回读 */
+  ref?: string;
+}
+
+const LEDGER_TOOL_LABELS: Record<string, string> = {
+  remember: "这条记忆",
+  proposeObligation: "落账",
+  proposeObligationResolve: "销账",
+  proposeLaneSplit: "拆线",
+  proposeExpectationAck: "期待调整",
+  proposeFocusAnchor: "接上 Focus",
+  proposeFocusRevision: "方向修订",
+  confirmAndDispatch: "拍板派发",
+  suspendSession: "暂停会话"
+};
+
+function firstStringField(r: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const k of keys) {
+    const v = r[k];
+    if (typeof v === "string" && v !== "") return v;
+  }
+  return undefined;
+}
+
+/** 按工具的真实回执形状归类(逐工具核对,不用统一的 ok:true 口径) */
+export function classifyLedgerAction(tool: string, result: unknown): LedgerActionRecord {
+  if (typeof result !== "object" || result === null) return { tool, outcome: "unknown" };
+  const r = result as Record<string, unknown>;
+  if (r["control"] === "await_user") {
+    const ref = firstStringField(r, ["receiptId", "presentationId", "proposalId"]);
+    return { tool, outcome: "pending", ...(ref ? { ref } : {}) };
+  }
+  if (r["ok"] === false) {
+    const code = typeof r["code"] === "string" ? r["code"] : "unknown";
+    // registry 把 handler 抛错折叠为 tool_failed:写入可能已发生也可能没发生 ⇒ unknown
+    return { tool, outcome: code === "tool_failed" ? "unknown" : "failed", code };
+  }
+  if (tool === "remember") {
+    const memId = r["memId"];
+    return typeof memId === "string" && memId !== "" ? { tool, outcome: "persisted", ref: memId } : { tool, outcome: "noop" };
+  }
+  if (tool === "confirmAndDispatch" || tool === "suspendSession") {
+    return r["ok"] === true ? { tool, outcome: "persisted" } : { tool, outcome: "unknown" };
+  }
+  if (tool.startsWith("propose")) {
+    if (r["ok"] === true && r["done"] === true) {
+      const ref = firstStringField(r, ["obligationId", "focusId", "expectationId"]);
+      return { tool, outcome: "persisted", ...(ref ? { ref } : {}) };
+    }
+    return r["ok"] === true ? { tool, outcome: "noop" } : { tool, outcome: "unknown" };
+  }
+  return { tool, outcome: r["ok"] === true ? "persisted" : "unknown" };
+}
+
+function labelsOf(records: LedgerActionRecord[]): string {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const r of records) {
+    const label = LEDGER_TOOL_LABELS[r.tool] ?? r.tool;
+    if (seen.has(label)) continue;
+    seen.add(label);
+    out.push(label);
+  }
+  return out.join("、");
+}
+
+const LEDGER_NO_WRITE_REPLY = "刚才那句我说过头了——这轮我没有真正写入账本。你再说一次要记/要拆的内容,我用正规通道办。";
+
+/**
+ * 账本动作结果呈现(SD-1):
+ * - 有 failed/unknown ⇒ 整轮换成系统按结果写的句子(部分成功如实分开说;不暗示重试已写入的);
+ * - 模型宣告"记下了/拆好了…"而本轮没有任何 persisted ⇒ 诚实句(原 J10,判据从"碰过工具"改为"确有写入");
+ * - 其余原样。
+ */
+export function presentLedgerOutcome(
+  modelText: string,
+  records: readonly LedgerActionRecord[]
+): { text: string; replaced?: "action_failed" | "unclaimed_write" } {
+  const writes = records.filter((r) => LEDGER_WRITE_TOOLS.has(r.tool));
+  const persisted = writes.filter((r) => r.outcome === "persisted");
+  const failed = writes.filter((r) => r.outcome === "failed");
+  const unknown = writes.filter((r) => r.outcome === "unknown");
+  if (failed.length > 0 || unknown.length > 0) {
+    const parts: string[] = [];
+    if (persisted.length > 0) parts.push(`${labelsOf(persisted)}写进去了`);
+    if (failed.length > 0) parts.push(`${labelsOf(failed)}没写进去`);
+    if (unknown.length > 0) parts.push(`${labelsOf(unknown)}的结果我没确认到,先别当它写了,也先别重来`);
+    const tail = failed.length > 0 ? "没写进去的你再说一次,我用正规通道办。" : "你到屏幕上看一眼再定。";
+    return { text: `刚才这轮的实际结果:${parts.join(";")}。${tail}`, replaced: "action_failed" };
+  }
+  if (LEDGER_CLAIM_RE.test(modelText) && persisted.length === 0) {
+    return { text: LEDGER_NO_WRITE_REPLY, replaced: "unclaimed_write" };
+  }
+  return { text: modelText };
+}
 
 export const DIALOG_CLI_ONESHOT_ALLOWLIST = [
   "remember",
@@ -471,6 +582,8 @@ export interface ToolLoopDeps {
 export interface ToolLoopOutput extends DialogTurnOutput {
   /** 本轮实际执行的工具调用数(审计/测试锚) */
   toolCallsMade: number;
+  /** SD-1:本轮账本动作结果视图(呈现层与审计同源) */
+  ledgerActions?: LedgerActionRecord[];
 }
 
 function awaitsUser(result: unknown): boolean {
@@ -569,43 +682,46 @@ export async function runDialogCliOneshot(
     };
   }
 
-  const toolNamesCalled = new Set<string>();
+  const ledgerActions: LedgerActionRecord[] = [];
   for (const action of envelope.actions) {
     toolCallsMade += 1;
-    toolNamesCalled.add(action.tool);
     const spec = toolSpecByName.get(action.tool);
     const argumentsForDispatch = spec
       ? restoreOptionalArguments(action.arguments, spec.parameters)
       : action.arguments;
     const result = await deps.registry.dispatch(action.tool, JSON.stringify(argumentsForDispatch), deps.ctx);
+    ledgerActions.push(classifyLedgerAction(action.tool, result));
     deps.onToolCall?.({
       name: action.tool,
       ok: !actionFailed(result),
       ...(actionFailed(result) && result.code ? { code: result.code } : {})
     });
     if (deps.isCurrent && !deps.isCurrent()) {
-      return { sentences: [], ...lastMeta, llmArrivedAtMs: arrived || nowMs(), toolCallsMade };
+      return { sentences: [], ...lastMeta, llmArrivedAtMs: arrived || nowMs(), toolCallsMade, ledgerActions };
     }
     if (actionFailed(result)) {
+      // SD-1:账本动作失败句由结果视图产生——之前已写入的动作如实说"写进去了",不整轮说"没写进去";
+      // 非账本工具失败沿用既有合同:丢弃模型 reply,播通用停住句。
+      const presented = presentLedgerOutcome(envelope.reply, ledgerActions);
+      const failText = presented.replaced ? presented.text : ONESHOT_ACTION_ERROR_REPLY;
       return {
-        sentences: [{ sentenceId: `s-${input.turnId}-oneshot-action`, text: ONESHOT_ACTION_ERROR_REPLY }],
+        sentences: [{ sentenceId: `s-${input.turnId}-oneshot-action`, text: redactForSpeech(failText).text }],
         ...lastMeta,
         llmArrivedAtMs: arrived || nowMs(),
         error: `oneshot_action_failed:${action.tool}:${result.code ?? "unknown"}`,
         errorCode: "oneshot_action_failed",
-        toolCallsMade
+        toolCallsMade,
+        ledgerActions
       };
     }
     actionsApplied += 1;
     if (awaitsUser(result)) {
-      return { sentences: [], ...lastMeta, llmArrivedAtMs: arrived || nowMs(), toolCallsMade };
+      return { sentences: [], ...lastMeta, llmArrivedAtMs: arrived || nowMs(), toolCallsMade, ledgerActions };
     }
   }
 
-  let finalText = envelope.reply;
-  if (LEDGER_CLAIM_RE.test(finalText) && ![...toolNamesCalled].some((name) => LEDGER_WRITE_TOOLS.has(name))) {
-    finalText = "刚才那句我说过头了——这轮我没有真正写入账本。你再说一次要记的内容,我用正规通道办。";
-  }
+  const presented = presentLedgerOutcome(envelope.reply, ledgerActions);
+  const finalText = presented.text;
   const sentences = splitSentences(finalText).map((text, index) => ({
     sentenceId: `s-${input.turnId}-${index}`,
     text: redactForSpeech(text).text
@@ -615,7 +731,9 @@ export async function runDialogCliOneshot(
     modelText: finalText,
     ...lastMeta,
     llmArrivedAtMs: arrived || nowMs(),
-    toolCallsMade
+    ...(presented.replaced ? { error: `ledger_claim_replaced:${presented.replaced}` } : {}),
+    toolCallsMade,
+    ledgerActions
   };
 }
 
@@ -633,7 +751,7 @@ export async function runDialogTurnWithTools(
   const messages = buildDialogMessages(input);
   let arrived = 0;
   let toolCallsMade = 0;
-  const toolNamesCalled = new Set<string>();
+  const ledgerActions: LedgerActionRecord[] = [];
   let lastText = "";
   let lastMeta: Pick<ToolLoopOutput, "observedModel" | "usage" | "routedProvider"> = {
     observedModel: undefined,
@@ -681,8 +799,8 @@ export async function runDialogTurnWithTools(
     messages.push({ role: "assistant", content: res.text, toolCalls: res.toolCalls });
     for (const tc of res.toolCalls) {
       toolCallsMade += 1;
-      toolNamesCalled.add(tc.name);
       const result = await deps.registry.dispatch(tc.name, tc.arguments, deps.ctx);
+      ledgerActions.push(classifyLedgerAction(tc.name, result));
       {
         const r = result as { ok?: boolean; code?: string } | null;
         deps.onToolCall?.({ name: tc.name, ok: r?.ok !== false, code: r?.ok === false ? r?.code : undefined });
@@ -709,15 +827,22 @@ export async function runDialogTurnWithTools(
 
   // C3(impl-readback 回收批 2):工具环步数耗尽且末步纯 tool_calls ⇒ lastText 为空,用户会听到沉默——
   // 兜底一句中性话术(不说"完成";dogfood 修复 2026-07-28:旧句"放屏幕上了"在屏幕无物时是虚指,改诚实版)
-  let finalText = lastText.trim() === "" && toolCallsMade > 0 ? "这轮我调了工具但没组织出口播总结——你再问一句,或到任务页看看有没有新东西。" : lastText;
-  // J10 零工具宣告拦截:宣告账本动作完成(记下了/齐了/拆好了/现在拆线…)而本轮没碰任何账本写工具
-  // ⇒ 叙事-账本分叉的恶性形态,整轮替换为诚实句(有调用即使 pending 也不拦,只拦零调用的空口宣告)。
-  if (LEDGER_CLAIM_RE.test(finalText) && ![...toolNamesCalled].some((n) => LEDGER_WRITE_TOOLS.has(n))) {
-    finalText = "刚才那句我说过头了——这轮我没有真正写入账本。你再说一次要记/要拆的内容,我用正规通道办。";
-  }
+  const draft = lastText.trim() === "" && toolCallsMade > 0 ? "这轮我调了工具但没组织出口播总结——你再问一句,或到任务页看看有没有新东西。" : lastText;
+  // J10 → SD-1:宣告账本动作完成(记下了/齐了/拆好了/现在拆线…)只在确有 persisted 时放行;
+  // 任一账本动作 failed/unknown ⇒ 整轮换成按服务端结果写的句子(部分成功分开说),模型措辞不能覆盖。
+  const presented = presentLedgerOutcome(draft, ledgerActions);
+  const finalText = presented.text;
   const sentences = splitSentences(finalText).map((t, i) => ({
     sentenceId: `s-${input.turnId}-${i}`,
     text: redactForSpeech(t).text
   }));
-  return { sentences, modelText: finalText, ...lastMeta, llmArrivedAtMs: arrived || nowMs(), toolCallsMade };
+  return {
+    sentences,
+    modelText: finalText,
+    ...lastMeta,
+    llmArrivedAtMs: arrived || nowMs(),
+    ...(presented.replaced ? { error: `ledger_claim_replaced:${presented.replaced}` } : {}),
+    toolCallsMade,
+    ledgerActions
+  };
 }

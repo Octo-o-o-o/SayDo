@@ -8,16 +8,19 @@
 import { createHash } from "node:crypto";
 import {
   FOCUS_EVENT_PAYLOAD_SCHEMA_VERSION,
+  SEMANTIC_MUTATION_KINDS,
   confirmationDowngradePayloadSchema,
   jcsSerialize,
   newId,
   parseFocusEventPayload,
   remainingIntentJsonSchema,
+  type ConfirmKind,
   type ConfirmationDowngradePayload,
   type ConfirmationOutcome,
   type ConfirmationPayloadSummary,
   type ObligationResolveEvidence,
-  type RemainingIntentJson
+  type RemainingIntentJson,
+  type SemanticMutationKind
 } from "@saydo/contracts";
 import { decideConfirmation } from "../approvals/confirmVocab.js";
 import { PresentationStore } from "../approvals/presentation.js";
@@ -118,38 +121,48 @@ export type FocusPendingPayload =
       summary: string;
     };
 
+/**
+ * SD-2(2026-09-08,09 §4 / §13):普通 M0 记忆提议确认环。模型 remember 不得凭 trust 标签直落 trusted M0——
+ * 提议内容留在本载荷,用户封闭肯定后由 daemon(memoryConfirm)以 `user_approved` 写账本;
+ * claimDigest 绑定确认的正文(确认后改 claim ⇒ digest 不符 ⇒ 零写入);sourceTurnId 只是来源锚,不是语义确认。
+ */
+export type MemoryPendingPayload = {
+  kind: "memory";
+  tier: "M0";
+  claim: string;
+  claimDigest: string;
+  projectId?: string;
+  sourceTurnId: string;
+};
+
 export type PendingPayload =
   | { kind: "dispatch"; packageId: string; revision: number; mode: "direct_to_review" | "step_confirm" }
   | { kind: "runtime_effect" }
   // A3-armed(09 §13/10 #41):就绪复述确认环——信息确认(这些事实对不对)≠ dispatch 授权确认;
   // candidates = 环发起时的渲染快照(确认的是用户听到的那批,accept 时不重列——防新增候选竞态)
   | { kind: "readiness"; projectId: string; candidates: ReadinessCandidate[] }
+  | MemoryPendingPayload
   | ProjectAnchorCandidate
   | FocusPendingPayload;
 
 /**
- * Focus v0.4 ④a semantic classifier:consumer-owned finalize 集合 =
- * 六个 focus_* + expectation_ack(共七)。expectation_ack payload 与消费 CAS 归 ④d。
+ * Focus v0.4 ④a semantic classifier:consumer-owned finalize 集合 = 六个 focus_* + expectation_ack(共七);
+ * 非语义(轻终局 accept)集合与之并集须覆盖 PendingPayload 每个 kind。
+ * GAP-02 2.1:两集合单源在 @saydo/contracts(console 确认卡同源),本文件只 re-export 并做编译期 parity 断言。
  */
-export const SEMANTIC_MUTATION_KINDS = [
-  "focus_anchor",
-  "focus_obligation",
-  "focus_obligation_resolve",
-  "focus_create_anchor",
-  "focus_revision",
-  "focus_lane_split",
-  "expectation_ack"
-] as const;
-export type SemanticMutationKind = (typeof SEMANTIC_MUTATION_KINDS)[number];
+export {
+  CONFIRM_KINDS,
+  NON_SEMANTIC_CONFIRM_KINDS,
+  SEMANTIC_MUTATION_KINDS,
+  isConfirmKind
+} from "@saydo/contracts";
+export type { ConfirmKind, NonSemanticConfirmKind, SemanticMutationKind } from "@saydo/contracts";
 
-/** 非语义(轻终局 accept)集合——与 SEMANTIC 并集须覆盖 PendingPayload 每个 kind */
-export const NON_SEMANTIC_CONFIRM_KINDS = [
-  "dispatch",
-  "runtime_effect",
-  "readiness",
-  "project_anchor"
-] as const;
-export type NonSemanticConfirmKind = (typeof NON_SEMANTIC_CONFIRM_KINDS)[number];
+/** 编译期 parity:PendingPayload kind 与 contracts CONFIRM_KINDS 互相覆盖(任一侧多出 kind 即类型错误) */
+export const CONFIRM_KIND_PARITY: [
+  Exclude<PendingPayload["kind"], ConfirmKind>,
+  Exclude<ConfirmKind, PendingPayload["kind"]>
+] extends [never, never] ? true : never = true;
 
 /** 有 focusId 时可写 focus_events 三事件的语义 kind(create_anchor 无 focusId 时只进 ledger) */
 const FOCUS_TIMELINE_KINDS = new Set<string>([
@@ -346,6 +359,10 @@ export function buildPayloadSummary(payload: PendingPayload): ConfirmationPayloa
       break;
     case "readiness":
       title = payload.projectId;
+      break;
+    case "memory":
+      // 偏好正文不进 payload_summary 白名单投影;只留 digest 键供对账
+      dedupeKey = `memory:${payload.claimDigest}`;
       break;
     case "project_anchor":
       title = "title" in payload && typeof payload.title === "string" ? payload.title : payload.draftId;

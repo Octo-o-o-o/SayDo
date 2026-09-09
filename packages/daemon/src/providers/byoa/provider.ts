@@ -14,7 +14,7 @@ import {
   type VerifiedBinaryIdentity
 } from "../binaryIdentity.js";
 import { allowsVerifiedBinaryDefault, requiresIsolatedHome } from "../../config/cliProviders.js";
-import { buildCageArgv, type CageProvider, type CodexReasoning } from "./cage.js";
+import { buildCageArgv, type CageProvider, type CodexReasoning, CAGE_LEVELS } from "./cage.js";
 import { isCliSubscriptionRateLimit } from "./billing.js";
 import { explainByoaVoidReason, explainCliProcessFailure } from "./processFailure.js";
 import {
@@ -450,16 +450,8 @@ export function createByoaProvider(opts: ByoaProviderOptions): LlmProvider {
                 argvDigest,
                 cwd: activeCwd,
                 cageCwdEmptyAtSpawn,
-                cage:
-                  opts.provider === "claude_cli" ||
-                  opts.provider === "grok_cli" ||
-                  opts.provider === "gemini_cli" ||
-                  opts.provider === "qwen_cli" ||
-                  opts.provider === "copilot_cli"
-                    ? "tool-deny"
-                    : opts.provider === "codex_cli"
-                      ? "write-sandbox"
-                      : "ask+tripwire",
+                cage: CAGE_LEVELS[opts.provider].level,
+                cageEnforcement: CAGE_LEVELS[opts.provider].enforcement,
                 requestedModel: attemptConsumed.requestedModel ?? null,
                 observedModel: attemptConsumed.observedModel ?? null,
                 observedModelSource: attemptConsumed.observedModelSource,

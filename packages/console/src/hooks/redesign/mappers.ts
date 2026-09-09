@@ -220,6 +220,19 @@ export function mapFocusView(
   };
 }
 
+/** 仅凭 /api/focuses 列表行拼 FocusView(VIEW-01:detail 拉失败时保留该事,不凭空消失) */
+export function mapFocusRowView(row: FocusListRow): FocusView {
+  return {
+    id: row.id,
+    title: row.title,
+    lifecycle: asLifecycle(row.lifecycle),
+    currentRevision: row.currentRevision,
+    direction: row.direction ?? "",
+    openByOwner: row.openByOwner ?? { human: 0, agent: 0, external: 0 },
+    projectRefs: row.projectRefs ?? []
+  };
+}
+
 export function mapObligationView(o: FocusDetailPayload["obligations"][number], focusId: string): ObligationView {
   return {
     id: o.id,

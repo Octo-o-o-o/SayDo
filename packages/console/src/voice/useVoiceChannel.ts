@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { pipelineMsgSchema, type PipelineMsg } from "@saydo/contracts";
 import { shouldFireReconnect, type ReconnectTrigger } from "../lib/reconnectPolicy";
 import { NATIVE_RESUME_EVENT } from "../mobile/reconnect";
+import { dispatchDataInvalidate } from "../lib/dataInvalidate";
 
 export const VOICE_WS_PROTOCOL_VERSION = 1;
 
@@ -374,6 +375,7 @@ export function useVoiceChannel(sessionId: string) {
     let reconnectAttempt = 0;
     let heartbeatTimer: number | null = null;
     let skipAutoReconnect = false;
+    let connectedOnce = false; // VIEW-01:首连之后的每次 hello.ack 都是重连 → 页面数据可能已过期
     const clearReconnectTimer = () => {
       if (reconnectTimer !== null) {
         window.clearTimeout(reconnectTimer);
@@ -478,6 +480,8 @@ export function useVoiceChannel(sessionId: string) {
         case "hello.ack":
           reconnectAttempt = 0;
           setState((s) => ({ ...s, connected: true }));
+          if (connectedOnce) dispatchDataInvalidate("ws.reconnect");
+          connectedOnce = true;
           // 每次连接/重连都同步同一 durable sessionId；daemon 借 voice.mode 回放最新 session.project。
           ws.send(JSON.stringify({ t: "voice.mode", sessionId, mode: modeRef.current }));
           // ④e A6:握手后立即心跳,避免 30s 空窗被 90s 超时误杀(无 session 不发,schema 要求 sessionId)
@@ -654,6 +658,7 @@ export function useVoiceChannel(sessionId: string) {
           break;
         case "confirm.resolved":
           // 确认卡完成本身不长实体卡(后续写入成功才长——daemon 在写入处发射)
+          dispatchDataInvalidate("confirm.resolved");
           setState((s) =>
             s.confirmCard && s.confirmCard.receiptId === (msg["receiptId"] as string) ? { ...s, confirmCard: null } : s
           );
@@ -670,6 +675,7 @@ export function useVoiceChannel(sessionId: string) {
             at: String(raw["at"] ?? new Date().toISOString())
           };
           if (!item.id || !item.kind) break;
+          dispatchDataInvalidate("focus.entity");
           setState((s) => ({
             ...s,
             entities: [item, ...s.entities.filter((e) => e.id !== item.id)].slice(0, 50)

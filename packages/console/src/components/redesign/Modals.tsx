@@ -3,10 +3,11 @@
 // 全部 props 进、回调出;inline 模式供预览页平铺(无遮罩)。
 
 import type { CSSProperties, ReactNode } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, Fingerprint, Mail, Pencil, Shield, X } from "lucide-react";
 import { ActionRow, Btn, card, KV, Mono, StageTag } from "./shared";
 import { StatusChip, RiskBadge } from "../StatusChip";
+import { useDialogKeyboard } from "../useDialogKeyboard";
 import type { TaskAction } from "./TaskCard";
 import type { ApprovalView, ArtifactView, ObligationView, TaskView } from "./types";
 
@@ -19,8 +20,17 @@ export function ModalFrame({ title, icon: Icon, onClose, inline, children, width
   children: ReactNode;
   width?: number;
 }) {
+  // 11 §9 弹窗键盘合同(inline 预览平铺不装):Escape=关上,Tab 环内循环,关闭后焦点回触发控件
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  useDialogKeyboard(boxRef, { onClose, active: !inline });
   const box = (
-    <div style={{ ...card, width: width ?? "min(680px, 92vw)", maxHeight: inline ? undefined : "84vh", overflowY: "auto", padding: "var(--space-5)" }} role="dialog">
+    <div
+      ref={boxRef}
+      tabIndex={-1}
+      style={{ ...card, width: width ?? "min(680px, 92vw)", maxHeight: inline ? undefined : "84vh", overflowY: "auto", padding: "var(--space-5)" }}
+      role="dialog"
+      aria-modal={inline ? undefined : "true"}
+    >
       <div style={{ fontSize: "var(--text-md)", fontWeight: 600, display: "flex", gap: 8, alignItems: "center", marginBottom: "var(--space-3)" }}>
         {Icon ? <Icon size={15} aria-hidden /> : null}
         {title}

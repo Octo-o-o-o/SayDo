@@ -11,6 +11,7 @@ import {
   VOICE_SYSTEM_UNSUPPORTED_MESSAGE,
   VOICE_UNCONFIGURED_MESSAGE,
   VoiceStartButton,
+  confirmCardCopy,
   voiceInputUnavailable
 } from "./Chat";
 import type { SetupProbe } from "../lib/setupApi";
@@ -166,5 +167,26 @@ describe("语音未配置降级态", () => {
 describe("CLI 慢速轮次进度", () => {
   it("thinking 兜底覆盖 BYOA 120 秒 wall timeout", () => {
     expect(THINKING_FALLBACK_MS).toBeGreaterThan(240_000);
+  });
+});
+
+describe("生产确认卡 kind 文案(GAP-02 2.1)", () => {
+  it("memory kind:记忆 · 信息确认 · 不是授权,按钮记/不用记,超时不记", () => {
+    const copy = confirmCardCopy("memory");
+    expect(copy.label).toBe("记忆 · 信息确认 · 不是授权");
+    expect(copy.accept).toBe("记");
+    expect(copy.reject).toBe("不用记");
+    expect(copy.countdownHint).toContain("不记");
+    expect(copy.countdownHint).not.toContain("自动执行");
+  });
+
+  it("其它 kind 与表外 kind 沿用做/不要与自动执行说明", () => {
+    for (const kind of ["dispatch", "readiness", "something_new"]) {
+      const copy = confirmCardCopy(kind);
+      expect(copy.label).toBeNull();
+      expect(copy.accept).toBe("做");
+      expect(copy.reject).toBe("不要");
+      expect(copy.countdownHint).toContain("自动执行");
+    }
   });
 });

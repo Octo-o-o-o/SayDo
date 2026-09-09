@@ -12,6 +12,7 @@
 //
 // 红线:枚举失败一律如实标 enumerable=false + 人话 note,禁止编造模型名冒充"可用列表"。
 
+import { CAGE_LEVELS, type CageLevel } from "../providers/byoa/cage.js";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { open as openFile, readFile, readdir as readDirectory, stat as statFile } from "node:fs/promises";
@@ -130,6 +131,8 @@ export interface CliCapability {
   note?: string;
   /** 计费来源(探测采集;只有 subscription 才允许「订阅内零成本」文案) */
   billing?: { provenance: "subscription" | "external_api" | "unknown"; detail?: string };
+  /** 笼分档(GAP-02 2.9;单源 byoa/cage.ts CAGE_LEVELS):provider 非 null 时存在;声明档位,不是 conformance 探针结果 */
+  cage?: CageLevel;
 }
 
 /**
@@ -954,6 +957,7 @@ function notFoundCapability(entry: CliCatalogEntry): CliCapability {
   return {
     name: entry.name,
     provider: entry.provider,
+    ...(entry.provider ? { cage: CAGE_LEVELS[entry.provider] } : {}),
     label: entry.label,
     found: false,
     auth: {
@@ -1035,6 +1039,7 @@ function assembleCapability(input: {
   return {
     name: entry.name,
     provider: entry.provider,
+    ...(entry.provider ? { cage: CAGE_LEVELS[entry.provider] } : {}),
     label: entry.label,
     found: Boolean(input.found.path),
     ...(input.found.version ? { version: input.found.version } : {}),

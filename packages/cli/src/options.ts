@@ -2,10 +2,12 @@ import { homedir, userInfo } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 
 export interface CliOptions {
-  command: "up" | "status" | "open";
+  command: "up" | "status" | "open" | "doctor";
   home: string;
   port: number;
   openBrowser: boolean;
+  /** 仅 doctor:输出机器可读 JSON 而非中文文本。 */
+  json?: boolean;
 }
 
 function resolveOsHome(): string {
@@ -29,17 +31,24 @@ export function resolveSaydoHome(explicit: string | undefined, envHome: string |
 
 export function parseCliOptions(argv: readonly string[], env: NodeJS.ProcessEnv = process.env): CliOptions {
   const command = argv[0];
-  if (command !== "up" && command !== "status" && command !== "open") {
-    throw new Error("用法:saydo <up|status|open> [--home PATH] [--port PORT] [--no-open]");
+  if (command !== "up" && command !== "status" && command !== "open" && command !== "doctor") {
+    throw new Error("用法:saydo <up|status|open|doctor> [--home PATH] [--port PORT] [--no-open] [--json]");
   }
   let explicitHome: string | undefined;
   let rawPort: string | undefined;
   let noOpen = false;
+  let json = false;
   for (let index = 1; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--no-open") {
       if (noOpen) throw new Error("参数重复:--no-open");
       noOpen = true;
+      continue;
+    }
+    if (arg === "--json") {
+      if (command !== "doctor") throw new Error("参数仅 doctor 支持:--json");
+      if (json) throw new Error("参数重复:--json");
+      json = true;
       continue;
     }
     if (arg === "--home" || arg === "--port") {
@@ -62,5 +71,5 @@ export function parseCliOptions(argv: readonly string[], env: NodeJS.ProcessEnv 
   const selectedPort = rawPort ?? "47100";
   const port = Number(selectedPort);
   if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error(`端口非法:${selectedPort}`);
-  return { command, home, port, openBrowser: !noOpen };
+  return { command, home, port, openBrowser: !noOpen, ...(command === "doctor" ? { json } : {}) };
 }

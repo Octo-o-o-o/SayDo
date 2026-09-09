@@ -11,19 +11,26 @@ import type { PageNavTarget } from "./nav";
 export interface BoardPageView {
   /** 泳道组(每组=一个 Focus 的任务/义务投影,含 lanes 子泳道);空数组=没有活跃的事 */
   groups: BoardLaneGroupData[];
+  /** VIEW-01:detail 拉失败的 Focus(focusId → 人话错误);该组仍在 groups 里,只是义务/支线缺席 */
+  detailErrors?: Record<string, string>;
+  /** VIEW-01:viewStatus 只是按 attention 颜色近似出来的任务 id,卡片上标「待核实」 */
+  approxStatusTaskIds?: string[];
 }
 
 export type BoardPageAction =
   | { type: "open_task"; task: TaskView }
   | { type: "open_obligation"; obligation: ObligationView };
 
-export function BoardPage({ view, onNavigate, onAction }: {
+export function BoardPage({ view, onNavigate, onAction, onRetryDetail }: {
   view: BoardPageView;
   onNavigate?: (target: PageNavTarget) => void;
   onAction?: (action: BoardPageAction) => void;
+  /** detail 占位错误上的「重试」;接线线接 reload */
+  onRetryDetail?: (focusId: string) => void;
 }) {
   // 组折叠:初始值取数据 collapsed,缺省休眠收起(demo renderBoard 同规则)
   const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({});
+  const approxIds = new Set(view.approxStatusTaskIds ?? []);
   const collapsedOf = (g: BoardLaneGroupData) =>
     collapsedMap[g.focus.id] ?? g.collapsed ?? g.focus.lifecycle === "dormant";
 
@@ -46,6 +53,9 @@ export function BoardPage({ view, onNavigate, onAction }: {
             onOpenTask={onAction ? (task) => onAction({ type: "open_task", task }) : undefined}
             onOpenObligation={onAction ? (ob) => onAction({ type: "open_obligation", obligation: ob }) : undefined}
             onOpenFocus={onNavigate ? () => onNavigate({ page: "focus", focusId: g.focus.id }) : undefined}
+            detailError={view.detailErrors?.[g.focus.id]}
+            onRetryDetail={onRetryDetail ? () => onRetryDetail(g.focus.id) : undefined}
+            approxStatusTaskIds={approxIds}
           />
         )) : (
           <div style={{ padding: "var(--space-5)", textAlign: "center", color: "var(--text-muted)", fontSize: "var(--text-sm)" }}>

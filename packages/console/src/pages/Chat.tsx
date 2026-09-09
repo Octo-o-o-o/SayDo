@@ -50,6 +50,35 @@ export function firstRunAssistantTurn(result: FirstRunQueryResult): { key: strin
   return { key: `onboarding-${result.turnId ?? "first"}`, text: result.message };
 }
 
+/**
+ * GAP-02 2.1:生产确认卡按 kind 定文案。memory(SD-2 普通 M0 记忆提议)是信息确认不是授权,
+ * 超时不自动记(过期即丢),按钮是「记 / 不用记」;其它 kind 沿用「做 / 不要」与倒计时自动执行说明。
+ */
+export function confirmCardCopy(kind: string): {
+  label: string | null;
+  accept: string;
+  reject: string;
+  countdownHint: string;
+  idleHint: string;
+} {
+  if (kind === "memory") {
+    return {
+      label: "记忆 · 信息确认 · 不是授权",
+      accept: "记",
+      reject: "不用记",
+      countdownHint: "倒计时结束这条不记(过期即丢);点按钮,或直接开口回答",
+      idleHint: "点按钮,或直接开口回答"
+    };
+  }
+  return {
+    label: null,
+    accept: "做",
+    reject: "不要",
+    countdownHint: "倒计时结束自动执行;点按钮,或直接说\"好\"/\"不要\"",
+    idleHint: "点按钮,或直接说\"好\"/\"不要\""
+  };
+}
+
 export function ChatExampleCards({ onPick }: { onPick: (text: string) => void }) {
   return (
     <div className="grid gap-[8px] sm:grid-cols-2" data-chat-examples style={{ marginTop: 12 }}>
@@ -625,6 +654,11 @@ export function Chat({
               gap: 8
             }}
           >
+            {confirmCardCopy(voice.confirmCard.kind).label ? (
+              <span data-confirm-kind-label style={{ fontSize: "var(--text-xs)", fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+                {confirmCardCopy(voice.confirmCard.kind).label}
+              </span>
+            ) : null}
             <span style={{ fontSize: "var(--text-sm)", color: "var(--text-primary)", lineHeight: "var(--leading-body)" }}>
               {voice.confirmCard.text}
             </span>
@@ -632,11 +666,11 @@ export function Chat({
               <>
                 <CountdownBar key={voice.confirmCard.receiptId} ms={voice.confirmCard.countdownMs} />
                 <span style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>
-                  倒计时结束自动执行;点按钮,或直接说"好"/"不要"
+                  {confirmCardCopy(voice.confirmCard.kind).countdownHint}
                 </span>
               </>
             ) : (
-              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>点按钮,或直接说"好"/"不要"</span>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>{confirmCardCopy(voice.confirmCard.kind).idleHint}</span>
             )}
             <div style={{ display: "flex", gap: 8 }}>
               <button
@@ -645,7 +679,7 @@ export function Chat({
                 onClick={() => voice.sendConfirmClick("accept")}
                 style={{ height: 32, padding: "0 18px", borderRadius: "var(--radius-xs)", border: "1px solid var(--color-warning)", background: "var(--color-warning)", color: "var(--fg-on-fill)", fontSize: "var(--text-sm)", cursor: "pointer" }}
               >
-                做
+                {confirmCardCopy(voice.confirmCard.kind).accept}
               </button>
               <button
                 type="button"
@@ -653,7 +687,7 @@ export function Chat({
                 onClick={() => voice.sendConfirmClick("reject")}
                 style={{ height: 32, padding: "0 18px", borderRadius: "var(--radius-xs)", border: "1px solid var(--line)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-sm)", cursor: "pointer" }}
               >
-                不要
+                {confirmCardCopy(voice.confirmCard.kind).reject}
               </button>
             </div>
           </div>

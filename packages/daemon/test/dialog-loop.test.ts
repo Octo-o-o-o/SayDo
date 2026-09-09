@@ -5,12 +5,16 @@
 import { describe, expect, it } from "vitest";
 import {
   buildDialogCliOneshotMessages,
+  classifyLedgerAction,
   dialogCliOneshotJsonSchema,
   parseDialogCliOneshotEnvelope,
+  presentLedgerOutcome,
   reinforceDialogCliOneshotMessages,
   runDialogCliOneshot,
-  runDialogTurn
+  runDialogTurn,
+  runDialogTurnWithTools
 } from "../src/brain/dialogLoop.js";
+import type { ChatToolCall } from "../src/providers/types.js";
 import { ToolRegistry } from "../src/brain/registry.js";
 import type { LlmProvider } from "../src/providers/types.js";
 import { buildBoundedPrompt } from "../src/providers/byoa/provider.js";
@@ -233,5 +237,174 @@ describe("dialog_cli_oneshot envelope", () => {
     expect(provider.calls).toBe(2);
     expect(applied).toBe(1);
     expect(out.modelText).toBe("已安排记忆 action");
+  });
+});
+
+// SD-1(2026-09-08,借 deepseek-harness"事实由系统结果给出"):账本动作的成功承诺必须由实际回执约束。
+function toolCallProvider(steps: Array<{ text: string; toolCalls?: ChatToolCall[] }>): LlmProvider {
+  let i = 0;
+  return {
+    kind: "api",
+    model: "m",
+    async chat() {
+      const step = steps[i] ?? steps.at(-1)!;
+      i += 1;
+      return {
+        ok: true as const,
+        text: step.text,
+        ...(step.toolCalls ? { toolCalls: step.toolCalls } : {}),
+        requestedModel: "m",
+        observedModel: undefined,
+        observedModelSource: "verified_binary_default" as const,
+        observedModelExempted: true,
+        usage: undefined
+      };
+    }
+  };
+}
+const call = (id: string, name: string, args: Record<string, unknown> = {}): ChatToolCall => ({ id, name, arguments: JSON.stringify(args) });
+const loopInput = (turnId: string, userText: string) => ({ sessionId: "s1", turnId, userText, history: [] as { speaker: "user" | "ai"; text: string }[] });
+
+describe("SD-1 classifyLedgerAction:逐工具按真实回执形状归类", () => {
+  it("remember:{memId} 才算 persisted;{ok:true} 无 memId 只是 noop", () => {
+    expect(classifyLedgerAction("remember", { memId: "mem_x" })).toEqual({ tool: "remember", outcome: "persisted", ref: "mem_x" });
+    expect(classifyLedgerAction("remember", { ok: true }).outcome).toBe("noop");
+  });
+  it("propose*:ok+done 才是 persisted;await_user 是 pending;ok 无 done 是 noop", () => {
+    expect(classifyLedgerAction("proposeObligation", { ok: true, done: true, obligationId: "fob_1" })).toEqual({ tool: "proposeObligation", outcome: "persisted", ref: "fob_1" });
+    expect(classifyLedgerAction("proposeLaneSplit", { ok: true, receiptId: "r1", control: "await_user" })).toEqual({ tool: "proposeLaneSplit", outcome: "pending", ref: "r1" });
+    expect(classifyLedgerAction("proposeFocusAnchor", { ok: true, candidates: [] }).outcome).toBe("noop");
+  });
+  it("ok:false 分两类:handler 明确拒绝 = failed;registry 折叠的 tool_failed(可能已写)= unknown;非对象 = unknown", () => {
+    expect(classifyLedgerAction("remember", { ok: false, code: "fixture_write_failed" })).toEqual({ tool: "remember", outcome: "failed", code: "fixture_write_failed" });
+    expect(classifyLedgerAction("remember", { ok: false, code: "tool_failed" })).toEqual({ tool: "remember", outcome: "unknown", code: "tool_failed" });
+    expect(classifyLedgerAction("remember", null).outcome).toBe("unknown");
+  });
+});
+
+describe("SD-1 presentLedgerOutcome:模型正文不能覆盖失败/未知,部分成功分开说", () => {
+  it("零 persisted + 宣告 ⇒ 诚实句;有 persisted + 宣告 ⇒ 原文", () => {
+    expect(presentLedgerOutcome("记下了。", [{ tool: "remember", outcome: "noop" }]).replaced).toBe("unclaimed_write");
+    expect(presentLedgerOutcome("记下了。", []).replaced).toBe("unclaimed_write");
+    expect(presentLedgerOutcome("记下了。", [{ tool: "remember", outcome: "persisted", ref: "mem_1" }])).toEqual({ text: "记下了。" });
+  });
+  it("A persisted + B failed ⇒ 只确认 A、B 说没写进去,不说全部失败,不暗示重做 A;措辞未命中正则也照样替换", () => {
+    const r = presentLedgerOutcome("两件事我都安排妥当啦。", [
+      { tool: "remember", outcome: "persisted", ref: "mem_1" },
+      { tool: "proposeLaneSplit", outcome: "failed", code: "x" }
+    ]);
+    expect(r.replaced).toBe("action_failed");
+    expect(r.text).toContain("这条记忆写进去了");
+    expect(r.text).toContain("拆线没写进去");
+    expect(r.text).not.toContain("安排妥当");
+    expect(r.text).not.toContain("这条记忆没写进去");
+  });
+  it("unknown ⇒ 说没确认到、不暗示重试;非账本工具的失败不参与", () => {
+    const r = presentLedgerOutcome("好的。", [{ tool: "remember", outcome: "unknown", code: "tool_failed" }, { tool: "getStatus", outcome: "failed", code: "boom" }]);
+    expect(r.replaced).toBe("action_failed");
+    expect(r.text).toContain("没确认到");
+    expect(r.text).toContain("先别重来");
+    expect(presentLedgerOutcome("好的。", [{ tool: "getStatus", outcome: "failed", code: "boom" }])).toEqual({ text: "好的。" });
+  });
+});
+
+describe("SD-1 runDialogTurnWithTools(API 出口):失败回执后的“记下了”不再放行", () => {
+  it("remember 返回 ok:false 明确未写入 ⇒ 口播不含“记下了”,ledgerActions 记为 failed", async () => {
+    const registry = new ToolRegistry();
+    registry.register({ name: "remember", description: "", parameters: {} }, () => ({ ok: false, code: "fixture_write_failed", message: "no write occurred", retryable: false }));
+    const calls: Array<{ name: string; ok: boolean }> = [];
+    const out = await runDialogTurnWithTools(
+      toolCallProvider([{ text: "", toolCalls: [call("c1", "remember", { tier: "M0", claim: "偏好", trust: "user_stated" })] }, { text: "记下了。" }]),
+      loopInput("t1", "请记住这个偏好"),
+      { registry, ctx: { sessionId: "s1", turnId: "t1" }, onToolCall: (i) => calls.push({ name: i.name, ok: i.ok }) }
+    );
+    expect(calls).toEqual([{ name: "remember", ok: false }]);
+    const spoken = out.sentences.map((s) => s.text).join("");
+    expect(spoken).not.toContain("记下了");
+    expect(spoken).toContain("没写进去");
+    expect(out.ledgerActions).toEqual([{ tool: "remember", outcome: "failed", code: "fixture_write_failed" }]);
+    expect(out.error).toBe("ledger_claim_replaced:action_failed");
+  });
+
+  it("A 成功、B 失败,模型说“都记下了,也拆好了” ⇒ 只确认 A", async () => {
+    const registry = new ToolRegistry();
+    registry.register({ name: "remember", description: "", parameters: {} }, () => ({ memId: "mem_A" }));
+    registry.register({ name: "proposeLaneSplit", description: "", parameters: {} }, () => ({ ok: false, code: "fixture_fail" }));
+    const out = await runDialogTurnWithTools(
+      toolCallProvider([{ text: "", toolCalls: [call("c1", "remember"), call("c2", "proposeLaneSplit")] }, { text: "都记下了,也拆好了。" }]),
+      loopInput("t2", "记住并拆线"),
+      { registry, ctx: { sessionId: "s1", turnId: "t2" } }
+    );
+    const spoken = out.sentences.map((s) => s.text).join("");
+    expect(spoken).toContain("这条记忆写进去了");
+    expect(spoken).toContain("拆线没写进去");
+    expect(spoken).not.toContain("都记下了");
+    expect(out.ledgerActions?.map((a) => a.outcome)).toEqual(["persisted", "failed"]);
+  });
+
+  it("handler 抛错(registry 折叠为 tool_failed)⇒ unknown:不说写了、不说没写、不催重试", async () => {
+    const registry = new ToolRegistry();
+    registry.register({ name: "remember", description: "", parameters: {} }, () => {
+      throw new Error("audit sink exploded after insert");
+    });
+    const out = await runDialogTurnWithTools(
+      toolCallProvider([{ text: "", toolCalls: [call("c1", "remember")] }, { text: "记下了。" }]),
+      loopInput("t3", "记住"),
+      { registry, ctx: { sessionId: "s1", turnId: "t3" } }
+    );
+    const spoken = out.sentences.map((s) => s.text).join("");
+    expect(spoken).not.toContain("记下了");
+    expect(spoken).toContain("没确认到");
+    expect(spoken).not.toContain("再说一次");
+    expect(out.ledgerActions?.[0]?.outcome).toBe("unknown");
+  });
+
+  it("A 成功 + B 待确认(await_user):环在 B 处停住,不产口播、不重复执行", async () => {
+    const registry = new ToolRegistry();
+    let laneCalls = 0;
+    registry.register({ name: "remember", description: "", parameters: {} }, () => ({ memId: "mem_A" }));
+    registry.register({ name: "proposeLaneSplit", description: "", parameters: {} }, () => (laneCalls += 1, { ok: true, receiptId: "r1", control: "await_user" }));
+    const out = await runDialogTurnWithTools(
+      toolCallProvider([{ text: "", toolCalls: [call("c1", "remember"), call("c2", "proposeLaneSplit")] }, { text: "都拆好了。" }]),
+      loopInput("t4", "记住并拆线"),
+      { registry, ctx: { sessionId: "s1", turnId: "t4" } }
+    );
+    expect(out.sentences).toEqual([]);
+    expect(laneCalls).toBe(1);
+  });
+
+  it("真实 persisted 回执 + 宣告 ⇒ 原文放行(不误伤)", async () => {
+    const registry = new ToolRegistry();
+    registry.register({ name: "remember", description: "", parameters: {} }, () => ({ memId: "mem_ok" }));
+    const out = await runDialogTurnWithTools(
+      toolCallProvider([{ text: "", toolCalls: [call("c1", "remember")] }, { text: "记下了。" }]),
+      loopInput("t5", "记住"),
+      { registry, ctx: { sessionId: "s1", turnId: "t5" } }
+    );
+    expect(out.sentences.map((s) => s.text)).toEqual(["记下了。"]);
+    expect(out.error).toBeUndefined();
+  });
+});
+
+describe("SD-1 runDialogCliOneshot(CLI 出口):部分成功如实分开说", () => {
+  it("A remember 成功、B 落账失败 ⇒ 口播确认 A 写进去了、B 没写进去;不整轮说失败", async () => {
+    const provider = oneshotProvider([envelope([action("a1", "remember"), action("a2", "proposeObligation")], "都记下了。")]);
+    const registry = new ToolRegistry();
+    registry.register({ name: "remember", description: "", parameters: {} }, () => ({ memId: "mem_A" }));
+    registry.register({ name: "proposeObligation", description: "", parameters: {} }, () => ({ ok: false, code: "fixture_fail" }));
+    const out = await runDialogCliOneshot(provider, baseInput, oneshotDeps(registry));
+    expect(out.errorCode).toBe("oneshot_action_failed");
+    const spoken = out.sentences.map((s) => s.text).join("");
+    expect(spoken).toContain("这条记忆写进去了");
+    expect(spoken).toContain("落账没写进去");
+    expect(spoken).not.toContain("都记下了");
+    expect(out.ledgerActions?.map((a) => a.outcome)).toEqual(["persisted", "failed"]);
+  });
+  it("reply 宣告“记下了”但 remember 只返回 {ok:true}(无 memId)⇒ 诚实句", async () => {
+    const provider = oneshotProvider([envelope([action("a1", "remember")], "记下了。")]);
+    const registry = new ToolRegistry();
+    registry.register({ name: "remember", description: "", parameters: {} }, () => ({ ok: true }));
+    const out = await runDialogCliOneshot(provider, baseInput, oneshotDeps(registry));
+    expect(out.modelText).toContain("没有真正写入账本");
   });
 });

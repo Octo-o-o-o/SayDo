@@ -26,10 +26,12 @@ import { BrainTools } from "../src/brain/tools.js";
 import { DecisionPackageFactory } from "../src/packages/factory.js";
 import { ArtifactStore } from "../src/artifacts/store.js";
 import { MemoryLedger } from "../src/memory/ledger.js";
+import { confirmMemoryProposal } from "../src/memory/m0Confirm.js";
 import { HotwordStore } from "../src/memory/hotwords.js";
 import { DeepReviewGovernor } from "../src/evaluator/readiness.js";
 import { checkStatusWords } from "../src/brain/golden.js";
 import { createLogger, type Logger } from "../src/obs/logger.js";
+import { LatencyCollector } from "../src/obs/latency.js";
 import type { ChatMessage, ChatRequest, ChatResult, LlmProvider } from "../src/providers/types.js";
 import { acceptProjectAnchor } from "../src/projects/anchor.js";
 import type { AuditSink } from "../src/obs/audit.js";
@@ -174,6 +176,7 @@ function buildRig(
     thinkingProvider?: LlmProvider;
     onUserMessageAccepted?: (sessionId: string) => void;
     dialogProviderFor?: (sessionId: string, projectId: string | null) => LlmProvider | null;
+    onLlmArrived?: (turnId: string, atMs: number, meta: { toolCallsMade: number; control: boolean }) => void;
   } = {}
 ): Rig {
   const home = mkdtempSync(join(tmpdir(), "saydo-wiring-"));
@@ -266,6 +269,7 @@ function buildRig(
     dialogProvider: provider,
     ...(opts.dialogProviderFor ? { dialogProviderFor: opts.dialogProviderFor } : {}),
     ...(opts.onUserMessageAccepted ? { onUserMessageAccepted: opts.onUserMessageAccepted } : {}),
+    ...(opts.onLlmArrived ? { onLlmArrived: opts.onLlmArrived } : {}),
     say,
     log,
     registry,
@@ -279,6 +283,7 @@ function buildRig(
       readinessEvidence
     },
     readinessConfirm: (input) => confirmBindings({ db, audit, snapshotter: null, foundationGenerationOf: () => 0 }, input),
+    memoryConfirm: (input) => confirmMemoryProposal({ db, ledger, audit }, input),
     projectAnchorAccept: (sessionId, candidate) => ({
       event: acceptProjectAnchor({ db, ledger, audit, candidate, sessionId, now: new Date() }),
       ready: opts.ensureProjectAnchorReady?.(sessionId) ?? true,
@@ -1713,6 +1718,18 @@ describe("10 §4-1 结果句式运行时闸(RA-closeout dogfood 修复;golden s1
       gateRig.db.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='dialog.result_phrase_blocked'").get() as { c: number }
     ).c;
     expect(n).toBeGreaterThanOrEqual(1);
+    // GAP-02 2.3:审计行不含句子原文,只有 sentenceId + textDigest(sha256 hex)
+    const rows = gateRig.db
+      .prepare("SELECT meta_json FROM audit_log WHERE action='dialog.result_phrase_blocked'")
+      .all() as { meta_json: string }[];
+    for (const row of rows) {
+      expect(row.meta_json).not.toContain("跑完了");
+      expect(row.meta_json).not.toContain("等你验收");
+      const meta = JSON.parse(row.meta_json) as Record<string, unknown>;
+      expect(meta["text"]).toBeUndefined();
+      expect(typeof meta["sentenceId"]).toBe("string");
+      expect(meta["textDigest"]).toMatch(/^sha256:[0-9a-f]{64}$/);
+    }
   });
 
   it("有活跃任务时结果句式放行(getStatus 转述场景;§4-1 违规判定 = 零任务语境)", async () => {
@@ -1737,5 +1754,77 @@ describe("10 §4-1 结果句式运行时闸(RA-closeout dogfood 修复;golden s1
       .run(newId("tsk"), prj);
     await okRig.dialog.onAsrFinal(okSes, newId("ses"), "进展如何?");
     expect(okRig.spoken.map((s) => s.text).join(" ")).toContain("等你验收"); // 有待验收任务 ⇒ 转述放行
+  });
+});
+
+describe("SD-2 全链:remember(M0) → 机械确认句 → 词表裁决 → memoryConfirm 写账本(2026-09-08)", () => {
+  const CLAIM_M0 = "用户偏好:发布前不用再问我";
+  const m0Script = (_messages: ChatMessage[], call: number): ScriptedResult => {
+    const meta = { observedModel: "fake-dialog", usage: undefined };
+    if (call === 1) {
+      return {
+        ok: true,
+        text: "",
+        toolCalls: [{ id: "m0", name: "remember", arguments: JSON.stringify({ tier: "M0", claim: CLAIM_M0, trust: "user_stated" }) }],
+        ...meta
+      };
+    }
+    return { ok: true, text: "记下了。", ...meta };
+  };
+  const m0Rows = (r: Rig) =>
+    r.db.prepare("SELECT tier, trust, claim, source_json FROM memory_events WHERE op='add' AND tier='M0'").all() as Array<{ tier: string; trust: string; claim: string; source_json: string }>;
+
+  it("封闭肯定 ⇒ 一条 M0(user_approved,来源锚=提议轮)+ 口播“记住了”;确认前账本零 M0、不播“记下了”", async () => {
+    rig = buildRig(scriptedProvider(m0Script));
+    await rig.dialog.onAsrFinal(SES, TURN(1), "以后发布前不用再问我");
+    expect(m0Rows(rig)).toEqual([]);
+    expect(rig.spoken.some((s) => s.text.includes("记下了"))).toBe(false);
+    expect(rig.spoken.at(-1)?.text).toBe(`有一条关于你的偏好:${CLAIM_M0}。记不记?`);
+    expect(rig.confirm.pending(SES)?.payload.kind).toBe("memory");
+
+    await rig.dialog.onAsrFinal(SES, TURN(2), "好");
+    const rows = m0Rows(rig);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ tier: "M0", trust: "user_approved", claim: CLAIM_M0 });
+    expect(JSON.parse(rows[0]!.source_json)).toEqual({ kind: "user_utterance", ref: TURN(1) });
+    expect(rig.spoken.at(-1)?.text).toBe("记住了。");
+    expect(rig.confirm.pending(SES)).toBeUndefined();
+    const audit = rig.db.prepare("SELECT action FROM audit_log WHERE action IN ('memory.m0_proposed','memory.m0_confirmed') ORDER BY ts").all() as Array<{ action: string }>;
+    expect(audit.map((a) => a.action)).toEqual(["memory.m0_proposed", "memory.m0_confirmed"]);
+  });
+
+  it("否认 ⇒ 零写入 + “这条不记”", async () => {
+    rig = buildRig(scriptedProvider(m0Script));
+    await rig.dialog.onAsrFinal(SES, TURN(1), "以后发布前不用再问我");
+    await rig.dialog.onAsrFinal(SES, TURN(2), "不要");
+    expect(m0Rows(rig)).toEqual([]);
+    expect(rig.spoken.at(-1)?.text).toBe("好,这条不记。");
+  });
+});
+
+describe("GAP-02 2.4 延迟观测真实接线(live/dialog.ts → onLlmArrived → LatencyCollector)", () => {
+  it("文本轮:onAsrFinal 后 onLlmArrived 带 {toolCallsMade:0, control:false},collector 以 text origin 记 llm_first_token", async () => {
+    const collector = new LatencyCollector();
+    const seen: Array<{ turnId: string; meta: { toolCallsMade: number; control: boolean } }> = [];
+    const rig = buildRig(
+      scriptedProvider(() => ({ ok: true, text: "好的,我在。", observedModel: "fake-dialog", usage: undefined })),
+      {
+        onLlmArrived: (turnId, atMs, meta) => {
+          seen.push({ turnId, meta });
+          collector.record(turnId, "llm_first_token", atMs, meta.toolCallsMade > 0 ? "tool" : meta.control ? "control" : undefined);
+        }
+      }
+    );
+    const turnId = newId("ses");
+    collector.start(turnId, "text", 0);
+    await rig.dialog.onAsrFinal(SES, turnId, "在吗");
+    expect(seen).toHaveLength(1);
+    expect(seen[0]!.turnId).toBe(turnId);
+    expect(seen[0]!.meta).toEqual({ toolCallsMade: 0, control: false });
+    expect(collector.pendingSize()).toBe(1);
+    expect(collector.countsSnapshot().started).toBe(1);
+    // 同轮再来一次 llm_first_token(重复)不复活也不重复计
+    collector.record(turnId, "llm_first_token", 5);
+    expect(collector.countsSnapshot().duplicate).toBe(1);
   });
 });

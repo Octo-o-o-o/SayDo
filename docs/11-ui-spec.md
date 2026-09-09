@@ -514,7 +514,7 @@ shadcn 原样(Input/Select/Switch/Tabs);设置页每项带一句 muted 说明;�
 | 球权徽章 | owner 三色(我来做/需要你/外部);数字徽章全站单源=attention,openByOwner 仅文字描述 | ② |
 | 决策包卡 | 做出来什么样/做不做/每步谁做/验收标准/成本熔断/预授权(所闻即所签)/怎么跑现役仅逐步确认(每步问你);直达验收档 designed/deferred,不提供现役 selector,旧 `selectedMode=direct_to_review` fail-closed 不可拍板(PG-01B);「看小样」动作(s1 批 08-20)打开 DemoFrame 内联预览 | ③b |
 | DemoFrame | 决策包「看小样」内联渲染(s1-demo-wiring 批 `5c48eb4`,08-20):iframe `sandbox=""` 零 allow 渲染 srcdoc,产物版本经 `/api/artifacts/:id/versions/:version` 拉取;红线=沙箱零权限、token 不进 URL;另有「在产物库查看」链接 | s1 |
-| 确认卡 | 按 daemon 真实 kind 枚举投影;倒计时;「也可以直接开口回答」;超时语义按 v0.4 落账机制 | ③b |
+| 确认卡 | kind 枚举与 daemon 同源(`@saydo/contracts` `CONFIRM_KINDS`,GAP-02 2.1),表外 kind 显示通用「确认」前缀;`memory` 行 = 普通 M0 记忆提议(SD-2):前缀「记忆 · 信息确认 · 不是授权」,按钮「记 / 不用记」,超时不记(过期即丢);倒计时;「也可以直接开口回答」;超时语义按 v0.4 落账机制 | ③b |
 | 进度对齐卡 | AI 主动对账:决策包步进/产物计数/下一步在谁 | ③a |
 | 待命卡 | 虚线边;在等什么+叫醒条件+到期兜底 | ③a |
 | 采访卡 | 一次一问,选择题优先,口播选项≤3,推荐只占徽章不占预选位 | ③b |
@@ -542,6 +542,7 @@ shadcn 原样(Input/Select/Switch/Tabs);设置页每项带一句 muted 说明;�
 
 - 对比度:正文 ≥4.5:1,大字/次文 ≥3:1(两主题都验;§2.5 色板已按此调过)。
 - 焦点:全站 `:focus-visible` ink 焦点环(2px,offset 2px);键盘可达所有操作,审批卡有显式 tab 序。
+- 弹窗键盘合同(`TaskModal` / redesign `ModalFrame` 等 `role="dialog"` 面,inline 预览模式除外):打开即把焦点移入弹窗内首个可操作控件,Tab / Shift+Tab 在弹窗内循环不逃逸,Escape 等同「关上」,关闭后焦点回到打开它的触发控件。
 - 点击目标 ≥40×40px(移动 ≥44);表格行内文字按钮除外(但提供行级焦点)。
 - 色盲安全:状态不只靠色——chip 恒带图标+文字(§2.6 的四联映射保证)。
 
