@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isAbsolute, resolve } from "node:path";
-import { parseCliOptions, resolveSaydoHome } from "../src/options.js";
+import { CLI_USAGE, parseCliOptions, resolveSaydoHome } from "../src/options.js";
 
 describe("CLI 参数", () => {
   it("SAYDO_HOME 优先级为 --home > env > 默认值", () => {
@@ -53,8 +53,17 @@ describe("CLI 参数", () => {
     expect(() => parseCliOptions(["doctor", "--json", "--json"])).toThrow(/参数重复/);
   });
 
+  it("help / --help / 无参数解析为 help 命令", () => {
+    for (const argv of [[], ["help"], ["--help"], ["-h"]]) {
+      const parsed = parseCliOptions(argv, {});
+      expect(parsed.command).toBe("help");
+      expect(parsed.openBrowser).toBe(false);
+    }
+    expect(CLI_USAGE).toMatch(/saydo <up\|status\|open\|doctor\|help>/);
+  });
+
   it("拒绝未知命令与非法端口", () => {
-    expect(() => parseCliOptions(["start"])).toThrow(/用法/);
+    expect(() => parseCliOptions(["start"])).toThrow(/未知命令:start[\s\S]*用法/);
     expect(() => parseCliOptions(["up", "--port", "0"])).toThrow(/端口非法/);
     expect(() => parseCliOptions(["up", "--bogus"])).toThrow(/未知参数/);
     expect(() => parseCliOptions(["up", "stray"])).toThrow(/未知参数/);

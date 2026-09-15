@@ -4,7 +4,7 @@
 > 均为中途旧段,与 §1 自相矛盾——已按 git log + 运行时配置 + 独立对账裁决清理(裁决记录:
 > `e2e/evidence/closeout-verification.md` §3.1)。本版为**单一真相**:所有状态均经收口会话独立核实。
 >
-> **开工先读**:本文件 → 本仓 `AGENTS.md` → `docs/plan/IMPLEMENTATION-PLAN-2.md`(**唯一排产源**;2026-08-29 PG-00 导入、2026-09-06 插入 AS-01-AS-02、2026-09-09 插入 GAP-02-consolidation、同日晚插入 EMAIL-A-outbound 后当前唯一串行链 = `PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → EMAIL-A-outbound → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop`，历史 W1–W9 + 合同轮原文保留) → `docs/plan/2026-08-28-project-gap-closure-program.md` → `docs/plan/2026-08-28-project-gap-d17-import-spec.md` → `docs/plan/2026-08-28-project-gap-owner-decisions.md` → `docs/plan/IMPLEMENTATION-PLAN.md`(首发计划,已收口,仅作出处索引)→ `docs/09`(数据契约,照抄源)/`docs/10`(话术)/`docs/11`(UI)/`docs/modules/a-e`(分域导航)。
+> **开工先读**:本文件 → 本仓 `AGENTS.md` → `docs/plan/IMPLEMENTATION-PLAN-2.md`(**唯一排产源**;2026-08-29 PG-00 导入、2026-09-06 插入 AS-01-AS-02、2026-09-09 插入 GAP-02-consolidation、同日晚插入 EMAIL-A-outbound、2026-09-15 插入 JOURNEY-01 后当前唯一串行链 = `PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → EMAIL-A-outbound → JOURNEY-01 → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop`，历史 W1–W9 + 合同轮原文保留) → `docs/plan/2026-08-28-project-gap-closure-program.md` → `docs/plan/2026-08-28-project-gap-d17-import-spec.md` → `docs/plan/2026-08-28-project-gap-owner-decisions.md` → `docs/plan/IMPLEMENTATION-PLAN.md`(首发计划,已收口,仅作出处索引)→ `docs/09`(数据契约,照抄源)/`docs/10`(话术)/`docs/11`(UI)/`docs/modules/a-e`(分域导航)。
 > 此前开工先读链（PLAN-2 后直接到首发计划、未列入缺口治理三文件）由本行 supersede。
 > 唯一活动仓 = `~/WorkSpace/SayDo`(远端两个,2026-08-20 起:origin = 私有归档 `github.com/Octo-o-o-o/SayDo-archive`(全史,日常 push);public = 公开快照仓 `github.com/Octo-o-o-o/SayDo`,经 `scripts/publish-public-snapshot.sh` 更新,推前跑隐私探针);设计、实现、证据与过程档案均在本仓。旧路径 `voice-coding` 是指向 SayDo 的兼容链接，冻结冷档是 `voice-coding.archive-20260729`，映射见 `docs/plan/MIGRATION.md`。
 
@@ -49,13 +49,14 @@
 - **当前批次指针:**
 <!-- schedule-pointer:begin -->
 schema_version=1
-revision=9
+revision=10
 active=none
-next=PG-02
+next=JOURNEY-01
 last_closed=EMAIL-A-outbound
 evidence_ref=e2e/evidence/email-a-outbound.md
-updated_at=2026-09-09
+updated_at=2026-09-15
 <!-- schedule-pointer:end -->
+**方向登记与 JOURNEY-01 插批(2026-09-15,owner 决策单第 13 节)**:White Edition 裁定为产品 UI 新方向(docs/11 §0.2;纸上账本进入迁移前状态,未迁移页不半改);投资人原型归入 `demo/`(全 mock 自成合同);`JOURNEY-01` 参考旅程批插入唯一串行链(EMAIL-A-outbound 后、PG-02 前)成为 next;deferred 项重议触发条件补登 PLAN-2;首批验证样本保留非技术用户(docs/11 §10.3 口径不变);JOURNEY-01 收口后 owner 跑四场真人验收。本指针 `last_closed=EMAIL-A-outbound`、`active=none`、`next=JOURNEY-01`(JOURNEY-01 未开工,须另有具名授权与完整合同)。此行 supersede 下方「EMAIL-A-outbound 已于 2026-09-09 晚收口」行中的 `next=PG-02`。
 **EMAIL-A-outbound 已于 2026-09-09 晚收口**:I 链 `17dd011`→`dec54d2`→`fc3c662`(候选期 E `5eb083a`,evidence `e2e/evidence/gap-02-residual.md`),插批 `1409d71`,收口 evidence `e2e/evidence/email-a-outbound.md`(记录 I 不自指)。收口依据:owner 决策单第 12 节「都合并,并且都按最完整的方式推进实施」;`fc3c662` 干净树 `just ci`(daemon 2327 passed | 6 skipped、console 328、contracts 135、cli 62、pytest 34)与 playwright 41 passed 全绿,产品代码此后未变;无独立零上下文评审;真实 SMTP 发送 not_run(待 owner 凭据)。本指针 `last_closed=EMAIL-A-outbound`、`active=none`、`next=PG-02`(PG-02 未开工,须另有具名授权与完整合同)。此行 supersede 下方「EMAIL-A-outbound 现役」行。
 **EMAIL-A-outbound 现役(2026-09-09 晚,owner 决策单第 12 节授权插批与实施)**:GAP-02-consolidation 已收口;研究档案入库 `e7a6ceb`、GAP-02 残项 `a0c82cb` 与 EMAIL-A I 链 `17dd011`→`dec54d2`→`fc3c662`(E `5eb083a`,候选期证据 `e2e/evidence/gap-02-residual.md`)已 ff 入 main。本指针 `last_closed=GAP-02-consolidation`、`active=EMAIL-A-outbound`、`next=none`;执行卡 `docs/plan/IMPL-PROMPT-2026-09-09-gap-residuals.md` §3。此行 supersede 下方「GAP-02-consolidation 已于 2026-09-09 收口」行中的 `active=none,next=PG-02`。
 **GAP-02-consolidation 已于 2026-09-09 收口**:I 链 `b415255`…`9a398a2`(10 个产品提交,父=main `25a99242a3863ba24ba7fc7a4b382c880c2c18d6`),插批 `4fe4666`,E `2fe28579044131915c807b587c94ff70ebe366f3`(evidence `e2e/evidence/gap-02-consolidation.md`,记录 I 不自指)。收口依据:owner 2026-09-09 确认插批、合并与公开快照;HEAD `2158ae0` 干净树串行 focused / `just ci`(daemon 2313 passed | 6 skipped、console 316、contracts 135、cli 62、pytest 34)/ playwright 40 passed 全绿;无独立零上下文评审(执行卡为直接实施路径)。本指针 `last_closed=GAP-02-consolidation`、`active=none`、`next=PG-02`(PG-02 未开工,须另有具名授权与完整合同)。此行 supersede 下方「GAP-02-consolidation 现役」行。

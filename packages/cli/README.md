@@ -7,13 +7,13 @@ SayDo CLI 是无需克隆源码的桌面运行包，包含 daemon 与 Web 控制
 已有 Node.js 22 时可直接用 npm。一次运行：
 
 ```sh
-npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.12/saydo-cli-0.1.0-rc.12.tgz -- saydo up
+npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.13/saydo-cli-0.1.0-rc.13.tgz -- saydo up
 ```
 
 常用安装：
 
 ```sh
-npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.12/saydo-cli-0.1.0-rc.12.tgz
+npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.13/saydo-cli-0.1.0-rc.13.tgz
 saydo up
 ```
 

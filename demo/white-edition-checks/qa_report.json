@@ -1,0 +1,2890 @@
+{
+  "file": "SayDo_Investor_Demo_White_Edition.html",
+  "browser": "Chromium /usr/bin/chromium",
+  "load_method": "page.set_content(final HTML); file:// and navigations blocked by managed browser policy",
+  "assertions": [
+    {
+      "name": "最终 HTML 初次渲染 / 默认白底",
+      "pass": true
+    },
+    {
+      "name": "初始主页面和标题",
+      "pass": true
+    },
+    {
+      "name": "独立新版状态存储命名空间",
+      "pass": true
+    },
+    {
+      "name": "首页导览进入完整主线",
+      "pass": true
+    },
+    {
+      "name": "筛选范围选择生效",
+      "pass": true
+    },
+    {
+      "name": "方案预览 / v3 / 尚未授权",
+      "pass": true
+    },
+    {
+      "name": "成果样例 CSV 实际可导出 / 无内部字段",
+      "pass": true
+    },
+    {
+      "name": "批准前必须明确勾选范围",
+      "pass": true
+    },
+    {
+      "name": "批准只绑定当前版本",
+      "pass": true
+    },
+    {
+      "name": "暂停状态生效",
+      "pass": true
+    },
+    {
+      "name": "继续执行生效",
+      "pass": true
+    },
+    {
+      "name": "结算后待验收而非已交付",
+      "pass": true
+    },
+    {
+      "name": "人工检查前验收被锁定",
+      "pass": true
+    },
+    {
+      "name": "切换差异证据",
+      "pass": true
+    },
+    {
+      "name": "切换检查记录",
+      "pass": true
+    },
+    {
+      "name": "人工确认后才允许验收",
+      "pass": true
+    },
+    {
+      "name": "验收成功不自动合并",
+      "pass": true
+    },
+    {
+      "name": "合并需要独立模拟身份确认",
+      "pass": true
+    },
+    {
+      "name": "独立确认后模拟交付",
+      "pass": true
+    },
+    {
+      "name": "交付沉淀有来源的项目记忆",
+      "pass": true
+    },
+    {
+      "name": "导览可继续到记忆",
+      "pass": true
+    },
+    {
+      "name": "导览可退出",
+      "pass": true
+    },
+    {
+      "name": "定向返工产生新版并废除批准",
+      "pass": true
+    },
+    {
+      "name": "确认期间方案漂移使旧批准失效",
+      "pass": true
+    },
+    {
+      "name": "关键验证失败不能以人工勾选绕过",
+      "pass": true
+    },
+    {
+      "name": "失败检查进入修复而不是直接通过",
+      "pass": true
+    },
+    {
+      "name": "修复后仍需重新人工验收",
+      "pass": true
+    },
+    {
+      "name": "连接中断会保留阻塞状态",
+      "pass": true
+    },
+    {
+      "name": "重连不悄悄自动继续",
+      "pass": true
+    },
+    {
+      "name": "预算不能降低后当成扩权批准",
+      "pass": true
+    },
+    {
+      "name": "明确提高示例预算后才能恢复",
+      "pass": true
+    },
+    {
+      "name": "停止是明确状态，不伪称回滚",
+      "pass": true
+    },
+    {
+      "name": "拒绝新增影响后保持有限范围推进",
+      "pass": true
+    },
+    {
+      "name": "错误日期范围不能提交",
+      "pass": true
+    },
+    {
+      "name": "有效日期范围保存",
+      "pass": true
+    },
+    {
+      "name": "范围影响导出样例 / 日期过滤",
+      "pass": true
+    },
+    {
+      "name": "全局搜索返回实际内置条目",
+      "pass": true
+    },
+    {
+      "name": "Escape 关闭对话框",
+      "pass": true
+    },
+    {
+      "name": "候选记忆经明确确认升级",
+      "pass": true
+    },
+    {
+      "name": "编辑记忆产生版本",
+      "pass": true
+    },
+    {
+      "name": "遗忘移除正文而非只隐藏行",
+      "pass": true
+    },
+    {
+      "name": "记忆可导出 / 遗忘正文不回流",
+      "pass": true
+    },
+    {
+      "name": "资料可打开而非静态装饰",
+      "pass": true
+    },
+    {
+      "name": "已读不等于任务完成",
+      "pass": true
+    },
+    {
+      "name": "语音明确为模拟，未调用麦克风",
+      "pass": true
+    },
+    {
+      "name": "示例语音可带入同一主线",
+      "pass": true
+    },
+    {
+      "name": "英文即时切换",
+      "pass": true
+    },
+    {
+      "name": "手机不伪装已开放远程合并",
+      "pass": true
+    },
+    {
+      "name": "移动侧栏可以打开",
+      "pass": true
+    },
+    {
+      "name": "移动选择后侧栏收起",
+      "pass": true
+    },
+    {
+      "name": "对话框内 Tab 保持焦点可达",
+      "pass": true
+    },
+    {
+      "name": "210 组中英文页面/状态/宽度布局无整页横向溢出",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "可选深色模式仍为中性灰",
+      "pass": true
+    },
+    {
+      "name": "白色首页没有残留彩色样式",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "56 组对话框布局无整页横向溢出",
+      "pass": true
+    },
+    {
+      "name": "JavaScript 页面异常为零",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "没有外部资源或 API 请求",
+      "pass": true,
+      "detail": []
+    }
+  ],
+  "layouts": [
+    {
+      "lang": "zh",
+      "width": 360,
+      "view": "today",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 360,
+      "view": "clarify",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 360,
+      "view": "plan",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 360,
+      "view": "running",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 360,
+      "view": "blocked",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 360,
+      "view": "review",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 360,
+      "view": "accepted",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 360,
+      "view": "delivered",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 360,
+      "view": "tasks",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 360,
+      "view": "memory",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 360,
+      "view": "artifacts",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 360,
+      "view": "agents",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 360,
+      "view": "cost",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 360,
+      "view": "settings",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 360,
+      "view": "onboarding",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "today",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "clarify",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "plan",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "running",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "blocked",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "review",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "accepted",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "delivered",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "tasks",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "memory",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "artifacts",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "agents",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "cost",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "settings",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "onboarding",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 740,
+      "view": "today",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 740,
+      "view": "clarify",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 740,
+      "view": "plan",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 740,
+      "view": "running",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 740,
+      "view": "blocked",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 740,
+      "view": "review",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 740,
+      "view": "accepted",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 740,
+      "view": "delivered",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 740,
+      "view": "tasks",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 740,
+      "view": "memory",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 740,
+      "view": "artifacts",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 740,
+      "view": "agents",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 740,
+      "view": "cost",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 740,
+      "view": "settings",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 740,
+      "view": "onboarding",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 768,
+      "view": "today",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 768,
+      "view": "clarify",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 768,
+      "view": "plan",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 768,
+      "view": "running",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 768,
+      "view": "blocked",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 768,
+      "view": "review",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 768,
+      "view": "accepted",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 768,
+      "view": "delivered",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 768,
+      "view": "tasks",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 768,
+      "view": "memory",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 768,
+      "view": "artifacts",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 768,
+      "view": "agents",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 768,
+      "view": "cost",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 768,
+      "view": "settings",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 768,
+      "view": "onboarding",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1024,
+      "view": "today",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1024,
+      "view": "clarify",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1024,
+      "view": "plan",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1024,
+      "view": "running",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1024,
+      "view": "blocked",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1024,
+      "view": "review",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1024,
+      "view": "accepted",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1024,
+      "view": "delivered",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1024,
+      "view": "tasks",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1024,
+      "view": "memory",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1024,
+      "view": "artifacts",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1024,
+      "view": "agents",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1024,
+      "view": "cost",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1024,
+      "view": "settings",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1024,
+      "view": "onboarding",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1280,
+      "view": "today",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1280,
+      "view": "clarify",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1280,
+      "view": "plan",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1280,
+      "view": "running",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1280,
+      "view": "blocked",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1280,
+      "view": "review",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1280,
+      "view": "accepted",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1280,
+      "view": "delivered",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1280,
+      "view": "tasks",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1280,
+      "view": "memory",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1280,
+      "view": "artifacts",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1280,
+      "view": "agents",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1280,
+      "view": "cost",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1280,
+      "view": "settings",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1280,
+      "view": "onboarding",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "today",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "clarify",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "plan",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "running",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "blocked",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "review",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "accepted",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "delivered",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "tasks",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "memory",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "artifacts",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "agents",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "cost",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "settings",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "onboarding",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "en",
+      "width": 360,
+      "view": "today",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "en",
+      "width": 360,
+      "view": "clarify",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "en",
+      "width": 360,
+      "view": "plan",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "en",
+      "width": 360,
+      "view": "running",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "en",
+      "width": 360,
+      "view": "blocked",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "en",
+      "width": 360,
+      "view": "review",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "en",
+      "width": 360,
+      "view": "accepted",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "en",
+      "width": 360,
+      "view": "delivered",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "en",
+      "width": 360,
+      "view": "tasks",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "en",
+      "width": 360,
+      "view": "memory",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "en",
+      "width": 360,
+      "view": "artifacts",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "en",
+      "width": 360,
+      "view": "agents",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "en",
+      "width": 360,
+      "view": "cost",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "en",
+      "width": 360,
+      "view": "settings",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "en",
+      "width": 360,
+      "view": "onboarding",
+      "pass": true,
+      "sizes": {
+        "width": 360,
+        "doc": 360,
+        "body": 360
+      }
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "today",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "clarify",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "plan",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "running",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "blocked",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "review",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "accepted",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "delivered",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "tasks",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "memory",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "artifacts",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "agents",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "cost",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "settings",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "onboarding",
+      "pass": true,
+      "sizes": {
+        "width": 390,
+        "doc": 390,
+        "body": 390
+      }
+    },
+    {
+      "lang": "en",
+      "width": 740,
+      "view": "today",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "en",
+      "width": 740,
+      "view": "clarify",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "en",
+      "width": 740,
+      "view": "plan",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "en",
+      "width": 740,
+      "view": "running",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "en",
+      "width": 740,
+      "view": "blocked",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "en",
+      "width": 740,
+      "view": "review",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "en",
+      "width": 740,
+      "view": "accepted",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "en",
+      "width": 740,
+      "view": "delivered",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "en",
+      "width": 740,
+      "view": "tasks",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "en",
+      "width": 740,
+      "view": "memory",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "en",
+      "width": 740,
+      "view": "artifacts",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "en",
+      "width": 740,
+      "view": "agents",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "en",
+      "width": 740,
+      "view": "cost",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "en",
+      "width": 740,
+      "view": "settings",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "en",
+      "width": 740,
+      "view": "onboarding",
+      "pass": true,
+      "sizes": {
+        "width": 740,
+        "doc": 740,
+        "body": 740
+      }
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "view": "today",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "view": "clarify",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "view": "plan",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "view": "running",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "view": "blocked",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "view": "review",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "view": "accepted",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "view": "delivered",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "view": "tasks",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "view": "memory",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "view": "artifacts",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "view": "agents",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "view": "cost",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "view": "settings",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "en",
+      "width": 768,
+      "view": "onboarding",
+      "pass": true,
+      "sizes": {
+        "width": 768,
+        "doc": 768,
+        "body": 768
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1024,
+      "view": "today",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1024,
+      "view": "clarify",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1024,
+      "view": "plan",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1024,
+      "view": "running",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1024,
+      "view": "blocked",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1024,
+      "view": "review",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1024,
+      "view": "accepted",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1024,
+      "view": "delivered",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1024,
+      "view": "tasks",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1024,
+      "view": "memory",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1024,
+      "view": "artifacts",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1024,
+      "view": "agents",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1024,
+      "view": "cost",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1024,
+      "view": "settings",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1024,
+      "view": "onboarding",
+      "pass": true,
+      "sizes": {
+        "width": 1024,
+        "doc": 1024,
+        "body": 1024
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1280,
+      "view": "today",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1280,
+      "view": "clarify",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1280,
+      "view": "plan",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1280,
+      "view": "running",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1280,
+      "view": "blocked",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1280,
+      "view": "review",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1280,
+      "view": "accepted",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1280,
+      "view": "delivered",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1280,
+      "view": "tasks",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1280,
+      "view": "memory",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1280,
+      "view": "artifacts",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1280,
+      "view": "agents",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1280,
+      "view": "cost",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1280,
+      "view": "settings",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1280,
+      "view": "onboarding",
+      "pass": true,
+      "sizes": {
+        "width": 1280,
+        "doc": 1280,
+        "body": 1280
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "today",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "clarify",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "plan",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "running",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "blocked",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "review",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "accepted",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "delivered",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "tasks",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "memory",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "artifacts",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "agents",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "cost",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "settings",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "onboarding",
+      "pass": true,
+      "sizes": {
+        "width": 1440,
+        "doc": 1440,
+        "body": 1440
+      }
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "modal/guide",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "modal/about",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "modal/privacy",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "modal/devices",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "modal/search",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "modal/new-project",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "modal/new-request",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "modal/scenarios",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "modal/date-scope",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "modal/voice",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "modal/notifications",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "modal/edit-plan",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "modal/revision",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 390,
+      "view": "modal/cancel",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "modal/guide",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "modal/about",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "modal/privacy",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "modal/devices",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "modal/search",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "modal/new-project",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "modal/new-request",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "modal/scenarios",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "modal/date-scope",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "modal/voice",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "modal/notifications",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "modal/edit-plan",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "modal/revision",
+      "pass": true
+    },
+    {
+      "lang": "zh",
+      "width": 1440,
+      "view": "modal/cancel",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "modal/guide",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "modal/about",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "modal/privacy",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "modal/devices",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "modal/search",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "modal/new-project",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "modal/new-request",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "modal/scenarios",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "modal/date-scope",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "modal/voice",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "modal/notifications",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "modal/edit-plan",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "modal/revision",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 390,
+      "view": "modal/cancel",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "modal/guide",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "modal/about",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "modal/privacy",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "modal/devices",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "modal/search",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "modal/new-project",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "modal/new-request",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "modal/scenarios",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "modal/date-scope",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "modal/voice",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "modal/notifications",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "modal/edit-plan",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "modal/revision",
+      "pass": true
+    },
+    {
+      "lang": "en",
+      "width": 1440,
+      "view": "modal/cancel",
+      "pass": true
+    }
+  ],
+  "page_errors": [],
+  "requests": [],
+  "elapsed_seconds": 12.7
+}

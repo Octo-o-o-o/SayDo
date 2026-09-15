@@ -378,9 +378,14 @@ describe("CLI emergency agent reaper", () => {
       SAYDO_LOCK_MODULE: fileURLToPath(new URL("../../platform/src/homeLock.ts", import.meta.url)),
       SAYDO_REAPER_MODULE: fileURLToPath(new URL("../src/emergencyReaper.ts", import.meta.url))
     };
+    // tsx 会再 fork 一个真正执行 worker 的子进程,持锁的是那个孙进程;只 SIGKILL tsx 父进程时,
+    // Linux 上孙进程成为孤儿继续持锁,waiter 永远拿不到锁(ubuntu CI 稳定超时的根因)。
+    // POSIX 上把 holder 放进独立进程组,回收时整组 SIGKILL。
+    const posix = process.platform !== "win32";
     const holder = spawn(process.execPath, [tsx, worker], {
       env: { ...envBase, SAYDO_LOCK_ROLE: "hold", SAYDO_LOCK_MARKER: holdMarker },
-      stdio: "ignore"
+      stdio: "ignore",
+      detached: posix
     });
     const started = Date.now();
     while (!existsSync(holdMarker) && Date.now() - started < 5_000) {
@@ -394,7 +399,15 @@ describe("CLI emergency agent reaper", () => {
     await new Promise((resolve) => setTimeout(resolve, 400));
     expect(existsSync(ownerPath)).toBe(true);
     expect(existsSync(reapMarker)).toBe(false);
-    holder.kill("SIGKILL");
+    if (posix && holder.pid) {
+      try {
+        process.kill(-holder.pid, "SIGKILL");
+      } catch {
+        holder.kill("SIGKILL");
+      }
+    } else {
+      holder.kill("SIGKILL");
+    }
     await new Promise<void>((resolve) => {
       if (holder.exitCode !== null) resolve();
       else holder.once("exit", () => resolve());

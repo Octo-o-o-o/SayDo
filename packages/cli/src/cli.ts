@@ -4,12 +4,30 @@ import { brandTrustedFailure, projectUntrustedFailureText } from "@saydo/platfor
 import { CLI_PROTOCOL_VERSION } from "./buildIdentity.js";
 import { collectDoctor, readInstalledIdentity, renderDoctorText } from "./doctor.js";
 import { consoleUrl, openExternal } from "./open.js";
-import { parseCliOptions } from "./options.js";
+import { CLI_USAGE, parseCliOptions } from "./options.js";
 import { probeDaemon } from "./probe.js";
 import { distributionPaths, holdAttached, runOwned } from "./supervisor.js";
 
+function parseOrUsage(): ReturnType<typeof parseCliOptions> | undefined {
+  try {
+    return parseCliOptions(process.argv.slice(2));
+  } catch (err) {
+    // 参数/用法错误来自本进程自身(不回显外部输入),直接完整打印用法;其它失败仍走 untrusted 投影。
+    const message = err instanceof Error ? err.message : "参数错误";
+    const firstLine = message.split("\n")[0] ?? message;
+    process.stderr.write(`[fail] ${firstLine}\n${CLI_USAGE}\n`);
+    process.exitCode = 1;
+    return undefined;
+  }
+}
+
 async function main(): Promise<void> {
-  const options = parseCliOptions(process.argv.slice(2));
+  const options = parseOrUsage();
+  if (options === undefined) return;
+  if (options.command === "help") {
+    process.stdout.write(`${CLI_USAGE}\n`);
+    return;
+  }
   if (options.command === "doctor") {
     // 只读诊断:不走 ownership 探针(不读 token),不发 provider 请求。
     const report = await collectDoctor({

@@ -1,0 +1,262 @@
+[
+  {
+    "lang": "zh",
+    "width": 360,
+    "pass": true,
+    "detail": {
+      "titleRight": 343,
+      "artLeft": 0,
+      "artVisible": false,
+      "separate": true,
+      "bodyWidth": 360,
+      "width": 360
+    }
+  },
+  {
+    "lang": "zh",
+    "width": 390,
+    "pass": true,
+    "detail": {
+      "titleRight": 369,
+      "artLeft": 0,
+      "artVisible": false,
+      "separate": true,
+      "bodyWidth": 390,
+      "width": 390
+    }
+  },
+  {
+    "lang": "zh",
+    "width": 740,
+    "pass": true,
+    "detail": {
+      "titleRight": 719,
+      "artLeft": 0,
+      "artVisible": false,
+      "separate": true,
+      "bodyWidth": 740,
+      "width": 740
+    }
+  },
+  {
+    "lang": "zh",
+    "width": 768,
+    "pass": true,
+    "detail": {
+      "titleRight": 449.203125,
+      "artLeft": 457.203125,
+      "artVisible": true,
+      "separate": true,
+      "bodyWidth": 768,
+      "width": 768
+    }
+  },
+  {
+    "lang": "zh",
+    "width": 830,
+    "pass": true,
+    "detail": {
+      "titleRight": 483.28125,
+      "artLeft": 491.28125,
+      "artVisible": true,
+      "separate": true,
+      "bodyWidth": 830,
+      "width": 830
+    }
+  },
+  {
+    "lang": "zh",
+    "width": 960,
+    "pass": true,
+    "detail": {
+      "titleRight": 559.65625,
+      "artLeft": 567.65625,
+      "artVisible": true,
+      "separate": true,
+      "bodyWidth": 960,
+      "width": 960
+    }
+  },
+  {
+    "lang": "zh",
+    "width": 1024,
+    "pass": true,
+    "detail": {
+      "titleRight": 649.328125,
+      "artLeft": 657.328125,
+      "artVisible": true,
+      "separate": true,
+      "bodyWidth": 1024,
+      "width": 1024
+    }
+  },
+  {
+    "lang": "zh",
+    "width": 1280,
+    "pass": true,
+    "detail": {
+      "titleRight": 823.953125,
+      "artLeft": 835.953125,
+      "artVisible": true,
+      "separate": true,
+      "bodyWidth": 1280,
+      "width": 1280
+    }
+  },
+  {
+    "lang": "zh",
+    "width": 1440,
+    "pass": true,
+    "detail": {
+      "titleRight": 916.96875,
+      "artLeft": 928.96875,
+      "artVisible": true,
+      "separate": true,
+      "bodyWidth": 1440,
+      "width": 1440
+    }
+  },
+  {
+    "lang": "zh",
+    "width": 1920,
+    "pass": true,
+    "detail": {
+      "titleRight": 1140.078125,
+      "artLeft": 1152.078125,
+      "artVisible": true,
+      "separate": true,
+      "bodyWidth": 1920,
+      "width": 1920
+    }
+  },
+  {
+    "lang": "en",
+    "width": 360,
+    "pass": true,
+    "detail": {
+      "titleRight": 343,
+      "artLeft": 0,
+      "artVisible": false,
+      "separate": true,
+      "bodyWidth": 360,
+      "width": 360
+    }
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "pass": true,
+    "detail": {
+      "titleRight": 369,
+      "artLeft": 0,
+      "artVisible": false,
+      "separate": true,
+      "bodyWidth": 390,
+      "width": 390
+    }
+  },
+  {
+    "lang": "en",
+    "width": 740,
+    "pass": true,
+    "detail": {
+      "titleRight": 719,
+      "artLeft": 0,
+      "artVisible": false,
+      "separate": true,
+      "bodyWidth": 740,
+      "width": 740
+    }
+  },
+  {
+    "lang": "en",
+    "width": 768,
+    "pass": true,
+    "detail": {
+      "titleRight": 449.203125,
+      "artLeft": 457.203125,
+      "artVisible": true,
+      "separate": true,
+      "bodyWidth": 768,
+      "width": 768
+    }
+  },
+  {
+    "lang": "en",
+    "width": 830,
+    "pass": true,
+    "detail": {
+      "titleRight": 483.28125,
+      "artLeft": 491.28125,
+      "artVisible": true,
+      "separate": true,
+      "bodyWidth": 830,
+      "width": 830
+    }
+  },
+  {
+    "lang": "en",
+    "width": 960,
+    "pass": true,
+    "detail": {
+      "titleRight": 559.65625,
+      "artLeft": 567.65625,
+      "artVisible": true,
+      "separate": true,
+      "bodyWidth": 960,
+      "width": 960
+    }
+  },
+  {
+    "lang": "en",
+    "width": 1024,
+    "pass": true,
+    "detail": {
+      "titleRight": 649.328125,
+      "artLeft": 657.328125,
+      "artVisible": true,
+      "separate": true,
+      "bodyWidth": 1024,
+      "width": 1024
+    }
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "pass": true,
+    "detail": {
+      "titleRight": 823.953125,
+      "artLeft": 835.953125,
+      "artVisible": true,
+      "separate": true,
+      "bodyWidth": 1280,
+      "width": 1280
+    }
+  },
+  {
+    "lang": "en",
+    "width": 1440,
+    "pass": true,
+    "detail": {
+      "titleRight": 916.96875,
+      "artLeft": 928.96875,
+      "artVisible": true,
+      "separate": true,
+      "bodyWidth": 1440,
+      "width": 1440
+    }
+  },
+  {
+    "lang": "en",
+    "width": 1920,
+    "pass": true,
+    "detail": {
+      "titleRight": 1140.078125,
+      "artLeft": 1152.078125,
+      "artVisible": true,
+      "separate": true,
+      "bodyWidth": 1920,
+      "width": 1920
+    }
+  }
+]

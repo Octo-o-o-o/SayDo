@@ -125,6 +125,9 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
+        with:
+          # 动作缺省装 "tools platform-tools";Google 仓库已下架 tools 包,缺省值会 fail("Failed to find package 'tools'")。
+          packages: platform-tools
       - name: Install Android API 36
         run: sdkmanager --install "platforms;android-36"
       - name: Unit test, lint, assembleDebug

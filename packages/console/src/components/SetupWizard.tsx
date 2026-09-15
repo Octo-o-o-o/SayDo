@@ -65,7 +65,8 @@ import {
   type SetupTestResult,
   type SlotSupply,
   type TestSlotStatus,
-  type WizardSlot
+  type WizardSlot,
+  cliWiredForSupply
 } from "../lib/setupApi";
 import {
   closeFusionOverlay,
@@ -881,6 +882,30 @@ export function PurposeZones({
           </span>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** 全新机器空态:已接线但未安装的家,逐家给 daemon 生成的可粘贴修复行(docs/11 §5.8a 空态 2026-09-15);console 不维护第二份命令表。 */
+export function missingWiredClis(clis: readonly CliCapability[]): CliCapability[] {
+  return clis.filter((cli) => cliWiredForSupply(cli) && !cli.found && !!cli.auth.fixHint);
+}
+
+export function EmptySupplyHints({ clis }: { clis: readonly CliCapability[] }) {
+  const missing = missingWiredClis(clis);
+  return (
+    <div data-empty-supply style={{ margin: "0 0 10px", fontSize: "var(--text-sm)" }}>
+      <p style={{ margin: "0 0 6px" }}>登录一个本机 CLI,或添加 API 直连</p>
+      {missing.length > 0 ? (
+        <ul data-empty-supply-hints style={{ margin: 0, paddingLeft: 18, color: "var(--text-muted)" }}>
+          {missing.map((cli) => (
+            <li key={cli.name}>
+              {cli.label ?? cli.name}:{cli.auth.fixHint}
+            </li>
+          ))}
+          <li>装好并登录后点「重新检测」</li>
+        </ul>
+      ) : null}
     </div>
   );
 }
@@ -1706,9 +1731,7 @@ export function SetupWizard({
       {detecting ? <DetectingProgressRow reprobing={reprobing} phase2Done={phase2Done} /> : null}
       {cliErrorCopy ? <CliProbeError copy={cliErrorCopy} onRetry={() => setCliProbeNonce((n) => n + 1)} /> : null}
       {!detecting && availableSupplies.length === 0 && !draftApiPlan ? (
-        <p data-empty-supply style={{ margin: "0 0 10px", fontSize: "var(--text-sm)" }}>
-          登录一个本机 CLI,或添加 API 直连
-        </p>
+        <EmptySupplyHints clis={clis} />
       ) : null}
       {fusionLayout === "split" ? (
         <div className="setup-fusion" data-quick-setup>

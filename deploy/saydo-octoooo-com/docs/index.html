@@ -269,10 +269,11 @@
           </thead>
           <tbody>
             <tr><td>系统</td><td>macOS(Apple Silicon / Intel 均可)· Windows · Linux</td><td>三端都能跑桌面服务;<strong>常驻安装与系统通知当前仍是 macOS 实现</strong>,Windows/Linux 需前台运行</td></tr>
-            <tr><td>Node</td><td><strong>22.x</strong>(<code>&gt;=22 &lt;23</code>)</td><td>桌面服务与 CLI 的运行时;走一条命令安装时脚本会自动准备,手动走 npm 路径时用 nvm / fnm / Homebrew 装</td></tr>
+            <tr><td>Node</td><td><strong>22.x</strong>(<code>&gt;=22 &lt;23</code>)</td><td>桌面服务与 CLI 的运行时;走一条命令安装时脚本会自动准备(先官方源、连不上改用 npmmirror 镜像,约 50 MB,有进度条),手动走 npm 路径时用 nvm / fnm / Homebrew 装</td></tr>
+            <tr><td>命令行工具</td><td>macOS / Linux:<code>curl</code>、<code>tar</code>、<code>sha256sum</code> 或 <code>shasum</code>;Windows:PowerShell 5.1+ / 7</td><td>一条命令安装脚本的唯一系统依赖;macOS 与主流 Linux 桌面缺省自带,最精简容器镜像需先装 <code>curl</code></td></tr>
             <tr><td>可选 · pnpm</td><td>10.x</td><td>只有源码开发需要;Release 包不需要</td></tr>
             <tr><td>可选 · git</td><td>任意新版</td><td>只有让执行器修改代码、创建隔离 worktree 时需要;只使用账本与控制台不需要</td></tr>
-            <tr><td>一个 AI 供给</td><td>二选一:① 本机已接线并通过调用验证的 CLI(Codex / Claude Code / Cursor / Grok / Gemini CLI / Qwen Code / Copilot CLI);② 一个 OpenAI 兼容 API key(OpenRouter / OpenAI / Anthropic / DeepSeek)</td><td>聊天、立账、调研可以不配 API key,前提是该 CLI 已接线并通过调用验证;实际权益和费用以服务商为准。见 §5.3</td></tr>
+            <tr><td>一个 AI 供给(<strong>硬前提,建议装前先备好</strong>)</td><td>二选一:① 本机已安装并登录的 CLI(Codex <code>codex login</code> / Claude Code <code>claude auth login</code> / Cursor <code>cursor-agent login</code> / Grok <code>grok login</code> / Gemini CLI / Qwen Code / Copilot CLI <code>copilot login</code>),向导会检测并让你真实测一发;② 一个 OpenAI 兼容 API key(OpenRouter / OpenAI / Anthropic / DeepSeek),在向导里填</td><td>没有它装完也聊不了:向导会停在「先把对话模型配好」。聊天、立账、调研可以不配 API key,前提是该 CLI 已接线并通过调用验证;登录不等于免费,实际权益和费用以服务商为准。见 §5.3</td></tr>
             <tr><td>可选 · Python 3.11+ 与 <code>uv</code></td><td>只有<strong>桌面浏览器云端语音</strong>(火山豆包 ASR/TTS)才需要</td><td>不配也能说话:浏览器系统语音兜底(§12)</td></tr>
             <tr><td>可选 · 一个执行器登录态</td><td><code>cursor-agent</code>(当前稳定缺省)或 Claude Code(生产主流程已接线、最终 live conformance 收口中)</td><td>只有<strong>派发执行任务</strong>才需要;Codex 执行器尚未实现并会 fail-closed 拒起,不影响对话(§6)</td></tr>
           </tbody>
@@ -288,13 +289,13 @@ irm https://saydo.octoooo.com/install.ps1 | iex
 
 # 然后在新终端
 saydo up</code></pre>
-        <div class="docs-note"><p>网络:脚本先从 GitHub Release 固定 URL 下载,连不上时自动改用官网镜像 <code>dl.saydo.octoooo.com</code>(与 Release 资产字节全等,同一个 SHA-256 校验;<code>SAYDO_INSTALL_MIRROR=1</code> 直接用镜像);依赖走 npm registry,<code>SAYDO_INSTALL_NPM_REGISTRY</code> 可改(如 <code>https://registry.npmmirror.com</code>)。环境变量:<code>SAYDO_INSTALL_NO_MODIFY_PATH=1</code> 不改启动文件 / 用户 PATH;<code>SAYDO_INSTALL_RUN=1</code> 装完直接启动;<code>SAYDO_HOME</code>(Windows 为 <code>SAYDO_INSTALL_ROOT</code>)改安装根目录。卸载:删除 <code>~/.saydo/toolchain</code> 与 <code>~/.saydo/bin</code>(Windows 为 <code>%LOCALAPPDATA%\SayDo</code>),并移除启动文件里带 <code># saydo</code> 标记的那一行(Windows 从用户 PATH 移除 bin 目录)。脚本源码与官网同源发布:公开仓 <code>deploy/saydo-octoooo-com/install.sh</code>、<code>install.ps1</code>;脚本钉住的版本与 SHA-256 由仓内自测 <code>scripts/test-install-scripts.mjs</code> 绑定到该 Release 的可用性证据。</p></div>
-        <p><strong>推荐 · 不克隆源码:</strong>v0.1.0-rc.12 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证,可直接使用。尚未发布到 npm registry 或 Homebrew。</p>
+        <div class="docs-note"><p>网络:脚本先从 GitHub Release 固定 URL 下载,连不上时自动改用官网镜像 <code>dl.saydo.octoooo.com</code>(与 Release 资产字节全等,同一个 SHA-256 校验);需要下载 Node 22 时同样先 nodejs.org、连不上改用 <code>npmmirror.com/mirrors/node</code>(仍按官方 SHASUMS256 校验);<code>SAYDO_INSTALL_MIRROR=1</code> 两者都直接用镜像;依赖走 npm registry,<code>SAYDO_INSTALL_NPM_REGISTRY</code> 可改(如 <code>https://registry.npmmirror.com</code>)。环境变量:<code>SAYDO_INSTALL_NO_MODIFY_PATH=1</code> 不改启动文件 / 用户 PATH;<code>SAYDO_INSTALL_RUN=1</code> 装完直接启动;<code>SAYDO_HOME</code>(Windows 为 <code>SAYDO_INSTALL_ROOT</code>)改安装根目录,必须在用户目录之下(确需其他位置须 <code>SAYDO_INSTALL_ALLOW_OUTSIDE_HOME=1</code>)。卸载:删除 <code>~/.saydo/toolchain</code> 与 <code>~/.saydo/bin</code>(Windows 为 <code>%LOCALAPPDATA%\SayDo</code>),并移除启动文件里带 <code># saydo</code> 标记的那一行(Windows 从用户 PATH 移除 bin 目录)。脚本源码与官网同源发布:公开仓 <code>deploy/saydo-octoooo-com/install.sh</code>、<code>install.ps1</code>(纯 ASCII 引导,负责把带 UTF-8 BOM 的 <code>install-core.ps1</code> 下载到临时文件并以 <code>-File</code> 运行——Windows PowerShell 5.1 的 <code>irm</code> 会把 BOM 留在字符串里导致 <code>iex</code> 解析失败,而无 BOM 的 UTF-8 文件用 <code>-File</code> 又会按 ANSI 读坏中文,拆成两层同时满足两种形态);脚本钉住的版本与 SHA-256 由仓内自测 <code>scripts/test-install-scripts.mjs</code> 绑定到该 Release 的可用性证据。</p></div>
+        <p><strong>推荐 · 不克隆源码:</strong>下面是 v0.1.0-rc.13 的发布候选固定 URL;仅当 GitHub Release 页面已经出现且发布检查全绿后才可用。尚未发布到 npm registry 或 Homebrew。</p>
         <pre><code># 一次运行:下载到 npm 缓存后直接启动
-npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.12/saydo-cli-0.1.0-rc.12.tgz -- saydo up
+npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.13/saydo-cli-0.1.0-rc.13.tgz -- saydo up
 
 # 常用安装:安装一次,以后直接用 saydo
-npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.12/saydo-cli-0.1.0-rc.12.tgz
+npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.13/saydo-cli-0.1.0-rc.13.tgz
 saydo up</code></pre>
         <div class="docs-note"><p>该包只包含 daemon + Web 控制台,支持 macOS / Windows / Linux。语音 pipeline、macOS launchd 常驻和修改源码不在包内;Windows/Linux 当前以前台方式运行。远程终端加 <code>--no-open</code>。</p></div>
         <p><strong>源码开发:</strong></p>
@@ -304,23 +305,35 @@ pnpm install &amp;&amp; pnpm -r build</code></pre>
         <p>上一步的一次运行命令已经启动服务;全局安装后可使用:</p>
         <pre><code>saydo up        # 前台持有 daemon,Ctrl+C 优雅退出并可续接任务
 saydo status    # 探活:0=已连上 / 1=端口空闲 / 2=端口冲突
-saydo open      # 打开控制台</code></pre>
+saydo open      # 用带访问凭证的地址打开控制台(daemon 需已在运行)</code></pre>
+        <div class="docs-note"><p>v0.1.0-rc.13 包只有这三个子命令,没有 <code>--help</code>;敲错命令只会打印 <code>[fail] cli failed</code>。控制台地址必须带 <code>?token=</code> 访问凭证,直接打开 <code>http://localhost:47100</code> 会看到「访问凭证已失效」——这不是坏了,用 <code>saydo open</code> 打开即可;用了 <code>--no-open</code> 也一样。</p></div>
         <p>源码开发形态使用 <code>pnpm --filter @saydo/cli build</code> 后运行 <code>node packages/cli/dist/cli.mjs up</code>。同一个数据目录 <code>~/.saydo</code> 同时只允许一个实例。</p>
         <ul>
           <li>缺省端口 <strong>47100</strong>(直起 daemon 用环境变量 <code>SAYDO_DAEMON_PORT</code> 覆盖;<code>saydo</code> 命令行只认 <code>--port</code>);缺省只监听本机回环地址。<code>saydo up</code> 缺省会自动打开浏览器,<code>--no-open</code> 可关。</li>
           <li>数据目录缺省 <code>~/.saydo</code>(<code>--home</code> 或 <code>SAYDO_HOME</code> 覆盖)。首次启动会自动生成:<code>config.toml</code>(占位模板)、<code>.cap-token</code>(控制台令牌)、<code>saydo.db</code>、<code>sessions/</code>、<code>logs/</code>、<code>projects/</code> 等。</li>
-          <li>健康探针:<code>curl -s http://127.0.0.1:47100/health</code>(<code>ok:true</code> 即起来了;tsx 冷启动约 10–15 秒)。</li>
+          <li>健康探针:<code>curl -s http://127.0.0.1:47100/health</code>(<code>ok:true</code> 即起来了;一条命令安装的包通常几秒内就绪,源码形态的 tsx 冷启动约 10–15 秒)。</li>
           <li>进控制台使用 <code>saydo open</code>。它在 macOS 调 <code>open</code>、Windows 调系统浏览器、Linux 调 <code>xdg-open</code>;无图形环境用 <code>--no-open</code>。注意使用 <strong>localhost</strong>:为了屏幕强认证的 WebAuthn 绑定,<code>127.0.0.1</code> 的页面请求会被重定向到 <code>localhost</code>。</li>
         </ul>
-        <h3>4.4 首次使用:资源画像向导</h3>
-        <p>进门先看到<strong>资源画像</strong>:它清点这台机器能用的模型来源(装了哪些 CLI、哪些已登录、<code>.env</code> 里有哪些 key),然后给出方案卡(§5.3 三种)。典型零 key 流程:</p>
+        <h3>4.4 首次使用:「先把对话模型配好」向导</h3>
+        <p>第一次打开控制台不进主页,先进一页向导。它会用最多十几秒清点这台机器能用的模型来源(装了哪些 CLI、哪些已登录、<code>.env</code> 里有哪些 key),期间显示「正在清点这台机器能用的模型来源…」和骨架卡,清点完再一次性显示。整页分两栏(窄窗口上下堆叠):左栏选一个供给,右栏看五个用途槽(对话 / 沉思 / 廉价 / 评估 / 开发)。典型流程:</p>
         <ol>
-          <li>看到「全用 Codex」之类的一键卡(每家已登录的 CLI 一张;列表按 已登录 &gt; 仅安装 &gt; 未装 排序,同档内按用过次数);</li>
-          <li>勾两条知情确认(评估档与对话同族 / 评估器笼隔离不可证,§5.4);</li>
-          <li>点「确认并启动」→ 写入待生效配置 → <strong>自检 1/2</strong>(四槽各真调一次)→ 重启服务 → <strong>自检 2/2</strong>(生效后再确认)→ 落到「开口聊」。全 CLI 方案每槽一次约 15–25 秒,<strong>两轮自检合计约 1–3 分钟</strong>(视 CLI 而定,可能更久),界面有进度与耗时;</li>
-          <li>之后随时可在「设置」里换方案、逐槽手配(高级模式)。</li>
+          <li><strong>左栏选供给</strong>:每家「已登录且已接线」的 CLI 一行(如「Codex · 已登录 · 本机用过 2 个模型」),另有「添加 API 直连」(填 baseURL + key + 模型名,提交后四个槽都走它)。装了但没登录的家收在「另有 N 家未就绪」折叠里,每家给可粘贴的修复命令;全新机器一家都没装时,空态会逐家列出安装登录后要跑的命令——跑完回来点「重新检测」。想确认某家 CLI 真能用,点「真实测一发」(约 15–25 秒,会真调用一次、可能消耗额度;不点不会自动测)。</li>
+          <li><strong>右栏看槽位</strong>(可不动):对话槽必填,沉思 / 廉价 / 评估可「切换提供商」或跳过,开发槽留到设置页配。</li>
+          <li><strong>知情确认</strong>:全 CLI 方案要勾两条(评估档与对话同族 / 评估器笼隔离不可证,§5.4),不会替你预勾;单家 API 预设方案的同族确认默认已勾、可取消。</li>
+          <li><strong>点「全用它,启动」</strong>:写入待生效配置 → <strong>自检 1/2</strong>(四槽各真调一次)→ 重启服务 → <strong>自检 2/2</strong>(生效后再确认)→ 落到「开口聊」。全 CLI 方案每槽一次约 15–25 秒,<strong>两轮自检合计约 1–3 分钟</strong>(视 CLI 而定,可能更久),界面有进度与耗时;期间整页锁定,自检失败会退回原地并显示原因,不会激活坏配置。</li>
+          <li>之后随时可在「设置」里换方案、逐槽手配。</li>
         </ol>
-        <p>没配好对话档之前,进哪一页都会先弹向导(有「先随便看看」逃生口);首次且账本为空时,它会先说一句固定开场白请你「随便说三件这周要办的事」给你立账看看。</p>
+        <p>没配好对话档之前,进哪一页都会先弹向导;「先随便看看,晚点再配」逃生口只把整页提醒降成顶栏一条红点横幅「对话模型还没配好,现在还聊不了」,并不会推进配置。首次且账本为空时,它会先说一句固定开场白请你「随便说三件这周要办的事」给你立账看看。语音不在向导里:装完就能打字,浏览器系统语音可直接用;云端语音(火山豆包)之后在「设置 → 语音」里配(§4.6)。</p>
+        <h3>4.4a 从零到第一句话:验收清单</h3>
+        <p>照着这张单子走一遍,每步有可观察的结果;哪一步对不上就停在那一步看 §17。</p>
+        <ol>
+          <li><strong>准备 AI 供给</strong>:任选 §4.1 的一家 CLI 装好并登录,或准备一个 API key。观察:CLI 在终端能正常回答一句话。</li>
+          <li><strong>装</strong>:macOS / Linux 跑 <code>curl -fsSL https://saydo.octoooo.com/install.sh | sh</code>,Windows 跑 <code>irm https://saydo.octoooo.com/install.ps1 | iex</code>。观察:输出以「[ok] 安装完成。下一步:」结尾;有 Node 22 时全程约 10–30 秒,没有时多一次约 50 MB 的 Node 下载(有进度条)。</li>
+          <li><strong>起</strong>:新开终端跑 <code>saydo up</code>。观察:终端出现 <code>daemon started</code> 与一行 <code>"t":"ready"</code> 的 JSON,浏览器自动打开控制台;若没自动打开,另开终端跑 <code>saydo open</code>。终端里的 <code>ntfy not configured</code>、<code>tier1 executor not configured</code> 警告是正常的(推送与执行器都是可选增量)。</li>
+          <li><strong>配</strong>:向导页标题「先把对话模型配好」。选供给 → 勾确认 → 点启动 → 等两轮自检(全 CLI 约 1–3 分钟)。观察:自动落到对话页,顶栏没有红点横幅。</li>
+          <li><strong>说</strong>:在对话框打一句「这周要办三件事:…」回车。观察:CLI 方案约 15–25 秒后回复;右侧「这次聊出来的东西」长出卡片。</li>
+          <li><strong>停 / 再起</strong>:回终端 Ctrl+C。观察:进程优雅退出;再跑 <code>saydo up</code> 直接进主页,不再弹向导。</li>
+        </ol>
         <h3>4.5 开口聊:今天页</h3>
         <p>控制台左栏:<strong>开口聊</strong>(主入口)/ <strong>今天</strong>(四色账本,唯一「需要你」入口)/ <strong>全景看板</strong> / 「正在持续的事」分组(按空间列出各件事)/ 「记录」分组:<strong>记忆库</strong> / <strong>产物</strong> / <strong>成本</strong> / <strong>设置</strong>;旧版 Dashboard、审批中心、通知、任务、Focus 列表(旧)、看板(旧)收在「旧版」折叠组里。</p>
         <ul>
@@ -347,10 +360,10 @@ SAYDO_HOME=$HOME/.saydo SAYDO_DAEMON_PORT=47100 nohup uv run python -m saydo_pip
         <p>这是 dogfood 级的临时边界(局域网明文 HTTP + 长期能力令牌),<strong>不要暴露到不受信网络</strong>;设备配对 / 端到端加密 / 商店版 App 见 §13 与 §16。删 <code>~/.saydo/.cap-token</code> 再重启会轮换令牌,所有已连设备一起掉线需重扫。</p>
         <h3>4.8 常驻、备份、关停与重置</h3>
         <ul>
-          <li><strong>常驻(launchd)</strong>:<code>just daemon install | start | stop | restart | status | logs | deploy [sha]</code>——开机自起 + 崩溃自启,运行时树与开发树分离(<code>~/.saydo/runtime</code> → <code>~/.saydo/releases/&lt;sha&gt;</code>)。<code>install</code> 会一并生成并装载语音管线的常驻配置(需要 <code>uv</code>);没装 <code>uv</code> 时用 <code>just daemon install --without-pipeline</code> 只装 daemon(桌面浏览器云端语音不可用,系统语音与文本照常);<code>uninstall</code> 对称卸载两者。日常上手用 §4.3 的前台方式即可,常驻适合长期挂机。</li>
-          <li><strong>更新</strong>:<code>git pull &amp;&amp; pnpm install &amp;&amp; pnpm -r build</code>,然后重启 daemon(前台形态 Ctrl+C 再起;launchd 形态 <code>just daemon deploy</code>——会重启 daemon 与语音管线,挑空闲时段)。</li>
+          <li><strong>常驻(launchd;仅源码形态)</strong>:一条命令安装的包不含常驻,需要长期挂机先按 §4.2 克隆源码。<code>just daemon install | start | stop | restart | status | logs | deploy [sha]</code>——开机自起 + 崩溃自启,运行时树与开发树分离(<code>~/.saydo/runtime</code> → <code>~/.saydo/releases/&lt;sha&gt;</code>)。<code>install</code> 会一并生成并装载语音管线的常驻配置(需要 <code>uv</code>);没装 <code>uv</code> 时用 <code>just daemon install --without-pipeline</code> 只装 daemon(桌面浏览器云端语音不可用,系统语音与文本照常);<code>uninstall</code> 对称卸载两者。日常上手用 §4.3 的前台方式即可,常驻适合长期挂机。</li>
+          <li><strong>更新</strong>:一条命令安装的包重跑同一条安装命令即可(脚本钉住当前可用版本,会覆盖到新版);源码形态 <code>git pull &amp;&amp; pnpm install &amp;&amp; pnpm -r build</code>,然后重启 daemon(前台形态 Ctrl+C 再起;launchd 形态 <code>just daemon deploy</code>——会重启 daemon 与语音管线,挑空闲时段)。</li>
           <li><strong>备份</strong>:daemon 每日自动快照到 <code>~/.saydo/backups/&lt;时间戳&gt;/</code>(SQLite 在线备份 + <code>sessions/</code> + 用户档案 + 各项目的知识底座与奠基产物),保留期 <code>[params].backup_retention_days</code>(缺省 30 天);<code>just backup</code> 手动触发。</li>
-          <li><strong>关停</strong>:<code>lsof -t -iTCP:47100 -sTCP:LISTEN | xargs kill; pkill -f saydo_pipeline</code>(<code>saydo up</code> 前台形态直接 Ctrl+C:会先停新派发、给活跃任务写「待续接」标记、再收口进程,下次启动接着跑)。</li>
+          <li><strong>关停</strong>:<code>saydo up</code> 前台形态直接 Ctrl+C(会先停新派发、给活跃任务写「待续接」标记、再收口进程,下次启动接着跑;Windows 同样 Ctrl+C)。常驻形态 macOS / Linux 用 <code>lsof -t -iTCP:47100 -sTCP:LISTEN | xargs kill; pkill -f saydo_pipeline</code>,Windows 用 <code>Get-NetTCPConnection -LocalPort 47100 -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess }</code>。</li>
           <li><strong>完全重置</strong>(回到全新用户):停完后 <code>rm -rf ~/.saydo</code>——会轮换令牌,也会删掉全部账本与记忆;项目工作区里的 <code>&lt;repo&gt;/.saydo/</code> 不在此目录,需单独处理。</li>
         </ul>
 
@@ -860,7 +873,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><th>能力</th><th>状态</th><th>备注</th></tr>
           </thead>
           <tbody>
-            <tr><td>桌面服务(daemon + 控制台)· macOS / Windows / Linux</td><td><span class="badge badge-live">现在可用</span></td><td>源码形态已经可运行;v0.1.0-rc.12 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证。npm registry / Homebrew 与桌面 App 壳仍规划中;常驻安装(launchd)与系统通知目前只有 macOS 实现</td></tr>
+            <tr><td>桌面服务(daemon + 控制台)· macOS / Windows / Linux</td><td><span class="badge badge-live">现在可用</span></td><td>源码形态已经可运行;v0.1.0-rc.13 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效。npm registry / Homebrew 与桌面 App 壳仍规划中;常驻安装(launchd)与系统通知目前只有 macOS 实现</td></tr>
             <tr><td>四推理槽 API 供给(OpenAI 兼容 / OpenRouter)</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
             <tr><td>四推理槽 CLI 订阅供给(Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot)</td><td><span class="badge badge-live">现在可用</span></td><td>对话档走 CLI 为慢速文本模式</td></tr>
             <tr><td>首跑资源画像向导(三种方案卡 + 高级逐槽)</td><td><span class="badge badge-live">现在可用</span></td><td></td></tr>
@@ -898,7 +911,9 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         <h2 id="s17">17. 常见问题与故障排查</h2>
         <p><strong>这是语音输入法吗?</strong> 不是。语音只是入口;后面是理解上下文、立账、判断就绪、驱动执行、组织验收的闭环。</p>
         <p><strong>是把我的项目上传到「说到」自营云端代跑吗?</strong> 不是。没有承载产品数据的「说到」自营云后台;重活和核心持久数据在你的电脑上;你主动配置的第三方 AI、系统或浏览器语音识别、推送服务等例外由你的设备直连并适用对应服务商条款。</p>
-        <p><strong>需要什么前提?</strong> macOS / Windows / Linux + Node 22 + 一个已接线并通过调用验证的 AI CLI(或一个 API key);常驻安装与系统通知目前只有 macOS 实现。语音和执行都是可选增量(§4)。</p>
+        <p><strong>需要什么前提?</strong> macOS / Windows / Linux + 一个已安装登录的 AI CLI(或一个 API key);Node 22 由一条命令安装脚本自动准备;常驻安装与系统通知目前只有 macOS 实现。语音和执行都是可选增量(§4)。</p>
+        <p><strong>装完打开是「先把对话模型配好」,列表是空的。</strong> 这台机器没有任何已登录的 CLI,也没存 API key。空态会逐家列出要跑的登录命令;跑完回来点「重新检测」,或点「添加 API 直连」填 key。</p>
+        <p><strong>`saydo --help` / 敲错命令只显示 `[fail] cli failed`。</strong> v0.1.0-rc.13 包只有 <code>up / status / open</code> 三个子命令且没有帮助输出(<code>help</code> 与 <code>doctor</code> 已在开发树中,尚未发布);按 §4.3 使用即可。</p>
         <p><strong>不配任何 key 能用吗?</strong> 登录态不能当成已经可聊:已接线且自检通过的 CLI 可以走零 API key 的慢速文本对话(每轮约 15–25 秒;登录不等于免费)。未接线或自检失败的 CLI 不能当模型供给。语音走浏览器系统语音或打字,完整语音可选。</p>
         <p><strong>它怎么知道「办完了」?</strong> 执行和检查都跑完、产物落盘,它说「等你验收」——不说「做完了」;你点头、过强认证合并,才是「交付了」。</p>
         <p><strong>它会不会偷偷花钱?</strong> 订阅调用费用以服务商为准、撞限流只会如实报错不会转计费;API 调用有每任务成本封顶 + 活跃时长 + 回合三熔断;S3(花钱 / 部署 / 删数据 / 对外发消息)必须你在屏幕上强认证。</p>
@@ -907,14 +922,14 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         <p><strong>界面说「仅恢复模式 / recovery-only」。</strong> 活动配置非法(TOML 坏了、参数越界、项目覆盖冲突等):daemon 不退,只留健康探针、控制台静态页与设置自救写口;对话、派发、合并、恢复任务全停。去设置页按提示重建安全配置或清理非法项目覆盖,再重启。</p>
         <p><strong>向导说某个 CLI「可识别,暂不能当模型供给」。</strong> 该 CLI(如 kimi / opencode)无法在执行前可证零工具,出于安全不接线;换一家或用 API。</p>
         <p><strong>评估档一直 unarmed。</strong> 看原因:同族未确认(勾 <code>evaluator_same_family_ack</code> 或换家族)/ CLI 评估器缺隔离确认(勾 <code>evaluator_isolation_ack</code>)/ 自检失败 / 实际模型家族上报 unknown。unarmed 不影响对话,只是就绪深评不武装。</p>
-        <p><strong>打开控制台白页 / 没反应。</strong> 先 <code>curl -s http://127.0.0.1:47100/health</code>;不是 <code>ok:true</code> 就看 <code>~/.saydo/daemon.log</code>(tsx 冷启动 10–15 秒);确认 URL 带了 <code>?token=</code>、用的是 <code>localhost</code>。</p>
+        <p><strong>打开控制台白页 / 显示「访问凭证已失效」/ 没反应。</strong> 先 <code>curl -s http://127.0.0.1:47100/health</code>;不是 <code>ok:true</code> 就看 <code>~/.saydo/logs/daemon-&lt;日期&gt;.jsonl</code>(源码形态 tsx 冷启动 10–15 秒);「访问凭证已失效」几乎都是 URL 没带 <code>?token=</code>——用 <code>saydo open</code> 打开;确认用的是 <code>localhost</code> 而不是 <code>127.0.0.1</code>。</p>
         <p><strong>支持 Windows / Linux 吗?</strong> 支持。Windows 已完成原生 P0 适配并经真机全量验证,Linux 经 CI(node + python)全量验证,均可运行;常驻安装、系统通知等链路当前仍为 macOS 实现,后续按 ADR-003/ADR-004 逐批补齐。</p>
         <p><strong>端口冲突。</strong> <code>saydo status</code> 退出码 2 = 47100 被别的服务或另一个数据目录的 daemon 占着;不会自动换端口或杀进程,用 <code>--port</code> 换或停掉对方。</p>
         <p><strong>手机扫码连不上 / 全部掉线。</strong> 确认 daemon 带 <code>SAYDO_MOBILE_LAN=1</code>、手机与电脑同一私网;删过 <code>.cap-token</code> 会轮换令牌,重新扫码。</p>
         <p><strong>拍板后没有起执行器。</strong> 按 <code>[models.dev].agent</code> 分支检查:<code>cursor</code>(或留空,缺省即 cursor)须有非空 <code>[models.dev].model</code>、<code>[tier1].cursor_agent_bin</code> 锁定副本<strong>绝对路径</strong>与精确版本,并已登录;POSIX 门还要求 <code>jq</code> 与 <code>curl</code> 在 PATH。<code>claude_code</code> 须有 <code>[tier1].claude_bin</code> 实体<strong>绝对路径</strong>、<code>claude_pinned_version</code>、Claude 族 <code>model</code>,登录后跑 Tier1 自检写入身份登记。<code>codex</code> 执行器尚未实现,会明确 fail-closed 拒起。任一分支不满足时任务停在 queued 并给处方化日志,对话不受影响。</p>
         <p><strong>任务停在 blocked。</strong> 看原因:S2 等你确认超时 / 没有登记 verify / project.toml 坏了 / 工作区或 <code>.git</code> 不见了 / agent 提问 / 熔断触发。解了在任务页「重试 / 回答」。</p>
         <p><strong>worktree 越来越多。</strong> 设计上不自动删(便于捡回);自己 <code>git worktree remove &lt;repo&gt;/.saydo/worktrees/&lt;taskId&gt;</code> 清理。</p>
-        <p><strong>常驻(launchd)装不上。</strong> <code>just daemon install</code> 需要 <code>uv</code> 才能一并装语音管线常驻;报「未找到 uv」时按提示用 <code>just daemon install --without-pipeline</code> 只装 daemon(云端语音不可用,系统语音与文本照常),或先装 <code>uv</code> 再重跑(§4.8)。</p>
+        <p><strong>常驻(launchd)装不上。</strong> 常驻只在源码形态提供(一条命令安装的包不含);<code>just daemon install</code> 需要 <code>uv</code> 才能一并装语音管线常驻;报「未找到 uv」时按提示用 <code>just daemon install --without-pipeline</code> 只装 daemon(云端语音不可用,系统语音与文本照常),或先装 <code>uv</code> 再重跑(§4.8)。</p>
 
         <h2 id="s18">18. 开源与参与</h2>
         <ul>
@@ -973,9 +988,9 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
             <tr><td>项目内目录</td><td><code>&lt;workspace&gt;/.saydo/{knowledge,foundation,worktrees,project.toml}</code>;产物 / 快照 / 深评记录 / 转写在 <code>~/.saydo/{artifacts,snapshots,assessments,sessions}</code></td></tr>
             <tr><td>环境变量</td><td><code>SAYDO_HOME</code>、<code>SAYDO_DAEMON_PORT</code>、<code>SAYDO_MOBILE_LAN=1</code>(局域网手机面)、<code>SAYDO_DEV=1</code>(dev profile 双开关)</td></tr>
             <tr><td><code>.env</code> 常用键</td><td>模型:<code>OPENROUTER_API_KEY</code> / <code>OPENAI_API_KEY</code> / <code>ANTHROPIC_API_KEY</code> / <code>DEEPSEEK_API_KEY</code>;语音:<code>VOLC_APP_ID</code> / <code>VOLC_ACCESS_TOKEN</code> / <code>DOUBAO_TTS_API_KEY</code>;推送:<code>NTFY_TOPIC</code> / <code>NTFY_SERVER</code></td></tr>
-            <tr><td>常驻</td><td><code>just daemon install / start / stop / restart / status / logs / deploy [sha]</code>(install 一并生成语音管线常驻配置;无 uv 用 <code>--without-pipeline</code>,§4.8)</td></tr>
+            <tr><td>常驻(仅源码形态)</td><td><code>just daemon install / start / stop / restart / status / logs / deploy [sha]</code>(install 一并生成语音管线常驻配置;无 uv 用 <code>--without-pipeline</code>,§4.8)</td></tr>
             <tr><td>备份</td><td><code>just backup</code> → <code>~/.saydo/backups/&lt;时间戳&gt;/</code>;自动每日;保留 30 天</td></tr>
-            <tr><td>关停</td><td><code>lsof -t -iTCP:47100 -sTCP:LISTEN | xargs kill; pkill -f saydo_pipeline</code></td></tr>
+            <tr><td>关停</td><td>前台:Ctrl+C;常驻 macOS / Linux:<code>lsof -t -iTCP:47100 -sTCP:LISTEN | xargs kill; pkill -f saydo_pipeline</code>;Windows:<code>Get-NetTCPConnection -LocalPort 47100 -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess }</code></td></tr>
             <tr><td>熔断缺省</td><td>活跃 45 分钟 / 80 回合 / 20 元;停靠老化 72 小时;决策包有效期 24 小时;S2 确认窗 45 秒</td></tr>
             <tr><td>分支 / 目录</td><td><code>saydo/&lt;taskId&gt;</code> @ <code>&lt;repo&gt;/.saydo/worktrees/&lt;taskId&gt;</code></td></tr>
           </tbody>

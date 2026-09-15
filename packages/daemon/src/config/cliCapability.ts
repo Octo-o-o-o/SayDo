@@ -952,6 +952,12 @@ async function resolveBinary(
   return {};
 }
 
+/** loginHint 是可粘贴命令时写成「运行 `cmd` 登录,再」;是一句话说明时原样接入。 */
+function notFoundLoginStep(loginHint: string | undefined): string {
+  if (!loginHint) return "";
+  return /^[a-z0-9][a-z0-9._-]*( [a-z0-9._-]+)*$/iu.test(loginHint) ? `运行 \`${loginHint}\` 登录,再` : `${loginHint},再`;
+}
+
 function notFoundCapability(entry: CliCatalogEntry): CliCapability {
   const wired = entry.provider !== null;
   return {
@@ -963,7 +969,7 @@ function notFoundCapability(entry: CliCatalogEntry): CliCapability {
     auth: {
       status: "not_found",
       fixHint: wired
-        ? `未找到 ${entry.bins[0]};安装后重试,或这个槽位改走 API 直连`
+        ? `未找到 ${entry.bins[0]};安装后${notFoundLoginStep(entry.loginHint)}点「重新检测」,或这个槽位改走 API 直连`
         : `未找到 ${entry.bins.join("/")};安装后会显示在资源画像里(当前尚未接入供给后端)`
     },
     enumerable: entry.modelStrategy === "cursor_list" || entry.modelStrategy === "grok_models",

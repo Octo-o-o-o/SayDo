@@ -229,3 +229,18 @@ owner 本次回复原文：
 - 已按授权执行:§1 研究档案入库(`e7a6ceb`)、§2 GAP-02 残项(`a0c82cb`)、§3 EMAIL-A canonical/代码候选(`17dd011`→`dec54d2`→`fc3c662`,E `5eb083a`)ref-only ff 入 main;主树 `git stash`(6 个旧版修改文件,stash 留存)后 `checkout main`,删除已合并的 `sd-harness-borrow` 分支与 worktree;插批 `EMAIL-A-outbound`(GAP-02-consolidation 后、PG-02 前,`1409d71`,revision 7→8)并同批收口(revision 8→9,`last_closed=EMAIL-A-outbound`、`next=PG-02`,evidence `e2e/evidence/email-a-outbound.md`)。
 - 「最完整推进实施」的落地口径:邮件通道代码、canonical、批卡、单测、完整门禁均已入库;**真实 SMTP 发送仍 not_run**(需 owner 提供临时邮箱凭据,本机不代填);凭据落点沿用现役 `/api/setup/secret` → `.env.pending`(0600),未新造 OS keychain 路径;阶段 B / Web Push / CalDAV 保持 deferred。
 - 本节不含 push 私有归档、公开快照、rc、部署;独立零上下文评审未具名(执行卡为直接实施路径)。PG-02 仍为 next,未开工。
+
+## 13. 2026-09-15 外部交接包核对后的方向裁决(六项)
+
+来源:owner 在对外部 ChatGPT Pro 交接包(`SayDo_Codex_Handoff_2026-09-12`,基线 `f4171a60`)的逐项核对报告之后,对六项待决问题逐条拍板。本节不编造逐字引语之外的内容,不改写上方各节原话。
+
+已签署决定:
+
+1. **White Edition 定为产品 UI 新方向**(非仅演示资产)。canonical 已回写 `docs/11-ui-spec.md` §0.2(方向合同与迁移规则)与设计基因行;`tokens.css` 加迁移注(现值冻结至 White 迁移批产出新规范);`AGENTS.md` demo 条款同步;全仓换肤登记为 `DF-WHITE-FULL-MIGRATION`,不在本节开工。
+2. **首批验证样本保留非技术用户**。外部包「不以无法验收代码的非技术用户为首批主样本」的建议**未采纳**;`docs/11 §10.3`「首批包含开发者与普通用户」口径不变,目标市场与验证样本不拆分。
+3. **插入 `JOURNEY-01` 参考旅程批**于唯一串行链(EMAIL-A-outbound 后、PG-02 前),指针 revision 9→10,`next=JOURNEY-01`。回应外部审查「治理批全在前、真实旅程长期无排产」的失衡警告。
+4. **White 演示资产归置 `demo/`**:`saydo-investor-demo-white-edition.html` + `white-edition-previews/` + `white-edition-checks/`(历史自检,非产品证据);投资人原型自成合同,不承担 §6 同步义务,不作实施照抄源。
+5. **deferred 项重议触发条件补登** PLAN-2(DF-REMOTE-REOPEN / DF-VOICE-01/02 / DF-READ-01 / DF-CONTEXT-01 / DF-HOST-02 / DF-VIEW-02 / DF-WHITE-FULL-MIGRATION 及连接器、检索、收缩三条通则);触发≠自动开工,重议仍须具名授权。
+6. **JOURNEY-01 收口后 owner 自跑四场真人验收**(`e2e/owner-sessions/` 场次①–④;发布证据锁四场同一 40 位 runtime SHA,场次①现为 failed 须从步骤 1 复验)。此为排期意向登记,不改动验收合同本身。
+
+登记边界:本节不授权 JOURNEY-01 开工(须另有具名授权与完整合同)、不授权全仓换肤、不授权远程面重开、不含 push/merge/deploy/发布;外部包其余建议按核对报告分类(已落地/已 defer/冲突已裁决/不采纳)归档,不逐条立项。

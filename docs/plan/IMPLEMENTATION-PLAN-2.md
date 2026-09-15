@@ -9,23 +9,23 @@
 
 <!-- schedule-pointer:begin -->
 schema_version=1
-revision=9
+revision=10
 active=none
-next=PG-02
+next=JOURNEY-01
 last_closed=EMAIL-A-outbound
 evidence_ref=e2e/evidence/email-a-outbound.md
-updated_at=2026-09-09
+updated_at=2026-09-15
 <!-- schedule-pointer:end -->
 
-> 本节是 2026-08-29 起 PLAN-2 的唯一当前排产坐标。下方 §0 现状锚点与 §1 W1–W9 / 合同轮 / `ai-supply` 为历史原文，只增加 superseded/disposition，不删除历史节点、不重写既有 evidence。当前现势指针见本节顶部 schedule-pointer 块,由 `scripts/schedule-pointer.mjs` 守护;不得手写第二套 active/next。字段原逐字来自 `docs/plan/2026-08-28-project-gap-closure-program.md` §20 批卡与 D17 §4.2；2026-09-06 在 PG-01B 与 PG-02 之间插入唯一批 ID `AS-01-AS-02`（owner 决策单第 10 节，不是 D17 扩权）；2026-09-09 在 AS-01-AS-02 与 PG-02 之间插入唯一批 ID `GAP-02-consolidation`（执行卡 `IMPL-PROMPT-2026-09-09-gap-consolidation.md` §0 排产关系，与 AS 同法插批；owner 2026-09-09 已确认插批）。不新增功能平台。`PLAN2-default-all` 已 `superseded`；未被 exact 选入的未来项一律 deferred，取消“未回复则缺省全做”。
+> 本节是 2026-08-29 起 PLAN-2 的唯一当前排产坐标。下方 §0 现状锚点与 §1 W1–W9 / 合同轮 / `ai-supply` 为历史原文，只增加 superseded/disposition，不删除历史节点、不重写既有 evidence。当前现势指针见本节顶部 schedule-pointer 块,由 `scripts/schedule-pointer.mjs` 守护;不得手写第二套 active/next。字段原逐字来自 `docs/plan/2026-08-28-project-gap-closure-program.md` §20 批卡与 D17 §4.2；2026-09-06 在 PG-01B 与 PG-02 之间插入唯一批 ID `AS-01-AS-02`（owner 决策单第 10 节，不是 D17 扩权）；2026-09-09 在 AS-01-AS-02 与 PG-02 之间插入唯一批 ID `GAP-02-consolidation`（执行卡 `IMPL-PROMPT-2026-09-09-gap-consolidation.md` §0 排产关系，与 AS 同法插批；owner 2026-09-09 已确认插批）；2026-09-15 在 EMAIL-A-outbound 与 PG-02 之间插入唯一批 ID `JOURNEY-01`（owner 决策单第 13 节，回应外部审查「治理链全在前、参考旅程无排产」的失衡警告）。不新增功能平台。`PLAN2-default-all` 已 `superseded`；未被 exact 选入的未来项一律 deferred，取消“未回复则缺省全做”。
 
 ### 唯一串行链
 
 ```text
-PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → EMAIL-A-outbound → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop
+PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → EMAIL-A-outbound → JOURNEY-01 → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop
 ```
 
-断言形态：`PLAN2_chain == PROC-01>PG-01B>AS-01-AS-02>GAP-02-consolidation>EMAIL-A-outbound>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop`。
+断言形态：`PLAN2_chain == PROC-01>PG-01B>AS-01-AS-02>GAP-02-consolidation>EMAIL-A-outbound>JOURNEY-01>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop`。
 
 PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代码批，也不占用 active/next。
 
@@ -53,6 +53,24 @@ PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代�
 | `W9` | `preserved_trigger_track` |
 | `PLAN2-default-all` | `superseded` |
 | `Codex-app-server` | `deferred_by_AI_decision_2` |
+
+#### deferred 项重议触发条件（2026-09-15 owner 决策单第 13 节补登）
+
+> 各批卡 `deferred exact-set` 登记的是「不做」;本节补登「何时重议」。触发条件满足≠自动开工,重议仍须 owner 具名授权与批卡。来源:外部交接包 docs/02 §9 扩张/收缩触发表,与各 DF 在 `2026-09-05-engineering-unified.astra.md` 的既有定义合并。
+
+| deferred ID | 重议触发条件 |
+|---|---|
+| `DF-REMOTE-REOPEN` | 核心旅程已被验证有价值、且「离开电脑反复阻断」成为实测痛点时重估;重开时一并处置 Console WS `?token=` 明文(决策单 §11 既有归属)。 |
+| `DF-VOICE-01`(音频早播) | VOBS-01 分段证据定位瓶颈在 TTS 首块路径时启动;L3。 |
+| `DF-VOICE-02`(LLM 早播) | VOBS-01 分段证据定位瓶颈在 LLM 首句时启动;不以 VOICE-01 为前提;先说后校验仍禁。 |
+| `DF-READ-01`(资料链只读切片) | 出现现有工具不能满足的具名资料任务时,按 SP5/SP6 选一个只读来源做快照/出处/引用回读/导出验收;不默认 SaaS/OAuth/写入。 |
+| `DF-CONTEXT-01`(gist/上下文压缩) | 证明长对话丢失重要约束且现有 pack/记忆修正不足时启动;摘要不进 trusted 记忆、不在首响关键路径。 |
+| `DF-HOST-02`(常驻制品迁移/自动 upgrade) | 具名分发需求出现且 PG-05 恢复保障等前置齐备时启动;L3。 |
+| `DF-VIEW-02`(聚合读口) | 预算/新鲜度约束无法满足、或现有读口给不出必要真实状态时启动。 |
+| `DF-WHITE-FULL-MIGRATION`(全仓 White 换肤) | JOURNEY-01 收口后由 owner 择机;新页面/重构页面不等本项,已按 docs/11 §0.2 先行。 |
+| 新连接器(通则) | 多任务被同类资料阻断、且先做有界只读切片成立时立项。 |
+| 检索重排/向量/图(通则) | 证明现有检索确有召回失败时立项,不预防性建设。 |
+| 收缩线(全局) | 独立深评主要增加等待/误阻塞 → 收缩;用户绕过采访且结果不变差 → 缩短流程;记忆/验收有效而工作台无增益 → 考虑更轻协作层。 |
 
 ### PROC-01 · process-convergence——**状态:已收口(2026-09-03;I `289cb384`,evidence `e2e/evidence/process-convergence-proc-01.md`)**
 
@@ -126,6 +144,19 @@ PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代�
 - 回滚上限：三键未配置即通道关闭,行为与现役一致;`thread_message_id` 为可空 additive 列不回退;`safe_default=email_off_when_unconfigured + notified_only_after_delivery + redactor_on_subject_and_reason + deeplink_without_token`
 - not_run：真实 SMTP 发送(需 owner 提供临时邮箱凭据,本机不代填);真实收件端线程展示
 - 批卡摘要：通知通道扩展,规模 S;canonical_change=yes(已随候选回写)。只发 ready_for_review / blocked / failed / approval_request;每任务一线程;DND 只发一次;全通道失败留 pending;不新增依赖(Node `net`/`tls` 最小 SMTP submission 客户端)。不做 IMAP/入站、不做 Web Push、不做 CalDAV。
+
+### JOURNEY-01 · reference-journey-wiring——**状态:未开工(2026-09-15 插批,owner 决策单第 13 节)**
+
+- depends_on：EMAIL-A-outbound evidence commit(已收口);canonical 先行项(docs/11 §0.2 White 方向、demo 资产归位、AGENTS.md demo 条款、本决策单第 13 节)已随方向登记批入库
+- A-ID exact-set：`close_set=[]`；`stop_loss_set=[]`(旅程接线批,不关闭 program A 级项;用户旅程计划行见 program §旅程轨)
+- deferred exact-set：`[DF-WHITE-FULL-MIGRATION]`(全仓换肤留待后续批;本批只做旅程所触页面的 White 迁移)
+- scope roots：`packages/console/src/pages/redesign/**`(Board/Focus/Review/Records 路由与页面)、`packages/console/src/components/redesign/**`、`packages/console/src/components/TaskModal.tsx`、`packages/console/src/hooks/redesign/**`、`packages/console/src/lib/{api.ts,dataInvalidate.ts}`、`packages/daemon/src/api/**` 与 `packages/daemon/src/live/**` 中旅程动作所需写口、`packages/contracts/**`(additive only)、canonical 限 09/10/11 相关节与 `docs/modules/d-presentation.md`、对应测试与 `e2e/` playwright 用例。不含 `packages/daemon/src/net/**`、DDL 变更(旅程实证必需时走 PG-05 可恢复点纪律)、provider/供应链面、全仓视觉换肤
+- focused gate：`FG-JOURNEY-01` = `pnpm --filter @saydo/console exec vitest run src/hooks/redesign src/components/redesign src/pages`；`pnpm --filter @saydo/console typecheck`；`pnpm --filter @saydo/daemon exec vitest run test/live-wiring.e2e.test.ts`；`pnpm exec playwright test` 旅程定向用例；`node scripts/schedule-pointer.mjs --check`；`bash scripts/check-emoji.sh`；`node scripts/check-doc-links.mjs`
+- full gate：`just ci`；`pnpm exec playwright test`
+- evidence path：`e2e/evidence/journey-01.md`
+- 回滚上限：未接线动作保持显式占位 toast,不得静默吞掉或假接;写口失败如实呈现不粉饰;`safe_default=placeholder_toast_not_silent + real_write_or_honest_fail`
+- not_run：真实多设备/真麦旅程(归 owner 场次①–④,本批不宣称替代)
+- 批卡摘要：参考旅程接线批,规模 M;canonical_change=yes(White 方向已随 2026-09-15 方向登记批先行入库)。目标 = 一条参考任务旅程端到端真实可达:提需求 → 采访澄清 → 决策包 → 批准 → 执行 → 证据验收 → 记忆复用,每步可定位真实数据/事件权威。Focus 页 6 个 toast 占位动作(pkg/standby/interview_pick/expect/expectation_edit/fork)与 TaskModal 吞语义的 8 个动作(step_ok/step_no/billing/s3_merge/retry/answer/explain/merge_conflict)按旅程需要接真实写口,不接的显式收窄;页面字段 vs live 通道的 Interview 卡归位(FocusPage.tsx OPEN QUESTION)在本批拍板。旅程所触页面按 White 方向迁移,不做全仓换肤。收口后 owner 跑四场真人验收;本批不自动开 PG-02。
 
 ### PG-02 · minimal-truth-gate-bootstrap
 

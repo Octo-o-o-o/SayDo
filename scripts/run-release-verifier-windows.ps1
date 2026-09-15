@@ -1,4 +1,4 @@
-param(
+﻿param(
   [Parameter(Mandatory = $true, Position = 0)]
   [string]$RequestBase64Url
 )
@@ -32,7 +32,7 @@ try {
   if (Compare-Object -ReferenceObject $expectedProperties -DifferenceObject $actualProperties) {
     throw "request property set is invalid"
   }
-  if ($request.schemaVersion -ne 1 -or $request.tag -ne "v0.1.0-rc.12") {
+  if ($request.schemaVersion -ne 1 -or $request.tag -ne "v0.1.0-rc.13") {
     throw "request release identity is invalid"
   }
   $expectedUrl = "https://github.com/Octo-o-o-o/SayDo/releases/download/$($request.tag)/saydo-cli-$($request.tag.Substring(1)).tgz"

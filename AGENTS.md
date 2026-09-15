@@ -16,8 +16,13 @@
 - 发现设计文档有错或缺口，先改 canonical 并完成相应一致性评审，再改代码;同一工作单元内让文档与实现保持可共同审查。
 - 术语与状态口径以 `docs/06-references.md` 术语表为准(M0–M3 记忆 / S0–S3 风险 /
   `ready_for_review` 不等于完成 / 直达验收与逐步确认)，禁止再造同义词。
-- `demo/saydo-console-demo.html` 与 `docs/08-module-design.md` §6 信息架构保持同步;
-  Demo 中超出 P0 的元素必须标注分期，Demo 不得夹带文档没有的功能。
+- 控制台结构正本 demo = `demo/saydo-console-redesign-proposal.html`,与
+  `docs/08-module-design.md` §6 信息架构保持同步;Demo 中超出 P0 的元素必须标注分期,
+  Demo 不得夹带文档没有的功能。`demo/saydo-console-demo.html` 与
+  `demo/saydo-console-demo-atelier.html` 为留档旧稿,不作新页面基准。
+- `demo/saydo-investor-demo-white-edition.html` 是对外投资人原型(全 mock,自成合同,
+  不承担 §6 同步义务,不作实施照抄源);White Edition 视觉方向合同见
+  `docs/11-ui-spec.md` §0.2。
 - 修改 Demo/SVG 等可渲染资产后，用本机 headless Chrome 截图验证。
 
 ## 评审制度

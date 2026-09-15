@@ -686,7 +686,7 @@ export function Layout({
                 background: voiceAnchored ? "var(--active-ink)" : voice.connected ? "var(--text-muted)" : "var(--text-faint)"
               }}
             />
-            {voiceAnchored ? `会话中 · ${current?.title ?? voice.anchorProjectId}` : voice.connected ? "语音就绪" : "开始对话"}
+            {voiceAnchored ? `会话中 · ${current?.title ?? voice.anchorProjectId}` : "开始对话"}
           </button>
 
           <span style={{ flex: 1 }} />

@@ -3872,3 +3872,25 @@ unit economics 决定扩张;持续承担账号/API、CI/设备、证据刷新、
 **产出**:`1409d71`(插批);本 E 提交(`e2e/evidence/email-a-outbound.md`、决策单第 12 节、README、HANDOFF 收口行、本条)。
 
 **结论**:§1/§2/§3 全部交付到本地 main;EMAIL-A-outbound 已收口,PG-02 仍为 next 未开工。真实 SMTP 发送 not_run;无独立零上下文评审;未 push / 公开快照(待 owner 一句话)。
+
+## R162 · 外部交接包核对、公开快照推送与方向登记批(2026-09-15)
+
+**输入**:owner 交付 ChatGPT Pro 交接包(`SayDo_Codex_Handoff_2026-09-12`,基线 `f4171a60`),要求完整阅读全部文件、与当前实现逐项核对、找出真正值得对应的部分并沟通确认;随后 owner 对六项待决拍板,授权先推 GitHub 再开分支对应。
+
+**行动**:通读交接包根 3 份 + docs/01–17 + archive 6 份 + references 全部(HTML/PNG/JSON),与 main `49ed96f` 的 canonical、源码、git 史交叉核对;另派 4 路只读 subagent 复核(视觉冲突/缺口清单/已落地+deferred 归属/遗漏项),修正初版口径(Focus 占位实为 6 toast + 8 modal 吞语义;fail-closed 承重墙在 remoteSurface.ts;White「已批准」降级为方向认可;rc.12 不含 doctor)。owner 决策六项登记为决策单第 13 节。已推公开快照 `public/main` `f4171a6`→`4ef4759`(隐私探针 scanned=2137 hits=0;origin/main 此前已在 `49ed96f`)。在 worktree 分支 `direction-20260915` 施工:White demo 资产入 `demo/`(HTML 加来源/性质头部注、5 预览图、2 自检 JSON);docs/11 设计基因行 supersede + 新增 §0.2(White 合同 5 要点 + 迁移规则 5 条);tokens.css 迁移注(现值冻结);AGENTS.md demo 条款改写(正本/留档/投资人原型三角色);PLAN-2 插 `JOURNEY-01` 批卡(EMAIL-A-outbound 后、PG-02 前)+ deferred 重议触发条件节 + 指针 revision 9→10;schedule-pointer.mjs 白名单/链串/变异串同步;HANDOFF `--render` + 现役行;plan README 现役行;决策单第 13 节;证据 `e2e/evidence/direction-2026-09-15.md`。
+
+**产出**:分支 `direction-20260915` 上两个提交(canonical+资产;排产登记)与本 E 提交;`schedule-pointer.mjs --check`/`--self-test` 全绿。
+
+**结论**:六项决策全部落盘为候选,未合并、未 push。JOURNEY-01 成为 next 未开工(须执行卡);全仓换肤归 `DF-WHITE-FULL-MIGRATION`;四场真人验收登记为 JOURNEY-01 收口后的 owner 排期意向,场次① failed/②–④ not_run 未变。`just ci`/playwright not_run(无产品代码改动);无独立零上下文评审。
+
+**复核修订(同日,Claude 二次核对)**:原三提交 `97e6f20`→`e1e6a75`→`36c05e4` 重建为新链——首提交 message 去 U+2713;docs/11 §0.2 色阶 `#252`→`#252525`、节号 §2.7→§2.7a;证据门禁表由「见门禁日志」改实跑结果;week-audit 账本随之重生成。修订明细见 `e2e/evidence/direction-2026-09-15.md` 复核修订节。
+
+## R163 · 安装部署与首启门槛收敛批(2026-09-15)
+
+**输入**:owner 要求核查「用户/开发者从零安装部署 + 首启 onboarding」是否最便捷、门槛最低,不够好则设计方案并对应,完成后把最新使用流程更新到官网,owner 随后照官网从零人工验收。
+
+**行动**:三路只读探查(安装分发链 / 首启实现与 canonical / 官网源与过时项)+ 一手实测(隔离 HOME 走线上 `install.sh`,rc.12 包 `saydo up`,全新 HOME 首启向导与逃生口)。发现 9 项(无 Node 时下载无进度无镜像 5 分钟超时;rc.12 无 help/doctor 且错误命令只打 `cli failed`;`--no-open` 无下一步;`bootPromote=[object Object]`;向导零供给空态无任何命令;顶栏无语音管线仍显「语音就绪」;官网 7 处过时/遗漏;`just dev` 硬依赖 uv)。在 worktree `quickstart-20260915` 修复:docs/11 §5.8a 空态条款先行修订;cli help/用法可见/`--no-open` 提示;daemon fixHint 带 loginHint、日志展平;console `EmptySupplyHints` 与顶栏标签;install.sh/ps1 Node 镜像+进度+超时+收尾提示;dev.mjs uv 可选;官网中英 docs/首页/README 重写并新增 §4.4a 验收清单。门禁与两轮端到端实测见 `e2e/evidence/quickstart-2026-09-15.md`。官网 preview `aa3e3a03` 实测后推 production `3d6328bb`(commit `8fb99bd`),线上四页/脚本 SHA/锚点复核并从线上再装一次。
+
+**产出**:I `8fb99bd` + 本 E 提交(evidence + 本条);官网已更新。
+
+**结论**:安装脚本与官网已按最低门槛口径收敛并上线;CLI/console/daemon 改动须 rc.13 才到用户包,而 rc.13 被 CI 红(android setup / reaper 用例)与 release.yml 硬编码 tag 挡住,待 owner 决策。分支未合并未 push;无独立零上下文评审;ps1 Windows 真机 not_run。

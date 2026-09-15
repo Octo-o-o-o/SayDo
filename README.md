@@ -15,11 +15,13 @@
 
 ## 快速运行
 
-当前公开定位是 developer/preview。首批目标包含开发者与普通用户，完整语音可选；目标人群不是验收证据。v0.1.0-rc.12 固定 URL 已由不可变
-[GitHub Release](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.12)
-及 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证。该包含 daemon 与 Web 控制台，不含语音 pipeline。
+当前公开定位是 developer/preview。首批目标包含开发者与普通用户，完整语音可选；目标人群不是验收证据。下面是 v0.1.0-rc.13 的发布候选固定 URL；仅当
+[GitHub Release 页面](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.13)
+已经出现且发布检查全绿后，命令才可用。该包含 daemon 与 Web 控制台，不含语音 pipeline。
 
-最快的方式是一条安装命令：无需预装 Node.js（缺失时脚本在你的用户目录内准备 Node 22，不改系统、不需要 sudo），安装固定版本包并校验 SHA-256：
+装前先备好一个 AI 供给（二选一）：本机已安装并登录的 AI CLI（Codex `codex login` / Claude Code `claude auth login` / Cursor `cursor-agent login` 等），或一个 OpenAI 兼容 API key；没有它装完也聊不了，首启向导会停在「先把对话模型配好」。
+
+最快的方式是一条安装命令：无需预装 Node.js（缺失时脚本在你的用户目录内准备 Node 22，先官方源、连不上改用 npmmirror 镜像，不改系统、不需要 sudo），安装固定版本包并校验 SHA-256：
 
 ```bash
 # macOS / Linux
@@ -31,16 +33,16 @@ curl -fsSL https://saydo.octoooo.com/install.sh | sh
 irm https://saydo.octoooo.com/install.ps1 | iex
 ```
 
-然后在新终端运行 `saydo up`。脚本先从 GitHub Release 下载，连不上时自动改用官网镜像 `dl.saydo.octoooo.com`（字节全等、同一 SHA-256 校验；`SAYDO_INSTALL_MIRROR=1` 直接用镜像，`SAYDO_INSTALL_NPM_REGISTRY` 可改依赖 registry）。脚本源码见 [install.sh](deploy/saydo-octoooo-com/install.sh) 与 [install.ps1](deploy/saydo-octoooo-com/install.ps1)，方案见 [快速启动分发方案](docs/plan/2026-09-02-quick-start-distribution.md)。已有 Node.js 22 也可直接用 npm：
+然后在新终端运行 `saydo up`（浏览器自动打开带访问凭证的控制台；直接打开 `http://localhost:47100` 会提示凭证失效，用 `saydo open`）。脚本先从 GitHub Release 下载，连不上时自动改用官网镜像 `dl.saydo.octoooo.com`（字节全等、同一 SHA-256 校验；`SAYDO_INSTALL_MIRROR=1` 直接用镜像，`SAYDO_INSTALL_NPM_REGISTRY` 可改依赖 registry）。脚本源码见 [install.sh](deploy/saydo-octoooo-com/install.sh) 与 [install.ps1](deploy/saydo-octoooo-com/install.ps1)（纯 ASCII 引导，下载带 BOM 的 [install-core.ps1](deploy/saydo-octoooo-com/install-core.ps1) 后以 `-File` 运行），方案见 [快速启动分发方案](docs/plan/2026-09-02-quick-start-distribution.md)。已有 Node.js 22 也可直接用 npm：
 
 ```bash
-npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.12/saydo-cli-0.1.0-rc.12.tgz -- saydo up
+npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.13/saydo-cli-0.1.0-rc.13.tgz -- saydo up
 ```
 
 常用安装：
 
 ```bash
-npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.12/saydo-cli-0.1.0-rc.12.tgz
+npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.13/saydo-cli-0.1.0-rc.13.tgz
 saydo up
 ```
 
@@ -51,7 +53,8 @@ saydo up
 | `saydo up` | 前台持有 daemon，`Ctrl+C` 优雅退出并可续接任务 |
 | `saydo status` | 探活：0=已连上 / 1=端口空闲 / 2=端口冲突 |
 | `saydo open` | 打开控制台 |
-| `saydo doctor` | 只读诊断：已安装/运行版本、数据目录 digest、配置待生效、pipeline 与语音上游状态及下一步；`--json` 输出机器可读；退出码 0=正常 / 1=有降级 / 2=有故障 |
+| `saydo doctor` | 只读诊断：已安装/运行版本、数据目录 digest、配置待生效、pipeline 与语音上游状态及下一步；`--json` 输出机器可读；退出码 0=正常 / 1=有降级 / 2=有故障。**仅开发树；v0.1.0-rc.13 包无此命令** |
+| `saydo help` | 打印用法（`--help` / `-h` / 无参数同）。**仅开发树；rc.13 包敲错命令只打印 `[fail] cli failed`** |
 
 ## 开发
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env node
-// 一键安装脚本自测:官网托管的 install.sh / install.ps1 必须钉住同一个 available Release 的
+// 一键安装脚本自测:官网托管的 install.sh / install-core.ps1 必须钉住同一个 available Release 的
+// (Windows 形态 2026-09-15 起拆两层:install.ps1 = 纯 ASCII 无 BOM 引导,供 irm | iex;
+//  install-core.ps1 = 带 UTF-8 BOM 的实际安装逻辑,由引导下载后以 -File 运行。PS 5.1 的 irm 会把
+//  BOM 留成 U+FEFF,iex 直接解析必败;无 BOM 的 UTF-8 用 -File 又按 ANSI 读坏中文——两者只能拆开。)
 // tgz 版本与 SHA-256,且该 digest 与仓内 availability 证据(release-verify 的 tarballSha256)全等;
 // 两份脚本、_headers 与 README/官网入口共同构成"快速启动"承诺面,任一漂移即红。
 // 同时带 mutation 自证:篡改 digest / 版本 / 删除 _headers 条目必须被判红。
@@ -12,7 +15,8 @@ import { fileURLToPath } from "node:url";
 const repo = resolve(fileURLToPath(import.meta.url), "../..");
 const SITE = "deploy/saydo-octoooo-com";
 const SH = `${SITE}/install.sh`;
-const PS1 = `${SITE}/install.ps1`;
+const PS1 = `${SITE}/install-core.ps1`;
+const PS1_BOOT = `${SITE}/install.ps1`;
 const HEADERS = `${SITE}/_headers`;
 const EVIDENCE_DIR = "e2e/evidence";
 const RELEASE_URL = (version) =>
@@ -64,7 +68,15 @@ export function checkInstallScripts(input) {
       if (states.length === 0 || states.some((state) => state !== "available")) errors.push(`v${version} 的 availability 证据不是全部 available`);
     }
   }
-  if (!input.ps1.startsWith("﻿")) errors.push("install.ps1 必须带 UTF-8 BOM(Windows PowerShell 5.1 以 -File 运行时按 ANSI 读取无 BOM 文件)");
+  if (!input.ps1.startsWith("﻿")) errors.push("install-core.ps1 必须带 UTF-8 BOM(Windows PowerShell 5.1 以 -File 运行时按 ANSI 读取无 BOM 文件)");
+  // 引导脚本:必须能在 PS 5.1 下 irm | iex——无 BOM、纯 ASCII、下载核心并以 -File 执行、不在顶层 exit(会关掉用户交互会话)。
+  if (input.ps1Boot.startsWith("﻿")) errors.push("install.ps1 引导脚本不得带 BOM(PS 5.1 的 irm 会把 BOM 留成 U+FEFF 使 iex 解析失败)");
+  if (/[^\x00-\x7f]/u.test(input.ps1Boot)) errors.push("install.ps1 引导脚本必须纯 ASCII(irm | iex 形态下无法保证解码)");
+  if (!input.ps1Boot.includes("https://saydo.octoooo.com/install-core.ps1")) errors.push("install.ps1 引导脚本缺核心脚本固定 URL");
+  if (!input.ps1Boot.includes("-NoProfile -ExecutionPolicy Bypass -File $tmpCore")) errors.push("install.ps1 引导脚本必须以 -File 运行下载的核心脚本");
+  if (!input.ps1Boot.includes("$bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF")) errors.push("install.ps1 引导脚本必须校验核心脚本带 BOM");
+  if (/^\s*exit\b/mu.test(input.ps1Boot)) errors.push("install.ps1 引导脚本不得在顶层 exit(iex 形态会关闭用户会话)");
+  if (/\$MyInvocation/u.test(input.ps1Boot)) errors.push("install.ps1 引导脚本不得依赖 $MyInvocation");
   // 结构不变量:脚本关键语句必须原样存在(Codex 223 B-01..B-07 证明纯钉住检查可被绕过)。
   const SH_INVARIANTS = [
     ["sh 包 digest 校验", '[ "$actual" = "$SAYDO_TGZ_SHA256" ] || fail "SayDo 包校验失败'],
@@ -102,7 +114,7 @@ export function checkInstallScripts(input) {
   if (/-Encoding ASCII/u.test(input.ps1)) errors.push("install.ps1 不得用 -Encoding ASCII 写含路径的文件(非 ASCII 用户名会被替换)");
   if (/\r/u.test(input.sh)) errors.push("install.sh 含 CR");
   if (!/^#!\/bin\/sh\n/u.test(input.sh)) errors.push("install.sh 必须以 #!/bin/sh 开头");
-  for (const path of ["/install.sh", "/install.ps1"]) {
+  for (const path of ["/install.sh", "/install.ps1", "/install-core.ps1"]) {
     const block = new RegExp(`^${path.replace(".", "\\.")}\\n((?:  .+\\n)+)`, "mu").exec(input.headers);
     if (!block) errors.push(`_headers 缺少 ${path} 段`);
     else if (!/Content-Type: text\/plain; charset=utf-8/u.test(block[1])) errors.push(`_headers ${path} 缺少 text/plain; charset=utf-8`);
@@ -121,6 +133,7 @@ function loadInput() {
   return {
     sh: read(SH),
     ps1: read(PS1),
+    ps1Boot: read(PS1_BOOT),
     headers: read(HEADERS),
     readme: read("README.md"),
     docsZh: read(`${SITE}/docs/index.html`),
@@ -245,10 +258,25 @@ expectRed("_headers 缺 charset", (mutated) => {
 expectRed("ps1 丢 BOM", (mutated) => {
   mutated.ps1 = mutated.ps1.replace(/^﻿/u, "");
 });
+expectRed("引导脚本带 BOM", (mutated) => {
+  mutated.ps1Boot = `﻿${mutated.ps1Boot}`;
+});
+expectRed("引导脚本混入非 ASCII", (mutated) => {
+  mutated.ps1Boot = mutated.ps1Boot.replace("# SayDo one-command", "# SayDo 一键");
+});
+expectRed("引导脚本丢核心 URL", (mutated) => {
+  mutated.ps1Boot = mutated.ps1Boot.replace("https://saydo.octoooo.com/install-core.ps1", "https://example.com/x.ps1");
+});
+expectRed("引导脚本顶层 exit", (mutated) => {
+  mutated.ps1Boot = `${mutated.ps1Boot}\nexit 1\n`;
+});
+expectRed("_headers 缺核心脚本段", (mutated) => {
+  mutated.headers = mutated.headers.replace("/install-core.ps1\n  Content-Type: text/plain; charset=utf-8\n", "");
+});
 expectRed("镜像 URL 漂移", (mutated) => {
   mutated.sh = mutated.sh.replace(/^SAYDO_TGZ_MIRROR_URL="[^"]+"$/mu, 'SAYDO_TGZ_MIRROR_URL="https://example.com/x.tgz"');
 });
 expectRed("README 丢入口", (mutated) => {
   mutated.readme = mutated.readme.replace("https://saydo.octoooo.com/install.sh", "");
 });
-process.stdout.write(`[ok] install scripts pinned to v${pinOf(input.sh, "sh").version}; mutations=21 all red; dynamic no-write checks=6\n`);
+process.stdout.write(`[ok] install scripts pinned to v${pinOf(input.sh, "sh").version}; mutations=26 all red; dynamic no-write checks=6\n`);

@@ -1,8 +1,17 @@
 import { homedir, userInfo } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 
+export const CLI_USAGE = [
+  "用法:saydo <up|status|open|doctor|help> [--home PATH] [--port PORT] [--no-open] [--json]",
+  "  up       前台启动 daemon + Web 控制台(缺省自动打开浏览器;--no-open 不开,之后用 saydo open)",
+  "  status   探活:退出码 0=已连上 / 1=端口空闲 / 2=端口冲突",
+  "  open     用带访问凭证的地址打开控制台(需要 daemon 已在运行)",
+  "  doctor   只读诊断(--json 机器可读;退出码 0=正常 / 1=有降级 / 2=有故障)",
+  "  --home   数据目录(缺省 ~/.saydo,或环境变量 SAYDO_HOME);--port 端口(缺省 47100)"
+].join("\n");
+
 export interface CliOptions {
-  command: "up" | "status" | "open" | "doctor";
+  command: "up" | "status" | "open" | "doctor" | "help";
   home: string;
   port: number;
   openBrowser: boolean;
@@ -31,8 +40,11 @@ export function resolveSaydoHome(explicit: string | undefined, envHome: string |
 
 export function parseCliOptions(argv: readonly string[], env: NodeJS.ProcessEnv = process.env): CliOptions {
   const command = argv[0];
+  if (command === undefined || command === "help" || command === "--help" || command === "-h") {
+    return { command: "help", home: resolveSaydoHome(undefined, env["SAYDO_HOME"]), port: 47100, openBrowser: false };
+  }
   if (command !== "up" && command !== "status" && command !== "open" && command !== "doctor") {
-    throw new Error("用法:saydo <up|status|open|doctor> [--home PATH] [--port PORT] [--no-open] [--json]");
+    throw new Error(`未知命令:${command}\n${CLI_USAGE}`);
   }
   let explicitHome: string | undefined;
   let rawPort: string | undefined;

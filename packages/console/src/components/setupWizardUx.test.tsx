@@ -15,6 +15,8 @@ import {
   canChangeSupply,
   DetectingProgressRow,
   detectingProgressCopy,
+  EmptySupplyHints,
+  missingWiredClis,
   fusionLayoutForViewport,
   MixSnapshotCard,
   PurposeZones,
@@ -766,5 +768,39 @@ describe("单浮层与混搭快照卡", () => {
     expect(html).not.toContain("点「切换提供商」即可");
     expect(html).not.toContain("想换家");
     expect(html).not.toContain("看看为什么");
+  });
+});
+
+describe("空态修复行(docs/11 §5.8a 2026-09-15)", () => {
+  const notFoundWired: CliCapability = {
+    name: "codex",
+    provider: "codex_cli",
+    label: "Codex",
+    found: false,
+    auth: { status: "not_found", fixHint: "未找到 codex;安装后运行 `codex login` 登录,再点「重新检测」,或这个槽位改走 API 直连" },
+    enumerable: false,
+    models: []
+  };
+  const notFoundInventory: CliCapability = {
+    name: "kimi",
+    provider: null,
+    label: "Kimi",
+    found: false,
+    auth: { status: "not_found", fixHint: "未找到 kimi;安装后会显示在资源画像里(当前尚未接入供给后端)" },
+    enumerable: false,
+    models: []
+  };
+  it("只列已接线且未安装的家,inventory 家不进空态", () => {
+    expect(missingWiredClis([notFoundWired, notFoundInventory]).map((c) => c.name)).toEqual(["codex"]);
+  });
+  it("空态逐家给 daemon 的修复行并提示重新检测;没有可列的家时只留一句", () => {
+    const html = renderToStaticMarkup(<EmptySupplyHints clis={[notFoundWired, notFoundInventory]} />);
+    expect(html).toContain("data-empty-supply-hints");
+    expect(html).toContain("codex login");
+    expect(html).not.toContain("kimi");
+    expect(html).toContain("重新检测");
+    const bare = renderToStaticMarkup(<EmptySupplyHints clis={[]} />);
+    expect(bare).toContain("登录一个本机 CLI,或添加 API 直连");
+    expect(bare).not.toContain("data-empty-supply-hints");
   });
 });

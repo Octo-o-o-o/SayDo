@@ -3184,14 +3184,15 @@ async function announceReady(): Promise<void> {
       pid: process.pid,
       startedAt: STARTED_AT,
       capToken: CAP_TOKEN === "" ? "disabled" : "enabled",
-      bootPromote: {
-        configPromoted: bootConfigPromoted,
-        envPromoted: bootEnvPromoted,
-        activationRolledBack: bootActivationRolledBack,
-        configOk: bootPromote.config.ok,
-        envOk: bootPromote.env.ok,
-        cliRuntimePromoted: bootCliRuntimePromoted
-      },
+      // 结构化 logger 对嵌套对象只会打成 [object Object],这里展平成一行可读串。
+      bootPromote: [
+        `configPromoted=${String(bootConfigPromoted)}`,
+        `envPromoted=${String(bootEnvPromoted)}`,
+        `activationRolledBack=${String(bootActivationRolledBack)}`,
+        `configOk=${String(bootPromote.config.ok)}`,
+        `envOk=${String(bootPromote.env.ok)}`,
+        `cliRuntimePromoted=${String(bootCliRuntimePromoted)}`
+      ].join(" "),
       recoveryMode: RECOVERY_ONLY ? "recovery_only" : "normal"
     });
     const ready = assessRuntimeReadiness(

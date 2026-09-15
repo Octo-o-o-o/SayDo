@@ -20,6 +20,8 @@ SAYDO_TGZ_MIRROR_URL="https://dl.saydo.octoooo.com/releases/v${SAYDO_VERSION}/sa
 BETTER_SQLITE3_MIRROR="https://npmmirror.com/mirrors/better-sqlite3"
 NODE_MAJOR="22"
 NODE_DIST="https://nodejs.org/dist"
+# Node 官方源连不上时的镜像(目录结构与 nodejs.org/dist 相同;仍按官方 SHASUMS256 校验)。SAYDO_INSTALL_MIRROR=1 直接用镜像。
+NODE_DIST_MIRROR="https://npmmirror.com/mirrors/node"
 
 ok() { printf '[ok] %s\n' "$*"; }
 info() { printf '[..] %s\n' "$*"; }
@@ -89,13 +91,20 @@ else
     [ -x "$d/bin/node" ] && [ "$(node_major_of "$d/bin/node")" = "$NODE_MAJOR" ] && NODE_BIN="$d/bin/node"
   done
   if [ -z "$NODE_BIN" ]; then
-    info "本机没有 Node $NODE_MAJOR,下载官方 Node $NODE_MAJOR 到 $TOOLCHAIN(不改系统)"
-    node_ver="$(curl -fsSL "$NODE_DIST/index.json" | tr -d ' \n' | grep -o '"version":"v'"$NODE_MAJOR"'\.[0-9]*\.[0-9]*"' | head -1 | cut -d'"' -f4)"
-    [ -n "$node_ver" ] || fail "无法从 nodejs.org 解析 Node $NODE_MAJOR 版本"
+    info "本机没有 Node $NODE_MAJOR,下载官方 Node $NODE_MAJOR 到 $TOOLCHAIN(不改系统;约 50 MB)"
+    # 先官方源,连不上(10 秒连接超时)自动改用镜像;SAYDO_INSTALL_MIRROR=1 直接用镜像。
+    node_src="$NODE_DIST"
+    if [ "${SAYDO_INSTALL_MIRROR:-0}" = "1" ] || ! curl -fsSL --connect-timeout 10 --max-time 30 -o /dev/null "$NODE_DIST/index.json"; then
+      node_src="$NODE_DIST_MIRROR"
+      info "nodejs.org 连不上或已指定镜像,改用 $NODE_DIST_MIRROR"
+    fi
+    node_ver="$(curl -fsSL --connect-timeout 10 --max-time 60 "$node_src/index.json" | tr -d ' \n' | grep -o '"version":"v'"$NODE_MAJOR"'\.[0-9]*\.[0-9]*"' | head -1 | cut -d'"' -f4)"
+    [ -n "$node_ver" ] || fail "无法从 $node_src 解析 Node $NODE_MAJOR 版本(检查网络,或先自行安装 Node 22 再重跑)"
     node_pkg="node-${node_ver}-${node_os}-${node_arch}.tar.gz"
     tmp="$(mktemp -d "${TMPDIR:-/tmp}/saydo-node.XXXXXX")"
-    curl -fsSL -o "$tmp/$node_pkg" "$NODE_DIST/$node_ver/$node_pkg"
-    curl -fsSL -o "$tmp/SHASUMS256.txt" "$NODE_DIST/$node_ver/SHASUMS256.txt"
+    # -# 显示进度条;--connect-timeout 避免无提示地挂住;--retry 应对瞬断。
+    curl -fL -# --connect-timeout 15 --retry 2 -o "$tmp/$node_pkg" "$node_src/$node_ver/$node_pkg" || fail "Node 下载失败:$node_src/$node_ver/$node_pkg(可先自行安装 Node 22 再重跑)"
+    curl -fsSL --connect-timeout 15 --retry 2 -o "$tmp/SHASUMS256.txt" "$node_src/$node_ver/SHASUMS256.txt" || fail "Node 校验文件下载失败"
     expected="$(grep " $node_pkg\$" "$tmp/SHASUMS256.txt" | cut -d' ' -f1)"
     [ -n "$expected" ] || fail "SHASUMS256.txt 里没有 $node_pkg"
     actual="$(sha256_of "$tmp/$node_pkg")"
@@ -177,10 +186,14 @@ if [ "${SAYDO_INSTALL_NO_MODIFY_PATH:-0}" != "1" ]; then
 fi
 
 printf '\n'
-ok "安装完成。启动:"
-printf '    %s up\n' "$BIN_DIR/saydo"
-printf '  新终端里可直接:saydo up(浏览器会打开 http://localhost:47100);远程终端加 --no-open;Ctrl+C 优雅停止。\n'
-printf '  该包只含 daemon 与 Web 控制台;语音 pipeline 与系统常驻不在其中。\n'
+ok "安装完成。下一步:"
+printf '  1. 准备一个 AI 供给(二选一;第一次打开控制台时向导会检测):\n'
+printf '     - 本机 AI CLI 已安装并登录,例如 codex login / claude auth login / cursor-agent login\n'
+printf '     - 或一个 OpenAI 兼容 API key(OpenRouter / OpenAI / Anthropic / DeepSeek),在向导里填\n'
+printf '  2. 启动:新终端里运行 saydo up(浏览器会打开 http://localhost:47100 的控制台)\n'
+printf '     本终端可直接:%s up\n' "$BIN_DIR/saydo"
+printf '     不想自动开浏览器加 --no-open,之后用 saydo open;Ctrl+C 优雅停止。\n'
+printf '  该包只含 daemon 与 Web 控制台;语音 pipeline 与系统常驻不在其中(打字与浏览器系统语音可用)。\n'
 if [ "${SAYDO_INSTALL_RUN:-0}" = "1" ]; then
   exec "$BIN_DIR/saydo" up
 fi

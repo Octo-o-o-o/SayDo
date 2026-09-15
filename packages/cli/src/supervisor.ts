@@ -484,6 +484,9 @@ export async function runOwned(options: OwnedRunOptions): Promise<void> {
         }
       });
       openBrowser = false;
+    } else if (!options.openBrowser) {
+      // --no-open:不打印带凭证的地址(避免落进被重定向的日志),只给下一步。
+      process.stderr.write(`[ok] 控制台已就绪:在另一个终端运行 saydo open(带访问凭证打开 http://localhost:${port});Ctrl+C 优雅停止。\n`);
     }
 
     let restartRequested = false;

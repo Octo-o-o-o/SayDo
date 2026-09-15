@@ -4,7 +4,7 @@
 
 ## 当前入口
 
-- `IMPLEMENTATION-PLAN-2.md`:当前唯一排产源。`AS-01-AS-02`(PG-01B 后、PG-02 前)已于 2026-09-06 收口;2026-09-09 在其后、PG-02 前插入的 `GAP-02-consolidation` 同日收口;同日晚在其后插入的 `EMAIL-A-outbound`(邮件出站阶段 A)亦已收口;指针 `active=none`、`next=PG-02`(未开工)。
+- `IMPLEMENTATION-PLAN-2.md`:当前唯一排产源。`AS-01-AS-02`(PG-01B 后、PG-02 前)已于 2026-09-06 收口;2026-09-09 在其后、PG-02 前插入的 `GAP-02-consolidation` 同日收口;同日晚在其后插入的 `EMAIL-A-outbound`(邮件出站阶段 A)亦已收口;2026-09-15 在 EMAIL-A-outbound 后、PG-02 前插入 `JOURNEY-01`(参考旅程批,决策单第 13 节);指针 `active=none`、`next=JOURNEY-01`(未开工)。
 - `IMPL-PROMPT-2026-09-09-gap-consolidation.md`:GAP-02-consolidation 缺口收敛批唯一执行卡(§1 SD-1/2/3 + §2 九条 + §3 默认做项)。
 - `IMPL-PROMPT-ecc-as01-as02-privacy.md`:AS-01-AS-02 隐私批唯一执行卡(contract → implementation)。
 - `IMPL-PROMPT-2026-09-09-gap-residuals.md`:2026-09-09 晚的研究档案入库 + GAP-02 残项 + `EMAIL-A-outbound` 执行卡(三段均已合并入 main,决策单第 12 节);证据 `e2e/evidence/gap-02-residual.md` 与 `e2e/evidence/email-a-outbound.md`。

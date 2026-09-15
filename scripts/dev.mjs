@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 跨 OS 三进程入口:先 daemon health,再 pipeline 与 console。
 // Windows 只杀本脚本 spawn 的直接子进程,禁止 taskkill /T 与 killOwnedTree。
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { delimiter, dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,6 +34,11 @@ function resolvePnpm() {
     return { file: process.execPath, prefix: [corepack], options: { windowsHide: true } };
   }
   return resolvePe("pnpm");
+}
+
+function hasCommand(name) {
+  const r = spawnSync(process.platform === "win32" ? "where" : "which", [name], { stdio: "ignore" });
+  return r.status === 0;
 }
 
 function spawnOne(command, args, cwd) {
@@ -90,7 +95,11 @@ try {
   shutdown();
   process.exit(1);
 }
-spawnOne("uv", ["run", "python", "-m", "saydo_pipeline"], join(ROOT, "pipeline"));
+if (hasCommand("uv")) {
+  spawnOne("uv", ["run", "python", "-m", "saydo_pipeline"], join(ROOT, "pipeline"));
+} else {
+  process.stderr.write("[warn] 未找到 uv,跳过语音 pipeline(文本与浏览器系统语音照常;需要云端语音时先安装 uv 再 just dev)\n");
+}
 spawnOne("pnpm", ["--filter", "@saydo/console", "dev"], ROOT);
 
 const codes = await Promise.all(

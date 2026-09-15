@@ -19,8 +19,8 @@ const SECRET_TOKEN = "doctor-secret-cap-token-value";
 const PROTOCOL = "1.0.0";
 const installed: InstalledIdentity = {
   source: "build_metadata",
-  version: "0.1.0-rc.12",
-  buildId: "0.1.0-rc.12+abcdefabcdef.p1-0-0.cabcdefabcdef",
+  version: "0.1.0-rc.13",
+  buildId: "0.1.0-rc.13+abcdefabcdef.p1-0-0.cabcdefabcdef",
   sourceRevision: "a".repeat(64),
   protocolVersion: PROTOCOL
 };
