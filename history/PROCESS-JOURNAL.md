@@ -3894,3 +3894,13 @@ unit economics 决定扩张;持续承担账号/API、CI/设备、证据刷新、
 **产出**:I `8fb99bd` + 本 E 提交(evidence + 本条);官网已更新。
 
 **结论**:安装脚本与官网已按最低门槛口径收敛并上线;CLI/console/daemon 改动须 rc.13 才到用户包,而 rc.13 被 CI 红(android setup / reaper 用例)与 release.yml 硬编码 tag 挡住,待 owner 决策。分支未合并未 push;无独立零上下文评审;ps1 Windows 真机 not_run。
+
+## R164 · Windows 真机回归、CI 红修复、rc.13 发布与官网上线(2026-09-15)
+
+**输入**:owner 授权「都按建议对应」:Windows 可 ssh 到 owner 私有配置中的局域网 Windows 主机 测试;推送完整更新到两个仓库的 main。
+
+**行动**:Windows PS 5.1 真机实测线上 `irm install.ps1 | iex` 失败(`irm` 保留 UTF-8 BOM 为 U+FEFF,`iex` 必败;实验证明只有去 BOM 可过,而 `-File` 又必须有 BOM)→ 拆成纯 ASCII 引导 `install.ps1` + 带 BOM 的 `install-core.ps1`(`6a9e0aa`),preview 真机回归有 Node/无 Node 强制镜像两路全绿。同提交修 CI 两处红:setup-android `packages: platform-tools`;reaper 用例 POSIX 进程组回收(tsx 孙进程孤儿持锁)。bump rc.13(`768ee40`,含 README 锚重锚与候选态切换,`--freeze` 冻结 manifest),version-matrix 补记(`eed2cf1`),私有 CI 三轮后首次全绿(34928676546)。原子推公开快照 `3e851cd` + tag,release run 34929194176 六项 smoke 全绿 → available;`--verify`(`412338f`)→ `--write-availability`(Mac/Windows 四项实跑,`2564ea5`,同提交安装脚本改钉 rc.13 + R2 镜像上传回读全等)。发现全局替换把「rc.12 包无 --help」变成对 rc.13 的假话,`216e4dd` 删改。公开快照 `8b0060c`→`7ae4861`,两仓 CI 绿后官网 preview `cea70169`/`b3740ccb` 实测(Mac+Windows 从 preview 装 rc.13,help/doctor 正常)→ production `9063b77c`,线上复核并从线上再装(Mac+Windows)。证据 `e2e/evidence/2026-09-15-rc13-release-and-site-deploy.md`。
+
+**产出**:internal main `0f7d67a`→`216e4dd`(+ 本 E 提交);`origin/main` 与 `public/main` 同步;Release v0.1.0-rc.13 available;官网 production 已切 rc.13 可用态。
+
+**结论**:用户现在从官网一条命令装到的是 rc.13(含 help/doctor、向导空态修复行、顶栏标签修正、Windows 引导脚本)。not_run:Linux 真机;`saydo-link` 未动;无独立零上下文评审。

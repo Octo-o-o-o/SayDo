@@ -3035,6 +3035,13 @@
       "sha256": "bc083794579ca6c6c01df7fbd8be5f2e0897cfdf59991580f8b374b4c7d0281a"
     },
     {
+      "path": "e2e/evidence/2026-09-15-rc13-release-and-site-deploy.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 5226,
+      "sha256": "73e805021c7696eddc25137cd7e1d67649d863873118a5bb17a2f1b42695f3a1"
+    },
+    {
       "path": "e2e/evidence/2026-09-15-rc13-release-verify.json",
       "kind": "file",
       "mode": 420,
@@ -3969,8 +3976,8 @@
       "path": "history/PROCESS-JOURNAL.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 495619,
-      "sha256": "9f6ff44b3dda89a55d2df13e931eaef50671479b0f3c1053599a17387a3a7dff"
+      "bytes": 497541,
+      "sha256": "afa8810b4e6caa46a9aa9bac2c1883cff3a3250b31f29642264be3c3e86f6cd3"
     },
     {
       "path": "history/README.md",
