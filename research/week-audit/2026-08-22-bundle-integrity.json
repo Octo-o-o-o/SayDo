@@ -41,7 +41,7 @@
     "research/week-audit/2026-08-22-ledger.json": "a989895c421d23ad35966da0cfbd86ac74c1089bf152aa763c38302b7c2b216d",
     "research/week-audit/2026-08-22-semantic-review.json": "905b2806c237bcea81eb8b3f64f66cec3e81ff8d3f5d1d3889c82839073cd1e5",
     "research/week-audit/2026-08-22-ref-manifest.json": "46fc3c9b4b5ac02a9a862ace714d721c9434583fc055f8f5246b58bd7cf0f70d",
-    "research/week-audit/2026-08-23-publication-manifest.json": "27fb6d8d7b3041e758209a6736a0238f45b655e54dba84f9680d94e7813b5b16",
+    "research/week-audit/2026-08-23-publication-manifest.json": "6640a805dd6c60ca2409a90c27429ae567915b53ae972ecdb8506ee1a693ece4",
     "research/week-audit/2026-08-23-review-finding-anchor.json": "03c6ef06fb8f3834e311b06874a869c4e232b4b8f3842f95ef54d6ce388ef378",
     "research/week-audit/2026-08-23-remediation-cross-links.json": "c1cdfebe08cac2adff5ebdd521e9f180210b6a40bac32498fa0cb8ca2022e02e",
     "research/week-audit/2026-08-23-remediation-ledger.json": "2ce58f8c0cea79751ee7968a58d46f7d6a2f4d788100be98b0abe0660f001d2a",
@@ -53,14 +53,14 @@
     "exclusionRule": "七个账本生成物由 files digest/全树 manifest 单独闭环，避免自引用；其余 staged/unstaged 已跟踪文件逐个冻结内容；无关 untracked 不入快照",
     "entries": [
       {
-        "path": "e2e/evidence/2026-09-15-rc13-release-and-site-deploy.md",
+        "path": "e2e/evidence/2026-09-15-quickstart-walkthrough.md",
         "states": [
           "staged"
         ],
         "kind": "file",
         "mode": 420,
-        "bytes": 5226,
-        "sha256": "73e805021c7696eddc25137cd7e1d67649d863873118a5bb17a2f1b42695f3a1"
+        "bytes": 4097,
+        "sha256": "ff9bae0b2e846c34a1bcc64a2a3778065cc291140c168c12de46a62a3c8ac773"
       },
       {
         "path": "history/PROCESS-JOURNAL.md",
@@ -69,8 +69,8 @@
         ],
         "kind": "file",
         "mode": 420,
-        "bytes": 497541,
-        "sha256": "afa8810b4e6caa46a9aa9bac2c1883cff3a3250b31f29642264be3c3e86f6cd3"
+        "bytes": 498563,
+        "sha256": "113d0ef7b76c175892d4e2cc658695f43b78583206feb6c14c3f7181aaaada2c"
       }
     ]
   }

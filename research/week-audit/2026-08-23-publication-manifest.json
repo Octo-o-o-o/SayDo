@@ -3000,6 +3000,13 @@
       "sha256": "ffc21e32492a99ed513265b6a0ae563f6e9e4ce92d02a8f959228510e90f18c9"
     },
     {
+      "path": "e2e/evidence/2026-09-15-quickstart-walkthrough.md",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4097,
+      "sha256": "ff9bae0b2e846c34a1bcc64a2a3778065cc291140c168c12de46a62a3c8ac773"
+    },
+    {
       "path": "e2e/evidence/2026-09-15-rc13-availability.json",
       "kind": "file",
       "mode": 420,
@@ -3976,8 +3983,8 @@
       "path": "history/PROCESS-JOURNAL.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 497541,
-      "sha256": "afa8810b4e6caa46a9aa9bac2c1883cff3a3250b31f29642264be3c3e86f6cd3"
+      "bytes": 498563,
+      "sha256": "113d0ef7b76c175892d4e2cc658695f43b78583206feb6c14c3f7181aaaada2c"
     },
     {
       "path": "history/README.md",

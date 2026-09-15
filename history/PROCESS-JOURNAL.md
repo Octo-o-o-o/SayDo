@@ -3904,3 +3904,13 @@ unit economics 决定扩张;持续承担账号/API、CI/设备、证据刷新、
 **产出**:internal main `0f7d67a`→`216e4dd`(+ 本 E 提交);`origin/main` 与 `public/main` 同步;Release v0.1.0-rc.13 available;官网 production 已切 rc.13 可用态。
 
 **结论**:用户现在从官网一条命令装到的是 rc.13(含 help/doctor、向导空态修复行、顶栏标签修正、Windows 引导脚本)。not_run:Linux 真机;`saydo-link` 未动;无独立零上下文评审。
+
+## R165 · 清理 worktree、设计对齐检查与 quickstart 用户视角走查(2026-09-15)
+
+**输入**:owner 要求清理两个已合并 worktree,检查前端是否与设计稿对齐,并模拟用户按 quickstart 走一遍找阻断与缺口。
+
+**行动**:删除 `SayDo-wt-direction` / `SayDo-wt-quickstart` 与两分支(均已 ff 入 main)。线上 rc.13 包隔离安装,真实 CLI 登录态下按官网 §4.4a 六步走通(向导两轮自检约 2 分 30 秒,首句约 25 秒回复,Ctrl+C 再起不弹向导)。设计对齐:现行前端与 docs/11 纸上账本 §2/§3/§5.10 一致(White 为方向未迁移);发现四项缺口 A–D(开场白承诺卡片但降级记忆、全局记忆在记忆库不可见、自动化回车未发送待人工确认、重启后对话不回放且重复首启开场白)。证据 `e2e/evidence/2026-09-15-quickstart-walkthrough.md`。
+
+**产出**:本 E 提交(证据 + 本条)。
+
+**结论**:quickstart 主链无阻断;缺口属 JOURNEY-01 范围,建议并入其执行卡,本批不修。
