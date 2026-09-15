@@ -1043,22 +1043,22 @@
       "path": "deploy/saydo-octoooo-com/docs/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 136320,
-      "sha256": "5b5191513e337e31141d99b8dba7737c066a1fd14462d00febc2d65f373eeea5"
+      "bytes": 136356,
+      "sha256": "2619e445dddfa460a10cd77a8fd2798fd5b89f1723f7637450b03e7621ba5e77"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/docs/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 159320,
-      "sha256": "fee27578121127d7bc9e07d84e6b5541bd8c9d496c3050eec2ee24a0f1472091"
+      "bytes": 159306,
+      "sha256": "7881e0ef286f8dc35d03e01888f38375c8ceee624c544f040ba9dd171c6a7ffd"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 48540,
-      "sha256": "215b056cf0321afed667213316de96b9655bddc95fb7946465da2cea708cb07e"
+      "bytes": 48539,
+      "sha256": "5488f76c5e4370ee3f9e35b4affbd9b31adfa23084403658cec0605685b1ae7f"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/privacy/index.html",
@@ -1106,15 +1106,15 @@
       "path": "deploy/saydo-octoooo-com/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 47227,
-      "sha256": "adb04d03d8954ee38c55c994654ec475eda4465b216da6c317656ae380ae7a76"
+      "bytes": 47247,
+      "sha256": "914e8e393fa82e01d3f6f9d77fd68d40e03f7256f3429f585468384dcc5eb344"
     },
     {
       "path": "deploy/saydo-octoooo-com/install-core.ps1",
       "kind": "file",
       "mode": 420,
       "bytes": 12124,
-      "sha256": "643a73065cb27c4823e58035555a6b1e4ef9cd3bdcc3a680deb2e98496d67054"
+      "sha256": "eb13b99c8a4b03cb0938389c99634e6e26eb11ff14f9eb54b238623b2c530503"
     },
     {
       "path": "deploy/saydo-octoooo-com/install.ps1",
@@ -1128,7 +1128,7 @@
       "kind": "file",
       "mode": 420,
       "bytes": 11056,
-      "sha256": "247c9060e926c8c9eb09135ad92575e352d1de050230c6ea259d963c00036858"
+      "sha256": "224b3834fd6af2a5f09aa29dc43f3d292a9189f9a1c7d3953fa8f284cf598f36"
     },
     {
       "path": "deploy/saydo-octoooo-com/privacy/index.html",
@@ -2163,8 +2163,8 @@
       "path": "docs/release/version-matrix.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 4984,
-      "sha256": "321ec29986cb1417f3be4b40b62c530c1de5938702964663db2b79ac4c0b9599"
+      "bytes": 5040,
+      "sha256": "6bf7ae382f3d758223a4aa2992788686ab8d52d1bfa448c4171bb5b85f4a0d85"
     },
     {
       "path": "docs/review/2026-08-13-mobile-gap-audit.fable.md",
@@ -2352,15 +2352,15 @@
       "path": "docs/site/2026-08-20-docs-page-content.fable.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 111330,
-      "sha256": "030770a6c36c8613c043be631fdf59f83ee1c431de216e7c847c02b670feacd1"
+      "bytes": 111366,
+      "sha256": "323764d2350c40412e60888c55bc0436a19ba15c335df6fe1845d1b4da14a4d8"
     },
     {
       "path": "docs/site/2026-08-20-homepage-structure-copy.fable.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 23538,
-      "sha256": "1cb843c84fefe455464fe1b94211f40bbdad84bb3646ffb2b650c8cf4b17dc10"
+      "bytes": 23548,
+      "sha256": "6216e3993be7bd5a9c5bf37591b853e9e180bcc9cfc13d99265a1cd517f68f62"
     },
     {
       "path": "docs/site/2026-08-25-homepage-style-exploration.md",
@@ -2998,6 +2998,48 @@
       "mode": 420,
       "bytes": 6141,
       "sha256": "ffc21e32492a99ed513265b6a0ae563f6e9e4ce92d02a8f959228510e90f18c9"
+    },
+    {
+      "path": "e2e/evidence/2026-09-15-rc13-availability.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 17626,
+      "sha256": "a55a80af626eb11fc8a015a36ea05f8cd6a8eb3bd2589407e190bbb8395fe0fc"
+    },
+    {
+      "path": "e2e/evidence/2026-09-15-rc13-physical/mac-exec.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3888,
+      "sha256": "cea1dfc6e3b8a4e0162ba9f6b6a7dc558a7e1dd1bdc715693f30a4421ae94d21"
+    },
+    {
+      "path": "e2e/evidence/2026-09-15-rc13-physical/mac-global.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 3890,
+      "sha256": "582eddd19622f72d7fd5540d12edb7f445efa50d5b5cbd45f1a2d886b3b3e54a"
+    },
+    {
+      "path": "e2e/evidence/2026-09-15-rc13-physical/windows-exec.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4752,
+      "sha256": "c0fe3c48ea041d2b66001394e9e449a6b5770c9bc939c3acb8a2bb0a0ad6e961"
+    },
+    {
+      "path": "e2e/evidence/2026-09-15-rc13-physical/windows-global.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 4754,
+      "sha256": "bc083794579ca6c6c01df7fbd8be5f2e0897cfdf59991580f8b374b4c7d0281a"
+    },
+    {
+      "path": "e2e/evidence/2026-09-15-rc13-release-verify.json",
+      "kind": "file",
+      "mode": 420,
+      "bytes": 2638,
+      "sha256": "f62a3cbe06ad2065b3f0bcb8fb1d2cacada137ab3fc7cf0dc3f843a2d7349be2"
     },
     {
       "path": "e2e/evidence/a3-armed-batch.md",
@@ -11396,8 +11438,8 @@
       "path": "README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 6498,
-      "sha256": "dfe98883ebf3c4279c078a6d619a5d69d10d9d66ecd96462c0be0d928a28e854"
+      "bytes": 6496,
+      "sha256": "5a419290250362cc84b230be8171039c00cd22a42dffedc0f79b9b4f11830efc"
     },
     {
       "path": "research/2026-07-25-saydo-closeout-impl-readback.fable.md",

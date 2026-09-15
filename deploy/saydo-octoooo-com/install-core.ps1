@@ -14,8 +14,8 @@ $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
-$SaydoVersion = "0.1.0-rc.12"
-$SaydoTgzSha256 = "8e31998c2757b584e2f5fb848eee4e4bce4667c7429dd3e8a84c7df6ffd9eac0"
+$SaydoVersion = "0.1.0-rc.13"
+$SaydoTgzSha256 = "541193d2289831874cf52ac8ef587a0347d07b95daf802802f4ffb1382e80c22"
 $SaydoTgzUrl = "https://github.com/Octo-o-o-o/SayDo/releases/download/v$SaydoVersion/saydo-cli-$SaydoVersion.tgz"
 $SaydoTgzMirrorUrl = "https://dl.saydo.octoooo.com/releases/v$SaydoVersion/saydo-cli-$SaydoVersion.tgz"
 $BetterSqlite3Mirror = "https://npmmirror.com/mirrors/better-sqlite3"

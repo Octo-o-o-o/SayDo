@@ -168,7 +168,7 @@
 
 ### 4.2 安装
 
-**推荐 · 不克隆源码:**下面是 v0.1.0-rc.13 的发布候选固定 URL;仅当 GitHub Release 页面已经出现且发布检查全绿后才可用。尚未发布到 npm registry 或 Homebrew。
+**推荐 · 不克隆源码:**v0.1.0-rc.13 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证,可直接使用。尚未发布到 npm registry 或 Homebrew。
 
 **最快 · 一条命令(2026-09-02 起,页面 §4.2 首段;详见 `docs/plan/2026-09-02-quick-start-distribution.md`):**不需要预装 Node.js;脚本在用户目录内准备 Node 22、下载固定版本包并校验 SHA-256、生成 `~/.saydo/bin/saydo`。macOS / Linux:`curl -fsSL https://saydo.octoooo.com/install.sh | sh`;Windows:`irm https://saydo.octoooo.com/install.ps1 | iex`;然后 `saydo up`。已有 Node 22 时仍可走下面的 npm 路径。
 
@@ -725,7 +725,7 @@ queued → running → ready_for_review → review_approved_waiting_merge → me
 
 | 能力 | 状态 | 备注 |
 |---|---|---|
-| 桌面服务(daemon + 控制台)· macOS / Windows / Linux | 现在可用 | 源码形态已经可运行;v0.1.0-rc.13 固定 URL 仅在 GitHub Release 出现且发布检查全绿后生效。npm registry / Homebrew 与桌面 App 壳仍规划中;常驻安装(launchd)与系统通知目前只有 macOS 实现 |
+| 桌面服务(daemon + 控制台)· macOS / Windows / Linux | 现在可用 | 源码形态已经可运行;v0.1.0-rc.13 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证。npm registry / Homebrew 与桌面 App 壳仍规划中;常驻安装(launchd)与系统通知目前只有 macOS 实现 |
 | 四推理槽 API 供给(OpenAI 兼容 / OpenRouter) | 现在可用 | |
 | 四推理槽 CLI 订阅供给(Codex / Claude / Cursor / Grok / Gemini / Qwen / Copilot) | 现在可用 | 对话档走 CLI 为慢速文本模式 |
 | 首跑资源画像向导(三种方案卡 + 高级逐槽) | 现在可用 | |

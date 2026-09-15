@@ -13,8 +13,8 @@
 # 卸载:rm -rf ~/.saydo/toolchain ~/.saydo/bin 并删除 shell 启动文件里带 "# saydo" 标记的那一行。
 set -eu
 
-SAYDO_VERSION="0.1.0-rc.12"
-SAYDO_TGZ_SHA256="8e31998c2757b584e2f5fb848eee4e4bce4667c7429dd3e8a84c7df6ffd9eac0"
+SAYDO_VERSION="0.1.0-rc.13"
+SAYDO_TGZ_SHA256="541193d2289831874cf52ac8ef587a0347d07b95daf802802f4ffb1382e80c22"
 SAYDO_TGZ_URL="https://github.com/Octo-o-o-o/SayDo/releases/download/v${SAYDO_VERSION}/saydo-cli-${SAYDO_VERSION}.tgz"
 SAYDO_TGZ_MIRROR_URL="https://dl.saydo.octoooo.com/releases/v${SAYDO_VERSION}/saydo-cli-${SAYDO_VERSION}.tgz"
 BETTER_SQLITE3_MIRROR="https://npmmirror.com/mirrors/better-sqlite3"

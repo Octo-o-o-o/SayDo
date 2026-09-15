@@ -15,9 +15,9 @@
 
 ## 快速运行
 
-当前公开定位是 developer/preview。首批目标包含开发者与普通用户，完整语音可选；目标人群不是验收证据。下面是 v0.1.0-rc.13 的发布候选固定 URL；仅当
-[GitHub Release 页面](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.13)
-已经出现且发布检查全绿后，命令才可用。该包含 daemon 与 Web 控制台，不含语音 pipeline。
+当前公开定位是 developer/preview。首批目标包含开发者与普通用户，完整语音可选；目标人群不是验收证据。v0.1.0-rc.13 固定 URL 已由不可变
+[GitHub Release](https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.13)
+及 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证。该包含 daemon 与 Web 控制台，不含语音 pipeline。
 
 装前先备好一个 AI 供给（二选一）：本机已安装并登录的 AI CLI（Codex `codex login` / Claude Code `claude auth login` / Cursor `cursor-agent login` 等），或一个 OpenAI 兼容 API key；没有它装完也聊不了，首启向导会停在「先把对话模型配好」。
 

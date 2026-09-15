@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-09-15T04:43:07.599Z",
+  "tag": "v0.1.0-rc.13",
+  "tagSha": "3e851cd128714ef2cfe87817c968c1574d5b8d4b",
+  "releaseUrl": "https://github.com/Octo-o-o-o/SayDo/releases/tag/v0.1.0-rc.13",
+  "publishedAt": "2026-09-15T04:37:54Z",
+  "workflowRunId": 34929194176,
+  "workflowRunAttempt": 1,
+  "workflowUrl": "https://api.github.com/repos/Octo-o-o-o/SayDo/actions/runs/34929194176",
+  "requiredJobs": [
+    "validate public snapshot tag",
+    "release quality (node and audit)",
+    "release quality (python)",
+    "release quality (fresh-origin e2e)",
+    "release distribution (ubuntu-latest)",
+    "release distribution (macos-latest)",
+    "release distribution (windows-latest)",
+    "publish GitHub prerelease",
+    "fixed URL smoke (ubuntu-latest, exec)",
+    "fixed URL smoke (ubuntu-latest, global)",
+    "fixed URL smoke (macos-latest, exec)",
+    "fixed URL smoke (macos-latest, global)",
+    "fixed URL smoke (windows-latest, exec)",
+    "fixed URL smoke (windows-latest, global)"
+  ],
+  "assets": [
+    {
+      "name": "release-metadata.json",
+      "size": 592
+    },
+    {
+      "name": "saydo-cli-0.1.0-rc.13.tgz",
+      "size": 1244313
+    },
+    {
+      "name": "SHA256SUMS",
+      "size": 92
+    }
+  ],
+  "tarballSha256": "541193d2289831874cf52ac8ef587a0347d07b95daf802802f4ffb1382e80c22",
+  "sourceRevision": "8d70e57124fb4cbb9de7726e0e37ee922cb3ec87afe22680fdce494876c81f2a",
+  "buildId": "0.1.0-rc.13+8d70e57124fb.p1-0-0.c8d70e57124fb",
+  "protocolVersion": "1.0.0",
+  "physicalEvidence": [
+    {
+      "path": "e2e/evidence/2026-09-15-rc13-physical/mac-exec.json",
+      "platform": "darwin",
+      "installMode": "exec",
+      "arch": "arm64",
+      "nodeVersion": "v22.23.2",
+      "testedAt": "2026-09-15T04:42:14.393Z",
+      "hostFingerprint": "7d16a84d7f26885842c717476006b436c75a9c0813112c2ddaa1ae6e659cce4e",
+      "checks": {
+        "publishedBytes": true,
+        "releaseMetadata": true,
+        "runtimeIdentity": true,
+        "health": true,
+        "console": true,
+        "protectedSummary": true,
+        "attach": true,
+        "gracefulStop": true,
+        "noOrphans": true
+      },
+      "provenance": {
+        "gateRunId": "bfe80a19-575c-4732-b97b-c00b341a65b0",
+        "challenge": "fda11673e36c4a93a71a08dd39f25bd53aa184197a270788417bb5074d3b8aa3",
+        "transport": "local_process",
+        "verifierSha256": "ecdc490fff21ffb60da2f294f935771f44084f1d6920c831b297b9b4ec7c80c9",
+        "implementationBoundary": "b768089585d710255d61a693c2489ccf425f446f",
+        "releaseTagSha": "3e851cd128714ef2cfe87817c968c1574d5b8d4b",
+        "toolFingerprints": {
+          "docs/release/v0.1.0-rc.13-assets.json": "5d3b949001155794f0cce2c4b2eb8e42a14f9dc44e5ead142929028029acbd86",
+          "scripts/check-public-tree-privacy.mjs": "c5b15f23cef5f4e9165a2ea2b93518f7f70272cd6bd91ef8db9d3811e52ab114",
+          "scripts/post-release-gate.mjs": "5b443d02c47b0cd5f91be6c2c03f3230b70964b5e6dd32bdc8cd1e090e0c8718",
+          "scripts/public-text-redaction.mjs": "2f1fe54ffb0015491b20936907ddff19d3704ac58490a0741fbd493442949671",
+          "scripts/release-asset-manifest.mjs": "0be9a93287e429277e99b8c6ae7fac69d2cc7c79586bc5f6027944939870d80b",
+          "scripts/release-availability.mjs": "d212e27b214dcdf0b4e8c6378bc20c4cfa64a9e59f01f179d9b92290925b0417",
+          "scripts/release-cloudflare-pages.mjs": "2ece79dcfa3a13824bb4c2dd711424352a78449181078e2d5ded3bffd4076b68",
+          "scripts/release-file-transaction.mjs": "6a29f7fcf8391fd39a9a2e127ed2b70ae81cd95abb0d05fb28e547cfb7f18c9f",
+          "scripts/release-openat-posix.py": "d2d8ac8b138951f9fcdbefc4552df8a746e2eaf35e4bf2e9318621c7eacb58ae",
+          "scripts/release-openat.mjs": "07f71537bc80881cc650c7c1600940be52d906676f3a78ca0b8d31995a96c9de",
+          "scripts/release-pages-deploy.mjs": "9fbd3baff384daa148236de94595b14da8eb29299242d630115a1bb91f947e86",
+          "scripts/release-physical-closure.mjs": "96963d4de8f0192a75b71541a43b103adce1c0fc54b6efb42e7e3c98985fd81f",
+          "scripts/release-physical-evidence.mjs": "3d9a75c25df223b599b4b339d2aa2697d9e6b3bec9c06fc8ef536f2ca9213a7e",
+          "scripts/release-tag-guard.mjs": "f35206e2246a09807fa3ba2d4eb160c875139e4d2983ee8e6402b547bb29ef95",
+          "scripts/run-release-verifier-windows.ps1": "2820592a085e3ba7166ab1c33d692fedef2b0ea38aca07ad4097b53b71b6094e",
+          "scripts/verify-release-url.mjs": "ecdc490fff21ffb60da2f294f935771f44084f1d6920c831b297b9b4ec7c80c9",
+          "scripts/week-audit-publication.mjs": "8cea786b2755068801ce16ea3dca4f9faddbd82e9353ffc7a51f36583eb5e2ae",
+          "scripts/week-audit.mjs": "de2aabdfaee7da3338307690aec9fa6e383569cc4d8ab3e765b7dff441a78e4c"
+        },
+        "targetFingerprint": "d7676eb85b73ffe8d6b50f915debe020c8a9f7b2aec495f5fc2c699dd1bc70c0"
+      }
+    },
+    {
+      "path": "e2e/evidence/2026-09-15-rc13-physical/mac-global.json",
+      "platform": "darwin",
+      "installMode": "global",
+      "arch": "arm64",
+      "nodeVersion": "v22.23.2",
+      "testedAt": "2026-09-15T04:42:27.754Z",
+      "hostFingerprint": "7d16a84d7f26885842c717476006b436c75a9c0813112c2ddaa1ae6e659cce4e",
+      "checks": {
+        "publishedBytes": true,
+        "releaseMetadata": true,
+        "runtimeIdentity": true,
+        "health": true,
+        "console": true,
+        "protectedSummary": true,
+        "attach": true,
+        "gracefulStop": true,
+        "noOrphans": true
+      },
+      "provenance": {
+        "gateRunId": "bfe80a19-575c-4732-b97b-c00b341a65b0",
+        "challenge": "064415f162fac48c0bfc3ec4b750533b98850545ea0d9833e7c611dd1db39964",
+        "transport": "local_process",
+        "verifierSha256": "ecdc490fff21ffb60da2f294f935771f44084f1d6920c831b297b9b4ec7c80c9",
+        "implementationBoundary": "b768089585d710255d61a693c2489ccf425f446f",
+        "releaseTagSha": "3e851cd128714ef2cfe87817c968c1574d5b8d4b",
+        "toolFingerprints": {
+          "docs/release/v0.1.0-rc.13-assets.json": "5d3b949001155794f0cce2c4b2eb8e42a14f9dc44e5ead142929028029acbd86",
+          "scripts/check-public-tree-privacy.mjs": "c5b15f23cef5f4e9165a2ea2b93518f7f70272cd6bd91ef8db9d3811e52ab114",
+          "scripts/post-release-gate.mjs": "5b443d02c47b0cd5f91be6c2c03f3230b70964b5e6dd32bdc8cd1e090e0c8718",
+          "scripts/public-text-redaction.mjs": "2f1fe54ffb0015491b20936907ddff19d3704ac58490a0741fbd493442949671",
+          "scripts/release-asset-manifest.mjs": "0be9a93287e429277e99b8c6ae7fac69d2cc7c79586bc5f6027944939870d80b",
+          "scripts/release-availability.mjs": "d212e27b214dcdf0b4e8c6378bc20c4cfa64a9e59f01f179d9b92290925b0417",
+          "scripts/release-cloudflare-pages.mjs": "2ece79dcfa3a13824bb4c2dd711424352a78449181078e2d5ded3bffd4076b68",
+          "scripts/release-file-transaction.mjs": "6a29f7fcf8391fd39a9a2e127ed2b70ae81cd95abb0d05fb28e547cfb7f18c9f",
+          "scripts/release-openat-posix.py": "d2d8ac8b138951f9fcdbefc4552df8a746e2eaf35e4bf2e9318621c7eacb58ae",
+          "scripts/release-openat.mjs": "07f71537bc80881cc650c7c1600940be52d906676f3a78ca0b8d31995a96c9de",
+          "scripts/release-pages-deploy.mjs": "9fbd3baff384daa148236de94595b14da8eb29299242d630115a1bb91f947e86",
+          "scripts/release-physical-closure.mjs": "96963d4de8f0192a75b71541a43b103adce1c0fc54b6efb42e7e3c98985fd81f",
+          "scripts/release-physical-evidence.mjs": "3d9a75c25df223b599b4b339d2aa2697d9e6b3bec9c06fc8ef536f2ca9213a7e",
+          "scripts/release-tag-guard.mjs": "f35206e2246a09807fa3ba2d4eb160c875139e4d2983ee8e6402b547bb29ef95",
+          "scripts/run-release-verifier-windows.ps1": "2820592a085e3ba7166ab1c33d692fedef2b0ea38aca07ad4097b53b71b6094e",
+          "scripts/verify-release-url.mjs": "ecdc490fff21ffb60da2f294f935771f44084f1d6920c831b297b9b4ec7c80c9",
+          "scripts/week-audit-publication.mjs": "8cea786b2755068801ce16ea3dca4f9faddbd82e9353ffc7a51f36583eb5e2ae",
+          "scripts/week-audit.mjs": "de2aabdfaee7da3338307690aec9fa6e383569cc4d8ab3e765b7dff441a78e4c"
+        },
+        "targetFingerprint": "d7676eb85b73ffe8d6b50f915debe020c8a9f7b2aec495f5fc2c699dd1bc70c0"
+      }
+    },
+    {
+      "path": "e2e/evidence/2026-09-15-rc13-physical/windows-exec.json",
+      "platform": "win32",
+      "installMode": "exec",
+      "arch": "x64",
+      "nodeVersion": "v22.22.0",
+      "testedAt": "2026-09-15T04:42:42.223Z",
+      "hostFingerprint": "0fa86657c6472c5acc0e34ef3ad1dcd29e7bf439e9e70191ad52b84dc1061bbd",
+      "checks": {
+        "publishedBytes": true,
+        "releaseMetadata": true,
+        "runtimeIdentity": true,
+        "health": true,
+        "console": true,
+        "protectedSummary": true,
+        "attach": true,
+        "gracefulStop": true,
+        "noOrphans": true
+      },
+      "provenance": {
+        "gateRunId": "bfe80a19-575c-4732-b97b-c00b341a65b0",
+        "challenge": "6dc028641a7b9734d38a3e420fbcccc543327a8e7fed539cb8c68edf6113cbe8",
+        "transport": "pinned_ssh",
+        "verifierSha256": "ecdc490fff21ffb60da2f294f935771f44084f1d6920c831b297b9b4ec7c80c9",
+        "implementationBoundary": "b768089585d710255d61a693c2489ccf425f446f",
+        "releaseTagSha": "3e851cd128714ef2cfe87817c968c1574d5b8d4b",
+        "toolFingerprints": {
+          "docs/release/v0.1.0-rc.13-assets.json": "5d3b949001155794f0cce2c4b2eb8e42a14f9dc44e5ead142929028029acbd86",
+          "scripts/check-public-tree-privacy.mjs": "c5b15f23cef5f4e9165a2ea2b93518f7f70272cd6bd91ef8db9d3811e52ab114",
+          "scripts/post-release-gate.mjs": "5b443d02c47b0cd5f91be6c2c03f3230b70964b5e6dd32bdc8cd1e090e0c8718",
+          "scripts/public-text-redaction.mjs": "2f1fe54ffb0015491b20936907ddff19d3704ac58490a0741fbd493442949671",
+          "scripts/release-asset-manifest.mjs": "0be9a93287e429277e99b8c6ae7fac69d2cc7c79586bc5f6027944939870d80b",
+          "scripts/release-availability.mjs": "d212e27b214dcdf0b4e8c6378bc20c4cfa64a9e59f01f179d9b92290925b0417",
+          "scripts/release-cloudflare-pages.mjs": "2ece79dcfa3a13824bb4c2dd711424352a78449181078e2d5ded3bffd4076b68",
+          "scripts/release-file-transaction.mjs": "6a29f7fcf8391fd39a9a2e127ed2b70ae81cd95abb0d05fb28e547cfb7f18c9f",
+          "scripts/release-openat-posix.py": "d2d8ac8b138951f9fcdbefc4552df8a746e2eaf35e4bf2e9318621c7eacb58ae",
+          "scripts/release-openat.mjs": "07f71537bc80881cc650c7c1600940be52d906676f3a78ca0b8d31995a96c9de",
+          "scripts/release-pages-deploy.mjs": "9fbd3baff384daa148236de94595b14da8eb29299242d630115a1bb91f947e86",
+          "scripts/release-physical-closure.mjs": "96963d4de8f0192a75b71541a43b103adce1c0fc54b6efb42e7e3c98985fd81f",
+          "scripts/release-physical-evidence.mjs": "3d9a75c25df223b599b4b339d2aa2697d9e6b3bec9c06fc8ef536f2ca9213a7e",
+          "scripts/release-tag-guard.mjs": "f35206e2246a09807fa3ba2d4eb160c875139e4d2983ee8e6402b547bb29ef95",
+          "scripts/run-release-verifier-windows.ps1": "2820592a085e3ba7166ab1c33d692fedef2b0ea38aca07ad4097b53b71b6094e",
+          "scripts/verify-release-url.mjs": "ecdc490fff21ffb60da2f294f935771f44084f1d6920c831b297b9b4ec7c80c9",
+          "scripts/week-audit-publication.mjs": "8cea786b2755068801ce16ea3dca4f9faddbd82e9353ffc7a51f36583eb5e2ae",
+          "scripts/week-audit.mjs": "de2aabdfaee7da3338307690aec9fa6e383569cc4d8ab3e765b7dff441a78e4c"
+        },
+        "targetFingerprint": "2ee2a984a142f78fcb7c619a0f482187d1df18257c312175d2fd7b028a7ea09c",
+        "sshHostKeyFingerprint": "24399546c59c96f4c10e44c326e934215499abf9ecfee4de4eaa63572ba462b3",
+        "remoteRoot": "saydo-rv-bfe80a19-575c-4732-b97b-c00b341a65b0",
+        "closureFingerprints": {
+          "docs/release/v0.1.0-rc.13-assets.json": "5d3b949001155794f0cce2c4b2eb8e42a14f9dc44e5ead142929028029acbd86",
+          "scripts/release-asset-manifest.mjs": "0be9a93287e429277e99b8c6ae7fac69d2cc7c79586bc5f6027944939870d80b",
+          "scripts/release-file-transaction.mjs": "6a29f7fcf8391fd39a9a2e127ed2b70ae81cd95abb0d05fb28e547cfb7f18c9f",
+          "scripts/release-openat.mjs": "07f71537bc80881cc650c7c1600940be52d906676f3a78ca0b8d31995a96c9de",
+          "scripts/run-release-verifier-windows.ps1": "2820592a085e3ba7166ab1c33d692fedef2b0ea38aca07ad4097b53b71b6094e",
+          "scripts/verify-release-url.mjs": "ecdc490fff21ffb60da2f294f935771f44084f1d6920c831b297b9b4ec7c80c9"
+        }
+      }
+    },
+    {
+      "path": "e2e/evidence/2026-09-15-rc13-physical/windows-global.json",
+      "platform": "win32",
+      "installMode": "global",
+      "arch": "x64",
+      "nodeVersion": "v22.22.0",
+      "testedAt": "2026-09-15T04:42:56.918Z",
+      "hostFingerprint": "0fa86657c6472c5acc0e34ef3ad1dcd29e7bf439e9e70191ad52b84dc1061bbd",
+      "checks": {
+        "publishedBytes": true,
+        "releaseMetadata": true,
+        "runtimeIdentity": true,
+        "health": true,
+        "console": true,
+        "protectedSummary": true,
+        "attach": true,
+        "gracefulStop": true,
+        "noOrphans": true
+      },
+      "provenance": {
+        "gateRunId": "bfe80a19-575c-4732-b97b-c00b341a65b0",
+        "challenge": "a3941298dd7d2d07f0f230e940c9a079264ff4ccb5bd931e85740cd43d577190",
+        "transport": "pinned_ssh",
+        "verifierSha256": "ecdc490fff21ffb60da2f294f935771f44084f1d6920c831b297b9b4ec7c80c9",
+        "implementationBoundary": "b768089585d710255d61a693c2489ccf425f446f",
+        "releaseTagSha": "3e851cd128714ef2cfe87817c968c1574d5b8d4b",
+        "toolFingerprints": {
+          "docs/release/v0.1.0-rc.13-assets.json": "5d3b949001155794f0cce2c4b2eb8e42a14f9dc44e5ead142929028029acbd86",
+          "scripts/check-public-tree-privacy.mjs": "c5b15f23cef5f4e9165a2ea2b93518f7f70272cd6bd91ef8db9d3811e52ab114",
+          "scripts/post-release-gate.mjs": "5b443d02c47b0cd5f91be6c2c03f3230b70964b5e6dd32bdc8cd1e090e0c8718",
+          "scripts/public-text-redaction.mjs": "2f1fe54ffb0015491b20936907ddff19d3704ac58490a0741fbd493442949671",
+          "scripts/release-asset-manifest.mjs": "0be9a93287e429277e99b8c6ae7fac69d2cc7c79586bc5f6027944939870d80b",
+          "scripts/release-availability.mjs": "d212e27b214dcdf0b4e8c6378bc20c4cfa64a9e59f01f179d9b92290925b0417",
+          "scripts/release-cloudflare-pages.mjs": "2ece79dcfa3a13824bb4c2dd711424352a78449181078e2d5ded3bffd4076b68",
+          "scripts/release-file-transaction.mjs": "6a29f7fcf8391fd39a9a2e127ed2b70ae81cd95abb0d05fb28e547cfb7f18c9f",
+          "scripts/release-openat-posix.py": "d2d8ac8b138951f9fcdbefc4552df8a746e2eaf35e4bf2e9318621c7eacb58ae",
+          "scripts/release-openat.mjs": "07f71537bc80881cc650c7c1600940be52d906676f3a78ca0b8d31995a96c9de",
+          "scripts/release-pages-deploy.mjs": "9fbd3baff384daa148236de94595b14da8eb29299242d630115a1bb91f947e86",
+          "scripts/release-physical-closure.mjs": "96963d4de8f0192a75b71541a43b103adce1c0fc54b6efb42e7e3c98985fd81f",
+          "scripts/release-physical-evidence.mjs": "3d9a75c25df223b599b4b339d2aa2697d9e6b3bec9c06fc8ef536f2ca9213a7e",
+          "scripts/release-tag-guard.mjs": "f35206e2246a09807fa3ba2d4eb160c875139e4d2983ee8e6402b547bb29ef95",
+          "scripts/run-release-verifier-windows.ps1": "2820592a085e3ba7166ab1c33d692fedef2b0ea38aca07ad4097b53b71b6094e",
+          "scripts/verify-release-url.mjs": "ecdc490fff21ffb60da2f294f935771f44084f1d6920c831b297b9b4ec7c80c9",
+          "scripts/week-audit-publication.mjs": "8cea786b2755068801ce16ea3dca4f9faddbd82e9353ffc7a51f36583eb5e2ae",
+          "scripts/week-audit.mjs": "de2aabdfaee7da3338307690aec9fa6e383569cc4d8ab3e765b7dff441a78e4c"
+        },
+        "targetFingerprint": "2ee2a984a142f78fcb7c619a0f482187d1df18257c312175d2fd7b028a7ea09c",
+        "sshHostKeyFingerprint": "24399546c59c96f4c10e44c326e934215499abf9ecfee4de4eaa63572ba462b3",
+        "remoteRoot": "saydo-rv-bfe80a19-575c-4732-b97b-c00b341a65b0",
+        "closureFingerprints": {
+          "docs/release/v0.1.0-rc.13-assets.json": "5d3b949001155794f0cce2c4b2eb8e42a14f9dc44e5ead142929028029acbd86",
+          "scripts/release-asset-manifest.mjs": "0be9a93287e429277e99b8c6ae7fac69d2cc7c79586bc5f6027944939870d80b",
+          "scripts/release-file-transaction.mjs": "6a29f7fcf8391fd39a9a2e127ed2b70ae81cd95abb0d05fb28e547cfb7f18c9f",
+          "scripts/release-openat.mjs": "07f71537bc80881cc650c7c1600940be52d906676f3a78ca0b8d31995a96c9de",
+          "scripts/run-release-verifier-windows.ps1": "2820592a085e3ba7166ab1c33d692fedef2b0ea38aca07ad4097b53b71b6094e",
+          "scripts/verify-release-url.mjs": "ecdc490fff21ffb60da2f294f935771f44084f1d6920c831b297b9b4ec7c80c9"
+        }
+      }
+    }
+  ],
+  "availability": [
+    {
+      "path": "README.md",
+      "state": "available"
+    },
+    {
+      "path": "docs/site/2026-08-20-docs-page-content.fable.md",
+      "state": "available"
+    },
+    {
+      "path": "docs/site/2026-08-20-docs-page-content.fable.md",
+      "state": "available"
+    },
+    {
+      "path": "docs/site/2026-08-20-homepage-structure-copy.fable.md",
+      "state": "available"
+    },
+    {
+      "path": "docs/site/2026-08-20-homepage-structure-copy.fable.md",
+      "state": "available"
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/docs/index.html",
+      "state": "available"
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/docs/index.html",
+      "state": "available"
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/en/docs/index.html",
+      "state": "available"
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/en/docs/index.html",
+      "state": "available"
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/index.html",
+      "state": "available"
+    },
+    {
+      "path": "deploy/saydo-octoooo-com/en/index.html",
+      "state": "available"
+    }
+  ]
+}
