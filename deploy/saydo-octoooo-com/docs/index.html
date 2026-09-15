@@ -305,8 +305,10 @@ pnpm install &amp;&amp; pnpm -r build</code></pre>
         <p>上一步的一次运行命令已经启动服务;全局安装后可使用:</p>
         <pre><code>saydo up        # 前台持有 daemon,Ctrl+C 优雅退出并可续接任务
 saydo status    # 探活:0=已连上 / 1=端口空闲 / 2=端口冲突
-saydo open      # 用带访问凭证的地址打开控制台(daemon 需已在运行)</code></pre>
-        <div class="docs-note"><p>v0.1.0-rc.13 包只有这三个子命令,没有 <code>--help</code>;敲错命令只会打印 <code>[fail] cli failed</code>。控制台地址必须带 <code>?token=</code> 访问凭证,直接打开 <code>http://localhost:47100</code> 会看到「访问凭证已失效」——这不是坏了,用 <code>saydo open</code> 打开即可;用了 <code>--no-open</code> 也一样。</p></div>
+saydo open      # 用带访问凭证的地址打开控制台(daemon 需已在运行)
+saydo doctor    # 只读诊断:版本 / 服务 / 配置待生效 / 语音上游与下一步;--json 机器可读;退出码 0 正常 / 1 有降级 / 2 有故障
+saydo help      # 用法(--help / -h / 无参数同;敲错命令会打印原因与完整用法)</code></pre>
+        <div class="docs-note"><p>控制台地址必须带 <code>?token=</code> 访问凭证,直接打开 <code>http://localhost:47100</code> 会看到「访问凭证已失效」——这不是坏了,用 <code>saydo open</code> 打开即可;用了 <code>--no-open</code> 时终端会提示这一步。</p></div>
         <p>源码开发形态使用 <code>pnpm --filter @saydo/cli build</code> 后运行 <code>node packages/cli/dist/cli.mjs up</code>。同一个数据目录 <code>~/.saydo</code> 同时只允许一个实例。</p>
         <ul>
           <li>缺省端口 <strong>47100</strong>(直起 daemon 用环境变量 <code>SAYDO_DAEMON_PORT</code> 覆盖;<code>saydo</code> 命令行只认 <code>--port</code>);缺省只监听本机回环地址。<code>saydo up</code> 缺省会自动打开浏览器,<code>--no-open</code> 可关。</li>
@@ -913,7 +915,6 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         <p><strong>是把我的项目上传到「说到」自营云端代跑吗?</strong> 不是。没有承载产品数据的「说到」自营云后台;重活和核心持久数据在你的电脑上;你主动配置的第三方 AI、系统或浏览器语音识别、推送服务等例外由你的设备直连并适用对应服务商条款。</p>
         <p><strong>需要什么前提?</strong> macOS / Windows / Linux + 一个已安装登录的 AI CLI(或一个 API key);Node 22 由一条命令安装脚本自动准备;常驻安装与系统通知目前只有 macOS 实现。语音和执行都是可选增量(§4)。</p>
         <p><strong>装完打开是「先把对话模型配好」,列表是空的。</strong> 这台机器没有任何已登录的 CLI,也没存 API key。空态会逐家列出要跑的登录命令;跑完回来点「重新检测」,或点「添加 API 直连」填 key。</p>
-        <p><strong>`saydo --help` / 敲错命令只显示 `[fail] cli failed`。</strong> v0.1.0-rc.13 包只有 <code>up / status / open</code> 三个子命令且没有帮助输出(<code>help</code> 与 <code>doctor</code> 已在开发树中,尚未发布);按 §4.3 使用即可。</p>
         <p><strong>不配任何 key 能用吗?</strong> 登录态不能当成已经可聊:已接线且自检通过的 CLI 可以走零 API key 的慢速文本对话(每轮约 15–25 秒;登录不等于免费)。未接线或自检失败的 CLI 不能当模型供给。语音走浏览器系统语音或打字,完整语音可选。</p>
         <p><strong>它怎么知道「办完了」?</strong> 执行和检查都跑完、产物落盘,它说「等你验收」——不说「做完了」;你点头、过强认证合并,才是「交付了」。</p>
         <p><strong>它会不会偷偷花钱?</strong> 订阅调用费用以服务商为准、撞限流只会如实报错不会转计费;API 调用有每任务成本封顶 + 活跃时长 + 回合三熔断;S3(花钱 / 部署 / 删数据 / 对外发消息)必须你在屏幕上强认证。</p>

@@ -41,7 +41,7 @@
     "research/week-audit/2026-08-22-ledger.json": "a989895c421d23ad35966da0cfbd86ac74c1089bf152aa763c38302b7c2b216d",
     "research/week-audit/2026-08-22-semantic-review.json": "905b2806c237bcea81eb8b3f64f66cec3e81ff8d3f5d1d3889c82839073cd1e5",
     "research/week-audit/2026-08-22-ref-manifest.json": "46fc3c9b4b5ac02a9a862ace714d721c9434583fc055f8f5246b58bd7cf0f70d",
-    "research/week-audit/2026-08-23-publication-manifest.json": "0b74ee3ec2888ebc5e3b3b44531f3a42ee652fd0b31dab188e8ee519ff08b995",
+    "research/week-audit/2026-08-23-publication-manifest.json": "745e352d88e76ca1f133a0d4630e607c7e4394c65c1faa7a35eae09f97b38fa2",
     "research/week-audit/2026-08-23-review-finding-anchor.json": "03c6ef06fb8f3834e311b06874a869c4e232b4b8f3842f95ef54d6ce388ef378",
     "research/week-audit/2026-08-23-remediation-cross-links.json": "c1cdfebe08cac2adff5ebdd521e9f180210b6a40bac32498fa0cb8ca2022e02e",
     "research/week-audit/2026-08-23-remediation-ledger.json": "2ce58f8c0cea79751ee7968a58d46f7d6a2f4d788100be98b0abe0660f001d2a",
@@ -59,8 +59,8 @@
         ],
         "kind": "file",
         "mode": 420,
-        "bytes": 136356,
-        "sha256": "2619e445dddfa460a10cd77a8fd2798fd5b89f1723f7637450b03e7621ba5e77"
+        "bytes": 136216,
+        "sha256": "8c1f66c050d461c2714a928918279c337d9a35bd370ffcdf3617efa0e0c63345"
       },
       {
         "path": "deploy/saydo-octoooo-com/en/docs/index.html",
@@ -69,128 +69,8 @@
         ],
         "kind": "file",
         "mode": 420,
-        "bytes": 159306,
-        "sha256": "7881e0ef286f8dc35d03e01888f38375c8ceee624c544f040ba9dd171c6a7ffd"
-      },
-      {
-        "path": "deploy/saydo-octoooo-com/en/index.html",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 48539,
-        "sha256": "5488f76c5e4370ee3f9e35b4affbd9b31adfa23084403658cec0605685b1ae7f"
-      },
-      {
-        "path": "deploy/saydo-octoooo-com/index.html",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 47247,
-        "sha256": "914e8e393fa82e01d3f6f9d77fd68d40e03f7256f3429f585468384dcc5eb344"
-      },
-      {
-        "path": "deploy/saydo-octoooo-com/install-core.ps1",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 12124,
-        "sha256": "eb13b99c8a4b03cb0938389c99634e6e26eb11ff14f9eb54b238623b2c530503"
-      },
-      {
-        "path": "deploy/saydo-octoooo-com/install.sh",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 11056,
-        "sha256": "224b3834fd6af2a5f09aa29dc43f3d292a9189f9a1c7d3953fa8f284cf598f36"
-      },
-      {
-        "path": "docs/release/version-matrix.md",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 5040,
-        "sha256": "6bf7ae382f3d758223a4aa2992788686ab8d52d1bfa448c4171bb5b85f4a0d85"
-      },
-      {
-        "path": "docs/site/2026-08-20-docs-page-content.fable.md",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 111366,
-        "sha256": "323764d2350c40412e60888c55bc0436a19ba15c335df6fe1845d1b4da14a4d8"
-      },
-      {
-        "path": "docs/site/2026-08-20-homepage-structure-copy.fable.md",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 23548,
-        "sha256": "6216e3993be7bd5a9c5bf37591b853e9e180bcc9cfc13d99265a1cd517f68f62"
-      },
-      {
-        "path": "e2e/evidence/2026-09-15-rc13-availability.json",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 17626,
-        "sha256": "a55a80af626eb11fc8a015a36ea05f8cd6a8eb3bd2589407e190bbb8395fe0fc"
-      },
-      {
-        "path": "e2e/evidence/2026-09-15-rc13-physical/mac-exec.json",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 3888,
-        "sha256": "cea1dfc6e3b8a4e0162ba9f6b6a7dc558a7e1dd1bdc715693f30a4421ae94d21"
-      },
-      {
-        "path": "e2e/evidence/2026-09-15-rc13-physical/mac-global.json",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 3890,
-        "sha256": "582eddd19622f72d7fd5540d12edb7f445efa50d5b5cbd45f1a2d886b3b3e54a"
-      },
-      {
-        "path": "e2e/evidence/2026-09-15-rc13-physical/windows-exec.json",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 4752,
-        "sha256": "c0fe3c48ea041d2b66001394e9e449a6b5770c9bc939c3acb8a2bb0a0ad6e961"
-      },
-      {
-        "path": "e2e/evidence/2026-09-15-rc13-physical/windows-global.json",
-        "states": [
-          "staged"
-        ],
-        "kind": "file",
-        "mode": 420,
-        "bytes": 4754,
-        "sha256": "bc083794579ca6c6c01df7fbd8be5f2e0897cfdf59991580f8b374b4c7d0281a"
+        "bytes": 159145,
+        "sha256": "d4bb91d8fe45d6705f448e6ffadd6ff2e19ee474ec174c2f6b0c58303a4ac787"
       },
       {
         "path": "README.md",
@@ -199,8 +79,8 @@
         ],
         "kind": "file",
         "mode": 420,
-        "bytes": 6496,
-        "sha256": "5a419290250362cc84b230be8171039c00cd22a42dffedc0f79b9b4f11830efc"
+        "bytes": 6455,
+        "sha256": "bcc4550ff8535d5754e494915c93f442ca5cbdbb39d3b701daf84928446d3315"
       }
     ]
   }

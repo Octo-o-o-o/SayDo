@@ -53,8 +53,8 @@ saydo up
 | `saydo up` | 前台持有 daemon，`Ctrl+C` 优雅退出并可续接任务 |
 | `saydo status` | 探活：0=已连上 / 1=端口空闲 / 2=端口冲突 |
 | `saydo open` | 打开控制台 |
-| `saydo doctor` | 只读诊断：已安装/运行版本、数据目录 digest、配置待生效、pipeline 与语音上游状态及下一步；`--json` 输出机器可读；退出码 0=正常 / 1=有降级 / 2=有故障。**仅开发树；v0.1.0-rc.13 包无此命令** |
-| `saydo help` | 打印用法（`--help` / `-h` / 无参数同）。**仅开发树；rc.13 包敲错命令只打印 `[fail] cli failed`** |
+| `saydo doctor` | 只读诊断：已安装/运行版本、数据目录 digest、配置待生效、pipeline 与语音上游状态及下一步；`--json` 输出机器可读；退出码 0=正常 / 1=有降级 / 2=有故障（rc.13 起） |
+| `saydo help` | 打印用法（`--help` / `-h` / 无参数同；rc.13 起，敲错命令也会打印首行原因与完整用法） |
 
 ## 开发
 

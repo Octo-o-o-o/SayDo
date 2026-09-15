@@ -1043,15 +1043,15 @@
       "path": "deploy/saydo-octoooo-com/docs/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 136356,
-      "sha256": "2619e445dddfa460a10cd77a8fd2798fd5b89f1723f7637450b03e7621ba5e77"
+      "bytes": 136216,
+      "sha256": "8c1f66c050d461c2714a928918279c337d9a35bd370ffcdf3617efa0e0c63345"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/docs/index.html",
       "kind": "file",
       "mode": 420,
-      "bytes": 159306,
-      "sha256": "7881e0ef286f8dc35d03e01888f38375c8ceee624c544f040ba9dd171c6a7ffd"
+      "bytes": 159145,
+      "sha256": "d4bb91d8fe45d6705f448e6ffadd6ff2e19ee474ec174c2f6b0c58303a4ac787"
     },
     {
       "path": "deploy/saydo-octoooo-com/en/index.html",
@@ -11438,8 +11438,8 @@
       "path": "README.md",
       "kind": "file",
       "mode": 420,
-      "bytes": 6496,
-      "sha256": "5a419290250362cc84b230be8171039c00cd22a42dffedc0f79b9b4f11830efc"
+      "bytes": 6455,
+      "sha256": "bcc4550ff8535d5754e494915c93f442ca5cbdbb39d3b701daf84928446d3315"
     },
     {
       "path": "research/2026-07-25-saydo-closeout-impl-readback.fable.md",
