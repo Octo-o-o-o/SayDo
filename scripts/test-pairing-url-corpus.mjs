@@ -275,7 +275,13 @@ const requiredIds = [
   "accept-ula-compressed-short",
   "reject-ula-trailing-single-colon",
   "reject-ula-leading-single-colon",
-  "reject-ula-triple-colon"
+  "reject-ula-triple-colon",
+  "reject-raw-combining-acute",
+  "accept-percent-combining-acute",
+  "reject-raw-variation-selector",
+  "accept-percent-variation-selector",
+  "accept-percent-dollar-identifier",
+  "accept-percent-dollar-braces"
 ];
 const have = new Set(corpus.cases.map((item) => item.id));
 for (const id of requiredIds) {
@@ -345,6 +351,14 @@ const ipv6DirectedIds = [
   "reject-ula-leading-single-colon",
   "reject-ula-triple-colon"
 ];
+const scalarIds = [
+  "reject-raw-combining-acute",
+  "accept-percent-combining-acute",
+  "reject-raw-variation-selector",
+  "accept-percent-variation-selector",
+  "accept-percent-dollar-identifier",
+  "accept-percent-dollar-braces"
+];
 function fixtureMismatch(ids) {
   return Object.keys(FIXTURE_REL).reduce((count, key) => {
     const disk = readFileSync(join(repo, FIXTURE_REL[key]), "utf8");
@@ -354,6 +368,7 @@ function fixtureMismatch(ids) {
 }
 const unicodeMismatch = fixtureMismatch(unicodeRejectIds);
 const ipv6Mismatch = fixtureMismatch(ipv6DirectedIds);
+const scalarMismatch = fixtureMismatch(scalarIds);
 record(
   unicodeMismatch === 0,
   `222-case five-class unicode authority reject present on three ends (${unicodeRejectIds.length} classes, ${unicodeMismatch} mismatch)`
@@ -362,6 +377,14 @@ record(
   ipv6Mismatch === 0,
   `IPv6 directed compressed-empty-hextet cases present on three ends (${ipv6DirectedIds.length} cases, ${ipv6Mismatch} mismatch)`
 );
+record(
+  scalarMismatch === 0,
+  `raw combining/VS reject and percent-encoded accept plus dollar tokens present on three ends (${scalarIds.length} cases, ${scalarMismatch} mismatch)`
+);
+record(generated.android.includes('"\\$identifier"'), "kotlin generator escapes $identifier token");
+record(!generated.android.includes('"$identifier"'), "kotlin generator does not emit interpolating $identifier");
+record(generated.android.includes('"\\${name}"'), "kotlin generator escapes ${name} token");
+record(!generated.android.includes('"${name}"'), "kotlin generator does not emit interpolating ${name}");
 
 if (fail > 0) {
   process.stdout.write(`[fail] pairing url corpus ${fail} failed, ${pass} passed\n`);

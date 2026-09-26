@@ -11,6 +11,7 @@ import { isWiredCliProvider, modelBindingSchema, namedApiProviderSchema, type Mo
 import { cliNameForProvider } from "../config/cliProviders.js";
 import { resolveExecutable } from "../config/executable.js";
 import {
+  envValueHasUnsafeChars,
   isSecretName,
   mergeEnvText,
   PROBE_SECRET_NAMES,
@@ -775,6 +776,14 @@ export function writeSetupSecretStaged(
   }
   if (typeof value !== "string" || value.length === 0) {
     return { ok: false, status: 422, code: "secret_value_required", message: "value 须为非空字符串" };
+  }
+  if (envValueHasUnsafeChars(value)) {
+    return {
+      ok: false,
+      status: 422,
+      code: "secret_body_rejected",
+      message: "value 含 .env 不能安全承载的控制字符"
+    };
   }
   // 拒路径穿越式 name(白名单已挡,双保险)
   if (name.includes("/") || name.includes("..") || name.includes("\0")) {

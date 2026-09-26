@@ -5,7 +5,7 @@
 // capability token 参数位:?token= / localStorage(4.1 起 daemon 才校验)。
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { pipelineMsgSchema, type PipelineMsg } from "@saydo/contracts";
+import { newId, pipelineMsgSchema, voiceHelloAckSchema, type PipelineMsg } from "@saydo/contracts";
 import { shouldFireReconnect, type ReconnectTrigger } from "../lib/reconnectPolicy";
 import { NATIVE_RESUME_EVENT } from "../mobile/reconnect";
 import { dispatchDataInvalidate } from "../lib/dataInvalidate";
@@ -39,6 +39,10 @@ export interface SpokenSentence {
   turnId?: string;
   /** ④e:是否已由 screen_text 全文替换(true 时 UI 按全文单气泡渲染) */
   fullScreenText?: boolean;
+  /** 该句首次到达时已提交的 focus-anchor;旧 turn 不随后来的锚改写 */
+  interviewFocusId?: string;
+  interviewAnchorRequestId?: string;
+  interviewAnchorGeneration?: number;
 }
 
 export interface MicState {
@@ -68,6 +72,9 @@ export interface ConfirmCardState {
   kind: string;
   digest: string;
   digestVersion: number;
+  packageId?: string;
+  revision?: number;
+  taskId?: string;
   /** countdown 消息到达时间戳+时长(null=等待式确认,无倒计时) */
   countdownStartAt: number | null;
   countdownMs: number | null;
@@ -106,6 +113,14 @@ interface VoiceChannelState {
   entities: EntityItem[];
   /** M2-voice-a:仅 mobile_lan 收到；队列防同一 React commit 前连续回复互相覆盖。 */
   nativeReplies: NativeReplyEvent[];
+  peerId: string | null;
+  daemonEpoch: string | null;
+  lastTextOutcome: "accepted" | "rejected" | "unknown" | null;
+  lastTextRetryable: boolean;
+  lastAnchorStatus: AnchorStatusEvent | null;
+  quiescedDrafts: QuiescedTranscript[];
+  /** 用户轮开始时的采访锚。迟到的 screen_text/tts 只认这份租约。 */
+  interviewRounds: InterviewRoundLease[];
 }
 
 /** 双动作交互(2026-07-28 评审 A2):采集意图 FIFO 队列——每条 asr.final 出队消费,
@@ -114,6 +129,7 @@ interface CaptureEntry {
   kind: "send" | "edit" | "cancelled";
   /** send 档占位气泡 key(负 seq 不与真轮冲突;final 到达按此替换) */
   placeholderKey?: string;
+  captureId?: string;
   timer: number;
 }
 
@@ -149,7 +165,46 @@ function resampleTo16k(input: Float32Array, fromRate: number): Float32Array {
 }
 
 import { daemonWsUrl } from "../lib/api";
+import {
+  bindThemedHoldToCapture,
+  canHandsfreeCapture,
+  canOpenMic,
+  isThemedVoiceHeld,
+  nextHandsFreeRoundPhase,
+  routeOrphanAsrFinal,
+  type HandsFreeRoundPhase
+} from "../lib/themedVoiceHold";
+import {
+  clearPendingTurnTextIfMatch,
+  readPendingTurnText,
+  readQuiescedTranscripts,
+  removeQuiescedTranscript,
+  upsertQuiescedTranscript,
+  writePendingTurnText,
+  type QuiescedTranscript
+} from "../lib/quiescedTranscripts";
+import type { AnchorStatusEvent, AnchorStatusWait } from "../lib/voiceAnchorFlow";
+import type { PendingAnchorPayload } from "../lib/pendingAnchor";
+import {
+  epochChangeLeavesPendingUnknown,
+  planDesktopTurnText,
+  shouldAcceptDesktopTurn,
+  modeSwitchCapturePlan,
+  routeCapturedFinal,
+  shouldReplayPendingOnHello,
+  takeCaptureEntry
+} from "../lib/captureQueue";
 import { reduceSessionProject, type SessionProjectState } from "./sessionProject";
+import {
+  applySpokenFromWire,
+  emptyAnchorOnly,
+  openInterviewRound,
+  reduceAnchorOnly,
+  type AnchorOnly,
+  type InterviewAnchorCommit,
+  type InterviewAnchorPhase,
+  type InterviewRoundLease
+} from "./interviewAnchor";
 
 function wsUrl(): string {
   return daemonWsUrl(); // 同源判定单源(vite dev 指 47100,其余同源;token 从 ?token=/localStorage)
@@ -161,10 +216,6 @@ function guessTurnIdFromSentenceId(sentenceId: string): string | undefined {
   const m = /^s-(.+)-(\d+)$/.exec(sentenceId);
   if (m) return m[1];
   return undefined;
-}
-
-function sentenceIdBelongsToTurn(sentenceId: string, turnId: string): boolean {
-  return sentenceId.includes(turnId);
 }
 
 export function useVoiceChannel(sessionId: string) {
@@ -181,7 +232,14 @@ export function useVoiceChannel(sessionId: string) {
     sessionProject: null,
     confirmCard: null,
     entities: [],
-    nativeReplies: []
+    nativeReplies: [],
+    peerId: null,
+    daemonEpoch: null,
+    lastTextOutcome: null,
+    lastTextRetryable: false,
+    lastAnchorStatus: null,
+    quiescedDrafts: typeof sessionStorage !== "undefined" ? readQuiescedTranscripts(sessionStorage, sessionId) : [],
+    interviewRounds: []
   });
   const modeRef = useRef<"ptt" | "hands_free">("ptt");
   const arrivalSeqRef = useRef(0); // A2:用户轮/AI 句合并流的到达序
@@ -199,6 +257,61 @@ export function useVoiceChannel(sessionId: string) {
   const micSeqRef = useRef(0);
   const micBufRef = useRef<number[]>([]);
   const lastLevelPushRef = useRef(0); // W4 3.9:电平推送节流
+  const handsFreeRoundRef = useRef<HandsFreeRoundPhase>("idle");
+  const pendingThemedHoldFinalRef = useRef(false);
+  const themedHoldDrainTimerRef = useRef<number | null>(null);
+  const parkPttAfterThemedRoundRef = useRef<() => void>(() => {});
+  const daemonEpochRef = useRef<string | null>(null);
+  const lastTextOutcomeRef = useRef<"accepted" | "rejected" | "unknown" | null>(null);
+  const interviewAnchorRef = useRef<AnchorOnly>(emptyAnchorOnly());
+  const interviewRoundsRef = useRef<InterviewRoundLease[]>([]);
+  const leaseUserTurnRef = useRef<(turnId: string | undefined) => void>(() => {});
+  leaseUserTurnRef.current = (turnId) => {
+    if (!turnId) return;
+    interviewRoundsRef.current = openInterviewRound(
+      interviewRoundsRef.current,
+      interviewAnchorRef.current.committed,
+      turnId
+    );
+  };
+  const [interviewAnchor, setInterviewAnchor] = useState<InterviewAnchorCommit | null>(null);
+  const [interviewAnchorPhase, setInterviewAnchorPhase] = useState<InterviewAnchorPhase>("idle");
+  const lastTextRetryableRef = useRef(false);
+  const receiptWaiters = useRef(new Map<string, (outcome: "accepted" | "rejected" | "unknown") => void>());
+  type AnchorWaiter = AnchorStatusWait & {
+    resolve: (ev: AnchorStatusEvent) => void;
+    reject: (err: Error) => void;
+  };
+  const lastAnchorByRequest = useRef(new Map<string, AnchorStatusEvent>());
+  const anchorWaiters = useRef(new Set<AnchorWaiter>());
+
+  useEffect(() => {
+    setState((s) => ({
+      ...s,
+      quiescedDrafts: readQuiescedTranscripts(sessionStorage, sessionId)
+    }));
+  }, [sessionId]);
+
+  const statusMatchesWaiter = (ev: AnchorStatusEvent, waiter: AnchorStatusWait): boolean => {
+    if (ev.sessionId !== waiter.sessionId || ev.requestId !== waiter.requestId) return false;
+    if (waiter.statuses.includes(ev.status)) return true;
+    return waiter.statuses.includes("prepared") && ev.status === "rearmed";
+  };
+
+  const deliverAnchorStatus = (ev: AnchorStatusEvent): void => {
+    lastAnchorByRequest.current.set(ev.requestId, ev);
+    for (const waiter of [...anchorWaiters.current]) {
+      if (!statusMatchesWaiter(ev, waiter)) continue;
+      anchorWaiters.current.delete(waiter);
+      waiter.resolve(ev);
+    }
+  };
+
+  const failAnchorWaiters = (err: Error): void => {
+    const pending = [...anchorWaiters.current];
+    anchorWaiters.current.clear();
+    for (const waiter of pending) waiter.reject(err);
+  };
 
   /** thinking 置位统一 helper:兜底覆盖 CLI oneshot 两次 120s 调用上界,运行时终态仍会提前清除。 */
   const setThinkingWithFallback = useCallback(() => {
@@ -226,15 +339,22 @@ export function useVoiceChannel(sessionId: string) {
   }, []);
 
   const enqueueCapture = useCallback(
-    (kind: CaptureEntry["kind"], durationSec: number, placeholderKey?: string) => {
-      const entry: CaptureEntry = { kind, ...(placeholderKey !== undefined ? { placeholderKey } : {}), timer: 0 };
-      entry.timer = window.setTimeout(() => expireCaptureEntry(entry), Math.max(105_000, durationSec * 1000 + 30_000)); // review B-2:下限对齐 pipeline 识别总超时 90s+余量(正常空 final 先到,此为双保险)
+    (kind: CaptureEntry["kind"], durationSec: number, placeholderKey?: string, captureId?: string) => {
+      const entry: CaptureEntry = {
+        kind,
+        ...(placeholderKey !== undefined ? { placeholderKey } : {}),
+        ...(captureId ? { captureId } : {}),
+        timer: 0
+      };
+      entry.timer = window.setTimeout(() => expireCaptureEntry(entry), Math.max(105_000, durationSec * 1000 + 30_000));
       captureQueueRef.current.push(entry);
     },
     [expireCaptureEntry]
   );
 
   const sendMicFrame = useCallback((samples: Float32Array) => {
+    if (!canOpenMic(isThemedVoiceHeld())) return;
+    if (!canHandsfreeCapture(modeRef.current, isThemedVoiceHeld())) return;
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     const frame = new Uint8Array(1 + 4 + samples.length * 2);
@@ -258,6 +378,8 @@ export function useVoiceChannel(sessionId: string) {
 
   const startMic = useCallback(async () => {
     if (micNodeRef.current) return;
+    if (!canOpenMic(isThemedVoiceHeld())) return;
+    if (!canHandsfreeCapture(modeRef.current, isThemedVoiceHeld())) return;
     try {
       if (!micStreamRef.current) {
         micStreamRef.current = await navigator.mediaDevices.getUserMedia({
@@ -453,6 +575,8 @@ export function useVoiceChannel(sessionId: string) {
           window.clearInterval(heartbeatTimer);
           heartbeatTimer = null;
         }
+        failAnchorWaiters(new Error("voice disconnected"));
+        lastAnchorByRequest.current.clear();
         setState((s) => ({ ...s, connected: false }));
         if (disposed) return;
         if (skipAutoReconnect) {
@@ -477,16 +601,47 @@ export function useVoiceChannel(sessionId: string) {
       }
       const msg = JSON.parse(ev.data) as Record<string, unknown>;
       switch (msg["t"]) {
-        case "hello.ack":
+        case "hello.ack": {
           reconnectAttempt = 0;
-          setState((s) => ({ ...s, connected: true }));
+          const hello = voiceHelloAckSchema.safeParse(msg);
+          const daemonEpoch = hello.success ? hello.data.daemonEpoch : null;
+          const peerId = hello.success ? hello.data.peerId : null;
+          const prevEpoch = daemonEpochRef.current;
+          daemonEpochRef.current = daemonEpoch;
+          if (
+            epochChangeLeavesPendingUnknown(
+              prevEpoch,
+              daemonEpoch,
+              Boolean(readPendingTurnText(sessionStorage, sessionId))
+            )
+          ) {
+            lastTextOutcomeRef.current = "unknown";
+            lastTextRetryableRef.current = false;
+            setState((s) => ({ ...s, lastTextOutcome: "unknown", lastTextRetryable: false }));
+          }
+          setState((s) => ({ ...s, connected: true, peerId, daemonEpoch }));
+          const pendingTurn = readPendingTurnText(sessionStorage, sessionId);
+          if (shouldReplayPendingOnHello(pendingTurn, daemonEpoch) && pendingTurn && daemonEpoch) {
+            ws.send(
+              JSON.stringify({
+                t: "turn.text",
+                sessionId,
+                turnId: pendingTurn.turnId,
+                text: pendingTurn.text,
+                typed: true,
+                receiptAction: "replay",
+                daemonEpoch
+              })
+            );
+          }
           if (connectedOnce) dispatchDataInvalidate("ws.reconnect");
           connectedOnce = true;
-          // 每次连接/重连都同步同一 durable sessionId；daemon 借 voice.mode 回放最新 session.project。
-          ws.send(JSON.stringify({ t: "voice.mode", sessionId, mode: modeRef.current }));
-          // ④e A6:握手后立即心跳,避免 30s 空窗被 90s 超时误杀(无 session 不发,schema 要求 sessionId)
+          if (!isThemedVoiceHeld()) {
+            ws.send(JSON.stringify({ t: "voice.mode", sessionId, mode: modeRef.current }));
+          }
           if (sessionId) ws.send(JSON.stringify({ t: "console.heartbeat", sessionId, atMs: performance.now() }));
           break;
+        }
         case "session.project": {
           const parsed = pipelineMsgSchema.safeParse(msg);
           if (!parsed.success || parsed.data.t !== "session.project") break;
@@ -503,31 +658,68 @@ export function useVoiceChannel(sessionId: string) {
           // 双动作路由(2026-07-28,评审 A2):PTT 采集轮按 FIFO 队列出队消费——
           // send=替换占位气泡+思考中;edit=只进编辑框事件(绝不进对话流,不置思考中);
           // cancelled=静默丢弃。队空(免手档/注入)走原行为。PTT 整段识别无 partial,分支互斥。
-          const entry = final ? captureQueueRef.current.shift() : undefined;
+          const expectThemedHoldFinal = pendingThemedHoldFinalRef.current;
+          if (final) {
+            handsFreeRoundRef.current = nextHandsFreeRoundPhase(handsFreeRoundRef.current, "asr_final");
+            if (expectThemedHoldFinal) {
+              pendingThemedHoldFinalRef.current = false;
+              if (themedHoldDrainTimerRef.current !== null) {
+                window.clearTimeout(themedHoldDrainTimerRef.current);
+                themedHoldDrainTimerRef.current = null;
+              }
+              if (isThemedVoiceHeld()) parkPttAfterThemedRoundRef.current();
+            }
+          }
+          const captureId = typeof msg["captureId"] === "string" ? (msg["captureId"] as string) : undefined;
+          const captureMode = typeof msg["captureMode"] === "string" ? (msg["captureMode"] as string) : undefined;
+          let entry: CaptureEntry | undefined;
+          if (final) {
+            const taken = takeCaptureEntry(captureQueueRef.current, captureId, { captureMode });
+            captureQueueRef.current = taken.queue;
+            entry = taken.entry;
+          }
           if (entry) window.clearTimeout(entry.timer);
-          // 实施后 review B-2:PTT 模式下队空到达的 final = 超时逐出/切模式后的迟到孤儿——
-          // 直接丢弃(回落原路径会让编辑/取消轮以"已发出"气泡复活 + thinking 悬挂);免手档不经队列照常
-          if (final && !entry && modeRef.current === "ptt") break;
-          if (entry && final) {
-            const text = (msg["text"] as string).trim();
-            if (entry.kind === "cancelled") break;
-            if (entry.kind === "edit") {
-              // 空转写(短按/没听清)也要出事件——Chat 侧给"没听清"反馈,不留悬挂 loading
-              setState((s) => ({ ...s, draftEvent: text === "" ? { kind: "error" } : { kind: "text", text } }));
+          // 队空 final:主题 hold / 等待已启动轮结束时留稿,避免切 PTT 后吞迟到免手转写。
+          // 无 hold 的 PTT 队空仍丢弃(超时逐出/切模式孤儿)。
+          if (final && !entry) {
+            const routed = routeOrphanAsrFinal({
+              mode: modeRef.current,
+              themedHold: isThemedVoiceHeld() || expectThemedHoldFinal,
+              text: (msg["text"] as string) ?? ""
+            });
+            if (routed.action === "ignore") break;
+            if (routed.action === "hold_as_draft") {
+              setState((s) => ({ ...s, draftEvent: { kind: "text", text: routed.text } }));
               break;
             }
-            // send 档:替换占位气泡;空转写 ⇒ 占位置失败态(没听清),不喂 thinking(daemon 侧同判空跳过 Brain)
+          }
+          if (entry && final) {
+            const routed = routeCapturedFinal({
+              kind: entry.kind,
+              recognitionOutcome: typeof msg["recognitionOutcome"] === "string" ? msg["recognitionOutcome"] : undefined,
+              text: typeof msg["text"] === "string" ? msg["text"] : ""
+            });
+            if (routed.action === "ignore") break;
+            if (routed.action === "draft" || routed.action === "draft_error") {
+              setState((s) => ({
+                ...s,
+                draftEvent: routed.action === "draft" ? { kind: "text", text: routed.text } : { kind: "error" }
+              }));
+              break;
+            }
+            if (routed.thinking) leaseUserTurnRef.current(msg["turnId"] as string);
             setState((s) => ({
               ...s,
+              interviewRounds: interviewRoundsRef.current,
               transcript: s.transcript.map((t) =>
                 t.turnId === entry.placeholderKey
-                  ? text === ""
+                  ? routed.failed
                     ? { ...t, transcribing: false, failed: true }
-                    : { ...t, turnId: msg["turnId"] as string, text, final: true, transcribing: false }
+                    : { ...t, turnId: msg["turnId"] as string, text: routed.text, final: true, transcribing: false }
                   : t
               )
             }));
-            if (text !== "") setThinkingWithFallback();
+            if (routed.thinking) setThinkingWithFallback();
             break;
           }
           setState((s) => {
@@ -539,12 +731,13 @@ export function useVoiceChannel(sessionId: string) {
             const rest = s.transcript.filter((x) => x.turnId !== turnId || x.final);
             // A3:用户说完(final)到 Brain 首句之间显示思考中;兜底覆盖 oneshot wall timeout。
             if (final && (msg["text"] as string).trim() !== "") {
+              leaseUserTurnRef.current(turnId);
               if (thinkingTimerRef.current) window.clearTimeout(thinkingTimerRef.current);
               thinkingTimerRef.current = window.setTimeout(
                 () => setState((s2) => ({ ...s2, thinking: false })),
                 THINKING_FALLBACK_MS
               );
-              return { ...s, transcript: [...rest, item], thinking: true };
+              return { ...s, interviewRounds: interviewRoundsRef.current, transcript: [...rest, item], thinking: true };
             }
             return { ...s, transcript: [...rest, item] };
           });
@@ -566,16 +759,18 @@ export function useVoiceChannel(sessionId: string) {
             return {
               ...s,
               thinking: false, // A3:Brain 回话到达,pending 结束
-              spoken: [
-                ...s.spoken,
+              spoken: applySpokenFromWire(
+                s.spoken,
+                interviewAnchorRef.current.committed,
                 {
+                  t: "tts.say",
                   sentenceId,
                   text: msg["text"] as string,
-                  truncated: false,
                   seq: ++arrivalSeqRef.current,
                   ...(turnGuess ? { turnId: turnGuess } : {})
-                }
-              ]
+                },
+                interviewRoundsRef.current
+              )
             };
           });
           break;
@@ -598,25 +793,21 @@ export function useVoiceChannel(sessionId: string) {
           // ④e:同 turnId 替换该轮逐句气泡为全文(不双显;用户轮时长标在 transcript 侧不受影响)
           const turnId = msg["turnId"] as string;
           const text = msg["text"] as string;
-          setState((s) => {
-            const rest = s.spoken.filter((sp) => sp.turnId !== turnId && !sentenceIdBelongsToTurn(sp.sentenceId, turnId));
-            const priorSeq = s.spoken.find((sp) => sp.turnId === turnId || sentenceIdBelongsToTurn(sp.sentenceId, turnId))?.seq;
-            return {
-              ...s,
-              thinking: false,
-              spoken: [
-                ...rest,
-                {
-                  sentenceId: `screen-${turnId}`,
-                  text,
-                  truncated: false,
-                  seq: priorSeq ?? ++arrivalSeqRef.current,
-                  turnId,
-                  fullScreenText: true
-                }
-              ]
-            };
-          });
+          setState((s) => ({
+            ...s,
+            thinking: false,
+            spoken: applySpokenFromWire(
+              s.spoken,
+              interviewAnchorRef.current.committed,
+              {
+                t: "screen_text",
+                turnId,
+                text,
+                seq: ++arrivalSeqRef.current
+              },
+              interviewRoundsRef.current
+            )
+          }));
           break;
         }
         case "barge_in":
@@ -629,7 +820,14 @@ export function useVoiceChannel(sessionId: string) {
           break;
         case "vad.speech":
           // W2 阶段 D:免手档用户开口(pipeline VAD)——在播即截断(barge_in + watermark,unheard 不变)
-          if (msg["phase"] === "start" && modeRef.current === "hands_free") bargeInIfPlaying();
+          if (modeRef.current === "hands_free") {
+            if (msg["phase"] === "start") {
+              handsFreeRoundRef.current = nextHandsFreeRoundPhase(handsFreeRoundRef.current, "vad_start");
+              bargeInIfPlaying();
+            } else if (msg["phase"] === "end") {
+              handsFreeRoundRef.current = nextHandsFreeRoundPhase(handsFreeRoundRef.current, "vad_end");
+            }
+          }
           break;
         case "pipeline.health":
           setState((s) => ({ ...s, health: { asr: msg["asr"] as string, tts: msg["tts"] as string } }));
@@ -644,6 +842,9 @@ export function useVoiceChannel(sessionId: string) {
               kind: (msg["kind"] as string) ?? "unknown",
               digest: (msg["digest"] as string) ?? "",
               digestVersion: (msg["digestVersion"] as number) ?? 1,
+              ...(typeof msg["packageId"] === "string" ? { packageId: msg["packageId"] } : {}),
+              ...(typeof msg["revision"] === "number" ? { revision: msg["revision"] } : {}),
+              ...(typeof msg["taskId"] === "string" ? { taskId: msg["taskId"] } : {}),
               countdownStartAt: null,
               countdownMs: null
             }
@@ -663,6 +864,68 @@ export function useVoiceChannel(sessionId: string) {
             s.confirmCard && s.confirmCard.receiptId === (msg["receiptId"] as string) ? { ...s, confirmCard: null } : s
           );
           break;
+        case "voice.anchor_status": {
+          const ev: AnchorStatusEvent = {
+            sessionId: String(msg["sessionId"] ?? ""),
+            requestId: String(msg["requestId"] ?? ""),
+            status: msg["status"] as AnchorStatusEvent["status"],
+            ...(typeof msg["code"] === "string" ? { code: msg["code"] } : {}),
+            ...(typeof msg["retryable"] === "boolean" ? { retryable: msg["retryable"] } : {}),
+            ...(Array.isArray(msg["unknownEpochs"]) ? { unknownEpochs: msg["unknownEpochs"] as number[] } : {}),
+            ...(msg["emptyRound"] === "empty" || msg["emptyRound"] === "unusable"
+              ? { emptyRound: msg["emptyRound"] }
+              : {})
+          };
+          setState((s) => ({ ...s, lastAnchorStatus: ev }));
+          deliverAnchorStatus(ev);
+          break;
+        }
+        case "turn.text.result": {
+          if (String(msg["sessionId"] ?? "") !== sessionId) break;
+          const turnId = String(msg["turnId"] ?? "");
+          const outcome =
+            msg["outcome"] === "accepted" || msg["outcome"] === "rejected" || msg["outcome"] === "unknown"
+              ? msg["outcome"]
+              : "unknown";
+          if (outcome === "accepted") clearPendingTurnTextIfMatch(sessionStorage, sessionId, turnId);
+          const retryable = msg["retryable"] === true;
+          lastTextOutcomeRef.current = outcome;
+          lastTextRetryableRef.current = retryable;
+          setState((s) => ({ ...s, lastTextOutcome: outcome, lastTextRetryable: retryable }));
+          receiptWaiters.current.get(turnId)?.(outcome);
+          receiptWaiters.current.delete(turnId);
+          break;
+        }
+        case "voice.quiesced_transcript": {
+          const item: QuiescedTranscript = {
+            sessionId: String(msg["sessionId"] ?? sessionId),
+            requestId: String(msg["requestId"] ?? ""),
+            turnId: String(msg["turnId"] ?? ""),
+            text: String(msg["text"] ?? ""),
+            captureMode: msg["captureMode"] === "ptt" ? "ptt" : "hands_free",
+            ...(typeof msg["captureId"] === "string" ? { captureId: msg["captureId"] } : {}),
+            ...(msg["captureIntent"] === "send" || msg["captureIntent"] === "edit"
+              ? { captureIntent: msg["captureIntent"] }
+              : {}),
+            ...(typeof msg["sourceFocusId"] === "string" ? { sourceFocusId: msg["sourceFocusId"] } : {})
+          };
+          if (item.text.trim() === "") break;
+          if (upsertQuiescedTranscript(sessionStorage, item)) {
+            ws.send(
+              JSON.stringify({
+                t: "voice.quiesced_transcript_ack",
+                sessionId: item.sessionId,
+                requestId: item.requestId,
+                turnId: item.turnId
+              })
+            );
+            setState((s) => ({
+              ...s,
+              quiescedDrafts: [...s.quiescedDrafts.filter((row) => row.turnId !== item.turnId), item]
+            }));
+          }
+          break;
+        }
         case "focus.entity": {
           const raw = msg["entity"] as Record<string, unknown> | undefined;
           if (!raw || typeof raw !== "object") break;
@@ -707,33 +970,60 @@ export function useVoiceChannel(sessionId: string) {
     };
   }, [sessionId, reportPlayout, stopPlayback, stopMic, startPlayback, clearAudioQueue]);
 
+  const sendDoneSpeaking = useCallback(
+    (intent: "send" | "edit" | "cancel") => {
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) return undefined;
+      const captureId = newId("evt");
+      ws.send(
+        JSON.stringify({
+          t: "turn.done_speaking",
+          sessionId,
+          captureId,
+          captureIntent: intent,
+          ...(intent === "send" ? {} : { holdForConfirm: true })
+        })
+      );
+      return captureId;
+    },
+    [sessionId]
+  );
+
+  const sendHoldForConfirm = useCallback(() => {
+    sendDoneSpeaking("edit");
+  }, [sendDoneSpeaking]);
+
   const reconnect = useCallback(() => {
     reconnectRef.current();
   }, []);
 
   /** PTT 按下:开麦采集上行;若在播报即触发 barge-in(unheard 纪律的播放侧) */
   const pttDown = useCallback(() => {
+    if (!canOpenMic(isThemedVoiceHeld())) return;
     bargeInIfPlaying();
     void startMic();
   }, [bargeInIfPlaying, startMic]);
 
   const pttUp = useCallback(() => {
     stopMic();
-    const ws = wsRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ t: "turn.done_speaking", sessionId }));
-    }
-  }, [sessionId, stopMic]);
+    sendDoneSpeaking("send");
+  }, [stopMic, sendDoneSpeaking]);
 
   /** W2 阶段 D:模式切换(免手=常开麦 + pipeline VAD 起停;PTT 保留为兜底通道) */
   const setMode = useCallback(
     (mode: "ptt" | "hands_free") => {
+      if (mode !== "hands_free") {
+        handsFreeRoundRef.current = nextHandsFreeRoundPhase(handsFreeRoundRef.current, "mode_leave_hf");
+      }
       modeRef.current = mode;
-      // 评审 A2:切模式清采集队列——遗留 send 占位置失败态,不留悬挂 loading;
-      // 在途识别 pipeline 不 cancel(rebound 只清 VAD/EOU/mic 缓冲),迟到 final 由"PTT 队空丢弃"兜住(review B-2)
+      // 有 captureId 的在途 PTT 与 pipeline/daemon 同一身份,切档后仍等终态。
+      // 没有 captureId 的旧 send 占位置失败,不留悬挂 loading。
+      const modePlan = modeSwitchCapturePlan(captureQueueRef.current);
+      const retain = new Set(modePlan.retain);
       for (const entry of captureQueueRef.current) {
+        if (retain.has(entry)) continue;
         window.clearTimeout(entry.timer);
-        if (entry.kind === "send" && entry.placeholderKey) {
+        if (entry.kind === "send" && entry.placeholderKey && modePlan.failPlaceholderKeys.includes(entry.placeholderKey)) {
           const key = entry.placeholderKey;
           setState((s) => ({
             ...s,
@@ -741,52 +1031,89 @@ export function useVoiceChannel(sessionId: string) {
           }));
         }
       }
-      captureQueueRef.current = [];
+      captureQueueRef.current = modePlan.retain;
       setState((s) => ({ ...s, mode, draftEvent: null }));
       const ws = wsRef.current;
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ t: "voice.mode", sessionId, mode }));
       }
-      if (mode === "hands_free") void startMic();
-      else stopMic();
+      if (mode === "hands_free") {
+        if (canHandsfreeCapture("hands_free", isThemedVoiceHeld())) void startMic();
+        else stopMic();
+      } else stopMic();
     },
     [sessionId, startMic, stopMic]
   );
 
+  parkPttAfterThemedRoundRef.current = () => {
+    stopMic();
+  };
+
+  useEffect(() => {
+    const unbind = bindThemedHoldToCapture(
+      {
+        getMode: () => modeRef.current,
+        getHandsFreeRound: () => handsFreeRoundRef.current,
+        stopMic,
+        startMic,
+        sendHoldForConfirm,
+        switchToPtt: () => {
+          /* 主题屏障用 prepare/quiesce,hold 升起不发 voice.mode */
+        }
+      },
+      (plan) => {
+        if (themedHoldDrainTimerRef.current !== null) {
+          window.clearTimeout(themedHoldDrainTimerRef.current);
+          themedHoldDrainTimerRef.current = null;
+        }
+        pendingThemedHoldFinalRef.current = plan.waitForFinal && plan.sendHoldForConfirm;
+        if (modeRef.current === "hands_free" && plan.stopMic) {
+          /* HF 停采不补 done_speaking,由 prepare/quiesce 排空 */
+        }
+      }
+    );
+    return () => {
+      unbind();
+      if (themedHoldDrainTimerRef.current !== null) {
+        window.clearTimeout(themedHoldDrainTimerRef.current);
+        themedHoldDrainTimerRef.current = null;
+      }
+      pendingThemedHoldFinalRef.current = false;
+    };
+  }, [sessionId, setMode, stopMic, startMic, sendHoldForConfirm]);
+
   /** W2 阶段 D:显式"说完了"按钮(轮次第三层兜底;免手档强制终结当前轮) */
   const doneSpeaking = useCallback(() => {
+    if (isThemedVoiceHeld()) return;
     const ws = wsRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ t: "turn.done_speaking", sessionId }));
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (modeRef.current === "hands_free") {
+      ws.send(JSON.stringify({ t: "turn.done_speaking", sessionId, captureMode: "hands_free" }));
+      return;
     }
-  }, [sessionId]);
+    sendDoneSpeaking("send");
+  }, [sessionId, sendDoneSpeaking]);
 
   /** W4 3.9:采完不直发(手动档进"待确认";11 §5.10)。RA-closeout 修复(2026-07-28):
    *  发 done_speaking + holdForConfirm——pipeline 需要轮次边界才 finalize 产 final 转写(此前只停麦
    *  不发信号 ⇒ final 永不来、待确认框恒空);daemon 消费 hold 标记挡该轮进 Brain,转写照常回填。 */
   const stopCaptureHold = useCallback(() => {
     stopMic();
-    const ws = wsRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ t: "turn.done_speaking", sessionId, holdForConfirm: true }));
-    }
-  }, [sessionId, stopMic]);
+    return sendDoneSpeaking("edit");
+  }, [stopMic, sendDoneSpeaking]);
 
   /** 双动作 A·直接发送(2026-07-28,11 §5.10):松开即发——对话流立刻插占位气泡
    *  「语音 mm:ss · 转写中…」(已发出语义),final 到达替换文字 + Brain 开跑(daemon 直发链)。 */
   const endCaptureSend = useCallback(
     (durationSec: number) => {
       stopMic();
-      const ws = wsRef.current;
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ t: "turn.done_speaking", sessionId }));
-      }
+      const captureId = sendDoneSpeaking("send");
       const placeholderKey = `voice-pending-${++placeholderSeqRef.current}`;
       setState((s) => ({
         ...s,
         transcript: [...s.transcript, { turnId: placeholderKey, text: "", final: true, seq: ++arrivalSeqRef.current, transcribing: true, durationSec }]
       }));
-      enqueueCapture("send", durationSec, placeholderKey);
+      enqueueCapture("send", durationSec, placeholderKey, captureId);
     },
     [sessionId, stopMic, enqueueCapture]
   );
@@ -794,8 +1121,8 @@ export function useVoiceChannel(sessionId: string) {
   /** 双动作 B·转写编辑:只进编辑框(draftEvent),绝不进对话流;编辑后 sendText 才进对话+Brain。 */
   const endCaptureEdit = useCallback(
     (durationSec: number) => {
-      stopCaptureHold();
-      enqueueCapture("edit", durationSec);
+      const captureId = stopCaptureHold();
+      enqueueCapture("edit", durationSec, undefined, captureId);
     },
     [stopCaptureHold, enqueueCapture]
   );
@@ -804,10 +1131,11 @@ export function useVoiceChannel(sessionId: string) {
    *  final 到达按 cancelled 静默丢弃——对话事实零痕迹。 */
   const cancelCapture = useCallback(
     (durationSec: number) => {
-      stopCaptureHold();
-      enqueueCapture("cancelled", durationSec);
+      stopMic();
+      const captureId = sendDoneSpeaking("cancel");
+      enqueueCapture("cancelled", durationSec, undefined, captureId);
     },
-    [stopCaptureHold, enqueueCapture]
+    [stopMic, sendDoneSpeaking, enqueueCapture]
   );
 
   /** B 档结果事件消费(Chat 读后清;C1 守卫在消费端) */
@@ -822,22 +1150,136 @@ export function useVoiceChannel(sessionId: string) {
 
   /** W4 3.9:发送编辑后文本轮(纠 ASR 误听正道;typed provenance)——turnId 客户端生成(daemon 侧作用户轮) */
   const sendText = useCallback(
-    (text: string) => {
+    async (text: string) => {
       const t = text.trim();
       if (t === "") return false;
       const ws = wsRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) return false;
-      const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
-      let ulid = "";
-      for (let i = 0; i < 26; i++) ulid += alphabet[Math.floor(Math.random() * 32)];
-      ws.send(JSON.stringify({ t: "turn.text", sessionId, turnId: `ses_${ulid}`, text: t, typed: true }));
-      // 本地即时回显为用户轮(乐观;daemon 侧同 turnId 的转写落盘);thinking 经统一 helper 兜底。
+      const plan = planDesktopTurnText({
+        text: t,
+        daemonEpoch: daemonEpochRef.current,
+        pending: readPendingTurnText(sessionStorage, sessionId),
+        lastOutcome: lastTextOutcomeRef.current,
+        lastRetryable: lastTextRetryableRef.current,
+        nextTurnId: () => newId("ses")
+      });
+      if (!plan.ok) return false;
+      const { turnId, receiptAction, daemonEpoch } = plan;
+      leaseUserTurnRef.current(turnId);
+      writePendingTurnText(sessionStorage, sessionId, {
+        turnId,
+        text: t,
+        daemonEpoch,
+        receiptAction
+      });
+      ws.send(
+        JSON.stringify({
+          t: "turn.text",
+          sessionId,
+          turnId,
+          text: t,
+          typed: true,
+          receiptAction,
+          daemonEpoch
+        })
+      );
+      const outcome = await new Promise<"accepted" | "rejected" | "unknown">((resolve) => {
+        const timer = window.setTimeout(() => resolve("unknown"), 120_000);
+        receiptWaiters.current.set(turnId, (value) => {
+          window.clearTimeout(timer);
+          resolve(value);
+        });
+      });
+      if (shouldAcceptDesktopTurn(outcome)) {
+        clearPendingTurnTextIfMatch(sessionStorage, sessionId, turnId);
+        lastTextOutcomeRef.current = "accepted";
+        lastTextRetryableRef.current = false;
+        setState((s) => ({
+          ...s,
+          lastTextOutcome: "accepted",
+          lastTextRetryable: false,
+          interviewRounds: interviewRoundsRef.current,
+          transcript: [...s.transcript, { turnId, text: t, final: true, seq: ++arrivalSeqRef.current }]
+        }));
+        setThinkingWithFallback();
+        return true;
+      }
+      lastTextOutcomeRef.current = outcome;
+      if (outcome === "unknown") lastTextRetryableRef.current = false;
       setState((s) => ({
         ...s,
-        transcript: [...s.transcript, { turnId: `ses_${ulid}`, text: t, final: true, seq: ++arrivalSeqRef.current }]
+        lastTextOutcome: outcome,
+        lastTextRetryable: lastTextRetryableRef.current
       }));
-      setThinkingWithFallback();
+      return false;
+    },
+    [sessionId, setThinkingWithFallback]
+  );
+
+  const sendPrepare = useCallback(
+    (payload: PendingAnchorPayload & { requestId: string; daemonEpoch: string }) => {
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+      ws.send(
+        JSON.stringify({
+          t: "voice.anchor_prepare",
+          sessionId,
+          requestId: payload.requestId,
+          focusId: payload.focusId,
+          daemonEpoch: payload.daemonEpoch,
+          ...(payload.laneTitle ? { laneTitle: payload.laneTitle } : {}),
+          ...(payload.discardUnknownEpochs ? { discardUnknownEpochs: payload.discardUnknownEpochs } : {})
+        })
+      );
       return true;
+    },
+    [sessionId]
+  );
+
+  const sendRearm = useCallback(
+    (requestId: string) => {
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+      if (modeRef.current === "hands_free") {
+        handsFreeRoundRef.current = nextHandsFreeRoundPhase(handsFreeRoundRef.current, "mode_leave_hf");
+      }
+      modeRef.current = "ptt";
+      stopMic();
+      setState((s) => ({ ...s, mode: "ptt" }));
+      ws.send(JSON.stringify({ t: "voice.mode", sessionId, mode: "ptt", quiesceRequestId: requestId }));
+      return true;
+    },
+    [sessionId, stopMic]
+  );
+
+  const waitStatus = useCallback((spec: AnchorStatusWait) => {
+    return new Promise<AnchorStatusEvent>((resolve, reject) => {
+      const last = lastAnchorByRequest.current.get(spec.requestId);
+      if (last && statusMatchesWaiter(last, spec)) {
+        resolve(last);
+        return;
+      }
+      anchorWaiters.current.add({ ...spec, resolve, reject });
+    });
+  }, []);
+
+  const cancelWait = useCallback((requestId: string) => {
+    for (const waiter of [...anchorWaiters.current]) {
+      if (waiter.requestId !== requestId) continue;
+      anchorWaiters.current.delete(waiter);
+      waiter.reject(new Error(`anchor wait cancelled ${requestId}`));
+    }
+  }, []);
+
+  const stopLocalCapture = stopMic;
+
+  const discardQuiescedDraft = useCallback(
+    (requestId: string, turnId: string) => {
+      removeQuiescedTranscript(sessionStorage, sessionId, requestId, turnId);
+      setState((s) => ({
+        ...s,
+        quiescedDrafts: s.quiescedDrafts.filter((row) => !(row.requestId === requestId && row.turnId === turnId))
+      }));
     },
     [sessionId]
   );
@@ -863,6 +1305,40 @@ export function useVoiceChannel(sessionId: string) {
   );
 
   /** dogfood 修复:用户手势重试被 autoplay 拦下的当前句(点"启用声音"时调) */
+  const publishInterviewAnchor = useCallback((next: AnchorOnly) => {
+    interviewAnchorRef.current = next;
+    setInterviewAnchor(next.committed);
+    setInterviewAnchorPhase(next.phase);
+  }, []);
+
+  const beginInterviewAnchor = useCallback(
+    (input: { sessionId: string; focusId: string; requestId?: string }) => {
+      publishInterviewAnchor(reduceAnchorOnly(interviewAnchorRef.current, { type: "begin", ...input }));
+    },
+    [publishInterviewAnchor]
+  );
+
+  const failInterviewAnchor = useCallback(
+    (input: { sessionId: string; focusId?: string; requestId?: string }) => {
+      publishInterviewAnchor(reduceAnchorOnly(interviewAnchorRef.current, { type: "fail", ...input }));
+    },
+    [publishInterviewAnchor]
+  );
+
+  const abandonInterviewAnchorAttempt = useCallback(
+    (sessionId: string) => {
+      publishInterviewAnchor(reduceAnchorOnly(interviewAnchorRef.current, { type: "abandon", sessionId }));
+    },
+    [publishInterviewAnchor]
+  );
+
+  const commitInterviewAnchor = useCallback(
+    (input: { sessionId: string; focusId: string; requestId: string }) => {
+      publishInterviewAnchor(reduceAnchorOnly(interviewAnchorRef.current, { type: "commit", ...input }));
+    },
+    [publishInterviewAnchor]
+  );
+
   const retryAudio = useCallback(() => {
     const a = audioRef.current;
     if (!a) {
@@ -888,6 +1364,18 @@ export function useVoiceChannel(sessionId: string) {
     consumeDraftEvent,
     consumeNativeReplies,
     sendText,
+    interviewAnchor,
+    interviewAnchorPhase,
+    beginInterviewAnchor,
+    failInterviewAnchor,
+    abandonInterviewAnchorAttempt,
+    commitInterviewAnchor,
+    sendPrepare,
+    sendRearm,
+    waitStatus,
+    cancelWait,
+    stopLocalCapture,
+    discardQuiescedDraft,
     sendConfirmClick,
     retryAudio,
     reconnect

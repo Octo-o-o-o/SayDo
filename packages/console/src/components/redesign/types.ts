@@ -51,6 +51,9 @@ export interface TaskView {
   spent: { known: boolean; value?: number };
   lastEvent: string;
   projectTitle?: string;
+  projectId?: string;
+  package_id?: string;
+  package_rev?: number;
   parkedDeadline?: string | null;
   /** HP 专属:执行中的 DecisionRequest 文案(待裁决门) */
   hpDecision?: string;
@@ -85,6 +88,9 @@ export interface ObligationView {
   blocking?: boolean;
   waitingOn?: string;
   waitingOnObligationId?: string;
+  /** DAILY-01:任务级前置(合同 §15.2;与 waitingOnObligationId 互斥) */
+  waitingOnTaskId?: string;
+  waitingTaskCondition?: "accepted" | "delivered";
   dueOrTrigger?: string;
   deferReason?: string;
   laneId?: string;
@@ -165,7 +171,17 @@ export interface AcceptanceItem {
   status: AcceptanceStatus;
   source: AcceptanceSource;
   section?: string;
-  evidence?: { kind: "log" | "diff" | "article" | "note"; body: string };
+  /** 已绑定 evidenceRef 但缺文件、digest 不符、跨 run 或无权。状态仍 unknown,批准键不可用。 */
+  evidenceBlock?: "bound_invalid";
+  evidence?: {
+    kind: "log" | "diff" | "article" | "note";
+    body: string;
+    /** 现有控制台只读页(同会话 token);不是 digest,也不是新文件口 */
+    href?: string;
+    hrefLabel?: string;
+    treeSha?: string;
+    runId?: string;
+  };
 }
 export interface ReviewTaskContext {
   task: TaskView;
@@ -213,8 +229,14 @@ export type FocusBudgetView =
   | { known: false }
   | { known: true; spent: number; max: number; currency: "CNY" | "USD" };
 
+function budgetCurrencyUnit(currency: "CNY" | "USD"): string {
+  return currency === "CNY" ? "元" : currency;
+}
+
 export function focusBudgetCopy(budget: FocusBudgetView): string {
-  return budget.known ? `¥${budget.spent} / ¥${budget.max}` : "还没有确切数字";
+  if (!budget.known) return "还没有确切数字";
+  const unit = budgetCurrencyUnit(budget.currency);
+  return `${budget.spent} ${unit} / ${budget.max} ${unit}`;
 }
 
 export interface ExpectationView {

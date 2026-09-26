@@ -11,10 +11,14 @@ import type { IncomingMessage } from "node:http";
 import type { Server } from "node:http";
 import { WebSocketServer, WebSocket, type RawData } from "ws";
 import {
+  PIPELINE_EPOCH_MAX,
+  isClassifiedAsrFinal,
+  parsePipelineInbound,
   pipelineMsgSchema,
   RUNTIME_PROTOCOL_VERSION,
   runtimeIdentitySchema,
   runtimeProtocolCompatible,
+  voiceQuiescedSchema,
   type NativeReplyOrigin,
   type PipelineMsg,
   type RuntimeIdentity
@@ -24,6 +28,7 @@ import { redactText } from "./redactor.js";
 import type { RedactSpan } from "./redactor.js";
 import type { IdentityVia } from "../net/identity.js";
 import { remoteVoiceWsDecision } from "../net/remoteSurface.js";
+import { VoiceBarrier } from "./voiceBarrier.js";
 
 export const VOICE_WS_PROTOCOL_VERSION = 1;
 
@@ -50,9 +55,18 @@ export interface ConsolePeerMeta {
   sessionIds: ReadonlySet<string>;
 }
 
+export interface VoiceSpeechSettled {
+  sessionId: string;
+  /** 分类 final 才有 turn。切模式、quiesce 失败或断连封闭旧轮时没有 final。 */
+  turnId?: string;
+  speechGen?: number;
+}
+
 export interface VoiceHubEvents {
-  onAsrFinal?: (msg: Extract<PipelineMsg, { t: "asr.final" | "asr.partial" }>) => void;
-  onBargeIn?: (msg: Extract<PipelineMsg, { t: "barge_in" }>) => void;
+  onAsrFinal?: (msg: Extract<PipelineMsg, { t: "asr.final" | "asr.partial" }>, speechGen?: number) => void;
+  /** 已拥有的非 Brain final(取消/空/失败/编辑)结算语音轮,不传原文。 */
+  onSpeechSettled?: (info: VoiceSpeechSettled) => void;
+  onBargeIn?: (msg: Extract<PipelineMsg, { t: "barge_in" }>, speechGen: number) => void;
   onPlayout?: (msg: Extract<PipelineMsg, { t: "tts.playout" }>) => void;
   onTurnSignal?: (msg: Extract<PipelineMsg, { t: "turn.done_speaking" | "turn.listen_again" }>) => void;
   /** W4 3.9:console 编辑后文本轮(11 §5.10;纠 ASR 误听正道)——喂对话环作用户轮(typed provenance) */
@@ -81,6 +95,9 @@ export interface VoiceHubEvents {
    * 防止 K2 幽灵收尾(无人在场仍 idle-suspend)。
    */
   onConsoleSessionOffline?: (sessionId: string) => void;
+  onBarrierAudit?: (action: string, meta: Record<string, unknown>) => void;
+  onSourceFocusId?: (sessionId: string) => string | undefined;
+  onSessionSuspended?: (sessionId: string) => void;
   /** G1 网络半边(4.1):WS 连接身份校验;返回非 ok ⇒ 拒连。缺省(测试)不校验。
    *  via(W2 迟到评审 A1 回收):来源面标注透传——tailnet console 在连时语音工具环 S3 集合拒。 */
   verifyUpgrade?: (req: IncomingMessage) => { ok: boolean; code?: string; via?: IdentityVia };
@@ -90,6 +107,7 @@ interface Peer {
   ws: WebSocket;
   role: PeerRole;
   helloDone: boolean;
+  peerId?: string | undefined;
   token?: string | undefined;
   via?: IdentityVia | undefined;
   identity?: RuntimeIdentity | undefined;
@@ -121,7 +139,8 @@ export class VoiceHub {
       "pipeline.restart_ack", // first-run onboarding v4:协调重启 ACK
       "audio.frame",
       "latency.stage", // M3:vad_end/asr_final/tts_first_byte(pipeline 侧三段)
-      "vad.speech" // W2 阶段 D:免手档语音活动边界(start 供 console 播放侧触发 barge-in)
+      "vad.speech", // W2 阶段 D:免手档语音活动边界(start 供 console 播放侧触发 barge-in)
+      "voice.quiesced"
     ]),
     // console 可报 playout_start(实际出声在 console 播放器;llm_first_token 由 daemon 自记不走 WS)
     console: new Set([
@@ -135,7 +154,9 @@ export class VoiceHub {
       "turn.text",
       "confirm.click",
       "confirm.decision",
-      "console.heartbeat" // ④e A6
+      "console.heartbeat", // ④e A6
+      "voice.anchor_prepare",
+      "voice.quiesced_transcript_ack"
     ])
   };
   /** M1 LAN 不是语音采集/播放控制面，只开放文本、定向裁决、会话登记与心跳。 */
@@ -169,6 +190,8 @@ export class VoiceHub {
   /** first-run onboarding:等 pipeline.restart_ack 的 waiter(generation -> resolvers) */
   private readonly restartAckWaiters = new Map<number, Array<(acked: boolean) => void>>();
   private closePromise: Promise<void> | null = null;
+  readonly barrier: VoiceBarrier;
+  private pipelineEpoch = 0;
 
   constructor(
     server: Server,
@@ -178,8 +201,64 @@ export class VoiceHub {
     private readonly expectedStateRootDigest?: string
   ) {
     this.events = events;
+    this.barrier = new VoiceBarrier({
+      now: () => Date.now(),
+      sendToPeer: (peerId, msg) => {
+        this.sendBarrierToPeer(peerId, msg);
+      },
+      sendToLocalSession: (sessionId, msg) => {
+        this.sendToConsolePeers((meta) => meta.via === "local" && meta.sessionIds.has(sessionId), msg);
+      },
+      sendToPipeline: (msg) => this.broadcast("pipeline", msg).succeeded > 0,
+      isPeerOpen: (peerId) => {
+        const peer = this.findPeer(peerId);
+        return !!peer && peer.ws.readyState === WebSocket.OPEN;
+      },
+      peerVia: (peerId) => this.findPeer(peerId)?.via,
+      registerSession: (peerId, sessionId) => {
+        const peer = this.findPeer(peerId);
+        if (!peer) return;
+        if (!peer.sessionIds) peer.sessionIds = new Set();
+        peer.sessionIds.add(sessionId);
+      },
+      closeCaptureGate: () => {
+        this.barrier.captureGateClosed = true;
+      },
+      openCaptureGate: () => {
+        this.barrier.captureGateClosed = false;
+      },
+      prewriteLastVoiceModePtt: (sessionId) => {
+        this.lastVoiceMode = { t: "voice.mode", sessionId, mode: "ptt" };
+      },
+      hasPipelinePeer: () => this.hasPipelinePeer(),
+      currentPipelineIdentity: () => this.currentPipelinePeer?.identity,
+      getSourceFocusId: (sessionId) => this.events.onSourceFocusId?.(sessionId),
+      audit: (action, meta) => {
+        try {
+          this.events.onBarrierAudit?.(action, meta);
+        } catch {
+          // 审计失败不得反转协议状态
+        }
+      },
+      onRoundsRetired: () => {
+        this.flushRetiredSpeech();
+      }
+    });
     this.wss = new WebSocketServer({ server, path: "/ws/voice" });
     this.wss.on("connection", (ws, req) => this.onConnection(ws, req));
+  }
+
+  private findPeer(peerId: string): Peer | undefined {
+    for (const peer of this.peers) {
+      if (peer.peerId === peerId) return peer;
+    }
+    return undefined;
+  }
+
+  sendBarrierToPeer(peerId: string, msg: PipelineMsg): VoiceDelivery {
+    const peer = this.findPeer(peerId);
+    if (!peer) return { attempted: 0, succeeded: 0, failed: 0 };
+    return this.sendToPeer(peer, msg);
   }
 
   /** 最近一次 console 登记的采集模式(ptt / hands_free);延迟观测按此给语音轮打 origin(全局近似,非 per-session) */
@@ -253,9 +332,12 @@ export class VoiceHub {
       }
       const boundSessions = [...(peer.sessionIds ?? [])];
       this.peers.delete(peer);
+      if (peer.role === "console" && peer.peerId) this.barrier.onConsolePeerGone(peer.peerId);
       if (this.currentPipelinePeer === peer) {
         this.markPipelineUnavailable(peer);
         this.currentPipelinePeer = undefined;
+        this.barrier.onPipelineDisconnected();
+        this.flushRetiredSpeech();
       }
       // ④e A6:该 peer 绑定 session 若已无任何 console peer → 离线回调
       for (const sid of boundSessions) {
@@ -367,7 +449,18 @@ export class VoiceHub {
       }
       peer.role = hello.role;
       peer.helloDone = true;
-      if (peer.role === "pipeline") this.currentPipelinePeer = peer;
+      peer.peerId = this.barrier.issuePeerId();
+      if (peer.role === "pipeline") {
+        const next = this.pipelineEpoch + 1;
+        if (next > PIPELINE_EPOCH_MAX) {
+          this.safeWarn("voice ws: pipeline epoch overflow, closing", {});
+          peer.ws.close(4003, "pipeline epoch overflow");
+          return;
+        }
+        this.pipelineEpoch = next;
+        this.barrier.setPipelineEpoch(next);
+        this.currentPipelinePeer = peer;
+      }
       // ④e A6:console peer 启用心跳监视(90s 无 console.heartbeat 视同断开)
       if (peer.role === "console") {
         peer.lastHeartbeatAtMs = performance.now();
@@ -384,7 +477,14 @@ export class VoiceHub {
         }, 5_000);
         peer.pipelineHealthTimer.unref?.();
       }
-      peer.ws.send(JSON.stringify({ t: "hello.ack", v: VOICE_WS_PROTOCOL_VERSION }));
+      peer.ws.send(
+        JSON.stringify({
+          t: "hello.ack",
+          v: VOICE_WS_PROTOCOL_VERSION,
+          peerId: peer.peerId,
+          daemonEpoch: this.barrier.daemonEpoch
+        })
+      );
       try {
         this.log.info("voice ws peer joined", { role: peer.role });
       } catch {
@@ -413,11 +513,47 @@ export class VoiceHub {
   }
 
   private routeJson(peer: Peer, data: RawData): void {
-    let msg: PipelineMsg;
+    let raw: unknown;
     try {
-      msg = pipelineMsgSchema.parse(JSON.parse(String(data)));
+      raw = JSON.parse(String(data));
     } catch (err) {
       this.safeWarn("voice ws: invalid message dropped", { from: peer.role, error: String(err).slice(0, 200) });
+      return;
+    }
+    if (raw && typeof raw === "object" && (raw as { t?: string }).t === "hello.ack") {
+      this.safeWarn("voice ws: forged hello.ack dropped", { from: peer.role });
+      return;
+    }
+    const rawType = raw && typeof raw === "object" ? (raw as { t?: string }).t : undefined;
+    if (rawType === "asr.final" || rawType === "voice.quiesced") {
+      if (!this.pipelineInboundAuthorized(peer)) {
+        this.safeWarn("voice ws: unauthorised pipeline-classified message dropped", {
+          t: rawType,
+          from: peer.role
+        });
+        return;
+      }
+    }
+    if (raw && typeof raw === "object" && rawType === "asr.final") {
+      const rec = raw as Record<string, unknown>;
+      if (typeof rec.sessionId === "string" && rec.captureMode !== undefined && rec.recognitionOutcome === undefined) {
+        this.barrier.noteUnclassifiedFinal(rec.sessionId);
+      }
+    }
+    if (raw && typeof raw === "object" && rawType === "voice.quiesced") {
+      const parsedAck = voiceQuiescedSchema.safeParse(raw);
+      if (!parsedAck.success) {
+        const rec = raw as { sessionId?: string; requestId?: string };
+        if (typeof rec.sessionId === "string" && typeof rec.requestId === "string") {
+          this.barrier.onMalformedQuiesced(rec.sessionId, rec.requestId);
+        }
+        this.safeWarn("voice ws: malformed voice.quiesced dropped", { from: peer.role });
+        return;
+      }
+    }
+    const msg = parsePipelineInbound(raw);
+    if (!msg) {
+      this.safeWarn("voice ws: invalid message dropped", { from: peer.role });
       return;
     }
     if (
@@ -469,6 +605,7 @@ export class VoiceHub {
         if (!peer.sessionIds) peer.sessionIds = new Set();
         peer.sessionIds.add(msg.sessionId);
         peer.lastHeartbeatAtMs = performance.now();
+        if (peer.via === "local") this.barrier.replayHandover(msg.sessionId);
       } else if ("sessionId" in msg && typeof msg.sessionId === "string") {
         if (!peer.sessionIds) peer.sessionIds = new Set();
         peer.sessionIds.add(msg.sessionId);
@@ -487,10 +624,26 @@ export class VoiceHub {
     }
     switch (msg.t) {
       case "asr.partial":
-      case "asr.final":
         this.broadcast("console", msg);
         this.events.onAsrFinal?.(msg);
         break;
+      case "asr.final": {
+        const decision = this.barrier.consumeAsrFinal(msg);
+        if (decision.broadcast) this.broadcast("console", msg);
+        if (isClassifiedAsrFinal(msg)) {
+          if (decision.brain) this.events.onAsrFinal?.(msg, decision.speechGen);
+          else if (decision.settleSpeech) {
+            this.events.onSpeechSettled?.({
+              sessionId: msg.sessionId,
+              turnId: msg.turnId,
+              ...(decision.speechGen !== undefined ? { speechGen: decision.speechGen } : {})
+            });
+          }
+        } else if (!this.barrier.asrBrainGated(msg.sessionId)) {
+          this.events.onAsrFinal?.(msg);
+        }
+        break;
+      }
       case "tts.say":
         // daemon 发起(Brain 口播)——经 sendTtsSay;对端直发的 tts.say 只转发给 console 展示
         this.broadcast("console", msg);
@@ -507,21 +660,46 @@ export class VoiceHub {
       case "barge_in":
         this.broadcast("pipeline", msg); // 停止合成
         this.broadcast("console", msg); // UI 标记截断句
-        this.events.onBargeIn?.(msg);
+        this.events.onBargeIn?.(msg, this.barrier.noteBargeIn(msg.sessionId));
         break;
       case "turn.done_speaking":
       case "turn.listen_again":
-        // holdForConfirm 剥离后转发 pipeline(python 零感知,finalize 行为不变;标记只给 daemon 消费——RA-closeout 修复)
-        if (msg.t === "turn.done_speaking" && msg.holdForConfirm) {
-          this.broadcast("pipeline", { t: "turn.done_speaking", sessionId: msg.sessionId });
-        } else {
-          this.broadcast("pipeline", msg);
+        if (msg.t === "turn.done_speaking") {
+          const registered = this.barrier.registerDoneSpeaking(msg);
+          if (!registered.forward) break;
+          this.broadcast("pipeline", registered.forward);
+          if (registered.legacyHold) this.events.onTurnSignal?.(msg);
+          break;
         }
+        this.broadcast("pipeline", msg);
         this.events.onTurnSignal?.(msg);
         break;
       case "turn.text":
-        // W4 3.9:console 编辑后文本轮 —— 不转发 pipeline(无需再合成音频),直接喂对话环作用户轮
+        if (sourcePeer?.peerId) {
+          const begin = this.barrier.beginTurnText(msg, sourcePeer.peerId);
+          if (begin.kind === "drop") break;
+          if (begin.kind === "result") {
+            this.sendToPeer(sourcePeer, begin.result);
+            break;
+          }
+        }
         this.events.onTurnText?.(msg);
+        break;
+      case "voice.anchor_prepare":
+        if (sourcePeer?.peerId) this.barrier.handlePrepare(msg, sourcePeer.peerId);
+        break;
+      case "voice.quiesced":
+        if (
+          sourcePeer !== this.currentPipelinePeer ||
+          sourcePeer?.ws.readyState !== WebSocket.OPEN ||
+          sourcePeer.pipelineUnavailable
+        ) {
+          break;
+        }
+        this.barrier.handleQuiesced(msg, sourcePeer.identity);
+        break;
+      case "voice.quiesced_transcript_ack":
+        if (sourcePeer?.peerId) this.barrier.ackHandover(msg, sourcePeer.peerId);
         break;
       case "confirm.click":
         // 批 1:确认卡点击 —— 不转发 pipeline,daemon 侧 consumeClick
@@ -560,10 +738,27 @@ export class VoiceHub {
         this.broadcast("pipeline", msg);
         break;
       case "voice.mode":
+        if (sourcePeer?.peerId && msg.quiesceRequestId) {
+          const handled = this.barrier.handleRearm(msg, sourcePeer.peerId);
+          if (handled) {
+            if (handled === "opened" && via !== "mobile_lan") {
+              this.broadcast("pipeline", { t: "voice.mode", sessionId: msg.sessionId, mode: "ptt" });
+              this.barrier.observeForwardedMode(msg.sessionId, "ptt");
+            }
+            break;
+          }
+        }
+        if (this.barrier.captureGateClosed && !msg.quiesceRequestId) {
+          this.safeWarn("voice ws: ordinary voice.mode dropped while capture gate closed", {
+            sessionId: msg.sessionId
+          });
+          break;
+        }
         // mobile_lan 只用本消息登记 session，不得借 Provider 默认握手改 pipeline 采集模式。
         if (via !== "mobile_lan") {
           this.lastVoiceMode = msg; // B-5:留档供 pipeline (re)join 重放
           this.broadcast("pipeline", msg);
+          this.barrier.observeForwardedMode(msg.sessionId, msg.mode);
         }
         this.events.onVoiceMode?.(msg);
         break;
@@ -571,8 +766,13 @@ export class VoiceHub {
         // ④e A6:session 绑定与 lastHeartbeat 已在 routeJson 刷新;不转发
         break;
       case "vad.speech":
-        // W2 阶段 D:免手档语音活动边界(pipeline -> console;start 时 console 若在播则发 barge_in——
-        // 截断语义仍走既有 barge_in 消息与 watermark,unheard 纪律不变)
+        this.barrier.noteVadSpeech(
+          msg.sessionId,
+          msg.phase,
+          msg.hfSegmentId !== undefined && msg.hfRoundId !== undefined && msg.recordSeq !== undefined
+            ? { hfSegmentId: msg.hfSegmentId, hfRoundId: msg.hfRoundId, recordSeq: msg.recordSeq }
+            : undefined
+        );
         this.broadcast("console", msg);
         break;
       case "asr.hotwords":
@@ -585,6 +785,16 @@ export class VoiceHub {
     }
     if (from === "inject") {
       this.log.debug("injected pipeline msg", { t: msg.t });
+    }
+    this.flushRetiredSpeech();
+  }
+
+  private flushRetiredSpeech(): void {
+    for (const item of this.barrier.drainSpeechSettlements()) {
+      this.events.onSpeechSettled?.({
+        sessionId: item.sessionId,
+        speechGen: item.speechGen
+      });
     }
   }
 
@@ -610,6 +820,10 @@ export class VoiceHub {
     if (buf.length < 5) return;
     const tag = buf[0];
     if (tag === 0x01 && peer.role === "console") {
+      if (this.barrier.captureGateClosed) {
+        this.safeWarn("voice ws: mic frames dropped (capture gate closed)", {});
+        return;
+      }
       // 冻结尸检回修:mic 上行零 pipeline peer 时节流告警(此前静默丢弃,音频黑洞不可排障——
       // 与 sendTtsSay 无 peer 告警同构,补上行方向)
       if (!this.hasPipelinePeer()) {
@@ -621,6 +835,7 @@ export class VoiceHub {
         return;
       }
       this.broadcastBinary("pipeline", buf);
+      if (this.lastVoiceMode?.sessionId) this.barrier.noteAcceptedPcm(this.lastVoiceMode.sessionId);
     } else if (tag === 0x02 && peer.role === "pipeline") this.broadcastBinary("console", buf);
   }
 
@@ -913,6 +1128,17 @@ export class VoiceHub {
     return this.broadcast("console", msg);
   }
 
+  private pipelineInboundAuthorized(peer: Peer): boolean {
+    return (
+      peer.role === "pipeline" &&
+      peer.via !== "mobile_lan" &&
+      this.currentPipelinePeer === peer &&
+      !peer.pipelineUnavailable &&
+      peer.ws.readyState === WebSocket.OPEN &&
+      peer.pipelineAuthorized !== false
+    );
+  }
+
   /** 测试音频注入通道(计划 1.2):asr.final / barge_in / tts.playout 等事件走与真实对端相同的分发路径 */
   injectPipelineMsg(msg: PipelineMsg): void {
     pipelineMsgSchema.parse(msg);
@@ -995,6 +1221,7 @@ export class VoiceHub {
   async close(): Promise<void> {
     if (this.closePromise) return this.closePromise;
     this.closePromise = (async () => {
+      this.barrier.dispose();
       if (this.currentPipelinePeer) this.markPipelineUnavailable(this.currentPipelinePeer);
       for (const waiters of this.restartAckWaiters.values()) for (const finish of waiters) finish(false);
       this.restartAckWaiters.clear();

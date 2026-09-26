@@ -6,9 +6,23 @@ const EVENT_LABEL: Record<string, string> = {
   created: "立下这件事",
   revision_settled: "方向更新",
   lane_split: "拆出泳道",
+  lane_created: "新开支线",
+  lane_restored: "恢复支线",
   lane_retired: "收起泳道",
   obligation_opened: "记下一件事",
   obligation_resolved: "办结一件事",
+  obligation_deferred: "推迟一件事",
+  obligation_waiting_on: "设依赖",
+  obligation_waiting_on_task: "设任务依赖",
+  obligation_unblocked: "依赖放行",
+  obligation_blocked: "依赖卡住",
+  dependency_task_set: "设任务依赖",
+  dependency_task_woken: "任务依赖放行",
+  dependency_task_blocked: "任务依赖卡住",
+  dependency_set: "设依赖",
+  dependency_woken: "依赖放行",
+  dependency_blocked: "依赖卡住",
+  focus_forked: "分叉",
   lifecycle_changed: "生命周期变化",
   artifact_linked: "登记产物",
   artifact_realized: "产物交付"
@@ -42,7 +56,7 @@ export function MobileFocusPage({ data, error }: { data: FocusDetailPayload | nu
           const obligations = data.obligations.filter((item) => lane.id === "_main" ? item.laneId === null : item.laneId === lane.id);
           const counts = countLaneStates(obligations);
           return (
-            <a className="m-lane-card" href={`#/m/lane/${encodeURIComponent(data.focus.id)}/${encodeURIComponent(lane.id)}`} key={lane.id}>
+            <a className="m-lane-card" data-mobile-lane={lane.id} href={`#/m/lane/${encodeURIComponent(data.focus.id)}/${encodeURIComponent(lane.id)}`} key={lane.id}>
               <strong>{lane.title}</strong>
               <div>{STATE_LABELS.filter(([key]) => counts[key] > 0).map(([key, label]) => <span className={`m-chip m-chip-${key}`} key={key}>{label} {counts[key]}</span>)}</div>
             </a>

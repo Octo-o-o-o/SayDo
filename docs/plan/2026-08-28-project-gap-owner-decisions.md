@@ -207,6 +207,18 @@ owner 本次回复原文：
 - 本登记不授权 commit/push/merge/install/deploy、真实 provider 调用或付费探针。合同阶段只改 canonical/排产/有限共享 schema；implementation 另阶段再改 daemon/console。
 - 旧 D17 仍只覆盖 PG-00 导入；不得把 D17 当作本批授权。
 
+### 10.1 2026-09-06 PG-02 最小真相控制面授权
+
+来源：owner 于 2026-09-06 在 AS-01-AS-02 收口后，要求另开新会话继续推进 PG-02，以及 PLAN-2 链上已经写明范围/验收/门禁、因而应当实施的后续批次。本条把该请求登记为 **PG-02 的 contract 与 implementation 两阶段具名授权**，并把 **PG-03…PG-06** 记为 PLAN-2 已写明范围/验收/门禁的 **preaccepted next stage**。冻结执行卡为 `docs/plan/IMPL-PROMPT-pg02-truth-gate.md`。这不是 D17 扩权。本节不编造逐字引语，不改写上方 D17 原话。
+
+登记边界：
+
+- 前置：AS-01-AS-02 已收口并入 main。predecessor commit `P` = `25a99242a3863ba24ba7fc7a4b382c880c2c18d6`（R140 journal + PG-02 交接 prompt 归档），其父为 `5d3c25ef4592323a6b76b68126d2bd09be560973`。AS evidence = `e2e/evidence/as-01-as-02-privacy.md`。
+- 产品范围：PG-02 两阶段（最小真相控制面：canonical 增量、共享 schema、词表投影；implementation 再写 ledger/checker）。PG-03…PG-06 仅为 PLAN-2 已列范围/验收/门禁的 preaccepted next stage，不是本条已经授权合并、推送或公开快照。
+- 每批（含 PG-02 implementation 与其后 PG-03…PG-06）的 commit / push / 公开快照仍须当次确认；不得把 preaccepted 写成已授权合并推送。
+- 本登记不授权 commit/push/merge/install/deploy、真实 provider 调用或付费探针。contract 阶段只改 canonical 与有限共享 schema；implementation 另阶段再写 checker/ledger，不改本条范围外的运行时。
+- 旧 D17 仍只覆盖 PG-00 导入；不得把 D17 当作本批授权。
+
 ## 11. 2026-09-09 GAP-02-consolidation 收口授权与 §3 三项立项
 
 来源：owner 在 2026-09-09 对本会话交付候选的四项 checkpoint 回复「都同意，授权你完整的实施，按照你的建议对应」。本节不编造逐字引语之外的内容，不改写上方 D17 原话，不是 D17 扩权。
@@ -244,3 +256,15 @@ owner 本次回复原文：
 6. **JOURNEY-01 收口后 owner 自跑四场真人验收**(`e2e/owner-sessions/` 场次①–④;发布证据锁四场同一 40 位 runtime SHA,场次①现为 failed 须从步骤 1 复验)。此为排期意向登记,不改动验收合同本身。
 
 登记边界:本节不授权 JOURNEY-01 开工(须另有具名授权与完整合同)、不授权全仓换肤、不授权远程面重开、不含 push/merge/deploy/发布;外部包其余建议按核对报告分类(已落地/已 defer/冲突已裁决/不采纳)归档,不逐条立项。
+
+## 14. 2026-09-25 consolidation 残余缺陷重落地授权(SC-RELAND-01)
+
+来源:owner 2026-09-25 在本地副本清理收口后,针对「consolidation-20260913 的缺陷修复一直没进 main」「main 未 push」「PG-02 候选保留」三项,当前消息原话:「请你仔细检查是否应该合并，应该合并的话请按标准流程对应，都按你的建议，都完成后提交完整的更新到github」。
+
+裁决与落地口径:
+
+1. **整包合并不采纳**:来源候选(本地 tag `archive/wip-consolidation-20260913`,基线 `49ed96f`,325 路径)混有 PG-02 候选、已由 JOURNEY-01 按 2026-09-20 取舍吸收的语音修复、两项经两次同根因回修仍 RED 的 Windows/spike 项,且从未有最终独立评审与完整门禁;主线此后已前进两周。
+2. **仍有效的独立缺陷修复按标准流程重落地**:插批 `SC-RELAND-01`(CODEX-AS-SPIKE-01 后、PG-02 前),指针 revision 16→17,`active=SC-RELAND-01`、`next=PG-02`。逐项在当前 main 真实入口复现,已被后续批修复或替代的只记证据;一名实施者、一名零上下文 reviewer,预算按 V3 policy 快照;完整门禁 `just ci` + `pnpm exec playwright test` + `just precommit`。
+3. **deferred**:`DF-SC51-WIN-STDIO`、`DF-SC54-SPIKE-EVIDENCE`(来源任务中 pending owner,且需 Windows 原生或历史 spike 重放);2026-09-26 复审口径追加 `DF-TIER1-SHELL-01`(HEAD 上同样存在、候选未更松的 shell/git 分类绕过,反例清单见 `e2e/evidence/sc-reland-01.md`,本批以 legacyCommandToEffect 单调下限保证不比 main 更松)。**排除**:SC-01(过时 CI 状态)、PG-02 所属 SC-02/03/21/25/31。
+4. **PG-02 在途候选**(`saydo-pg02-resumption-20260923`,RED,等待合同补充批准)按建议保留,本节不授权其合同补充或续工。
+5. 「提交完整的更新到github」:本批验收通过后按两提交法入 main 并 push 私有归档 `origin`;公开快照按 `scripts/publish-public-snapshot.sh` 与隐私探针执行。本节不含 rc bump、npm、官网部署、常驻 runtime 部署与真人场次。

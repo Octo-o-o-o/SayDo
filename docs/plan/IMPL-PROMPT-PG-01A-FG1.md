@@ -1,5 +1,7 @@
 # IMPL-PROMPT · PG-01A FG-1 ownership 生命周期恢复
 
+> 2026-09-13 对账说明：本文件保留 PG-01A 在途派发合同，历史状态、角色与额度不构成新任务授权。该批实施已入库 `2a786ed803f8229ea2fefe8240d9e644306331c4`，证据入库 `f4d8de9be1abb74657c6117bb84e224dc1983356`；结论与未验边界见 [PG-01A 证据](../../e2e/evidence/project-gap-pg-01a.md)，现行排产见 [PLAN-2](IMPLEMENTATION-PLAN-2.md)。不得据此重开旧修复预算或把 986 条 unresolved 来源当作已验证连接器。
+
 ## 1. 固定身份与前序证据
 
 - `task=project-gap-closure`

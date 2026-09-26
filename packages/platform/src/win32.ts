@@ -182,6 +182,20 @@ interface Native {
     owner: unknown[],
     defaulted: number[]
   ) => number;
+  GetSecurityDescriptorControl: (
+    sd: unknown,
+    control: number[],
+    revision: number[]
+  ) => number;
+  GetAclInformation: (
+    acl: unknown,
+    info: Buffer,
+    infoLen: number,
+    infoClass: number
+  ) => number;
+  GetAce: (acl: unknown, index: number, ace: unknown[]) => number;
+  EqualSid: (sid1: unknown, sid2: unknown) => number;
+  ConvertStringSidToSidW: (sid: string, out: unknown[]) => number;
   CreateNamedPipeW: (
     name: string,
     openMode: number,
@@ -485,6 +499,19 @@ function bindNow(): Native {
     GetSecurityDescriptorOwner: advapi32.func(
       "int32 __stdcall GetSecurityDescriptorOwner(void *, _Out_ void **, _Out_ int32 *)"
     ) as Native["GetSecurityDescriptorOwner"],
+    // GetSecurityDescriptorControl / GetAclInformation / GetAce / EqualSid /
+    // ConvertStringSidToSidW 签名均按 Microsoft Learn 现行原型绑定，不自行改序。
+    GetSecurityDescriptorControl: advapi32.func(
+      "int32 __stdcall GetSecurityDescriptorControl(void *, _Out_ uint16 *, _Out_ uint32 *)"
+    ) as Native["GetSecurityDescriptorControl"],
+    GetAclInformation: advapi32.func(
+      "int32 __stdcall GetAclInformation(void *, _Out_ uint8 *, uint32, uint32)"
+    ) as Native["GetAclInformation"],
+    GetAce: advapi32.func("int32 __stdcall GetAce(void *, uint32, _Out_ void **)") as Native["GetAce"],
+    EqualSid: advapi32.func("int32 __stdcall EqualSid(void *, void *)") as Native["EqualSid"],
+    ConvertStringSidToSidW: advapi32.func(
+      "int32 __stdcall ConvertStringSidToSidW(str16, _Out_ void **)"
+    ) as Native["ConvertStringSidToSidW"],
     CreateNamedPipeW: kernel32.func(
       "void * __stdcall CreateNamedPipeW(str16, uint32, uint32, uint32, uint32, uint32, uint32, _In_ SECURITY_ATTRIBUTES *)"
     ) as Native["CreateNamedPipeW"],
@@ -596,9 +623,17 @@ function volumeRoot(absPath: string): string {
   return /[\\/]$/u.test(root) ? root : `${root}\\`;
 }
 
+type VolumeNative = Pick<Native, "GetDriveTypeW" | "QueryDosDeviceW" | "GetVolumeInformationW">;
+let volumeNativeForTests: VolumeNative | null = null;
+
+/** 只供测试注入卷查询边界;不是真机 kernel32。生产入口不得调用。 */
+export function setWin32NativeForTests(next: VolumeNative | null): void {
+  volumeNativeForTests = next;
+}
+
 export function assertLocalFixedNtfs(absPath: string): void {
   if (!isAbsolute(absPath)) throw new PlatformNativeError("path must be absolute");
-  const n = nativeSync();
+  const n = volumeNativeForTests ?? nativeSync();
   const root = volumeRoot(absPath);
   if (n.GetDriveTypeW(root) !== DRIVE_FIXED) {
     throw new PlatformNativeError(`volume is not DRIVE_FIXED:${root}`);
@@ -606,11 +641,15 @@ export function assertLocalFixedNtfs(absPath: string): void {
   const dosName = root.replace(/[\\/]$/u, "");
   const deviceBuf = Buffer.alloc(4096);
   const q = n.QueryDosDeviceW(dosName, deviceBuf, Math.floor(deviceBuf.length / 2));
-  if (q > 0) {
-    const device = utf16z(deviceBuf);
-    if (device.startsWith("\\??\\")) {
-      throw new PlatformNativeError(`subst/mapped volume rejected:${root}`);
-    }
+  if (q <= 0) {
+    throw new PlatformNativeError(`QueryDosDeviceW failed:${root}`);
+  }
+  const device = utf16z(deviceBuf);
+  if (!device.trim()) {
+    throw new PlatformNativeError(`QueryDosDeviceW empty:${root}`);
+  }
+  if (device.startsWith("\\??\\")) {
+    throw new PlatformNativeError(`subst/mapped volume rejected:${root}`);
   }
   const fsName = Buffer.alloc(64);
   const volName = Buffer.alloc(64);
@@ -661,9 +700,245 @@ export function ownerSidOf(absPath: string): string {
   }
 }
 
-const FORBIDDEN_TRUSTEES = /(?:WD|BU|AU|WG|BG|BA|S-1-1-0|S-1-5-32-545|S-1-5-11|S-1-5-32-544)/u;
 const ADMINISTRATORS_SID = "S-1-5-32-544";
 const SYSTEM_SID = "S-1-5-18";
+export const ACCESS_ALLOWED_ACE_TYPE = 0x00;
+const OBJECT_INHERIT_ACE = 0x01;
+const CONTAINER_INHERIT_ACE = 0x02;
+export const INHERITED_ACE = 0x10;
+export const SE_DACL_PRESENT = 0x0004;
+export const SE_DACL_PROTECTED = 0x1000;
+const ACL_SIZE_INFORMATION = 2;
+const ACE_SID_OFFSET = 8;
+const FILE_GENERIC_READ = 0x00120089;
+const FILE_GENERIC_WRITE = 0x00120116;
+export const FILE_ALL_ACCESS = 0x001f01ff;
+export const OWNER_ONLY_FILE_MASK = FILE_GENERIC_READ | FILE_GENERIC_WRITE;
+export const OWNER_ONLY_DIR_FLAGS = OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE;
+const SID_STRING_RE = /^S-\d+(-\d+)+$/iu;
+// Microsoft Learn「SID Strings」里有稳定 well-known SID 的官方两字母别名。
+// 域相关别名(DA/DU…)没有机器无关 SID，不能在这里臆造，只能当未知 fail-closed。
+const SDDL_SID_ALIASES: Readonly<Record<string, string>> = Object.freeze({
+  WD: "S-1-1-0",
+  CO: "S-1-3-0",
+  CG: "S-1-3-1",
+  OW: "S-1-3-4",
+  NU: "S-1-5-2",
+  IU: "S-1-5-4",
+  SU: "S-1-5-6",
+  AN: "S-1-5-7",
+  ED: "S-1-5-9",
+  PS: "S-1-5-10",
+  AU: "S-1-5-11",
+  RC: "S-1-5-12",
+  SY: "S-1-5-18",
+  LS: "S-1-5-19",
+  NS: "S-1-5-20",
+  BA: "S-1-5-32-544",
+  BU: "S-1-5-32-545",
+  BG: "S-1-5-32-546",
+  PU: "S-1-5-32-547",
+  AO: "S-1-5-32-548",
+  SO: "S-1-5-32-549",
+  PO: "S-1-5-32-550",
+  BO: "S-1-5-32-551",
+  RE: "S-1-5-32-552",
+  RU: "S-1-5-32-554",
+  RD: "S-1-5-32-555",
+  NO: "S-1-5-32-556",
+  MU: "S-1-5-32-558",
+  LU: "S-1-5-32-559",
+  IS: "S-1-5-32-568",
+  CY: "S-1-5-32-569",
+  ER: "S-1-5-32-573",
+  CD: "S-1-5-32-574",
+  RA: "S-1-5-32-575",
+  ES: "S-1-5-32-576",
+  MS: "S-1-5-32-577",
+  HA: "S-1-5-32-578",
+  AA: "S-1-5-32-579",
+  RM: "S-1-5-32-580",
+  AC: "S-1-15-2-1",
+  LW: "S-1-16-4096",
+  ME: "S-1-16-8192",
+  MP: "S-1-16-8448",
+  HI: "S-1-16-12288",
+  SI: "S-1-16-16384"
+});
+
+export type Win32AclAceView = {
+  aceType: number;
+  aceFlags: number;
+  mask: number;
+  trusteeSid: string;
+};
+
+export type Win32AclReadbackView = {
+  ownerSid: string;
+  control: number;
+  aces: Win32AclAceView[];
+};
+
+export function canonicalizeWin32SidToken(token: string): string | null {
+  const trimmed = token.trim();
+  if (SID_STRING_RE.test(trimmed)) return trimmed.toUpperCase();
+  const mapped = SDDL_SID_ALIASES[trimmed.toUpperCase()];
+  return mapped ?? null;
+}
+
+function sidTokensEqual(left: string, right: string): boolean {
+  const a = canonicalizeWin32SidToken(left);
+  const b = canonicalizeWin32SidToken(right);
+  return a != null && b != null && a === b;
+}
+
+/**
+ * 生产回读校验：Owner 必须是当前 SID；DACL 必须 present+protected；
+ * 每个 ACE 的 trustee 与有效权限都必须是仅当前 SID 的 owner-only 授权。
+ * Owner 正确 + 任意 allow ACE + 宽组黑名单 ≠ 仅 Owner。
+ */
+export function verifyRestrictOwnerOnlyReadback(
+  currentSid: string,
+  kind: "file" | "dir",
+  view: Win32AclReadbackView
+): void {
+  if (!sidTokensEqual(view.ownerSid, currentSid)) {
+    throw new PlatformNativeError("ACL readback owner SID mismatch");
+  }
+  if ((view.control & SE_DACL_PRESENT) === 0) {
+    throw new PlatformNativeError("ACL readback DACL missing");
+  }
+  if ((view.control & SE_DACL_PROTECTED) === 0) {
+    throw new PlatformNativeError("ACL readback is not protected");
+  }
+  if (view.aces.length === 0) {
+    throw new PlatformNativeError("ACL readback has no owner allow ACE");
+  }
+  const expectedMask = kind === "dir" ? FILE_ALL_ACCESS : OWNER_ONLY_FILE_MASK;
+  const expectedFlags = kind === "dir" ? OWNER_ONLY_DIR_FLAGS : 0;
+  for (const ace of view.aces) {
+    const trustee = canonicalizeWin32SidToken(ace.trusteeSid);
+    if (trustee == null) {
+      throw new PlatformNativeError(`ACL readback unknown trustee:${ace.trusteeSid}`);
+    }
+    if (ace.aceType !== ACCESS_ALLOWED_ACE_TYPE) {
+      throw new PlatformNativeError(`ACL readback ACE type not allow:${String(ace.aceType)}`);
+    }
+    if ((ace.aceFlags & INHERITED_ACE) !== 0) {
+      throw new PlatformNativeError("ACL readback contains inherited ACE");
+    }
+    if (ace.aceFlags !== expectedFlags) {
+      throw new PlatformNativeError(`ACL readback ACE flags mismatch:${String(ace.aceFlags)}`);
+    }
+    if (ace.mask !== expectedMask) {
+      throw new PlatformNativeError(`ACL readback ACE mask mismatch:${String(ace.mask)}`);
+    }
+    if (trustee !== canonicalizeWin32SidToken(currentSid)) {
+      throw new PlatformNativeError(`ACL readback extra trustee:${trustee}`);
+    }
+  }
+}
+
+function aceTrusteeSidFromAllowedAce(n: Native, ace: unknown, currentSid: string): string {
+  const aceSize = n.koffi.decode(ace, 2, "uint16") as number;
+  const subCount = n.koffi.decode(ace, ACE_SID_OFFSET + 1, "uint8") as number;
+  if (!Number.isInteger(aceSize) || aceSize < ACE_SID_OFFSET + 8) {
+    throw new PlatformNativeError("ACL ACE size invalid");
+  }
+  if (!Number.isInteger(subCount) || subCount < 0 || subCount > 15) {
+    throw new PlatformNativeError("ACL ACE SID subauthority invalid");
+  }
+  const sidLen = 8 + subCount * 4;
+  if (aceSize < ACE_SID_OFFSET + sidLen) {
+    throw new PlatformNativeError("ACL ACE SID truncated");
+  }
+  const sidBuf = Buffer.alloc(sidLen);
+  for (let i = 0; i < sidLen; i += 1) {
+    sidBuf[i] = n.koffi.decode(ace, ACE_SID_OFFSET + i, "uint8") as number;
+  }
+  const currentPtr: unknown[] = [null];
+  if (n.ConvertStringSidToSidW(currentSid, currentPtr) && currentPtr[0] != null) {
+    try {
+      if (n.EqualSid(currentPtr[0], sidBuf)) return currentSid;
+    } finally {
+      n.LocalFree(currentPtr[0]);
+    }
+  }
+  return sidToString(n, sidBuf);
+}
+
+function readOwnerOnlyAclViewNative(n: Native, absPath: string, currentSid: string): Win32AclReadbackView {
+  const verifyOwner: unknown[] = [null];
+  const verifyGroup: unknown[] = [null];
+  const verifyDacl: unknown[] = [null];
+  const verifySacl: unknown[] = [null];
+  const verifySd: unknown[] = [null];
+  const readRc = n.GetNamedSecurityInfoW(
+    absPath,
+    SE_FILE_OBJECT,
+    DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION,
+    verifyOwner,
+    verifyGroup,
+    verifyDacl,
+    verifySacl,
+    verifySd
+  );
+  if (readRc !== 0 || verifySd[0] == null) {
+    throw new PlatformNativeError(`ACL readback failed:${String(readRc)}`);
+  }
+  try {
+    if (verifyOwner[0] == null) {
+      throw new PlatformNativeError("ACL readback owner SID mismatch");
+    }
+    const ownerSid = sidToString(n, verifyOwner[0]);
+    const control = [0];
+    const revision = [0];
+    if (!n.GetSecurityDescriptorControl(verifySd[0], control, revision)) {
+      throw new PlatformNativeError("GetSecurityDescriptorControl failed");
+    }
+    if (verifyDacl[0] == null) {
+      throw new PlatformNativeError("ACL readback DACL missing");
+    }
+    const info = Buffer.alloc(12);
+    if (!n.GetAclInformation(verifyDacl[0], info, info.length, ACL_SIZE_INFORMATION)) {
+      throw new PlatformNativeError(`GetAclInformation failed:${String(n.GetLastError())}`);
+    }
+    const aceCount = info.readUInt32LE(0);
+    const aces: Win32AclAceView[] = [];
+    for (let i = 0; i < aceCount; i += 1) {
+      const ace: unknown[] = [null];
+      if (!n.GetAce(verifyDacl[0], i, ace) || ace[0] == null) {
+        throw new PlatformNativeError(`GetAce failed:${String(i)}`);
+      }
+      aces.push({
+        aceType: n.koffi.decode(ace[0], 0, "uint8") as number,
+        aceFlags: n.koffi.decode(ace[0], 1, "uint8") as number,
+        mask: n.koffi.decode(ace[0], 4, "uint32") as number,
+        trusteeSid: aceTrusteeSidFromAllowedAce(n, ace[0], currentSid)
+      });
+    }
+    return { ownerSid, control: control[0] ?? 0, aces };
+  } finally {
+    n.LocalFree(verifySd[0]);
+  }
+}
+
+let aclReadbackViewForTests: ((absPath: string, currentSid: string, kind: "file" | "dir") => Win32AclReadbackView) | null =
+  null;
+
+export function setWin32AclReadbackForTests(
+  next: ((absPath: string, currentSid: string, kind: "file" | "dir") => Win32AclReadbackView) | null
+): void {
+  aclReadbackViewForTests = next;
+}
+
+/** 生产回读入口：native GetAce 或测试注入的同一条 view，再交给 verifyRestrictOwnerOnlyReadback。 */
+export function applyWin32OwnerOnlyAclReadback(absPath: string, currentSid: string, kind: "file" | "dir"): void {
+  const view = aclReadbackViewForTests
+    ? aclReadbackViewForTests(absPath, currentSid, kind)
+    : readOwnerOnlyAclViewNative(nativeSync(), absPath, currentSid);
+  verifyRestrictOwnerOnlyReadback(currentSid, kind, view);
+}
 
 export type Win32OwnerTightenAction = "keep" | "reassign_administrators" | "reject_system" | "reject_foreign";
 
@@ -721,70 +996,10 @@ export function restrictOwnerOnlyWin32(absPath: string, kind: "file" | "dir"): v
   } finally {
     n.LocalFree(sd[0]);
   }
-  const verifyOwner: unknown[] = [null];
-  const verifyGroup: unknown[] = [null];
-  const verifyDacl: unknown[] = [null];
-  const verifySacl: unknown[] = [null];
-  const verifySd: unknown[] = [null];
-  const readRc = n.GetNamedSecurityInfoW(
-    absPath,
-    SE_FILE_OBJECT,
-    DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION,
-    verifyOwner,
-    verifyGroup,
-    verifyDacl,
-    verifySacl,
-    verifySd
-  );
-  if (readRc !== 0 || verifySd[0] == null) {
-    throw new PlatformNativeError(`ACL readback failed:${String(readRc)}`);
-  }
-  try {
-    if (verifyOwner[0] == null || sidToString(n, verifyOwner[0]) !== sid) {
-      throw new PlatformNativeError("ACL readback owner SID mismatch");
-    }
-    const sddlOut: unknown[] = [null];
-    const sddlSize = [0];
-    if (
-      !n.ConvertSecurityDescriptorToStringSecurityDescriptorW(
-        verifySd[0],
-        SDDL_REVISION_1,
-        DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION,
-        sddlOut,
-        sddlSize
-      ) ||
-      sddlOut[0] == null
-    ) {
-      throw new PlatformNativeError("ACL SDDL readback failed");
-    }
-    try {
-      const text = n.koffi.decode.string16(sddlOut[0]);
-      if (typeof text !== "string") throw new PlatformNativeError("ACL SDDL readback decode failed");
-      // SDDL 会把知名 SID 写成两字母缩写（BA/SY/BU/AU…，见 FORBIDDEN_TRUSTEES 本身就是
-      // 缩写表），因此「文本里找不到完整 SID 字面量」并不等于「DACL 里没有 owner 的 ACE」——
-      // 在 CI runner 这类账户环境下会稳定误报（2026-08-26 公开仓 CI 实测）。
-      // 真正的 owner 保证来自上面 sidToString(verifyOwner) 的**精确**比对，那步已通过；
-      // 此处只需确认 DACL 段确实授权了某个 trustee，且下面两道硬校验仍然强制：
-      //   D:P        —— 必须是 protected（不继承）
-      //   FORBIDDEN  —— 不得含 world/users/administrators 等宽授权 ACE
-      // 三者合起来仍然等价于 owner-only，没有放宽实际权限边界。
-      const daclIndex = text.indexOf("D:");
-      const daclText = daclIndex >= 0 ? text.slice(daclIndex) : "";
-      if (!/\(A;[^)]*\)/u.test(daclText)) {
-        throw new PlatformNativeError(`ACL readback has no allow ACE:sid=${sid}:sddl=${text}`);
-      }
-      // 只在 DACL 段上判禁止 trustee：owner 段（O:）若被缩写成 BA 等，会与禁止表字面撞车，
-      // 而 owner 的合法性另有精确比对负责，不该在这里被误判。
-      if (FORBIDDEN_TRUSTEES.test(daclText.replaceAll(sid, ""))) {
-        throw new PlatformNativeError("ACL readback contains world/users ACE");
-      }
-      if (!/D:P/u.test(text)) throw new PlatformNativeError("ACL readback is not protected");
-    } finally {
-      n.LocalFree(sddlOut[0]);
-    }
-  } finally {
-    n.LocalFree(verifySd[0]);
-  }
+  // 回读校验每个 ACE 的 trustee 与有效权限。Owner 字段正确不等于 DACL 仅授当前 SID。
+  // 不用 SDDL 文本 includes(sid)：ConvertSidToStringSidW 输出恒为 S-1-...，
+  // 5297a29454 的误报来自把 SDDL 两字母别名当成「DACL 没有 owner ACE」。
+  applyWin32OwnerOnlyAclReadback(absPath, sid, kind);
 }
 
 export function processBirthWin32(pid: number): string | null {

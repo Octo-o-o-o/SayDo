@@ -4,6 +4,7 @@
 import type {
   ArtifactRole,
   ArtifactView,
+  DecisionPackageView,
   ExpectationView,
   FocusLifecycle,
   FocusView,
@@ -20,6 +21,7 @@ import type {
   AcceptanceStatus,
   ReviewTaskContext
 } from "../../components/redesign/types";
+import { judgeAcceptanceCheck } from "../../lib/acceptanceEvidenceGate";
 
 /* ---------- daemon 载荷形状(宽松只读;页面/hook 不依赖 daemon 包) ---------- */
 
@@ -56,10 +58,19 @@ export interface FocusDetailPayload {
     laneId?: string | null;
     waitingOn?: string | null;
     waitingOnObligationId?: string | null;
+    /** DAILY-01:任务级前置(合同 §15.2) */
+    waitingOnTaskId?: string | null;
+    waitingTaskCondition?: string | null;
+    deferReason?: string | null;
+    dueOrTrigger?: string | null;
     actionRef?: string | null;
     nextStep?: string | null;
     detail?: string | null;
   }>;
+  /** DAILY-01:经 action_execution_bindings 锚在本 focus 的任务 */
+  tasks?: Array<{ id: string; title: string; status: string; laneId?: string | null }>;
+  /** additive:本 focus 绑定任务包 ∪ pending dispatch 包,不是新权威 */
+  packages?: Array<Record<string, unknown>>;
   lanes: Array<{
     id: string;
     title: string;
@@ -121,6 +132,7 @@ export interface AttentionItemRow {
   needs?: string | null;
   laneId?: string | null;
   ackedAt?: string;
+  confirmKind?: string;
 }
 
 export type TranscriptResponse =
@@ -244,9 +256,15 @@ export function mapObligationView(o: FocusDetailPayload["obligations"][number], 
     blocking: o.blocking,
     waitingOn: o.waitingOn ?? undefined,
     waitingOnObligationId: o.waitingOnObligationId ?? undefined,
+    waitingOnTaskId: o.waitingOnTaskId ?? undefined,
+    waitingTaskCondition:
+      o.waitingTaskCondition === "accepted" || o.waitingTaskCondition === "delivered"
+        ? o.waitingTaskCondition
+        : undefined,
     laneId: o.laneId ?? undefined,
     actionRef: o.actionRef ?? undefined,
-    dueOrTrigger: o.nextStep ?? undefined
+    deferReason: o.deferReason ?? undefined,
+    dueOrTrigger: o.dueOrTrigger ?? o.nextStep ?? undefined
   };
 }
 
@@ -410,8 +428,8 @@ export function countNeedYouByFocus(items: AttentionItemRow[]): Map<string, numb
 }
 
 /**
- * transcript API 投影:available:false → null;available:true → 人话行数组。
- * 组件 onExpandSegment 约定 null = 读不到/未存。
+ * transcript API 投影:available:false → null;available:true → 人话行数组(可空)。
+ * 组件 onExpand 约定:null/抛错 = 读取失败(可重试);[] = 真空转写。
  */
 export function mapTranscriptLines(resp: TranscriptResponse | null | undefined): string[] | null {
   if (!resp || resp.available === false) return null;
@@ -434,6 +452,14 @@ export interface TaskDetailPayload {
   writingProof?: {
     acceptanceChecks?: Array<{ criterion: string; source: string; status: string; evidenceRef?: string }>;
   } | null;
+  /** 同任务受控解析的 evidenceRef 正文;ok=false 表示诚实缺证 */
+  acceptanceEvidence?: Array<{
+    evidenceRef: string;
+    ok: boolean;
+    kind?: "log" | "diff" | "article" | "note";
+    body?: string;
+    reason?: string;
+  }>;
 }
 
 function elapsedMinFrom(updatedAt: unknown, createdAt: unknown): number {
@@ -444,7 +470,7 @@ function elapsedMinFrom(updatedAt: unknown, createdAt: unknown): number {
   return Math.max(0, Math.round((Date.now() - t) / 60_000));
 }
 
-function mapTaskViewFromDetail(task: Record<string, unknown>, focusId: string): TaskView {
+export function mapTaskViewFromDetail(task: Record<string, unknown>, focusId: string): TaskView {
   const budgetRaw = task["budget_json"] ?? task["budget"];
   let budget = { walltimeActiveMin: 0, maxTurns: 0, maxCost: 0 };
   if (budgetRaw && typeof budgetRaw === "object") {
@@ -482,7 +508,175 @@ function mapTaskViewFromDetail(task: Record<string, unknown>, focusId: string): 
     budget,
     spent: { known: false },
     lastEvent: String(task["status"] ?? ""),
+    projectId:
+      typeof task["projectId"] === "string"
+        ? task["projectId"]
+        : typeof task["project_id"] === "string"
+          ? task["project_id"]
+          : undefined,
+    package_id:
+      typeof task["package_id"] === "string"
+        ? task["package_id"]
+        : typeof task["packageId"] === "string"
+          ? task["packageId"]
+          : undefined,
+    package_rev:
+      typeof task["package_rev"] === "number"
+        ? task["package_rev"]
+        : typeof task["packageRev"] === "number"
+          ? task["packageRev"]
+          : undefined,
     parkedDeadline: (task["parked_deadline"] as string | null | undefined) ?? (task["parkedDeadline"] as string | null | undefined) ?? null
+  };
+}
+
+export function mapDecisionPackageView(pkg: Record<string, unknown>, fallback?: { outcomePreview?: string }): DecisionPackageView {
+  const statusRaw = String(pkg["status"] ?? "proposed");
+  const status = (
+    ["draft", "proposed", "approved", "expired", "superseded"].includes(statusRaw) ? statusRaw : "proposed"
+  ) as DecisionPackageView["status"];
+  const costRaw = pkg["cost"];
+  let cost: DecisionPackageView["cost"] = { max: 0, currency: "CNY" };
+  if (costRaw && typeof costRaw === "object") {
+    const c = costRaw as Record<string, unknown>;
+    const expected =
+      typeof c["expected"] === "number"
+        ? c["expected"]
+        : c["expected"] && typeof c["expected"] === "object"
+          ? Number((c["expected"] as { value?: number }).value ?? 0) || undefined
+          : undefined;
+    cost = {
+      ...(expected !== undefined ? { expected } : {}),
+      max: Number(c["max"] ?? 0),
+      currency: c["currency"] === "USD" ? "USD" : "CNY"
+    };
+  }
+  const planRaw = Array.isArray(pkg["plan"]) ? pkg["plan"] : [];
+  return {
+    id: String(pkg["id"] ?? ""),
+    revision: Number(pkg["revision"] ?? 1),
+    status,
+    outcomePreview: String(pkg["outcomePreview"] ?? fallback?.outcomePreview ?? ""),
+    inScope: Array.isArray(pkg["inScope"]) ? pkg["inScope"].map(String) : [],
+    outOfScope: Array.isArray(pkg["outOfScope"]) ? pkg["outOfScope"].map(String) : [],
+    acceptance: Array.isArray(pkg["acceptance"]) ? pkg["acceptance"].map(String) : [],
+    plan: planRaw.flatMap((step) => {
+      if (!step || typeof step !== "object") return [];
+      const s = step as Record<string, unknown>;
+      return [
+        {
+          seq: Number(s["seq"] ?? 0),
+          step: String(s["step"] ?? ""),
+          owner: s["owner"] === "human" ? "human" : "ai"
+        }
+      ];
+    }),
+    cost,
+    risks: Array.isArray(pkg["risks"]) ? pkg["risks"].map(String) : [],
+    preauthorizedEffects: Array.isArray(pkg["preauthorizedEffects"])
+      ? (pkg["preauthorizedEffects"] as Array<Record<string, unknown>>).map((e) => ({
+          effect: String(e["effect"] ?? ""),
+          spokenForm: String(e["spokenForm"] ?? ""),
+          ttlHours: Number(e["ttlHours"] ?? 0)
+        }))
+      : [],
+    projectId: typeof pkg["projectId"] === "string" ? pkg["projectId"] : undefined,
+    ...(mapDemoRef(pkg["demoRef"]) ? { demoRef: mapDemoRef(pkg["demoRef"]) } : {})
+  };
+}
+
+function mapDemoRef(raw: unknown): { artifactId: string; version: number } | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const o = raw as Record<string, unknown>;
+  if (typeof o["artifactId"] !== "string" || o["artifactId"].trim() === "") return undefined;
+  if (typeof o["version"] !== "number" || !Number.isFinite(o["version"])) return undefined;
+  return { artifactId: o["artifactId"], version: o["version"] };
+}
+
+export function packageLookupKey(id: string, revision?: number): string {
+  return revision !== undefined ? `${id}@${revision}` : id;
+}
+
+export type ReviewRunRow = {
+  id?: unknown;
+  attempt?: unknown;
+  state?: unknown;
+  tree_sha?: unknown;
+  treeSha?: unknown;
+  settle_proof_json?: unknown;
+  settleProofJson?: unknown;
+  evidence_conflict?: unknown;
+};
+
+function parseSettleProof(raw: unknown): { treeSha?: string; runId?: string; attempt?: number } | undefined {
+  if (typeof raw !== "string" || raw.trim() === "") return undefined;
+  try {
+    const o = JSON.parse(raw) as Record<string, unknown>;
+    const treeSha = typeof o["treeSha"] === "string" ? o["treeSha"] : undefined;
+    const runId = typeof o["runId"] === "string" ? o["runId"] : undefined;
+    const attempt = typeof o["attempt"] === "number" ? o["attempt"] : undefined;
+    return { treeSha, runId, attempt };
+  } catch {
+    return undefined;
+  }
+}
+
+export function pickLatestSettledRun(runs: ReviewRunRow[] | undefined): {
+  runId: string;
+  attempt: number;
+  state: string;
+  treeSha: string;
+} | undefined {
+  if (!runs?.length) return undefined;
+  const ranked = [...runs].sort((a, b) => Number(b.attempt ?? 0) - Number(a.attempt ?? 0));
+  for (const row of ranked) {
+    if (row.evidence_conflict === true) continue;
+    const treeSha = String(row.tree_sha ?? row.treeSha ?? "");
+    const runId = String(row.id ?? "");
+    const state = String(row.state ?? "");
+    if (!runId || !/^[0-9a-f]{40}$/.test(treeSha)) continue;
+    if (state !== "settled_review" && state !== "settled_failed") continue;
+    const proof = parseSettleProof(row.settle_proof_json ?? row.settleProofJson);
+    if (!proof?.treeSha || proof.treeSha !== treeSha) continue;
+    if (!proof.runId || proof.runId !== runId) continue;
+    return { runId, attempt: Number(row.attempt ?? 0), state, treeSha };
+  }
+  return undefined;
+}
+
+/** 只展示 evidenceRef 解析到的原始正文;缺 ref/缺证不把 run 元数据冒充 log。 */
+export function mapAcceptanceEvidence(input: {
+  criterion: string;
+  evidenceRef?: string;
+  resolved?: {
+    evidenceRef: string;
+    ok: boolean;
+    kind?: "log" | "diff" | "article" | "note";
+    body?: string;
+    reason?: string;
+  };
+  run?: ReturnType<typeof pickLatestSettledRun>;
+  projectId?: string;
+  taskId?: string;
+}): AcceptanceItem["evidence"] | undefined {
+  const ref = input.evidenceRef?.trim();
+  if (!ref) return undefined;
+  const resolved = input.resolved;
+  if (!resolved || resolved.ok !== true || resolved.evidenceRef !== ref) return undefined;
+  const body = typeof resolved.body === "string" ? resolved.body.trim() : "";
+  if (!body) return undefined;
+  const kind =
+    resolved.kind === "diff" || resolved.kind === "article" || resolved.kind === "note" ? resolved.kind : "log";
+  const href =
+    input.projectId && input.taskId
+      ? `#/p/${encodeURIComponent(input.projectId)}/task/${encodeURIComponent(input.taskId)}`
+      : undefined;
+  return {
+    kind,
+    body,
+    ...(input.run?.treeSha ? { treeSha: input.run.treeSha } : {}),
+    ...(input.run?.runId ? { runId: input.run.runId } : {}),
+    ...(href ? { href, hrefLabel: "在任务详情核对原始证据" } : {})
   };
 }
 
@@ -505,6 +699,18 @@ export function mapReviewContext(data: TaskDetailPayload, focusId = ""): ReviewT
     checksByCriterion.set(check.criterion, rows);
   }
 
+  const settledRun = pickLatestSettledRun(data.runs as ReviewRunRow[] | undefined);
+  const evidenceByRef = new Map(
+    (data.acceptanceEvidence ?? []).map((row) => [row.evidenceRef, row] as const)
+  );
+  const taskId = String(task["id"] ?? "");
+  const projectId =
+    typeof task["projectId"] === "string"
+      ? task["projectId"]
+      : typeof task["project_id"] === "string"
+        ? task["project_id"]
+        : undefined;
+
   const acceptance: AcceptanceItem[] = acceptanceRaw.map((a) => {
     const criterion = typeof a === "string" ? a : a.text ?? a.criterion ?? JSON.stringify(a);
     const matches = checksByCriterion.get(criterion) ?? [];
@@ -514,19 +720,26 @@ export function mapReviewContext(data: TaskDetailPayload, focusId = ""): ReviewT
     else if (check?.source === "agent_claim") source = "agent_claim";
     else if (isWriting) source = "manual";
 
-    let statusAc: AcceptanceStatus = "unknown";
-    const legalSource = check?.source === "verify" || check?.source === "agent_claim" || check?.source === "manual";
-    if (check?.status === "unknown" && legalSource) statusAc = "unknown";
-    else if (
-      (check?.status === "pass" || check?.status === "fail") &&
-      legalSource &&
-      typeof check.evidenceRef === "string" &&
-      check.evidenceRef.trim() !== ""
-    ) {
-      statusAc = check.status;
-    }
+    const evidenceRef = typeof check?.evidenceRef === "string" ? check.evidenceRef : undefined;
+    const resolved = evidenceRef ? evidenceByRef.get(evidenceRef) : undefined;
+    const judged = judgeAcceptanceCheck(check, resolved);
+    const statusAc: AcceptanceStatus = judged.status;
 
-    return { criterion, status: statusAc, source };
+    const evidence = mapAcceptanceEvidence({
+      criterion,
+      evidenceRef,
+      resolved,
+      run: settledRun,
+      projectId,
+      taskId
+    });
+    return {
+      criterion,
+      status: statusAc,
+      source,
+      ...(judged.boundInvalid ? { evidenceBlock: "bound_invalid" as const } : {}),
+      ...(evidence ? { evidence } : {})
+    };
   });
 
   const decisions = (data.decisions ?? []).map((d) => ({
@@ -552,6 +765,8 @@ export function mapReviewContext(data: TaskDetailPayload, focusId = ""): ReviewT
     }
   }
   const tv = mapTaskViewFromDetail(task, focusId);
+  const latestRunAttempt = runs.reduce((max, r) => (r.attempt > max ? r.attempt : max), 0);
+  if (latestRunAttempt > 0) tv.attempt = latestRunAttempt;
   if (spentKnown) tv.spent = { known: true, value: spentValue };
 
   // package digest 末 12 作 packageRefText
@@ -603,16 +818,17 @@ export function mapTaskRowToView(
   };
 }
 
-/** 记录页事件:detail.events → {seq,type,text}(人话优先 payload 摘要,否则 type) */
+/** 记录页事件:detail.events → {seq,type,text,laneId?}(人话优先 payload 摘要,否则 type) */
 export function mapRecordEvents(
   events: FocusDetailPayload["events"]
-): Array<{ seq: number; type: string; text: string }> {
+): Array<{ seq: number; type: string; text: string; laneId?: string }> {
   return events.map((e) => {
     const p = e.payload ?? {};
     let text = e.type;
     if (typeof p["title"] === "string" && p["title"]) text = `${e.type}: ${p["title"]}`;
     else if (typeof p["note"] === "string" && p["note"]) text = String(p["note"]);
-    return { seq: e.seq, type: e.type, text };
+    const laneId = typeof p["laneId"] === "string" ? p["laneId"] : undefined;
+    return { seq: e.seq, type: e.type, text, ...(laneId ? { laneId } : {}) };
   });
 }
 

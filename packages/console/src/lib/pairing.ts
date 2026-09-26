@@ -5,6 +5,8 @@ import { apiGet, capToken } from "./api";
 export const PAIRING_LAN_DISABLED_MESSAGE = "服务未开手机访问:启动时加 SAYDO_MOBILE_LAN=1";
 export const PAIRING_DOWNLOAD_PLACEHOLDER = "应用上架后开放";
 export const PAIRING_NOT_PRIVATE_MESSAGE = "本机局域网地址不是私网,无法生成配对码";
+export const PAIRING_REMOTE_CLOSED_MESSAGE =
+  "远程业务入口已关闭。手机暂时不能查看或操作业务,请在本机浏览器打开控制台。";
 
 export type PairingInfo = {
   lanIp: string | null;
@@ -35,18 +37,12 @@ export function isPairingInfo(value: unknown): value is PairingInfo {
   );
 }
 
-export function pairingTargetUrl(info: PairingInfo, token: string): string | null {
-  if (!info.mobileLanEnabled || !info.lanIp || token === "") return null;
-  if (!isRfc1918Ipv4(info.lanIp)) return null;
-  return `http://${info.lanIp}:${info.port}/?token=${encodeURIComponent(token)}`;
+export function pairingTargetUrl(_info: PairingInfo, _token: string): string | null {
+  return null;
 }
 
-export function pairingBlockedReason(info: PairingInfo, token: string): string | null {
-  if (!info.mobileLanEnabled) return PAIRING_LAN_DISABLED_MESSAGE;
-  if (!info.lanIp) return "读不到本机局域网地址(en0),无法生成配对码";
-  if (!isRfc1918Ipv4(info.lanIp)) return PAIRING_NOT_PRIVATE_MESSAGE;
-  if (token === "") return "本机还没有登录凭证,先在本机打开控制台";
-  return null;
+export function pairingBlockedReason(_info: PairingInfo, _token: string): string | null {
+  return PAIRING_REMOTE_CLOSED_MESSAGE;
 }
 
 export async function fetchPairingInfo(): Promise<PairingInfo> {

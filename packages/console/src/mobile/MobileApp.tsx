@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useVoice } from "../shell/VoiceContext";
 import { useDaemonStatus } from "./dstat";
-import { useMobileAttention, useMobileFocus, useMobileFocuses } from "./hooks";
+import { useMobileAttention, useMobileFocus, useMobileFocuses, useMobileObligations } from "./hooks";
 import { MobileNotice, MobileShell } from "./MobileChrome";
 import { MobileCardPage } from "./pages/CardPage";
 import { MobileChatPage } from "./pages/ChatPage";
 import { MobileFocusPage } from "./pages/FocusPage";
 import { MobileLanePage } from "./pages/LanePage";
+import { MobileArchivePage, MobileArrangementsPage } from "./pages/LedgerPages";
 import { MobileThingsPage } from "./pages/ThingsPage";
 import { MobileTodayPage } from "./pages/TodayPage";
 import type { MobileRoute } from "./router";
@@ -98,12 +99,15 @@ export function MobileApp({ route }: { route: MobileRoute }) {
     const text = textInput.trim();
     if (status !== "online" || text === "" || pendingSend) return false;
     const afterSeq = voice.transcript.reduce((max, turn) => Math.max(max, turn.seq), 0);
-    try {
-      if (!voice.sendText(text)) {
+    if (!voice.connected) {
+      setToast(sendFailedToast("offline"));
+      return false;
+    }
+    void voice.sendText(text).then((sent) => {
+      if (!sent) {
         setToast(sendFailedToast("offline"));
-        return false;
+        return;
       }
-      // 消费 useVoiceChannel 乐观回显；立即导航 M-Chat + 人话 toast
       setPendingSend({ text, afterSeq });
       setSuppressFirstRun(true);
       setDraft((current) => (current.trim() === text ? "" : current));
@@ -111,11 +115,10 @@ export function MobileApp({ route }: { route: MobileRoute }) {
         location.hash = "/m/chat";
       }
       setToast(sentToast(text));
-      return true;
-    } catch {
+    }).catch(() => {
       setToast(sendFailedToast("unknown"));
-      return false;
-    }
+    });
+    return true;
   };
 
   const send = () => {
@@ -252,9 +255,23 @@ function MobilePage({
           pendingUserText={pendingUserText}
         />
       );
+    case "arrangements":
+      return <ArrangementsRoute />;
+    case "archive":
+      return <ArchiveRoute />;
     case "notfound":
       return <MobileNotice>移动页面不存在。<a href="#/m">回今天</a></MobileNotice>;
   }
+}
+
+function ArrangementsRoute() {
+  const resource = useMobileObligations();
+  return <MobileArrangementsPage rows={resource.data as never} error={resource.error} />;
+}
+
+function ArchiveRoute() {
+  const resource = useMobileFocuses();
+  return <MobileArchivePage rows={resource.data} error={resource.error} />;
 }
 
 function FocusRoute({ focusId }: { focusId: string }) {

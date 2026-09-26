@@ -50,6 +50,9 @@ export function ReviewPanel({ ctx, onAction, backLabel }: {
   const verdicts = ctx.manualVerdicts ?? {};
   const effStatus = (a: AcceptanceItem, i: number) => (ctx.writing && a.source === "manual" ? verdicts[i] ?? "unknown" : a.status);
   const allManualJudged = !ctx.writing || ctx.acceptance.every((a, i) => a.source !== "manual" || verdicts[i]);
+  const blockedByFail = ctx.acceptance.some((a, i) => effStatus(a, i) === "fail");
+  const blockedByEvidence = ctx.acceptance.some((a) => a.evidenceBlock === "bound_invalid");
+  const approveBlocked = !allManualJudged || blockedByFail || blockedByEvidence;
   const t = ctx.task;
 
   const emit = (a: ReviewAction) => {
@@ -60,16 +63,37 @@ export function ReviewPanel({ ctx, onAction, backLabel }: {
 
   const evidenceBody = () => {
     if (!ac) return null;
-    if (ac.evidence?.kind === "diff") {
-      return <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", lineHeight: 1.7, background: "var(--code-block-bg)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", overflowX: "auto", whiteSpace: "pre-wrap" }}>{ac.evidence.body}</div>;
-    }
-    if (ac.evidence?.kind === "log") {
-      return <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", lineHeight: 1.7, background: "var(--code-block-bg)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", overflowX: "auto", whiteSpace: "pre-wrap" }}>{ac.evidence.body}</div>;
-    }
-    if (ac.evidence) {
+    const ev = ac.evidence;
+    if (ev) {
+      const boxStyle = ev.kind === "diff" || ev.kind === "log"
+        ? { fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", lineHeight: 1.7, background: "var(--code-block-bg)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", overflowX: "auto" as const, whiteSpace: "pre-wrap" as const }
+        : { background: "var(--code-block-bg)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)", padding: "var(--space-4)", fontSize: "var(--text-sm)", lineHeight: 1.9, maxHeight: 320, overflowY: "auto" as const };
       return (
-        <div style={{ background: "var(--code-block-bg)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)", padding: "var(--space-4)", fontSize: "var(--text-sm)", lineHeight: 1.9, maxHeight: 320, overflowY: "auto" }}>
-          {ac.evidence.body.split("\n").map((l, i) => <div key={i}>{l}</div>)}
+        <div>
+          <div
+            data-review-evidence
+            data-review-tree-sha={ev.treeSha ?? ""}
+            data-review-run-id={ev.runId ?? ""}
+            style={boxStyle}
+          >
+            {ev.body}
+          </div>
+          {ev.href ? (
+            <a
+              href={ev.href}
+              data-review-evidence-link
+              style={{ display: "inline-block", marginTop: "var(--space-2)", fontSize: "var(--text-sm)" }}
+            >
+              {ev.hrefLabel ?? "打开本任务详情"}
+            </a>
+          ) : null}
+        </div>
+      );
+    }
+    if (ac.evidenceBlock === "bound_invalid") {
+      return (
+        <div data-review-evidence-block="bound_invalid" style={{ ...card, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+          这条已经绑了证据,但引用对不上(缺文件、内容被改、跨了别的 run,或无权读)。不能当成待判断后通过。
         </div>
       );
     }
@@ -81,7 +105,11 @@ export function ReviewPanel({ ctx, onAction, backLabel }: {
   };
 
   return (
-    <div data-review-panel={t.id}>
+    <div
+      data-review-panel={t.id}
+      data-review-items-pass={ctx.acceptance.some((a, i) => effStatus(a, i) === "pass") ? "1" : "0"}
+      data-review-approve-blocked={approveBlocked ? "1" : "0"}
+    >
       <div style={{ marginBottom: "var(--space-3)" }}>
         <Btn icon={ChevronRight} onClick={() => emit({ type: "back_to_focus" })}>{backLabel ?? "回到所属 Focus"}</Btn>
       </div>
@@ -94,7 +122,15 @@ export function ReviewPanel({ ctx, onAction, backLabel }: {
           <Mono faint>{t.route === "hopper" ? "HP" : "T1"}</Mono>
         </div>
         <div style={{ fontSize: "var(--text-sm)", marginTop: 6 }}>
-          执行和检查都跑完了,<strong>等你验收</strong>。下面按验收标准逐条看。
+          {blockedByFail ? (
+            "验证没过,这些验收项不能当成通过。"
+          ) : blockedByEvidence ? (
+            "有验收项绑过证据,但引用已经对不上。先别通过。"
+          ) : (
+            <>
+              执行和检查都跑完了,<strong>等你验收</strong>。下面按验收标准逐条看。
+            </>
+          )}
         </div>
         <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
           <span>{ctx.packageRefText}</span>
@@ -129,6 +165,11 @@ export function ReviewPanel({ ctx, onAction, backLabel }: {
               <button
                 key={i}
                 type="button"
+                data-acceptance-item
+                data-acceptance-status={st}
+                data-acceptance-source={a.source}
+                data-acceptance-evidence={a.evidenceBlock ?? "open"}
+                data-acceptance-criterion={a.criterion}
                 onClick={() => emit({ type: "select_ac", index: i })}
                 style={{
                   display: "flex", gap: "var(--space-2)", padding: "10px var(--space-3)",
@@ -192,11 +233,16 @@ export function ReviewPanel({ ctx, onAction, backLabel }: {
             <ActionRow>
               {ctx.s3 ? (
                 <>
-                  <Btn variant="s3" icon={Fingerprint} onClick={() => emit({ type: "s3_merge" })}>用本机认证批准并合并</Btn>
+                  <Btn variant="s3" icon={Fingerprint} disabled={approveBlocked} onClick={() => emit({ type: "s3_merge" })}>用本机认证批准并合并</Btn>
                   <span style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>S3 不可逆 · 只能在这台电脑上完成,语音与远程永不出现此按钮</span>
                 </>
               ) : (
-                <Btn variant="seal" icon={Flag} disabled={!allManualJudged} onClick={() => emit({ type: "approve" })}>
+                <Btn
+                  variant="seal"
+                  icon={Flag}
+                  disabled={approveBlocked}
+                  onClick={() => emit({ type: "approve" })}
+                >
                   通过{allManualJudged ? "" : "(先逐条裁决人工项)"}
                 </Btn>
               )}

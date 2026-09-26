@@ -1,5 +1,7 @@
 # remote-mobile-w0 实施对账报告
 
+> 2026-09-13 当前边界：本文是 `addfd1965a5144223df3bfa3f7c407976664929a` 所在历史批的记录。后续 PG-01B 已关闭远程业务入口，当前不能按本文的 LAN 配对、移动树或远程记忆白名单作为操作指南；现行范围以 `docs/09-data-contracts.md` 与 `docs/plan/IMPLEMENTATION-PLAN-2.md` 为准。原 Chromium/LAN 结果不证明当前候选或真机验收，旧排期不触发重复施工。
+
 > 对象:代码提交 `addfd1965a5144223df3bfa3f7c407976664929a`(本会话 feat 后 `git log -1`)。基线 HEAD `3197fd8a2b60e4cd948ef2efe9e8fa3a7c5853ca`。无独立分支,不 fetch。
 > 计划:`docs/review/2026-08-16-now-vs-later.md` §1/§5 + `docs/review/2026-08-13-mobile-shell-strategy-final.fable.md` §3 + Codex 73。
 > 日期:2026-08-16。零 emoji。

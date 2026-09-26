@@ -3,6 +3,7 @@
 // 投递失败不写 notified / 未配置降级(桌面通知仍走,不假装有推送面)。
 
 import { mkdtempSync } from "node:fs";
+import { createServer, type Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -22,7 +23,7 @@ import {
   type SmtpDialer,
   type SmtpSocket
 } from "../src/callback/email.js";
-import { renderNtfyMessage } from "../src/callback/ntfy.js";
+import { consoleBaseUrl, LOCAL_HANDLE_HINT, renderNtfyMessage } from "../src/callback/ntfy.js";
 import { runCallbackSweep, type SweepDeps } from "../src/callback/sweep.js";
 import { getOutboxEntry, setOutboxThreadMessageId } from "../src/storage/dao/outbox.js";
 import type { AuditSink } from "../src/obs/audit.js";
@@ -328,6 +329,80 @@ describe("sendEmailSmtp(假 socket)", () => {
     expect(await sendEmailSmtp({ ...target, mode: "tls" }, msg, { dialer: dialerWith(silent, silent), timeoutMs: 20 })).toBe(false);
   });
 
+  it("连接卡住:总 deadline 从 dial 起算,超时 false 且不泄漏凭据", async () => {
+    const hang: SmtpDialer = {
+      connect: () => new Promise(() => {}),
+      upgradeTls: async (socket) => socket
+    };
+    const started = Date.now();
+    const ok = await sendEmailSmtp(target, msg, { dialer: hang, timeoutMs: 10 });
+    expect(ok).toBe(false);
+    expect(Date.now() - started).toBeLessThan(200);
+    expect(ok).not.toBeUndefined();
+  });
+
+  it("连接迟到返回:销毁迟到 socket", async () => {
+    const lateSockets: FakeSocket[] = [];
+    const hang: SmtpDialer = {
+      connect: () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            const socket = new FakeSocket(okServer());
+            lateSockets.push(socket);
+            resolve(socket);
+          }, 40);
+        }),
+      upgradeTls: async (socket) => socket
+    };
+    expect(await sendEmailSmtp(target, msg, { dialer: hang, timeoutMs: 10 })).toBe(false);
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(lateSockets).toHaveLength(1);
+    const late = lateSockets[0];
+    if (!late) throw new Error("late socket was not delivered");
+    expect(late.destroyed).toBe(true);
+    expect(late.written.join("")).not.toContain("pw-fixture-not-a-real-secret");
+  });
+
+  it("握手卡住:销毁已持有 socket", async () => {
+    const plain = new FakeSocket(okServer());
+    const hang: SmtpDialer = {
+      connect: async () => {
+        plain.greet();
+        return plain;
+      },
+      upgradeTls: () => new Promise(() => {})
+    };
+    expect(await sendEmailSmtp(target, msg, { dialer: hang, timeoutMs: 20 })).toBe(false);
+    expect(plain.destroyed).toBe(true);
+    expect(plain.written.join("")).not.toContain("pw-fixture-not-a-real-secret");
+    expect(plain.written.join("")).not.toContain("AUTH");
+  });
+
+  it("可注入 dialer 收到可选 AbortSignal;旧 fake 忽略第二参仍可跑", async () => {
+    let seen: AbortSignal | undefined;
+    const hang: SmtpDialer = {
+      connect: (_target, signal) => {
+        seen = signal;
+        return new Promise(() => {});
+      },
+      upgradeTls: async (socket) => socket
+    };
+    expect(await sendEmailSmtp(target, msg, { dialer: hang, timeoutMs: 15 })).toBe(false);
+    expect(seen).toBeDefined();
+    expect(seen!.aborted).toBe(true);
+  });
+
+  it("DATA 250 已接收后迟到 error 不回退失败", async () => {
+    const sock = new FakeSocket((cmd, s) => {
+      if (cmd === "DATA_BODY") {
+        queueMicrotask(() => queueMicrotask(() => s.emitError(new Error("after-250"))));
+        return "250 queued\r\n";
+      }
+      return okServer()(cmd);
+    });
+    expect(await sendEmailSmtp({ ...target, mode: "tls" }, msg, { dialer: dialerWith(sock, sock) })).toBe(true);
+  });
+
   it("buildEmailData:行首点转义、Auto-Submitted 头", () => {
     const { inReplyTo: _i, references: _r, ...single } = msg;
     const data = buildEmailData(target, single, new Date(nowMs));
@@ -335,7 +410,204 @@ describe("sendEmailSmtp(假 socket)", () => {
     expect(data).not.toContain("In-Reply-To");
     expect(data).not.toMatch(/\r\n\.[^.]/);
   });
+
+  it("buildEmailData:长中文/混合多字节/长 ASCII 按 RFC2047 折行且往返还原", () => {
+    const zh = "汉".repeat(80);
+    const mixed = `Hi 你好${"世".repeat(40)}\u{20000}尾`;
+    const ascii = `A${"b".repeat(200)}Z`;
+    for (const subject of [zh, mixed, ascii]) {
+      const { inReplyTo: _i, references: _r, ...single } = msg;
+      const data = buildEmailData(target, { ...single, subject }, new Date(nowMs));
+      const headers = data.split("\r\n\r\n")[0]!;
+      for (const line of headers.split("\r\n")) {
+        if (line.includes("=?")) expect(line.length).toBeLessThanOrEqual(76);
+        for (const word of line.match(/=\?UTF-8\?B\?[A-Za-z0-9+/=]+\?=/g) ?? []) {
+          expect(word.length).toBeLessThanOrEqual(75);
+        }
+      }
+      expect(decodeEncodedHeader(headers, "Subject")).toBe(subject);
+      expect(decodeEncodedHeader(headers, "Subject")).not.toContain("\uFFFD");
+      const body = data.split("\r\n\r\n")[1]!.replace(/\r\n\.\r\n$/, "").replace(/\r\n/g, "");
+      expect(Buffer.from(body, "base64").toString("utf8")).toBe(msg.text);
+    }
+  });
+
+  it("buildEmailData:多 References 合法折行且不截断 Message-ID 链", () => {
+    const refs = Array.from({ length: 12 }, (_, i) => `<out_${String(i).padStart(3, "0")}@thread.example.test>`);
+    const data = buildEmailData(
+      target,
+      { ...msg, subject: "SayDo:thread", references: refs, inReplyTo: refs[refs.length - 1]! },
+      new Date(nowMs)
+    );
+    const headers = data.split("\r\n\r\n")[0]!;
+    const refLines = collectHeader(headers, "References");
+    expect(refLines.length).toBeGreaterThan(1);
+    for (const line of refLines) expect(line.length).toBeLessThanOrEqual(78);
+    const unfolded = refLines.join(" ").replace(/^References:\s*/, "").replace(/\s+/g, " ").trim();
+    expect(unfolded.split(" ")).toEqual(refs);
+    for (const id of refs) expect(headers).toContain(id);
+  });
+
+  it("配置 tailnet 时邮件/ntfy 仍只给本机入口,正文提示本机处理,title 脱敏", () => {
+    seed("修 /opt/saydo-test/.secret.env 里的 sk-test0123456789abcdef0123");
+    const base = consoleBaseUrl(["saydo-test.example"], 47100);
+    expect(base).toBe("http://127.0.0.1:47100");
+    const ntfy = renderNtfyMessage(db, { id: "out_mail", task_id: TSK, trigger: "ready_for_review" }, { consoleBase: base });
+    const mail = renderEmailMessage(db, { id: "out_mail", task_id: TSK, trigger: "ready_for_review" }, { consoleBase: base, from: target.from });
+    expect(mail).not.toBeNull();
+    expect(ntfy.click).toMatch(/^http:\/\/127\.0\.0\.1:47100\/#\/p\/prj_/);
+    expect(ntfy.click).not.toContain("token");
+    expect(ntfy.click).not.toContain("saydo-test.example");
+    expect(ntfy.body).toContain(LOCAL_HANDLE_HINT);
+    expect(ntfy.body).not.toContain("手机可处理");
+    expect(ntfy.title).not.toContain("sk-test0123456789abcdef0123");
+    expect(mail!.click).toBe(ntfy.click);
+    expect(mail!.text).toContain(LOCAL_HANDLE_HINT);
+    expect(mail!.text).toContain("打开:http://127.0.0.1:47100/");
+    expect(mail!.text).not.toContain("saydo-test.example");
+    expect(mail!.subject).not.toContain("sk-test0123456789abcdef0123");
+  });
 });
+
+describe("sendEmailSmtp(原生临时 TCP)", () => {
+  const probeMsg: EmailMessage = {
+    subject: "probe",
+    text: "probe",
+    click: "",
+    messageId: "<probe@example.test>"
+  };
+
+  async function listenHang(onConn: (s: Socket) => void): Promise<{
+    port: number;
+    peers: Socket[];
+    close: () => Promise<void>;
+  }> {
+    const peers: Socket[] = [];
+    const server = createServer((s) => {
+      peers.push(s);
+      s.on("error", () => {});
+      onConn(s);
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const a = server.address();
+    if (!a || typeof a === "string") throw new Error("address");
+    return {
+      port: a.port,
+      peers,
+      close: async () => {
+        for (const s of peers) s.destroy();
+        await new Promise<void>((resolve) => server.close(() => resolve()));
+      }
+    };
+  }
+
+  function waitPeerClosed(peers: Socket[], timeoutMs: number): Promise<void> {
+    const start = Date.now();
+    return new Promise((resolve, reject) => {
+      const tick = (): void => {
+        if (peers.length > 0 && peers.every((s) => s.destroyed)) {
+          resolve();
+          return;
+        }
+        if (Date.now() - start > timeoutMs) {
+          reject(new Error(`peer still open: accepted=${peers.length} open=${peers.filter((s) => !s.destroyed).length}`));
+          return;
+        }
+        setTimeout(tick, 5);
+      };
+      for (const s of peers) s.once("close", () => tick());
+      tick();
+    });
+  }
+
+  it("隐式 TLS 握手挂住:超时 false 且服务端观察到 close", async () => {
+    const hang = await listenHang((s) => {
+      s.resume();
+    });
+    try {
+      const ok = await sendEmailSmtp(
+        { host: "127.0.0.1", port: hang.port, mode: "tls", from: "a@example.test", to: "b@example.test" },
+        probeMsg,
+        { timeoutMs: 50 }
+      );
+      expect(ok).toBe(false);
+      await waitPeerClosed(hang.peers, 200);
+      expect(hang.peers.length).toBeGreaterThanOrEqual(1);
+      expect(hang.peers.every((s) => s.destroyed)).toBe(true);
+    } finally {
+      await hang.close();
+    }
+  });
+
+  it("STARTTLS 后握手挂住:超时 false 且服务端观察到 close", async () => {
+    const hang = await listenHang((s) => {
+      let buf = "";
+      s.write("220 hang.example.test ESMTP\r\n");
+      s.on("data", (chunk) => {
+        buf += chunk.toString("utf8");
+        for (;;) {
+          const nl = buf.indexOf("\r\n");
+          if (nl === -1) return;
+          const line = buf.slice(0, nl);
+          buf = buf.slice(nl + 2);
+          const head = line.split(" ")[0]?.toUpperCase() ?? "";
+          if (head === "EHLO") {
+            s.write("250-hang.example.test\r\n250 STARTTLS\r\n");
+          } else if (head === "STARTTLS") {
+            s.write("220 go ahead\r\n");
+          }
+        }
+      });
+    });
+    try {
+      const ok = await sendEmailSmtp(
+        { host: "127.0.0.1", port: hang.port, mode: "starttls", from: "a@example.test", to: "b@example.test" },
+        probeMsg,
+        { timeoutMs: 80 }
+      );
+      expect(ok).toBe(false);
+      await waitPeerClosed(hang.peers, 200);
+      expect(hang.peers.length).toBeGreaterThanOrEqual(1);
+      expect(hang.peers.every((s) => s.destroyed)).toBe(true);
+    } finally {
+      await hang.close();
+    }
+  });
+});
+
+function collectHeader(headers: string, name: string): string[] {
+  const lines = headers.split("\r\n");
+  const start = lines.findIndex((l) => l.toLowerCase().startsWith(`${name.toLowerCase()}:`));
+  if (start < 0) return [];
+  const out = [lines[start]!];
+  for (let i = start + 1; i < lines.length; i += 1) {
+    if (/^[ \t]/.test(lines[i]!)) out.push(lines[i]!);
+    else break;
+  }
+  return out;
+}
+
+function decodeEncodedHeader(headers: string, name: string): string {
+  const raw = collectHeader(headers, name).join("\r\n").slice(name.length + 1).trimStart();
+  const unfolded = raw.replace(/\r\n[ \t]/g, "");
+  const parts: { start: number; end: number; text: string }[] = [];
+  const re = /=\?UTF-8\?B\?([A-Za-z0-9+/=]+)\?=/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(unfolded))) {
+    parts.push({ start: m.index, end: m.index + m[0].length, text: Buffer.from(m[1]!, "base64").toString("utf8") });
+  }
+  if (parts.length === 0) return unfolded;
+  let out = "";
+  let last = 0;
+  for (let i = 0; i < parts.length; i += 1) {
+    const p = parts[i]!;
+    const gap = unfolded.slice(last, p.start);
+    if (!(i > 0 && /^[ \t]*$/.test(gap))) out += gap;
+    out += p.text;
+    last = p.end;
+  }
+  return out + unfolded.slice(last);
+}
 
 // ---- sweep 集成:邮件作为 L1 通道 ----
 interface H {

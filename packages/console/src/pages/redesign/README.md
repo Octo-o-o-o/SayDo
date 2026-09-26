@@ -8,7 +8,7 @@
 
 - `onNavigate(target: PageNavTarget)` — 页面间跳转:`focus / records / review / board / today`。接线线映射到真实 hash(如 `#/focus/:id`)。
 - `onAction(union)` — 页内一切非跳转动作(卡片按钮、定位、拍板、fork…),逐页联合类型见下。接线线据此发命令/开弹窗。
-- `onExpandSegment(sessionRef) => Promise<string[] | null> | string[] | null` — 会话段转写懒加载(FocusPage/RecordsPage);返回 `null` 表示读不到,组件如实呈现空态。
+- `onExpandSegment(sessionRef) => Promise<string[] | null> | string[] | null` — 会话段转写懒加载(FocusPage/RecordsPage);返回 `null` 或抛错表示读取失败(组件显式可重试,不画成空转写);返回 `[]` 才是真空转写。
 
 ## FocusPageView(FocusPage.tsx)
 
@@ -29,9 +29,9 @@
 | `interview?` | **OPEN QUESTION**:拼装清单含 Interview 卡但 §3 TimelineItem 无 interview 成员(疑似归 live 通道)。暂作页面级可选字段,渲染在时间线末尾;归位待拍板 |
 | (prop)`composerSlot?` | 活跃态输入区插槽(语音 composer 由接线线挂载);停机态(closed/abandoned/archived)忽略插槽、渲染 ComposerHaltBar |
 
-`FocusPageAction`:`task`(任务卡动作透传)｜`pkg`(决策包 select_mode/approve/revise/edit_expectation)｜`standby`(simulate_wake)｜`interview_pick`｜`locate`(右栏点条目定位,容器负责滚动+闪烁)｜`expect`(「我期待一个 X」)｜`expectation_edit`(期待组直改入口)｜`fork`(停机态)。statecard「记录」走 `onNavigate({page:"records"})`。
+`FocusPageAction`:`task`(任务卡动作透传)｜`pkg`(决策包 select_mode/approve/revise/edit_expectation)｜`standby`(simulate_wake)｜`interview_pick`｜`locate`(安排打开 TaskModal;产物/项目仅当 `data-locate` 节点存在才滚动,否则 toast,不跳到空位置)｜`expect` / `expectation_edit`(只带 Focus 进对话草稿,不自动发送,不写 durable expectationId)｜`fork`(诚实提示:分叉还没接上)。statecard「记录」走 `onNavigate({page:"records"})`。
 
-窄屏降级:<1100px 右栏折叠为 statecard 下方横向摘要条(只读计数),CSS 媒体查询自动生效;`rdp-force-narrow` 类可强制(dev-pages 的「窄」开关用它)。
+桌面窄于 1100px 时右栏折叠为 statecard 下方横向摘要条;`rdp-force-narrow` 可强制(dev-pages 的「窄」开关)。viewport <768 不走本页,切独立 MobileApp Focus/泳道/安排卡。
 
 ## ReviewPageView(ReviewPage.tsx)
 
@@ -62,8 +62,8 @@
 | `segments` | 会话段 `{sessionRef,label,turnCount,closed,transcriptAvailable}`;closed=false=中断缺尾,transcriptAvailable=false=未存转写占位 |
 | `events` | FocusEvent 事件流 `{seq,type,text}`(append-only,照传照渲染) |
 
-返回条(`back`)映射为 `onNavigate({page:"focus"})`;其余 `RecordsAction`(archive/abandon/reopen/fork/lane_op/dependency_undo/redo_preview)经 `onAction` 透传——归档/放弃理由必填的表单、redo preview 两步确认都归接线线。
+返回条(`back`)映射为 `onNavigate({page:"focus"})`;其余 `RecordsAction`(archive/abandon/reopen/fork/lane_op/dependency_undo/redo_preview)经 `onAction` 透传——归档/放弃理由必填的表单、redo preview 两步确认都归接线线。`lane_op.continue` 必须传真实 `laneTitle`,禁止把 `laneId` 当标题(缺标题或标题等于 id 时省略)。
 
-## 接线侧尚未建设(边界外,HANDOFF-2 §5)
+## 接线实况(2026-09-12)
 
-timeline/转写段 API、数据 hook(useFocusPageData 等)、正式路由切换(#/focus/:id 指向新页)、TaskModal 替换、语音 composer 挂载、旧页退役。预览:`#/dev-pages`(dev-only,四页 fixture 可切换,亮/暗 × 宽/窄自查)。
+四页 hook 与正式路由已接(`#/focus/:id`、`#/records/:id`、`#/board`、`#/review/:id`)。Focus 安排 / 看板卡片走 TaskModal;期待与「在这件事里开口」走 `pendingAnchor` + `#/chat-new`;完整 ChatComposer 挂在 Focus 页、rail.tasks 读口、决策包/standby 写口、fork REST 仍未建。预览:`#/dev-pages`(dev-only,四页 fixture 可切换,亮/暗 × 宽/窄自查)。

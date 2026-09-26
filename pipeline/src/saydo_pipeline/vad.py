@@ -44,10 +44,10 @@ _TRAILING_CONTINUATION = (
     "这个",
     "嗯",
     "呃",
-    "、",
-    ",",
-    ",",
 )
+# 续接标点优先于终止标点。判定只看视图,不改 ASR 正文。
+_CONTINUATION_PUNCT = frozenset({",", "，", "、"})
+_TERMINAL_PUNCT = frozenset({"。", ".", "？", "?", "！", "!", "…"})
 
 
 def rms_of_pcm16(frame: bytes) -> float:
@@ -61,16 +61,29 @@ def rms_of_pcm16(frame: bytes) -> float:
     return (total / n) ** 0.5
 
 
+def _judgment_view(text: str) -> str:
+    """去掉句末终止标点后的判定视图。逗号和顿号留在视图里。"""
+    view = text.strip()
+    while view and view[-1] in _TERMINAL_PUNCT:
+        view = view[:-1].rstrip()
+    return view
+
+
 def semantic_eou_complete(text: str) -> bool:
     """语义 EOU(第二层):判定这段转写像不像"说完了"。
 
-    机械口径:非空 ∧ 不以接续词/迟疑词/顿号逗号收尾。判"未完"只延长等待
-    (fail-safe 方向:误判未完最多多等 EOU_HOLD_MS,误判已完靠用户续说下一轮兜)。
+    先看原文末尾的续接标点(半角逗号、全角逗号、顿号)。剥掉句末终止标点后,
+    视图若仍以续接标点或连接词结尾,也判未完。本函数不修改 text。
     """
     t = text.strip()
     if t == "":
         return False
-    return not any(t.endswith(suffix) for suffix in _TRAILING_CONTINUATION)
+    if t[-1] in _CONTINUATION_PUNCT:
+        return False
+    view = _judgment_view(t)
+    if view == "" or view[-1] in _CONTINUATION_PUNCT:
+        return False
+    return not any(view.endswith(suffix) for suffix in _TRAILING_CONTINUATION)
 
 
 @dataclass

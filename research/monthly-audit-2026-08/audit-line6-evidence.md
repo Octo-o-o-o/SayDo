@@ -23,6 +23,8 @@
 
 ### A-1 当前 main 上 week-audit 证据门是红的:`--check` 与 `--check-bundle` 均失败
 
+> 2026-09-13 对账说明：历史失败保留。下文把最后重生成点写为9417b6d、断裂起点推为728eeb6，已被同目录 crossreview-1 A-2 及6316f7d修正：最后重生成c383bc0，之后9a3e180起漂移。原错误起点不继续作为证据。
+
 **主张**:锚定文档把 `node scripts/week-audit.mjs --check` 列为复现门禁(docs/review/2026-08-23-week-audit-faststart-release.md §2 "复现门禁"),CI 在 "document and release metadata gates" 步骤跑 `--check-bundle`(.github/workflows/ci.yml:46);本会话在当前 main HEAD(`f723ab7`)上两者均 exit 1。
 
 **证据**(本会话实跑):

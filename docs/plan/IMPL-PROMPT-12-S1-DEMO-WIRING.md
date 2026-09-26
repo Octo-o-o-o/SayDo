@@ -1,5 +1,7 @@
 # SayDo S1 批（决策包 Demo 小样接线）· 实施 Prompt（第十二轮交接）
 
+> 2026-09-13 对账:这是历史实施输入,不再作为现役交接。§3.4 把 screenText 提示送达当作小样展示的验收锚不足:当前 canonical 与源码区分 demoHintDelivered 和 demoPresented,没有实际展示回执不能置后者为 true。旧基线/坐标/测试数与 Focus 页缺口均只指当时状态;当前计划见 IMPLEMENTATION-PLAN-2.md。
+
 > 方案源：`docs/plan/2026-08-20-seven-steps-gap-closure.fable.md` §0/§2（裁决 D-S1-1…D-S1-6）。背景：决策包"三件套"里的轻量 Demo 生成器 `renderPackageDemo` 已落地但生产零调用方、`demoRef` 恒空；本批把它接进组包 → 产物库 → 控制台 iframe 沙箱 → 话术，并修生成器的 `.amount` 误读。
 > 性质：接线 + 两处 additive（`ArtifactStore` 扩展名按类型、一个只读 HTTP 端点）+ 一条 canonical 措辞回写（`docs/07` D14 的 Demo 生成归属，解决其与 `docs/08` §R4 的既有矛盾；随批回写 + 一致性评审）。不改 DDL（`demoRef` 在 `body_json`）、不改签名算法（`computePackageDigest` 早已含 `demoRef`）。
 > 纪律：两提交法；evidence `e2e/evidence/s1-demo-wiring.md`；零 emoji；不部署常驻、不 push、不改 `~/.saydo`；施工 = 独立 clone 分支 `batch/s1-demo-wiring`；实施 = Grok 4.6 headless，评估 = 零上下文只读会话。HANDOFF「当前批次指针」由 W5.4-a 占用，本批**不写指针**（小批，evidence 自证）。

@@ -485,10 +485,27 @@ describe("认领循环(任务①):queued -> reserve CAS -> worktree 供给 -> sp
     const proof = tier1SettleProofSchema.parse(JSON.parse(run["settle_proof_json"] as string));
     expect(proof.taskId).toBe(TSK);
     expect(proof.treeSha).toBe(run["tree_sha"]);
-    expect(proof.tier1VerifyDigest).toMatch(/^sha256:/);
+    const verifyPayload = readFileSync(join(saydoHome, "tier1", "runs", String(run["id"]), "verify.json"), "utf8");
+    const verifyRows = JSON.parse(verifyPayload) as Array<{ templateRef: string; exitCode: number; stdoutTail: string }>;
+    expect(verifyRows.map((row) => ({ templateRef: row.templateRef, exitCode: row.exitCode }))).toEqual([
+      { templateRef: "package_script:test", exitCode: 0 }
+    ]);
+    expect(verifyRows.every((row) => typeof row.stdoutTail === "string")).toBe(true);
+    const verifyDigest = textDigest(verifyPayload);
+    expect(proof.tier1VerifyDigest).toBe(verifyDigest);
     expect(proof.acceptanceChecks).toEqual([
-      { criterion: "导出按钮可用", status: "unknown", source: "manual" },
-      { criterion: "项目登记的测试命令通过", status: "unknown", source: "manual" }
+      {
+        criterion: "导出按钮可用",
+        status: "unknown",
+        source: "manual",
+        evidenceRef: `verify:${verifyDigest}`
+      },
+      {
+        criterion: "项目登记的测试命令通过",
+        status: "unknown",
+        source: "manual",
+        evidenceRef: `verify:${verifyDigest}`
+      }
     ]);
 
     // outbox:trigger=ready_for_review,occurrenceKey=attempt
@@ -4708,52 +4725,41 @@ describe("managed lifecycle 不得降成 blocked", () => {
   });
 
   it("managed 普通 nonzero 保留 stdoutTail 且不污染", async () => {
-    const TSK = "tsk_01EXEC000000000000000000ST";
-    seedManagedSetupTask(TSK);
+    // SC-59:必须观察生产返回值——verify.json 的 stdoutTail 是 runManagedCommand
+    // 真实 captureStdout 产出;fake 自赋值或空串满足的旧写法不能证明产品保留尾部输出。
+    const badRepo = makeRepo();
     const marker = "UNIQUE_MANAGED_STDOUT_TAIL";
-    let captured = "";
-    setRuntimeChildTestHooks({
-      groupState: () => "gone",
-      spawn: (_file, _args, options) => {
-        const stdout = new PassThrough();
-        const stderr = new PassThrough();
-        const stdin = new PassThrough();
-        const child = new EventEmitter() as SpawnedRuntimeChild["child"];
-        child.stdout = stdout;
-        child.stderr = stderr;
-        child.stdin = stdin;
-        Object.defineProperty(child, "pid", { value: 73001 });
-        child.kill = () => true;
-        queueMicrotask(() => {
-          child.emit("spawn");
-          if (options.stdout === "pipe") {
-            captured = marker;
-            stdout.write(marker);
-          }
-          stdout.end();
-          stderr.end();
-          child.emit("exit", 1, null);
-          child.emit("close", 1, null);
-        });
-        return {
-          child,
-          commandToken: "saydo-child-01234567-89ab-cdef-0123-456789abcdef", generation: "01234567-89ab-cdef-0123-456789abcdef",
-          lease: {
-            establish: async () => undefined,
-            release: async () => undefined
-          },
-          signal: () => undefined
-        };
-      }
-    });
+    writeFileSync(
+      join(badRepo, "package.json"),
+      JSON.stringify(
+        {
+          name: "fixture",
+          version: "1.0.0",
+          scripts: { test: `node -e "console.log('${marker}'); process.exit(1)"` }
+        },
+        null,
+        2
+      )
+    );
+    execFileSync("git", ["add", "-A"], { cwd: badRepo });
+    execFileSync("git", ["commit", "-qm", "red"], { cwd: badRepo });
+    setExternalWorkspace(PRJ, badRepo);
+    const TSK = "tsk_01EXEC000000000000000000ST";
+    seedQueuedTask(TSK);
+    spawner.plan = [{ lines: [EV.init, EV.result], exitCode: 0 }];
     const ex = makeExecutor();
     ex.tick();
-    await vi.waitFor(() => {
-      const status = (db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string } | undefined)?.status;
-      expect(status === "blocked" || status === "failed" || captured === marker).toBe(true);
-    }, { timeout: 5_000, interval: 20 });
+    await waitTaskStatus(TSK, "failed");
+    const run = db.prepare("SELECT id, state FROM tier1_runs WHERE task_id=?").get(TSK) as { id: number; state: string };
+    expect(run.state).toBe("settled_failed");
+    const rows = JSON.parse(
+      readFileSync(join(saydoHome, "tier1", "runs", String(run.id), "verify.json"), "utf8")
+    ) as Array<{ exitCode: number; stdoutTail: string }>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.exitCode).toBe(1);
+    expect(rows[0]?.stdoutTail).toContain(marker);
+    expect(rows[0]?.stdoutTail).not.toMatch(/ProcessGroupLifecycleError/u);
     expect(ex.lifecycleContamination()).toBeNull();
-    expect(captured).not.toMatch(/ProcessGroupLifecycleError/u);
   });
 
   it("agent wait work+release 双错走 lifecycle 不得 blocked/ready_for_review", async () => {

@@ -218,7 +218,7 @@ export class RuntimeApprovalFlow {
             receiptId: receipt.id,
             sentenceId,
             promptText,
-            payload: { kind: "runtime_effect" }
+            payload: { kind: "runtime_effect", taskId: i.taskId }
           });
         if (!presented) {
           d.audit.record({

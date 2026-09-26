@@ -118,6 +118,7 @@ L-1 的定义处不在 capture 方案里,而在 **`e2e/evidence/w54b-batch.md` �
 - 模块 ↔ 目录映射成立:A2↔`session/`、A3↔`brain/`、A4↔`interview/`、A5↔`evaluator/`、A6↔`demo/`、A7↔`intent/`、B↔`memory/`+`artifacts/`、C2-Tier1↔`tier1/`、C4↔`callback/`、C5↔`approvals/`、C6↔`summary/`、C7↔`recovery/`、C8↔`cost/`、E1↔`providers/`、E3↔`obs/`;c-control-bridge.md 已更新到 Tier1 现实(claude_code CLI hooks、W5.4-c 开放项、07 D8 矩阵)。
 - 漂移一处(B-7 发现):`modules/a-dialogue.md` A3 设计要点④「对话档恒 API(BYOA 判死,07 D18 结案表)」与 docs/09 §11 T18b 段(09:1272 附近)「全局 dialog 接受 API 或 CLI binding…CLI 天然投影为 mode:"oneshot"」冲突。该文件自带「冲突时 canonical 胜」免责,但作为「实施与核对入口」已构成误导(T18b 是 08-12 就落的 canonical,该行至今未改)。
 - `modules/d-presentation.md` D2 仍写 Capacitor/P1,与 mobile 壳已入 rc.12 分发的现实不符——呈现域超出本审计范围,仅记 C 级观察,不展开。
+  > 2026-09-13 勘误：上述“mobile 壳已入 rc.12 分发”不实。rc.12 是 Desktop CLI 预发布包，不含移动壳生产分发；历史版本矩阵的移动端仍为 No-Go。D2 的技术选型陈旧可以单独核对，不能以上架/分发这一错误前提支撑。
 
 **(e) HANDOFF.md(B-6 发现)** — 实读:§1 头部块(约 23-44 行)自称「**2026-08-23 现势(supersede 本节下方所有旧“当前”措辞)**」,内容停在「当前候选升为 v0.1.0-rc.4…最终提交、Release、部署与设备结果将在本轮证据提交后回填本段」;而真正的当前坐标在其**下方** §1.1 内的快照行(48 行):「**2026-08-26 当前快照…当前坐标唯一以本行为准**…RC 链已收口于 v0.1.0-rc.12…rc.10/rc.11/rc.12 均为全绿 available…(2026-08-27 的返工合并后应读作:活动树 HEAD = 9417b6d)」。两个块各自宣称权威且方向相反(上块 claim supersede 下方,下块才是新值);承诺的「回填本段」未发生。按块序通读的新会话会先拿到 rc.4 假坐标。
 

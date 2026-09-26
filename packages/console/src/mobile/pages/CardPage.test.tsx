@@ -1,7 +1,56 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { DurableCountdown, MobileConfirmCard } from "./CardPage";
+import { DurableCountdown, MobileConfirmCard, MobileObligationCard } from "./CardPage";
 import type { AttentionItem } from "../types";
+
+describe("手机安排卡", () => {
+  it("展示真实安排详情并给出办结入口,不说实施术语", () => {
+    const html = renderToStaticMarkup(
+      <MobileObligationCard
+        item={{
+          id: "ob:fob_1",
+          color: "orange",
+          title: "整理观察表行",
+          focusId: "foc_1",
+          focusTitle: "整理 D2 观察表素材",
+          action: "open_task_modal",
+          updatedAt: "2026-07-25T02:00:00.000Z",
+          sourceKind: "obligation",
+          refId: "fob_1"
+        }}
+        snapshot={{
+          id: "fob_1",
+          kind: "action",
+          title: "整理观察表行",
+          owner: "human",
+          status: "open",
+          verification: "confirmed",
+          blocking: true,
+          nextStep: "打开表格核对",
+          detail: null,
+          needs: null,
+          laneId: null,
+          waitingOn: null,
+          waitingOnObligationId: null,
+          waitingOnTaskId: null,
+          waitingTaskCondition: null,
+          deferReason: null,
+          dueOrTrigger: null,
+          createdFromEvent: 1,
+          actionRef: null
+        }}
+        back="/m/lane/foc_1/_main"
+        onSettled={() => {}}
+      />
+    );
+    expect(html).toContain("整理观察表行");
+    expect(html).toContain("打开表格核对");
+    expect(html).toContain('data-mobile-ob-resolve="done"');
+    expect(html).toContain("我做完了,办结");
+    expect(html).not.toContain("REST");
+    expect(html).not.toContain("只读呈现");
+  });
+});
 
 describe("M-Confirm 三段式", () => {
   it("expiresAt 以 durable 到期锚渲染倒计时", () => {

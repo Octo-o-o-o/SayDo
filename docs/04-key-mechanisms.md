@@ -17,7 +17,7 @@
 | M2 | 累积对话知识 | 产物库 `artifacts` | 项目级、随对话增长 | 每次对话新生成的方案/决策、新调研的资料(版本化、可检索) |
 | M3 | 会话工作记忆 | Context Window + 转写 | 单次会话 | 最近 N 轮、当前任务 |
 
-**Context Pack = 检索器从 M0+M1+M2 挑相关切片 + M3,拼进窗口**(重建会话时 1.5k–3k token,带版本号,校验 HEAD/task 版本失配则重取)。**已知缺口**:Context Pack 目前只有材料清单,缺一份确定性的编译契约(来源优先级、冲突/否定/撤销规则、各层 token 预算、编译版本与 pack digest、canonical intent 账本)——实施前须按 `../research/codex-findings/01-architecture-redteam.md` §4.2 与 `03-voice-memory-tech.md` §4.3.4 补齐 ContextCompiler/IntentLedger 定义。
+**Context Pack = 检索器从 M0+M1+M2 挑相关切片 + M3,拼进窗口**(重建会话时 1.5k–3k token,带版本号,校验 HEAD/task 版本失配则重取)。**现役合同**:确定性编译已由 09 §5 与 `modules/b-memory.md` B1 定义,实现位于 `packages/daemon/src/memory/compiler.ts`,共享形状位于 `packages/contracts/src/types/contextpack.ts`;来源过滤、预算截断、compilerVersion、pack digest 与稳定前缀均有对应实现和测试。早期“只有材料清单、缺编译契约”的评审结论已过时;后续上下文能力按 PLAN-2 的具名范围推进,不据旧缺口重建一套编译器。
 
 ### 1.2 项目奠基:先备后答,持续深化
 
@@ -93,7 +93,7 @@ Codex 对抗审查指出双维"太粗、无量表、无校准",实施时按以�
 
 **认识判断(Epistemic:证据够了)**和**治理授权(Authority:有权的人批准了这个 package + scope + 副作用 + 预算 + 有效期)**是两个独立字段/状态转换。多人会议里"大家听起来都同意"不能代替授权;授权 token 绑定 package hash + 环境 + 预算 + 有效期;执行中发现新 scope 或 critical 假设错误,暂停并给 Plan Delta 请求重授权。
 
-**两类审批、两个 owner,不共用一个 `approved=true`**:①"批准 dispatch 这个决策包"(对话域,daemon 采集、落 `approvals`);②"运行中批准某个具体副作用"(执行域,Hopper `DecisionRequest` 为真相源)。审批凭据是 digest 绑定、单次消费的 receipt,执行点复验。
+**两类审批、两个 owner,不共用一个 `approved=true`**:①"批准 dispatch 这个决策包"(对话域,daemon 采集、落 `approvals`);②"运行中批准某个具体副作用"(现役为 daemon 的 Tier1 runtime approval/receipt;Hopper `DecisionRequest` 仅属 designed/deferred 桥设计)。审批凭据是 digest 绑定、单次消费的 receipt,执行点复验。
 
 ## 3. 语音会话经济学
 
@@ -118,12 +118,12 @@ Codex 对抗审查指出双维"太粗、无量表、无校准",实施时按以�
 ```
 事件优先级:blocked(等人)> failed > approval_request > ready_for_review > progress(默认不通知)
 升级链:  控制台在线 → 语音回叫(重建会话,Brain 亲口播报,30s 无应答挂断)
-        → 桌面通知 + ntfy 手机推送 / 邮件(可选,与 ntfy 并存,任一配置即启用;EMAIL-A 候选) → blocked 且仍无应答 → 电话(P1)
+        → 桌面通知 + ntfy 手机推送 / 邮件(可选,与 ntfy 并存,任一配置即启用;EMAIL-A 已入源码,真实投递未验) → blocked 且仍无应答 → 电话(P1)
 移动端:  PushKit 唤醒 + CallKit 来电式语音汇报(见 03 §8)
 免打扰:  静音窗口内只推送不出声;blocked/failed 在窗口结束后立即补叫
 ```
 
-> **实现注记(2026-08-20 S2,评审 1 返工)**:L0 三要素 = 该任务所属项目有 console peer 在线 ∧ pipeline TTS 健康 ∧ 该 session **没有在途用户轮**(`LiveDialog.hasUserTurnInFlight`;开口留下的 `currentUserTurn` 不算 busy)。busy 按候选条目各自 session 判:该 session 头一条 queue,同 session 其余降 L1;其它空闲 session 仍可 L0。无语音条件直接 L1。桌面通知 = OS provider(macOS=`osascript display notification`;Windows=toast;失败同构降 ntfy,设计 ADR-004 / 工程 ADR-003)。DND 窗口内对 **pending 与 requeued** 只推低优先级 ntfy 一次并 snooze,不语音不桌面;去重靠 `snoozed_until`,审计 `callback.dnd_pushed` 只留痕。`micHeldByMeeting` 无数据源,恒 `false`(下方「会议占麦」是目标语义,S2 未接)。电话 L2 未做,`escalation` 上限 1。resolution-timeout 只把 acked 写成 `requeued`,投递成功才 `notified`。L0 30s 应答窗相对 15s sweep 最坏约 45s。**邮件通道(EMAIL-A 阶段 A,候选;决策单第 11 节)**:L1 第三个并列通道,SMTP submission 出站,只发 ready_for_review / blocked / failed / approval_request,每任务一线程(`thread_message_id`),标题与阻塞原因经 redactor,深链只带路由;桌面 / ntfy / 邮件任一投递成功才 `notified`,全失败留 pending;DND 窗口内邮件与 ntfy 同法只发一次并 snooze;ntfy 与邮件都未配置时 L1 只剩桌面通知并 warn。阶段 B(邮件入站作文字轮次 adapter)后议。
+> **实现注记(2026-08-20 S2,评审 1 返工)**:L0 三要素 = 该任务所属项目有 console peer 在线 ∧ pipeline TTS 健康 ∧ 该 session **没有在途用户轮**(`LiveDialog.hasUserTurnInFlight`;开口留下的 `currentUserTurn` 不算 busy)。busy 按候选条目各自 session 判:该 session 头一条 queue,同 session 其余降 L1;其它空闲 session 仍可 L0。无语音条件直接 L1。桌面通知 = OS provider(macOS=`osascript display notification`;Windows=toast;失败同构降 ntfy,设计 ADR-004 / 工程 ADR-003)。DND 窗口内对 **pending 与 requeued** 只推低优先级 ntfy 一次并 snooze,不语音不桌面;去重靠 `snoozed_until`,审计 `callback.dnd_pushed` 只留痕。`micHeldByMeeting` 无数据源,恒 `false`(下方「会议占麦」是目标语义,S2 未接)。电话 L2 未做,`escalation` 上限 1。resolution-timeout 只把 acked 写成 `requeued`,投递成功才 `notified`。L0 30s 应答窗相对 15s sweep 最坏约 45s。**邮件通道(EMAIL-A 阶段 A,已按决策单第 12 节合入;真实 SMTP 与收件端线程展示未验)**:L1 第三个并列通道,SMTP submission 出站,只发 ready_for_review / blocked / failed / approval_request,每任务一线程(`thread_message_id`),标题与阻塞原因经 redactor,深链只带路由;桌面 / ntfy / 邮件任一投递成功才 `notified`,全失败留 pending;DND 窗口内邮件与 ntfy 同法只发一次并 snooze;ntfy 与邮件都未配置时 L1 只剩桌面通知并 warn。阶段 B(邮件入站作文字轮次 adapter)后议。
 
 - **PagerDuty 式状态机**:`pending → notified(level n) → ack'd → resolved`;ack 只停止升级、**不等于解决、更不等于授权任何动作**,resolution timeout 到期未处理**重新升级**(防"接了电话又睡");urgency 两档(验收=低 / 卡住审批=高);电话层 DTMF 只做 `ack / snooze / 拒绝`,**不做任何副作用审批**(见 §5.2 远程通道)。
 - **拦截 ≠ 叫人**(直达验收档语义;逐步确认档下 S2 直接上浮,不做双拦截缓冲):危险动作先把原因反馈给 agent 让它换路,同一意图被拦 ≥ 2 次才进回叫链——可把回叫频率降一个数量级。事件优先级与升级链**不随执行模式变**,模式只改变哪些事件会成为 approval_request(§5.4)。
@@ -193,7 +193,7 @@ Codex 有 OS 级沙箱(可硬禁网);Claude/Cursor 本地是**策略级**拦截(
 ## 6. 执行可靠性
 
 - **隔离**:每任务一个 git worktree(主工作区永不被 agent 碰);每仓库注册 setup 命令(装依赖,**缺省 `--ignore-scripts`——lifecycle/postinstall 属供应链执行面,确需时按 S2 上浮**,05 §4 Gate 0),重型仓库可降级单 worktree 串行;同仓任务串行、跨仓并行。**verify 执行前重校 dispatch 时冻结的 argv + 脚本内容 digest(`package.json`/`Justfile` 是 agent 可写),不符 ⇒ 闸门 fail-closed,防被验代码改 test 自证通过(05 §4 独立 oracle 门)。**
-- **Tier 1 审批门完整性(cursor_cli 后端)**:审批决策走 daemon socket(非 worktree 内文件)、gate 逻辑落 agent 不可写目录;**canary**——从 cursor stream-json 取顶层 `tool_call` 事件与已收 hook 回调对账,出现 tool_call 却无回调 ⇒ 立即 cancel + 结果作废 + 告警(hooks.json 本体必须在可写的 `.cursor/` 内,无法防删改,canary 是唯一不依赖 vendor 语义的兜底,**不可降级**);`cursor-agent` 版本 pin + 变更重跑门禁(比照 Hopper 锁 SHA)。
+- **Tier 1 审批门完整性(cursor_cli 后端)**:审批决策走 daemon socket(非 worktree 内文件),gate 逻辑位于 worktree 外,但与 agent 同 UID/SID,**P0 不保证 agent 不可写**；daemon 每次 gate 请求重校实际 backend 入口及绑定文件 digest,漂移即 deny/cancel(09 §11)。**canary**——从 cursor stream-json 取顶层 `tool_call` 事件与已收 hook 回调对账,出现 tool_call 却无回调 ⇒ 立即 cancel + 结果作废 + 告警(hooks.json 本体必须在可写的 `.cursor/` 内,无法防删改,canary 是计数兜底,不能单独发现“入口被改后仍 POST”的伪造；须与入口 digest 复核共同保留,**不可降级**);`cursor-agent` 版本 pin + 变更重跑门禁(比照 Hopper 锁 SHA)。
 - **三熔断**(防无人值守烧钱):墙钟上限(默认 45 分钟,**计活跃执行时间,审批/提问停靠期停表**——否则逐步确认档必然撞墙钟)+ 回合数上限 + token/成本上限,任一触发 → cancel → 带上下文进 blocked 叫人。熔断阈值与执行模式无关(预算来自决策包 cost 上限)。**停靠期另设老化上限**(默认 72h 无应答 → 取消并转草稿卡,可配置——停靠占着 worktree 与同仓队列,不能无限悬挂);长停靠恢复时**强制复验预授权收据有效期**(过期 → 降为逐项确认,不静默放行)+ 重跑 delivery preflight。"15 分钟无事件"只能抓挂死,抓不住"活跃地兜圈烧钱",故三者缺一不可。**诚实注记(路径二 P0,2026-07-24 更新)**:经 Hopper 的批式路径运行中只有超时 + 桶级预算 gate(无 per-task 预算字段、无回合数熔断),三熔断完整形态待对接裁决。**per-task 成本归因可闭环**(Hopper 反馈 §2.3):dispatch_binding 已知 taskId↔runId,逐 run 读 `hopper show --json` 的 `last_run_cost`(批次 A/baseline.2)按 taskId 累加,不需 Hopper 改;**「codex 成本恒 unknown」已过时**——Hopper V7b 起 codex 按 token×单价表**估算** USD(订阅下=等价 API 成本估算、非真实账单,仅未登记模型才 known:false),话术用"估算成本/订阅额度内",unknown 时才显示"未知"、永不显示 ¥0。**订阅供给例外(07 D18)**:经订阅 CLI 的调用不产生"元"——记账 `source='subscription'`,呈现"订阅额度内(已用 N 次)"而非"未知"或 ¥0;其熔断用已有的墙钟 + 回合数维度兜底(maxCost 只约束 api 计费部分),订阅限流事件按 D18 纪律 3 停下询问、不静默转计费。
 - **"隔夜交活" = 两层结构,不是超长单 run**:单 attempt 保留 45 分钟 backstop;上层是**带 deadline 的 workflow**(总时长/总成本/最大 attempts/最大无进展次数),把大任务切 step、每步边界做 durable checkpoint、失败按类型重派(transient 自动重试 / deterministic 禁止盲重试 / ambiguous 先对账)、deadline 前预留 review 预算。此层对应 Hopper M3d(未实现)——就绪前"隔夜交活"诚实表述为"**离席后台执行到某个 review 点**"。
 - **Delivery preflight**:dispatch 前检查电源/睡眠/网络/磁盘/额度/CLI 登录/secret/仓库状态/回调通道——把会导致夜间早停的问题在人离开前暴露,而不是凌晨 1 点回叫。

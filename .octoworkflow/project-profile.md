@@ -111,3 +111,9 @@
 - 对抗评审落 `research/codex-findings/`
 - readback 落 `docs/review/`
 - 命名:`YYYY-MM-DD-<slug>[-review|-repair|-retry].md`
+
+## 本批具名例外:VOICE-MEASURE-01 / CODEX-AS-SPIKE-01(2026-09-23)
+
+上面的 `roles_runtime` 与 `pinned_policy_revision` 仍是历史通用默认,本节省不改它们,也不把缺失的 `~/.octoworkflow/v2-policy.json` 当成现存文件使用。旧任务额度与冻结配置不迁移。
+
+只对 `VOICE-MEASURE-01` 和现役施工的 `CODEX-AS-SPIKE-01` 适用 owner 2026-09-23 采纳的 v3 来源。2026-09-23「确认，请你继续实施」只把该原型推进到未装配生产的施工,不改本段角色、limits 或旧任务额度。`~/.octoworkflow/policy.json` 的 SHA-256 是 `788c2f591856fdbd3099171edfe973cfa99b64b41c52fafc9b0fc9dc372456f4`(`schema_version=1`,`workflow=v3`)。`~/.octoworkflow/roles.override.json` 的 SHA-256 是 `67cda8dbc8ed84a5bb75af4d22711e5720fe0490f65335d19c37b22fbabe97fa`。实施为 Grok `grok-4.7` / `xhigh`,独立只读 review 为 Codex `gpt-6-astra` / `medium`。limits 以该 policy 的 `limits` 对象为准。细节与批范围见 `docs/plan/2026-09-23-voice-measure-app-server.md`。

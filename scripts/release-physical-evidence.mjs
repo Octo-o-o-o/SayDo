@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 export const physicalReleaseChecks = Object.freeze([
   "publishedBytes",
   "releaseMetadata",
@@ -13,6 +15,22 @@ export const physicalReleaseChecks = Object.freeze([
 const invariant = (value, message) => {
   if (!value) throw new Error(message);
 };
+
+function verifierOutputLocator(text, key) {
+  const body = typeof text === "string" ? text : "";
+  const digest = createHash("sha256").update(body).digest("hex");
+  return `固定 URL verifier stdout 不是单一 JSON:${key}:len=${body.length}:bytes=${Buffer.byteLength(body, "utf8")}:sha256=${digest}`;
+}
+
+export function parseVerifierOutput(output, key) {
+  const text = typeof output === "string" ? output : "";
+  try {
+    if (typeof output !== "string") throw new SyntaxError("verifier stdout is not a string");
+    return JSON.parse(text.trim());
+  } catch {
+    throw new Error(verifierOutputLocator(text, key));
+  }
+}
 
 function validateCore(evidence, expected) {
   const checkKeys = Object.keys(evidence?.checks ?? {}).sort();

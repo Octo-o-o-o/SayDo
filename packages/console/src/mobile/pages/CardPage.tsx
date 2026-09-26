@@ -11,10 +11,12 @@ import {
   type MobileConfirmDecision
 } from "../confirmDecision";
 import { confirmCardCopy } from "../../lib/confirmCardCopy";
+import { apiPost } from "../../lib/api";
+import { apiErrorMessage } from "../../lib/apiError";
 import { useMobileFocus } from "../hooks";
 import { MobileHeader, MobileNotice } from "../MobileChrome";
 import { confirmDestinationHint, confirmSettlementToast } from "../toasts";
-import type { AttentionItem, MobileCardRef } from "../types";
+import type { AttentionItem, MobileCardRef, MobileObligation } from "../types";
 
 export function DurableCountdown({
   expiresAt,
@@ -69,6 +71,9 @@ export function MobileCardPage({
       ? `/m/focus/${encodeURIComponent(cached.focusId)}`
       : "/m";
   if (attentionError) return <><MobileHeader title="卡片" crumb="收件箱读取失败" back={back} /><MobileNotice tone="error">{attentionError}</MobileNotice></>;
+  if (cached?.focusId && focusResource.data === null && !focusResource.error) {
+    return <><MobileHeader title="卡片" crumb="正在翻账" back={back} /><MobileNotice>正在读取这条安排</MobileNotice></>;
+  }
   if (!resolution) return <><MobileHeader title="卡片" crumb="正在核对当前状态" back={back} /><MobileNotice>正在查这张卡是否仍可处理</MobileNotice></>;
   if (resolution.state === "missing") {
     return <CardStatePage title="没有找到这张卡" back={back}>链接可能失效，或这张卡从未在本机账本中出现。</CardStatePage>;
@@ -82,6 +87,16 @@ export function MobileCardPage({
   if (resolution.state === "resolved") {
     return <CardStatePage title="这张卡已有终态" back={back} showLaneAction={resolution.allowedActions.includes("open_lane")}>当前账本已给出终态。</CardStatePage>;
   }
+  if (cardRef.kind === "obligation") {
+    return (
+      <MobileObligationCard
+        item={resolution.item}
+        snapshot={snapshot}
+        back={back}
+        onSettled={onSettled}
+      />
+    );
+  }
   if (cardRef.kind !== "confirmation") {
     return (
       <div data-mobile-page="card">
@@ -89,13 +104,73 @@ export function MobileCardPage({
         <article className="m-read-card">
           <span>{cardRef.kind}</span>
           <h1>{resolution.item.title}</h1>
-          <p>{resolution.item.needs ? `当前需要：${resolution.item.needs}` : "M1 只读呈现；动作请回泳道或桌面处理。"}</p>
+          <p>{resolution.item.needs ? `当前需要：${resolution.item.needs}` : "这条先只看详情,动作请回泳道或桌面处理。"}</p>
           <a href={`#${back}`}>去泳道看</a>
         </article>
       </div>
     );
   }
   return <MobileConfirmCard item={resolution.item} back={back} onSettled={onSettled} key={resolution.item.id} />;
+}
+
+const NEEDS_LABEL: Record<string, string> = {
+  decision: "需要你拍板",
+  input: "需要你补充信息",
+  action: "需要你亲自做"
+};
+
+export function MobileObligationCard({
+  item,
+  snapshot,
+  back,
+  onSettled
+}: {
+  item: AttentionItem;
+  snapshot?: MobileObligation;
+  back: string;
+  onSettled: (message: string) => void;
+}) {
+  const [busy, setBusy] = useState<"done" | "abandoned" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const terminal = snapshot ? ["resolved", "superseded"].includes(snapshot.status) : false;
+  const resolve = async (resolution: "done" | "abandoned") => {
+    if (busy || terminal) return;
+    setBusy(resolution);
+    setError(null);
+    try {
+      await apiPost(`/api/obligations/${encodeURIComponent(item.refId ?? snapshot?.id ?? item.id.replace(/^ob:/, ""))}/resolve`, {
+        resolution
+      });
+      onSettled(resolution === "done" ? "这条安排已办结" : "这条安排已放下");
+      location.hash = back.startsWith("#") ? back : `#${back}`;
+    } catch (caught) {
+      setError(apiErrorMessage(caught));
+      setBusy(null);
+    }
+  };
+  return (
+    <div data-mobile-page="card" data-mobile-obligation-card={item.refId ?? snapshot?.id}>
+      <MobileHeader title="安排" crumb={item.focusTitle ?? "详情"} back={back} />
+      <article className="m-read-card">
+        <span>安排</span>
+        <h1>{snapshot?.title ?? item.title}</h1>
+        {snapshot?.detail ? <p>{snapshot.detail}</p> : null}
+        {snapshot?.nextStep ? <p>怎么开始：{snapshot.nextStep}</p> : null}
+        {snapshot?.needs ? <p>{NEEDS_LABEL[snapshot.needs] ?? "需要你配合"}</p> : null}
+        {terminal ? <p>这条安排已经收过尾。</p> : (
+          <div className="m-confirm-actions">
+            <button type="button" data-mobile-ob-resolve="done" disabled={busy !== null} onClick={() => void resolve("done")}>
+              {busy === "done" ? "正在办结" : "我做完了,办结"}
+            </button>
+            <button type="button" data-mobile-ob-resolve="abandoned" disabled={busy !== null} onClick={() => void resolve("abandoned")}>
+              {busy === "abandoned" ? "正在放下" : "不做了"}
+            </button>
+          </div>
+        )}
+        {error ? <MobileNotice tone="error">{error}</MobileNotice> : null}
+      </article>
+    </div>
+  );
 }
 
 export function MobileConfirmCard({

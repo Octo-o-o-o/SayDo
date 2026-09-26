@@ -1,5 +1,7 @@
 # RC4 runtime 全新重实施 — 实施与验证报告
 
+> 2026-09-13 后续实现边界:以下为 08-25 候选的根因与历史真机记录,本次未重跑 Windows。当前 `childFromOwnedWindows` 在 wait 已 signaled 后把 STILL_ACTIVE(259) 当实际退出码,不再沿用下文“live 一律续轮询”的旧修法。读取/关闭 stdio 错误传播仍有 SC-51 反例,独立回修中,不能从历史 distribution 通过推断现役 native 链完整。
+
 > **范围声明（2026-08-27 月度审计补）**：本文档自 §13 起超出标题所述的 runtime 重实施范围，承载
 > release 线合并 → rc.5-rc.12 发布链 → 发布合同 v2 → 实体门 → availability 翻转的完整收口叙事
 > （§14-§17），是 08-26 RC 链收口的唯一详账载体。检索「rc.12 收口在哪」应至本文 §17。
@@ -61,12 +63,16 @@ macOS 上 `skipIf(win32)` 的 Windows-only 用例在真机全部执行。
 | `vitest run test/tier1-executor.test.ts` | 154 passed / exit=0 / 零残留 |
 | `vitest run test/recovery-only-process.test.ts test/writing-narrow.test.ts` | 36 passed / exit=0 |
 
+> 2026-09-25 更正:单独重跑通过仅表明上述失败未在这两次重跑中复现,不能单独证明根因只是测试并发,也不能排除生产代码在并发场景下的缺陷;原始全量失败仍须按对应候选的完整复验判定。
+
 测试根泄漏的根因是**等待窗与被等待的清理不匹配**：`global-tmp-cleanup.ts` 的
 teardown 只等 `2_000` ms，而 `tier1-executor.test.ts:304` 的 `afterAll` 用
 `rmSync(maxRetries: 30, retryDelay: 100)`——自身最长要 3 s，并发时还要叠加 IO 压力。
 修复是把等待窗提到 `15_000` ms（循环在清空后立即退出，正常不会等满），
 断言语义与「清扫成功不能把本次改成通过」的原有约束都不变。
 修复后 daemon 九文件 **exit=0 / 437 passed**。
+
+> 2026-09-25 更正:上文"3 s"只算了最后一次重试间隔;`maxRetries: 30, retryDelay: 100` 线性递增累计等待为 `100 × (1 + … + 30) = 46_500` ms 还未计入文件操作耗时,15_000 ms 等待窗不能覆盖最坏累计重试等待。
 
 ## 3. 变异测试（验收的核心判据）
 
@@ -258,6 +264,8 @@ daemonTail 末行 =
 
 1. Tier1 agent 起来，`:953` 的存活断言通过
 2. agent 二进制执行失败（127）
+
+   > 2026-09-25 更正:该步实际为 Windows wait 状态机误报错误、触发 executor 的 `beginFinish(127)`,不是 agent 二进制执行失败;127 是 `executor.ts:491` `child.on("error")` 的硬编码退出码。
 3. 现役 daemon 按 crash 语义清理该 run 的进程组 → 父子进程死亡
 4. contender 恰在此期间被正常拒绝并退出
 5. `:961` 检查到进程已死，按断言名归咎于 contender
@@ -622,6 +630,8 @@ rc.4(漏 freeze)→ rc.5(doc-links,本地门禁缺口)→ rc.6(e2e 偶发 + 推�
 结构性认识(间歇性启动超时的诊断通道;合同 v2)。rc.8 发布前增加容器预检
 (linux/amd64 + CI 同 node 跑 --write && --check),等价于 CI publish 校验流,
 容器绿则 CI 必绿——tag 风险在本地清零后才推。
+
+> 2026-09-13 对账更正：上句“容器绿则 CI 必绿”不成立。上述实验只支持该固定源码、构建工具与两种被测环境的载荷一致；容器预检不能证明远端权限、网络、tag/ruleset、工作流及全部 required gate 已通过，也不能保证其他版本或平台可复现。保留原句作为当时推断记录，发布仍须读取当次远端运行结果。
 
 ## 15. rc.8:publish 首过、smoke 首触发,两类新缺陷修复经 rc.9
 

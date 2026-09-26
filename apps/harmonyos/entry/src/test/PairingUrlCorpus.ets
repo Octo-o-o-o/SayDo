@@ -508,5 +508,83 @@ export function pairingCorpusCases(): Array<PairingCorpusCase> {
   c35.token = ''
   c35.expectPort = ''
   cases.push(c35)
+  const c36 = new PairingCorpusCase()
+  c36.id = 'reject-raw-combining-acute'
+  c36.accept = false
+  c36.prefix = 'http://'
+  c36.hostParts = ['192', '168', '1', '8']
+  c36.hostSep = '.'
+  c36.bracketHost = false
+  c36.port = '47100'
+  c36.pathQuery = '/?token=a\u0301'
+  c36.suffix = ''
+  c36.token = ''
+  c36.expectPort = ''
+  cases.push(c36)
+  const c37 = new PairingCorpusCase()
+  c37.id = 'accept-percent-combining-acute'
+  c37.accept = true
+  c37.prefix = 'http://'
+  c37.hostParts = ['192', '168', '1', '8']
+  c37.hostSep = '.'
+  c37.bracketHost = false
+  c37.port = '47100'
+  c37.pathQuery = '/?token=a%CC%81'
+  c37.suffix = ''
+  c37.token = 'a\u0301'
+  c37.expectPort = '47100'
+  cases.push(c37)
+  const c38 = new PairingCorpusCase()
+  c38.id = 'reject-raw-variation-selector'
+  c38.accept = false
+  c38.prefix = 'http://'
+  c38.hostParts = ['192', '168', '1', '8']
+  c38.hostSep = '.'
+  c38.bracketHost = false
+  c38.port = '47100'
+  c38.pathQuery = '/?token=a\uFE0F'
+  c38.suffix = ''
+  c38.token = ''
+  c38.expectPort = ''
+  cases.push(c38)
+  const c39 = new PairingCorpusCase()
+  c39.id = 'accept-percent-variation-selector'
+  c39.accept = true
+  c39.prefix = 'http://'
+  c39.hostParts = ['192', '168', '1', '8']
+  c39.hostSep = '.'
+  c39.bracketHost = false
+  c39.port = '47100'
+  c39.pathQuery = '/?token=a%EF%B8%8F'
+  c39.suffix = ''
+  c39.token = 'a\uFE0F'
+  c39.expectPort = '47100'
+  cases.push(c39)
+  const c40 = new PairingCorpusCase()
+  c40.id = 'accept-percent-dollar-identifier'
+  c40.accept = true
+  c40.prefix = 'http://'
+  c40.hostParts = ['192', '168', '1', '8']
+  c40.hostSep = '.'
+  c40.bracketHost = false
+  c40.port = '47100'
+  c40.pathQuery = '/?token=%24identifier'
+  c40.suffix = ''
+  c40.token = '$identifier'
+  c40.expectPort = '47100'
+  cases.push(c40)
+  const c41 = new PairingCorpusCase()
+  c41.id = 'accept-percent-dollar-braces'
+  c41.accept = true
+  c41.prefix = 'http://'
+  c41.hostParts = ['192', '168', '1', '8']
+  c41.hostSep = '.'
+  c41.bracketHost = false
+  c41.port = '47100'
+  c41.pathQuery = '/?token=%24%7Bname%7D'
+  c41.suffix = ''
+  c41.token = '${name}'
+  c41.expectPort = '47100'
+  cases.push(c41)
   return cases
 }

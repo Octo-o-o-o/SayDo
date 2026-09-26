@@ -12,6 +12,7 @@ import {
   markLiveSegments,
   mergeTimelineAsc,
   mapTimelinePage,
+  mapDecisionPackageView,
   type AttentionItemRow,
   type DaemonTimelineItem,
   type FocusDetailPayload
@@ -196,12 +197,149 @@ describe("mapReviewContext 验收证据", () => {
         { criterion: "重复项", status: "fail", source: "manual", evidenceRef: "audit:b" }
       ]
     });
-    expect(mapped.acceptance).toEqual([
+    expect(mapped.acceptance.map((item) => ({ criterion: item.criterion, status: item.status, source: item.source }))).toEqual([
       { criterion: "可启动", status: "pass", source: "verify" },
       { criterion: "人工走查", status: "unknown", source: "manual" },
       { criterion: "缺证据", status: "unknown", source: "verify" },
       { criterion: "重复项", status: "unknown", source: "verify" }
     ]);
+    expect(mapped.acceptance.every((item) => item.evidence === undefined)).toBe(true);
+  });
+
+  it("缺 evidenceRef 或未解析到正文时不把 run/tree 元数据冒充 log", () => {
+    const treeSha = "a".repeat(40);
+    const runId = "run_1";
+    const mapped = mapReviewContext({
+      task: { id: "tsk_1", title: "验收", status: "ready_for_review", project_type: "coding", project_id: "prj_1" },
+      package: { acceptance: ["安装一节出现 pnpm install 示例"] },
+      runs: [
+        {
+          id: runId,
+          attempt: 1,
+          state: "settled_review",
+          tree_sha: treeSha,
+          settle_proof_json: JSON.stringify({
+            kind: "tier1",
+            taskId: "tsk_1",
+            runId,
+            attempt: 1,
+            treeSha,
+            tier1VerifyDigest: "sha256:" + "b".repeat(64)
+          })
+        }
+      ],
+      acceptanceChecks: [
+        { criterion: "安装一节出现 pnpm install 示例", status: "unknown", source: "manual" }
+      ]
+    });
+    expect(mapped.acceptance[0]?.evidence).toBeUndefined();
+  });
+
+  it("不同 evidenceRef 必须展示不同原始正文,不得共用 run 元数据", () => {
+    const treeSha = "a".repeat(40);
+    const mapped = mapReviewContext({
+      task: { id: "tsk_1", title: "验收", status: "ready_for_review", project_id: "prj_1" },
+      package: { acceptance: ["保留 npm", "增加 pnpm"] },
+      runs: [
+        {
+          id: "run_1",
+          attempt: 1,
+          state: "settled_review",
+          tree_sha: treeSha,
+          settle_proof_json: JSON.stringify({ kind: "tier1", taskId: "tsk_1", runId: "run_1", treeSha })
+        }
+      ],
+      acceptanceChecks: [
+        { criterion: "保留 npm", status: "unknown", source: "manual", evidenceRef: "verify:aaa" },
+        { criterion: "增加 pnpm", status: "unknown", source: "manual", evidenceRef: "verify:bbb" }
+      ],
+      acceptanceEvidence: [
+        { evidenceRef: "verify:aaa", ok: true, kind: "log", body: "[ok] npm install retained\nnpm install\n" },
+        { evidenceRef: "verify:bbb", ok: true, kind: "log", body: "[ok] pnpm install present\npnpm install\n" }
+      ]
+    });
+    const a = mapped.acceptance[0]?.evidence?.body ?? "";
+    const b = mapped.acceptance[1]?.evidence?.body ?? "";
+    expect(a).toContain("npm install retained");
+    expect(b).toContain("pnpm install present");
+    expect(a).not.toEqual(b);
+    expect(a).not.toContain("本轮 run");
+    expect(b).not.toContain("treeSha");
+  });
+
+  it("缺 proof / 解析失败 / 无关 evidenceRef 不展示伪证据", () => {
+    const mapped = mapReviewContext({
+      task: { id: "tsk_1", title: "验收", status: "ready_for_review", project_id: "prj_1" },
+      package: { acceptance: ["可启动"] },
+      runs: [
+        {
+          id: "run_1",
+          attempt: 1,
+          state: "settled_review",
+          tree_sha: "c".repeat(40)
+        }
+      ],
+      acceptanceChecks: [{ criterion: "可启动", status: "pass", source: "verify", evidenceRef: "verify:" + "e".repeat(64) }],
+      acceptanceEvidence: [{ evidenceRef: "verify:" + "e".repeat(64), ok: false, reason: "digest_mismatch" }]
+    });
+    expect(mapped.acceptance[0]?.status).toBe("fail");
+    expect(mapped.acceptance[0]?.evidence).toBeUndefined();
+  });
+
+  it("解析 not_found/cross_run/unauthorized 不得保留 pass;manual unknown 仍待 owner 判断", () => {
+    const reasons = ["not_found", "cross_run", "unauthorized"] as const;
+    for (const reason of reasons) {
+      const ref = `verify:${reason}`;
+      const mapped = mapReviewContext({
+        task: { id: "tsk_1", title: "验收", status: "ready_for_review", project_id: "prj_1" },
+        package: { acceptance: ["机器项", "人工走查"] },
+        runs: [],
+        acceptanceChecks: [
+          { criterion: "机器项", status: "pass", source: "verify", evidenceRef: ref },
+          { criterion: "人工走查", status: "unknown", source: "manual", evidenceRef: ref }
+        ],
+        acceptanceEvidence: [{ evidenceRef: ref, ok: false, reason }]
+      });
+      expect(mapped.acceptance[0]?.status).toBe("fail");
+      expect(mapped.acceptance[0]?.evidenceBlock).toBe("bound_invalid");
+      expect(mapped.acceptance[1]?.status).toBe("unknown");
+      expect(mapped.acceptance[1]?.evidenceBlock).toBe("bound_invalid");
+      expect(mapped.acceptance[1]?.evidence).toBeUndefined();
+    }
+  });
+
+  it("无引用的 manual unknown 仍待判断;Executor 形状的有效 verify 引用不挡批准", () => {
+    const unbound = mapReviewContext({
+      task: { id: "tsk_1", title: "验收", status: "ready_for_review", project_type: "coding" },
+      package: { acceptance: ["人工走查"] },
+      runs: [],
+      acceptanceChecks: [{ criterion: "人工走查", status: "unknown", source: "manual" }]
+    });
+    expect(unbound.acceptance[0]).toMatchObject({ status: "unknown", source: "manual" });
+    expect(unbound.acceptance[0]?.evidenceBlock).toBeUndefined();
+    const ref = `verify:sha256:${"a".repeat(64)}`;
+    const bound = mapReviewContext({
+      task: { id: "tsk_1", title: "验收", status: "ready_for_review", project_id: "prj_1" },
+      package: { acceptance: ["人工走查"] },
+      runs: [],
+      acceptanceChecks: [{ criterion: "人工走查", status: "unknown", source: "manual", evidenceRef: ref }],
+      acceptanceEvidence: [{ evidenceRef: ref, ok: true, kind: "log", body: "[ok] npm install retained\n" }]
+    });
+    expect(bound.acceptance[0]?.status).toBe("unknown");
+    expect(bound.acceptance[0]?.evidenceBlock).toBeUndefined();
+    expect(bound.acceptance[0]?.evidence?.body).toContain("[ok] npm install retained");
+  });
+
+  it("task.attempt 缺省时用最新 run.attempt,供 reviewTask expectedAttempt", () => {
+    const mapped = mapReviewContext({
+      ...base,
+      task: { ...base.task },
+      runs: [
+        { attempt: 1, state: "failed" },
+        { attempt: 2, state: "settled_review" }
+      ]
+    });
+    expect(mapped.task.attempt).toBe(2);
   });
 
   it("failed 且没有逐条证据时仍全部 unknown，string criterion 不加引号", () => {
@@ -212,6 +350,37 @@ describe("mapReviewContext 验收证据", () => {
       ["缺证据", "unknown"],
       ["重复项", "unknown"]
     ]);
+  });
+});
+
+describe("mapDecisionPackageView demoRef", () => {
+  const base = {
+    id: "pkg_1",
+    revision: 2,
+    status: "proposed",
+    outcomePreview: "看小样",
+    inScope: [],
+    outOfScope: [],
+    acceptance: [],
+    plan: [],
+    cost: { max: 1, currency: "CNY" },
+    risks: [],
+    projectId: "prj_1"
+  };
+
+  it("有效 {artifactId,version} 原样保留", () => {
+    const mapped = mapDecisionPackageView({
+      ...base,
+      demoRef: { artifactId: "art_demo", version: 3 }
+    });
+    expect(mapped.demoRef).toEqual({ artifactId: "art_demo", version: 3 });
+    expect(mapped.projectId).toBe("prj_1");
+  });
+
+  it("缺字段或空 artifactId 不保留", () => {
+    expect(mapDecisionPackageView({ ...base, demoRef: { artifactId: "", version: 1 } }).demoRef).toBeUndefined();
+    expect(mapDecisionPackageView({ ...base, demoRef: { artifactId: "art_x" } }).demoRef).toBeUndefined();
+    expect(mapDecisionPackageView({ ...base, demoRef: "art_x" }).demoRef).toBeUndefined();
   });
 });
 

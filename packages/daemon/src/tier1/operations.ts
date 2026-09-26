@@ -17,10 +17,14 @@ import {
   type AcceptanceCheck,
   type MergeProof,
   type Tier1CancelProof,
+  type Tier1SettleProof,
   type WritingSettleProof
 } from "@saydo/contracts";
 import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
+import { resolveAcceptanceEvidence, type AcceptanceEvidenceScope } from "../api/acceptanceEvidence.js";
+// DAILY-01:任务级前置依赖唤醒/阻塞(合同 §15.2);本文件裸 UPDATE 不经 transitionTask 漏斗,逐点挂
+import { applyTaskDependencyTransition } from "../focus/dependency.js";
 import { resolveActiveEntriesForTask } from "../storage/dao/outbox.js";
 import { getPackage } from "../storage/dao/packages.js";
 import { getArtifact } from "../storage/dao/artifacts.js";
@@ -233,6 +237,7 @@ export function settleCancel(db: Db, audit: AuditSink, proof: Tier1CancelProof, 
         .prepare("UPDATE tasks SET status='cancel_settled', updated_at=? WHERE id=? AND status='cancel_requested'")
         .run(nowIso, proof.taskId);
       if (upd.changes !== 1) throw new Error(`cancel task settle race: ${proof.taskId}`);
+      applyTaskDependencyTransition(db, proof.taskId, "cancel_settled");
       audit.record({ actor: "daemon", action: "task.cancel_settled", meta: { taskId: proof.taskId, lastEventId: proof.lastEventId } });
     } else if (run.state !== "cancel_settled") {
       audit.record({
@@ -267,6 +272,7 @@ export function settleCancelNoActiveRun(db: Db, audit: AuditSink, taskId: string
       .prepare("UPDATE tasks SET status='cancel_settled', updated_at=? WHERE id=? AND status='cancel_requested'")
       .run(nowIso, taskId);
     if (upd.changes === 0) return { state: "cancel_settled" }; // 已结算(幂等)
+    applyTaskDependencyTransition(db, taskId, "cancel_settled");
     audit.record({ actor: "daemon", action: "task.cancel_settled", meta: { taskId, noActiveRun: true } });
     return { state: "cancel_settled" };
   });
@@ -309,6 +315,39 @@ export function isLateEventHistory(cancelLastEventId: string, incomingEventId: s
   return incomingEventId <= cancelLastEventId; // 等宽(ULID)字典序=时间序
 }
 
+function assertCodingPassEvidence(
+  db: Db,
+  proof: Tier1SettleProof,
+  run: { id: string; tree_sha: string | null; worktree_path: string | null },
+  runsDir: string | undefined
+): void {
+  const scope: AcceptanceEvidenceScope = {
+    taskId: proof.taskId,
+    runId: run.id,
+    treeSha: run.tree_sha ?? "",
+    worktreePath: run.worktree_path,
+    ...(runsDir ? { runsDir } : {}),
+    proofVerifyDigest: proof.tier1VerifyDigest
+  };
+  for (const check of proof.acceptanceChecks) {
+    const ref = check.evidenceRef?.trim() ?? "";
+    const humanPending =
+      (check.source === "manual" || check.source === "agent_claim") && check.status === "unknown";
+    if (humanPending && !ref) continue;
+    if (humanPending && ref) {
+      const resolved = resolveAcceptanceEvidence(db, ref, scope);
+      if (!resolved.ok) throw new Error(`coding approve 证据${resolved.reason}:${check.criterion}`);
+      continue;
+    }
+    if (check.status !== "pass") {
+      throw new Error(`coding approve 拒绝未通过的验收项:${check.criterion}`);
+    }
+    if (!ref) throw new Error(`coding approve 通过项缺 evidenceRef:${check.criterion}`);
+    const resolved = resolveAcceptanceEvidence(db, ref, scope);
+    if (!resolved.ok) throw new Error(`coding approve 证据${resolved.reason}:${check.criterion}`);
+  }
+}
+
 // ---------- reviewTask(三态)----------
 
 export type ReviewVerdict = "approve" | "request_changes" | "reject";
@@ -339,6 +378,8 @@ export function reviewTask(
     comments?: string;
     /** writing approve(09 §6.1a barrier ④):manual 验收项逐条裁决;UI 未逐条 ⇒ 拒 approve(11 §5.5) */
     acceptanceVerdicts?: { criterion: string; status: "pass" | "fail" }[];
+    /** coding approve 核对 verify.json 的 run 目录。缺目录时,声称 pass 的 verify/自报证据无法解析即拒。 */
+    runsDir?: string;
   },
   nowIso: string
 ): ReviewResult {
@@ -367,10 +408,10 @@ export function reviewTask(
     // Codex 16 4.2 回修:proof 严格 schema 校验 + run 必须 settled_review + taskId/attempt/treeSha 交叉核对
     const run = db
       .prepare(
-        "SELECT id, state, tree_sha, settle_proof_json FROM tier1_runs WHERE task_id=? AND attempt=? ORDER BY created_at DESC LIMIT 1"
+        "SELECT id, state, tree_sha, worktree_path, settle_proof_json FROM tier1_runs WHERE task_id=? AND attempt=? ORDER BY created_at DESC LIMIT 1"
       )
       .get(input.taskId, currentAttempt) as
-      | { id: string; state: string; tree_sha: string | null; settle_proof_json: string | null }
+      | { id: string; state: string; tree_sha: string | null; worktree_path: string | null; settle_proof_json: string | null }
       | undefined;
     if (!run) throw new Error("approve requires a run for current attempt (无可批准的执行记录)");
     if (run.state !== "settled_review") {
@@ -406,15 +447,16 @@ export function reviewTask(
     if (acceptanceViolations.length > 0) {
       throw new Error(`coding approve 验收 exact-set 对账没过:${acceptanceViolations.slice(0, 2).join(";")}`);
     }
+    assertCodingPassEvidence(db, proof, run, input.runsDir);
     const evidenceDigest = proof.tier1VerifyDigest;
     const tx = db.transaction(() => {
       const currentRun = db
         .prepare(
-          `SELECT id, state, tree_sha, settle_proof_json
+          `SELECT id, state, tree_sha, worktree_path, settle_proof_json
            FROM tier1_runs WHERE task_id=? AND attempt=? ORDER BY created_at DESC LIMIT 1`
         )
         .get(input.taskId, currentAttempt) as
-        | { id: string; state: string; tree_sha: string | null; settle_proof_json: string | null }
+        | { id: string; state: string; tree_sha: string | null; worktree_path: string | null; settle_proof_json: string | null }
         | undefined;
       if (!currentRun || currentRun.state !== "settled_review" || !currentRun.tree_sha || !currentRun.settle_proof_json) {
         throw new Error("coding approve race:当前 run/proof 不再可批准");
@@ -435,12 +477,14 @@ export function reviewTask(
       ) {
         throw new Error("coding approve race:task/run/package/proof 在批准前发生变化");
       }
+      assertCodingPassEvidence(db, currentProof, currentRun, input.runsDir);
       const upd = db
         .prepare(
           "UPDATE tasks SET status='review_approved_waiting_merge', approved_tree_sha=?, updated_at=?, parked_at=NULL, parked_deadline=NULL WHERE id=? AND status='ready_for_review'"
         )
         .run(run.tree_sha, nowIso, input.taskId);
       if (upd.changes === 0) throw new Error("approve race: task left ready_for_review concurrently");
+      applyTaskDependencyTransition(db, input.taskId, "review_approved_waiting_merge");
       freezeOutbox(db, audit, input.taskId, nowIso, "ready_for_review"); // 验收已答,收叫人条目
       audit.record({
         actor: "owner",
@@ -592,7 +636,8 @@ function approveWritingTask(
         evidenceDigest,
         prospectiveTreeSha: proof.treeSha,
         attempt: i.currentAttempt,
-        acceptancePassed: manualCriteria.length
+        acceptancePassed: manualCriteria.length,
+        verdicts: manualCriteria.map((criterion) => ({ criterion, status: verdicts.get(criterion) }))
       }
     });
     const decided: AcceptanceCheck[] = proof.acceptanceChecks.map((c) =>
@@ -612,6 +657,7 @@ function approveWritingTask(
       )
       .run(proof.treeSha, i.nowIso, i.taskId);
     if (upd.changes === 0) throw new Error("approve race: task left ready_for_review concurrently");
+    applyTaskDependencyTransition(db, i.taskId, "review_approved_waiting_merge");
     freezeOutbox(db, audit, i.taskId, i.nowIso, "ready_for_review");
   });
   tx();
@@ -717,6 +763,7 @@ export function verifyAndCompleteMerge(db: Db, audit: AuditSink, proof: MergePro
     .prepare("UPDATE tasks SET status='task_done', updated_at=? WHERE id=? AND status='review_approved_waiting_merge'")
     .run(nowIso, proof.taskId);
   if (upd.changes === 0) return { done: false, reason: "merge race: status changed concurrently" };
+  applyTaskDependencyTransition(db, proof.taskId, "task_done");
   audit.record({ actor: "daemon", action: "task.done", meta: { taskId: proof.taskId, mergeCommit: proof.mergeCommit } });
   return { done: true };
 }

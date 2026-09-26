@@ -4,6 +4,8 @@
 >
 > **[warn] 交付分期以 `plan/IMPLEMENTATION-PLAN-2.md` + `adr/design/ADR-001-execution-layer.md` 附注为唯一裁决**(owner 2026-07-23 裁定:**首发 = 完整双路径**,一次交付):开发顺序上 P0 阶段先做 Tier 1 全闭环,本篇 §6 P0 段中的 **Hopper 桥、直达验收档、Demo 生成器属 P0.5 阶段 = 首发后半程**,契约落地后接续建完才算首发交付(本篇文字未逐处回改,冲突时以计划步骤表为准)。**现时态(设计 ADR-005,owner 2026-09-02)**:该「首发 = 完整双路径」交付定义由设计 ADR-005 supersede;生产执行路线 = Tier1;Hopper 桥 `designed/deferred`。
 
+> **阅读时点(2026-09-13核对)**:下文保留早期选型、PoC 与分期推演，工程日估算不是当前排程或交付证明。Hopper、双执行模式、移动远程面等条目须分别按设计 ADR-005、现役09合同与PG-01B关闭边界阅读；当前排程以 PLAN-2 为准。
+
 ## 1. 落地策略:复用而非自建
 
 外部调研 + 本地项目实读得出一致结论:SayDo 设计的**下游执行主干**(agent 适配、任务流真相源、崩溃恢复、预算熔断、worktree、验收闸门)在 owner 自己的 Hopper 里已有**可运行、测试全绿的现成实现**。**但要分清现状与蓝图**:审批(DecisionRequest)、通知(NotificationIntent)、命令/workflow 在 Hopper 目前**只有 schema、没有运行时**(其 M3b/M3c/M3d/WS4 里程碑未实现)——可直接复用的是"drop 任务 → worktree 执行 → 闸门 → review"这条现状流水线,控制面要 SayDo 侧自建。因此:
@@ -66,7 +68,7 @@ OctoDesk / Work Steward(独立产品线:桌面工作台,提供协议模板与结
 
 | 门禁 | P0 最低交付 |
 |---|---|
-| 身份/授权模型 | 单用户假设显式化:设备配对 + 屏幕认证承载 S3;多说话人 **P0 口径(2026-07-24 对齐)= PTT 窗口外/挂起态音频不产生指令**(不承诺说话人区分;"非 owner 发言不采纳"的真软过滤待所选 ASR 具备说话人标签能力后升级并回写本行——P0 不造假绿测)。**+ 本地 daemon HTTP/WS 调用方身份(安全复核 S2)**:每会话 capability token(SPA 注入 + 每请求/WS 握手校验)+ Host/Origin 白名单 + Host 头防 DNS rebinding + 写工具(confirmAndDispatch/issueDispatchReceipt/approveAction/merge)主体绑定——"localhost=secure context"只满足浏览器授麦,不提供调用方身份,否则恶意网页可绕语音授权直调 daemon(反例入 §12)。**+ selected-adapter 审批门完整性(安全复核 S1)**:决策通道走 daemon socket(非 worktree 文件)、gate 脚本在 worktree 外的 daemon 供给目录(**同 UID 下非强制不可写**——诚实口径与补偿控制见 09 §11 D8/Codex 20 A1:每请求 digest 校验待实施,完整隔离 P1)、**canary**(cursor stream-json 顶层 tool_call 无对应 hook 回调 ⇒ 立即 cancel+作废,唯一不依赖 vendor 语义的兜底、不可降级)、`cursor-agent` 版本 pin + 变更重跑门禁;未过 conformance 只许监督式研究 |
+| 身份/授权模型 | 单用户假设显式化:设备配对 + 屏幕认证承载 S3;多说话人 **P0 口径(2026-07-24 对齐)= PTT 窗口外/挂起态音频不产生指令**(不承诺说话人区分;"非 owner 发言不采纳"的真软过滤待所选 ASR 具备说话人标签能力后升级并回写本行——P0 不造假绿测)。**+ 本地 daemon HTTP/WS 调用方身份(安全复核 S2)**:每会话 capability token(SPA 注入 + 每请求/WS 握手校验)+ Host/Origin 白名单 + Host 头防 DNS rebinding + 写工具(confirmAndDispatch/issueDispatchReceipt/approveAction/merge)主体绑定——"localhost=secure context"只满足浏览器授麦,不提供调用方身份,否则恶意网页可绕语音授权直调 daemon(反例入 §12)。**+ selected-adapter 审批门完整性(安全复核 S1)**:决策通道走 daemon socket(非 worktree 文件)、gate 脚本在 worktree 外的 daemon 供给目录(**同 UID 下非强制不可写**——诚实口径与补偿控制见 09 §11 D8/Codex 20 A1:每请求 digest 校验已实施，覆盖当前 backend 活动入口与绑定文件；完整隔离仍为 P1)、**canary**(cursor stream-json 顶层 tool_call 无对应 hook 回调 ⇒ 立即 cancel+作废,计数兜底不能单独发现入口改写后仍 POST 的伪造，须与 digest 重校验共同保留、不可降级)、`cursor-agent` 版本 pin + 变更重跑门禁;未过 conformance 只许监督式研究 |
 | 跨边界事务幂等 | bridge 的 outbox/inbox + 事件游标 + 重放测试(对应 PoC 验收 ③④⑤) |
 | 独立 acceptance oracle | verify 白名单 + 与 Brain 无关的闸门判定(不让生成方自评通过)。**+ verify 内容冻结(安全复核 S3)**:白名单只冻结模板名不够——`package.json`/`Justfile` 是 agent 可写且不在 `projectSnapshotDigest` 内,改 `scripts.test` 即①命令注入②闸门恒绿(false-complete);dispatch 时冻结解析后 argv + 脚本内容 digest,执行前重校,不符 ⇒ fail-closed;agent 合法改 test 走 Plan Delta 重授权 |
 | secret/egress 隔离 | agent 环境剥离凭据、`.env` 读取升 S2+、网络出口**按适配器如实声明**(cursor_cli 后端:hooks 只覆盖 shell 通道,内建 Read/web 工具读 `.env`/出网拦不住 ⇒ 能力表标 `egress=uncontrolled`、禁 `network_fetch` 类预授权,G4 证据**按后端分行**、不出"绿"掩盖不可控)。**+ setup 供应链脚本(安全复核 S4)**:建 worktree 缺省 `--ignore-scripts`(或沙箱),确需 lifecycle scripts 时按 S2 presentation 念 target+下游、签单次收据 |

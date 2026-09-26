@@ -85,7 +85,7 @@ describe("Notify 知道了", () => {
       created_at: "2026-07-25T10:00:00.000Z",
       escalation: 0
     };
-    const html = renderToStaticMarkup(<NotifyView rows={[notified]} onAck={onAck} ackError={null} />);
+    const html = renderToStaticMarkup(<NotifyView rows={[notified]} filter="all" onFilter={() => {}} onAck={onAck} ackError={null} />);
     expect(html).toContain('data-outbox-ack="ntf_01AAAAAAAAAAAAAAAAAAAAAAAA"');
     expect(html).toContain("知道了");
     const btn = NotifyAckButton({ id: notified.id, onAck }) as ReactElement<{ onClick: () => void }>;

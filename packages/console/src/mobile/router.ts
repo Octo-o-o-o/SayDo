@@ -8,6 +8,8 @@ export type MobileRoute =
   | { page: "lane"; focusId: string; laneId: string }
   | { page: "card"; kind: CardKind; id: string }
   | { page: "chat" }
+  | { page: "arrangements" }
+  | { page: "archive" }
   | { page: "notfound" };
 
 const CARD_KINDS = new Set<CardKind>(["confirmation", "obligation", "task", "expectation", "memory_candidate"]);
@@ -23,6 +25,9 @@ export function parseMobileHash(hash: string): MobileRoute {
   if (focus) return { page: "focus", focusId: focus[1] as string };
   const lane = /^\/m\/lane\/([^/]+)\/([^/]+)$/.exec(path);
   if (lane) return { page: "lane", focusId: lane[1] as string, laneId: lane[2] as string };
+  // DAILY-01:只读账页(安排/归档),桌面同名路由的移动面
+  if (path === "/m/arrangements" || path === "/arrangements") return { page: "arrangements" };
+  if (path === "/m/archive" || path === "/archive") return { page: "archive" };
   const card = /^\/m\/card\/([^/]+)\/([^/]+)$/.exec(path);
   if (card && CARD_KINDS.has(card[1] as CardKind)) {
     return { page: "card", kind: card[1] as CardKind, id: card[2] as string };
@@ -43,6 +48,10 @@ export function desktopRouteForMobileHash(hash: string): string | null {
       return `/focus/${encodeURIComponent(route.focusId)}`;
     case "card":
       return "/today";
+    case "arrangements":
+      return "/arrangements";
+    case "archive":
+      return "/archive";
     case "chat":
       return "/chat-new";
     case "notfound":

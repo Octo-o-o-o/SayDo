@@ -11,6 +11,10 @@ import { randomInt, randomUUID } from "node:crypto";
 import { consoleArtifactReady, consoleDistDirectory } from "./runtimeAssets.js";
 import { createLogger } from "./obs/logger.js";
 import {
+  isClassifiedAsrFinal,
+  focusAnchorRequestBodySchema
+} from "@saydo/contracts";
+import {
   isSnapshotBackupDue,
   productionBaseSources,
   productionWorkspaceSourcesFromSnapshot,
@@ -21,6 +25,7 @@ import { backupRetentionDays } from "./backup/config.js";
 import { openDb } from "./storage/db.js";
 import { createSqliteAuditSink } from "./storage/dao/misc.js";
 import { VoiceHub } from "./voice/hub.js";
+import { HoldForConfirmQueue } from "./voice/holdForConfirmQueue.js";
 import { recordCliSubscriptionInvocation, recordTtsChars } from "./cost/ledger.js";
 import { loadOrCreateCapToken } from "./net/capToken.js";
 import { extractToken, verifyIdentity } from "./net/identity.js";
@@ -28,6 +33,7 @@ import { daemonListenAddress, mobileLanApiAllowed, mobileLanEnabled } from "./ne
 import { remoteHttpBusinessDecision, remoteVoiceWsDecision } from "./net/remoteSurface.js";
 import { pairingInfoPayload } from "./net/pairingInfo.js";
 import { LatencyCollector } from "./obs/latency.js";
+import { notePlayout, turnIdOfSentence } from "./obs/sentenceTurn.js";
 import {
   ArtifactAccessError,
   exportArtifacts,
@@ -39,6 +45,7 @@ import {
   getFocusList,
   getMobileFocusDetail,
   getFocusSessions,
+  getObligationList,
   getOutbox,
   getOverview,
   getProjectArtifacts,
@@ -63,10 +70,10 @@ import {
 import { createFocusArtifact, listFocusArtifacts, realizeArtifactApi } from "./api/artifacts.js";
 import { adjustExpectationApi, withdrawExpectationApi } from "./api/expectations.js";
 import { ackAttentionApi, getAttention } from "./api/attention.js";
-import { abandonFocusApi, archiveFocusApi, createFocusApi, reopenFocusApi } from "./api/focuses.js";
+import { abandonFocusApi, archiveFocusApi, createFocusApi, forkFocusApi, reopenFocusApi } from "./api/focuses.js";
 import { getActivationTranscript, getFocusTimeline } from "./api/focusTimeline.js";
-import { redoFromLaneApi, retireLaneApi } from "./api/lanes.js";
-import { resolveObligationApi, setWaitingOnApi } from "./api/obligations.js";
+import { createLaneApi, redoFromLaneApi, retireLaneApi, unretireLaneApi } from "./api/lanes.js";
+import { deferObligationApi, resolveObligationApi, setWaitingOnApi } from "./api/obligations.js";
 import {
   clearAllSessionTaskContexts,
   clearSessionTaskContext,
@@ -75,6 +82,7 @@ import {
 } from "./focus/sessionTaskContext.js";
 import { getApproval } from "./storage/dao/approvals.js";
 import { recoverMergingTasks } from "./tier1/s3Tools.js";
+import { recoverWaitingDependencies } from "./focus/dependency.js";
 import { loadConfigFile, paramValue, parseConfigText } from "./config/load.js";
 import { assertParamSanity, enabledProjectTypes, PARAM_DEFAULTS } from "./config/types.js";
 import { readGate0FromFile, readStartupLiveConfig, sanitizedConfigErrorSummary } from "./config/runtime.js";
@@ -87,6 +95,7 @@ import { LiveVoiceSessions } from "./live/voiceSessions.js";
 import { LiveDialog } from "./live/dialog.js";
 import {
   ConfirmationLoop,
+  confirmCardIdentityFromPayload,
   processDowngradeSagas,
   sweepConfirmationLedgerRetention
 } from "./live/confirm.js";
@@ -1779,11 +1788,15 @@ server.on("request", (req, res) => {
       const mFocusArchive = /^\/api\/focuses\/([^/]+)\/archive$/.exec(pathname);
       const mFocusAbandon = /^\/api\/focuses\/([^/]+)\/abandon$/.exec(pathname);
       const mFocusReopen = /^\/api\/focuses\/([^/]+)\/reopen$/.exec(pathname);
+      const mFocusFork = /^\/api\/focuses\/([^/]+)\/fork$/.exec(pathname);
       const mTaskCtx = /^\/api\/session\/([^/]+)\/task-context$/.exec(pathname);
+      const mLaneCreate = /^\/api\/focuses\/([^/]+)\/lanes$/.exec(pathname);
       const mLaneRetire = /^\/api\/focuses\/([^/]+)\/lanes\/([^/]+)\/retire$/.exec(pathname);
+      const mLaneUnretire = /^\/api\/focuses\/([^/]+)\/lanes\/([^/]+)\/unretire$/.exec(pathname);
       const mLaneRedo = /^\/api\/focuses\/([^/]+)\/lanes\/([^/]+)\/redo-from$/.exec(pathname);
       const mObResolve = /^\/api\/obligations\/([^/]+)\/resolve$/.exec(pathname);
       const mObWaiting = /^\/api\/obligations\/([^/]+)\/waiting-on$/.exec(pathname);
+      const mObDefer = /^\/api\/obligations\/([^/]+)\/defer$/.exec(pathname);
       const mArtRealize = /^\/api\/artifacts\/([^/]+)\/realize$/.exec(pathname);
       const mExpAdjust = /^\/api\/focuses\/([^/]+)\/expectations\/([^/]+)\/adjust$/.exec(pathname);
       const mExpWithdraw = /^\/api\/focuses\/([^/]+)\/expectations\/([^/]+)\/withdraw$/.exec(pathname);
@@ -1801,11 +1814,15 @@ server.on("request", (req, res) => {
         mFocusArchive ||
         mFocusAbandon ||
         mFocusReopen ||
+        mFocusFork ||
         mTaskCtx ||
+        mLaneCreate ||
         mLaneRetire ||
+        mLaneUnretire ||
         mLaneRedo ||
         mObResolve ||
         mObWaiting ||
+        mObDefer ||
         mArtRealize ||
         mExpAdjust ||
         mExpWithdraw ||
@@ -1824,22 +1841,38 @@ server.on("request", (req, res) => {
           let out: { status: number; payload: unknown };
           try {
             if (mSessAnchor) {
-              // L6/L5:续推锚定——console「开新对话续推/在此线续推」的真实锚定链
-              // (此前按钮只跳对话页不锚定=假按钮;义骁 8/6 提议 lane 级续推)
+              // L6/L5:续推锚定。新协议只在 voice.anchor_prepare 已 prepared 后写锚。
               const sid = mSessAnchor[1] as string;
-              const pb = (parsed ?? {}) as { focusId?: string; laneTitle?: string };
-              if (!pb.focusId) {
+              const bodyCheck = focusAnchorRequestBodySchema.safeParse(parsed ?? {});
+              if (!bodyCheck.success) {
                 out = { status: 400, payload: { ok: false, code: "invalid_input", message: "focusId required", retryable: false } };
               } else {
-                liveSessions.ensureSession(sid);
-                const sw = switchAnchorActivation(db, sid, pb.focusId, "user_explicit");
-                liveSessions.setDefaultLane(sid, pb.laneTitle?.trim() ? pb.laneTitle.trim() : null);
-                audit.record({
-                  actor: "owner",
-                  action: "session.focus_anchor_via_api",
-                  meta: { sessionId: sid, focusId: pb.focusId, ...(pb.laneTitle ? { laneTitle: pb.laneTitle } : {}) }
+                out = voiceHub.barrier.applyHttp({
+                  sessionId: sid,
+                  body: bodyCheck.data,
+                  write: ({ sessionId, focusId, laneTitle }) => {
+                    liveSessions.ensureSession(sessionId);
+                    const sw = switchAnchorActivation(db, sessionId, focusId, "user_explicit");
+                    if (bodyCheck.data.requestId) {
+                      liveDialogRef?.retireForAnchor(sessionId, {
+                        focusId,
+                        requestId: bodyCheck.data.requestId
+                      });
+                    }
+                    liveSessions.setDefaultLane(sessionId, laneTitle?.trim() ? laneTitle.trim() : null);
+                    audit.record({
+                      actor: "owner",
+                      action: "session.focus_anchor_via_api",
+                      meta: {
+                        sessionId,
+                        focusId,
+                        ...(laneTitle ? { laneTitle } : {}),
+                        ...(bodyCheck.data.requestId ? { requestId: bodyCheck.data.requestId } : {})
+                      }
+                    });
+                    return { already: sw.already };
+                  }
                 });
-                out = { status: 200, payload: { ok: true, sessionId: sid, focusId: pb.focusId, already: sw.already } };
               }
             } else if (pathname === "/api/spaces") {
               out = createSpace(db, audit, parsed, nowIso);
@@ -1851,6 +1884,10 @@ server.on("request", (req, res) => {
               out = abandonFocusApi(db, audit, mFocusAbandon[1] as string, parsed);
             } else if (mFocusReopen) {
               out = reopenFocusApi(db, audit, mFocusReopen[1] as string);
+            } else if (mFocusFork) {
+              out = forkFocusApi(db, audit, mFocusFork[1] as string, parsed);
+            } else if (mLaneCreate) {
+              out = createLaneApi(db, audit, mLaneCreate[1] as string, parsed);
             } else if (mSpaceRename) {
               out = renameSpace(db, audit, mSpaceRename[1] as string, parsed, nowIso);
             } else if (mSpaceDelete) {
@@ -1861,12 +1898,16 @@ server.on("request", (req, res) => {
               out = createFocusArtifact(db, audit, mFocusArt[1] as string, parsed, nowIso);
             } else if (mLaneRetire) {
               out = retireLaneApi(db, audit, mLaneRetire[1] as string, mLaneRetire[2] as string);
+            } else if (mLaneUnretire) {
+              out = unretireLaneApi(db, audit, mLaneUnretire[1] as string, mLaneUnretire[2] as string);
             } else if (mLaneRedo) {
               out = redoFromLaneApi(db, audit, mLaneRedo[1] as string, mLaneRedo[2] as string, parsed);
             } else if (mObResolve) {
               out = resolveObligationApi(db, audit, mObResolve[1] as string, parsed);
             } else if (mObWaiting) {
               out = setWaitingOnApi(db, audit, mObWaiting[1] as string, parsed);
+            } else if (mObDefer) {
+              out = deferObligationApi(db, audit, mObDefer[1] as string, parsed);
             } else if (mArtRealize) {
               out = realizeArtifactApi(db, audit, mArtRealize[1] as string, parsed);
             } else if (mExpAdjust) {
@@ -1986,7 +2027,8 @@ server.on("request", (req, res) => {
           return;
         }
         const out = handleTaskAction(db, audit, mAction[1] as string, mAction[2] as string, parsed, new Date().toISOString(), {
-          ...(idvVia ? { via: idvVia === "local" ? "local" : "tailnet" } : {}) // 远程来源 S3 合并链动作在 actions 层拒
+          ...(idvVia ? { via: idvVia === "local" ? "local" : "tailnet" } : {}), // 远程来源 S3 合并链动作在 actions 层拒
+          runsDir: join(SAYDO_HOME, "tier1", "runs")
         });
         res.writeHead(out.status, { "content-type": "application/json" });
         res.end(JSON.stringify(out.payload));
@@ -2118,9 +2160,17 @@ function routeConsoleApi(u: URL, via?: "local" | "tailnet" | "mobile_lan"): unkn
   const mSet = /^\/api\/projects\/([^/]+)\/settings$/.exec(p);
   if (mSet) return getProjectSettings(db, mSet[1] as string);
   const mTask = /^\/api\/tasks\/([^/]+)$/.exec(p);
-  if (mTask) return getTaskDetail(db, mTask[1] as string);
+  if (mTask) return getTaskDetail(db, mTask[1] as string, { runsDir: join(SAYDO_HOME, "tier1", "runs") });
   // C7 Focus 只读页 + 批 2 attention
   if (p === "/api/focuses") return getFocusList(db);
+  // DAILY-01:跨 Focus 义务清单(安排页/依赖页)
+  if (p === "/api/obligations") {
+    return getObligationList(db, {
+      ...(u.searchParams.get("owner") ? { owner: u.searchParams.get("owner") as string } : {}),
+      ...(u.searchParams.get("status") ? { status: u.searchParams.get("status") as string } : {}),
+      ...(u.searchParams.get("waiting") ? { waiting: u.searchParams.get("waiting") as string } : {})
+    });
+  }
   if (p === "/api/attention") return getAttention(db);
   if (p === "/api/sessions/recent-transcript") {
     return getRecentTranscript(db, parseRecentTranscriptLimit(u.searchParams.get("limit")));
@@ -2345,6 +2395,7 @@ const liveSessions = new LiveVoiceSessions({
   },
   // 挂起收尾语(10 §3-4:必含状态);活跃任务在跑时如实告知回叫点
   onSuspend: (sessionId, reason) => {
+    voiceHub.barrier.clearSession(sessionId);
     liveDialogRef?.retireSession(sessionId);
     // W2 阶段 C:会后提炼(04 §1.3 生长闭环)——从本会话用户轮机械提名候选,只提名、人批准
     // (console 记忆页批准 -> trusted -> M1;memoryLedger 声明在后,回调运行时已初始化)
@@ -2608,7 +2659,8 @@ const confirmLoop = new ConfirmationLoop(
         text: pending.promptText,
         kind: (pending.payload as { kind?: string }).kind ?? "unknown",
         digest: pending.digest,
-        digestVersion: pending.digestVersion
+        digestVersion: pending.digestVersion,
+        ...confirmCardIdentityFromPayload(pending.payload)
       });
     },
     onResolve: (sessionId, receiptId, outcome) => {
@@ -2842,6 +2894,8 @@ registerLiveTools(toolRegistry, {
 
 // eslint-disable-next-line prefer-const -- late-binding:构造参数闭包先引用,实例建成后回填
 let liveDialogRef: LiveDialog | undefined;
+// eslint-disable-next-line prefer-const -- late-binding:liveDialog 先捕获,VoiceHub 建成后回填
+let voiceHubRef: VoiceHub | undefined;
 // eslint-disable-next-line prefer-const -- late-binding:liveDialog 构造先捕获,callbackEngine 稍后回填
 let callbackEngineRef: CallbackEngine | undefined;
 const liveDialog: LiveDialog = new LiveDialog({
@@ -2867,6 +2921,9 @@ const liveDialog: LiveDialog = new LiveDialog({
         error: projectCaughtText(err, "log_failed", 160)
       });
     }
+  },
+  onUserTurnAccepted: (sessionId, turnId) => {
+    voiceHub.barrier.completeTurnAccepted(sessionId, turnId);
   },
   say,
   // ④e:screen_text 仅 via=local(闭包晚绑定 voiceHub,与 say 同构)
@@ -2939,7 +2996,8 @@ const liveDialog: LiveDialog = new LiveDialog({
       atMs,
       meta.toolCallsMade > 0 ? "tool" : meta.control ? "control" : undefined
     ),
-  configuredProvider: "api:openrouter"
+  configuredProvider: "api:openrouter",
+  currentAnchor: (sessionId) => voiceHubRef?.barrier.appliedAnchor(sessionId) ?? { focusId: null, requestId: null }
 });
 liveDialogRef = liveDialog;
 
@@ -2947,10 +3005,6 @@ liveDialogRef = liveDialog;
 // 一律以 daemon 收到事件的时刻计(localhost WS 传输 <1ms,可接受);playout_start 由该轮首个
 // tts.playout 到达派生(console 不需要知道 turnId;sentenceId=s-<turnId>-<i> 由对话环构造)。
 const playoutSeen = new Set<string>();
-function turnIdOfSentence(sentenceId: string): string | null {
-  const m = /^s-(.+)-\d+$/.exec(sentenceId);
-  return m ? (m[1] as string) : null;
-}
 
 // A1⇄A2 语音中枢(1.2):/ws/voice;C8 记账钩子接线;4.1 起 WS 强制身份校验(G1)
 // 手动档"采完不直发"一次性 hold(RA-closeout 修复 2026-07-28,10 §3-7):stopCaptureHold 发
@@ -2960,30 +3014,53 @@ function turnIdOfSentence(sentenceId: string): string | null {
 // (Map.set 覆盖会让两面在途旗只剩一面——第二个编辑轮被误喂 Brain);轮次守恒(pipeline 每
 // done_speaking 恰好一个 final,可空,且链式串行保序)是主保证,TTL 120s 是 final 真丢失
 // (连接断)时防旗滞留误扣下一直发轮的兜底。
-const holdForConfirmSessions = new Map<string, number[]>();
-const HOLD_FLAG_TTL_MS = 120_000;
+const holdForConfirmQueue = new HoldForConfirmQueue();
 const voiceHub: VoiceHub = new VoiceHub(server, log.child({ mod: "voice" }), {
   onTtsChars: (sessionId, chars) => recordTtsChars(db, sessionId, chars),
+  onBarrierAudit: (action, meta) => {
+    audit.record({ actor: "daemon", action, meta });
+  },
+  onSourceFocusId: (sessionId) => {
+    const row = db.prepare("SELECT primary_focus_id FROM sessions WHERE id = ?").get(sessionId) as
+      | { primary_focus_id: string | null }
+      | undefined;
+    return row?.primary_focus_id ?? undefined;
+  },
   onTurnSignal: (msg) => {
     if (RECOVERY_ONLY) return;
     if (msg.t === "turn.done_speaking" && msg.holdForConfirm) {
-      const queue = holdForConfirmSessions.get(msg.sessionId) ?? [];
-      queue.push(Date.now() + HOLD_FLAG_TTL_MS);
-      holdForConfirmSessions.set(msg.sessionId, queue);
+      holdForConfirmQueue.record(msg.sessionId);
     }
   },
-  onAsrFinal: (msg) => {
+  onSpeechSettled: (info) => {
+    if (RECOVERY_ONLY || runtimeDraining || !startupLifecycleReady) return;
+    liveDialog.settlePendingSpeech(info.sessionId, info.speechGen);
+  },
+  onAsrFinal: (msg, speechGen) => {
     if (msg.t !== "asr.final") return; // partial 不驱动 Brain(P0 无 partial,ADR-101)
     if (runtimeDraining || !startupLifecycleReady) return; // B6: shutdown/startup 关 ingress
-    const holdQueue = holdForConfirmSessions.get(msg.sessionId);
-    if (holdQueue !== undefined && holdQueue.length > 0) {
-      const expiry = holdQueue.shift() as number;
-      if (holdQueue.length === 0) holdForConfirmSessions.delete(msg.sessionId);
-      if (Date.now() <= expiry) {
-        liveDialog.settlePendingSpeech(msg.sessionId);
-        log.info("asr.final held for confirm (manual capture; not fed to Brain)", { sessionId: msg.sessionId, turnId: msg.turnId });
+    if (isClassifiedAsrFinal(msg)) {
+      if (msg.recognitionOutcome === "failed" || msg.text.trim() === "") {
+        liveDialog.settlePendingSpeech(msg.sessionId, speechGen);
         return;
       }
+      if (RECOVERY_ONLY) {
+        log.warn("dialog turn rejected in recovery-only mode", { sessionId: msg.sessionId, turnId: msg.turnId });
+        return;
+      }
+      latencyCollector.start(msg.turnId, msg.captureMode, performance.now());
+      void liveDialog.onAsrFinal(msg.sessionId, msg.turnId, msg.text, speechGen).catch((err) =>
+        log.error("dialog loop error", { error: projectCaughtText(err, "log_failed", 200) })
+      );
+      return;
+    }
+    const hold = holdForConfirmQueue.consume(msg.sessionId);
+    if (hold === "held") {
+      liveDialog.settlePendingSpeech(msg.sessionId);
+      log.info("asr.final held for confirm (manual capture; not fed to Brain)", { sessionId: msg.sessionId, turnId: msg.turnId });
+      return;
+    }
+    if (hold === "expired") {
       log.warn("stale hold flag expired; treating asr.final as direct turn", { sessionId: msg.sessionId });
     }
     // 空 final(轮次守恒的短按/空转写/识别异常轮):不喂 Brain(空文本轮无语义;console 侧
@@ -3002,11 +3079,11 @@ const voiceHub: VoiceHub = new VoiceHub(server, log.child({ mod: "voice" }), {
       log.error("dialog loop error", { error: projectCaughtText(err, "log_failed", 200) })
     );
   },
-  onBargeIn: (msg) => {
+  onBargeIn: (msg, speechGen) => {
     // 打断轮从延迟 pending 结算为 cancelled,不再滞留到 TTL(GAP-02 2.4)
     const bargedTurn = turnIdOfSentence(msg.truncatedSentenceId);
     if (bargedTurn) latencyCollector.settle(bargedTurn, "cancelled");
-    if (!RECOVERY_ONLY) liveDialog.onBargeIn(msg.sessionId, msg.truncatedSentenceId);
+    if (!RECOVERY_ONLY) liveDialog.onBargeIn(msg.sessionId, msg.truncatedSentenceId, speechGen);
   },
   // W4 3.9:console 编辑后文本轮(11 §5.10 纠 ASR 误听)——作用户轮喂对话环(typed provenance;
   // 与语音轮同一 onAsrFinal 入口,Brain 侧无差别处理;转写落盘由 SessionManager 记 typed 轮)
@@ -3036,17 +3113,20 @@ const voiceHub: VoiceHub = new VoiceHub(server, log.child({ mod: "voice" }), {
   },
   onTurnText: (msg) => {
     if (RECOVERY_ONLY || runtimeDraining || !startupLifecycleReady) {
+      const code = RECOVERY_ONLY ? "recovery_only" : "lifecycle_closed";
       log.warn("typed dialog turn rejected", {
         sessionId: msg.sessionId,
         turnId: msg.turnId,
-        reason: RECOVERY_ONLY ? "recovery_only" : "lifecycle_closed"
+        reason: code
       });
+      voiceHub.barrier.completeTurnRejected(msg.sessionId, msg.turnId, code, false);
       return;
     }
     latencyCollector.start(msg.turnId, "text", performance.now());
-    void liveDialog.onAsrFinal(msg.sessionId, msg.turnId, msg.text).catch((err) =>
-      log.error("turn.text dialog error", { error: projectCaughtText(err, "log_failed", 200) })
-    );
+    void liveDialog.onAsrFinal(msg.sessionId, msg.turnId, msg.text).catch((err) => {
+      log.error("turn.text dialog error", { error: projectCaughtText(err, "log_failed", 200) });
+      voiceHub.barrier.completeTurnRejected(msg.sessionId, msg.turnId, "dialog_error", true);
+    });
   },
   onVoiceMode: (msg) => {
     const event = latestSessionProjectEvent(db, msg.sessionId);
@@ -3060,7 +3140,8 @@ const voiceHub: VoiceHub = new VoiceHub(server, log.child({ mod: "voice" }), {
         text: pending.promptText,
         kind: (pending.payload as { kind?: string }).kind ?? "unknown",
         digest: pending.digest,
-        digestVersion: pending.digestVersion
+        digestVersion: pending.digestVersion,
+        ...confirmCardIdentityFromPayload(pending.payload)
       });
     }
   },
@@ -3103,13 +3184,10 @@ const voiceHub: VoiceHub = new VoiceHub(server, log.child({ mod: "voice" }), {
     if (trace) log.info("latency trace complete", { ...trace });
   },
   onPlayout: (msg) => {
-    const turnId = turnIdOfSentence(msg.sentenceId);
-    if (turnId && !playoutSeen.has(turnId)) {
-      playoutSeen.add(turnId);
-      if (playoutSeen.size > 500) playoutSeen.clear(); // 简易上界
-      const trace = latencyCollector.record(turnId, "playout_start", performance.now());
-      if (trace) log.info("latency trace complete", { ...trace });
-    }
+    const trace = notePlayout(playoutSeen, msg.sentenceId, performance.now(), (turnId, atMs) =>
+      latencyCollector.record(turnId, "playout_start", atMs)
+    );
+    if (trace) log.info("latency trace complete", { ...trace });
   },
   verifyUpgrade: (req) => {
     const idv = checkIdentity(req);
@@ -3134,6 +3212,7 @@ const voiceHub: VoiceHub = new VoiceHub(server, log.child({ mod: "voice" }), {
     }
   }
 }, RUNTIME_IDENTITY.protocolVersion, STATE_ROOT_DIGEST);
+voiceHubRef = voiceHub;
 
 // 合同 §5.1 #3:voiceHub 就绪后恢复未过期 pending 并重发 confirm.card
 if (!RECOVERY_ONLY) {
@@ -3342,6 +3421,8 @@ if (!RECOVERY_ONLY && !runtimeDraining) {
   try {
     const recovered = recoverMergingTasks({ db, audit, runsDir: join(SAYDO_HOME, "tier1", "runs") });
     if (recovered.length > 0) log.info("merging recovery", { recovered });
+    const woken = recoverWaitingDependencies(db);
+    if (woken.length > 0) log.info("waiting dependency recovery", { woken });
   } catch (err) {
     log.error("merging recovery failed", { error: projectCaughtText(err, "log_failed", 200) });
   }

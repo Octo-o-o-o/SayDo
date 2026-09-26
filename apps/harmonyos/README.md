@@ -1,5 +1,7 @@
 # SayDo HarmonyOS NEXT 壳 spike
 
+> 当前源码边界(2026-09-13 对账):PG-01B 已关闭 daemon 的远程业务入口。以下 LAN + token 是历史开发壳能力,当前 main 不支持据此完成跨设备业务连接;解析测试或壳构建通过不等于配对可用。重开条件以 `docs/09-data-contracts.md`、`docs/11-ui-spec.md` 为准。
+
 这是与 `apps/ios`、`apps/android` 同定位的 ArkTS 真机评估壳。它扫描桌面端生成的
 `http://<ip>:<port>/?token=<token>`，在 ArkWeb 中打开现有 SayDo 页面，并支持保存、切换和
 删除多个桌面 profile。版本 `0.1.0 (1)`。

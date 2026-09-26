@@ -496,6 +496,84 @@ enum PairingUrlCorpus {
             suffix: "",
             token: nil,
             expectPort: nil
+        ),
+        PairingCorpusCase(
+            id: "reject-raw-combining-acute",
+            accept: false,
+            prefix: "http://",
+            hostParts: ["192", "168", "1", "8"],
+            hostSep: ".",
+            bracketHost: false,
+            port: "47100",
+            pathQuery: "/?token=a\u{301}",
+            suffix: "",
+            token: nil,
+            expectPort: nil
+        ),
+        PairingCorpusCase(
+            id: "accept-percent-combining-acute",
+            accept: true,
+            prefix: "http://",
+            hostParts: ["192", "168", "1", "8"],
+            hostSep: ".",
+            bracketHost: false,
+            port: "47100",
+            pathQuery: "/?token=a%CC%81",
+            suffix: "",
+            token: "a\u{301}",
+            expectPort: "47100"
+        ),
+        PairingCorpusCase(
+            id: "reject-raw-variation-selector",
+            accept: false,
+            prefix: "http://",
+            hostParts: ["192", "168", "1", "8"],
+            hostSep: ".",
+            bracketHost: false,
+            port: "47100",
+            pathQuery: "/?token=a\u{FE0F}",
+            suffix: "",
+            token: nil,
+            expectPort: nil
+        ),
+        PairingCorpusCase(
+            id: "accept-percent-variation-selector",
+            accept: true,
+            prefix: "http://",
+            hostParts: ["192", "168", "1", "8"],
+            hostSep: ".",
+            bracketHost: false,
+            port: "47100",
+            pathQuery: "/?token=a%EF%B8%8F",
+            suffix: "",
+            token: "a\u{FE0F}",
+            expectPort: "47100"
+        ),
+        PairingCorpusCase(
+            id: "accept-percent-dollar-identifier",
+            accept: true,
+            prefix: "http://",
+            hostParts: ["192", "168", "1", "8"],
+            hostSep: ".",
+            bracketHost: false,
+            port: "47100",
+            pathQuery: "/?token=%24identifier",
+            suffix: "",
+            token: "$identifier",
+            expectPort: "47100"
+        ),
+        PairingCorpusCase(
+            id: "accept-percent-dollar-braces",
+            accept: true,
+            prefix: "http://",
+            hostParts: ["192", "168", "1", "8"],
+            hostSep: ".",
+            bracketHost: false,
+            port: "47100",
+            pathQuery: "/?token=%24%7Bname%7D",
+            suffix: "",
+            token: "${name}",
+            expectPort: "47100"
         )
     ]
 }

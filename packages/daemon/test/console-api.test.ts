@@ -5,12 +5,13 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
-import { newId } from "@saydo/contracts";
+import { computePackageDigest, newId, type DecisionPackage } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
 import { seedConsoleFixture } from "../src/api/fixture.js";
 import {
   getApprovals,
   getCosts,
+  getFocusDetail,
   getMobileFocusDetail,
   getOutbox,
   getOverview,
@@ -20,6 +21,7 @@ import {
   getProjectTasks,
   getTaskDetail
 } from "../src/api/console.js";
+import { insertPackage } from "../src/storage/dao/packages.js";
 import { abandonFocusApi, archiveFocusApi, createFocusApi } from "../src/api/focuses.js";
 import { changeFocusLifecycle } from "../src/focus/registry.js";
 import type { AuditSink } from "../src/obs/audit.js";
@@ -62,6 +64,7 @@ describe("console API(fixture 投影)", () => {
     const cleanChecks = clean["acceptanceChecks"] as { criterion: string; status: string; source: string }[];
     expect(cleanChecks).toHaveLength(3);
     expect(cleanChecks.every((check) => check.status === "unknown" && check.source === "manual")).toBe(true);
+    expect((clean["task"] as { attempt?: number }).attempt).toBe(1);
     expect(cleanRun["observed_model"]).toBe("cursor-grok-4.6-high-fast");
     expect(cleanRun["exit_evidence"]).toBeNull();
     expect(cleanRun["terminal_audit_action"]).toBe("tier1.settled_review");
@@ -154,6 +157,105 @@ describe("console API(fixture 投影)", () => {
     expect(projected).not.toHaveProperty("sessionId");
     expect(JSON.stringify(detail)).not.toContain(`${["", "Users", "owner"].join("/")}/private.txt`);
     expect(JSON.stringify(detail)).not.toContain("sk-mobile-secret-value-123456");
+  });
+
+  it("costs.entriesWindow 标 300 窗,全部合计仍走 byProject", () => {
+    const before = getCosts(db);
+    expect(before.entriesWindow.limit).toBe(300);
+    expect(before.entriesWindow.returned).toBe(before.entries.length);
+    expect(before.entriesWindow.total).toBeGreaterThanOrEqual(before.entries.length);
+    const start = before.entriesWindow.total;
+    for (let i = 0; i < 301; i += 1) {
+      db.prepare(
+        `INSERT INTO cost_entries(id, ts, project_id, kind, amount, currency, known, source)
+         VALUES (?, ?, ?, 'llm.chat', 0.01, 'CNY', 1, 'api')`
+      ).run(`cst_win_${String(i).padStart(3, "0")}`, `2026-01-01T00:00:${String(i % 60).padStart(2, "0")}.000Z`, PRJ);
+    }
+    const after = getCosts(db);
+    expect(after.entries.length).toBe(300);
+    expect(after.entriesWindow).toEqual({
+      limit: 300,
+      returned: 300,
+      total: start + 301,
+      truncated: true
+    });
+    const p = after.byProject.find((x) => x.projectId === PRJ)!;
+    expect(p.knownByCurrency["CNY"]).toBeGreaterThan(3);
+  });
+
+  it("无任务 pending dispatch 包仍出现在 GET focus.packages", () => {
+    const focusId = "foc_01F1XT0RE0F0CVS00000000001";
+    const unsigned = {
+      id: "pkg_01PEND0N0TASK0000000000001",
+      revision: 1,
+      projectId: PRJ,
+      outcomePreview: "无任务待批包",
+      inScope: ["澄清"],
+      outOfScope: [],
+      assumptions: [],
+      acceptance: ["有人拍板"],
+      plan: [{ seq: 1, step: "拍板", owner: "ai" as const }],
+      cost: { expected: { known: false as const }, p95: { known: false as const }, max: 5, currency: "CNY" as const },
+      risks: [],
+      mode: "step_confirm" as const,
+      preauthorizedEffects: [],
+      effectPolicyVersion: "e2/0.1.0"
+    };
+    const pkg: DecisionPackage = {
+      ...unsigned,
+      digest: computePackageDigest(unsigned),
+      status: "proposed",
+      createdAt: NOW,
+      expiresAt: "2027-01-01T00:00:00.000Z"
+    };
+    insertPackage(db, pkg);
+    db.prepare(
+      `INSERT INTO pending_confirmations(
+         session_id, receipt_id, kind, prompt_text, payload_json, digest, digest_version,
+         sentence_id, attempt, focus_id, presented_at, expires_at
+       ) VALUES (?, ?, 'dispatch', '拍板开始', ?, ?, 1, ?, 1, ?, ?, ?)`
+    ).run(
+      "ses_01PEND0N0TASK0000000000001",
+      "rcpt_pending_pkg",
+      JSON.stringify({ kind: "dispatch", packageId: pkg.id, revision: 1, mode: "step_confirm" }),
+      pkg.digest,
+      "s-confirm-pending",
+      focusId,
+      NOW,
+      "2027-01-01T00:00:00.000Z"
+    );
+    const detail = getFocusDetail(db, focusId)!;
+    expect(detail.tasks.every((t) => t.id !== "tsk_none")).toBe(true);
+    const found = detail.packages.find((p) => p["id"] === pkg.id && p["revision"] === 1);
+    expect(found).toBeTruthy();
+    expect(String(found?.["outcomePreview"] ?? "")).toContain("无任务待批包");
+  });
+
+  it("移动投影保留 laneId/obligationId", () => {
+    const focusId = "foc_01F1XT0RE0F0CVS00000000001";
+    const seq = (db.prepare("SELECT COALESCE(MAX(seq),0)+1 AS seq FROM focus_events WHERE focus_id=?").get(focusId) as { seq: number }).seq;
+    const eventId = newId("fev");
+    const laneId = newId("lan");
+    const obId = "fob_01F1XT0RE0F0CVS00000000001";
+    db.prepare(
+      `INSERT INTO focus_events(
+         id,focus_id,seq,type,payload_schema_version,payload_json,actor_kind,session_id,turn_ref,created_at
+       ) VALUES (?,?,?,?,?,?,?,?,?,?)`
+    ).run(
+      eventId,
+      focusId,
+      seq,
+      "lane_created",
+      1,
+      JSON.stringify({ title: "支线", laneId, obligationId: obId }),
+      "user",
+      null,
+      null,
+      NOW
+    );
+    const detail = getMobileFocusDetail(db, focusId) as Record<string, unknown>;
+    const projected = (detail["events"] as Array<Record<string, unknown>>).find((row) => row["id"] === eventId)!;
+    expect(projected["payload"]).toEqual({ title: "支线", laneId, obligationId: obId });
   });
 });
 

@@ -1,5 +1,7 @@
 # PG-01A 夜间恢复 fresh readback 3（ordinal 4）实施对账报告
 
+> 2026-09-13 对账勘误：本报告枚举31个roots；五条残留位于中英文docs两个roots，因此该节“其余30个”应为29个。原表与五条复验对象保留，数字更正不增加历史覆盖或替代当前候选验收。
+
 > 归档：本报告是 cycle=owner-night-recovery-20260901 的第三次 fresh readback（review ordinal 4），不覆盖前三份 RED。原始报告 `logs/pg01a-night-20260901.V1D8er/review-ordinal-4.md` 为 10836 bytes，SHA-256=`7f1134248f36cc0e24271b9efec76de7cb833cd1b0292c311f7e14b6783ab85a`；日志为 561852 bytes，SHA-256=`d71acb83c2a9958b9e7ebe6e2f4b599b52a33e581a8f3a6242a8ea1e4441ff04`。runner exit=0，存在唯一 `thread.started` 与唯一 `turn.completed`，session=`01a059e3-8a15-7190-8976-1e838a5ccf43`。supervisor 将 cycle-state 的 current blockers 按报告机械同步为空后，使用冻结 V2.3 与 expected task/stage/cycle/HEAD/fingerprint/ordinal 校验为 `valid/full_gate`；没有改写 reviewer 的 GREEN。
 
 # PG-01A C1-N fresh readback ordinal 4

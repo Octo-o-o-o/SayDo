@@ -11,6 +11,7 @@ import { jcsDigest } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
 import { handleTaskAction } from "../src/api/actions.js";
 import { abandonFocusApi, archiveFocusApi, createFocusApi } from "../src/api/focuses.js";
+import { createSqliteAuditSink } from "../src/storage/dao/misc.js";
 import { seedConsoleFixture } from "../src/api/fixture.js";
 import { changeFocusLifecycle } from "../src/focus/registry.js";
 import type { AuditEvent, AuditSink } from "../src/obs/audit.js";
@@ -245,6 +246,37 @@ describe("PG-01B abandon reason 先 trim 再非空", () => {
     expect(archived.status).toBe(200);
     expect(archived.payload).toEqual({ ok: true, id: archiveId, lifecycle: "archived" });
     const archivedEvent = recorded.find((e) => e.action === "focus.archived");
-    expect(archivedEvent?.meta?.["reason"]).toBe("先放下");
+    expect(archivedEvent?.actor).toBe("owner");
+    expect(archivedEvent?.meta).not.toHaveProperty("reason");
+    expect(JSON.stringify(archivedEvent)).not.toContain("先放下");
+    expect(archivedEvent?.refDigest).toBe(jcsDigest("先放下"));
+    const archiveEventId = archivedEvent?.meta?.["eventId"];
+    const archiveLifecycle = db
+      .prepare("SELECT type, payload_json FROM focus_events WHERE id = ?")
+      .get(archiveEventId) as { type: string; payload_json: string } | undefined;
+    expect(archiveLifecycle).toBeDefined();
+    expect(JSON.parse(archiveLifecycle!.payload_json).reason).toBe("先放下");
+  });
+
+  it("真实 SQLite 上 archive 审计无理由原文,focus_events 仍保留", () => {
+    const audit = createSqliteAuditSink(db);
+    const created = createFocusApi(db, audit, { title: "archive-sqlite" }, NOW);
+    const id = (created.payload as { id: string }).id;
+    const reason = "先放下-sqlite";
+    const out = archiveFocusApi(db, audit, id, { reason });
+    expect(out.status).toBe(200);
+    const row = db
+      .prepare("SELECT action, ref_digest, meta_json FROM audit_log WHERE action = 'focus.archived'")
+      .get() as { action: string; ref_digest: string | null; meta_json: string | null } | undefined;
+    expect(row).toBeDefined();
+    expect(row!.ref_digest).toBe(jcsDigest(reason));
+    expect(JSON.stringify(row)).not.toContain(reason);
+    expect(row!.meta_json ?? "").not.toContain(reason);
+    const meta = JSON.parse(row!.meta_json ?? "{}") as { eventId?: string };
+    const event = db
+      .prepare("SELECT payload_json FROM focus_events WHERE id = ?")
+      .get(meta.eventId) as { payload_json: string } | undefined;
+    expect(event).toBeDefined();
+    expect(JSON.parse(event!.payload_json).reason).toBe(reason);
   });
 });

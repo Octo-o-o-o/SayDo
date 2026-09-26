@@ -112,6 +112,19 @@ export function createFocusApi(
   };
 }
 
+/** DAILY-01(合同 §15.2):归档前置——有在途执行(queued/running/review/merge 链)的 Focus 拒绝直接归档;
+ *  先停任务再归档。归档≠放弃≠关闭;running work 不能被静默归档。 */
+const ARCHIVE_BLOCKING_TASK_STATUSES = [
+  "confirmed",
+  "queued",
+  "running",
+  "paused_step_boundary",
+  "ready_for_review",
+  "review_approved_waiting_merge",
+  "merging",
+  "cancel_requested"
+] as const;
+
 /** active|captured → archived(W2:刚建也能中途放下);理由必填;关闭该 focus 全部 active activation */
 export function archiveFocusApi(
   db: Db,
@@ -126,6 +139,27 @@ export function archiveFocusApi(
     | { id: string; lifecycle: string }
     | undefined;
   if (!focus) return err(404, "not_found", `focus ${focusId} not found`);
+
+  const running = db
+    .prepare(
+      `SELECT COUNT(*) AS n FROM action_execution_bindings b
+       JOIN tasks t ON t.id = b.task_id
+       WHERE b.focus_id = ? AND b.superseded_by_binding_id IS NULL
+         AND t.status IN (${ARCHIVE_BLOCKING_TASK_STATUSES.map(() => "?").join(",")})`
+    )
+    .get(focusId, ...ARCHIVE_BLOCKING_TASK_STATUSES) as { n: number };
+  if (running.n > 0) {
+    audit.record({
+      actor: "owner",
+      action: "focus.archive_rejected",
+      meta: { focusId, reason: "running_work", runningTasks: running.n }
+    });
+    return err(
+      409,
+      "focus_has_running_work",
+      `该 Focus 有 ${running.n} 个在途任务(排队/执行/待验收/合并中)——先停下或等它们落定,再归档。归档≠放弃,正在执行的事不能被静默收起。`
+    );
+  }
 
   // 先关 active activation(合同 §4.1 archive 事务)
   const acts = db
@@ -153,10 +187,12 @@ export function archiveFocusApi(
       reason: parsed.data.reason,
       actorKind: "user"
     });
+    const reason = parsed.data.reason;
     audit.record({
       actor: "owner",
       action: "focus.archived",
-      meta: { focusId, reason: parsed.data.reason, eventId: r.eventId, closedActivations: acts.length }
+      refDigest: jcsDigest(reason),
+      meta: { focusId, eventId: r.eventId, closedActivations: acts.length }
     });
     return { status: 200, payload: { ok: true, id: focusId, lifecycle: "archived" } };
   } catch (e) {
@@ -225,6 +261,84 @@ export function abandonFocusApi(
     }
     return err(409, "abandon_failed", e instanceof Error ? e.message : String(e));
   }
+}
+
+const forkBody = z.object({
+  title: z.string().optional(),
+  direction: z.string().optional()
+});
+
+/**
+ * DAILY-01:POST /api/focuses/:id/fork —— 开新分支(新 Focus 身份,forked_from=源;
+ * 复制 space 归属;direction 可选写首 revision;focus_forked 事件落新 Focus 事件流)。
+ * 不复制义务/任务/审批——分叉=另起一件事,历史留在原 Focus。
+ */
+export function forkFocusApi(db: Db, audit: AuditSink, focusId: string, body: unknown): ApiResponse {
+  const parsed = forkBody.safeParse(body ?? {});
+  if (!parsed.success) return err(400, "invalid_input", parsed.error.message);
+
+  const src = db
+    .prepare("SELECT id, title, lifecycle, space_id FROM focuses WHERE id = ?")
+    .get(focusId) as
+    | { id: string; title: string; lifecycle: string; space_id: string | null }
+    | undefined;
+  if (!src) return err(404, "not_found", `focus ${focusId} not found`);
+
+  const title = parsed.data.title?.trim() || `${src.title}(分叉)`;
+  let forkedId: string;
+  try {
+    const r = withFocusWriteTx(db, {}, (ops) => {
+      const created = ops.createFocus({ title, actorKind: "user" });
+      db.prepare("UPDATE focuses SET forked_from = ?, space_id = ?, updated_at = ? WHERE id = ?").run(
+        src.id,
+        src.space_id,
+        ops.nowIso,
+        created.focusId
+      );
+      ops.appendEvent(created.focusId, {
+        type: "focus_forked",
+        payload: { sourceId: src.id, sourceTitle: src.title, newId: created.focusId },
+        actorKind: "user"
+      });
+      return created;
+    });
+    forkedId = r.focusId;
+  } catch (e) {
+    if (e instanceof FocusWriteError) return err(409, e.code, e.message);
+    return err(409, "fork_failed", e instanceof Error ? e.message : String(e));
+  }
+
+  let directionIgnored = false;
+  const direction = parsed.data.direction?.trim();
+  if (direction) {
+    try {
+      withFocusWriteTx(db, {}, (ops) => {
+        ops.settleRevision(forkedId, {
+          currentDirection: direction,
+          lastReliableState: `自「${src.title}」分叉`,
+          actorKind: "user"
+        });
+      });
+    } catch {
+      directionIgnored = true;
+    }
+  }
+
+  audit.record({
+    actor: "owner",
+    action: "focus.forked",
+    meta: { focusId: forkedId, sourceId: src.id, title, directionIgnored }
+  });
+  return {
+    status: 200,
+    payload: {
+      ok: true,
+      id: forkedId,
+      title,
+      forkedFrom: src.id,
+      ...(directionIgnored ? { directionIgnored: true as const } : {})
+    }
+  };
 }
 
 /** archived → active */

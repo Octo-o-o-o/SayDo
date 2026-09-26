@@ -1,5 +1,7 @@
 # SayDo S2 批（回叫通道：分级选路 / L0 语音 / L1 桌面 + ntfy / DND 只推不响 / ack·resolve·冻结）· 实施 Prompt（第十三轮交接）
 
+> 2026-09-13 对账:这是历史实施输入。当前回叫已接线并追加冻结竞态、通道失败与成功审计修正,不是重开本批的授权。旧 local/tailnet 可用性按当前远程入口关闭合同取代;旧 spawn detached 不能单独证明通知已送达,实际外部投递仍需对应环境验收。当前计划见 IMPLEMENTATION-PLAN-2.md。
+
 > 方案源：`docs/plan/2026-08-20-seven-steps-gap-closure.fable.md` §0/§3（裁决 D-S2-1…D-S2-6）。背景：官网七步第 6 步承诺"升级链 语音回叫 → 桌面通知 + 手机推送"，而代码只有 ntfy 真投递：sweep 不看 `escalation`、不仲裁；L0 语音未接；桌面通知零代码；`escalateIfStale/ack/resolve` 零调用方（条目永停 `notified`）；DND 双判且窗口内什么都不发（canonical 要求"只推送不出声"）。
 > 性质：接线为主（`callback/` 域 + `index.ts` sweep 重写 + 一个 ack 端点 + console 小改），零 DDL（`escalation/acked_at/resolved_at/snoozed_until` 列都在），零 contracts 形状变更；canonical 随批补录（`docs/04 §4` 对"桌面通知已接"与 `micHeldByMeeting` 恒 false 的如实注记；`docs/11 §6` 通知文案沿用）。
 > 纪律：两提交法；evidence `e2e/evidence/s2-callback-channels.md`；零 emoji；不部署常驻、不 push、不改 `~/.saydo`；**测试与单测不得真的弹 macOS 通知或真的 POST ntfy**（全部注入 spawn/fetch 桩）；施工 = 独立 clone 分支 `batch/s2-callback-channels`；实施 = Grok 4.6 headless，评估 = 零上下文只读会话。本批**不写 HANDOFF 指针**（W5.4-a 占用）。

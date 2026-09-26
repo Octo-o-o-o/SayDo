@@ -23,11 +23,16 @@ const POINTER_KEYS = Object.freeze([
   "updated_at"
 ]);
 const BATCH_ID_RE = /^(PROC-\d+|PG-\d+[A-Z]?)$/;
-/** 有限附加批 ID:只接受这四个唯一插批 ID(AS-01-AS-02 2026-09-06;GAP-02-consolidation 2026-09-09;EMAIL-A-outbound 2026-09-09 晚;JOURNEY-01 2026-09-15),不是任意 AS/GAP/EMAIL/JOURNEY 编号。 */
-const EXTRA_BATCH_IDS = Object.freeze(["AS-01-AS-02", "GAP-02-consolidation", "EMAIL-A-outbound", "JOURNEY-01"]);
+/** 有限附加批 ID:只接受这八个唯一插批 ID(AS-01-AS-02 2026-09-06;GAP-02-consolidation 2026-09-09;EMAIL-A-outbound 2026-09-09 晚;JOURNEY-01 2026-09-15;DAILY-01-workbench-restore 2026-09-19;VOICE-MEASURE-01 与 CODEX-AS-SPIKE-01 2026-09-23;SC-RELAND-01 2026-09-25),不是任意编号。 */
+const EXTRA_BATCH_IDS = Object.freeze(["AS-01-AS-02", "GAP-02-consolidation", "EMAIL-A-outbound", "JOURNEY-01", "DAILY-01-workbench-restore", "VOICE-MEASURE-01", "CODEX-AS-SPIKE-01", "SC-RELAND-01"]);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const PLAN2_CHAIN_ARROW = "PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → EMAIL-A-outbound → JOURNEY-01 → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop";
-const PLAN2_CHAIN_ASSERT = "PLAN2_chain == PROC-01>PG-01B>AS-01-AS-02>GAP-02-consolidation>EMAIL-A-outbound>JOURNEY-01>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop";
+const PLAN2_CHAIN_SEQ = Object.freeze(["PROC-01", "PG-01B", "AS-01-AS-02", "GAP-02-consolidation", "EMAIL-A-outbound", "DAILY-01-workbench-restore", "JOURNEY-01", "VOICE-MEASURE-01", "CODEX-AS-SPIKE-01", "SC-RELAND-01", "PG-02", "PG-03", "PG-04", "PG-05", "PG-06", "owner-stop"]);
+const PLAN2_CHAIN_ARROW = PLAN2_CHAIN_SEQ.join(" → ");
+const PLAN2_CHAIN_ASSERT = `PLAN2_chain == ${PLAN2_CHAIN_SEQ.join(">")}`;
+function chainSuccessor(id) {
+  const index = PLAN2_CHAIN_SEQ.indexOf(id);
+  return index === -1 ? null : PLAN2_CHAIN_SEQ[index + 1] ?? null;
+}
 const OID_RE = /\b[0-9a-f]{40}\b/i;
 const SHORT_OID_RE = /^[0-9a-f]{7,40}$/i;
 
@@ -151,11 +156,13 @@ function validateFields(fields, label) {
   }
   const activeOn = fields.active !== "none";
   const nextOn = fields.next !== "none";
-  if (activeOn && nextOn) {
-    throw new Error(`${label} active 与 next 不得同时非空`);
-  }
   if (!activeOn && !nextOn) {
     throw new Error(`${label} active=none 时 next 必填`);
+  }
+  // next 必须是链上后继:active 非空时跟 active,否则跟 last_closed;插批(如 DAILY-01)现役时 next 合法保留其后继
+  const anchor = activeOn ? fields.active : fields.last_closed;
+  if (nextOn && chainSuccessor(anchor) !== fields.next) {
+    throw new Error(`${label} next=${fields.next} 不是 ${anchor} 的唯一串行链后继`);
   }
 }
 
@@ -365,19 +372,34 @@ function runRevisionRollbackCase(worktree, planText, handoffText, scriptPath) {
 
 function mutateActiveAndNext(text, planFields) {
   if (planFields.next !== "none") {
-    const mutated = text.replace(new RegExp(`^active=${planFields.active}$`, "m"), "active=PROC-01");
-    if (mutated === text) throw new Error("self-test 未能把 active 与 next 同时置为非空");
+    // 找一个后继不等于当前 next 的合法批 id 充坏 active
+    const bad = ["PROC-01", "PG-01B", "PG-06"].find((id) => chainSuccessor(id) !== planFields.next);
+    const mutated = text.replace(new RegExp(`^active=${planFields.active}$`, "m"), `active=${bad}`);
+    if (mutated === text) throw new Error("self-test 未能把 active 改成非 next 前驱");
     return mutated;
   }
-  const mutated = text.replace(/^next=none$/m, "next=PG-01B");
+  const wrong = ["PG-06", "PG-02", "JOURNEY-01"].find((id) => id !== chainSuccessor(planFields.active));
+  const mutated = text.replace(/^next=none$/m, `next=${wrong}`);
   if (mutated === text) {
-    throw new Error("self-test 未能把 active 与 next 同时置为非空");
+    throw new Error("self-test 未能把 next 改成非 active 后继");
+  }
+  return mutated;
+}
+
+function mutateOrphanNext(text, planFields) {
+  // active=none 时 next 必须是 last_closed 的后继:改成非后继
+  const wrong = ["PG-06", "PG-02", "JOURNEY-01"].find((id) => id !== chainSuccessor(planFields.last_closed));
+  const mutated = text
+    .replace(new RegExp(`^active=${planFields.active}$`, "m"), "active=none")
+    .replace(new RegExp(`^next=${planFields.next}$`, "m"), `next=${wrong}`);
+  if (mutated === text) {
+    throw new Error("self-test 未能把指针改成孤儿 next");
   }
   return mutated;
 }
 
 function mutateDropAsFromChain(planText) {
-  const mutated = planText.replace(PLAN2_CHAIN_ARROW, "PROC-01 → PG-01B → GAP-02-consolidation → EMAIL-A-outbound → JOURNEY-01 → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop");
+  const mutated = planText.replace(PLAN2_CHAIN_ARROW, PLAN2_CHAIN_SEQ.filter((id) => id !== "AS-01-AS-02").join(" → "));
   if (mutated === planText) {
     throw new Error("self-test 未能从唯一串行链去掉 AS-01-AS-02");
   }
@@ -445,10 +467,17 @@ function selfTest() {
         }
       },
       {
-        name: "active 与 next 同时非空",
+        name: "next 非 active 链上后继",
         apply() {
           writeFileSync(join(worktree, PLAN_REL), mutateActiveAndNext(planText, planFields));
           writeFileSync(join(worktree, HANDOFF_REL), mutateActiveAndNext(handoffText, planFields));
+        }
+      },
+      {
+        name: "active=none 且 next 非 last_closed 后继",
+        apply() {
+          writeFileSync(join(worktree, PLAN_REL), mutateOrphanNext(planText, planFields));
+          writeFileSync(join(worktree, HANDOFF_REL), mutateOrphanNext(handoffText, planFields));
         }
       },
       {
@@ -510,8 +539,8 @@ function selfTest() {
   if (failed) {
     fail(failed.message ?? String(failed));
   }
-  if (results.length !== 6) {
-    fail("self-test 未跑满六个坏例");
+  if (results.length !== 7) {
+    fail("self-test 未跑满七个坏例");
   }
   process.stdout.write("[ok] schedule-pointer self-test\n");
 }

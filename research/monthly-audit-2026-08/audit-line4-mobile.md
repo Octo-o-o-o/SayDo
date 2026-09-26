@@ -166,6 +166,8 @@ e22be46 (08-23 22:00) merge-base ── release 线与 mobile 线的分叉点
 
 ### C-3 · publication manifest 仍列已删除的 `scripts/test-ios-build-and-install.mjs`——已被文档预答,现况无害
 
+> 2026-09-13 限定：下文“无害”只对其检查的运行消费和隐私扫描成立；同一历史基线的 line6 A-1 已记录 publication exact-set/bundle 门失败，不能推广为对完整质量门无影响。
+
 - `git grep -c` 证实 `research/week-audit/2026-08-23-publication-manifest.json` 现仍含该路径(9a3e180 后未再生成)。
 - 无害性核验:`scripts/test-public-text-redaction.mjs:129` 把该 manifest 列入 generatedSkip(不校验内容);
   `scripts/release-physical-closure.mjs:109-124` 的 `assertPhysicalToolFingerprints` 只要求**闭包成员必须

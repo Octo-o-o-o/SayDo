@@ -1,10 +1,10 @@
 /* SayDo 官网交互:亮暗主题切换 + 移动端导航 + 顶栏滚动态 + 滚动入场 + Docs 目录选中。
-   主题方案:data-theme + localStorage("saydo.theme") + prefers-color-scheme;
+   主题方案:data-theme + localStorage("saydo-site-theme") + prefers-color-scheme;
    防 FOUC 的早期 data-theme 设置由各 HTML <head> 内联同步脚本完成,
    本文件只接管按钮点击与持久化(DOMContentLoaded 后)。 */
 (function () {
   "use strict";
-  var KEY = "saydo.theme";
+  var KEY = "saydo-site-theme";
   var root = document.documentElement;
 
   function resolved() {
@@ -25,32 +25,57 @@
       });
     });
 
-    // 移动端汉堡菜单:切换开合;展开后点页面任何区域(除菜单按钮本身)都收起
+    // 移动端汉堡菜单:切换开合;收起时 inert + CSS visibility,避免透明链接仍进 Tab。
+    // 桌面端(>960)清掉 is-open/inert,避免跨断点把主导航留在不可聚焦状态。
     var menuBtn = document.querySelector("[data-menu-toggle]");
     var nav = document.querySelector("[data-nav]");
     if (menuBtn && nav) {
+      var navBreak = window.matchMedia("(max-width: 960px)");
+
+      function setNavOpen(open, opts) {
+        opts = opts || {};
+        if (!navBreak.matches) {
+          nav.classList.remove("is-open");
+          menuBtn.setAttribute("aria-expanded", "false");
+          nav.removeAttribute("inert");
+          return;
+        }
+        if (open) {
+          nav.classList.add("is-open");
+          menuBtn.setAttribute("aria-expanded", "true");
+          nav.removeAttribute("inert");
+        } else {
+          nav.classList.remove("is-open");
+          menuBtn.setAttribute("aria-expanded", "false");
+          nav.setAttribute("inert", "");
+          if (opts.focusToggle) menuBtn.focus();
+        }
+      }
+
+      setNavOpen(false);
       menuBtn.addEventListener("click", function (e) {
         e.stopPropagation();
-        var open = nav.classList.toggle("is-open");
-        menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
+        setNavOpen(!nav.classList.contains("is-open"));
       });
       nav.querySelectorAll("a").forEach(function (a) {
         a.addEventListener("click", function () {
-          nav.classList.remove("is-open");
-          menuBtn.setAttribute("aria-expanded", "false");
+          setNavOpen(false);
         });
       });
       document.addEventListener("click", function (e) {
         if (!nav.classList.contains("is-open")) return;
         if (e.target === menuBtn || menuBtn.contains(e.target)) return;
-        nav.classList.remove("is-open");
-        menuBtn.setAttribute("aria-expanded", "false");
+        setNavOpen(false);
       });
       document.addEventListener("keydown", function (e) {
         if (e.key !== "Escape" || !nav.classList.contains("is-open")) return;
-        nav.classList.remove("is-open");
-        menuBtn.setAttribute("aria-expanded", "false");
+        setNavOpen(false, { focusToggle: true });
       });
+      function onNavBreakChange() {
+        setNavOpen(false);
+      }
+      if (navBreak.addEventListener) navBreak.addEventListener("change", onNavBreakChange);
+      else if (navBreak.addListener) navBreak.addListener(onNavBreakChange);
     }
 
     // 顶栏滚动态:离顶即加细线与浅影

@@ -80,6 +80,14 @@ export function seedConsoleFixture(db: Db, opts: { artifactsDir?: string } = {})
                  'cursor', '/tmp/wt', ?, '${T0}', '${T0}')`
       ).run(id, fixturePackage.digest, title, status, budget);
     }
+    // real-entry 隔离验收任务:不与 console.spec 共用 TSKRDY,避免先行 approve 污染状态。
+    db.prepare(
+      `INSERT INTO tasks(id, project_id, package_id, package_rev, package_digest, title, spec_markdown, route, status,
+                         adapter, cwd, budget_json, created_at, updated_at)
+       VALUES ('tsk_01F1XT0RE0TSKRDE0000000001', 'prj_01F1XT0RE0A000000000000000', 'pkg_01F1XT0RE0A000000000000000', 1, ?,
+               '隔离验收报表', '规格见决策包', 'tier1', 'ready_for_review',
+               'cursor', '/tmp/wt', ?, '${T0}', '${T0}')`
+    ).run(fixturePackage.digest, budget);
     // 停靠(派生态 parked:blocked + parked_deadline)
     db.prepare(
       `INSERT INTO tasks(id, project_id, title, spec_markdown, route, status, adapter, cwd, budget_json,
@@ -105,6 +113,21 @@ export function seedConsoleFixture(db: Db, opts: { artifactsDir?: string } = {})
        VALUES ('run_01F1XT0RE0A000000000000000', 'tsk_01F1XT0RE0TSKRDY0000000000', 1, 'cursor', '/tmp/wt', '/tmp/wt', 'abc123def456', 'settled_review', '${fixtureProof.replace(/'/g, "''")}', '${T0}', '${T0}'),
               ('run_01F1XT0RE0B000000000000000', 'tsk_01F1XT0RE0TSKRVN0000000000', 1, 'cursor', '/tmp/wt', '/tmp/wt', NULL, 'running', NULL, '${T0}', '${T0}')`
     ).run();
+    const isolatedProof = JSON.stringify({
+      taskId: "tsk_01F1XT0RE0TSKRDE0000000001",
+      runId: "run_01F1XT0RE0RDE0000000000001",
+      attempt: 1,
+      packageRevision: 1,
+      treeSha: "abc123def456",
+      tier1VerifyDigest: `sha256:${"e".repeat(64)}`,
+      acceptanceChecks: fixturePackage.acceptance.map((criterion) => ({ criterion, status: "unknown", source: "manual" })),
+      transcriptCursor: "cursor-fixture-isolated",
+      settledAt: T0
+    });
+    db.prepare(
+      `INSERT INTO tier1_runs(id, task_id, attempt, adapter, cwd, worktree_path, tree_sha, state, settle_proof_json, created_at, updated_at)
+       VALUES ('run_01F1XT0RE0RDE0000000000001', 'tsk_01F1XT0RE0TSKRDE0000000001', 1, 'cursor', '/tmp/wt', '/tmp/wt', 'abc123def456', 'settled_review', ?, '${T0}', '${T0}')`
+    ).run(isolatedProof);
     db.prepare(
       `INSERT INTO audit_log(id, ts, actor, action, meta_json)
        VALUES ('aud_01F1XT0RE0OBSMODEL0000000', '${T0}', 'daemon', 'tier1.settled_review', ?)`

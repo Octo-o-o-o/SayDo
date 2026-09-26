@@ -1,7 +1,7 @@
-// W2 阶段 B · ntfy 投递(升级链 L1 的 ntfy 通道接线;07 D11 ntfy 起步 + 05 §4 提前批 #2 深链)。
-// 红线(IMPL-5 §2-B):深链只带路由,capability token 绝不进 URL——token 由手机端本地会话注入
-// (首次配对一次,之后 localStorage);深链指向 tailnet console(配置了 [t2].tailnet_hosts 时),
-// 否则回落本机 URL(仅桌面可点)。
+// W2 阶段 B · ntfy 投递(升级链 L1 的 ntfy 通道接线;07 D11 ntfy 起步)。
+// 红线(IMPL-5 §2-B):若带 click,只带本机受信 hash 路由,capability token 绝不进 URL。
+// PG-01B 远程业务关闭后:不再把 tailnet/远程任务 URL 当可点入口(任务壳所需 API 会 remote_business_forbidden);
+// click 只给 loopback,正文写明须在运行 SayDo 的电脑打开/处理,不得声称手机可处理。
 // 话术纪律(10 §1 状态词):ready_for_review = "执行和检查都跑完了,等你验收";绝不说"完成"。
 // 发布形态 = ntfy JSON POST(HTTP header 仅 ASCII,中文标题必须走 JSON body)。
 
@@ -39,10 +39,13 @@ function blockedBody(entry: OutboxRowForNotify): string | null {
   }
 }
 
-/** 深链基址:tailnet 首个枚举主机(手机可达)> 本机回落 */
-export function consoleBaseUrl(tailnetHosts: readonly string[], port: number): string {
-  const host = tailnetHosts[0];
-  return host ? `http://${host}:${port}` : `http://127.0.0.1:${port}`;
+/** 通知本机处理提示(PG-01B 远程业务关闭后;不得写成手机可处理)。 */
+export const LOCAL_HANDLE_HINT = "请在运行 SayDo 的电脑上打开并处理。";
+
+/** 通知入口基址:恒为本机受信 loopback。tailnetHosts 保留签名兼容,不用于拼任务 URL。 */
+export function consoleBaseUrl(_tailnetHosts: readonly string[], port: number): string {
+  void _tailnetHosts;
+  return `http://127.0.0.1:${port}`;
 }
 
 /** 渲染通知(标题带任务名;正文按 trigger 走 10 §1 状态词;深链 = 任务详情 hash 路由,无 token) */
@@ -60,15 +63,16 @@ export function renderNtfyMessage(
   const click = task
     ? `${opts.consoleBase}/#/p/${task.project_id}/task/${entry.task_id}`
     : `${opts.consoleBase}/#/`;
+  const withHint = (body: string): string => `${body}\n${LOCAL_HANDLE_HINT}`;
   switch (entry.trigger) {
     case "ready_for_review":
-      return { title: `SayDo:${title}`, body: "执行和检查都跑完了,等你验收。", click, priority: 3 };
+      return { title: `SayDo:${title}`, body: withHint("执行和检查都跑完了,等你验收。"), click, priority: 3 };
     case "blocked":
-      return { title: `SayDo:${title}`, body: blockedBody(entry) ?? "任务卡住了,需要你处理。", click, priority: 4 };
+      return { title: `SayDo:${title}`, body: withHint(blockedBody(entry) ?? "任务卡住了,需要你处理。"), click, priority: 4 };
     case "failed":
-      return { title: `SayDo:${title}`, body: blockedBody(entry) ?? "这一轮失败了,要不要看一眼。", click, priority: 4 };
+      return { title: `SayDo:${title}`, body: withHint(blockedBody(entry) ?? "这一轮失败了,要不要看一眼。"), click, priority: 4 };
     default:
-      return { title: `SayDo:${title}`, body: `任务状态更新(${entry.trigger})。`, click, priority: 3 };
+      return { title: `SayDo:${title}`, body: withHint(`任务状态更新(${entry.trigger})。`), click, priority: 3 };
   }
 }
 

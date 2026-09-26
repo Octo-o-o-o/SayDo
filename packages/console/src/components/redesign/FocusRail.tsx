@@ -54,6 +54,9 @@ export function FocusRail({ obligations, tasks, artifacts, projects, memories, o
       key={o.id}
       icon={o.owner === "human" ? User : o.owner === "agent" ? Zap : ExternalLink}
       onClick={onLocate ? () => onLocate({ kind: "obligation", id: o.id }) : undefined}
+      ariaLabel={`打开安排:${o.title}`}
+      dataKind="obligation"
+      dataId={o.id}
       title={o.title}
       sub={
         o.status === "waiting" && o.waitingOn
@@ -69,8 +72,8 @@ export function FocusRail({ obligations, tasks, artifacts, projects, memories, o
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }} data-focus-rail>
-      <div style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)", padding: "0 6px" }}>
-        点条目,左侧对话会跳到生成它的那一条
+      <div style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)", padding: "0 6px", lineHeight: 1.6 }}>
+        点安排打开这条的详情。产物与项目只在对话里找得到对应位置时才会跳转。
       </div>
 
       <RailSection title="安排" icon={Layers} count={human.length + agent.length + external.length + agentWaiting.length + activeTasks.length}>
@@ -92,6 +95,9 @@ export function FocusRail({ obligations, tasks, artifacts, projects, memories, o
                 key={t.id}
                 icon={Zap}
                 onClick={onLocate ? () => onLocate({ kind: "task", id: t.id }) : undefined}
+                ariaLabel={`打开任务:${t.title}`}
+                dataKind="task"
+                dataId={t.id}
                 title={t.title}
                 sub={t.attempt > 1 ? `第 ${t.attempt} 次尝试` : t.route === "hopper" ? "Hopper 执行域" : undefined}
                 right={<StatusChip status={t.viewStatus} deadline={t.parkedDeadline} />}
@@ -121,6 +127,9 @@ export function FocusRail({ obligations, tasks, artifacts, projects, memories, o
             key={a.id}
             icon={FileText}
             onClick={onLocate ? () => onLocate({ kind: "artifact", id: a.id }) : undefined}
+            ariaLabel={`查看产物:${a.title}`}
+            dataKind="artifact"
+            dataId={a.id}
             title={a.title}
             sub={`${a.role === "expected" ? "expected" : `v${a.version}`}${a.producedBy ? ` · 由${a.producedBy}产出` : ""}${a.projectTitle ? ` · ${a.projectTitle}` : ""}`}
             right={artifactStatusBadge(a)}
@@ -128,7 +137,9 @@ export function FocusRail({ obligations, tasks, artifacts, projects, memories, o
         ))}
         {onExpect ? (
           <div style={{ padding: "4px 8px" }}>
-            <Btn onClick={onExpect} icon={Package}>我期待一个 X</Btn>
+            <span data-focus-expect>
+              <Btn onClick={onExpect} icon={Package}>我期待一个 X</Btn>
+            </span>
           </div>
         ) : null}
       </RailSection>
@@ -142,6 +153,9 @@ export function FocusRail({ obligations, tasks, artifacts, projects, memories, o
               key={p.id}
               icon={Folder}
               onClick={onLocate ? () => onLocate({ kind: "project", id: p.id }) : undefined}
+              ariaLabel={`查看项目:${p.title}`}
+              dataKind="project"
+              dataId={p.id}
               title={p.title}
               sub={<span style={{ fontFamily: "var(--font-mono)" }}>{p.path}</span>}
             />

@@ -97,6 +97,9 @@ export function createSqliteAuditSink(db: Db, now: () => Date = () => new Date()
         metaJson: event.meta ? JSON.stringify(event.meta) : null
       });
       return { id };
+    },
+    sharesSqlite(other: unknown) {
+      return other === db;
     }
   };
 }

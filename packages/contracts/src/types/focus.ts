@@ -142,7 +142,14 @@ export const focusEventTypeSchema = z.enum([
   "confirmation_downgraded",
   // Focus v0.4 ④d:Expectation aggregate 调整与 ack 终局
   "expectation_adjusted",
-  "expectation_ack_settled"
+  "expectation_ack_settled",
+  // DAILY-01 功能补齐:任务级依赖(义务等待任务到达验收/交付)、用户建线/恢复线、义务推迟
+  "dependency_task_set",
+  "dependency_task_woken",
+  "dependency_task_blocked",
+  "lane_created",
+  "lane_restored",
+  "obligation_deferred"
 ]);
 export type FocusEventType = z.infer<typeof focusEventTypeSchema>;
 
@@ -262,6 +269,13 @@ export const focusObligationSchema = z
     waitingOn: z.string().optional(),
     /** 合同 §3.4:结构化依赖,引用同 focus 义务 id;与 waitingOn 文本并存 */
     waitingOnObligationId: idSchema.optional(),
+    /**
+     * DAILY-01 合同增量:任务级前置——义务等待同 Focus 绑定任务到达指定条件。
+     * 与 waitingOnObligationId 互斥(写路径强制);waitingOn 文本=任务标题。
+     */
+    waitingOnTaskId: idSchema.optional(),
+    /** accepted=任务当前版本验收通过;delivered=任务已交付(merge 核验后 task_done) */
+    waitingTaskCondition: z.enum(["accepted", "delivered"]).optional(),
     deferReason: z.string().optional(),
     nextStep: z.string().optional(),
     dueOrTrigger: z.string().optional(),
@@ -586,6 +600,58 @@ export const focusEventPayloadFocusForkedSchema = z.strictObject({
   newId: idSchema
 });
 
+// ---------- DAILY-01 功能补齐事件 ----------
+
+/** 任务级依赖条件:accepted=当前版本验收通过;delivered=已交付(task_done) */
+export const taskDependencyConditionSchema = z.enum(["accepted", "delivered"]);
+export type TaskDependencyCondition = z.infer<typeof taskDependencyConditionSchema>;
+
+export const focusEventPayloadDependencyTaskSetSchema = z.strictObject({
+  ...payloadBase,
+  depId: idSchema,
+  depTitle: z.string().min(1),
+  preTaskId: idSchema,
+  preTaskTitle: z.string().min(1),
+  condition: taskDependencyConditionSchema
+});
+export const focusEventPayloadDependencyTaskWokenSchema = z.strictObject({
+  ...payloadBase,
+  depId: idSchema,
+  depTitle: z.string().min(1),
+  preTaskId: idSchema,
+  preTaskTitle: z.string().min(1),
+  condition: taskDependencyConditionSchema
+});
+export const focusEventPayloadDependencyTaskBlockedSchema = z.strictObject({
+  ...payloadBase,
+  depId: idSchema,
+  depTitle: z.string().min(1),
+  preTaskId: idSchema,
+  preTaskTitle: z.string().min(1),
+  condition: taskDependencyConditionSchema,
+  /** 前置任务终态(failed/cancelled 等),渲染"前置终止"原因 */
+  preStatus: z.string().min(1)
+});
+export const focusEventPayloadLaneCreatedSchema = z.strictObject({
+  ...payloadBase,
+  laneId: idSchema,
+  title: z.string().min(1),
+  baseline: focusBaselineTripleSchema
+});
+export const focusEventPayloadLaneRestoredSchema = z.strictObject({
+  ...payloadBase,
+  laneId: idSchema,
+  title: z.string().min(1),
+  baseline: focusBaselineTripleSchema
+});
+export const focusEventPayloadObligationDeferredSchema = z.strictObject({
+  ...payloadBase,
+  obligationId: idSchema,
+  title: z.string().min(1),
+  deferReason: z.string().min(1),
+  dueOrTrigger: z.string().optional()
+});
+
 /** 确认环 timeline 摘要(与 ledger payload_summary 白名单对齐;无 detail/路径全文) */
 export const confirmationEventSummarySchema = z.strictObject({
   title: z.string().max(80).optional(),
@@ -704,7 +770,13 @@ export const focusEventPayloadByType = {
   confirmation_expired: focusEventPayloadConfirmationExpiredSchema,
   confirmation_downgraded: focusEventPayloadConfirmationDowngradedSchema,
   expectation_adjusted: focusEventPayloadExpectationAdjustedSchema,
-  expectation_ack_settled: focusEventPayloadExpectationAckSettledSchema
+  expectation_ack_settled: focusEventPayloadExpectationAckSettledSchema,
+  dependency_task_set: focusEventPayloadDependencyTaskSetSchema,
+  dependency_task_woken: focusEventPayloadDependencyTaskWokenSchema,
+  dependency_task_blocked: focusEventPayloadDependencyTaskBlockedSchema,
+  lane_created: focusEventPayloadLaneCreatedSchema,
+  lane_restored: focusEventPayloadLaneRestoredSchema,
+  obligation_deferred: focusEventPayloadObligationDeferredSchema
 } as const;
 
 export type FocusEventPayloadMap = {
@@ -860,7 +932,9 @@ export const focusTimelineItemRefsSchema = z
     sourceId: idSchema.optional(),
     newId: idSchema.optional(),
     depId: idSchema.optional(),
-    preId: idSchema.optional()
+    preId: idSchema.optional(),
+    /** DAILY-01:任务级依赖前置任务引用(dependency_task_* 事件) */
+    preTaskId: idSchema.optional()
   })
   .strict();
 export type FocusTimelineItemRefs = z.infer<typeof focusTimelineItemRefsSchema>;

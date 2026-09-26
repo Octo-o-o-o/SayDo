@@ -266,6 +266,8 @@ function posixGroupAlive(pid: number): boolean {
 export interface OwnedDaemonGeneration {
   pid: number;
   instanceId: string;
+  /** fork 后、child 仍活时捕获的 birth;缺省则回落到现场 processBirth(pid)。 */
+  processStart?: string;
 }
 
 export interface ReapOwnedAgentGroupsOptions {

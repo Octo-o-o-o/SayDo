@@ -16,13 +16,13 @@
   <script>
     (function () {
       var t = "";
-      try { t = localStorage.getItem("saydo.theme") || ""; } catch (e) {}
+      try { t = localStorage.getItem("saydo-site-theme") || ""; } catch (e) {}
       if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
       else if (t === "light") document.documentElement.setAttribute("data-theme", "light");
     })();
   </script>
   <link rel="stylesheet" href="/tokens.css" />
-  <link rel="stylesheet" href="/site.css?v=20260825d" />
+  <link rel="stylesheet" href="/site.css?v=20260917a" />
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to main content</a>
@@ -35,12 +35,13 @@
         <span class="brand-en">说到</span>
       </a>
       <nav class="nav" data-nav aria-label="Primary">
-        <a class="nav-link" href="/en/#why">Why</a>
-        <a class="nav-link" href="/en/#dialogue">A conversation</a>
-        <a class="nav-link" href="/en/#how">How it works</a>
-        <a class="nav-link" href="/en/#status">Status</a>
-        <a class="nav-link" href="/en/#privacy">Privacy</a>
+        <a class="nav-link" href="/en/#product-tour">Why</a>
+        <a class="nav-link" href="/en/#mobile">A conversation</a>
+        <a class="nav-link" href="/en/#say-voice">How it works</a>
+        <a class="nav-link" href="/en/#examples">Status</a>
+        <a class="nav-link" href="/en/privacy/">Privacy</a>
         <a class="nav-link" href="/en/#faq">FAQ</a>
+        <a class="nav-link" href="/en/quick-start/">Quick start</a>
         <a class="nav-link" href="/en/docs/">Docs</a>
       </nav>
       <div class="header-actions">
@@ -85,10 +86,10 @@
         <div class="footer-col">
           <h4>PRODUCT</h4>
           <ul>
-            <li><a href="/en/#how">How it works</a></li>
-            <li><a href="/en/#why">Why different</a></li>
-            <li><a href="/en/#status">Status</a></li>
-            <li><a href="/en/#start">Get Started</a></li>
+            <li><a href="/en/#say-voice">How it works</a></li>
+            <li><a href="/en/#product-tour">Why different</a></li>
+            <li><a href="/en/#examples">Status</a></li>
+            <li><a href="/en/quick-start/">Get Started</a></li>
           </ul>
         </div>
         <div class="footer-col">

@@ -32,6 +32,13 @@ import {
 } from "../artifacts/store.js";
 import { diffLines } from "../artifacts/diff.js";
 import { redactText } from "../voice/redactor.js";
+import { getPackage } from "../storage/dao/packages.js";
+import {
+  acceptanceChecksForFailedVerify,
+  collectAcceptanceEvidence,
+  readRunVerifyPayload,
+  type AcceptanceEvidenceScope
+} from "./acceptanceEvidence.js";
 
 const OPEN_SET_SQL = OPEN_SET.map((s) => `'${s}'`).join(",");
 
@@ -139,7 +146,7 @@ export function getProjectTasks(db: Db, projectId: string): TaskRowView[] {
 }
 
 /** 任务详情 = 任务 + 决策包(验收标准)+ runs + 该任务审批记录 + 成本(11 §5.5 证据视图数据) */
-export function getTaskDetail(db: Db, taskId: string): Record<string, unknown> | null {
+export function getTaskDetail(db: Db, taskId: string, opts?: { runsDir?: string }): Record<string, unknown> | null {
   const task = db
     .prepare(
       `SELECT t.id, t.project_id, t.package_id, t.package_rev, t.package_digest, t.title, t.spec_markdown, t.route,
@@ -279,6 +286,18 @@ export function getTaskDetail(db: Db, taskId: string): Record<string, unknown> |
       writingProof = null;
     }
   }
+  const latestRun = runs.length > 0 ? runs[runs.length - 1] : undefined;
+  if (
+    latestRun &&
+    String(latestRun["state"]) === "settled_failed" &&
+    opts?.runsDir &&
+    acceptanceChecks.length > 0 &&
+    acceptanceChecks.every((check) => check.status === "unknown" && !check.evidenceRef?.trim())
+  ) {
+    const payload = readRunVerifyPayload(opts.runsDir, String(latestRun["id"] ?? ""));
+    const projected = payload ? acceptanceChecksForFailedVerify(packageAcceptance, payload) : null;
+    if (projected) acceptanceChecks = projected;
+  }
   // W5a 3.2:decisions 区(11 §5.5 证据视图内)——最新 attempt 的落库决策(与语音 explainResult 同源)
   const latestDecisionsJson = runs.length > 0 ? (runs[runs.length - 1]?.["decisions_json"] as string | null) : null;
   let decisions: unknown[] = [];
@@ -298,16 +317,70 @@ export function getTaskDetail(db: Db, taskId: string): Record<string, unknown> |
   const costs = db
     .prepare("SELECT kind, amount, currency, known, source, meta_json, ts FROM cost_entries WHERE task_id = ? ORDER BY ts")
     .all(taskId);
+  const latestAttempt = runs.reduce((max, r) => {
+    const n = Number(r["attempt"]);
+    return Number.isFinite(n) && n > max ? n : max;
+  }, 0);
   return {
-    task: { ...task, viewStatus: deriveViewStatus(String(task["status"]), (task["parked_deadline"] as string | null) ?? null) },
+    task: {
+      ...task,
+      attempt: latestAttempt,
+      viewStatus: deriveViewStatus(String(task["status"]), (task["parked_deadline"] as string | null) ?? null)
+    },
     package: packageBody,
     runs: runsWithEvidence,
     approvals,
     costs,
     decisions,
     acceptanceChecks,
+    acceptanceEvidence: collectAcceptanceEvidence(
+      db,
+      acceptanceChecks.map((c) => c.evidenceRef ?? "").filter(Boolean),
+      evidenceScopeFor(runsWithEvidence, taskId, opts?.runsDir)
+    ),
     writingProof // null = 非 writing;否则含 sectionCoverage/acceptanceChecks 供逐条裁决 UI
   };
+}
+
+function evidenceScopeFor(
+  runs: Record<string, unknown>[],
+  taskId: string,
+  runsDir?: string
+): AcceptanceEvidenceScope | null {
+  const ranked = [...runs].sort((a, b) => Number(b["attempt"] ?? 0) - Number(a["attempt"] ?? 0));
+  for (const row of ranked) {
+    const state = String(row["state"] ?? "");
+    const runId = String(row["id"] ?? "");
+    const treeSha = String(row["tree_sha"] ?? "");
+    if (!runId) continue;
+    if (state !== "settled_review" && state !== "settled_failed") continue;
+    if (row["evidence_conflict"] === true) continue;
+    const treeOk = /^[0-9a-f]{40}$/.test(treeSha);
+    if (state === "settled_review" && !treeOk) continue;
+    let proofVerifyDigest: string | undefined;
+    const raw = row["settle_proof_json"];
+    if (typeof raw === "string" && raw.trim() !== "") {
+      try {
+        const proof = JSON.parse(raw) as { treeSha?: unknown; runId?: unknown; tier1VerifyDigest?: unknown };
+        if (typeof proof.treeSha === "string" && proof.treeSha !== treeSha) continue;
+        if (typeof proof.runId === "string" && proof.runId !== runId) continue;
+        if (typeof proof.tier1VerifyDigest === "string") proofVerifyDigest = proof.tier1VerifyDigest;
+      } catch {
+        if (state === "settled_review") continue;
+      }
+    } else if (state === "settled_review") {
+      continue;
+    }
+    return {
+      taskId,
+      runId,
+      treeSha: treeOk ? treeSha : "",
+      worktreePath: typeof row["worktree_path"] === "string" ? row["worktree_path"] : null,
+      ...(runsDir ? { runsDir } : {}),
+      ...(proofVerifyDigest ? { proofVerifyDigest } : {})
+    };
+  }
+  return null;
 }
 
 /** 项目记忆(M1-M3 活跃投影,走账本投影器——规则②否定不复活等语义单源;M0 用户档案在全局设置页) */
@@ -482,6 +555,7 @@ export function getOutbox(db: Db): Record<string, unknown>[] {
 export function getCosts(db: Db): {
   byProject: { projectId: string | null; projectTitle: string | null; knownByCurrency: Record<string, number>; unknownCount: number }[];
   entries: Record<string, unknown>[];
+  entriesWindow: { limit: number; returned: number; total: number; truncated: boolean };
 } {
   const rows = db
     .prepare(
@@ -506,7 +580,18 @@ export function getCosts(db: Db): {
       "SELECT id, ts, project_id, task_id, session_id, kind, amount, currency, known, source, meta_json FROM cost_entries ORDER BY ts DESC LIMIT 300"
     )
     .all() as Record<string, unknown>[];
-  return { byProject, entries };
+  const totalRow = db.prepare("SELECT COUNT(*) AS n FROM cost_entries").get() as { n: number };
+  const total = Number(totalRow.n ?? 0);
+  return {
+    byProject,
+    entries,
+    entriesWindow: {
+      limit: 300,
+      returned: entries.length,
+      total,
+      truncated: total > 300
+    }
+  };
 }
 
 /** 项目设置(projects 行;project.toml 白名单域已在 config 层校验)+ 覆盖(W5a 3.5 受控表) */
@@ -667,6 +752,11 @@ export function getFocusDetail(
     laneId: string | null;
     waitingOn: string | null;
     waitingOnObligationId: string | null;
+    /** DAILY-01:任务级前置(合同 §15.2) */
+    waitingOnTaskId: string | null;
+    waitingTaskCondition: string | null;
+    deferReason: string | null;
+    dueOrTrigger: string | null;
     createdFromEvent: number | null;
     actionRef: string | null;
   }>;
@@ -677,6 +767,10 @@ export function getFocusDetail(
     createdFromEvent: number;
     retiredAt: string | null;
   }>;
+  /** DAILY-01:经 action_execution_bindings 锚在本 focus 的任务(依赖候选集/泳道归线) */
+  tasks: Array<{ id: string; title: string; status: string; laneId: string | null }>;
+  /** additive:绑定任务包 ∪ 本 focus pending dispatch 包 */
+  packages: Array<Record<string, unknown>>;
   events: Array<{
     id: string;
     seq: number;
@@ -721,7 +815,8 @@ export function getFocusDetail(
   const obs = db
     .prepare(
       `SELECT id, kind, title, owner, status, verification, blocking, next_step, detail, needs,
-              lane_id, waiting_on, waiting_on_obligation_id, created_from_event, action_ref
+              lane_id, waiting_on, waiting_on_obligation_id, waiting_on_task_id, waiting_task_condition,
+              defer_reason, due_or_trigger, created_from_event, action_ref
        FROM focus_obligations WHERE focus_id = ? ORDER BY created_at, id`
     )
     .all(focusId) as Array<{
@@ -738,6 +833,10 @@ export function getFocusDetail(
     lane_id: string | null;
     waiting_on: string | null;
     waiting_on_obligation_id: string | null;
+    waiting_on_task_id: string | null;
+    waiting_task_condition: string | null;
+    defer_reason: string | null;
+    due_or_trigger: string | null;
     created_from_event: number | null;
     action_ref: string | null;
   }>;
@@ -794,6 +893,23 @@ export function getFocusDetail(
        WHERE focus_id = ? AND removed_at IS NULL`
     )
     .all(focusId) as Array<{ project_id: string; note: string | null }>;
+  // DAILY-01:Focus 锚定任务(含 superseded 绑定留痕);laneId 取自关联义务的 action_ref 反查
+  const tasks = db
+    .prepare(
+      `SELECT t.id, t.title, t.status, t.package_id, t.package_rev,
+              (SELECT o.lane_id FROM focus_obligations o
+               WHERE o.action_ref = t.id AND o.focus_id = ? LIMIT 1) AS lane_id
+       FROM action_execution_bindings b JOIN tasks t ON t.id = b.task_id
+       WHERE b.focus_id = ? ORDER BY t.created_at DESC`
+    )
+    .all(focusId, focusId) as Array<{
+    id: string;
+    title: string;
+    status: string;
+    package_id: string | null;
+    package_rev: number | null;
+    lane_id: string | null;
+  }>;
   let artifacts: Array<{ id: string; kind: string; role: string; title: string; ref: unknown }> = [];
   try {
     const artRows = db
@@ -844,10 +960,15 @@ export function getFocusDetail(
       laneId: o.lane_id,
       waitingOn: o.waiting_on,
       waitingOnObligationId: o.waiting_on_obligation_id,
+      waitingOnTaskId: o.waiting_on_task_id,
+      waitingTaskCondition: o.waiting_task_condition,
+      deferReason: o.defer_reason,
+      dueOrTrigger: o.due_or_trigger,
       createdFromEvent: o.created_from_event,
       actionRef: o.action_ref
     })),
     lanes,
+    tasks: tasks.map((t) => ({ id: t.id, title: t.title, status: t.status, laneId: t.lane_id })),
     events: eventRows.map((e) => ({
       id: e.id,
       seq: e.seq,
@@ -864,8 +985,45 @@ export function getFocusDetail(
       createdAt: e.created_at
     })),
     repos: repos.map((r) => ({ projectId: r.project_id, note: r.note })),
-    artifacts
+    artifacts,
+    packages: collectFocusPackages(db, focusId, tasks)
   };
+}
+
+function collectFocusPackages(
+  db: Db,
+  focusId: string,
+  taskRows: Array<{ package_id: string | null; package_rev: number | null }>
+): Array<Record<string, unknown>> {
+  const seen = new Map<string, Record<string, unknown>>();
+  const add = (id: string, revision: number): void => {
+    const key = `${id}@${revision}`;
+    if (seen.has(key)) return;
+    const pkg = getPackage(db, id, revision);
+    if (pkg) seen.set(key, pkg as unknown as Record<string, unknown>);
+  };
+  for (const t of taskRows) {
+    if (t.package_id && typeof t.package_rev === "number") add(t.package_id, t.package_rev);
+  }
+  const nowIso = new Date().toISOString();
+  const pending = db
+    .prepare(
+      `SELECT pc.payload_json AS payload_json
+       FROM pending_confirmations pc
+       LEFT JOIN sessions s ON s.id = pc.session_id
+       WHERE pc.kind = 'dispatch' AND pc.expires_at >= ?
+         AND (pc.focus_id = ? OR (pc.focus_id IS NULL AND s.primary_focus_id = ?))`
+    )
+    .all(nowIso, focusId, focusId) as Array<{ payload_json: string }>;
+  for (const row of pending) {
+    try {
+      const p = JSON.parse(row.payload_json) as { packageId?: unknown; revision?: unknown };
+      if (typeof p.packageId === "string" && typeof p.revision === "number") add(p.packageId, p.revision);
+    } catch {
+      // 坏 payload 不进投影
+    }
+  }
+  return [...seen.values()];
 }
 
 /** M1 LAN 只返回移动页面实际消费的 Focus 字段，原始事件/产物/仓路径不出明文边界。 */
@@ -884,6 +1042,14 @@ export function getMobileFocusDetail(db: Db, focusId: string): MobileFocusDetail
       if (typeof source["title"] === "string") payload["title"] = redactText(source["title"]);
       if (typeof source["revision"] === "number" || typeof source["revision"] === "string") {
         payload["revision"] = typeof source["revision"] === "string" ? redactText(source["revision"]) : source["revision"];
+      }
+      // DAILY-01:lane/obligation 是 id 引用非文本,放行供移动泳道页归线/依赖渲染
+      if (typeof source["obligationId"] === "string") payload["obligationId"] = source["obligationId"];
+      else if (typeof source["depId"] === "string") payload["obligationId"] = source["depId"];
+      if (typeof source["laneId"] === "string") payload["laneId"] = source["laneId"];
+      else if (typeof payload["obligationId"] === "string") {
+        const ob = detail.obligations.find((o) => o.id === payload["obligationId"]);
+        if (ob?.laneId) payload["laneId"] = ob.laneId;
       }
       return {
         id: event.id,
@@ -933,4 +1099,124 @@ export function getFocusSessions(
       summary: null
     }))
   };
+}
+
+// ---------- DAILY-01:全局义务读口(安排页/依赖页;合同 §15.2) ----------
+
+export interface ObligationListRow {
+  id: string;
+  focusId: string;
+  focusTitle: string;
+  focusLifecycle: string;
+  laneId: string | null;
+  kind: string;
+  title: string;
+  owner: string;
+  status: string;
+  needs: string | null;
+  blocking: boolean;
+  waitingOn: string | null;
+  waitingOnObligationId: string | null;
+  waitingOnObligationTitle: string | null;
+  waitingOnTaskId: string | null;
+  waitingOnTaskTitle: string | null;
+  waitingTaskCondition: string | null;
+  deferReason: string | null;
+  dueOrTrigger: string | null;
+  nextStep: string | null;
+  detail: string | null;
+  actionRef: string | null;
+  updatedAt: string;
+}
+
+/**
+ * GET /api/obligations —— 跨 Focus 义务清单(安排=按 owner 分组;依赖=waiting 关系)。
+ * 过滤:?owner=human|agent|external ?status=<逗号分隔> ?waiting=1(仅带前置的行)。
+ * 默认全部(含终态行——依赖图需要 resolved 前置做锚点渲染)。
+ */
+export function getObligationList(
+  db: Db,
+  q: { owner?: string; status?: string; waiting?: string }
+): ObligationListRow[] {
+  const clauses: string[] = [];
+  const args: string[] = [];
+  if (q.owner) {
+    clauses.push("o.owner = ?");
+    args.push(q.owner);
+  }
+  if (q.status) {
+    const set = q.status.split(",").map((s) => s.trim()).filter(Boolean);
+    if (set.length > 0) {
+      clauses.push(`o.status IN (${set.map(() => "?").join(",")})`);
+      args.push(...set);
+    }
+  }
+  if (q.waiting === "1") {
+    clauses.push("(o.waiting_on_obligation_id IS NOT NULL OR o.waiting_on_task_id IS NOT NULL)");
+  }
+  const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
+  const rows = db
+    .prepare(
+      `SELECT o.id, o.focus_id, f.title AS focus_title, f.lifecycle AS focus_lifecycle,
+              o.lane_id, o.kind, o.title, o.owner, o.status, o.needs, o.blocking,
+              o.waiting_on, o.waiting_on_obligation_id, po.title AS pre_obligation_title,
+              o.waiting_on_task_id, t.title AS pre_task_title, o.waiting_task_condition,
+              o.defer_reason, o.due_or_trigger, o.next_step, o.detail, o.action_ref, o.updated_at
+       FROM focus_obligations o
+       JOIN focuses f ON f.id = o.focus_id
+       LEFT JOIN focus_obligations po ON po.id = o.waiting_on_obligation_id
+       LEFT JOIN tasks t ON t.id = o.waiting_on_task_id
+       ${where}
+       ORDER BY o.updated_at DESC`
+    )
+    .all(...args) as Array<{
+    id: string;
+    focus_id: string;
+    focus_title: string;
+    focus_lifecycle: string;
+    lane_id: string | null;
+    kind: string;
+    title: string;
+    owner: string;
+    status: string;
+    needs: string | null;
+    blocking: number;
+    waiting_on: string | null;
+    waiting_on_obligation_id: string | null;
+    pre_obligation_title: string | null;
+    waiting_on_task_id: string | null;
+    pre_task_title: string | null;
+    waiting_task_condition: string | null;
+    defer_reason: string | null;
+    due_or_trigger: string | null;
+    next_step: string | null;
+    detail: string | null;
+    action_ref: string | null;
+    updated_at: string;
+  }>;
+  return rows.map((r) => ({
+    id: r.id,
+    focusId: r.focus_id,
+    focusTitle: r.focus_title,
+    focusLifecycle: r.focus_lifecycle,
+    laneId: r.lane_id,
+    kind: r.kind,
+    title: r.title,
+    owner: r.owner,
+    status: r.status,
+    needs: r.needs,
+    blocking: r.blocking === 1,
+    waitingOn: r.waiting_on,
+    waitingOnObligationId: r.waiting_on_obligation_id,
+    waitingOnObligationTitle: r.pre_obligation_title,
+    waitingOnTaskId: r.waiting_on_task_id,
+    waitingOnTaskTitle: r.pre_task_title,
+    waitingTaskCondition: r.waiting_task_condition,
+    deferReason: r.defer_reason,
+    dueOrTrigger: r.due_or_trigger,
+    nextStep: r.next_step,
+    detail: r.detail,
+    actionRef: r.action_ref,
+    updatedAt: r.updated_at
+  }));
 }

@@ -32,11 +32,23 @@ import { apiGet } from "../lib/api";
 import { navigate, switchProjectHash, type Route } from "../lib/router";
 import { useVoice } from "./VoiceContext";
 import { EmailPreviewModal } from "../components/redesign/Modals";
+import { CommandMenu } from "./CommandMenu";
 import { PairingOverlay } from "../components/PairingOverlay";
+import { ErrorCard } from "../components/ui";
 import { currentPairingToken, fetchPairingInfo, type PairingInfo } from "../lib/pairing";
 import { formatAttnTime } from "../components/redesign/AttentionItemCard";
 import { StageTag } from "../components/redesign/shared";
 import saydoMark from "../assets/saydo-mark.png";
+import {
+  SIDEBAR_READ_UNAVAILABLE,
+  applySidebarRead,
+  emptySidebarLane,
+  readSidebarLane,
+  sidebarHasReadError,
+  sidebarLiveFocuses,
+  sidebarShowEmpty,
+  sidebarVisibleCount
+} from "./sidebarLoad";
 
 interface AttentionItem {
   id: string;
@@ -251,13 +263,14 @@ export function Layout({
   const [dnd, setDnd] = useState(false);
   const [compact, setCompact] = useState<boolean>(() => localStorage.getItem("saydo.density") === "compact");
   const [legacyOpen, setLegacyOpen] = useState(false);
-  const [attention, setAttention] = useState<AttentionItem[]>([]);
-  const [focuses, setFocuses] = useState<FocusRow[]>([]);
-  const [spaces, setSpaces] = useState<SpaceRow[]>([]);
+  const [attention, setAttention] = useState(() => emptySidebarLane<AttentionItem[]>([]));
+  const [focuses, setFocuses] = useState(() => emptySidebarLane<FocusRow[]>([]));
+  const [spaces, setSpaces] = useState(() => emptySidebarLane<SpaceRow[]>([]));
   const [spaceCollapsed, setSpaceCollapsed] = useState<Record<string, boolean>>({});
-  const [outbox, setOutbox] = useState<OutboxRow[]>([]);
+  const [outbox, setOutbox] = useState(() => emptySidebarLane<OutboxRow[]>([]));
   const [bellOpen, setBellOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
   const [pairingOpen, setPairingOpen] = useState(false);
   const [pairingInfo, setPairingInfo] = useState<PairingInfo | null>(null);
   const [pairingError, setPairingError] = useState<string | null>(null);
@@ -283,29 +296,33 @@ export function Layout({
   }, []);
 
   const loadAttentionOutbox = useCallback(async () => {
-    try {
-      const [at, ob] = await Promise.all([
-        apiGet<{ items: AttentionItem[] }>("/api/attention").catch(() => ({ items: [] as AttentionItem[] })),
-        apiGet<OutboxRow[]>("/api/outbox").catch(() => [] as OutboxRow[])
-      ]);
-      setAttention(at.items ?? []);
-      setOutbox(Array.isArray(ob) ? ob : []);
-    } catch {
-      // 侧栏徽章降级:静默
-    }
+    const [attentionRead, outboxRead] = await Promise.all([
+      readSidebarLane(async () => {
+        const at = await apiGet<{ items: AttentionItem[] }>("/api/attention");
+        return at.items ?? [];
+      }),
+      readSidebarLane(async () => {
+        const ob = await apiGet<OutboxRow[]>("/api/outbox");
+        return Array.isArray(ob) ? ob : [];
+      })
+    ]);
+    setAttention((prev) => applySidebarRead(prev, attentionRead));
+    setOutbox((prev) => applySidebarRead(prev, outboxRead));
   }, []);
 
   const loadFocusSpaces = useCallback(async () => {
-    try {
-      const [fo, sp] = await Promise.all([
-        apiGet<FocusRow[]>("/api/focuses").catch(() => [] as FocusRow[]),
-        apiGet<{ spaces: SpaceRow[] }>("/api/spaces").catch(() => ({ spaces: [] as SpaceRow[] }))
-      ]);
-      setFocuses(fo ?? []);
-      setSpaces(sp.spaces ?? []);
-    } catch {
-      // 侧栏徽章降级:静默
-    }
+    const [focusRead, spaceRead] = await Promise.all([
+      readSidebarLane(async () => {
+        const fo = await apiGet<FocusRow[]>("/api/focuses");
+        return fo ?? [];
+      }),
+      readSidebarLane(async () => {
+        const sp = await apiGet<{ spaces: SpaceRow[] }>("/api/spaces");
+        return sp.spaces ?? [];
+      })
+    ]);
+    setFocuses((prev) => applySidebarRead(prev, focusRead));
+    setSpaces((prev) => applySidebarRead(prev, spaceRead));
   }, []);
 
   const loadSide = useCallback(async () => {
@@ -348,6 +365,18 @@ export function Layout({
     localStorage.setItem("saydo.density", compact ? "compact" : "comfortable");
   }, [compact]);
 
+  // ⌘K / Ctrl-K 命令菜单(DAILY-01 R13)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCmdOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // 铃铛 dropdown 外点关闭
   useEffect(() => {
     if (!bellOpen) return;
@@ -363,10 +392,10 @@ export function Layout({
   const inProject = (page: string) => route.projectId !== undefined && route.page === page;
 
   // 徽章单源 = attention:今天=橙计数;Focus 热点=该 focus 橙+蓝
-  const orangeCount = useMemo(() => attention.filter((a) => a.color === "orange").length, [attention]);
+  const orangeCount = useMemo(() => attention.value.filter((a) => a.color === "orange").length, [attention]);
   const hotByFocus = useMemo(() => {
     const m = new Map<string, number>();
-    for (const a of attention) {
+    for (const a of attention.value) {
       if ((a.color === "orange" || a.color === "blue") && a.focusId) {
         m.set(a.focusId, (m.get(a.focusId) ?? 0) + 1);
       }
@@ -377,20 +406,22 @@ export function Layout({
   // 正在持续的事:空间分组(可折叠);无空间归最后平铺
   const liveFocuses = useMemo(
     () =>
-      focuses
-        .filter((f) => ["active", "captured", "dormant"].includes(f.lifecycle))
+      sidebarLiveFocuses(focuses.value)
         .slice()
         .sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || "")),
     [focuses]
   );
   const spaceGroups = useMemo(() => {
-    const named = spaces
+    const named = spaces.value
       .map((sp) => ({ sp, items: liveFocuses.filter((f) => f.spaceId === sp.id) }))
       .filter((g) => g.items.length > 0);
-    const unspaced = liveFocuses.filter((f) => !f.spaceId || !spaces.some((s) => s.id === f.spaceId));
+    const unspaced = liveFocuses.filter((f) => !f.spaceId || !spaces.value.some((s) => s.id === f.spaceId));
     return { named, unspaced };
   }, [spaces, liveFocuses]);
-  const unread = useMemo(() => outbox.filter((o) => o.state === "pending" || o.state === "notified").length, [outbox]);
+  const unread = useMemo(() => outbox.value.filter((o) => o.state === "pending" || o.state === "notified").length, [outbox]);
+  const sidebarReadError = sidebarHasReadError(attention, outbox, focuses, spaces);
+  const todayBadge = sidebarVisibleCount(attention, orangeCount);
+  const unreadBadge = sidebarVisibleCount(outbox, unread);
   const voiceAnchored = !!(voice.connected && voice.anchorProjectId);
 
   const legacyActive =
@@ -468,20 +499,28 @@ export function Layout({
         </a>
 
         <nav className="flex flex-col gap-[2px]" style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+          {sidebarReadError ? (
+            <div data-sidebar-read-error>
+              <ErrorCard message={SIDEBAR_READ_UNAVAILABLE} />
+            </div>
+          ) : null}
           <NavItem
             href="/today"
             icon={Inbox}
             label="今天"
             active={route.page === "today"}
-            badge={orangeCount}
+            badge={todayBadge}
           />
-          <NavItem href="/board" icon={LayoutGrid} label="全景看板" active={route.page === "board"} />
+          {/* DAILY-01 IA 修订:看板改名「泳道」(设计包 R01/R02;docs/08 §6 同步) */}
+          <NavItem href="/board" icon={LayoutGrid} label="泳道" active={route.page === "board"} />
+          <NavItem href="/arrangements" icon={ListTodo} label="安排" active={route.page === "arrangements"} />
+          <NavItem href="/archive" icon={Rows4} label="归档" active={route.page === "archive"} />
 
           {/* 正在持续的事 —— 空间分组(可折叠) */}
           <p style={secLabel}>正在持续的事</p>
-          {liveFocuses.length === 0 ? (
+          {sidebarShowEmpty(focuses, liveFocuses.length) ? (
             <p style={{ margin: "0 0 0 10px", fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>暂无</p>
-          ) : (
+          ) : liveFocuses.length === 0 ? null : (
             <>
               {spaceGroups.named.map(({ sp, items }) => (
                 <div key={sp.id}>
@@ -691,6 +730,22 @@ export function Layout({
 
           <span style={{ flex: 1 }} />
 
+          {/* ⌘K 命令菜单入口(DAILY-01 R13;键盘外也给鼠标一条路) */}
+          <button
+            type="button"
+            aria-label="命令菜单"
+            data-cmd-open
+            onClick={() => setCmdOpen(true)}
+            className="flex items-center gap-[6px] border-0"
+            style={{
+              cursor: "pointer", fontSize: "var(--text-xs)", color: "var(--text-muted)",
+              padding: "4px 10px", borderRadius: "var(--radius-xs)", border: "1px solid var(--line)",
+              background: "var(--surface-soft)", fontFamily: "var(--font-mono)"
+            }}
+          >
+            ⌘K
+          </button>
+
           {/* 通知铃:回叫时间线 + 免打扰 + 邮件预览(P1 提案) */}
           <div ref={bellRef} style={{ position: "relative" }}>
             <button
@@ -701,7 +756,7 @@ export function Layout({
               style={{ color: "var(--text-muted)", cursor: "pointer", position: "relative", padding: 4 }}
             >
               <Bell size={18} aria-hidden />
-              {unread > 0 ? (
+              {unreadBadge !== undefined && unreadBadge > 0 ? (
                 <span data-bell-dot style={{ position: "absolute", top: 3, right: 3, width: 7, height: 7, borderRadius: "var(--radius-pill)", background: "var(--color-warning)" }} />
               ) : null}
             </button>
@@ -718,10 +773,10 @@ export function Layout({
                 <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", padding: "4px 8px 8px" }}>
                   回叫与通知(状态词纪律:只说收到/等你验收/已交付)
                 </div>
-                {outbox.length === 0 ? (
+                {sidebarShowEmpty(outbox) ? (
                   <div style={{ padding: "var(--space-3)", fontSize: "var(--text-sm)", color: "var(--text-faint)" }}>暂时没有通知</div>
                 ) : (
-                  outbox.slice(0, 20).map((n) => (
+                  outbox.value.slice(0, 20).map((n) => (
                     <div key={n.id} style={{ display: "flex", gap: 10, padding: "var(--space-3)", borderRadius: "var(--radius-sm)", fontSize: "var(--text-sm)", opacity: n.state === "resolved" ? 0.55 : 1 }}>
                       <span aria-hidden style={{ width: 7, height: 7, borderRadius: "var(--radius-pill)", flexShrink: 0, marginTop: 8, background: n.state === "pending" || n.state === "notified" ? "var(--color-warning)" : "var(--text-faint)" }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -803,7 +858,7 @@ export function Layout({
 
       {emailOpen ? (
         <EmailPreviewModal
-          items={attention.filter((a) => a.color === "orange" || a.color === "blue").slice(0, 6).map((a) => ({ id: a.id, title: a.title }))}
+          items={attention.value.filter((a) => a.color === "orange" || a.color === "blue").slice(0, 6).map((a) => ({ id: a.id, title: a.title }))}
           onClose={() => setEmailOpen(false)}
         />
       ) : null}
@@ -815,6 +870,7 @@ export function Layout({
           onClose={closePairing}
         />
       ) : null}
+      <CommandMenu open={cmdOpen} onClose={() => setCmdOpen(false)} focuses={liveFocuses} />
     </div>
   );
 }

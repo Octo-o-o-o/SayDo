@@ -77,6 +77,98 @@ describe("OpenAICompatProvider", () => {
     expect(seen[2]?.["max_tokens"]).toBe(40000);
   });
 
+  it("官方特性只认解析后的 origin:路径/子串/后缀仿冒走通用档,大小写官方 host 仍命中", async () => {
+    const captureBody = async (baseUrl: string): Promise<Record<string, unknown>> => {
+      let body: Record<string, unknown> = {};
+      const spy = (async (_input: unknown, init: RequestInit | undefined) => {
+        body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        return okJson({ model: "deepseek-v4-pro", choices: [{ message: { content: "ok" } }] });
+      }) as typeof fetch;
+      await createOpenAICompatProvider({
+        baseUrl,
+        apiKey: "k",
+        model: "deepseek-v4-pro",
+        fetchImpl: spy
+      }).chat({ messages: [{ role: "user", content: "hi" }], maxTokens: 64 });
+      return body;
+    };
+
+    const pathSpoofDeepseek = await captureBody("https://example.invalid/api.deepseek.com/v1");
+    expect(pathSpoofDeepseek["max_tokens"]).toBe(3000);
+    expect(pathSpoofDeepseek["reasoning"]).toBeUndefined();
+
+    const suffixSpoofDeepseek = await captureBody("https://api.deepseek.com.example.invalid/v1");
+    expect(suffixSpoofDeepseek["max_tokens"]).toBe(3000);
+    expect(suffixSpoofDeepseek["reasoning"]).toBeUndefined();
+
+    const pathSpoofOpenrouter = await captureBody("https://example.invalid/openrouter/v1");
+    expect(pathSpoofOpenrouter["max_tokens"]).toBe(3000);
+    expect(pathSpoofOpenrouter["reasoning"]).toBeUndefined();
+
+    const officialDeepseek = await captureBody("https://api.deepseek.com/v1");
+    expect(officialDeepseek["max_tokens"]).toBe(16000);
+    expect(officialDeepseek["reasoning"]).toBeUndefined();
+
+    const caseOfficialDeepseek = await captureBody("https://API.DEEPSEEK.COM/v1");
+    expect(caseOfficialDeepseek["max_tokens"]).toBe(16000);
+    expect(caseOfficialDeepseek["reasoning"]).toBeUndefined();
+
+    const officialOpenrouter = await captureBody("https://openrouter.ai/api/v1");
+    expect(officialOpenrouter["max_tokens"]).toBe(3000);
+    expect(officialOpenrouter["reasoning"]).toEqual({ max_tokens: 1200 });
+
+    const caseOfficialOpenrouter = await captureBody("https://OpenRouter.AI/api/v1");
+    expect(caseOfficialOpenrouter["max_tokens"]).toBe(3000);
+    expect(caseOfficialOpenrouter["reasoning"]).toEqual({ max_tokens: 1200 });
+
+    const customGateway = await captureBody("https://gateway.example/v1");
+    expect(customGateway["max_tokens"]).toBe(3000);
+    expect(customGateway["reasoning"]).toBeUndefined();
+    expect(customGateway["provider"]).toBeUndefined();
+  });
+
+  it("非法 baseUrl 在构造时显式失败,不回落到特定供应商", () => {
+    let fetches = 0;
+    const spy = (async () => {
+      fetches += 1;
+      return okJson({ model: "m", choices: [{ message: { content: "ok" } }] });
+    }) as typeof fetch;
+    for (const baseUrl of ["not-a-url", "", "ftp://api.deepseek.com/v1", "https://", "file:///tmp/v1"]) {
+      expect(() =>
+        createOpenAICompatProvider({ baseUrl, apiKey: "k", model: "m", fetchImpl: spy })
+      ).toThrow(/invalid provider baseUrl/);
+    }
+    expect(fetches).toBe(0);
+  });
+
+  it("providerPinning 只随显式配置发出,不从 OpenRouter origin 推断", async () => {
+    const seen: Record<string, unknown>[] = [];
+    const spy = (async (_input: unknown, init: RequestInit | undefined) => {
+      seen.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return okJson({ model: "m", choices: [{ message: { content: "ok" } }] });
+    }) as typeof fetch;
+
+    await createOpenAICompatProvider({
+      baseUrl: "https://openrouter.ai/api/v1",
+      apiKey: "k",
+      model: "m",
+      fetchImpl: spy
+    }).chat({ messages: [{ role: "user", content: "hi" }], maxTokens: 64 });
+    expect(seen[0]?.["provider"]).toBeUndefined();
+    expect(seen[0]?.["reasoning"]).toEqual({ max_tokens: 1200 });
+
+    await createOpenAICompatProvider({
+      baseUrl: "https://gateway.example/v1",
+      apiKey: "k",
+      model: "m",
+      fetchImpl: spy,
+      providerPinning: { order: ["openai"], allowFallbacks: false }
+    }).chat({ messages: [{ role: "user", content: "hi" }], maxTokens: 64 });
+    expect(seen[1]?.["provider"]).toEqual({ order: ["openai"], allow_fallbacks: false });
+    expect(seen[1]?.["reasoning"]).toBeUndefined();
+    expect(seen[1]?.["max_tokens"]).toBe(3000);
+  });
+
   it("预算耗尽在 reasoning(finish=length 且无 content/toolCalls)⇒ 作废而非静默返回空回答", async () => {
     const p = createOpenAICompatProvider({
       baseUrl: "https://api.deepseek.com/v1",

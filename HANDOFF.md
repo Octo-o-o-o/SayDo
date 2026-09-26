@@ -4,7 +4,7 @@
 > 均为中途旧段,与 §1 自相矛盾——已按 git log + 运行时配置 + 独立对账裁决清理(裁决记录:
 > `e2e/evidence/closeout-verification.md` §3.1)。本版为**单一真相**:所有状态均经收口会话独立核实。
 >
-> **开工先读**:本文件 → 本仓 `AGENTS.md` → `docs/plan/IMPLEMENTATION-PLAN-2.md`(**唯一排产源**;2026-08-29 PG-00 导入、2026-09-06 插入 AS-01-AS-02、2026-09-09 插入 GAP-02-consolidation、同日晚插入 EMAIL-A-outbound、2026-09-15 插入 JOURNEY-01 后当前唯一串行链 = `PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → EMAIL-A-outbound → JOURNEY-01 → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop`，历史 W1–W9 + 合同轮原文保留) → `docs/plan/2026-08-28-project-gap-closure-program.md` → `docs/plan/2026-08-28-project-gap-d17-import-spec.md` → `docs/plan/2026-08-28-project-gap-owner-decisions.md` → `docs/plan/IMPLEMENTATION-PLAN.md`(首发计划,已收口,仅作出处索引)→ `docs/09`(数据契约,照抄源)/`docs/10`(话术)/`docs/11`(UI)/`docs/modules/a-e`(分域导航)。
+> **开工先读**:本文件 → 本仓 `AGENTS.md` → `docs/plan/IMPLEMENTATION-PLAN-2.md`(**唯一排产源**;2026-08-29 PG-00 导入、2026-09-06 插入 AS-01-AS-02、2026-09-09 插入 GAP-02-consolidation、同日晚插入 EMAIL-A-outbound、2026-09-15 插入 JOURNEY-01、2026-09-19 插入 DAILY-01-workbench-restore、2026-09-23 插入 VOICE-MEASURE-01 与 CODEX-AS-SPIKE-01、2026-09-25 插入 SC-RELAND-01 后当前唯一串行链 = `PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → EMAIL-A-outbound → DAILY-01-workbench-restore → JOURNEY-01 → VOICE-MEASURE-01 → CODEX-AS-SPIKE-01 → SC-RELAND-01 → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop`，历史 W1–W9 + 合同轮原文保留) → `docs/plan/2026-08-28-project-gap-closure-program.md` → `docs/plan/2026-08-28-project-gap-d17-import-spec.md` → `docs/plan/2026-08-28-project-gap-owner-decisions.md` → `docs/plan/IMPLEMENTATION-PLAN.md`(首发计划,已收口,仅作出处索引)→ `docs/09`(数据契约,照抄源)/`docs/10`(话术)/`docs/11`(UI)/`docs/modules/a-e`(分域导航)。
 > 此前开工先读链（PLAN-2 后直接到首发计划、未列入缺口治理三文件）由本行 supersede。
 > 唯一活动仓 = `~/WorkSpace/SayDo`(远端两个,2026-08-20 起:origin = 私有归档 `github.com/Octo-o-o-o/SayDo-archive`(全史,日常 push);public = 公开快照仓 `github.com/Octo-o-o-o/SayDo`,经 `scripts/publish-public-snapshot.sh` 更新,推前跑隐私探针);设计、实现、证据与过程档案均在本仓。旧路径 `voice-coding` 是指向 SayDo 的兼容链接，冻结冷档是 `voice-coding.archive-20260729`，映射见 `docs/plan/MIGRATION.md`。
 
@@ -49,13 +49,24 @@
 - **当前批次指针:**
 <!-- schedule-pointer:begin -->
 schema_version=1
-revision=10
+revision=18
 active=none
-next=JOURNEY-01
-last_closed=EMAIL-A-outbound
-evidence_ref=e2e/evidence/email-a-outbound.md
-updated_at=2026-09-15
+next=PG-02
+last_closed=SC-RELAND-01
+evidence_ref=e2e/evidence/sc-reland-01.md
+updated_at=2026-09-26
 <!-- schedule-pointer:end -->
+**2026-09-26 SC-RELAND-01 本地收口(当前状态)**:consolidation 残余缺陷逐项复现后重落地,I `f8405cf`,独立复审 rereview-10 GREEN,同候选 just ci / just precommit / playwright 56 passed。tier1 命令分类器以 HEAD 分类器为单调下限;HEAD 同样存在的 shell 绕过转 `DF-TIER1-SHELL-01`。证据 `e2e/evidence/sc-reland-01.md`。PG-02 仍为 next,未开工。
+**2026-09-25 SC-RELAND-01 开批**:owner 授权把 2026-09-13 暂停的 consolidation 候选中仍有效的缺陷修复按标准流程重落地(决策单第 14 节)。来源为本地 tag `archive/wip-consolidation-20260913`;逐项在当前 main 复现后才搬,PG-02 账本与已由 JOURNEY-01 吸收的语音修复不搬。执行卡 `docs/plan/IMPL-PROMPT-SC-RELAND-01.md`,证据 `e2e/evidence/sc-reland-01.md`。本行 supersede 下方「CODEX-AS-SPIKE-01 本地收口(当前状态)」中的下一批描述;PG-02 仍为 next。
+**2026-09-23 CODEX-AS-SPIKE-01 本地收口**:owner授权本地提交、合并与收口。独立review-5 GREEN与五项本地门禁通过,证据`e2e/evidence/codex-as-spike-01.md`。真实Agent及生产接线未验,PG-07仍deferred。下一批PG-02尚未开工,指针以生成块为准。
+**2026-09-23 VOICE-MEASURE-01 本地收口**:EOU/TTS候选已通过独立复审与本地完整门禁。证据`e2e/evidence/voice-measure-01.md`。HF五段L5仍延期,真实设备与远端未验。
+
+**2026-09-23 本地主仓集成收口(历史快照,已被上方指针与开批段取代)**：owner明确授权“确认本地合并与收口”；产品 `62b07c243879189fca221f42449e033fc596b2f7` 与证据 `d05d8eeba7ec40159ff3586c8e557b6d70fcc9bd` 已快进合入本地main。DAILY-01与JOURNEY-01本地代码批已收口，状态LOCAL_GREEN_REMOTE_PENDING；证据见 [本地集成记录](e2e/evidence/journey-01.md)。原独立评审与完整门禁、owner一次性流程例外均保留。三个P2延期，真实模型/CLI、麦克风/云ASR、多设备及远端CI未验。未push、未部署；当时 next=PG-02 只表示既有队列,该句不承担当前坐标；当时 App Server 未开批。当前坐标只读本节生成块。
+
+以下批次叙述保留为历史快照，不承担当前状态。
+
+**JOURNEY-01 验收修复候选(2026-09-20,未收口)**:在 DAILY-01 dirty 之上施工于 worktree `SayDo-journey01-integ`。自检见 `docs/review/2026-09-20-journey01-integration-handoff.md` 与 `e2e/evidence/journey-01-reference-wiring.md`。本轮 focused+真实浏览器七步有退出码 0;未跑 `just ci`/全 Playwright/`just precommit`;不是独立 GREEN;未 commit。指针仍 `active=DAILY-01-workbench-restore`、`next=JOURNEY-01`(批卡未收口)。
+**DAILY-01-workbench-restore 插队(2026-09-19,owner 当场授权「改 + 插队 + 现在开始完整实施」)**:外部设计包 `~/Downloads/SayDo_日常工作版_功能补齐`(日常工作版功能补齐修订,MODULE_AUDIT 按公开快照 `d57fdb8` 的 BoardLaneGroup/RecordsPanel/FocusRail 复核)接入本批——保留简洁日常体验,恢复泳道/支线航迹/依赖/安排/归档/产物选版/审批通知筛选/用量分析等工作能力;owner 已拍板 IA 变更(事项内按需页签取代常驻右栏)与插批位置(JOURNEY-01 前)。施工在 worktree `SayDo-daily01`(分支 `daily-01-workbench-restore`);设计包仅作视觉/交互参考,fixture 与内存状态机不进生产,新增写口先落 `docs/09` 合同。本指针 `active=DAILY-01-workbench-restore`、`next=JOURNEY-01`(JOURNEY-01 顺延,未开工)。
 **方向登记与 JOURNEY-01 插批(2026-09-15,owner 决策单第 13 节)**:White Edition 裁定为产品 UI 新方向(docs/11 §0.2;纸上账本进入迁移前状态,未迁移页不半改);投资人原型归入 `demo/`(全 mock 自成合同);`JOURNEY-01` 参考旅程批插入唯一串行链(EMAIL-A-outbound 后、PG-02 前)成为 next;deferred 项重议触发条件补登 PLAN-2;首批验证样本保留非技术用户(docs/11 §10.3 口径不变);JOURNEY-01 收口后 owner 跑四场真人验收。本指针 `last_closed=EMAIL-A-outbound`、`active=none`、`next=JOURNEY-01`(JOURNEY-01 未开工,须另有具名授权与完整合同)。此行 supersede 下方「EMAIL-A-outbound 已于 2026-09-09 晚收口」行中的 `next=PG-02`。
 **EMAIL-A-outbound 已于 2026-09-09 晚收口**:I 链 `17dd011`→`dec54d2`→`fc3c662`(候选期 E `5eb083a`,evidence `e2e/evidence/gap-02-residual.md`),插批 `1409d71`,收口 evidence `e2e/evidence/email-a-outbound.md`(记录 I 不自指)。收口依据:owner 决策单第 12 节「都合并,并且都按最完整的方式推进实施」;`fc3c662` 干净树 `just ci`(daemon 2327 passed | 6 skipped、console 328、contracts 135、cli 62、pytest 34)与 playwright 41 passed 全绿,产品代码此后未变;无独立零上下文评审;真实 SMTP 发送 not_run(待 owner 凭据)。本指针 `last_closed=EMAIL-A-outbound`、`active=none`、`next=PG-02`(PG-02 未开工,须另有具名授权与完整合同)。此行 supersede 下方「EMAIL-A-outbound 现役」行。
 **EMAIL-A-outbound 现役(2026-09-09 晚,owner 决策单第 12 节授权插批与实施)**:GAP-02-consolidation 已收口;研究档案入库 `e7a6ceb`、GAP-02 残项 `a0c82cb` 与 EMAIL-A I 链 `17dd011`→`dec54d2`→`fc3c662`(E `5eb083a`,候选期证据 `e2e/evidence/gap-02-residual.md`)已 ff 入 main。本指针 `last_closed=GAP-02-consolidation`、`active=EMAIL-A-outbound`、`next=none`;执行卡 `docs/plan/IMPL-PROMPT-2026-09-09-gap-residuals.md` §3。此行 supersede 下方「GAP-02-consolidation 已于 2026-09-09 收口」行中的 `active=none,next=PG-02`。
@@ -133,3 +144,8 @@ updated_at=2026-09-15
 - **TTS 音色与资源包绑定**(W1.6 实测,2026-07-26):`X-Api-Resource-Id: seed-tts-2.0` 只认 **uranus 系**音色(`zh_*_uranus_bigtts`);`moon_bigtts` 系(旧版语音合成大模型资源)一律报 `resource ID is mismatched with speaker related resource`——换音色先确认后缀系别,uranus 系实测有效清单见 §2-10。
 - **shell 词表加固**(cmdeffect-hardening,2026-08-19):回哺源 `~/WorkSpace/dsh-approval-tiers`（`src/command.ts`、`test/command.test.mjs`、`docs/evidence/review-1-fixlist.md`、`review-2-fixlist.md`；本批施工用只读副本）；反例表 `packages/daemon/test/tier1-cmd-effect.test.ts`（PLAN §3 / dsh review-1/2 / 评审 1 返工）；evidence `e2e/evidence/cmdeffect-hardening.md`。
 - **Claude CLI Tier1 / W5.4-a**(2026-08-20):spike 目录 `e2e/spikes/claude-cli-tier1/`(RESULT.md);golden fixture `packages/daemon/test/fixtures/claude-cli/2.1.220/`;终版 argv `--permission-mode default`;hooks matcher `*`;`finishPolicy=wait_exit_then_kill` N=5s。B-10prime 在 acceptEdits 下落盘红,v3.1 改 default,X2 证实 hook 超时不落盘。纯函数层未接线执行器主流程/gateServer。评审 2 返工见 evidence §9(代码末码 `54b981c`)。evidence `e2e/evidence/w54a-claude-cli.md`。
+
+
+## 2026-09-23 JOURNEY-01 独立候选本地收口
+
+候选分支 `codex/journey01-accepted-20260923`，本地三门禁通过及owner特定重复review例外记录见[本地验收记录](docs/review/2026-09-23-journey01-local-acceptance.md)。主仓未合并、未push、远端CI与真麦等未验，不能当作排产清批或生产交付。

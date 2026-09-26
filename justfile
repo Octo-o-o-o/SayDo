@@ -17,11 +17,14 @@ ci-node:
     node scripts/check-hardcoded-colors.mjs
     node scripts/test-color-gate.mjs
     node scripts/test-migration-tools.mjs
+    node scripts/test-gate-temp-cleanup.mjs
+    node scripts/test-dev-lifecycle.mjs
     node scripts/test-release-physical-evidence.mjs
     node scripts/test-release-provenance.mjs
     node scripts/test-public-text-redaction.mjs
     node scripts/test-public-tree-privacy.mjs
     node scripts/test-pairing-url-corpus.mjs
+    node scripts/test-prompt-scan-completion.mjs
     node scripts/test-mobile-installers.mjs
     node scripts/test-mobile-release-contract.mjs
     node scripts/test-install-scripts.mjs
@@ -48,7 +51,7 @@ backup:
 daemon *args:
     pnpm --filter @saydo/daemon daemon {{args}}
 
-# T2 手机配对 URL(一次性 token 注入;之后深链不带 token)
+# T2 配对入口(远程业务关闭时只说明暂不可用,不打印 token URL)
 t2-pair:
     pnpm --filter @saydo/daemon t2-pair
 

@@ -1,6 +1,7 @@
 # 官网首页结构与文案稿 v2(Fable,2026-08-20)
 
 > 定位:saydo.octoooo.com 首页(中文 `index.html` / 英文 `en/index.html`)的**结构与文案**修订稿。owner 对现有 UI(R75 重建:印泥朱 + 纸上账本、亮暗双主题、移动适配)满意,本稿**不动视觉与组件**,只调区块顺序 / 取舍与每段文案;供另一会话照稿修改 HTML。
+> 2026-09-13 对账：文案事实以当前canonical和源码为准。当前远程业务关闭,CLI登录不证明免费或可调用；历史制品与当前整合候选的验收分开记录。旧结构和D节保留为设计过程。
 > 依据:本会话实读现站全文(中英)、`docs/01/02/04`、`docs/release/2026-08-13-app-materials.md` §3 商店文案、以及 Docs 内容稿 `docs/site/2026-08-20-docs-page-content.fable.md` §C.1 的事实核对结论(仓库可见性、执行器现状、Demo / 回叫 / 奠基 落地程度等)。
 > 硬约束:零 emoji;状态词纪律;完成度诚实(现在可用 / Coming soon;必要处加「进行中」);不暗示无人值守完成;品牌印泥朱 / 纸感;禁赛博霓虹。
 > 本稿三部分:**A 结构**(现状 → 建议,每区 保留 / 改文案 / 新增 / 合并)/ **B 逐区文案定稿**(中文为主,英文给对应句)/ **C 事实红线与待 owner 裁决** / **D 自审记录**。
@@ -9,7 +10,7 @@
 
 # A. 结构
 
-## A.1 现状区块(自上而下)与诊断
+## A.1 历史结构诊断(2026-08,不代表当前业务可用性)
 
 | # | 现状区块 | 锚点 | 诊断 |
 |---|---|---|---|
@@ -102,11 +103,11 @@
 - 说了就记 [保留]
 - 先吃透,再办事 [改]:`第一次聊一个项目,先读透结构、约定与关键文件,沉淀成持久知识底座,之后每次都带着对你项目的理解开聊。这是「说到」和「新开一个聊天窗口」的分水岭。`
   *EN: The first conversation about a project starts by reading its structure, conventions, and key files into a persistent knowledge base — every later conversation begins with that understanding. That's the line between SayDo and a fresh chat window.*
-- AI 真的在干活 [改 2026-08-22]:`接上你电脑上已登录的 AI——Codex、Claude Code、Cursor、Gemini CLI、Grok 等替它对话、思考、评估;动手改代码当前稳定路径是 Cursor Agent,Claude Code 已接入生产主流程、正在做最终真机收口。已订阅哪家用哪家,无需额外付费。`
-  *EN: It plugs into the AI already signed in on your machine — Codex, Claude Code, Cursor, Gemini CLI, Grok and more for thinking and evaluation. Cursor Agent is the stable code-editing path today; Claude Code is wired into production and undergoing final live closure. Whichever you subscribe to, it uses. No extra fees.*
+- AI 真的在干活 [改 2026-08-22]:`接上你电脑上已登录的 AI——Codex、Claude Code、Cursor、Gemini CLI、Grok 等替它对话、思考、评估;动手改代码当前稳定路径是 Cursor Agent,Claude Code 已接入生产主流程、正在做最终真机收口。选择已支持且通过自检的供给,费用以服务商账单为准。`
+  *EN: It plugs into the AI already signed in on your machine — Codex, Claude Code, Cursor, Gemini CLI, Grok and more for thinking and evaluation. Cursor Agent is the stable code-editing path today; Claude Code is wired into production and undergoing final live closure. Use a supported supply that passes self-test; billing follows your provider.*
 - 人拍板才算数 [保留]
-- 数据完全在你手里 [改]:`没有开发者运营的云端后台，没有账号注册。对话、事项与账本保存在你自己的设备上；手机与电脑之间走你自己的局域网或你自行配置的加密组网。开发者无法访问、也不收集。`
-  *EN: No developer-operated backend, no accounts. Conversations, items, and the ledger stay on your devices. Phone and computer talk over your own LAN or an encrypted overlay you configure. The developer cannot access — and does not collect — any of your data.*
+- 数据完全在你手里 [改]:`没有开发者运营的云端后台，没有账号注册。对话、事项与账本保存在你自己的设备上；当前业务入口仅在daemon所在本机浏览器开放。开发者无法访问、也不收集。`
+  *EN: No developer-operated backend, no accounts. Conversations, items, and the ledger stay on your devices. Business access is currently limited to the browser on the daemon host. The developer cannot access — and does not collect — any of your data.*
 - 跨设备同一本账 [保留]
 
 ## B.6 产品现状(7 卡)
@@ -114,8 +115,8 @@
 - 标题 [保留]:eyebrow `产品现状` / H2 `做到哪了,一眼看清` / 引语 `不画饼。已经能用的如实标注「现在可用」,还在路上的如实写 Coming soon。`
 - 桌面服务 · 现在可用 [改 2026-08-23]:`macOS / Windows / Linux 的 daemon 与 Web 控制台源码形态已经可运行;v0.1.0-rc.13 固定 URL 已由不可变 GitHub Release 与六项跨平台安装 smoke 验证,可一条命令启动、无需克隆源码。可选语音管线与常驻安装仍走源码说明。`
   *EN: The source form of the daemon and Web console already runs on macOS, Windows, and Linux. The immutable v0.1.0-rc.13 GitHub Release has passed all six fixed-URL installation smokes across macOS, Windows, and Linux; it starts with one command and no source checkout. The optional voice pipeline and service installation still use the source guide.*
-- 驱动你已有的 AI · 现在可用 [改]:`对话、思考、评估可用你已登录的 Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot 订阅,或任一 OpenAI 兼容 API;真正动手改代码的执行器当前为 Cursor Agent。`
-  *EN: Conversation, reasoning, and evaluation run on your signed-in Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot subscriptions, or any OpenAI-compatible API; the executor that actually edits code is Cursor Agent today.*
+- 驱动你已有的 AI · 现在可用 [改]:`对话、思考、评估可用你已登录的 Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot 订阅,或任一 OpenAI 兼容 API;代码执行已接入Cursor Agent与Claude Code,各自按自检和验收状态启用。`
+  *EN: Conversation, reasoning, and evaluation run on your signed-in Codex / Claude Code / Cursor / Gemini CLI / Grok / Qwen / Copilot subscriptions, or any OpenAI-compatible API; code execution is wired for Cursor Agent and Claude Code, subject to their own self-tests and acceptance status.*
 - 项目记忆与四色账本 · 现在可用 [保留]
 - Claude Code 执行器 · 收口中 [改 2026-08-22]:`生产执行主流程、审批门、恢复、记账、自检与控制台已经接线;最终真实端到端 conformance 尚未收口,因此暂不替代 Cursor 稳定路径。`
   *EN: Claude Code executor · Closing out — production execution, approval, recovery, accounting, self-test, and console are wired; final live end-to-end conformance remains open, so Cursor stays the stable path for now.*
@@ -155,14 +156,14 @@
 - 五问 [改其中三问]:
   - 云服务:`不是。没有开发者运营的云端后台。重活在你自己的电脑上跑。你接入的第三方 AI 由你的电脑直接调用，开发者不经手、不可见。`
     *EN: No. There is no developer-operated cloud backend. The heavy work runs on your own computer. The third-party AI you connect is called directly by your computer — the developer never touches or sees any of it.*
-  - 需要什么前提 [改 2026-08-22]:`在你的电脑（macOS / Windows / Linux）上运行「说到」桌面服务（开源免费）。按文档显式打开局域网访问后，可用手机浏览器扫码连接。`
-    *EN: Run the free, open-source SayDo desktop service on your computer (macOS / Windows / Linux). After you explicitly enable LAN access as documented, you can connect with a phone browser by scanning a QR code.*
-  - 数据存在哪:`对话、事项与账本保存在你自己的设备上。手机与电脑之间走你自己的局域网或你自行配置的加密组网。你自行启用的云端语音、AI 上游和推送，由你的电脑直连第三方；开发者不接收这些数据。`
-    *EN: Conversations, items, and the ledger stay on your own devices. Phone and computer talk over your own LAN or an encrypted overlay you configure. Cloud voice, AI upstreams, and push that you enable yourself are called directly from your computer to those third parties; the developer does not receive that data.*
-  - 「需要什么前提」末句 `语音无需额外配置,浏览器即可用` 仍成立;如要更准:`语音不用额外配置——浏览器自带的系统语音就能说;想要更准更自然可选配云端语音`
-    *EN (optional): Voice needs no setup — your browser's built-in speech works out of the box; cloud voice is an optional upgrade for better accuracy.*
-- [新增] `要花钱吗?`:`桌面服务免费。AI 的费用直接付给你选的厂商:用你已有的订阅(额度内零额外费用),或你自己的 API key 按量计费;每个任务有成本、时长、回合三重熔断。说到不加价、不经手、不代充。`
-  *EN: Does it cost money? The desktop service is free. AI costs go straight to the vendor you choose — your existing subscription (no extra fees within its quota) or your own API key, pay as you go — with per-task cost, time, and turn circuit-breakers. SayDo adds no markup and never handles payment.*
+  - 需要什么前提 [改 2026-08-22]:`在你的电脑（macOS / Windows / Linux）上运行「说到」桌面服务（开源免费）。当前远程业务入口关闭,请在本机浏览器使用。`
+    *EN: Run the free, open-source SayDo desktop service on your computer (macOS / Windows / Linux). Remote business access is currently closed; use the browser on the daemon host.*
+  - 数据存在哪:`对话、事项与账本保存在你自己的设备上。当前业务入口仅在daemon所在本机浏览器开放。你自行启用的云端语音、AI 上游和推送，由你的电脑直连第三方；开发者不接收这些数据。`
+    *EN: Conversations, items, and the ledger stay on your own devices. Business access is currently limited to the browser on the daemon host. Cloud voice, AI upstreams, and push that you enable yourself are called directly from your computer to those third parties; the developer does not receive that data.*
+  - 「需要什么前提」末句 `浏览器支持语音识别并授予权限时可用` 仍成立;如要更准:`浏览器语音取决于系统能力、权限和网络;不支持时可打字,也可另配云端语音`
+    *EN (optional): Browser speech depends on system support, permissions, and network access. Text remains available; cloud speech is an optional configuration.*
+- [新增] `要花钱吗?`:`桌面服务免费。AI 的费用直接付给你选的厂商:用通过自检的CLI登录态(费用和额度以服务商为准),或你自己的 API key 按量计费;每个任务有成本、时长、回合三重熔断。说到不加价、不经手、不代充。`
+  *EN: Does it cost money? The desktop service is free. AI costs go straight to the vendor you choose — a supported CLI login (fees and quotas follow your provider) or your own API key, pay as you go — with per-task cost, time, and turn circuit-breakers. SayDo adds no markup and never handles payment.*
 - [新增] `它会替我 push 或开 PR 吗?`:`不会。它只在你项目里的独立 worktree 和 saydo/<任务> 分支上改代码;合并到你的分支要你用本机认证确认或自己动手;推送远端、开 PR 永远是你之后自己做的事。`
   *EN: Will it push or open PRs for me? No. It only edits code in an isolated worktree on a saydo/<task> branch inside your project; merging into your branch takes local device authentication or your own hands, and pushing or opening a PR is always something you do afterwards.*
 
@@ -187,11 +188,11 @@
 |---|---|---|---|
 | C-1 | **已解除(2026-08-20)**:LICENSE = Apache-2.0;仓库已公开(`github.com/Octo-o-o-o/SayDo` = 快照仓,全史在私有归档;处置记录 `docs/plan/2026-08-20-repo-public-readiness.fable.md` §3.1) | 首页「开源免费」与 GitHub 直链成立 | 本稿可按原文案上线 |
 | C-2 | 「驱动你已有的 AI」两层混写 | 推理槽 7 家 CLI 可用;Cursor 是稳定执行器缺省;Claude Code 生产主流程已接线、最终 live conformance 未收口;Gemini CLI 无执行计划 | 按 B.5 / B.6 拆句;Claude 标「收口中」,不得写成尚未接线或稳定可用 |
-| C-3 | **已解除(2026-08-20)**:七步第 3 步「轻量 Demo」 | S1 批落地:决策包同轮生成轻量小样(机械渲染)+ 控制台「看小样」+ 本机同轮上屏 | B.3 第 3 步已恢复小样表述(更新版) |
+| C-3 | **已解除(2026-08-20)**:七步第 3 步「轻量 Demo」 | S1 批落地:决策包同轮生成轻量小样(机械渲染)+ 控制台「看小样」+ 本机同轮发送小样提示 | B.3 第 3 步已恢复小样表述(更新版) |
 | C-4 | **已解除(2026-08-20)**:七步第 6 步回叫升级链 | S2 批落地:在线语音回叫(控制台在线 + 语音管线健康)→ macOS 桌面通知 + ntfy;免打扰只推不响;「知道了」/开口即应答 | B.3 第 6 步已按新事实改写 |
 | C-5 | 「先深度研究透」 | 奠基 = 机械管道;LLM 深研未做 | B.5 改「读透结构、约定与关键文件」 |
-| C-6 | 「手机扫码即连」 | 需按文档显式打开局域网访问、仅私网、App 未上架(浏览器或自构建壳) | 首页写成「按文档显式打开局域网访问后，可用手机浏览器扫码连接」;不在首页暴露环境变量名;Docs 写清开关 |
-| C-7 | 「语音无需额外配置,浏览器即可用」 | 成立(浏览器系统语音回退,2026-08-13) | 可保留;B.10 给更准版本供选 |
+| C-6 | 「手机扫码即连」 | 当前手机/LAN/tailnet业务关闭 | 首页和Docs均引导本机浏览器,不提供含令牌的远程URL |
+| C-7 | 浏览器系统语音 | 取决于浏览器、权限与网络 | 保留条件和打字后备,不保证零配置或免费 |
 | C-8 | 英文页同步 | 现英文页与中文逐段对应 | 每处 [改] 都给了 EN;按同位置替换 |
 | C-9 | `#download` 改 `#start` | 站内 nav / 页脚 / en 页引用该锚点 | 保留旧 id 作兼容(同一 section 双 id 不合法——可在 section 上设 `id="start"`,并在其前放一个空 `<span id="download"></span>` 锚) |
 

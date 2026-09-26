@@ -1,9 +1,11 @@
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  parseVerifierOutput,
   physicalReleaseChecks,
   validatePhysicalReleaseEvidence,
   validatePhysicalReleaseRun
@@ -168,5 +170,236 @@ try {
   provenanceRejected = true;
 }
 if (!provenanceRejected) throw new Error("实体证据 transport 漂移未拒绝");
+
+if (
+  postReleaseGateSource.includes("function parseVerifierOutput(") ||
+  postReleaseGateSource.includes("parseVerifierOutput as parsePhysicalVerifierOutput") ||
+  postReleaseGateSource.includes("charCodeAt(") ||
+  /JSON\.parse\(\s*output\.trim\(\)/.test(postReleaseGateSource)
+) {
+  throw new Error("post-release-gate 仍保留测试专用解析回落或本地重复解析");
+}
+if (
+  !postReleaseGateSource.includes("parseVerifierOutput,") ||
+  !postReleaseGateSource.includes('from "./release-physical-evidence.mjs"') ||
+  !postReleaseGateSource.includes("parseVerifierOutput(output, spec.key)")
+) {
+  throw new Error("post-release-gate 未正常 import 调用生产 parseVerifierOutput");
+}
+if (
+  postReleaseGateSource.includes("head=") ||
+  postReleaseGateSource.includes("tail=") ||
+  postReleaseGateSource.includes("slice(0, 200)") ||
+  postReleaseGateSource.includes("slice(-200)")
+) {
+  throw new Error("post-release-gate 仍回显 stdout 原文片段");
+}
+
+const privateMarker = "fixture-private-output-marker-not-a-real-secret";
+const dirtyOutput = `not-json ${privateMarker}`;
+
+function expectedRejectMessage(output, key) {
+  const text = typeof output === "string" ? output : "";
+  const digest = createHash("sha256").update(text).digest("hex");
+  return `固定 URL verifier stdout 不是单一 JSON:${key}:len=${text.length}:bytes=${Buffer.byteLength(text, "utf8")}:sha256=${digest}`;
+}
+
+function assertSanitizedReject(label, output, key) {
+  let caught;
+  try {
+    parseVerifierOutput(output, key);
+  } catch (error) {
+    caught = error;
+  }
+  if (!caught) throw new Error(`${label}:非 JSON 未拒绝`);
+  const message = caught instanceof Error ? caught.message : String(caught);
+  if (typeof output === "string" && output.includes(privateMarker) && message.includes(privateMarker)) {
+    throw new Error(`${label}:错误含合成私有 marker`);
+  }
+  if (message.includes("head=") || message.includes("tail=")) throw new Error(`${label}:错误仍含原文片段字段`);
+  const expectedMessage = expectedRejectMessage(output, key);
+  if (message !== expectedMessage) throw new Error(`${label}:错误摘要不符:${message}`);
+  return message;
+}
+
+assertSanitizedReject("imported", dirtyOutput, "windowsExec");
+
+const multibyteOutput = `not-json ${privateMarker} 中文`;
+if (Buffer.byteLength(multibyteOutput, "utf8") === multibyteOutput.length) {
+  throw new Error("UTF8 多字节夹具未形成 len/bytes 差");
+}
+assertSanitizedReject("utf8-multibyte", multibyteOutput, "windowsExec");
+
+const isolatedSurrogateOutput = `not-json ${privateMarker}\uD800`;
+if (Buffer.byteLength(isolatedSurrogateOutput, "utf8") === isolatedSurrogateOutput.length) {
+  throw new Error("孤立代理夹具未形成 len/bytes 差");
+}
+assertSanitizedReject("isolated-surrogate", isolatedSurrogateOutput, "windowsExec");
+
+const parsed = parseVerifierOutput(JSON.stringify(valid), expected.key);
+if (JSON.stringify(parsed) !== JSON.stringify(valid)) throw new Error("完整 JSON 被改写或拒绝");
+validatePhysicalReleaseRun(parsed, expected);
+
+const incomplete = parseVerifierOutput(JSON.stringify({ schemaVersion: 1, ok: true }), expected.key);
+let incompleteRejected = false;
+try {
+  validatePhysicalReleaseRun(incomplete, expected);
+} catch {
+  incompleteRejected = true;
+}
+if (!incompleteRejected) throw new Error("不完整 JSON 不得当作实体证据成功");
+
+// SC-58:runWindowsPhysical 远端 rmdir 必须确认本次创建归属。抽取生产函数原文,
+// 替换 SSH/文件系统边界,不连接真实远端。
+function extractFunction(source, name) {
+  const start = source.indexOf(`function ${name}(`);
+  if (start < 0) throw new Error(`生产源缺少 ${name}`);
+  let depth = 0;
+  const begin = source.indexOf("{", start);
+  for (let i = begin; i < source.length; i++) {
+    if (source[i] === "{") depth++;
+    else if (source[i] === "}") {
+      depth--;
+      if (depth === 0) return source.slice(start, i + 1);
+    }
+  }
+  throw new Error(`${name} 函数体不完整`);
+}
+
+const runWindowsPhysicalSrc = extractFunction(postReleaseGateSource, "runWindowsPhysical");
+if (!/remoteRootOwned/.test(runWindowsPhysicalSrc)) {
+  throw new Error("runWindowsPhysical 缺少远端根目录归属标记");
+}
+
+function makeRunWindowsPhysical(deps) {
+  const names = [
+    "repo",
+    "windowsRemoteRootName",
+    "windowsVerifierClosure",
+    "assertClosureFingerprints",
+    "hashClosureFiles",
+    "mkdtempSync",
+    "join",
+    "tmpdir",
+    "materializeClosure",
+    "sshText",
+    "execFileSync",
+    "sshClientEnv",
+    "parseRemoteHashes",
+    "createHash",
+    "randomUUID",
+    "physicalExpected",
+    "assertSafeRemoteVerifierPath",
+    "WINDOWS_VERIFIER_RELATIVE_PATH",
+    "WINDOWS_WRAPPER_RELATIVE_PATH",
+    "tag",
+    "parseVerifierOutput",
+    "validatePhysicalReleaseRun",
+    "wrapPhysicalEvidence",
+    "rmSync",
+    "invariant"
+  ];
+  return new Function(
+    "deps",
+    `const {${names.join(",")}} = deps;\n${runWindowsPhysicalSrc}\nreturn runWindowsPhysical;`
+  )(deps);
+}
+
+function sc58Deps(overrides) {
+  const calls = { ssh: [], scp: 0, rmdir: 0 };
+  const defaults = {
+    repo: "/nonexistent-repo",
+    windowsRemoteRootName: () => "saydo-gate-run-test",
+    windowsVerifierClosure: () => ["scripts/verify-release-url.mjs"],
+    assertClosureFingerprints: () => undefined,
+    hashClosureFiles: () => ({}),
+    mkdtempSync: (prefix) => `${prefix}owned`,
+    join: (...parts) => parts.join("/"),
+    tmpdir: () => "/tmp",
+    materializeClosure: () => undefined,
+    sshText: (_cfg, command) => {
+      calls.ssh.push(command);
+      if (/rmdir/u.test(command)) calls.rmdir += 1;
+      return "";
+    },
+    execFileSync: () => {
+      calls.scp += 1;
+      return "";
+    },
+    sshClientEnv: () => ({}),
+    parseRemoteHashes: () => ({}),
+    createHash: () => ({ update: () => ({ digest: () => "0".repeat(64) }) }),
+    randomUUID: () => "00000000-0000-4000-8000-000000000000",
+    physicalExpected: () => ({ packageUrl: "https://example.invalid/pkg.tgz" }),
+    assertSafeRemoteVerifierPath: (p) => p,
+    WINDOWS_VERIFIER_RELATIVE_PATH: "scripts/verify-release-url.mjs",
+    WINDOWS_WRAPPER_RELATIVE_PATH: "scripts/run-release-verifier-windows.ps1",
+    tag: "v0.0.0-test",
+    parseVerifierOutput: () => ({}),
+    validatePhysicalReleaseRun: () => undefined,
+    wrapPhysicalEvidence: (raw) => raw,
+    rmSync: () => undefined,
+    invariant: (value, message) => {
+      if (!value) throw new Error(message);
+    }
+  };
+  return { deps: { ...defaults, ...overrides }, calls };
+}
+
+const sshConfig = { options: [], host: "example.invalid", node: "node", targetFingerprint: "t", hostKeyFingerprint: "h" };
+
+// 反例 1:本地闭包准备失败 -> 不得发送远端 rmdir
+{
+  const { deps, calls } = sc58Deps({
+    materializeClosure: () => {
+      throw new Error("local closure prep failed");
+    }
+  });
+  const run = makeRunWindowsPhysical(deps);
+  let threw = false;
+  try {
+    run({}, { fingerprints: { "scripts/verify-release-url.mjs": "0".repeat(64) } }, [], "run-1", sshConfig);
+  } catch {
+    threw = true;
+  }
+  if (!threw) throw new Error("SC-58 本地准备失败未传播错误");
+  if (calls.rmdir !== 0) throw new Error(`SC-58 本地准备失败仍发远端 rmdir:${calls.rmdir}`);
+}
+
+// 反例 2:远端目录已存在,创建被拒 -> 不得发送远端 rmdir
+{
+  const { deps, calls } = sc58Deps({
+    sshText: (_cfg, command) => {
+      calls.ssh.push(command);
+      if (/New-Item/u.test(command)) throw new Error("remote root exists");
+      if (/rmdir/u.test(command)) calls.rmdir += 1;
+      return "";
+    }
+  });
+  const run = makeRunWindowsPhysical(deps);
+  let threw = false;
+  try {
+    run({}, { fingerprints: { "scripts/verify-release-url.mjs": "0".repeat(64) } }, [], "run-2", sshConfig);
+  } catch {
+    threw = true;
+  }
+  if (!threw) throw new Error("SC-58 远端已存在未传播错误");
+  if (calls.rmdir !== 0) throw new Error(`SC-58 远端已存在仍发远端 rmdir:${calls.rmdir}`);
+}
+
+// 正例:本 run 创建成功 -> 收尾仍发送远端 rmdir 一次
+{
+  const { deps, calls } = sc58Deps({});
+  const run = makeRunWindowsPhysical(deps);
+  const out = run(
+    {},
+    { fingerprints: { "scripts/verify-release-url.mjs": "0".repeat(64) } },
+    [],
+    "run-3",
+    sshConfig
+  );
+  if (!Array.isArray(out)) throw new Error("SC-58 正例未返回 results");
+  if (calls.rmdir !== 1) throw new Error(`SC-58 创建成功后应发一次远端 rmdir,实际:${calls.rmdir}`);
+}
 
 console.log("[ok] release physical evidence gate self-test");

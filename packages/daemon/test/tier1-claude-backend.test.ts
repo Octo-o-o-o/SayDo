@@ -8,6 +8,7 @@ import {
   buildClaudeHooksSettings,
   claudeBackend,
   claudeEnvOverrides,
+  claudeIsTerminalResult,
   parseClaudeTier1Line
 } from "../src/tier1/backends/claude.js";
 import { explainCliProcessFailure } from "../src/providers/byoa/processFailure.js";
@@ -127,6 +128,7 @@ describe("parseClaudeTier1Line 对 golden fixture", () => {
     expect(init.apiKeySource).toBe("none");
     expect(init.tools).toEqual(["Bash", "Edit", "NotebookEdit", "Read", "Write"]);
     expect(init.model).toBe("claude-sonnet-5");
+    expect(init.permissionMode).toBe("default");
     expect(init.claudeCodeVersion).toBe("2.1.220");
     expect(evs.some((e) => e.kind === "observed_model")).toBe(true);
   });
@@ -192,6 +194,43 @@ describe("explainFailure 三例", () => {
     const e = backend.explainFailure(1, "boom: unexpected parser crash");
     expect(e.code).toBe("process_exit");
     expect(e.message).toContain("1");
+  });
+});
+
+describe("claudeIsTerminalResult 与生产 parser 同源", () => {
+  it("只认完整 JSON 顶层 type=result", () => {
+    const nested = JSON.stringify({
+      type: "assistant",
+      message: {
+        content: [
+          {
+            type: "tool_use",
+            id: "tool-1",
+            name: "Write",
+            input: { type: "result", file_path: "fixture.txt", content: "ordinary content" }
+          }
+        ]
+      }
+    });
+    expect(claudeIsTerminalResult(nested)).toBe(false);
+    expect(parseClaudeTier1Line(nested).map((e) => e.kind)).toEqual(["tool_started"]);
+
+    const escaped = JSON.stringify({
+      type: "assistant",
+      message: { content: [{ type: "text", text: '{"type":"result"}' }] }
+    });
+    expect(claudeIsTerminalResult(escaped)).toBe(false);
+
+    expect(claudeIsTerminalResult("{type:result")).toBe(false);
+    expect(claudeIsTerminalResult(JSON.stringify([{ type: "result" }]))).toBe(false);
+    expect(claudeIsTerminalResult(JSON.stringify("result"))).toBe(false);
+    expect(claudeIsTerminalResult("42")).toBe(false);
+
+    const resultLine = loadJsonl("result_success.jsonl")[0]!;
+    expect(claudeIsTerminalResult(resultLine)).toBe(true);
+    expect(parseClaudeTier1Line(resultLine)[0]?.kind).toBe("result");
+    expect(claudeBackend().isTerminalResult(resultLine)).toBe(true);
+    expect(claudeBackend().isTerminalResult(nested)).toBe(false);
   });
 });
 

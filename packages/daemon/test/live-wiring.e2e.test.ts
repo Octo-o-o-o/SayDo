@@ -26,7 +26,12 @@ import { BrainTools } from "../src/brain/tools.js";
 import { DecisionPackageFactory } from "../src/packages/factory.js";
 import { ArtifactStore } from "../src/artifacts/store.js";
 import { MemoryLedger } from "../src/memory/ledger.js";
-import { confirmMemoryProposal } from "../src/memory/m0Confirm.js";
+import {
+  confirmMemoryProposal,
+  MemoryConfirmBoundaryError,
+  MemoryConfirmWriteError,
+  memoryConfirmPendingRejectAuditOf
+} from "../src/memory/m0Confirm.js";
 import { HotwordStore } from "../src/memory/hotwords.js";
 import { DeepReviewGovernor } from "../src/evaluator/readiness.js";
 import { checkStatusWords } from "../src/brain/golden.js";
@@ -39,7 +44,7 @@ import { insertProject } from "../src/storage/dao/projects.js";
 import { managedProjectPath } from "../src/projects/workspace.js";
 import { isProjectAnchorQuestion } from "../src/brain/instructions.js";
 
-const SES = "ses_01W1REE2E00000000000000000";
+export const SES = "ses_01W1REE2E00000000000000000";
 
 // anchor 用例必须用真实 $HOME 下的路径(验证 ~/ 缩写还原),统一走本 registry 回收,
 // 不得裸调 mkdtempSync(join(homedir(), ...))——那正是 2026-08-12 家目录数千残留的来源。
@@ -53,8 +58,8 @@ afterEach(() => {
   for (const path of homeFixtures) rmSync(path, { recursive: true, force: true });
   homeFixtures.clear();
 });
-const RAC = "prj_01RAC000000000000000000000";
-const TURN = (n: number): string => `ses_01W1REE2ETVRN000000000000${String(n).padStart(1, "0")}`;
+export const RAC = "prj_01RAC000000000000000000000";
+export const TURN = (n: number): string => `ses_01W1REE2ETVRN000000000000${String(n).padStart(1, "0")}`;
 
 type ScriptedSuccess = Omit<Extract<ChatResult, { ok: true }>, "requestedModel" | "observedModelSource" | "observedModelExempted">
   & Partial<Pick<Extract<ChatResult, { ok: true }>, "requestedModel" | "observedModelSource" | "observedModelExempted">>;
@@ -71,7 +76,7 @@ function withModelEvidence(result: ScriptedResult): ChatResult {
 }
 
 /** 脚本化 provider:按 chat 调用序返回(可读 messages 里的工具结果做动态参数) */
-function scriptedProvider(
+export function scriptedProvider(
   script: (messages: ChatMessage[], call: number, request: ChatRequest) => ScriptedResult
 ): LlmProvider {
   let call = 0;
@@ -85,7 +90,7 @@ function scriptedProvider(
   };
 }
 
-function insertRacProject(r: Rig, title: string): void {
+export function insertRacProject(r: Rig, title: string): void {
   insertProject(r.db, {
     id: RAC,
     title,
@@ -135,13 +140,13 @@ const drafter: LlmProvider = {
   }
 };
 
-function lastToolResult(messages: ChatMessage[]): Record<string, unknown> {
+export function lastToolResult(messages: ChatMessage[]): Record<string, unknown> {
   const toolMsgs = messages.filter((m) => m.role === "tool");
   const last = toolMsgs[toolMsgs.length - 1];
   return last ? (JSON.parse(last.content) as Record<string, unknown>) : {};
 }
 
-interface Rig {
+export interface Rig {
   db: Db;
   dialog: LiveDialog;
   spoken: { sentenceId: string; text: string }[];
@@ -153,9 +158,10 @@ interface Rig {
   audit: AuditSink;
   sessions: LiveVoiceSessions;
   brainTools: BrainTools;
+  hotwords: HotwordStore;
 }
 
-function buildRig(
+export function buildRig(
   provider: LlmProvider,
   opts: {
     drafter?: LlmProvider | null;
@@ -177,6 +183,12 @@ function buildRig(
     onUserMessageAccepted?: (sessionId: string) => void;
     dialogProviderFor?: (sessionId: string, projectId: string | null) => LlmProvider | null;
     onLlmArrived?: (turnId: string, atMs: number, meta: { toolCallsMade: number; control: boolean }) => void;
+    memoryConfirm?: (input: {
+      sessionId: string;
+      turnId: string;
+      receiptId: string;
+      payload: import("../src/live/confirm.js").MemoryPendingPayload;
+    }) => { memId: string; duplicate: boolean };
   } = {}
 ): Rig {
   const home = mkdtempSync(join(tmpdir(), "saydo-wiring-"));
@@ -232,7 +244,7 @@ function buildRig(
   const hotwords = new HotwordStore(ledger);
   const factory = new DecisionPackageFactory({ db, artifacts: new ArtifactStore({ db, saydoDir: home }), audit, now: () => new Date() });
   const brainTools = new BrainTools({ db, audit, ...(opts.thinkingProvider ? { thinkingProvider: opts.thinkingProvider } : {}) });
-  const confirm = new ConfirmationLoop();
+  const confirm = new ConfirmationLoop({}, db, audit);
   const gate0 = { enabled: true, bypass: false };
   // A3-armed(段3):rig 与生产同构恒 armed——真实 evidenceFor(现役 confirmed 绑定)
   const readinessEvidence = (_sid: string, projectId: string): ReadinessEvidenceDetail =>
@@ -283,7 +295,7 @@ function buildRig(
       readinessEvidence
     },
     readinessConfirm: (input) => confirmBindings({ db, audit, snapshotter: null, foundationGenerationOf: () => 0 }, input),
-    memoryConfirm: (input) => confirmMemoryProposal({ db, ledger, audit }, input),
+    memoryConfirm: opts.memoryConfirm ?? ((input) => confirmMemoryProposal({ db, ledger, audit }, input)),
     projectAnchorAccept: (sessionId, candidate) => ({
       event: acceptProjectAnchor({ db, ledger, audit, candidate, sessionId, now: new Date() }),
       ready: opts.ensureProjectAnchorReady?.(sessionId) ?? true,
@@ -297,7 +309,7 @@ function buildRig(
     },
     packDeps: { db, ledger, hotwords }
   });
-  return { db, dialog, spoken, confirm, gate0, home, ledger, audit, sessions, brainTools };
+  return { db, dialog, spoken, confirm, gate0, home, ledger, audit, sessions, brainTools, hotwords };
 }
 
 describe("首跑 once marker 的消息接纳边界", () => {
@@ -1188,7 +1200,7 @@ function armSession(r: Rig): void {
  * listCandidates → confirmBindings 升格(不 mock 表)。缺省只 cover critical(建议态放行语义
  * 一并锻炼:非 critical unknown ⇒ gap_knowledge/gap_requirement 仍可组包,10 #42)。
  */
-function coverReadiness(rig: Rig, sessionId: string, opts: { criticalOnly?: boolean } = {}): void {
+export function coverReadiness(rig: Rig, sessionId: string, opts: { criticalOnly?: boolean } = {}): void {
   const sess = rig.db.prepare("SELECT project_id FROM sessions WHERE id=?").get(sessionId) as { project_id: string } | undefined;
   if (!sess) throw new Error(`no session: ${sessionId}`);
   const projectId = sess.project_id;
@@ -1799,6 +1811,100 @@ describe("SD-2 全链:remember(M0) → 机械确认句 → 词表裁决 → memo
     await rig.dialog.onAsrFinal(SES, TURN(2), "不要");
     expect(m0Rows(rig)).toEqual([]);
     expect(rig.spoken.at(-1)?.text).toBe("好,这条不记。");
+  });
+
+  it("同库 memory.m0_confirmed 注入失败:口播未保存且账本零 M0,不承诺稍后重试", async () => {
+    rig = buildRig(scriptedProvider(m0Script));
+    await rig.dialog.onAsrFinal(SES, TURN(1), "以后发布前不用再问我");
+    expect(m0Rows(rig)).toEqual([]);
+    rig.db.exec(`
+      CREATE TRIGGER fail_m0_confirmed
+      BEFORE INSERT ON audit_log
+      WHEN NEW.action = 'memory.m0_confirmed'
+      BEGIN
+        SELECT RAISE(ABORT, 'injected m0_confirmed failure');
+      END;
+    `);
+    await rig.dialog.onAsrFinal(SES, TURN(2), "好");
+    expect(m0Rows(rig)).toEqual([]);
+    expect(rig.spoken.at(-1)?.text).toBe("记的时候出了问题,这条先没记。");
+    expect(rig.spoken.some((s) => s.text.includes("稍后"))).toBe(false);
+  });
+
+  it("persist unknown 不断言没记、不承诺稍后重试", async () => {
+    rig = buildRig(scriptedProvider(m0Script), {
+      memoryConfirm: () => {
+        throw new MemoryConfirmWriteError("injected unknown persist", "unknown");
+      }
+    });
+    await rig.dialog.onAsrFinal(SES, TURN(1), "以后发布前不用再问我");
+    await rig.dialog.onAsrFinal(SES, TURN(2), "好");
+    expect(m0Rows(rig)).toEqual([]);
+    expect(rig.spoken.at(-1)?.text).toBe("记的时候出了问题,这条现在没法确认有没有记下,你在屏幕上看一眼。");
+    expect(rig.spoken.some((s) => s.text.includes("稍后"))).toBe(false);
+  });
+
+  it("handleMemoryOutcome 在确认包装事务回滚后补 digest 拒写审计,不说记住了", async () => {
+    rig = buildRig(scriptedProvider(m0Script), {
+      memoryConfirm: (input) =>
+        rig.db.transaction(() => {
+          rig.db
+            .prepare("INSERT INTO audit_log(id, ts, actor, action) VALUES ('outer_lock', '2026-09-13T00:00:00.000Z', 'daemon', 'probe')")
+            .run();
+          return confirmMemoryProposal(
+            { db: rig.db, ledger: rig.ledger, audit: rig.audit },
+            { ...input, payload: { ...input.payload, claim: "用户偏好:随便谁都能发布" } }
+          );
+        })()
+    });
+    await rig.dialog.onAsrFinal(SES, TURN(1), "以后发布前不用再问我");
+    await rig.dialog.onAsrFinal(SES, TURN(2), "好");
+    expect(m0Rows(rig)).toEqual([]);
+    expect(rig.spoken.at(-1)?.text).toBe("记的时候出了问题,这条先没记。");
+    expect(rig.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'probe'").get()).toEqual({ n: 0 });
+    expect(rig.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'memory.m0_confirm_rejected'").get()).toEqual({
+      n: 1
+    });
+  });
+
+  it("外层事务包住 applyConfirmClick 时拒写审计不落在回滚里,回滚后由调用方补记", async () => {
+    rig = buildRig(scriptedProvider(m0Script), {
+      memoryConfirm: (input) =>
+        confirmMemoryProposal(
+          { db: rig.db, ledger: rig.ledger, audit: rig.audit },
+          { ...input, payload: { ...input.payload, claim: "用户偏好:随便谁都能发布" } }
+        )
+    });
+    await rig.dialog.onAsrFinal(SES, TURN(1), "以后发布前不用再问我");
+    const pending = rig.confirm.pending(SES);
+    expect(pending?.payload.kind).toBe("memory");
+    if (!pending) throw new Error("expected memory pending");
+    let caught: unknown;
+    try {
+      rig.db.transaction(() => {
+        rig.db
+          .prepare("INSERT INTO audit_log(id, ts, actor, action) VALUES ('outer_click', '2026-09-13T00:00:00.000Z', 'daemon', 'probe')")
+          .run();
+        rig.dialog.applyConfirmClick(SES, pending.receiptId, pending.digest, "accept");
+      })();
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(MemoryConfirmBoundaryError);
+    expect(m0Rows(rig)).toEqual([]);
+    expect(rig.spoken.at(-1)?.text).toBe("记的时候出了问题,这条先没记。");
+    expect(rig.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'probe'").get()).toEqual({ n: 0 });
+    expect(rig.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'memory.m0_confirm_rejected'").get()).toEqual({
+      n: 0
+    });
+    const deferred = memoryConfirmPendingRejectAuditOf(caught);
+    expect(deferred?.action).toBe("memory.m0_confirm_rejected");
+    if (!deferred) throw new Error("expected deferred reject audit");
+    rig.audit.record(deferred);
+    expect(rig.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'memory.m0_confirm_rejected'").get()).toEqual({
+      n: 1
+    });
+    expect(m0Rows(rig)).toEqual([]);
   });
 });
 

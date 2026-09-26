@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { acceptanceApprovalBlocked } from "../lib/acceptanceEvidenceGate";
 import { acceptanceStateForCriterion, humanizeTier1RunEvidence } from "./TaskDetail";
 
 describe("Tier1 run 阻塞原因人话", () => {
@@ -37,5 +38,16 @@ describe("coding 验收逐条证据", () => {
   it("pass/fail 缺 evidenceRef 时回落 unknown，不展示无证据结论", () => {
     expect(acceptanceStateForCriterion("lint", [{ criterion: "lint", status: "pass", source: "verify" }])).toBe("unknown");
     expect(acceptanceStateForCriterion("lint", [{ criterion: "lint", status: "fail", source: "manual", evidenceRef: "  " }])).toBe("unknown");
+  });
+
+  it("已绑定但失效的引用挡住任务详情批准;无引用或有效引用的 manual unknown 不挡", () => {
+    const ref = `verify:sha256:${"a".repeat(64)}`;
+    const manual = { criterion: "人工走查", status: "unknown" as const, source: "manual" as const, evidenceRef: ref };
+    expect(acceptanceStateForCriterion("人工走查", [manual], [{ evidenceRef: ref, ok: false, reason: "not_found" }])).toBe("unknown");
+    expect(acceptanceApprovalBlocked([manual], [{ evidenceRef: ref, ok: false, reason: "digest_mismatch" }])).toBe(true);
+    expect(acceptanceApprovalBlocked([manual], [{ evidenceRef: ref, ok: false, reason: "cross_run" }])).toBe(true);
+    expect(acceptanceApprovalBlocked([manual], [{ evidenceRef: ref, ok: false, reason: "unauthorized" }])).toBe(true);
+    expect(acceptanceApprovalBlocked([manual], [{ evidenceRef: ref, ok: true }])).toBe(false);
+    expect(acceptanceApprovalBlocked([{ criterion: "人工走查", status: "unknown", source: "manual" }], [])).toBe(false);
   });
 });

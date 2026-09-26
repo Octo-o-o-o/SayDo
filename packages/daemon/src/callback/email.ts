@@ -1,13 +1,15 @@
 // EMAIL-A 阶段 A(候选):回叫升级链 L1 的邮件出站通道(与 ntfy 并列可选,任一配置即启用;05 决策单第 11 节)。
-// 红线沿用 ntfy 通道:标题/正文经 redactText;深链只带路由不带 capability token;
+// 红线沿用 ntfy 通道:标题/正文经 redactText;若带入口只给本机受信 hash 路由,不带 capability token,
+// 不把远程任务 URL 当可用入口(07 D11 当前边界);正文须写明回到运行 SayDo 的电脑处理。
 // 话术按 10 §1 状态词(ready_for_review = "执行和检查都跑完了,等你验收",绝不说"完成/交付")。
+// Subject/References 按 RFC2047 §2 / RFC5322 折行:encoded-word ≤75,含 encoded-word 的物理行 ≤76。
 // 只发 ready_for_review / blocked / failed / approval_request;每任务一线程(Message-ID / In-Reply-To / References,
 // 线程锚落 callback_outbox.thread_message_id,DDL v32 additive)。
 // SMTP submission:587 STARTTLS(缺省)或 465 隐式 TLS;AUTH PLAIN;客户端只用 node:net / node:tls,不新增依赖。
 // 凭据(SMTP_PASSWORD)经 /api/setup/secret 白名单落 .env(0600),永不进日志/审计/邮件正文。
 
-import { createConnection } from "node:net";
-import { connect as tlsConnect } from "node:tls";
+import { createConnection, type Socket } from "node:net";
+import { connect as tlsConnect, type TLSSocket } from "node:tls";
 import type { Db } from "../storage/db.js";
 import { redactText } from "../voice/redactor.js";
 import { renderNtfyMessage, type OutboxRowForNotify } from "./ntfy.js";
@@ -103,28 +105,67 @@ export interface SmtpSocket {
 }
 
 export interface SmtpDialer {
-  connect(target: EmailTarget): Promise<SmtpSocket>;
-  upgradeTls(socket: SmtpSocket, host: string): Promise<SmtpSocket>;
+  connect(target: EmailTarget, signal?: AbortSignal): Promise<SmtpSocket>;
+  upgradeTls(socket: SmtpSocket, host: string, signal?: AbortSignal): Promise<SmtpSocket>;
+}
+
+function smtpAbortError(): Error {
+  return new Error("smtp timeout");
+}
+
+/** 握手未完成也能取消:socket 在 connect/secureConnect 前就持有,abort 即 destroy。 */
+function watchNativeConnect(
+  socket: Socket | TLSSocket,
+  readyEvent: "connect" | "secureConnect",
+  signal?: AbortSignal
+): Promise<Socket | TLSSocket> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (err?: Error): void => {
+      if (settled) return;
+      settled = true;
+      socket.off(readyEvent, onReady);
+      socket.off("error", onError);
+      if (signal) signal.removeEventListener("abort", onAbort);
+      if (err) {
+        socket.on("error", () => undefined);
+        socket.destroy();
+        reject(err);
+        return;
+      }
+      resolve(socket);
+    };
+    const onReady = (): void => finish();
+    const onError = (err: Error): void => finish(err);
+    const onAbort = (): void => finish(smtpAbortError());
+    if (signal?.aborted) {
+      finish(smtpAbortError());
+      return;
+    }
+    socket.once(readyEvent, onReady);
+    socket.once("error", onError);
+    if (signal) signal.addEventListener("abort", onAbort);
+  });
 }
 
 export const nodeSmtpDialer: SmtpDialer = {
-  connect(target) {
-    return new Promise((resolve, reject) => {
-      if (target.mode === "tls") {
-        const s = tlsConnect({ host: target.host, port: target.port, servername: target.host }, () => resolve(s));
-        s.once("error", reject);
-      } else {
-        const s = createConnection({ host: target.host, port: target.port }, () => resolve(s));
-        s.once("error", reject);
-      }
-    });
+  connect(target, signal) {
+    if (signal?.aborted) return Promise.reject(smtpAbortError());
+    if (target.mode === "tls") {
+      const s = tlsConnect({ host: target.host, port: target.port, servername: target.host });
+      return watchNativeConnect(s, "secureConnect", signal);
+    }
+    const s = createConnection({ host: target.host, port: target.port });
+    return watchNativeConnect(s, "connect", signal);
   },
-  upgradeTls(socket, host) {
-    return new Promise((resolve, reject) => {
-      // socket 只在 connect() 里由 node:net 创建,这里的类型收窄仅对生产路径成立
-      const s = tlsConnect({ socket: socket as unknown as import("node:net").Socket, servername: host }, () => resolve(s));
-      s.once("error", reject);
-    });
+  upgradeTls(socket, host, signal) {
+    if (signal?.aborted) {
+      socket.destroy();
+      return Promise.reject(smtpAbortError());
+    }
+    // socket 只在 connect() 里由 node:net 创建,这里的类型收窄仅对生产路径成立
+    const s = tlsConnect({ socket: socket as unknown as Socket, servername: host });
+    return watchNativeConnect(s, "secureConnect", signal);
   }
 };
 
@@ -194,8 +235,80 @@ function b64Lines(input: string): string {
   return b64.replace(/(.{76})/g, "$1\r\n");
 }
 
-function encodedWord(text: string): string {
-  return /^[\x20-\x7e]*$/.test(text) ? text : `=?UTF-8?B?${Buffer.from(text, "utf8").toString("base64")}?=`;
+const SUBJECT_PREFIX_LEN = "Subject: ".length;
+const RFC2047_WORD_MAX = 75;
+const RFC2047_LINE_MAX = 76;
+const RFC5322_LINE_SOFT = 78;
+
+function isPrintableAscii(text: string): boolean {
+  return /^[\x20-\x7e]*$/.test(text);
+}
+
+function encodedWordFromBytes(bytes: Buffer): string {
+  return `=?UTF-8?B?${bytes.toString("base64")}?=`;
+}
+
+function maxBytesForWord(maxWordLen: number): number {
+  const overhead = "=?UTF-8?B?".length + "?=".length;
+  const maxB64 = Math.floor((maxWordLen - overhead) / 4) * 4;
+  return Math.max(0, (maxB64 / 4) * 3);
+}
+
+function encodeAsWords(text: string, firstMaxWord: number, contMaxWord: number): string[] {
+  const words: string[] = [];
+  let maxWord = firstMaxWord;
+  let buf = Buffer.alloc(0);
+  for (const cp of text) {
+    const next = Buffer.from(cp, "utf8");
+    const maxBytes = maxBytesForWord(maxWord);
+    if (buf.length > 0 && buf.length + next.length > maxBytes) {
+      words.push(encodedWordFromBytes(buf));
+      buf = next;
+      maxWord = contMaxWord;
+    } else {
+      buf = Buffer.concat([buf, next]);
+    }
+  }
+  if (buf.length > 0) words.push(encodedWordFromBytes(buf));
+  return words;
+}
+
+function foldEncodedWords(name: string, words: string[]): string {
+  if (words.length === 0) return `${name}: `;
+  const lines = [`${name}: ${words[0]!}`];
+  for (const w of words.slice(1)) lines.push(` ${w}`);
+  return lines.join("\r\n");
+}
+
+/** RFC2047 encoded-word 拆分 + 合法 fold;短 ASCII 保持原文。 */
+export function encodeHeader(name: string, text: string): string {
+  const prefix = `${name}: `;
+  const shortAscii = isPrintableAscii(text) && prefix.length + text.length <= RFC5322_LINE_SOFT;
+  if (shortAscii) return `${prefix}${text}`;
+  const firstMax =
+    name.toLowerCase() === "subject" ? RFC2047_LINE_MAX - SUBJECT_PREFIX_LEN : RFC2047_WORD_MAX;
+  const words = encodeAsWords(text, Math.min(firstMax, RFC2047_WORD_MAX), RFC2047_WORD_MAX);
+  return foldEncodedWords(name, words);
+}
+
+function foldUnstructuredTokens(name: string, tokens: string[]): string {
+  const prefix = `${name}: `;
+  const lines: string[] = [];
+  let current = prefix;
+  for (const tok of tokens) {
+    if (current === prefix) {
+      current += tok;
+      continue;
+    }
+    if (current.length + 1 + tok.length <= RFC5322_LINE_SOFT) {
+      current += ` ${tok}`;
+    } else {
+      lines.push(current);
+      current = ` ${tok}`;
+    }
+  }
+  lines.push(current);
+  return lines.join("\r\n");
 }
 
 function addr(a: string): string {
@@ -208,11 +321,11 @@ export function buildEmailData(target: EmailTarget, msg: EmailMessage, now: Date
   const headers = [
     `From: <${addr(target.from)}>`,
     `To: <${addr(target.to)}>`,
-    `Subject: ${encodedWord(msg.subject)}`,
+    encodeHeader("Subject", msg.subject),
     `Date: ${now.toUTCString()}`,
     `Message-ID: ${msg.messageId}`,
-    ...(msg.inReplyTo ? [`In-Reply-To: ${msg.inReplyTo}`] : []),
-    ...(msg.references && msg.references.length > 0 ? [`References: ${msg.references.join(" ")}`] : []),
+    ...(msg.inReplyTo ? [foldUnstructuredTokens("In-Reply-To", [msg.inReplyTo])] : []),
+    ...(msg.references && msg.references.length > 0 ? [foldUnstructuredTokens("References", msg.references)] : []),
     "MIME-Version: 1.0",
     "Content-Type: text/plain; charset=utf-8",
     "Content-Transfer-Encoding: base64",
@@ -237,25 +350,73 @@ export async function sendEmailSmtp(
 ): Promise<boolean> {
   const dialer = io.dialer ?? nodeSmtpDialer;
   const now = io.now ?? (() => new Date());
+  const timeoutMs = io.timeoutMs ?? SMTP_TIMEOUT_MS;
+  const abort = new AbortController();
   let socket: SmtpSocket | null = null;
+  const extras: SmtpSocket[] = [];
   let timer: ReturnType<typeof setTimeout> | null = null;
+  let timedOut = false;
+  let accepted = false;
+
+  const destroyAll = (): void => {
+    socket?.destroy();
+    for (const s of extras) s.destroy();
+  };
+
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      timedOut = true;
+      if (!accepted) abort.abort();
+      destroyAll();
+      reject(new Error("smtp timeout"));
+    }, timeoutMs);
+  });
+  timeout.catch(() => undefined);
+
+  const adopt = (s: SmtpSocket): SmtpSocket => {
+    if (timedOut) {
+      s.destroy();
+      throw new Error("smtp timeout");
+    }
+    if (socket && socket !== s) extras.push(socket);
+    socket = s;
+    return s;
+  };
+
+  const watchLate = (p: Promise<SmtpSocket>): Promise<SmtpSocket> => {
+    const guarded = p.then(
+      (s) => {
+        if (timedOut || accepted) {
+          s.destroy();
+          throw new Error("smtp timeout");
+        }
+        return s;
+      },
+      (err: unknown) => {
+        if (timedOut || accepted) throw new Error("smtp timeout");
+        throw err;
+      }
+    );
+    guarded.catch(() => undefined);
+    return guarded;
+  };
+
   try {
-    socket = await dialer.connect(target);
-    let reader = new SmtpReplyReader(socket);
-    const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error("smtp timeout")), io.timeoutMs ?? SMTP_TIMEOUT_MS);
-    });
+    adopt(await Promise.race([watchLate(Promise.resolve(dialer.connect(target, abort.signal))), timeout]));
+    let reader = new SmtpReplyReader(socket!);
     const step = async (cmd: string | null, okCodes: number[]): Promise<void> => {
       if (cmd !== null) socket!.write(`${cmd}\r\n`);
       const reply = await Promise.race([reader.next(), timeout]);
-      if (!okCodes.includes(reply.code)) throw new Error(`smtp ${cmd ? cmd.split(" ")[0] : "greeting"} rejected: ${reply.code}`);
+      if (!okCodes.includes(reply.code)) {
+        throw new Error(`smtp ${cmd ? cmd.split(" ")[0] : "greeting"} rejected: ${reply.code}`);
+      }
     };
     await step(null, [220]);
     await step("EHLO saydo.local", [250]);
     if (target.mode === "starttls") {
       await step("STARTTLS", [220]);
-      socket = await Promise.race([dialer.upgradeTls(socket, target.host), timeout]);
-      reader = new SmtpReplyReader(socket);
+      adopt(await Promise.race([watchLate(Promise.resolve(dialer.upgradeTls(socket!, target.host, abort.signal))), timeout]));
+      reader = new SmtpReplyReader(socket!);
       await step("EHLO saydo.local", [250]);
     }
     if (target.user && target.pass) {
@@ -265,19 +426,24 @@ export async function sendEmailSmtp(
     await step(`MAIL FROM:<${addr(target.from)}>`, [250]);
     await step(`RCPT TO:<${addr(target.to)}>`, [250, 251]);
     await step("DATA", [354]);
-    socket.write(`${buildEmailData(target, msg, now())}\r\n.\r\n`);
-    const accepted = await Promise.race([reader.next(), timeout]);
-    if (accepted.code !== 250) throw new Error(`smtp DATA rejected: ${accepted.code}`);
+    socket!.write(`${buildEmailData(target, msg, now())}\r\n.\r\n`);
+    const dataReply = await Promise.race([reader.next(), timeout]);
+    if (dataReply.code !== 250) throw new Error(`smtp DATA rejected: ${dataReply.code}`);
+    accepted = true;
     try {
-      socket.write("QUIT\r\n");
+      socket!.write("QUIT\r\n");
     } catch {
       /* 已接受即算投递成功 */
     }
-    socket.end();
+    try {
+      socket!.end();
+    } catch {
+      /* 已接受即算投递成功 */
+    }
     return true;
   } catch {
-    socket?.destroy();
-    return false;
+    if (!accepted) destroyAll();
+    return accepted;
   } finally {
     if (timer) clearTimeout(timer);
   }

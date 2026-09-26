@@ -88,9 +88,23 @@ function errorLabel(err: unknown): string {
   return err instanceof Error ? err.name : "write_failed";
 }
 
+let defaultStderrIsolated = false;
+
+function isolateDefaultStderrWrite(): (line: string) => void {
+  if (!defaultStderrIsolated) {
+    defaultStderrIsolated = true;
+    process.stderr.on("error", () => {
+      // stderr 断开(EPIPE 等)只隔离日志流,不冒进业务、不注册全局 uncaughtException
+    });
+  }
+  return (line: string) => {
+    process.stderr.write(line);
+  };
+}
+
 export function createLogger(opts: LoggerOptions): DaemonLogger {
   const now = opts.now ?? (() => new Date());
-  const write = opts.stderrWrite ?? ((line: string) => process.stderr.write(line));
+  const write = opts.stderrWrite ?? isolateDefaultStderrWrite();
   const maxQueue = opts.maxQueue ?? 2000;
   const appendImpl = opts.appendImpl ?? ((path: string, data: string) => appendFile(path, data));
   const appendSyncImpl = opts.appendSyncImpl ?? ((path: string, data: string) => appendFileSync(path, data));

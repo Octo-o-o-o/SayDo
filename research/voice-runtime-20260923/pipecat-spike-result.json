@@ -1,0 +1,14 @@
+{
+  "results": {
+    "sentences_synthesized": 2,
+    "watermark_at_interrupt_ms": 800,
+    "watermark_after_ms": 800,
+    "residue_after_interrupt_ms": 0,
+    "total_first_sentence_ms": 2000.0
+  },
+  "checks": {
+    "A_watermark_trackable": true,
+    "B_unheard_dropped": true,
+    "C_interrupt_prompt": true
+  }
+}

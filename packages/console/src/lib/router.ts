@@ -24,6 +24,8 @@ export interface Route {
     | "focus"
     | "review"
     | "records"
+    | "archive"
+    | "arrangements"
     | "legacy-board"
     | "legacy-focus"
     | "dev-components"
@@ -32,6 +34,8 @@ export interface Route {
   projectId?: string;
   taskId?: string;
   focusId?: string;
+  /** DAILY-01:#/focus/:id?tab=deps —— 事内按需页签深链(命令菜单/对象上下文可达) */
+  focusTab?: string;
 }
 
 export function parseHash(hash: string): Route {
@@ -51,6 +55,9 @@ export function parseHash(hash: string): Route {
   if (h === "/cost") return { page: "cost" };
   if (h === "/settings") return { page: "settings" };
   if (h === "/focuses") return { page: "focuses" };
+  // DAILY-01:归档清单 / 跨 Focus 安排
+  if (h === "/archive") return { page: "archive" };
+  if (h === "/arrangements") return { page: "arrangements" };
   // dev-only:redesign 组件库走查页(handoff §5;不进生产导航)
   if (h === "/dev-components") return { page: "dev-components" };
   // dev-only:redesign 页面拼装走查页(HANDOFF-2 §2;不进生产导航)
@@ -62,8 +69,11 @@ export function parseHash(hash: string): Route {
   if (mRecords) return { page: "records", focusId: mRecords[1] as string };
   const mLegacyFocus = /^\/legacy\/focus\/([^/]+)$/.exec(h);
   if (mLegacyFocus) return { page: "legacy-focus", focusId: mLegacyFocus[1] as string };
-  const mFocus = /^\/focus\/([^/]+)$/.exec(h);
-  if (mFocus) return { page: "focus", focusId: mFocus[1] as string };
+  const mFocus = /^\/focus\/([^/?]+)(\?.*)?$/.exec(h);
+  if (mFocus) {
+    const tab = mFocus[2] ? new URLSearchParams(mFocus[2].slice(1)).get("tab") : null;
+    return { page: "focus", focusId: mFocus[1] as string, ...(tab ? { focusTab: tab } : {}) };
+  }
   const mTask = /^\/p\/([^/]+)\/task\/([^/]+)$/.exec(h);
   if (mTask) return { page: "task", projectId: mTask[1] as string, taskId: mTask[2] as string };
   const mProj = /^\/p\/([^/]+)\/(chat|tasks|memory|artifacts|settings)$/.exec(h);

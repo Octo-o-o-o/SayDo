@@ -16,13 +16,13 @@
   <script>
     (function () {
       var t = "";
-      try { t = localStorage.getItem("saydo.theme") || ""; } catch (e) {}
+      try { t = localStorage.getItem("saydo-site-theme") || ""; } catch (e) {}
       if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
       else if (t === "light") document.documentElement.setAttribute("data-theme", "light");
     })();
   </script>
   <link rel="stylesheet" href="/tokens.css" />
-  <link rel="stylesheet" href="/site.css?v=20260825d" />
+  <link rel="stylesheet" href="/site.css?v=20260917a" />
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主内容</a>
@@ -35,12 +35,13 @@
         <span class="brand-en">SAYDO</span>
       </a>
       <nav class="nav" data-nav aria-label="主导航">
-        <a class="nav-link" href="/#why">为什么</a>
-        <a class="nav-link" href="/#dialogue">一段对话</a>
-        <a class="nav-link" href="/#how">机制</a>
-        <a class="nav-link" href="/#status">产品现状</a>
-        <a class="nav-link" href="/#privacy">隐私</a>
+        <a class="nav-link" href="/#product-tour">为什么</a>
+        <a class="nav-link" href="/#mobile">一段对话</a>
+        <a class="nav-link" href="/#say-voice">机制</a>
+        <a class="nav-link" href="/#examples">产品现状</a>
+        <a class="nav-link" href="/privacy/">隐私</a>
         <a class="nav-link" href="/#faq">问答</a>
+        <a class="nav-link" href="/quick-start/">快速开始</a>
         <a class="nav-link" href="/docs/">文档</a>
       </nav>
       <div class="header-actions">
@@ -64,7 +65,7 @@
     <div class="container">
       <h1>使用条款</h1>
       <p class="lede">生效日期：2026 年 8 月 21 日　|　开发者：汪义骁（个人）</p>
-      <p>「说到」（英文名 SayDo）是开源桌面软件的移动伴侣。你在自己的电脑上运行桌面服务，用手机扫码在局域网或你自行配置的加密组网内连接。开发者不提供云端代管，也不为你保管账号。</p>
+      <p>「说到」（英文名 SayDo）是运行在你自己电脑上的开源软件，并保留移动伴侣壳。当前远程业务入口关闭，请使用运行「说到」的电脑上的本机入口；历史扫码配对设计不代表当前可用能力。开发者不提供云端代管，也不为你保管账号。</p>
       <h2>许可</h2>
       <p>本应用免费提供。你可以按开源仓库中的许可证使用桌面端源码。商店分发的移动应用按各商店标准许可授予你个人、非独占的使用权。</p>
       <h2>你需要自行负责的部分</h2>
@@ -93,10 +94,10 @@
         <div class="footer-col">
           <h4>产品</h4>
           <ul>
-            <li><a href="/#how">怎么工作</a></li>
-            <li><a href="/#why">为什么不一样</a></li>
-            <li><a href="/#status">产品现状</a></li>
-            <li><a href="/#start">开始使用</a></li>
+            <li><a href="/#say-voice">怎么工作</a></li>
+            <li><a href="/#product-tour">为什么不一样</a></li>
+            <li><a href="/#examples">产品现状</a></li>
+            <li><a href="/quick-start/">开始使用</a></li>
           </ul>
         </div>
         <div class="footer-col">

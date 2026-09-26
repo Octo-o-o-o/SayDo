@@ -1,0 +1,18 @@
+{
+  "evidence_type": "offline_production_code_probe",
+  "cases": [
+    {
+      "new_sentence_after_interrupt": false,
+      "emitted_sentence_ids": [],
+      "old_audio_suppressed": true
+    },
+    {
+      "new_sentence_after_interrupt": true,
+      "emitted_sentence_ids": [
+        "old-sentence",
+        "new-sentence"
+      ],
+      "old_audio_suppressed": false
+    }
+  ]
+}

@@ -8,7 +8,7 @@ import type { OutboxTrigger, Tier1SettleProof } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
 import { CallbackEngine } from "../src/callback/engine.js";
 import { arbitrate } from "../src/callback/arbitration.js";
-import { renderNtfyMessage, type NtfyMessage } from "../src/callback/ntfy.js";
+import { LOCAL_HANDLE_HINT, renderNtfyMessage, type NtfyMessage } from "../src/callback/ntfy.js";
 import { pickConsolePeerForTask, runCallbackSweep, type SweepDeps, type SweepReport } from "../src/callback/sweep.js";
 import { getOutboxEntry } from "../src/storage/dao/outbox.js";
 import type { AuditSink } from "../src/obs/audit.js";
@@ -214,8 +214,19 @@ describe("L0 语音选路", () => {
     enqueue(TSK, "blocked", "auth", "auth_required:expired");
     const l1 = harness({ peer: null });
     await sweep(l1);
-    expect(l1.desktopCalls.some((call) => call.body === "Claude 登录已失效,请重新登录后重试")).toBe(true);
-    expect(l1.ntfyCalls.some((call) => call.body === "Claude 登录已失效,请重新登录后重试")).toBe(true);
+    const authReason = "Claude 登录已失效,请重新登录后重试";
+    const expectedBody = `${authReason}\n${LOCAL_HANDLE_HINT}`;
+    expect(l1.desktopCalls.some((call) => call.body === expectedBody)).toBe(true);
+    expect(l1.ntfyCalls.some((call) => call.body === expectedBody)).toBe(true);
+    const ntfy = l1.ntfyCalls.find((call) => call.body === expectedBody);
+    expect(ntfy).toBeDefined();
+    expect(ntfy!.body.startsWith(authReason)).toBe(true);
+    expect(ntfy!.body.split(LOCAL_HANDLE_HINT)).toHaveLength(2);
+    expect(ntfy!.body).not.toContain("token");
+    expect(ntfy!.body).not.toMatch(/tailnet|远程打开|手机可处理/);
+    expect(ntfy!.click).toMatch(/^http:\/\/127\.0\.0\.1:47100\/#\/p\/[^/?#]+\/task\/[^/?#]+$/);
+    expect(ntfy!.click).not.toContain("token");
+    expect(ntfy!.click).not.toMatch(/tailnet|mobile_lan/);
   });
 
   it("无 peer ⇒ 直接 L1 两通道", async () => {

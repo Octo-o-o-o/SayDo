@@ -10,7 +10,7 @@
 ## 0. 标识与通用约定
 
 ```typescript
-type Id = string;      // ULID;前缀:prj_/ses_/pkg_/tsk_/apr_/mem_/ntf_(outbox)/art_/dsp_(dispatch)/cmd_(出站命令)/aud_(审计)/snp_(源快照,§4.1)/cred_(WebAuthn 凭据)/s3c_(S3 挑战)/anc_(项目锚候选)/evt_(durable UI 事件)/asm_(就绪评估行)
+type Id = string;      // ULID;前缀:prj_/ses_/pkg_/tsk_/apr_/mem_/ntf_(outbox)/art_/dsp_(dispatch)/cmd_(出站命令)/aud_(审计)/snp_(源快照,§4.1)/cred_(WebAuthn 凭据)/s3c_(S3 挑战)/anc_(项目锚候选)/evt_(durable UI 事件;§10.1 设计候选的 requestId/voiceBoundaryId/peerId/daemonEpoch/captureId 同用此已登记前缀,禁止自造 qsc_/vbd_/peer_/epc_)/asm_(就绪评估行)
 type Digest = string;  // "sha256:<hex>",JCS 规范化后哈希
 type Ts = string;      // ISO-8601 带时区
 type Money = { known: boolean; value?: number; currency?: "CNY" | "USD"; asOf?: Ts };  // 接线处:cost_entries 与投列显示;unknown 永不显示为 0。Focus 级预算无来源时用显式 unknown 形状,文案「还没有确切数字」,禁 0/0、¥0 / ¥0 冒充未知(PG-01B)
@@ -106,7 +106,8 @@ interface TranscriptTurn {
    POSIX 上 `workspace_dev` 语义降为「最近一次见到的 dev」。
    依据:定时快照自 2026-08-07 起连续 `workspace_identity_changed` 失败,取证为生产库登记
    `dev=16777234 / ino=765311` 而 `stat` 实测 `dev=16777231 / ino=765311`(ino 未变,目录未被替换)。
-   威胁模型不放宽:目录被真正替换必然换 inode,另有 realpath + 非 reparse point + owner-home 位置约束。
+   边界:现役POSIX重挂载兼容策略不证明跨卷身份连续性。inode只在同一filesystem内唯一,不同卷可能重复；不能把“path与ino相同”写成目录绝不可能被替换。realpath、非reparse point与owner-home位置约束继续生效,但不是稳定卷身份的替代。该说明不改变上述重校验行为。
+   标准依据:[POSIX sys/stat.h](https://pubs.opengroup.org/onlinepubs/007904875/basedefs/sys/stat.h.html)与[Linux inode说明](https://man7.org/linux/man-pages/man7/inode.7.html)。
    Windows 状态根与 workspace 另须本地固定 NTFS(非 ReFS/SMB/subst/可移动盘;工程 ADR-003)。
 2. canonical path 必须是 owner home 的严格子目录，并拒绝 `/`、home 本身、SayDo 状态/发布/
    备份目录、`voice-coding.archive-*` 冷档，以及与另一非 archived、非系统托管 workspace
@@ -232,7 +233,7 @@ interface DecisionPackage {
   assumptions: Claim[];                          // critical 项 unknown ⇒ 不可拍板
   acceptance: string[];
   plan: { seq: number; step: string; owner: "ai" | "human" }[];
-  demoRef?: { artifactId: Id; version: number }; // → §8 Artifact;Demo 元素编号 ↔ plan.seq 互引;assemble/revise 同轮生成
+  demoRef?: { artifactId: Id; version: number }; // → §8 Artifact;Demo 元素编号 ↔ plan.seq 互引;assemble/revise 同轮生成=**生成可查看**(用户可在决策包点「看小样」取版本内联渲染);**不是**实际已展示回执——点开并完成 DemoFrame 渲染才算已展示;现役无该回执(11 决策包卡/DemoFrame;10 #10)
   cost: { expected: Money; p95: Money; max: number; currency: "CNY" };  // max 必 known(熔断依据);expected/p95 可 unknown(§0 Money)
   risks: string[];
   mode: "direct_to_review" | "step_confirm";     // schema 保留双值;现役组包/拍板仅 step_confirm;旧数据携带 direct_to_review 必须 fail-closed,不可拍板(PG-01B)
@@ -356,7 +357,7 @@ interface WebauthnCredential {
   id: Id;                                          // cred_ 前缀
   credentialId: string;                            // base64url;WebAuthn credential.rawId
   publicKeyCose: string;                           // base64url COSE 公钥(验签用)
-  signCount: number;                               // 防克隆计数器。**Apple platform authenticator(Touch ID/iCloud passkey)恒回 0**(WebAuthn L2 §6.1.1:counter 恒 0 时跳过克隆检测)——校验规则:received>0 时须 > stored(否则拒+告警);received=0 ∧ stored=0(平台 passkey 常态)⇒ 跳过克隆检测并诚实记"该形态克隆检测不可用"。owner 拍板形态 = platform authenticator,故主路径落此分支
+  signCount: number;                               // 防克隆计数器。**未实现签名计数器的 authenticator 返回 0**(WebAuthn §6.1.1；不能仅凭 Apple/平台认证器名称预设计数值)——校验规则:received>0 时须 > stored(否则拒+告警);received=0 ∧ stored=0(平台 passkey 常态)⇒ 跳过克隆检测并诚实记"该形态克隆检测不可用"。owner 拍板形态 = platform authenticator，实际分支仍按收到值与存储值判定
   principal: "owner";                              // P0 单用户
   rpId: string;                                    // = daemon 绑定域(127.0.0.1 场景用 "localhost";tailnet 面 rpId 不放宽,S3 卡仅本机——见下红线);值恒由 daemon 常量派生,注册/签发入参不含 rpId(§13,Codex 21 A2)
   backupEligible?: boolean; backupState?: boolean; // BE/BS 标志(同步凭据诚实条款;§9 DDL 已有列,TS 补齐——Codex 22 §4.2-6 勘 2026-07-28)
@@ -394,7 +395,7 @@ interface S3MergeReceipt extends ApprovalReceipt {
 
 **注册链(一次性,首次 S3 前;owner 亲自在受信终端)**:`registerWebauthn` 前 daemon 先发注册 challenge(同 S3Challenge 机制,action=`register`),浏览器 `navigator.credentials.create({publicKey:{challenge, rp:{id:rpId}, user, authenticatorSelection:{authenticatorAttachment:"platform", userVerification:"required", residentKey:"preferred"}}})` → daemon 回验 challenge + 存 credentialId/publicKeyCose/signCount;注册成功即审计 + 语音播报(TOFU 首注册窗口缓解——"已在此设备注册本机批准凭据";播报追加同步凭据诚实句,见下条款 ②)。P0 单用户至多一个活跃 credential(§9 唯一活跃索引机械承载);注册挑战仅在无 active 凭据时可签发(bootstrap 一次性;换凭据 = owner 显式 revoke 旧行后重走,无静默 rotation);注册链**不产生任何 ApprovalReceipt**——注册断言不能被当成任何 runtime 批准(Codex 21 A2)。
 
-**签发链(daemon 本地校验,不经任何远端;三步同一事务原子提交)**:① console S3 卡点"用本机认证批准" → daemon 发 `S3Challenge`(落库);② 浏览器 `navigator.credentials.get({publicKey:{challenge, rpId, allowCredentials:[credentialId], userVerification:"required"}})` → 返回 assertion;③ daemon 校验(全过才签):challenge 匹配且未消费未过期 ∧ rpId/origin 匹配 ∧ COSE 公钥验签通过 ∧ **authenticatorData 的 UP=1 ∧ UV=1**(用户在场且已生物/本机强认证——`os_biometric` 语义的机械支撑,缺任一即拒)∧ signCount 规则(见 schema 注:平台 passkey 恒 0 走跳过分支)→ **同一 SQLite 事务内**{签 **`S3MergeReceipt`**(§3 判别型:generic 字段 `{kind:"runtime_effect", decidedVia:"screen", authStrength:"os_biometric", riskLevel:"S3", parentPackageDigest:<任务所属决策包 digest>, refDigest:<S3Challenge.refDigest,= review evidence digest>, turnRef:null}`(§3 矩阵允许 screen+os_biometric+S3;turn_ref NULL 合法,§9 已放宽)+ `s3:{challengeId, credentialId, assertionDigest, attempt, packageRevision, prospectiveTreeSha}`——六项全部 daemon 库内自取,Codex 21 A2)+ 置 challenge.consumedAt + 更新 signCount};任一不过 ⇒ 拒 + 审计,challenge 作废(**原子性防重放**:崩溃在签收据后/置 consumed 前不会漏——同事务回滚)。④ 收据单次消费驱动动作(merge 见下)。**部署约束**:S3 面须经 `http://localhost:<port>` 访问(rpId=localhost 与 `http://127.0.0.1` origin 不匹配会致 `credentials.get` SecurityError——daemon 对 127.0.0.1 的 S3 面归一重定向到 localhost)。
+**签发链(daemon 本地校验,不经任何远端;三步同一事务原子提交)**:① console S3 卡点"用本机认证批准" → daemon 发 `S3Challenge`(落库);② 浏览器 `navigator.credentials.get({publicKey:{challenge, rpId, allowCredentials:[credentialId], userVerification:"required"}})` → 返回 assertion;③ daemon 校验(全过才签):challenge 匹配且未消费未过期 ∧ rpId/origin 匹配 ∧ COSE 公钥验签通过 ∧ **authenticatorData 的 UP=1 ∧ UV=1**(用户在场且已生物/本机强认证——`os_biometric` 语义的机械支撑,缺任一即拒)∧ signCount 规则(见 schema 注:收到值与存储值均为 0 才走跳过分支)→ **同一 SQLite 事务内**{签 **`S3MergeReceipt`**(§3 判别型:generic 字段 `{kind:"runtime_effect", decidedVia:"screen", authStrength:"os_biometric", riskLevel:"S3", parentPackageDigest:<任务所属决策包 digest>, refDigest:<S3Challenge.refDigest,= review evidence digest>, turnRef:null}`(§3 矩阵允许 screen+os_biometric+S3;turn_ref NULL 合法,§9 已放宽)+ `s3:{challengeId, credentialId, assertionDigest, attempt, packageRevision, prospectiveTreeSha}`——六项全部 daemon 库内自取,Codex 21 A2)+ 置 challenge.consumedAt + 更新 signCount};任一不过 ⇒ 拒 + 审计,challenge 作废(**原子性防重放**:崩溃在签收据后/置 consumed 前不会漏——同事务回滚)。④ 收据单次消费驱动动作(merge 见下)。**部署约束**:S3 面须经 `http://localhost:<port>` 访问(rpId=localhost 与 `http://127.0.0.1` origin 不匹配会致 `credentials.get` SecurityError——daemon 对 127.0.0.1 的 S3 面归一重定向到 localhost)。
 
 **Tier1 合并链(S3 卡兑现后)**:`reviewTask(approve)` → `review_approved_waiting_merge`;owner 过 S3 卡 → daemon 持 S3 收据走 **`review_approved_waiting_merge → merging`(§6.1 既有 L 边)**:rebase/merge main + 重跑 verify(冻结 argv/digest)+ treeSha 与收据 `s3.prospectiveTreeSha` 断言匹配(refDigest = review evidence digest,两字段拆义勿混——Codex 22 勘 2026-07-28)→ `task_done`;冲突 ⇒ `merge_failed`。**requestManualMerge + MergeProof watcher(§13,P0 路径)保留为降级**:未注册 passkey / WebAuthn 不可用 / owner 选人工时走它。**红线**:① daemon 无 **`S3MergeReceipt`(判别型;generic screen 收据不构成,Codex 21 A1)** 不得进 `merging`——`review_approved_waiting_merge → merging` 的**唯一合法入口 = `approveMerge`**(§13,同事务消费收据;状态机层该边 receipt-gated:`canTransitionTask` 对此边要求已消费 S3 收据 id 谓词参数,禁 DAO 直改——**已落(W4 2026-07-27,contracts statemachines/task.ts)**)(与"无收据不自发合并"同一句);② **S3 卡仅本机受信终端**——tailnet/远程面一律不出 S3 卡(rpId 不放宽,04 §5.2 远程封顶 S2;手机点合并 ⇒ 403 引导回桌面,W2 已实现);③ Hopper 路径 `hopper merge` **保守缺省仍走人工交接**(SayDo 不自动调 `hopper merge`,HANDOFF §4 铁律不变),S3 卡兑现 Hopper 合并的解禁**本轮不做**(登记 §14 待 owner 单独裁决:需先解决 Hopper 侧 merge 的 origin 归属与 split-brain,设计 ADR-001)。
 
@@ -887,6 +888,13 @@ CREATE TABLE cost_entries(id TEXT PRIMARY KEY, ts TEXT, project_id TEXT, task_id
   kind TEXT, amount REAL, currency TEXT, known INTEGER CHECK(known IN (0,1)),
   source TEXT CHECK(source IN ('api','subscription')), meta_json TEXT,
   CHECK (source != 'subscription' OR (known = 0 AND amount IS NULL)));  -- 订阅行恒 known=0/amount=NULL(07 D18 纪律 3;复评 B2 机械化)
+-- GET /api/costs 读口(2026-09-20 诚实契约;不改本表):
+--   byProject = 全账本聚合(无 LIMIT;分币种 known + unknownCount),是「全部」合计的唯一权威。
+--   月预算不读本聚合:维持既有期间 API 计费口径(只 SUM source='api' 的期间行),本字段无月份过滤,不得当当月开销。
+--   entries = 明细窗口,默认最新 300 条(ORDER BY ts DESC LIMIT 300);不是全账本。
+--   响应必须带 entriesWindow:{ limit:number, returned:number, total:number, truncated:boolean }。
+--   truncated=true 时,页面「全部」、图表与导出不得把 entries 再聚合冒充全账本;须用 byProject 或声明「仅最近 N 笔」。
+--   任务级成本仍走 GET /api/tasks/:id 的 costs(该任务全量,无 300 窗)。不新增 DDL、不分页游标协议。
 -- meta_json 定型(M4/③-4,2026-07-25;Codex 13b 修 kind 口径:kind 是**前缀词表**——
 --   `llm.<slot>`(dialog/thinking/cheap/evaluator)/ `asr.seconds` / `tts.chars` / `hopper.run` / `tier1.run`(W5.4-b 前置回写 2026-08-21 新增),§12 有非法 kind 反例):
 --   kind LIKE 'llm.%' 必含 {model, input_tokens, cached_input_tokens, output_tokens[, routed_provider]}
@@ -1010,20 +1018,74 @@ socket error 时还必须立即把该 owner 标成 unavailable、广播 down，�
 EOU 任务，再清空 mic/VAD/EOU pending/active session 等连接级状态并进入重连；新连接消息
 不得由旧 worker 消费。PTT 串行链中的每个 task 都必须登记，不能只保存链尾。
 
+握手成功后 daemon 下行 `hello.ack`。本候选为 `VoiceHelloAck`(不经 ROLE_ALLOWED 路由,任何 peer 伪造丢弃;不单为 additive 升 v)。`peerId`/`daemonEpoch` 均为 `evt_` Id:前者每条已握手连接服务器签发、该 socket 关闭后本 `daemonEpoch` 内永不重用;后者每 daemon 进程启动签发一次,仅进程重启变化。`peerId` 供说明/诊断 owner;**真正绑定**只从同条 console WS 的 `voice.anchor_prepare` `sourcePeer` 取得,HTTP 不猜 owner、不传 `voicePeerId`。缺二者时,**新 console** 不得进入主题屏障、不得把 `turn.text` 的 `ws.send===true` 当接收成功;无屏障普通对话仍可走。细则 §10.1。
+
 ```typescript
+type VoiceHelloAck = { t: "hello.ack"; v: 1; peerId: Id; daemonEpoch: Id };
+
+type AsrFinalMsg =
+  | { t: "asr.final"; sessionId: Id; turnId: Id; text: string; confidence?: number }
+  | { t: "asr.final"; sessionId: Id; turnId: Id; text: string; confidence?: number;
+      captureMode: "hands_free"; recognitionOutcome: "ok"; hfRoundId?: Id }
+  | { t: "asr.final"; sessionId: Id; turnId: Id; text: ""; confidence?: number;
+      captureMode: "hands_free"; recognitionOutcome: "failed"; hfRoundId?: Id }
+  | { t: "asr.final"; sessionId: Id; turnId: Id; text: string; confidence?: number;
+      captureMode: "ptt"; captureId: Id; recognitionOutcome: "ok" }
+  | { t: "asr.final"; sessionId: Id; turnId: Id; text: ""; confidence?: number;
+      captureMode: "ptt"; captureId: Id; recognitionOutcome: "failed" };
+const ASR_FINAL_KEYS = [
+  "t", "sessionId", "turnId", "text", "confidence",
+  "captureMode", "captureId", "recognitionOutcome", "hfRoundId"
+] as const;
+
 type PipelineMsg =
   | { t: "audio.frame"; sessionId: Id; seq: number }             // 二进制帧另通道,seq 配对
-  | { t: "asr.partial" | "asr.final"; sessionId: Id; turnId: Id; text: string; confidence?: number }  // confidence 可选:定档 sauc 大模型不回置信度(工程 ADR-101 实测 2026-07-24),provider 有则透传
+  | { t: "asr.partial"; sessionId: Id; turnId: Id; text: string; confidence?: number }
+  | AsrFinalMsg
+  // confidence 可选:定档 sauc 大模型不回置信度(工程 ADR-101 实测 2026-07-24),provider 有则透传。
+  // asr.final 字段白名单仅 t/sessionId/turnId/text/confidence?/captureMode?/captureId?/recognitionOutcome?/hfRoundId?;
+  // hub 按白名单解析,白名单外字段剥离不入库、不转发;白名单内组合必须落在 AsrFinalMsg 五支之一,否则整消息丢弃。
+  // captureMode/captureId/recognitionOutcome 为 §10.1 设计候选 additive;hfRoundId 为 HF 线身份 additive(2026-09-22)。
+  // 新 pipeline 每条 asr.final 必带明确来源:HF 必 captureMode:"hands_free" 且禁 captureId,recognitionOutcome 必填且为 "ok"|"failed";
+  // 新分类 PTT 必 captureMode:"ptt" 且必带 captureId,且必须填 recognitionOutcome:"ok"|"failed"。
+  // failed 必须 text==="";ok 且 text==="" = 正常空识别,不是失败。failed 且 text 非空 = 非法,整消息丢弃。
+  // HF failed 与 PTT failed 同属轮次守恒终态:unknown 账本、不进 Brain、不得当成功旧稿;不得再造第二条 final。
+  // hfRoundId 仅 HF 支;PTT 支出现 hfRoundId/hfSegmentIds = 非法整消息丢弃。
+  // **身份分层(2026-09-22 合同前提,审查前不改 schema/runtime)**:见 10.1.13。
+  // hfSegmentId = 一次 VAD 开口;hfRoundId = 一次 EOU 逻辑用户轮(可含多个句段;已拥有轮恰好一条终态 final;无开轮的 empty ack 不造 final);
+  // 识别结果按 recordSeq 录音序提交,禁止按 ASR 返回序改共享正文。缺全部新身份字段 = 旧客户。
+  // 旧兼容不得消费已带新身份的在途项,不得打穿新所有权。
+  // 轮次守恒终态 ≠ 识别成功:PTT 失败仍发且仅发一条 failed 空 final,不得再造第二条。
+  // 三字段皆缺 = 旧 pipeline/旧 final,仅无屏障普通路径走既有 FIFO,不得猜测失败或声称 classified。
   | { t: "tts.say"; sessionId: Id; sentenceId: string; text: string; interruptible: boolean }
   | { t: "tts.playout"; sessionId: Id; sentenceId: string; watermarkMs: number }
   | { t: "barge_in"; sessionId: Id; atMs: number; truncatedSentenceId: string }
-  | { t: "turn.done_speaking"; sessionId: Id; holdForConfirm?: true } | { t: "turn.listen_again"; sessionId: Id }
+  | { t: "turn.done_speaking"; sessionId: Id; holdForConfirm?: true;
+      captureId?: Id; captureIntent?: "send"|"edit"|"cancel";
+      captureMode?: "hands_free" } | { t: "turn.listen_again"; sessionId: Id }
   // done_speaking.holdForConfirm(RA-closeout 2026-07-28 + 双动作改版):console 手动档"转写编辑/取消"
-  // 动作带此标记——hub 剥离后转发 pipeline(python 零感知),daemon 消费标记挡该轮进 Brain(TTL 120s 防
-  // final 丢失旗滞留)。**轮次守恒(双动作评审 A1,2026-07-28)**:PTT 下每个 done_speaking 恰好产生
-  // 一个 asr.final(短按/空转写/识别异常发 text="" 的空 final)——空 final 不进 Brain(daemon 判空跳过),
-  // console 采集意图 FIFO 队列按 final 逐条出队(直发=气泡替换/编辑=进输入框/取消=丢弃;11 §5.10)
-  | { t: "turn.text"; sessionId: Id; turnId: Id; text: string; typed: true }   // console 编辑后文本轮(W4 3.9 additive,2026-07-27;10 §3-7 采完不直发的发送通路):hub 白名单仅 console 可发;asr.* 仍 pipeline 专属(B8 不放宽);daemon 作用户轮进对话环(typed 标记现止于 WS 层,持久层 provenance 随后续批)
+  // 动作带此标记——hub 剥离 hold 后转发 pipeline(python 零感知 hold),daemon 消费标记挡该轮进 Brain。
+  // **轮次守恒(双动作评审 A1,2026-07-28;§10.1 回修)**:PTT 下每个 done_speaking 恰好产生
+  // 一个 asr.final。短按/空转写 = 新协议 recognitionOutcome:"ok" 且 text="";识别异常/失败 =
+  // 新协议 recognitionOutcome:"failed" 且 text=""。二者都是轮次终态,都不进 Brain(daemon 判空跳过),
+  // 但只有 ok 可确认音频账本;failed 不得当识别成功、不得当成功旧稿。不得为同一 done_speaking 再造第二条 final。
+  // 旧 pipeline 两空都只发 text="" 且无 recognitionOutcome,不得据此声称 classified 或猜失败。
+  // captureId/captureIntent 为 §10.1 设计候选:新 console PTT 必发;edit|cancel ⇔ holdForConfirm=true;
+  // send ⇔ 不得带 hold。hub 按 (sessionId,captureId) 登记 intent,转发 pipeline 只保留
+  // {t:"turn.done_speaking",sessionId,captureId}。缺省 captureId/captureIntent 且无 captureMode = 旧客户端,
+  // 仅无屏障普通路径保持既有 FIFO,计入 legacy 未分类,不得冒充 HF。
+  // **HF 显式收尾(2026-09-20)**:免手「说完了」必须带 captureMode:"hands_free",且禁 captureId/captureIntent/holdForConfirm。
+  // 该支是已分类 HF 收尾,不得写入 legacyPendingDone;消费方 = 同 sid 下一条分类 HF asr.final
+  // (captureMode:"hands_free",禁 captureId;已拥有轮的 ok 空终态或 failed 空终态;无开轮只走 empty ack 不造 final;带 hfRoundId 时按逻辑轮对应,
+  // 该 final 必须列出本轮 hfSegmentIds;否则旧客户只准在无新身份在途项时 FIFO,不得打穿新所有权)。
+  // 空 HF 终态之后允许同 session 后续 voice.anchor_prepare,不得因该收尾永久 voice_unclassified_inflight。
+  // 禁止给 HF 收尾伪造 PTT captureId。主题屏障停采仍不补 done_speaking(空闲/HF 准备路径不变)。
+  | { t: "turn.text"; sessionId: Id; turnId: Id; text: string; typed: true }
+  | { t: "turn.text"; sessionId: Id; turnId: Id; text: string; typed: true;
+      receiptAction: "submit" | "replay" | "retry"; daemonEpoch: Id }
+  // console 编辑后文本轮(W4 3.9 additive,2026-07-27;10 §3-7 采完不直发的发送通路):hub 白名单仅 console 可发;asr.* 仍 pipeline 专属(B8 不放宽);daemon 作用户轮进对话环(typed 标记现止于 WS 层,持久层 provenance 随后续批)。
+  // §10.1 设计候选:新 console 必须成对带 receiptAction+daemonEpoch;只带其一整消息丢弃并回 rejected/invalid_input。
+  // 旧客户端两字段皆缺=legacy submit。以 `turn.text.result` 为接收回执;`ws.send` 不是成功。细则 10.1.10。
   | { t: "session.project"; sessionId: Id; projectId: Id; projectRevision: number;
       reason: "draft_created"|"workspace_adopted"|"draft_reanchored"|"migration_snapshot" }
   | { t: "pipeline.health"; asr: "ok"|"degraded"|"down"; tts: "ok"|"degraded"|"down";
@@ -1033,7 +1095,10 @@ type PipelineMsg =
   // 引入时未随批回写 §10 的欠账一次结清(正例纪律见 2d3b653:schema+docs 同一 commit):
   | { t: "native.reply"; sessionId: Id; turnId: string; sentenceId: string; text: string; origin: NativeReplyOrigin }   // turnId 为普通非空 string(schema z.string().min(1)),非前缀 ULID
   // M2-voice-a(08-12):壳内 TTS 只消费经 daemon 口播闸与脱敏出口生成的定向文本事件
-  | { t: "confirm.card"; sessionId: Id; receiptId: string; text: string; kind: string; digest: string; digestVersion: number }
+  | { t: "confirm.card"; sessionId: Id; receiptId: string; text: string; kind: string; digest: string; digestVersion: number;
+      packageId?: Id; revision?: number; taskId?: Id }
+  // 2026-09-20 additive:kind=dispatch 时必须带 packageId+revision;任务步边界/计费类 runtime_effect 有任务锚时带 taskId。
+  // 供所点包/任务与当前卡对账;缺身份字段的卡不得被当作该包/该任务的批准面。
   | { t: "confirm.countdown"; sessionId: Id; receiptId: string; ms: number }
   | { t: "confirm.resolved"; sessionId: Id; receiptId: string; outcome: ConfirmResolvedOutcome }
   // F25+批1(08-04/05):确认卡 UI 事件,digest 三元绑定(§6)
@@ -1057,12 +1122,614 @@ type PipelineMsg =
                                                                   // 奠基 seedTerms 经 biasTerms(extraSeeds) 预留、生产接线挂账 dogfood 期(一致性评审 B-1 如实口径,防"写超实现")。
                                                                   // 消费点=sauc recognize corpus.context(07 D4 +10 点术语召回);peer 直发被角色白名单丢弃,仅 daemon 可发(§12 有 hub 级正反例)
   // W2 提前批 #6(免手档,2026-07-26 回写补录;10 §3-1 轮次三层;方向白名单:越向直发被 hub 丢弃):
-  | { t: "voice.mode"; sessionId: Id; mode: "ptt" | "hands_free" }   // console→pipeline:轮次采集模式切换(ptt=手动档——涵盖按住/点击 toggle 两种触发,UI 变体不进本层(10 §3-7,R-A 2026-07-26)/ hands_free=VAD 起停;切换清 VAD 状态与 EOU 缓存)
-  | { t: "vad.speech"; sessionId: Id; phase: "start" | "end" };      // pipeline→console:免手档语音活动边界。start 供 console 播放侧触发**既有** barge_in
-                                                                     // (watermark 截断,unheard 纪律不变——本消息不承载截断语义);end 纯观测
+  | { t: "voice.mode"; sessionId: Id; mode: "ptt" | "hands_free"; quiesceRequestId?: Id }
+  // console→pipeline:轮次采集模式切换(ptt=手动档——涵盖按住/点击 toggle 两种触发,UI 变体不进本层(10 §3-7,R-A 2026-07-26)/ hands_free=VAD 起停;切换清 VAD 状态与 EOU 缓存)。
+  // quiesceRequestId 仅主题屏障恢复采集用,见 §10.1;缺省=普通切档,行为不变。
+  | { t: "vad.speech"; sessionId: Id; phase: "start" | "end";
+      hfSegmentId?: Id; hfRoundId?: Id; recordSeq?: number }
+  // pipeline→console:免手档语音活动边界。start 供 console 播放侧触发**既有** barge_in
+  // (watermark 截断,unheard 纪律不变——本消息不承载截断语义);end 纯观测。
+  // **身份分层(2026-09-22 合同前提,审查前不改 schema/runtime;形状见 10.1.13)**:
+  // hfSegmentId = 这一次 VAD 开口(start 签发,同开口 end 必须同值);
+  // hfRoundId = 本开口所属 EOU 逻辑用户轮(续说并入同一轮,不新开轮);
+  // recordSeq = 本 sid+epoch 录音序,正整数单调 +1,禁止回绕或复用。
+  // 新 pipeline 每条 start/end 必须三字段齐;同开口 start/end 的三字段必须同值。
+  // 缺全部新身份字段 = 旧客户。start 带身份而同开口 end 缺或三字段不一致 = 非法,丢弃该条,不结算。
+  // 禁止用「按 id」而不写明是句段 id 还是逻辑轮 id;禁止用到达序证明乱序 EOU 对应。
+  // 主题锚定语音屏障(2026-09-12;§10.1 已接线处理链)。下列 Id 一律现有 idSchema + 已登记前缀 evt_。
+  // 方向白名单不进 mobile_lan / 不扩大 S3 / 不进远端 LAN 业务面:
+  // voice.anchor_prepare 仅 via=local console→daemon(加入 console ROLE_ALLOWED);
+  // voice.anchor_status 仅 daemon→该 prepare 的 sourcePeer(via=local 已认证);被允许处理时(含 voice_audio_unknown 拒绝)登记该 sid;
+  // voice.quiesced_transcript / turn.text.result 仅 daemon→via=local 且已登记该 sessionId 的 console;
+  // voice.quiesce 仅 daemon→pipeline(不在任何 peer 白名单,同 asr.hotwords / pipeline.restart_pending);
+  // voice.quiesced 仅当前 pipeline owner→daemon;
+  // voice.quiesced_transcript_ack 仅 via=local console→daemon(加入 console ROLE_ALLOWED,不进 mobile_lan 上行白名单)。
+  | { t: "voice.anchor_prepare"; sessionId: Id; requestId: Id; focusId: Id;
+      laneTitle?: string; daemonEpoch: Id; discardUnknownEpochs?: number[] }
+  // discardUnknownEpochs:仅用户屏幕点「放弃未确认语音」后的新 requestId 可带;
+  // 正规化=唯一升序正整数(1..2^31-1);空数组≡缺省。失败/重连不得自动带未批准集合。细则 10.1.12。
+  | { t: "voice.anchor_status"; sessionId: Id; requestId: Id; status: "prepared";
+      emptyRound?: "empty" | "unusable" }
+  | { t: "voice.anchor_status"; sessionId: Id; requestId: Id; status: "rearmed" }
+  | { t: "voice.anchor_status"; sessionId: Id; requestId: Id; status: "rejected";
+      code: "voice_audio_unknown"; retryable: true; unknownEpochs: number[] }
+  | { t: "voice.anchor_status"; sessionId: Id; requestId: Id; status: "rejected";
+      code: string; retryable: boolean }
+  // prepared.emptyRound 仅从「没有开口的 empty ack」成功 ACK 拷贝:empty=无开轮的有效空识别;unusable=无开轮且短于阈值。
+  // 已拥有逻辑轮的空终态走一条 ok+text:"" final,该 ACK 不带 emptyRound。
+  // 有任一条已分类 final(含已拥有轮的空 final)或立即 prepared(无 quiesce)则缺省。不得用日志代替该字段。
+  // voice_audio_unknown 必须走上一支;unknownEpochs=该 sid 当前完整未知世代升序集,禁空集发此码。
+  // 本支是未知全集的唯一观察口;failed 旧 ID 的 voice_request_dead 不带 unknownEpochs。
+  | { t: "voice.quiesce"; sessionId: Id; requestId: Id; epoch: number;
+      discardUnknownEpochs?: number[] }
+  // discardUnknownEpochs 仅 daemon 从已接受 prepare 原样转发,不得自造。
+  | { t: "voice.quiesced"; sessionId: Id; requestId: Id; epoch: number;
+      classified: true; emptyRound?: "empty" | "unusable" }
+  | { t: "voice.quiesced"; sessionId: Id; requestId: Id; epoch: number;
+      classified: false; code: "voice_recognition_failed" }
+  // classified 成败联合:true=本 epoch 已分类排空;false+固定码=本 epoch 识别未恢复。
+  // daemon 认 voice_recognition_failed,不得当 voice_quiesce_unsupported。无 drained。
+  | { t: "voice.quiesced_transcript"; sessionId: Id; requestId: Id; turnId: Id; text: string;
+      captureMode: "ptt" | "hands_free"; captureId?: Id; captureIntent?: "send" | "edit";
+      sourceFocusId?: Id }
+  | { t: "voice.quiesced_transcript_ack"; sessionId: Id; requestId: Id; turnId: Id }
+  | { t: "turn.text.result"; sessionId: Id; turnId: Id; outcome: "accepted" }
+  | { t: "turn.text.result"; sessionId: Id; turnId: Id; outcome: "rejected";
+      code: string; retryable: boolean }
+  | { t: "turn.text.result"; sessionId: Id; turnId: Id; outcome: "unknown";
+      retryable: false };
 ```
 
 Unheard 纪律:被打断句 watermark 后文本 `heard=false`,不进对话事实、被打断的关键确认必须重述(10 §3)。
+
+### 10.1 主题锚定语音屏障(2026-09-12;形状以本节为准)
+
+> **状态**:形状以本节为准,本候选已把协议处理链接到 contracts schema、daemon hub/HTTP、pipeline quiesce/final、console WS/Chat/回执。关门点唯一:`voice.anchor_prepare` 被 daemon 接受后同步关 capture/ASR 门。未验:真实麦克风、云 ASR;完整 `just ci`/全 Playwright 由主控冻结后跑。不得把本地模拟 ASR 写成真实麦克风或云 ASR 验收。旧 800ms 猜空轮与补发无 hold 的 `done_speaking`、HTTP 成功即清未发草稿、`ws.send` 即当文本已发送,已从新 console 桌面路径移除。关门点唯一:`voice.anchor_prepare` 被 daemon 接受后同步关 capture/ASR 门;REST 只在记录已 `prepared` 之后写锚,不关门、不等 pipeline。已废弃的「REST 接受即关门」与跨连接 HTTP/音频排队不是并存合同,也不是兼容对象。不得用计时器、`bufferedAmount`、HTTP 成功、`already=true`、假空 final 或**新 pipeline epoch 的 ACK**冒充排空或抹去旧 epoch 遗失。PTT 每 `done_speaking` 一 `asr.final` 守恒仍只约束手动档,不证明免手已排空。HF 已 `speech_start` 尚未 `utterance_end` 的残留须 `VAD.flush` 后走既有 ASR,不得直接清缓冲。本节是安全续接与留稿的最小控制合同,不新增业务能力;不扩大 Gate 0 / S3 / `via=mobile_lan`;不新增 §9 表、全量音频录制或新 HTTP/WS 口。无当前 pipeline、未知世代集为空、全部未确认项已 `confirmed`/`discarded`、无待分类 PTT(`CaptureRegistry.consumed===false` 为空)/无 legacy 未分类时,prepare 立即 `prepared`(历史曾收音频不单独阻止)。显式 discard CAS 成功必须同时把所列 epoch、该 sid 的 pending registry 结算为 `consumed:true` 且 `discarded:true` tombstone,禁止删行;否则无 pipeline 时会被未消费 `captureId` 永远挡住。轮次守恒终态不等于识别成功:新分类 PTT final 必带 `recognitionOutcome`;只有 `ok` 确认账本,`failed` 直接将该 epoch 项标 `unknown`。quiesce 必须汇总本连接该 sid 全部尚未显式放弃的 HF/PTT 识别失败(含开始前已结束、开始前在途、等待期间及 tail 新增失败),任一未被 discard 的失败不得 `classified:true`。不得把仍有未确认数据的无 pipeline 说成已排空,也不得永等新 owner 把旧音频当已保存。普通无 pending 文本不受影响。
+
+#### 10.1.1 标识、世代与方向
+
+| 字段 | 类型 | 签发 | 限制 |
+|---|---|---|---|
+| `requestId` / `voiceBoundaryId` | `Id`(`evt_`) | 新 console 为一次续接意图签发;二者同值 | 禁止 `qsc_`/`vbd_` 等未登记前缀 |
+| `peerId` | `Id`(`evt_`) | daemon 在 `hello.ack` | 每 socket 一条;关闭后本 `daemonEpoch` 内永不重用;说明/诊断 owner,不经 HTTP 绑定 |
+| `daemonEpoch` | `Id`(`evt_`) | daemon 进程启动一次 | 仅进程重启变化;与 pipeline `epoch`、first-run `generation` 都不是同一字段 |
+| `captureId` | `Id`(`evt_`) | 新 console 每条 PTT `done_speaking` | 与 `captureIntent` 成对;HF 不使用,禁止给 HF 显式收尾伪造 |
+| `captureMode` | `"hands_free"` | 新 console 免手显式「说完了」的 `done_speaking` | 仅此值;与 `captureId`/`captureIntent`/`holdForConfirm` 互斥。缺省且无 cap = legacy,不得当 HF |
+| `recognitionOutcome` | `"ok" \| "failed"` | 新 pipeline 分类 `asr.final` | 新分类 PTT/HF 均必填;`failed` 必须 `text:""`;HF 与 PTT 均可 `"ok"`/`"failed"`;新分类 final 缺省非法,不得声称 classified |
+| `hfSegmentId` | `Id`(`evt_`) | 新 pipeline 每次 VAD 开口 | 仅 HF;同开口 start/end 同值。不是逻辑轮 id,也不是 asr.final 的唯一结算键 |
+| `hfRoundId` | `Id`(`evt_`) | 新 pipeline 每次 EOU 逻辑用户轮 | 仅 HF;一轮可含多个 `hfSegmentId`;**已拥有**该轮则恰好一条终态 `asr.final`(空识别=`ok`+`text:""`)。无开轮的有效空/短 PCM 只走 `emptyRound` ACK,不造 final。缺全部新身份=旧客户。禁止用无身份到达序证明乱序对应 |
+| `hfSegmentIds` | `Id[]` | 新 pipeline 每条 HF `asr.final` | 本逻辑轮已提交句段,按 `recordSeq` 升序,长度≥1,与账本集合精确相等 |
+| `recordSeq` / `recordSeqFirst` / `recordSeqLast` | `number` | 新 pipeline 句段与 HF final | 正整数;`1..2^31-1`;同 sid+epoch 单调。final 的 first/last 必须覆盖 `hfSegmentIds` |
+| `voice.quiesce.epoch` | `number` | daemon,当前 pipeline owner 入场世代 | 首个合法 owner=1;每次替换 currentOwner 且身份合法后 +1;整数 `1..2^31-1`;将溢出则 fail-closed 断开 pipeline,禁止回绕 |
+| `discardUnknownEpochs` / `unknownEpochs` | `number[]` | 用户屏幕放弃 / daemon 告知 | 唯一升序;元素 ∈ `1..2^31-1`;空数组≡键不出现。只进 prepare/quiesce/rejected,不进 HTTP body |
+
+`payloadDigest = sha256(JCS({ focusId, laneTitle?, discardUnknownEpochs? }))`:`laneTitle` 先 trim,空串当缺省(键不出现)。`discardUnknownEpochs` 写入 JCS 前必须唯一升序;正规化后为空则键不出现。不纳入 `peerId`/`daemonEpoch`。同 ID 不同 discard 集合 = 不同摘要 = `idempotency_conflict`(记录已存在时)或对曾被 `voice_audio_unknown` 拒过的旧 ID 补 discard = `invalid_input`(放弃必须新 `requestId`)。`requestId` 的生成、持久(`pendingAnchor`)与摘要绑定沿用既有约定:同 `payloadDigest` 重试沿用同一 ID;用户改 focus/lane、明确开始另一次续接、或屏幕选择放弃未确认世代 = 新意图 = 新 ID。新 console 另把当前 `hello.ack.daemonEpoch` 写入同一 `pendingAnchor`;`discardUnknownEpochs` **仅**在用户已点「放弃」后写入,失败/重连不得自动携带用户未批准集合。REST 写锚只比 `focusId`+正规化 `laneTitle?` 与记录相同,不要求 HTTP 重传 discard;不得用「只比 focus/lane」绕过 prepare 侧同 ID 不同 discard 冲突。
+
+方向与白名单(落地时写入 hub;本候选不进 `mobile_lan` 上/下行集,不进 S3 工具面):
+
+- `hello.ack`:仅握手下行,任何 peer 伪造丢弃。
+- `voice.anchor_prepare`:仅 `via=local` console→daemon;加入 console ROLE_ALLOWED。
+- `voice.anchor_status`:仅 daemon→该 `voice.anchor_prepare` 的 `sourcePeer`(`via=local` 已认证)。该 prepare **被允许处理**时(含接受前 `voice_audio_unknown`)把该 `sessionId` 登记到该 peer;`voice_peer_mismatch` 仍回发送方本次 status,但不改已有 owner 登记、不转移资格。
+- `voice.quiesce`:仅 daemon→pipeline,不在任何 peer 白名单。
+- `voice.quiesced`:仅 `peer===currentOwner ∧ OPEN` 的 pipeline→daemon。
+- `voice.quiesced_transcript` / `turn.text.result`:仅 daemon→`via=local` 且已登记该 `sessionId` 的 console。
+- `voice.quiesced_transcript_ack`:仅 `via=local` console→daemon;加入 console ROLE_ALLOWED。
+- 恢复 `voice.mode{quiesceRequestId}`:仅 `via=local` console。普通无 `quiesceRequestId` 的 `voice.mode` 不得打开已关 capture gate。
+
+#### 10.1.2 准备顺序与 HTTP 写口
+
+顺序写死,同条 console WS 上旧 PCM / `done_speaking` / cancel **先于** `voice.anchor_prepare` 到达。禁止 HTTP 与音频跨连接竞速。
+
+1. console 同步停止采集。若当前 PTT **正在录且尚未 finalize**:为其分配 `captureId`,发送并登记一次 `turn.done_speaking{captureId,captureIntent:"edit",holdForConfirm:true}`,再发 `voice.anchor_prepare`。只对实际打开的 PTT 录音 finalize;空闲不发 `done_speaking`,不合成空轮。HF 不发普通 hold、不补 `done_speaking`,直接 prepare。
+2. `voice.anchor_prepare{sessionId,requestId,focusId,laneTitle?,daemonEpoch,discardUnknownEpochs?}`。daemon 把该消息的 `sourcePeer` 定为 owner(无需 HTTP 猜 owner)。接受前先查 epoch/载荷/容量/busy/peer/unclassified/**未知音频世代**(10.1.12):不通过则 `voice.anchor_status{status:"rejected",code,retryable}`,不写 focus、不出 `prepared`、不建失败记录;既有 capture/ASR 门保持原状(尚未因本请求关闭则不关)。`prepare.daemonEpoch` 必须等于当前进程 `hello.ack.daemonEpoch`,否则 `code:"unknown"`/`retryable:false`。默认 prepare 遇非空未知世代且未带精确匹配的 `discardUnknownEpochs`:`code:"voice_audio_unknown"`/`retryable:true`/`unknownEpochs`(完整升序集)。通过后同步关 capture/ASR 门,记录 `preparing`。仅当存在当前 pipeline owner **且**需要排空当前 epoch 时才发 `voice.quiesce`(从本 prepare 原样抄 `discardUnknownEpochs?`);本请求 discard 集含当前 epoch 且 owner 仍在 = 需要排空,由当前 ACK 确认清缓冲。立即 `prepared` 路径不发 quiesce。放弃集合本身不开门、不写锚、不代替当前 epoch quiesce。
+3. **音频 unknown** 按 sid(capture owner session)×`pipelineEpoch` 记账,见 10.1.12。新连接上匹配的 `voice.quiesced{classified:true}` **只证明该 ACK 的 epoch 已排空**,不得删除或改写其它未知世代。`hasPipelinePeer===false` 单独不构成可立即 `prepared`,也不得因此永等新 owner 把旧音频当已保存。**待分类 PTT** = 该 sid 存在 `CaptureRegistryEntry.consumed===false` 的项(含已登记尚未匹配 final、也尚未被 discard tombstone 的 `captureId`)。**立即 `prepared`**(不发 quiesce)当且仅当同时成立:未知世代集为空(或本请求已 CAS 放弃后为空);不存在 `state==="unconfirmed"` 的项;无待分类 PTT;无 `voice_unclassified_inflight` 条件;且**无需排空当前 epoch**(无当前 pipeline owner,或有 owner 但当前 epoch 无未确认/未知项且本请求 discard 集不含当前 epoch)。历史「曾向某 epoch 接受过音频」**不单独阻止**立即 `prepared`。discard CAS 成功必须**同时**:把精确匹配的 unknown 账本项标 `discarded`;并把所列 epoch、该 sid 全部 pending registry 项结算为 `consumed:true ∧ discarded:true` tombstone(保留 `sessionId`/`captureId`/`epoch`/`intent` 到会话挂起/关闭,禁止删行)。discard 是音频+registry 结算依据,不是开门/写锚;已保存草稿与已 ACK 文本不删除。CAS 成功后仍须本条立即 `prepared` 或当前 epoch 成功 ACK,再走 HTTP→rearm,保持实际 capture gate / HTTP / rearm 顺序。有仍未确认/未知数据且无当前 pipeline owner:走步骤 2 的 `voice_audio_unknown`,**禁止**把无 pipeline 说成已排空,也**禁止**保持 `preparing` 等待新 owner 替旧音频证明。仅当未知集已空、账本已结算、无 pending registry,且当前 owner 仍在并需排空时,等匹配 `voice.quiesced{classified:true}`(可带 `emptyRound`)后再 `prepared`;`classified:false` 见下表,不得当 `prepared`。随后发 `voice.anchor_status{status:"prepared",emptyRound?}`(`emptyRound` 仅拷贝成功 ACK)。
+4. 新 console 等到匹配 `prepared` 后才 `POST /api/sessions/:sessionId/focus-anchor`,body 必带同一 `requestId`。REST 仅当记录 `prepared` 且请求的 `focusId`+正规化 `laneTitle?` 与记录相同,同步重校验 focus 并写 SQLite,`state=applied`(网络等待不得持事务)。HTTP 不重传 discard;`already=true` 不是排空证明,不得跳过屏障。
+5. HTTP 200 之后 console 发既有 `voice.mode{mode:"ptt",quiesceRequestId}`(`quiesceRequestId===requestId`)。daemon 验证 owner+`applied` 后 `state=rearmed`,回 `voice.anchor_status{status:"rearmed"}`。无需 pipeline 第二 ACK;该状态回执即入站处理证明。
+6. console 收到匹配 `rearmed` 才放开新语音/文本。普通无 pending 文本不受影响。无 pipeline 的纯文本新 console 同样走 prepare→HTTP→rearm;满足步骤 3 立即 `prepared` 条件时不发 quiesce。
+
+仍用 `POST /api/sessions/:sessionId/focus-anchor`(`via=local`;`via=mobile_lan` 仍 403,§11/§15)。
+
+```typescript
+type FocusAnchorRequestBody = {
+  focusId: Id;                 // 必填
+  laneTitle?: string;          // 可选;trim 后空则视为缺省
+  requestId?: Id;              // 新 console 必填 evt_;旧客户端可缺
+};
+type FocusAnchorOk = {
+  ok: true;
+  sessionId: Id;
+  focusId: Id;
+  already: boolean;            // 仅「该 sid 已挂同一 focus」,不是排空证明
+  voiceBoundaryId: Id;         // === 生效 requestId
+  voiceBoundaryRequired: true; // 字面量;新协议无 false 跳过 rearm
+};
+type FocusAnchorLegacyOk = {
+  ok: true;
+  sessionId: Id;
+  focusId: Id;
+  already: boolean;
+};
+type FocusAnchorErr = { ok: false; code: string; retryable: boolean; message?: string };
+```
+
+旧客户端不传 `requestId`:仅当同时成立——无 pipeline 已接受音频、无 capture owner、未知世代集为空——可保持原直接 HTTP,响应 `FocusAnchorLegacyOk`,不走屏障。否则 **409 `voice_boundary_required`**,daemon 不得代做未排序屏障。新协议不存在 `voiceBoundaryRequired:false` 跳过 rearm 的路径。
+
+错误码(WS = `voice.anchor_status{status:"rejected"}`;HTTP = JSON `FocusAnchorErr`;同码同语义):
+
+| 面 | HTTP | code | retryable | 何时 |
+|---|---|---|---|---|
+| HTTP | 400 | `invalid_input` | false | 缺 `focusId` / Id 非法 / `requestId` 非 `evt_` / 写锚时 focus 重校验失败(记录仍 `prepared`,可同 ID 再 POST;focus 已不存在则客户端改发新意图) |
+| WS | — | `invalid_input` | false | prepare 字段非法;`discardUnknownEpochs` 含非整数/越界/未正规化重复;对曾收 `voice_audio_unknown` 的旧 ID 补 discard;当前未知集已空仍带 discard |
+| HTTP | 403 | 既有远端码 | false | `via=mobile_lan` 等,不新开口 |
+| HTTP | 409 | `voice_boundary_required` | true | 新 console 在非 `prepared` 时 POST;或旧客户端非 legacy 纯文本 fastpath |
+| HTTP | 409 | `voice_anchor_pending` | true | 该 `requestId` 仍 `preparing` |
+| 两面 | 409 | `voice_anchor_busy` | true | 同 sid 另一不同 `requestId` 仍 `preparing` |
+| 两面 | 409 | `voice_capture_conflict` | true | 另一 session 争用全局 capture |
+| WS | — | `voice_peer_mismatch` | true | owner 连接仍 OPEN,其它 peer 发 prepare 或尝试 discard;或不具备 10.1.4 恢复资格 |
+| 两面 | 409 | `idempotency_conflict` | false | 同 `(sessionId,requestId)` 但 `payloadDigest` 不同 |
+| 两面 | 409 | `voice_boundary_consumed` | false | 该 ID 已 `consumed`,或 rearm 后已有新入站 |
+| 两面 | 409 | `voice_request_dead` | false | 该 ID 已 `failed`,不可复活;本码不带 `unknownEpochs`(观察口=新 `requestId` 的 `voice_audio_unknown`,10.1.12) |
+| WS | — | `voice_unclassified_inflight` | true | 存在无法分类的 legacy 在途旧轮;拒 prepare,不关门、不建失败记录 |
+| WS | — | `voice_audio_unknown` | true | 该 sid 未知音频世代非空且 discard 缺省或集合 CAS 失败;必带 `unknownEpochs`;不写 focus、不出 `prepared`、不建失败记录、不因本请求改门 |
+| 两面 | 409 | `voice_anchor_capacity` | false | 该 sid 已有 32 条记录;须显式结束会话后再开新会话 |
+| WS | — | `voice_quiesce_timeout` | true | 120s 内无匹配 ACK;`preparing`→`failed`,门保持关,该 epoch 留 unknown |
+| WS | — | `voice_quiesce_disconnected` | true | 等待中 **pipeline** 断连(console 断线不走此码);该 epoch 留 unknown |
+| WS | — | `voice_recognition_failed` | true | 匹配 `voice.quiesced{classified:false,code:"voice_recognition_failed"}`;`preparing`→`failed`,门保持关,该 epoch 留 unknown;不是 `voice_quiesce_unsupported` |
+| WS | — | `voice_quiesce_unsupported` | true | ACK 缺 `classified`,或 `classified===false` 但 `code` 不是 `"voice_recognition_failed"`,或 `classified` 非布尔 |
+| WS | — | `voice_handover_overflow` | true | 待移交非空稿将超过每 sid 16 条 |
+| WS | — | `unknown` | false | `prepare.daemonEpoch` 不等于当前进程 epoch;不建记录 |
+
+`preparing` 被接受后失败:门保持关闭,不写锚,该 `requestId` 进入 `failed`。`voice_unclassified_inflight` / `voice_audio_unknown` / `unknown` / `invalid_input`(prepare 字段非法、discard 元素非法、对已告知 `voice_audio_unknown` 的旧 ID 补 discard、当前未知集已空仍带 discard)在接受前拒绝:不关 gate、不建失败记录。`voice_audio_unknown` 可用同一 `requestId` 重放(不得私自补 discard);放弃必须新 ID。`unknown` 跨 epoch 除外——旧 ID 不得当 first-new。
+
+#### 10.1.3 请求身份与幂等(QSC-01)
+
+新 console 为**一次续接意图**生成 `requestId`,写入 `pendingAnchor`(sessionStorage 键 `saydo.chat.pendingAnchor`,字段在既有 `focusId/laneTitle?/draft?` 上 **必增** `requestId` 与当前 `daemonEpoch`)。最近一次 `voice_audio_unknown` 的 `unknownEpochs` 只作屏幕呈现,不得写入将用于重放的 `pendingAnchor.discardUnknownEpochs`;仅当用户点「放弃未确认语音后继续」后签发新 ID 并写入该集合。
+
+daemon 主键 `(sessionId, requestId)`,记录:
+
+```typescript
+type FocusAnchorRecord = {
+  sessionId: Id;
+  requestId: Id;
+  payloadDigest: Digest;
+  focusId: Id;
+  laneTitle?: string;
+  discardUnknownEpochs?: number[]; // 仅本请求已 CAS 放弃的集合;空则缺省
+  ownerPeerId: Id;             // prepare sourcePeer;不是 payload 的一部分
+  state: "preparing" | "prepared" | "applied" | "rearmed" | "consumed" | "failed";
+  failedCode?: string;
+};
+```
+
+进程内 Map,每 sid **全部记录最多 32 条**(含 `consumed`/`failed`),会话挂起/关闭才删除,**不淘汰**。32 满时拒绝新 `requestId`(`voice_anchor_capacity`),不得丢掉 active 记录腾槽。同键重放不占新槽。不落 §9 新表。
+
+状态:
+
+1. **preparing**:WS prepare 已接受,quiesce 在途或立即判定中。同 `(sid,requestId,payloadDigest)` 重复 prepare **共享同一在途结果**,不得并行开第二道 quiesce。REST 见该态 = **409 `voice_anchor_pending`**。
+2. **prepared**:成功分类 ACK(`classified:true`)完成或立即判定完成,尚未写锚。重复 prepare 重放 `prepared`(含当时的 `emptyRound?`)。REST 仅此态可执行写锚;同键并发 POST 共享同一写锚,不得写两次。`classified:false` 不得进入本态。
+3. **applied**:写锚成功。同 ID 同载荷 REST 重放同一 200;重复 prepare 重放 `prepared`(供重试 HTTP)。门仍关,须匹配 `voice.mode` 才 `rearmed`。
+4. **rearmed**:匹配恢复已开门。重复 prepare 重放 `rearmed`。同 socket 再发同一恢复 `voice.mode` = 幂等空操作,不得再清 pipeline 状态。
+5. **consumed**:rearm 之后,本 capture owner 已为该 sid 接受任一 `0x01` PCM、其后到达的 `turn.done_speaking`,或一条 `turn.text.result{outcome:"accepted"}`。此后旧 ID 只回 **`voice_boundary_consumed`**,不复用。
+6. **failed**:timeout / pipeline 断连 / `voice_recognition_failed` / unsupported / overflow 等已接受后的失败。旧 ID **不能复活**、不能当 first-new、不能接管为 `applied`/`prepared`/`rearmed`。对应 epoch 若未 `recognitionOutcome:"ok"` 确认则留 unknown(10.1.12);`failed` 空 final 已直接 unknown 的项不得改 `confirmed`。不得因失败 ACK 或缺 ACK 写成 `classified:true`。旧 owner socket 已关闭时,同 sid 新 peer 的**放弃裁决资格**按 10.1.4/12 转移到新 `requestId`,不复活本记录。
+
+新意图必须新 ID。新 ID 开始时:将该 owner 同 sid 此前 `prepared`/`applied`/`rearmed`(**非** `preparing`)旧边界标 `consumed`;若其中有 `rearmed`(门已开)则先关 capture/ASR 门。门保持关闭后再跑新边界。若前一个仍 `preparing` = `voice_anchor_busy`;console 用跨 Chat 卸载仍存活的共享串行协调等待其 `anchor_status` 后才发下一个新 ID,不得因旧 Chat 卸载永远锁死。
+
+客户端未见 `prepared`/`rejected`/`failed` 终态:必须先用同一 `requestId`+同一载荷+同一 `daemonEpoch` 重放 prepare,**禁止**自动生成新 ID。HTTP 200 丢失不得只按 `sessionId`/`focusId` 重放旧边界。仅当已收到 `failed`/`voice_request_dead`/`unknown`(跨 epoch)后才签发新 ID。`voice_request_dead` 后必须用新 ID 再 prepare 才能观察 `unknownEpochs`;禁止把旧 failed 拒绝当未知集通道。`voice_audio_unknown` 同意图重放不得补 discard;屏幕选择放弃 = 新意图 = 新 ID(10.1.12)。
+
+#### 10.1.4 peer 归属与接管(QSC-02)
+
+owner = `ownerPeerId` 指向的那一条 **仍 OPEN** 的 `via=local` console 连接,值只来自 `voice.anchor_prepare` 的 `sourcePeer`。`hello.ack.peerId` 仅说明/诊断。`peer.sessionIds` **最多**作「该 peer 是否已登记该 sid」校验,禁止用累计集合猜 owner。
+
+- owner 连接 **live**:仅该 socket 可 prepare/rearm 该屏障、可屏幕 discard;其它 peer = `voice_peer_mismatch`。不可被其它 peer 抢。
+- owner WS **已关闭**:经现有 G1、`via=local`、同一 `sessionId` 的新 socket,以同 `requestId`+同 `payloadDigest`+同 `daemonEpoch` 重复 prepare,可接管**未消费**(`preparing`/`prepared`/`applied`/`rearmed`)记录,把 `ownerPeerId` 改为新 `peerId`,重放当前 status 或共享在途 quiesce。旧 peer 与旧恢复 `voice.mode` 永不生效。不要求新 peer 事先已有 `sessionIds` 登记。**禁止**用普通无 `quiesceRequestId` 的 `voice.mode` 抢已关 gate。
+- 该 prepare **被允许处理**后(含接受前 `voice_audio_unknown` 拒绝),daemon 把该 `sessionId` 登记到该 `sourcePeer`(与 `console.heartbeat` 登记等价),以便下发本次 `voice.anchor_status` / 随后的 `voice.quiesced_transcript` / `turn.text.result`。`voice_peer_mismatch` 回发送方但不改已有登记。
+- `consumed`/`failed` **记录本身**不可接管为执行态,旧 ID 不可重跑、不可把该 ID 改成 `applied`/`prepared`/`rearmed`。`rearmed` 且无新入站、owner 已关:允许接管并重放 `rearmed`,不得把该 ID 卡死。
+- **failed 后的恢复资格转移**(只转移屏幕 discard 裁决,不是执行接管):该 sid 不存在 owner 仍 OPEN 的屏障记录(任一 `state`,含 `consumed`/`failed`)时,同 sid、`via=local`、已 `hello.ack`、当前 `daemonEpoch` 的新 socket 可在**新** `requestId` 上办理默认 prepare 与随后的屏幕 discard。新 prepare 的 `sourcePeer` 即本请求裁决人,绑定该 `daemonEpoch`。旧 owner **仍 OPEN** 不得抢。本转移不开 capture/ASR 门。未知全集观察口见 10.1.12:只走新 ID 的 `voice_audio_unknown`,不走旧 failed ID 的 `voice_request_dead`。
+
+有效恢复(开门)当且仅当同时成立,不是「仅有 sid」:
+
+`sourcePeer.peerId===record.ownerPeerId` ∧ `record.state==="applied"` ∧ `mode==="ptt"` ∧ `quiesceRequestId===requestId` ∧ `via=local` ∧ `helloDone` ∧ `OPEN`。
+
+之后 `state=rearmed`,回 `voice.anchor_status{status:"rearmed"}`,打开该 sid 的 ASR→Brain 与全局 capture 转发。`consumed` 之后的旧恢复消息丢弃,不得重新清状态。
+
+console 断线本身 **不**取消 pipeline 排空 job,门保持。pipeline 断线才 `failed`(`voice_quiesce_disconnected`)。未消费记录重连用同键 prepare 恢复 status;`failed` 同键只回 `voice_request_dead`,须新 ID。
+
+文本与系统语音:未 `rearmed` 前不得当已发送;无 pipeline 且账本已结算(10.1.2 立即 `prepared` 条件)时不得等待 `voice.quiesced`。云端 PTT/免手必须先匹配 `rearmed`。新 pipeline 入场不得把上一 epoch 的未知集视为已确认。
+
+#### 10.1.5 门、串行与旧轮
+
+1. console 进入准备:同步停采并禁止开麦/送帧/新的 `done_speaking`/切免手/把系统语音当已发送。无 pending 的普通文本不受影响。`preparing`/`prepared`/`applied` 期间若仍发来新 `turn.text` 且 `receiptAction` 不是对已有键的 `replay`,daemon 必须回 `turn.text.result{outcome:"rejected",code:"voice_anchor_pending",retryable:true}`,不得只打日志。
+2. 全局 single pipeline capture gate:音频 `0x01` 无 sid。gate 关闭后整条 mic 不得转发。prepare 接受并关 gate 时把 `lastVoiceMode` 预写为该 sid 的 PTT,防止 pipeline 重连打回免手。
+3. 目标 sid 的 ASR→Brain gate:该 sid `asr.final` 不得进 Brain。被 gate 拒的 `done_speaking` 不得 `record` 旧 FIFO。
+4. 同 sid 屏障串行(共享协调,见 10.1.3)。另一 sid 争用全局 capture = `voice_capture_conflict`。
+5. prepare 接受前已进 Brain 的旧轮不追溯;接受后先停旧轮,成功分类 ACK(`classified:true`)并写锚成功才应用新主题。
+
+#### 10.1.6 quiesce(不是 hold;QSC-06)
+
+1. 禁止 `record` 旧 FIFO,禁止补发 `done_speaking` 造空 final,禁止为无 cap 原始缓存加 timer。实际开始的 PTT 必须在同 WS 上先 `done_speaking` 再 prepare。HF 停采不补 `done_speaking`。
+2. 向当前 pipeline owner 发 `voice.quiesce{sessionId,requestId,epoch,discardUnknownEpochs?}`。`epoch` 见 10.1.1;`discardUnknownEpochs` 仅从已接受 prepare 原样转发。
+3. 新 pipeline **固定顺序**(不得用静音帧或墙钟冒充 `utterance_end`):
+   1. 先等待既有 HF 识别任务与 PTT 串行链按**真实终态**结束(现役 `await` 最长约 90s)。PTT 与 HF 识别失败均发且仅发一条 `AsrFinalMsg` 的 `recognitionOutcome:"failed"` 且 `text:""` 终态(HF 禁 `captureId`,可带 `hfRoundId`),不得再造第二条;该 failed 立即记步骤 2 的未裁决失败状态,并按 10.1.12 把对应项标 `unknown`。已发出的正常空 PTT final,以及已拥有逻辑轮已发出的空 HF final(`ok` 且 `text:""`),都是该轮终态,给空反馈,不得再造第二条。没有开口的 empty ack 不是 final,不适用本句。不得为了 ACK 取消它们冒充排空。
+   2. **失败汇总**(在发任何成功 ACK 之前必做,不是实现自选):pipeline 在本 WS 连接内按 `sessionId` 保留未裁决识别失败标记;每次 HF/PTT 识别异常或超时立即置位,与任务是否仍在途无关。集合涵盖本连接该 sid **开始前已经结束**、**开始前已在途**、**步骤 1 等待期间**及**后续 tail** 的全部未裁决失败。后续成功识别、正常空结果、EOU/VAD/mic 清理、切模式和另一轮 quiesce 都不得清除此标记。任一标记存在且本消息 `discardUnknownEpochs` **不含当前 `epoch`** ⇒ 不得走步骤 7–9,必须走步骤 10 的失败 ACK。仅当 daemon 已接受的显式 discard 包含当前 epoch,且步骤 4/11 已实际清理完对应缓冲后,才清该 sid 标记并成功 ACK。当前连接关闭时该内存标记随连接清理,但 daemon 按 10.1.12 把尚未确认音频保留为旧 epoch unknown,新连接不得替它确认。每次成功 ACK 前必须重新检查标记,不能只在 quiesce 入口取一次快照,也不得只看最后 HF tail。
+   3. 若 HF VAD 已 `speech_start` 且尚未 `utterance_end`:必须 `VAD.flush()` 取剩余 PCM,禁止 `reset`/直接清。无 `speech_start` 则 flush 为空。
+   4. 若本消息 `discardUnknownEpochs` 含本 `epoch`:对 flush 剩余只清、不新开 ASR、不把 leftover 当可恢复转写;有剩余 PCM 则 `emptyRound:"unusable"`,否则 `emptyRound:"empty"`;跳到第 11 步发成功 ACK。不得只因 discard 记录声称已清。本支视为这些失败已被明确 discard,不受步骤 2 失败汇总阻挡。
+   5. 否则以**现有 ASR 通道**识别 flush PCM(与现役免手/`_force_finalize` 同一 `recognize` 口,预算约 90s),**不得**额外 `done_speaking`。短于既有最小阈值(现役 3200 字节 / 约 100ms,与 PTT/HF skip 同一门槛)不调用识别。
+   6. 与既存 EOU pending 文本**按 recordSeq 录音序提交后再合并**(`commit` 后的 `(pending + tail).strip()`),禁止按 ASR 返回序改共享正文。再结算或取消并 await 剩余 EOU。非空 tail 继承当前未闭合逻辑轮的 `hfRoundId`;无开轮且识别后非空才新开一轮。无开轮的有效空/短 leftover 不新开轮、不造 final(步骤 8 第一弹 / 步骤 9)。不得匿名 leftover。详见 10.1.13。
+   7. 若步骤 2 失败汇总已非空:禁止本步再发一条成功 HF final,跳到步骤 10;步骤 1 已发出的 HF `failed` 空 final 仍算该逻辑轮终态,不得再补。合并后非空且无未 discard 失败:在 ACK **之前**发一条本逻辑轮终态 `asr.final{captureMode:"hands_free",recognitionOutcome:"ok",hfRoundId,hfSegmentIds,recordSeqFirst,recordSeqLast}`(禁 `captureId`,本步禁 `failed`),走 10.1.7 HF 旧稿。不得再广播一条普通未分类 final。本路径 ACK 不带 `emptyRound`。旧客户无新身份字段时不得声称已按逻辑轮结算。
+   8. **空识别终态(单一规则;按是否已拥有逻辑轮分流,禁止两条同时适用)**:
+      - **没有开口的 empty ack**:本 sid+epoch **无**已签发未终态 `hfRoundId`(从未 `speech_start` 开轮;flush leftover 也不因空识别新开轮)。PCM 达阈值且识别返回空、pending 亦空、无未 discard 失败:不造 final(没有轮身份可闭包),ACK `{classified:true,emptyRound:"empty"}`。`emptyRound` 不是逻辑轮终态身份,不得声称已按逻辑轮结算。
+      - **已拥有逻辑轮的 empty 终态**:本 sid+epoch **已有**未终态 `hfRoundId`(至少一次 `speech_start` 开轮或并入,含 quiesce 时仍开口并由 flush 继承的句段)。按录音序提交后拼接为空且无未 discard 失败:必须发且仅发一条本轮终态 `asr.final{captureMode:"hands_free",recognitionOutcome:"ok",text:"",hfRoundId,hfSegmentIds,recordSeqFirst,recordSeqLast}`,然后 ACK `{classified:true}`(**不带** `emptyRound`,终态身份在 final 上)。列出的句段 `confirmed`(空识别),不进 Brain,给空反馈,不阻随后 quiesce。已终态轮禁止第二条 final。
+   9. 短 PCM / 无可用转写(低于阈值且 pending 空)且**无已拥有逻辑轮**且无未 discard 失败:不造 final,不得宣称保存了转写,ACK `{classified:true,emptyRound:"unusable"}`。已有开轮而 leftover 短于阈值:不新开识别;未提交句段视同 `failed` 计入步骤 10,不得改走 empty ack 抹掉该轮身份。
+   10. HF tail 识别异常或超时(立即置步骤 2 失败标记),或步骤 2 仍有未 discard 失败:不造(额外) final,不得 `classified:true`;ACK `{classified:false,code:"voice_recognition_failed"}`。即使仍有 pending 也不得把 pending 当已确认 final。已发出的 PTT `failed` 空 final 仍算轮次守恒终态,不得再补一条。
+   11. 然后清 VAD/mic/EOU,固定 `_mode=ptt`,再发 ACK。所有本连接旧 EOU/HF/PTT 都要排空。每条新 final 必须落在 `AsrFinalMsg` 且能按 10.1.7 分类。
+4. ACK 是判别联合,见 `PipelineMsg`:**无 `drained` 数组**。证明依据:同 pipeline WS 上全部旧 final 都在该成功 ACK 之前且带分类;新分类 PTT/HF 均必带 `recognitionOutcome`;daemon 维护已登记 `captureId`。成功 ACK 只证明**本 `epoch`**,并按 10.1.12 结算该 epoch 剩余 `unconfirmed`;已匹配 `recognitionOutcome:"ok"` 并标 `confirmed` 的 PTT 不因随后断线改 `unknown`。`classified:false`+`code:"voice_recognition_failed"` 由 daemon 按已接受失败处理(`preparing`→`failed`,门保持,该 epoch 上仍未 `confirmed`/`discarded` 的项留或改为 `unknown`),**不是**旧 pipeline `voice_quiesce_unsupported`。缺 `classified`、`classified===false` 但码不是该固定码、或 `classified` 非布尔 = 丢弃 ACK,`voice_quiesce_unsupported`。
+5. 仅 `peer===currentOwner ∧ OPEN`、握手 `identity` 与入场值完全一致、`epoch`/`requestId`/`sessionId` 匹配才认 ACK。旧 peer/旧 epoch/错 sid/重复 ACK 丢弃,不进入 `prepared`,也不清其它 epoch 的未知集。
+6. 等待预算 **120s**(覆盖约 90s 识别)。超时 = `voice_quiesce_timeout`;等待中 pipeline 断连 = `voice_quiesce_disconnected`。二者都使该 epoch 留 unknown。不得以计时器冒充成功终态。
+7. 旧 pipeline 无本联合 ACK 能力:不能给 ACK,不能声称已排空。存在无 `captureMode` 的在途 final、无 `captureId` 的在途 PTT `done_speaking`、或已带 `captureMode` 但缺 `recognitionOutcome` 的在途 final = 拒 prepare(`voice_unclassified_inflight`)。旧 final 无法区分识别失败,不得凭猜测声称 classified。
+
+#### 10.1.7 轮次关联(QSC-03)
+
+既有合同缺口:普通 HF 与 PTT 的 `asr.final` 同形、无来源。新协议补齐,不靠到达序猜。
+
+**PTT `turn.done_speaking`(新 console 必发)**:`captureId` + `captureIntent:"send"|"edit"|"cancel"`。一致性:`edit|cancel` 必须 `holdForConfirm:true`;`send` 不得带 hold。不成对或自相矛盾:整消息丢弃,不登记、不转发、记审计。当时无 current pipeline owner:整条丢弃、不登记、不转发(避免无 epoch 的 pending 项永远挡住立即 `prepared`)。
+
+```typescript
+type CaptureRegistryEntry = {
+  sessionId: Id;
+  captureId: Id;
+  epoch: number;                 // 登记时 currentOwner 的 pipelineEpoch;与 voice.quiesce.epoch 同一整数域
+  intent: "send" | "edit" | "cancel";
+} & (
+  | { consumed: false; discarded: false }   // pending 待分类
+  | { consumed: true; discarded: false }    // 已匹配 asr.final(ok 或 failed);账本分流见 10.1.12
+  | { consumed: true; discarded: true }     // 显式 discard tombstone
+);
+```
+
+hub:按 `(sessionId,captureId)` 写入进程内 `CaptureRegistryEntry`(每 sid 最多 64,含 tombstone;会话挂起/关闭才清空,**不淘汰、不删行表示终态**)。登记时必须写入当时 `epoch`;同键已存在则整条新 `done_speaking` 丢弃。转发 pipeline **保留 `captureId`**,剥离 `holdForConfirm`/`captureIntent`。daemon 只按 `(sid,captureId)` 匹配已登记项。禁止 `consumed===false ∧ discarded===true`。
+
+**final 来源与消费(新 pipeline 必填;轮次守恒终态 ≠ 识别成功)**:
+
+- 新分类 PTT → `AsrFinalMsg` 的 PTT 支:`captureMode:"ptt"` + 同一 `captureId` + 必填 `recognitionOutcome`。匹配且 registry 仍 pending:把该条标 `consumed:true,discarded:false`,保留身份到会话结束。**只有** `recognitionOutcome:"ok"` 才按 10.1.12 把该轮账本标 `confirmed`(随后断线不得改 `unknown`)。`recognitionOutcome:"failed"` **直接**把该 `captureId` 对应账本项标 `unknown`,禁止先 `confirmed` 再反转;不进 Brain、不入草稿。
+- HF → `captureMode:"hands_free"` 且无 `captureId`,**不**碰 PTT 登记;`recognitionOutcome` 必填且为 `"ok"`|`"failed"`。`ok` 才按 10.1.12/10.1.13 确认本逻辑轮已列出的句段集;`failed` 且 `text:""` **直接**把该轮全部列出句段标 `unknown`,不进 Brain、不入草稿,并阻止本 epoch quiesce `classified:true`(除非本请求已显式 discard 当前 epoch)。新协议 final 必须带 `hfRoundId` + 非空 `hfSegmentIds`(按 `recordSeq` 升序);只写「按 id」而不列出句段集 = 非法,整消息丢弃。旧客户三者皆缺且无新身份在途项时只准 FIFO 最老已闭合未分类项,不得消费已带新身份的项。HF final 与 PCM 区间若无法按 10.1.12 保守边界证明,不得把其后仍在录的 PCM 标 `confirmed`。无身份 FIFO **不能**证明并发乱序 EOU 对应,也**不能**证明「后到的半句可先发」。
+- 缺 `recognitionOutcome` 的新分类 PTT/HF、或 `failed` 且 `text` 非空:整消息丢弃,不消费 registry,不改账本。`captureId` 未登记或 `epoch` 不是当前 owner 当前 epoch:不消费、不改账本、不重新登记。以上均不进 Brain、不入草稿、不报已排空。所有新 pipeline final 必须能落入 `AsrFinalMsg`。
+- 老 epoch、已 `discarded` tombstone、或已 `consumed` 的 `captureId` 的迟到 final:不进 Brain、不入草稿、不复活 `unknown`、不改变新轮 queue、不得重新登记同 `captureId`。
+
+**TTL**:旧 FIFO 的 120s 只约束**无 `captureId` 的 legacy 路径**。新登记上,cancel/edit 身份保留到该 `captureId` 被对应 final 消费、被 discard tombstone、或会话结束;**禁止** TTL 到期或删行后把迟到 cancel 当 direct 进 Brain。console 按 `captureId` 匹配意图,禁止只靠 FIFO。UI 超时(录音时长+30s,至少 20s,11 §5.10)只是**显示失败**,不得删除 cancel 身份让迟到轮复活。
+
+**普通 send/edit/cancel**(有无屏障均适用):`recognitionOutcome:"failed"` 不得经这些模式被当成功旧稿、不得 `acceptUserTurn`、不得进 `quiesced_transcript`。`cancel` 仍零原文,不因失败改口。正常空 PTT(`ok`+`text:""`)仍是终态并给空反馈,不造第二条 final,空文本仍不进 Brain。
+
+**旧稿分流**(匹配 `classified:true` ACK 后、发 `prepared` 前,只走一条专用下行,禁止再广播普通 `asr.final`;不得 raw+专用双发):
+
+- `cancel`:daemon 凭 registry 丢弃原文,不入移交队列、不发文本稿、零原文。
+- `edit` / `send`(接受前未进 Brain) / HF:仅 `recognitionOutcome:"ok"` 且 `text` 非空可成独立旧稿,`voice.quiesced_transcript` 带 `captureMode`、PTT 必 `captureId`、`captureIntent?`(`send`|`edit`;HF 缺省)、`sourceFocusId?`(接受瞬间 daemon 快照的**旧** focus,无则缺)。接受前已 `acceptUserTurn` 的项不移交、不发该事件(不追溯)。`failed` 与正常空一律不入移交队列。
+
+**旧客户端缺省**:无屏障普通路径保持既有 FIFO/`holdForConfirm` 行为。旧 final 无 `recognitionOutcome`,无法区分识别失败,不得猜测、不得声称 classified。prepare 前若该 sid 存在未匹配、无 `captureId` 的在途 `done_speaking`、无 `captureMode` 的在途 final、或带 `captureMode` 但缺 `recognitionOutcome` 的在途 final = **`voice_unclassified_inflight`**,不得声称已排空。新 pipeline 只有带分类的 quiesce 才能 ACK。
+
+#### 10.1.8 旧稿转交(QSC-04)
+
+介质固定,不是实现选择:**不**新增 §9 表;daemon 进程内待移交 + console 私有 sessionStorage 队列 + ack/replay。与 `voice.anchor_prepare` / `voice.anchor_status` 顺序一致:未 ACK 项在 `prepared` 之后仍可下发/重放。**不**伪称 daemon 重启后仍保证恢复(与 `[privacy].store_transcript`/G6:进程内未 ACK 稿随进程消失;取消零原文)。daemon 重启未移交 = `unknown`,必须可呈现;从 `hello.ack.daemonEpoch` 变化识别。已经写入 console 的稿不得丢。未确认音频世代集也不落库、不靠全量录音恢复;进程重启后该集为空,不得把旧未确认音频当已保存,也不得用重启当 discard。
+
+- daemon:进程内待移交 Map,键 `(sessionId,requestId,turnId)`,每 sid 最多 16 条非空稿;将超 = `voice_handover_overflow`,ID `failed`,gate 保持关。
+- console:sessionStorage 私有队列,键 `saydo.chat.quiescedTranscripts.<sessionId>`,值为上述事件字段数组(无 PCM)。Chat 卸载重挂与页面重载保留;不得因 `inputState=idle` 丢弃。取消当前录音不得清其它持久旧稿。
+
+时序:非空文本按 `(sessionId,requestId,turnId)` 去重 → 入 daemon 队列 → 向已认证同 sid 的 `via=local` 接收 peer 发 `voice.quiesced_transcript`(字段见联合类型;`text` 非空;`captureMode` 必填)。console **写入 sessionStorage 成功后**才发 `voice.quiesced_transcript_ack{sessionId,requestId,turnId}`。仅当前已认证、`via=local`、已登记该 sid 的接收 peer 可 ACK;错 peer 丢弃。daemon **收到 ACK 才删除**待移交项。重复事件与重复 ACK 幂等。
+
+重连或同 sid 登记(`voice.mode` / `console.heartbeat` / 接管 prepare)必须重放仍未 ACK 的项。采用/丢弃只消费**已交接的本地稿**,不再写 daemon。未 ACK 前 daemon 重启 = 恢复 **unknown**:不得假称无旧稿或已成功移交;若 console 键里已有稿,跨卸载/重载必须仍显示。人工新草稿不覆盖旧稿列表。采用是用户明确动作:可追加到输入区,或确认后替换;不得自动当新主题指令发送。
+
+UI 对**未发送的当前草稿**直到匹配 `turn.text.result.accepted` 才消费;`prepared` / HTTP 200 / `rearmed` 都不清。
+
+#### 10.1.9 恢复采集
+
+1. `FocusAnchorOk` 当时 capture/ASR **仍关**。新协议无 skip-rearm。
+2. 旧 PCM / `done_speaking` / 无 `quiesceRequestId` 的 `voice.mode` 不得开门、不得 `record` FIFO、不得改 `lastVoiceMode`。同 WS 上它们必须排在本次 `anchor_prepare` 之前。
+3. 匹配恢复见 10.1.4;console 以匹配 `voice.anchor_status{status:"rearmed"}` 为放开新语音/文本的证明,不需要 pipeline 再 ACK。之后新 PCM 与同连接后续 JSON 按到达序。
+4. 恢复必须保持 `lastVoiceMode` 为该 PTT;pipeline (re)join 回放不得打回免手。
+5. 不得只用 `bufferedAmount`、HTTP 成功或 `prepared` 开门。
+
+#### 10.1.10 文本接收回执(QSC-05)
+
+```typescript
+type TurnTextMsg =
+  | { t: "turn.text"; sessionId: Id; turnId: Id; text: string; typed: true }
+  | { t: "turn.text"; sessionId: Id; turnId: Id; text: string; typed: true;
+      receiptAction: "submit" | "replay" | "retry"; daemonEpoch: Id };
+type TurnTextResult =
+  | { t: "turn.text.result"; sessionId: Id; turnId: Id; outcome: "accepted" }
+  | { t: "turn.text.result"; sessionId: Id; turnId: Id; outcome: "rejected";
+      code: string; retryable: boolean }
+  | { t: "turn.text.result"; sessionId: Id; turnId: Id; outcome: "unknown";
+      retryable: false };
+```
+
+新 console 必须成对带 `receiptAction` 与 `daemonEpoch`;只带其一整消息丢弃并回 `rejected`/`invalid_input`/`retryable:false`。旧客户端两字段皆缺 = legacy `submit`;兼容范围仅此,不得把旧 `ws.send` 当新 receipt。`ws.send===true` 不是回执。
+
+`accepted` = 已实际执行 `acceptUserTurn` 并成功记下该用户轮(内部回调即可),**不是**「将进入」。该点前失败 = `rejected`;该点后模型失败不撤销 `accepted`。`accepted` 不等于 Brain 完成或交付。`rejected` = 拒收并给出 `code`。`unknown` = 不执行。
+
+进程内回执缓存,键 `(sessionId,turnId)`,值 = 在途 pending promise,或已决 `{ textDigest: Digest, outcome, code?, retryable?, daemonEpoch }`。`textDigest=sha256(JCS({text}))`。每 sid 最多 32 条,全进程 256 条;TTL 自写入起 30 分钟(只约束已决项);会话挂起/关闭或进程重启清空。**在途 pending 不得淘汰**;容量满且无法淘汰已决项 = `rejected`/`code:"turn_receipt_capacity"`/`retryable:true`,不执行。禁止无限 Map。不承诺跨 daemon 重启 exactly-once。
+
+`receiptAction` 语义(不得把所有 miss 当 `unknown`,否则首次消息全拒):
+
+| 动作 | 缓存 miss | 同键 pending | 已 accepted 同 digest | 已 accepted 异 digest | 已 rejected 且 `retryable:true` 同 epoch/digest | 其它已决 |
+|---|---|---|---|---|---|---|
+| `submit` | 首次走门 | 共享等待 | 重放原回执 | `rejected`/`idempotency_conflict`/`retryable:false` | 重放该 `rejected`,不重新走门 | 重放原回执 |
+| `replay` | `unknown`/`retryable:false`,不执行 | 共享等待 | 重放原回执 | `rejected`/`idempotency_conflict`/`retryable:false` | 重放原回执 | 重放原回执 |
+| `retry` | `unknown`/`retryable:false`,不执行 | 共享等待 | 只重放 `accepted` | `rejected`/`idempotency_conflict`/`retryable:false` | 重新走门 | 重放原回执,不重新走门 |
+
+`prepare.daemonEpoch`/`turn.text.daemonEpoch` 不等于当前进程 epoch = `unknown`,不自动提交,保留用户核对后再发(新 `turnId`)路径。`rejected`/`unknown` 持久保稿;新稿不同内容必须新 `turnId`。
+
+现役 `onTurnText` 在 recovery/lifecycle 关闭时只打日志——本候选要求这些路径**必须**回 `rejected`(如 `code:"recovery_only"|"lifecycle_closed"`,retryable:false)。屏障未 `rearmed` 见 10.1.5。
+
+`hello.ack.daemonEpoch`:新 console 在发送前把 `{turnId,text,daemonEpoch,receiptAction}` 写入 sessionStorage 键 `saydo.chat.pendingTurnText.<sessionId>`。已发送未见回执且新握手 `daemonEpoch` 不同 = 结果 **unknown**,保稿,**禁止自动重发**。不得把 unknown 当 `rejected`(稿未被服务端否定)。跨 epoch 若仍用旧 `turnId` 重发,新进程无缓存可能再次入 Brain——新 console 不得这样做。
+
+新 console 消费:先存待发稿+`turnId`,收到匹配 `accepted` 才清当前草稿;`prepared` / HTTP 200 / `rearmed` 都不清。`rejected` / 断线 unknown 保稿,不自动换 `turnId` 重发。`retryable:true` 的拒绝用同一 `turnId`+`receiptAction:"retry"` 再试;否则用户改稿后新 `turnId`。旧客户端可不读回执、仍把 `ws.send` 当成功,但其行为不得把新客户端的待发态改成已接受。
+
+#### 10.1.11 审计、安全与反例
+
+审计只记 `requestId`/`sessionId`/`focusId`/`peerId`/`daemonEpoch`/`payloadDigest`/`turnId`/放弃时的 owner 与旧 epoch 列表,不记转写原文与 PCM。Gate 0、S3、身份门不放宽。
+
+反例(实施必须红):
+
+1. 同 sid/focus 在 200 丢失后无 `requestId`、只按 focus 重放,复用了已 `consumed` 的旧边界。
+2. 成功响应丢失后自动新签 `requestId`,造成两次 quiesce/两次写锚。
+3. `failed`/跨 epoch 旧 ID 被当成 first-new。
+4. owner 仍 OPEN 时另一 peer 的 prepare 被接受。
+5. owner 已关后新连接用普通 `voice.mode`(无 `quiesceRequestId`)打开已关 gate。
+6. 用 `peer.sessionIds` 累计集合或 HTTP `voicePeerId` 指定 owner。
+7. REST 在非 `prepared` 时写锚,或 REST 接受即关门。
+8. HTTP 与旧 PCM/`done_speaking`/cancel 跨连接竞速;空闲 PTT 被合成空轮。
+9. 免手 `asr.final` 消费了 PTT `CaptureRegistry`。
+10. hold TTL 到期后迟到 cancel 进 Brain。
+11. UI 超时删掉 cancel 身份,迟到 final 按 send 复活。
+12. 同一条稿既广播 `asr.final` 又发 `voice.quiesced_transcript`。
+13. ACK 仍要求 `drained` 或按已剥离 intent 排除 cancel;未分类旧轮存在时声称已排空。
+14. daemon 在 console ACK 前删待移交项;或采用/丢弃再打 daemon 写口。
+15. daemon 重启后宣称「无旧稿/已移交成功」。
+16. 采用旧稿被自动当新主题 `turn.text`。
+17. `ws.send===true`、仅日志拒绝、或把所有缓存 miss 当 `unknown` 以致首次 `turn.text` 全拒。
+18. 跨 `daemonEpoch` 自动重发同一 `turnId`。
+19. 新消息进入 `mobile_lan` 白名单或 S3 面。
+20. 无 pipeline 且账本已结算(无 unconfirmed/unknown、无 pending registry/legacy)时仍阻塞等待 `voice.quiesced`;或有仍未确认数据的无 pipeline 被说成已排空。
+21. console 断线取消了仍在途的 pipeline 排空 job。
+22. 以 pipeline 第二 ACK 代替 `voice.anchor_status{status:"rearmed"}`。
+23. 淘汰 active 记录腾 32 槽,或 32 满时丢掉旧 ID 让其假新。
+24. `prepared` / HTTP 200 / `rearmed` 清未发送当前草稿;或取消当前录音清其它持久旧稿。
+25. 旧 Chat 卸载后共享协调消失,导致 `preparing` 永久 busy。
+26. HF 已 `speech_start` 未 `utterance_end` 时直接清 VAD/mic,或补 `done_speaking` 造轮,再 `classified:true`。
+27. 短 PCM 或有效空识别被写成 `voice.quiesced_transcript`,或 UI 宣称已保存转写。
+28. 识别异常/超时仍 `classified:true`,或把 `classified:false,code:"voice_recognition_failed"` 当 `voice_quiesce_unsupported`;或只看 HF tail 忽略未 discard 的在途/等待期失败。
+29. 用日志代替 `emptyRound` / `anchor_status` 空轮与没听清反馈。
+30. 新 pipeline epoch 的成功 ACK 解除上一 epoch 的 unknown,或等新 owner 入场后把旧音频当已保存。
+31. 自动重试识别,或用语音/文本隐式授权 `discardUnknownEpochs`;屏幕预选「放弃」。
+32. discard 集合与 daemon 已告知的 `unknownEpochs` 不等仍标记 discarded;失败/重连自动带上用户未批准集合。
+33. 凭 discard 直接开门、写锚,或跳过当前 epoch 的 quiesce/HTTP/rearm。
+34. 用户已 discard 的同一音频因 leftover 再被 `voice_recognition_failed` 永久拒绝。
+35. 新增 DB 表或全量录音做 crash 恢复;daemon 重启后宣称旧未确认音频已保存。
+36. 把 `failed` 记录接管或重跑成 `applied`/`prepared`,或用普通 `voice.mode` 在 failed 后开门。
+37. 旧 owner 已关后只重放 failed ID(`voice_request_dead`)且无新 ID 观察口,导致新 peer 永远看不到 `unknownEpochs`。
+38. 旧 owner 仍 OPEN 时新 peer 取得 discard 裁决。
+39. 因任一条 HF `asr.final` 把其后仍在录的 PCM 或未闭合 HF 项标 `confirmed`。
+40. 已匹配 `recognitionOutcome:"ok"` 并标 `confirmed` 的 PTT 轮在随后 pipeline 断线时被改成 `unknown`。
+41. 无法证明 HF 覆盖区间时仍清空该 epoch 的 unconfirmed。
+42. discard CAS 只把账本标 `discarded`、不结算所列 epoch 该 sid 的 pending `CaptureRegistry`,导致无 pipeline 时永远被待分类 PTT 挡住立即 `prepared`。
+43. 删除 `CaptureRegistry` 行代替 `consumed:true ∧ discarded:true` tombstone,使迟到 final 被当新轮。
+44. 匹配 PTT final 无条件标 `confirmed`(含 `recognitionOutcome:"failed"` 或旧失败空 final)。
+45. 先把失败 PTT 标 `confirmed` 再改 `unknown`。
+46. 只凭最后 HF tail 空识别/`emptyRound` ACK `classified:true`,忽略开始前已结束、在途、等待期间或 tail 新增且未 discard 的 PTT/HF 识别失败。
+47. 把 `recognitionOutcome:"failed"` 经普通 send/edit/cancel 当成功旧稿;或为正常空 PTT 再造第二条 final。
+48. 旧 final 缺 `recognitionOutcome` 仍声称 classified / 已排空。
+49. HF 失败在 quiesce 前已经结束,随后空 tail 清掉失败标记并成功 ACK。
+50. 新 HF final 省略 `recognitionOutcome` 却被接受、移交或计为已分类。
+51. 老 epoch 或已 discard/`consumed` 的 `captureId` 迟到 final 进 Brain、入草稿、复活 `unknown` 或改新轮 queue;或 discard 时删除已保存草稿/已 ACK 文本。
+52. 把 HF `recognitionOutcome:"failed"` 当 `ok`、进 Brain、入草稿或标 `confirmed`。
+53. 无 `hfRoundId` 的身份缺失 FIFO 被写成已证明并发乱序 EOU 对应;或后到的 final 结算了另一条开口。
+54. 新 HF start 带 `hfRoundId` 而 end/final 缺 id(或三端不一致)仍被结算。
+55. 两段 VAD 开口经 EOU 合成一条 final 时,只写「按 id」却不列出 `hfSegmentIds`,以致无法证明结算了哪几个句段。
+56. 后开口的 ASR 先返回,按返回序改共享 `_pending_text` 并发出「后半句」,前半句滞留或另轮发出(丢前半句)。
+57. 旧世代非空 `ok` final 到达后,不比较 `speechGen` 就清掉新世代的 `speechPending` / 放行新 Brain 轮。
+58. 逻辑轮内任一句段 `failed` 后仍发 `ok` 合并正文,或把失败句段排除后只结算成功半句。
+59. `failed` 未记 `unknown`,或随后空 tail/另一轮 quiesce 清掉失败标记并 `classified:true`(无显式 discard)。
+60. 一条 HF final 结算了另一 `hfRoundId`、另一 epoch、或 `hfSegmentIds` 之外的账项。
+61. 为少改而把无身份到达序/进程内 FIFO 写成已证明并发乱序对应。
+62. 旧客户兼容路径消费了已带 `hfRoundId`/`hfSegmentId` 的在途项,或把新所有权降级成 legacy 未分类后清空。
+63. `done_speaking`/quiesce tail 不继承当前开轮 `hfRoundId`,另造匿名 leftover 或第二条 final。
+64. 重发/旧 epoch/已终态轮的迟到 final 进 Brain、清新世代、或复活 `unknown`。
+
+#### 10.1.12 未确认音频世代与放弃(QSC-07)
+
+daemon 按 **capture owner 的 `sessionId`** 与 **`pipelineEpoch`** 维护进程内未确认音频集合(不落 §9 表,不录音频原文):
+
+```typescript
+type UnconfirmedAudioEpoch = {
+  sessionId: Id;
+  epoch: number;                 // 与 voice.quiesce.epoch 同一整数域
+  kind: "ptt" | "hands_free" | "accepted_pcm";
+  captureId?: Id;                // 仅 PTT;与 CaptureRegistry 同一 captureId
+  state: "unconfirmed" | "unknown" | "discarded" | "confirmed";
+};
+type UnknownEpochs = number[];     // 该 sid 上 state==="unknown" 的 epoch,唯一升序
+```
+
+入集:PTT 已登记 `captureId` 且 registry 仍 pending(`consumed===false`);HF 已有活动或已收 PCM 尚未确认分类 final;已向该 epoch 的 pipeline 接受过 `0x01` 二进制但无法证明已分类。旧 pipeline peer 断开(close/error,现役须取消旧 ASR/PTT/EOU 并清连接缓存,09 §10):该 sid 上仍 `unconfirmed` 的项改为 `unknown`;已 `confirmed`/`discarded` **不得**改回 `unknown`。识别失败/超时/等待中断连:对应 epoch 上仍 `unconfirmed` 的项留或改为 `unknown`,已 `confirmed` 的项不动。`recognitionOutcome:"failed"` 匹配项走「直接 `unknown`」,不得经过 `confirmed`。
+
+出集:**禁止**用其它 epoch 的 ACK、计时器、新连接握手或「新 owner 已入场」移除。合法出集:
+
+1. **匹配 `recognitionOutcome:"ok"` 的分类 final**(正常确认,不能只靠 ACK/discard 出集):见下「final 确认」。只把该 final 证明覆盖的项标 `confirmed`。
+2. **本 epoch 成功 ACK**:`voice.quiesced{classified:true}` 且 `epoch`/`requestId`/`sessionId`/owner 匹配,只把**同一连接、同一 epoch** 上仍 `unconfirmed` 的剩余项标 `confirmed`。已 `confirmed`/`discarded`/`unknown` 不动。成功 ACK 不得把已 `failed` 的 PTT 项标 `confirmed`;该路径上也不应再有 pending PTT(10.1.6 步骤 3.1 已等真实终态)。若仍发现 pending PTT,不得 `classified:true`。
+3. **屏幕放弃 CAS**:见下。只把精确匹配的 `unknown` 项标 `discarded`,并同时结算对应 pending registry。不宣称恢复,不删已保存草稿,不删 `quiescedTranscripts` 队列。
+
+匹配 `recognitionOutcome:"failed"` 不是出集到 `confirmed`:该 `captureId` 对应项**直接** `unknown`(仍留在账本,进入 `unknownEpochs`)。registry 仍可消费为 `consumed:true,discarded:false`。
+
+**final 确认**(不新增 WS/HTTP 端点或持久表;daemon 可对同 epoch HF 维持进程内单调 `hfSeq` 作旧客户 FIFO 回退。新协议线身份=`hfRoundId`,进 wire):
+
+- 现有 `asr.final.captureMode`/`captureId`/`recognitionOutcome` 能证明:PTT `ok`/`failed` 绑定已登记 `captureId`;HF final(`captureMode:"hands_free"` 且无 `captureId`)不是 PTT。既有 `vad.speech{phase}` 能证明一条 HF 是否已闭合(`end`)或仍开口(`start` 后无 `end`)。新协议**有 `hfRoundId` + `hfSegmentIds`** 才能证明「本条 HF final 结算哪一个逻辑轮的哪些句段」。只带轮 id 不带句段集不能证明多开口合并。**无身份 FIFO 不能**证明乱序对应,也**不能**证明「本条 HF final 覆盖该 epoch 此后所有 PCM」。缺 `recognitionOutcome` 的 PTT/HF final 不能证明识别成败,不得当分类确认。
+- **PTT `ok`**:当前 pipeline owner、当前 `epoch`、同一 `sessionId` 上,匹配 `asr.final{captureMode:"ptt",captureId,recognitionOutcome:"ok"}` 且 registry 已登记该 `captureId` 仍 pending:只把该 `captureId` 对应项标 `confirmed` 并消费 registry(`consumed:true,discarded:false`)。不清其它 `captureId`、其它 kind、其它 epoch。此后同 epoch 断线不得把该已确认轮改 `unknown`。
+- **PTT `failed`**:同样匹配条件但 `recognitionOutcome:"failed"` 且 `text:""`:消费 registry(`consumed:true,discarded:false`),对应账本项**直接** `unknown`。禁止先 `confirmed` 再反转。不进 Brain、不入草稿、不改变新轮 queue。
+- **HF `ok` 保守边界**:新协议只确认同 sid、同 `hfRoundId`、同 epoch、且 `hfSegmentIds` 与该逻辑轮已提交句段集精确相等的那些项;集合外句段与其后仍在录的 PCM/`accepted_pcm` 保持 `unconfirmed`。禁止因一条 final 把后续正在录的 PCM 标 `confirmed`。禁止按 ASR 返回序先发后半句、把前半句滞留成另一轮。缺全部新身份(旧客户)且**无**新身份在途项时,最多按 FIFO 确认「已 `speech_end`、尚未 final、同 epoch 最老一条」HF 项(进程内 `hfSeq`);有新身份在途项时旧 FIFO **禁止**动那些项。
+- **HF `failed`**:同样匹配条件但 `recognitionOutcome:"failed"` 且 `text:""`:该逻辑轮列出的全部句段**直接** `unknown`,不进 Brain、不入草稿;本 epoch 未 discard 则 quiesce 不得 `classified:true`。旧客户无新身份且无新身份在途时 FIFO 只打最老已闭合项。世代隔离不变:老 epoch / 已 discard / 已终态轮的迟到 final 不得复活 `unknown`、不得清新 `speechGen`、不得改新轮 queue。
+- **无法证明则保留**:没有已闭合未 final 的 HF 项(只有开口中的录音或裸 `accepted_pcm`)、final 的 `hfRoundId`/`hfSegmentIds`/`recordSeq` 对不上、或无法判定覆盖区间:不得把开口项或其后 PCM 标 `confirmed`,诚实保留那些 `unconfirmed` 直到同 epoch 真实成功 quiesce ACK(上条 2)或断线改 `unknown`。一条终态只结算本逻辑轮列出的句段,不得借一条 final 清空该 epoch。
+- 成功 ACK 只结算本 epoch **剩余** `unconfirmed`;不是把已 `confirmed` 的 PTT 再改写,也不把 `unknown`/`discarded` 当已保存。
+
+默认 prepare 见 10.1.2:未知集非空且无精确 discard → `voice.anchor_status{status:"rejected",code:"voice_audio_unknown",retryable:true,unknownEpochs}`。HTTP 若此时 POST 仍 409 `voice_boundary_required`(本码不进 REST 新开口)。
+
+**未知全集观察口**:`unknownEpochs` **只**出现在上述 `voice_audio_unknown` 支。合法请求 = 具备 10.1.4 恢复资格的 peer 发出的**新** `requestId` 默认 `voice.anchor_prepare`(不带 discard,或 discard 与当前集不等)。合法响应 = 对该 `sourcePeer` 回本次 `voice.anchor_status`(含完整升序 `unknownEpochs`);该 prepare 被允许处理时(含本拒绝)把 sid 登记到该 peer,以便下发。重放已 `failed` 的旧 `requestId` 只回 `voice_request_dead`,**不**带 `unknownEpochs`,不得当观察口,也不得把该拒绝当成「永远看不到未知集」。
+
+恢复必须用户界面决策,禁止自动重试。console 呈现:「上次语音未确认保存,可返回处理,或放弃这段未确认语音后继续」。两个动作只在屏幕可点,不自动预选,不用 `turn.text`/语音词表隐式授权。
+
+- **返回处理**:不发送 discard,不改未知集,不自动开门。
+- **放弃后继续**:新 `requestId`,`voice.anchor_prepare` 带 `discardUnknownEpochs:number[]`(已正规化)与当前 `hello.ack.daemonEpoch`。集合必须与 daemon **已告知该 sid 的当前** `unknownEpochs` 精确相等(集合 CAS)。出现新 unknown 或集合已变:再拒 `voice_audio_unknown` 并回最新全集。当前未知集已空仍带 discard,或对旧 ID 补 discard = `invalid_input`。
+
+**谁可裁决** discard(均须 `via=local`、已认证、`prepare.daemonEpoch` 等于当前进程 epoch):
+
+- 该 sid 上仍 OPEN 的屏障 owner(`ownerPeerId` 所指 socket;含该记录为 `failed` 但 owner 仍活);
+- 10.1.4 对**未消费**记录的合法接管 peer;
+- **failed 后恢复资格转移**:该 sid 不存在 owner 仍 OPEN 的屏障记录(任一 `state`,含 `consumed`/`failed`;典型:排空中 pipeline 断连 → 该请求 `failed` → 原 console 断开)时,同 sid 新 socket 可在**新** `requestId` 上办理默认 prepare 与随后的屏幕 discard。新 prepare 的 `sourcePeer` 即本请求裁决人,绑定当前 `daemonEpoch`。
+
+其它 peer = `voice_peer_mismatch`。旧 owner 仍 OPEN 不得抢。`failed`/`consumed` 旧 ID 不可重跑、不可接管为 `applied`/`prepared`。本转移不开门;普通无 `quiesceRequestId` 的 `voice.mode` 仍不得开门。
+
+CAS 成功:审计记 owner/`sessionId`/旧 epoch 列表/`requestId`(不记 PCM/原文)。同一结算必须同时:
+
+1. 将这些 epoch 上该 sid 的 `unknown` 账本项标 `discarded`;已 `confirmed` 项不动。
+2. 将这些 epoch 上该 sid 全部 pending(`consumed===false`) `CaptureRegistryEntry` 结算为 `{consumed:true,discarded:true}`,保留 `sessionId`/`captureId`/`epoch`/`intent` 到会话挂起/关闭。禁止删行。已 `consumed` 的项保持原布尔(轮次已闭);迟到 final 仍按已消费处理,不复活。
+
+已保存草稿与已 ACK 文本不删除,不删 `quiescedTranscripts`。老 epoch 或已 discard/`consumed` 的 `captureId` 迟到 `asr.final`:不进 Brain、不入草稿、不复活 `unknown`、不改变新轮 queue、不得重新登记同 `captureId`。
+
+discard 只构成音频+registry 结算依据,随后仍须 10.1.2:账本已结算**且无 pending registry**且无需排空则立即 `prepared`,否则走当前 epoch 正常 quiesce,再 HTTP+rearm;discard 不开 capture/ASR 门、不写锚。若当前 epoch 仍有无法识别的旧 buffer 且该 epoch 已在本请求 discard 集内:pipeline 按 10.1.6 步骤 3.4 清缓冲,必须由**当前** quiesce 的成功 ACK 确认,不得再对该已裁决音频发 `voice_recognition_failed` 把用户卡死。
+
+原协议不承诺 crash 恢复:未知集随 daemon 进程消失;重启后不得把旧未确认音频当已保存,也不得自动恢复 discard。未移交旧稿仍按 10.1.8 诚实提示;已写入 console 的稿照旧保留。
+
+#### 10.1.13 HF 句段 / 逻辑轮 / 录音序提交(2026-09-22 合同前提;本轮不改 schema/runtime)
+
+本节关闭「两个 VAD 开口经 EOU 合成一条 final 时,final 归哪个 id、其余开口如何终结、部分失败如何结算」的缺口。形状以本节为准;`AsrFinalMsg`/`vad.speech` 上既有可选 `hfRoundId` 的「每开口一个 id」口径**由本节取代**,审查通过前**不得**改 `packages/contracts` schema、Hub 解析、barrier/dialog 或 pipeline 产品。不为少改选用不可证明的到达序 FIFO。合同是否可实施由 fresh reviewer 判定。
+
+**三层身份(禁止混用):**
+
+| 层 | 字段 | 签发点 | 含义 | 不是 |
+|---|---|---|---|---|
+| VAD 句段 | `hfSegmentId`(`evt_`) | `vad.speech{phase:"start"}` | 一次开口:`speech_start`→`utterance_end` | 逻辑轮;Brain 用户轮;`asr.final.turnId` |
+| 识别作业 | 进程内 `{sid,epoch,hfSegmentId,hfRoundId,recordSeq,speechGen}` | 同开口 `end` 时 spawn | 一次 ASR `recognize`;可乱序完成 | 提交许可;终态 |
+| EOU 逻辑用户轮 | `hfRoundId`(`evt_`) | 本 sid+epoch 无开轮时的首个 `start`;续说并入 | 有序句段集 + **已拥有该轮则恰好一条**终态 `asr.final`(空识别=`ok`+`text:""`)。无开轮的有效空/短 leftover 不签发本列、不造 final | 单个句段;到达序队列;无开轮 empty ack |
+
+```typescript
+type HfVadSpeechMsg =
+  | { t: "vad.speech"; sessionId: Id; phase: "start";
+      hfSegmentId: Id; hfRoundId: Id; recordSeq: number }
+  | { t: "vad.speech"; sessionId: Id; phase: "end";
+      hfSegmentId: Id; hfRoundId: Id; recordSeq: number };
+
+type HfAsrFinalMsg =
+  | { t: "asr.final"; sessionId: Id; turnId: Id; text: string; confidence?: number;
+      captureMode: "hands_free"; recognitionOutcome: "ok";
+      hfRoundId: Id; hfSegmentIds: Id[]; recordSeqFirst: number; recordSeqLast: number }
+  | { t: "asr.final"; sessionId: Id; turnId: Id; text: ""; confidence?: number;
+      captureMode: "hands_free"; recognitionOutcome: "failed";
+      hfRoundId: Id; hfSegmentIds: Id[]; recordSeqFirst: number; recordSeqLast: number };
+
+type HfLogicalRound = {
+  sessionId: Id;
+  epoch: number;
+  hfRoundId: Id;
+  speechGen: number;                 // 开轮时的世代;旧轮 final 不得清新世代
+  segmentIds: Id[];                  // 录音序
+  recordSeqFirst: number;
+  recordSeqLast: number;
+  committedBySeq: Map<number, { hfSegmentId: Id; text: string; outcome: "ok" | "failed" }>;
+  commitHead: number;                // 下一个允许提交的 recordSeq
+} & (
+  | { terminal: false }
+  | { terminal: true; recognitionOutcome: "ok" | "failed"; turnId: Id }
+);
+```
+
+`recordSeq` 在本 `sessionId`+`pipelineEpoch` 内从 1 单调 +1,禁止复用、回绕、按返回序重排。`hfSegmentIds` 必须按 `recordSeq` 升序、长度≥1、与该轮账本集合精确相等;`recordSeqFirst`/`Last` 必须等于集合两端。只带 `hfRoundId` 不带句段集 = 非法,整消息丢弃,不结算。PTT 消息出现上述任一 HF 身份字段 = 非法整消息丢弃。
+
+**产生顺序(pipeline,新协议;禁止 ASR 返回序提交):**
+
+1. `speech_start`:签发 `hfSegmentId`;若该 sid+epoch 无开轮则签发 `hfRoundId` 并记下当时 `speechGen`,否则并入当前开轮;`recordSeq=nextRecordSeq++`;发 `vad.speech{start,三字段}`。排空中(`_draining_sid`)不得新开句段。
+2. `utterance_end`:发 `vad.speech{end}` 且三字段与 start **同值**;按该句段 PCM spawn 识别作业,标签必须含 `recordSeq`/`hfSegmentId`/`hfRoundId`/`epoch`/`speechGen`。
+3. 识别完成(可乱序):结果只写入 `resultsBySeq[recordSeq]`,**不得**此时改共享 pending 正文、不得此时发 `asr.final`。
+4. 提交循环:仅当 `resultsBySeq[commitHead]` 已到,才把它追加进本轮 `committedBySeq`,然后 `commitHead++`。后完成的前序句段到达前,后序结果必须等待。这是可证明机制,不是到达序 FIFO。
+5. 提交后才做 EOU:语义完整 / EOU hold 超时 / `done_speaking` / quiesce tail 合并。**已拥有本轮** → **恰好一条**本轮终态 `asr.final`(拼接空则 `ok`+`text:""`,见 10.1.6 步骤 8 第二弹)。`hfSegmentIds`=本轮已提交句段(录音序)。已终态轮禁止第二条 final。**无开轮**的有效空/短 leftover → 不签发 `hfRoundId`、不造 final,走 10.1.6 步骤 8 第一弹 / 步骤 9。
+
+**消费顺序(daemon,新协议):**
+
+1. `vad.speech start`:打开或并入 `HfLogicalRound`;记下 `speechGen`。
+2. `vad.speech end`:只把该 `hfSegmentId` 标已闭合;三字段与 start 不一致则丢弃该条,不结算。
+3. `asr.final`:按 `hfRoundId` 找本 sid+当前 epoch 的开轮或刚闭合轮;校验 `hfSegmentIds` 与该轮集合精确相等且 `recordSeq` 范围覆盖;`recognitionOutcome` 与 10.1.7 合法组合。只结算这些句段,不动其它轮/其它 epoch/其后仍在录的 PCM。
+4. 清 `speechPending` / 进 Brain 之前必须比较 final 所属 `speechGen` 与当前世代:旧世代(含旧非空 `ok`)不得清新世代、不得 `acceptUserTurn`。Hub 必须把世代传入 dialog;禁止 `onAsrFinal` 无条件清 `speechPending`。
+
+**终态与账本(只结算本轮):**
+
+| 本轮已提交句段 | 终态 final | 账本 | Brain / 旧稿 | 随后 quiesce |
+|---|---|---|---|---|
+| 全部 `ok`,拼接后非空 | `ok` + 按 `recordSeq` 拼接的正文(不得丢前半句) | 列出的句段 `confirmed` | 可进 | 本轮已分类,不阻 |
+| 全部 `ok`,拼接后空(**仅已拥有本轮**) | `ok` + `text:""` | 列出的句段 `confirmed`(空识别) | 不进;空反馈 | 不阻;ACK 不带 `emptyRound` |
+| 任一 `failed`(未 discard) | `failed` + `text:""`;**禁止**再发半句 `ok` | 列出的**全部**句段直接 `unknown` | 不进;「没听清/转写失败」 | 本 epoch 未 discard ⇒ 不得 `classified:true` |
+| 部分作业未提交且已强制收尾 | 未提交句段视同 `failed` 计入上一行 | 同上 | 同上 | 同上 |
+| 显式 `discardUnknownEpochs` 含本 epoch | 不新开成功 final;按 10.1.6 步骤 3.4 清缓冲 | 本 epoch 未知项 `discarded` | 不进 | 可成功 ACK |
+
+「不能丢前半句」= 不得把先录的已提交正文留在另一缓冲/另一轮,也不得只把后半句当作本轮用户话。部分失败时前半句留在本轮记录里供归属,但 **wire 终态仍是一条 `failed` 空 final**(失败不得当成功旧稿);用户重说是新 `hfRoundId`。
+
+**tail / done / quiesce 继承:**
+
+- 当前有开轮:flush/tail PCM 是该轮的新句段(同一 `hfRoundId`,新 `hfSegmentId`,下一个 `recordSeq`),走同一提交队列;空识别按 10.1.6 步骤 8 第二弹发一条空 ok final。
+- 当前无开轮且 leftover 识别后**非空**:新开一轮,恰好一条非空终态。
+- 当前无开轮且 leftover 有效空/短:不新开轮、不签发 `hfRoundId`、不造 final,走 10.1.6 步骤 8 第一弹 / 步骤 9 的 empty ack。
+- 禁止匿名 leftover、禁止为 tail 另造第二条 final、禁止让 tail 改写已终态轮、禁止为无开轮的空识别补造一轮只为发空 final。
+- 旧 epoch 的 tail/final 丢弃,不进新轮。
+
+**重发 / 旧 epoch / 旧客户端(降级不得打穿新所有权):**
+
+| 到达 | 处理 |
+|---|---|
+| 同 `hfRoundId` 已 `terminal` 的重发 | 忽略;不进 Brain;不清新 `speechGen`;不复活 `unknown` |
+| 旧 `epoch` / 已 discard 轮 | 同上 |
+| 新协议消息缺 `hfSegmentId`/`hfRoundId`/`recordSeq`/`hfSegmentIds` 或集合对不上 | 整消息丢弃,不结算 |
+| **完全 legacy**:无 `captureMode`、无 `recognitionOutcome`、无任何 HF 身份 | 仅无屏障普通路径 FIFO;计入未分类;不得声称 classified |
+| **半新**:有 `captureMode`+`recognitionOutcome` 但无身份字段 | 只准在**同 sid 且无新身份在途项**时按最老已闭合项 FIFO;有新身份在途项 ⇒ 不得消费那些项,prepare 见 `voice_unclassified_inflight` |
+| 旧 FIFO / 旧 `holdForConfirm` | 不得把带 `hfRoundId`/`hfSegmentId` 的项降级进 legacy 队列后清空 |
+
+**反例矩阵(实施必须红;与 10.1.11:55–64 同构):**
+
+| 编号 | 输入 | 非法产出 | 合法产出 |
+|---|---|---|---|
+| X1 | 先录「先保留 npm,然后」后录「补 pnpm」;后段先识别完 | 先发「补 pnpm」,pending 残留前半句 | 等 seq1 提交后再拼,一条 final「先保留 npm,然后补 pnpm」 |
+| X2 | 两段并入一轮,final 只带某一个句段 id | 另一段永不终态或被下一条 final 误收 | `hfSegmentIds` 含两段,一轮一条终态 |
+| X3 | 轮 A 已结束且 ASR 在途;轮 B barge-in;A 非空 `ok` 后到 | 清 B 的 `speechPending` / 进 B 的 Brain | 比较 `speechGen`,只结算 A;B 继续等 |
+| X4 | seq1 `ok`「前半」,seq2 `failed` | 发 `ok`「前半」或两条 final | 一条 `failed` 空 final;两段都 `unknown`;quiesce 失败除非 discard |
+| X5 | 本轮 `failed` 已发出;随后空 tail | `classified:true` | 失败汇总仍在;ACK `voice_recognition_failed` |
+| X6 | 旧客户 FIFO 时线上已有带 `hfRoundId` 的开轮 | FIFO 消费该开轮 | 不动新身份项 |
+| X7 | 重放已终态 `hfRoundId` 或旧 epoch | 再进 Brain / 清新世代 | 忽略 |
+| X8 | done/quiesce tail 无开轮身份 | 匿名合并进下一轮用户话;或为空识别补造一轮只为发空 final | 非空:新开轮一条终态;有效空/短:empty ack,不造 final |
+
+**源码映射(冻结实现;审查前禁止按本节改产品):**
+
+| 合同步骤 | 当前代码 | 缺口 |
+|---|---|---|
+| 句段签发 | `pipeline/.../hub_client.py` `_send_vad_phase` 只发 `{t,sessionId,phase}` | 无 `hfSegmentId`/`hfRoundId`/`recordSeq` |
+| 并发识别 | `_feed_vad` `utterance_end` → `_spawn_hf_recognize` → `_recognize_hands_free` | 各作业完成即读改 `_pending_text`(约 484 行),按返回序提交 |
+| 丢前半句 | 同上;探针:先「保留 npm」后「补 pnpm」会先发后段 | 无 `resultsBySeq`/`commitHead` |
+| 逻辑轮终态 | `_emit_final` 每调用一条 final,无句段集 | 无 `HfLogicalRound` |
+| 说完/tail | `_force_finalize` / `_handle_quiesce` 把 `_pending_text+tail` 合成一条,无继承身份 | tail 匿名 |
+| 世代 | `voiceBarrier.ts` `consumeAsrFinal` 可回 `speechGen`;`hub.ts` `onAsrFinal(msg)` 不传世代;`dialog.ts` `onAsrFinal` 无条件 `speechPending=false` | 旧非空 final 可清新世代 |
+| 失败账本 | pipeline 已发 HF `failed`;`asrFinalHandsFreeSchema` 仅 `ok` | Hub 丢弃;quiesce 可能看不到失败 |
+| 旧 FIFO | `confirmOldestClosedHf` / 无身份 leftover | 不可证明乱序对应,且会碰到新身份项 |
+
+#### 10.1.14 HF 合同→实现映射(续 10.1.13;本轮不改 schema/runtime)
+
+| 合同条款 | 变更理由 | 当前实现(冻结) | 审查通过后应对 |
+|---|---|---|---|
+| 三层身份 + `hfSegmentIds` | 「按 id」无法回答多句段哪一个 id | 线无句段集;一条 final 只 `confirmOldestClosedHf` | schema 增句段/轮/seq;final 必须列出本轮句段集 |
+| 按 `recordSeq` 提交 | 返回序会丢前半句 | `_pending_text` 在 recognize 返回时拼接 | `resultsBySeq`+`commitHead`;完成≠提交 |
+| 一轮一条终态 | EOU 合并与「一次结算一条」必须同一对象 | 每段都可能 emit | **已拥有轮**只在 EOU/done/quiesce 发一条(空识别=`ok`+`text:""`);无开轮空 leftover 不发 final |
+| 空识别分流 | 旧 10.1.6 步骤 8「不造 final」与 10.1.13「恰好一条空 final」互斥 | 文案冲突,实现冻结 | 无开轮=`emptyRound` ACK;已拥有轮=一条空 ok final。本包只改合同 |
+| HF `failed` 支 + 空 text | 失败轮既要终态又不得当成功旧稿 | schema 仅 HF `ok`;Hub 丢弃 | 增 failed 支;列出句段全部 `unknown` |
+| `failed` 阻 quiesce | 空 tail 不得洗成成功 ACK | 10.1.6 文案已有;实现看解析成功的 final | 失败汇总按轮保留;无 discard 不得 `classified:true` |
+| `speechGen` 贯通 | 旧非空 final 不得清新轮 | barrier 有世代,Hub/dialog 未贯通 | Hub 传世代;`onAsrFinal`/`settlePendingSpeech` 必比世代 |
+| 旧/新降级 | 兼容不得打穿新所有权 | 无身份即 FIFO | 有新身份在途则旧 FIFO 禁动;缺字段丢弃不结算 |
+| 审查前冻结 | 避免未审形状落地 | 本行 | **不得**改 contracts/Hub/pipeline/dialog 产品 |
+
+审查未通过前:pipeline 继续如实发 failed(不假 ok);Hub 继续按现 schema 丢弃——该缺口保持报告,不在本包用产品 bypass 抹平。
 
 ## 11. 文件布局与配置
 
@@ -1072,6 +1739,8 @@ Unheard 纪律:被打断句 watermark 后文本 `heard=false`,不进对话事实
 <workspace>/.saydo/
   knowledge/  artifacts/  sessions/  snapshots/  assessments/  project.toml   # snapshots=源快照正文(§4.1);assessments=deep 评估 rendered prompt
 ```
+
+`.env` 仅单行 `KEY=VALUE`。`POST /api/setup/secret` 只写白名单 `name`;`value` 含 CR/LF/NUL 时 422 `secret_body_rejected`,不回显 value、不 trim 冒充原值,零写入。
 
 ```toml
 # ~/.saydo/config.toml(全局;project.toml 仅白名单键可覆盖(budget/dnd/params + 项目自有域,白名单见下方 project.toml 头注;
@@ -1372,7 +2041,11 @@ session”始终拒绝。
    ConfirmationLoop 已占用、错 session、旧 revision、重复/过期 accept、accept 前 type
    已被另一合法写入定型、re-anchor 前新增祖先/后代冲突均零写入。
 
-> 分层:上表 1/3(收据核心)/4/5(outbox)/9 属 [P0-Tier1];7(崩溃恢复)的 **Tier1 子集**(tier1_runs 重放/两阶段写基元)属 [P0-Tier1]、跨域子集(dispatch binding/hopper_commands 重放)属 [P0.5];6(取消/改需求)的 **Tier1 取消子集**(cancelTask→Tier1CancelProof→cancel_settled、晚到事件转历史)属 [P0-Tier1]——取消是 owner 日用基本操作,其余(re-drop/idemKey)属 [P0.5];2(预授权反例)中 ①–⑤/⑨/⑩ 的校验器级属 [P0-Tier1]（0.2b）,grant 实例类 ⑥⑦⑧ 属 [P0.5];8 属 [P0.5]（路径二）;10 的 route/adapter/MemoryEvent/reviewTask/AcceptanceCheck 属 [P0-Tier1]、其安全反例属 enabled-path Gate 0(05 §4);12 的门禁属 [P0-Tier1](**已接线**,W4 typeGate 2026-07-27;**pending 生命周期例外待 owner 裁决**——Codex 22 新 A),其迁移用例属 [P2];**13 属 [S3 卡合同/W4 接线];14 随 writing 开值批(W4);15 的门禁属 [P0-Tier1]——空账本是 W1 实测漏洞的根修,实施批次排产待 PLAN-2 显式落行(不必然绑 W4;Codex 21 A3,实施对齐核验 2026-07-27)**;清单最终由 §14 的 MUST→validator→正例→反例 溯源矩阵生成,而非人工枚举(Codex 07 A-09)。
+17. **主题锚定语音屏障(§10.1,2026-09-12;本候选已接线处理链,完整语音硬件/云 ASR 未验)**:关门点唯一=`voice.anchor_prepare` 接受后同步关 capture/ASR 门;REST 只在 `prepared` 后写锚。新 console 同 WS 先停采(在录未 finalize 的 PTT 先发一次 `done_speaking{captureIntent:edit,holdForConfirm:true}`,空闲/HF 不补 done)再 `voice.anchor_prepare{sessionId,requestId,focusId,laneTitle?,daemonEpoch,discardUnknownEpochs?}`;daemon 绑 `sourcePeer`,校验 payloadDigest(含 discard 集)+当前 epoch,再 `voice.quiesce`。HF 已 speech_start 未 utterance_end 须 VAD.flush+既有 ASR,禁直接清、禁补 done。pipeline ACK 为 classified 成败联合,无 `drained`;成功可带 `emptyRound`;失败固定码 `voice_recognition_failed`(不当 unsupported),该 epoch 留 unknown。成功 ACK 只证明本 epoch,并结算该 epoch 剩余 unconfirmed。立即 `prepared` 当账本已结算(未知集空、无 unconfirmed、无 pending CaptureRegistry/legacy)且无需排空当前 epoch;历史曾收音频不单独阻止。默认 prepare 遇旧 unknown=`voice_audio_unknown`+`unknownEpochs`,不写 focus、等新 owner 不得当已保存;放弃须屏幕新 ID+集合 CAS,discard CAS 同时把所列 epoch 账本标 discarded 并把该 sid pending registry 结算为 consumed+discarded tombstone(禁止删行;已保存草稿/已 ACK 文本不删),之后仍走 prepared→HTTP→rearm;无 pipeline 且账本已结算且无 pending registry 则立即 prepared。新分类 PTT final 必带 recognitionOutcome;ok 才将该轮标 confirmed(断线不得改 unknown),failed 直接 unknown 并消费 registry,禁止先 confirmed 再反转。quiesce 必须汇总本连接该 sid 全部尚未显式放弃的 HF/PTT 识别失败(含开始前已结束、开始前在途、等待期间及 tail 新增失败),任一未 discard 失败不得 classified:true,不得只看最后 HF tail。旧 final 缺 recognitionOutcome 不得声称 classified。HF final 不得确认其后仍在录的 PCM,无法证明区间则保留 unconfirmed 到同 epoch quiesce。console 等 `voice.anchor_status prepared` 后 POST 原 focus-anchor(必带同 `requestId`,无 `voicePeerId`);REST 仅 `prepared`+focus/lane 匹配才写锚 `applied`;200 后 `voice.mode(ptt,quiesceRequestId)`,daemon 验 owner+applied→`rearmed`;console 等匹配 `rearmed` 才放新语音/文本。记录态 `preparing|prepared|applied|rearmed|consumed|failed`;同键同载荷 prepare 重放/共享在途不重复 quiesce;REST `preparing`=409 `voice_anchor_pending`,`applied`/`rearmed` 未 consumed 同键重放 200。rearm 后新 PCM/`done_speaking`/accepted `turn.text` 标 `consumed`。新 ID 消费同 owner 同 sid 非在途旧边界;前一个 `preparing`=`voice_anchor_busy`,共享串行协调跨 Chat 卸载仍等结果。每 sid 最多 32 条且不淘汰,满=`voice_anchor_capacity`,会话结束才删。owner live 不可抢;owner 关后同 requestId+载荷+epoch 可接管未消费记录;`failed` 不可重跑/接管为 applied,但 owner 已关后同 sid 新 peer 可在新 requestId 上观察 unknown 并 discard。console 断线不取消 pipeline 排空;pipeline 断线才 `failed`。`hello.ack.peerId` 只诊断;旧客户端无 `requestId` 仅无音频/无 capture owner/无未知世代可直 HTTP,否则 409 `voice_boundary_required`。PTT 按 `captureId` 认轮;匹配 ok final 出账本为 confirmed,匹配 failed final 消费 registry 且账本直接 unknown;HF 不碰 PTT 登记;未知关联或新 PTT 缺 recognitionOutcome fail-closed;cancel 凭 registry 丢原文且零原文,failed 不得经 send/edit/cancel 当成功旧稿;不得 raw+专用双发;legacy 在途旧轮拒 prepare。旧稿只走 `voice.quiesced_transcript`+sessionStorage ACK;daemon 重启未移交=unknown,已入 console 的稿不得丢;`prepared`/200/`rearmed` 不清当前草稿。`turn.text` 新 console 必带 `receiptAction`+`daemonEpoch`;`submit` miss=首次,`replay` miss=`unknown`,`retry` 仅原 `rejected.retryable` 同 epoch/digest 可再走门;`accepted`=已成功 `acceptUserTurn`;跨 epoch=`unknown` 禁自动提交;旧 `ws.send` 不是新 receipt。新消息不进 mobile_lan/S3。
+
+18. **任务级前置与生产旅程读口(§15.2,2026-09-20)**:DDL v32 库经 `applyDdlV33TaskDependency` 后两列存在、旧行 NULL、再 open 幂等、备份恢复后列仍在且无逆向 DDL;义务↔任务前置切换后旧列必空(反例:残留 `waiting_on_task_id` 被旧任务验收误唤醒);HF `done_speaking{captureMode:"hands_free"}` 不进 legacyPendingDone,分类 HF 空 final 后可 `voice.anchor_prepare`;生产 Focus loader 灌 `lookups.tasks/packages` 且包批准比 packageId+revision,任意 confirmCard 不放行;trusted 记忆下一回合 pack 含该 claimDigest 且有 `context_snapshot_uses` 行。确定性 provider/执行器替身可做;不得把 mock LLM 写成云服务验收。
+
+> 分层:上表 1/3(收据核心)/4/5(outbox)/9 属 [P0-Tier1];7(崩溃恢复)的 **Tier1 子集**(tier1_runs 重放/两阶段写基元)属 [P0-Tier1]、跨域子集(dispatch binding/hopper_commands 重放)属 [P0.5];6(取消/改需求)的 **Tier1 取消子集**(cancelTask→Tier1CancelProof→cancel_settled、晚到事件转历史)属 [P0-Tier1]——取消是 owner 日用基本操作,其余(re-drop/idemKey)属 [P0.5];2(预授权反例)中 ①–⑤/⑨/⑩ 的校验器级属 [P0-Tier1]（0.2b）,grant 实例类 ⑥⑦⑧ 属 [P0.5];8 属 [P0.5]（路径二）;10 的 route/adapter/MemoryEvent/reviewTask/AcceptanceCheck 属 [P0-Tier1]、其安全反例属 enabled-path Gate 0(05 §4);12 的门禁属 [P0-Tier1](**已接线**,W4 typeGate 2026-07-27;**pending 生命周期按 §13 的 2026-07-28 owner 裁决执行**——先提案、转正后重组包再派发),其迁移用例属 [P2];**13 属 [S3 卡合同/W4 接线];14 随 writing 开值批(W4);15 的门禁属 [P0-Tier1]——空账本是 W1 实测漏洞的根修,实施批次排产待 PLAN-2 显式落行(不必然绑 W4;Codex 21 A3,实施对齐核验 2026-07-27)**;清单最终由 §14 的 MUST→validator→正例→反例 溯源矩阵生成,而非人工枚举(Codex 07 A-09)。**17 为本候选已接线的主题锚定语音屏障处理链,完整语音硬件/云 ASR 未验,不把本地模拟 ASR 当真实麦克风验收,也不属独立全量门的现役 P0-Tier1 义务。****18 为 DAILY-01/JOURNEY-01 已有列与读口的消费合同,不新增 DDL;完整七步真人/云 ASR 仍归 owner 场次。**
 
 ## 13. Brain 工具契约(§3 §4 §6 的 API 面;[P0-Tier1 就绪])
 
@@ -1384,7 +2057,8 @@ session”始终拒绝。
 assessReadiness(i:{ sessionId:Id }): { verdict:"ready"|"gap_knowledge"|"gap_requirement"|"gap_critical";
   dims:Claim[]; blockingCriticals:string[]; layer:"rules"|"deep"; evaluatorModel?:string };  // evaluatorModel 仅 deep 层有值(实际调用模型,非配置模型;Codex 12 B3)
 createTask(i:{ sessionId:Id; rawPoints:string[] }): { taskDraftId:Id; recital:string };
-proposeStart(i:{ sessionId:Id; taskDraftId:Id }): { packageId:Id; revision:number; digest:Digest }; // 消费 taskDraftId;就绪才可调
+proposeStart(i:{ sessionId:Id; taskDraftId:Id }): { packageId:Id; revision:number; digest:Digest; demoRef?: { artifactId:Id; version:number }; demoPresented:boolean; demoHintDelivered:boolean };
+  // 消费 taskDraftId;就绪才可调。demoRef=生成可查看;demoPresented=实际已展示回执(现役无回执则恒 false,不得用 screen_text 提示成功顶替);demoHintDelivered=提示文字送达,不得当展示、也不得给原轮「小样已上屏」背书
 getDecisionPackage(i:{ packageId:Id; revision:number }): DecisionPackage;    // 供 Brain 口播成果/计划/成本/风险(10 #10)
 issueDispatchReceipt(i:{ packageId:Id; revision:number; decidedVia:"voice"|"screen";
   authStrength:"voice_weak"|"screen_authenticated"|"os_biometric" }): { receiptId:Id };
@@ -1494,7 +2168,7 @@ suspendSession(i:{ sessionId:Id; reason:string }): { ok:true };
 > 命名:契约与工具签名统一 **camelCase**;03/10 的 instructions 若出现 snake_case 以本节为准(落地生成 tool manifest 时统一)。
 
 `TaskView` = §7 投影表的用户视图对象,**最小字段(Codex 复审 B3 定形,与 10 #23 话术槽位对齐)**:`{ taskId, title, status /* §7 用户语词表 */, attempt, elapsedActiveMs /* 活跃墙钟,停靠停表 */, currentStep?:{seq,name}, budget:{spentKnown?:number, max:number, subscriptionCalls?:number}, lastEventOneLiner, asOf }`;`Decision`(decisions[] 项)= `{ what:string; why:string; overridable:true }`。
-**`AcceptanceCheck`(A3 结果合同——决策卡与验收卡共享同一组 acceptance criteria)** = `{ criterion:string; status:"pass"|"fail"|"unknown"; evidenceRef?:string; source:"verify"|"agent_claim"|"manual" }`:`DecisionPackage.acceptance` 每条 criterion 一一对账。**条件必填规则**:`status∈{"pass","fail"}` 时 `evidenceRef` 必须是非空字符串;绑不上证据只能标 `unknown`(不显示伪精确,A8 同纪律),呈现层遇历史坏值也必须降为 unknown。`ready_for_review`/`explainResult` 载荷带 `checks[]`,"做了但不在验收标准内"入 `outOfScope`。**2026-08-23 收紧**:coding 的 `Tier1SettleProof.acceptanceChecks[]` 持久化这组逐条状态;当前 `DecisionPackage.acceptance:string[]` 与 verify 模板没有显式绑定,因此只凭「所有 verify 退出 0」不得把全部 criterion 推成 pass,未绑定项固化为 `manual/unknown`;旧 proof 缺该字段时呈现层按包内 criterion 补 unknown。任务/run 终态永远不是逐条验收证据。coding `reviewTask(approve)` 必须重新读取 task 当前绑定的 durable DecisionPackage 完整 canonical 正文并对 `packageRevision` 与 criterion 双向 exact-set;不得仅信 run 自带 proof。这是"按验收标准组织的证据视图"从 UI 承诺升为合同承载(§12-3 加对应断言)。
+**`AcceptanceCheck`(A3 结果合同——决策卡与验收卡共享同一组 acceptance criteria)** = `{ criterion:string; status:"pass"|"fail"|"unknown"; evidenceRef?:string; source:"verify"|"agent_claim"|"manual" }`:`DecisionPackage.acceptance` 每条 criterion 一一对账。**条件必填规则**:`status∈{"pass","fail"}` 时 `evidenceRef` 必须是非空字符串;绑不上证据只能标 `unknown`(不显示伪精确,A8 同纪律),呈现层遇历史坏值也必须降为 unknown。`ready_for_review`/`explainResult` 载荷带 `checks[]`,"做了但不在验收标准内"入 `outOfScope`。**2026-08-23 收紧**:coding 的 `Tier1SettleProof.acceptanceChecks[]` 持久化这组逐条状态;当前 `DecisionPackage.acceptance:string[]` 与 verify 模板没有显式绑定,因此只凭「所有 verify 退出 0」不得把全部 criterion 推成 pass,未绑定项固化为 `manual/unknown`;旧 proof 缺该字段时呈现层按包内 criterion 补 unknown。任务/run 终态永远不是逐条验收证据。呈现层必须把 `evidenceRef` 解析为该指针所指的原始输出/文件差异/检查结果;缺 ref、digest 不匹配、跨 run、无权 = 诚实缺证,禁止把 runId/treeSha/status 拼成 log。coding `reviewTask(approve)` 必须重新读取 task 当前绑定的 durable DecisionPackage 完整 canonical 正文并对 `packageRevision` 与 criterion 双向 exact-set;不得仅信 run 自带 proof。这是"按验收标准组织的证据视图"从 UI 承诺升为合同承载(§12-3 加对应断言)。
 
 DecisionPackage 的存储列 `project_id`、正文 `projectId`、task `project_id` 必须在 settle 与 approve 两处均相等;这是 acceptance 对账的前置身份闸,不能由 digest 自洽替代。
 
@@ -1570,9 +2244,10 @@ promoteProject(i:{ projectId:Id; title:string; type:"coding"|"planning"|"researc
 
 - **Focus**:一件持续的事;lifecycle=captured/active/dormant/closed/abandoned/archived,closed 只能 fork 不能 reopen;revision 链 CAS 演进,`focus_events` 为 append-only 事件流,**`seq` 为 per-focus 单调序**(WS 增量去重键=`(focusId, seq)`)。Focus 引用 0..N 个 Project(承载边界),可不属于任何项目;主轴倒置后 project=资源,Focus=呈现主轴。
 - **lifecycle HTTP 写口(PG-01B)**:归档 = `POST /api/focuses/:id/archive`(理由必填,写 `archived`,audit `focus.archived`);放弃 = 独立 `POST /api/focuses/:id/abandon`(理由必填,写 `abandoned`,独立 audit `focus.abandoned`)。放弃不得经 `/archive`、不得写 `archived`。放弃仅对 canonical 来源态开放:`active|dormant|archived`(与 writeTx 边表一致);`captured`/`closed` fail-closed。archive 旧端点保持原语义(N/N-1 兼容)。
+- **会话主题锚定写口**:`POST /api/sessions/:sessionId/focus-anchor`。同一 URL;body additive 可选 `requestId?: Id`(新 console 必填;无 `voicePeerId`)。新 console 必须先在同条 console WS 上 `voice.anchor_prepare` 并收到 `voice.anchor_status{status:"prepared"}`,REST 只在记录 `prepared` 且载荷匹配时同步重校验 focus 并写库,`state=applied`;200 `{ ok, sessionId, focusId, already, voiceBoundaryId, voiceBoundaryRequired: true }`(`voiceBoundaryId`===生效 `requestId`;`already=true` 不是排空;无 false 跳过 rearm)。旧客户端不传 `requestId` 仅 legacy 纯文本 fastpath 可直写,否则 409 `voice_boundary_required`。冲突/失败码见 §10.1.2。`via=mobile_lan` 仍 403。UI 见 10 §3-9 / 11 §5.10。完整语音硬件/云 ASR 未验。
 - **FocusObligation**:七态(open/in_progress/waiting/deferred/blocked+resolved/superseded),owner∈{human,agent,external};未结集合 OPEN_SET 单源于 contracts。`openByOwner` 聚合投影口径=**仅 obligation 未结集合**,不含 task/确认卡;仅作文字描述呈现,数字徽章全站单源=attention(11 §0.1-3)。
 - **attention 账本**:四色 read model(§5.2);**`attention_acks.item_id` 的 ack 仅作用于当前颜色为 calm(green/gray)的条目**——条目颜色升级(绿→橙/灰→蓝)时无视 ack 必然重现;与 `CallbackOutboxEntry.ackedAt`(回叫送达账,§6)**分账,不共享语义**。
-- **确认环(pending confirmation)**:kind 枚举单源为 `@saydo/contracts` 的 `CONFIRM_KINDS`(= `SEMANTIC_MUTATION_KINDS` focus_anchor/focus_obligation/focus_obligation_resolve/focus_create_anchor/focus_revision/focus_lane_split/expectation_ack ∪ `NON_SEMANTIC_CONFIRM_KINDS` dispatch/runtime_effect/readiness/memory/project_anchor;GAP-02 2.1),daemon `live/confirm.ts` 只 re-export 并做编译期 parity 断言,console 确认卡 `ConfirmKind` 同源;呈现层收到表外 kind 显示通用「确认」前缀,不渲染空前缀;**义务候选在 accept 前无 obligation ID,pending 过期即删——候选丢失,不宣称回流**(v0.4 工作项=逐 kind 降格落账+confirmation lifecycle events+双计时器统一,见 OctoAgent docs/product/2026-08-08-console重构方案-v4收口.md §F1/§F8)。
+- **确认环(pending confirmation)**:kind 枚举单源为 `@saydo/contracts` 的 `CONFIRM_KINDS`(= `SEMANTIC_MUTATION_KINDS` focus_anchor/focus_obligation/focus_obligation_resolve/focus_create_anchor/focus_revision/focus_lane_split/expectation_ack ∪ `NON_SEMANTIC_CONFIRM_KINDS` dispatch/runtime_effect/readiness/memory/project_anchor;GAP-02 2.1),daemon `live/confirm.ts` 只 re-export 并做编译期 parity 断言,console 确认卡 `ConfirmKind` 同源;呈现层收到表外 kind 显示通用「确认」前缀,不渲染空前缀;**义务候选在 accept 前无 obligation ID**;过期后 pending 删除与 confirmation_ledger 终局同事务,`focus_obligation` 的可降格载荷进入 §15.1 saga,不再按 v0.3 的“过期即丢失”描述。其它 kind 不因此获得义务降格语义;重试、聚合与失败状态见下节。
 - **timeline 读模型(批次③a)**:主干=focus_events 单源投影(cursor=seq 水位);转写不逐轮 interleave,`activation_started/activation_closed`(payload.status 区分 closed/interrupted,容忍缺尾)呈现为会话段、点开经安全端点懒加载(按 focus_activations 校验归属、不暴露 transcript_path、`store_transcript=false` 段返回"未存转写"占位)。
 - **产物(focus_artifacts)**:role expected→deliverable(realize CAS);产出关系与时间由 `artifact_realized` 事件+`created_from_event` 链**派生**(读模型投影 producedBy/realizedAt),不落库新字段,权威=事件流。expected artifact=「管理期待」的合同形态(概念定稿:OctoAgent docs/product/2026-08-08-四流两线*)。
 
@@ -1585,6 +2260,62 @@ promoteProject(i:{ projectId:Id; title:string; type:"coding"|"planning"|"researc
 - **screen_text 双文本**:仅 via='local' console peer 收全文(hub peer.via 判定)。**PG-01B 止损(2026-09-04,`safe_default=remote_business_403`)**:远程 console WS 业务连接 fail-closed,via='tailnet' 不得连上。历史口径「tailnet 只收脱敏 sentences」标 `designed/deferred`(DF-REMOTE-REOPEN),不得当作现役入口。"放屏幕"话术门=本轮投递 succeeded≥1。
 - **A7 证据门**:FocusWriteTx resolve 共享写门——agent 义务 done 必须携带判别结构 evidence(artifact/task/event 三查:存在+同 Focus+现势),直达路径同受约束。
 - **A6**:console 心跳(30s,仅有 session 时发)/daemon 90s 超时视同断开并取消 idle 收场定时器。
+
+### 15.2 任务级前置与生产 Focus 旅程读口(2026-09-20;DAILY-01 / JOURNEY-01)
+
+> 字段级真相源仍是 `packages/contracts/src/types/focus.ts` 与 daemon DDL;本节只记语义、写口、互斥与生产页读口。不新增表或列。v33 已落地:`applyDdlV33TaskDependency` 对 `focus_obligations` 作 ADD COLUMN `waiting_on_task_id TEXT NULL` + `waiting_task_condition TEXT NULL`(与 v21 后口径一致,库无 CHECK,互斥由写路径保证)。v32 是 `callback_outbox.thread_message_id`,与本节无关。禁止再发 v34 依赖列。
+
+#### 15.2.1 任务级前置形状
+
+- 义务可等待**同 Focus 绑定任务**到达条件:`waitingOnTaskId` + `waitingTaskCondition` ∈ `{accepted, delivered}`。`waitingOn` 文本 = 任务标题。
+- `accepted` = 任务现势 ∈ `{review_approved_waiting_merge, merging, task_done}`。`delivered` = `task_done`。`merge_failed` 不是负向终态,不唤醒也不阻塞。
+- 同 Focus 边界:任务须在 `action_execution_bindings` 上锚过该 focus(含历史 superseded 绑定)。跨 focus 拒 `dependency_cross_focus`。
+- 与义务级前置互斥:`waitingOnTaskId` 与 `waitingOnObligationId` 不得同时非空。zod 形状见 contracts;`taskDependencyConditionSchema` 与事件 `dependency_task_set|woken|blocked` 已登记。
+
+#### 15.2.2 写口、互斥清列、终态、审计
+
+- HTTP:`POST /api/obligations/:id/waiting-on`。body 三选一且互斥:`{preId:Id}` 义务前置 / `{preId:null}` 清除全部等待 / `{taskId:Id, condition?:"accepted"|"delivered"}` 任务前置。`preId` 与 `taskId` 同发 → 400。缺任一必填 → 400。
+- 实现单点:`setObligationWaitingOn` / `setObligationWaitingOnTask`(`packages/daemon/src/focus/dependency.ts`)。任务推进钩子=`applyTaskDependencyTransition`(挂 `transitionTask` 与 S3/writing approve 裸 UPDATE 之后)。
+- **切换必清旧列(同一 UPDATE)**:
+  - 设任务前置:写 `waiting_on_task_id`+`waiting_task_condition`+`waiting_on=任务标题`,并 `waiting_on_obligation_id=NULL`。
+  - 设义务前置:写 `waiting_on_obligation_id`+`waiting_on=义务标题`,并 `waiting_on_task_id=NULL` 且 `waiting_task_condition=NULL`。前置已终态则直接 `blocked`,同样清任务列。
+  - 清除(`preId:null`):`waiting_on` / `waiting_on_obligation_id` / `waiting_on_task_id` / `waiting_task_condition` 四列全 NULL;若原 `waiting|blocked` 则回 `open`。
+- 终态:任务满足条件 → 依赖方 `open` + 四列清空 + 事件 `dependency_task_woken`。任务负向终态(`failed`/`cancel_settled`/`superseded`)→ 依赖方 `blocked`,任务列保留 provenance + 事件 `dependency_task_blocked`。设任务前置时条件已满足 → 同事务 `dependency_task_set` 后立即 woken;已负向终态 → set 后立即 blocked。
+- 归档闸:`POST /api/focuses/:id/archive` 若存在绑定任务且状态 ∈ `{confirmed,queued,running,paused_step_boundary,ready_for_review,review_approved_waiting_merge,merging,cancel_requested}` → 409 `focus_has_running_work`;audit `focus.archive_rejected`。归档 ≠ 放弃 ≠ 关闭。
+- 审计(敏感只 digest):`obligation.waiting_on` / `obligation.waiting_on_task` / `obligation.deferred` / `focus.archived` / `focus.archive_rejected`。事件流:`dependency_set|woken|blocked` 与 `dependency_task_set|woken|blocked`。零主动通知。
+
+#### 15.2.3 七步生产 Focus 旅程(读口优先现有 API/live;不另建状态权威)
+
+权威仍是会话/包/任务/确认环/记忆账本。Focus 页只投影。生产 loader(`GET /api/focuses/:id` + `/timeline` + 下列现有读口)必须灌满页面动作所需 lookups;禁止把 `rail.tasks=[]`、`interview:undefined`、`lookups` 仅义务写成「无数据」。禁止用可编辑草稿冒充 `approve`/`answer`/`interview` 应答;自由沟通草稿可保留。
+
+| 步 | 实体身份 | 读口(已有) | 当前 session/focus 归属 | 动作写口 | 禁 |
+|---|---|---|---|---|---|
+| 1 提需求 | `sessionId`;锚定后 `focusId`+`focus.currentRevision` | 对话 live;`POST /api/sessions/:sid/focus-anchor`(§15) | 新会话或当前 `voice.sessionId`;锚成功后 `sessions.primary_focus_id` | live `turn.text` / 语音轮 | 未锚定就当已属该 Focus |
+| 2 采访澄清 | 无独立采访 ID。身份=`sessionId`+本轮 `turnId`+问题原文。就绪复述另走 `kind=readiness` 确认卡 | 采访是 live 通道(A4/10 §2.1),不是 REST 资源。`GET /api/focuses/:id/sessions` 列本 focus 会话;`GET /api/attention` 可看到同 focus 的 readiness 卡 | 仅当 `voice.sessionId` 的 `primary_focus_id` 等于页 `focusId`(或该 sid ∈ focus sessions)才可把 live 采访投影到页槽 | 应答 = 该 sid 上 `turn.text`(typed)或 readiness 卡 `confirm.click`。页 `interview_pick` 必须落到上述写口 | 把选项写成可编辑草稿并声称已答;无归属会话时伪造页采访卡 |
+| 3 决策包 | `packageId`+`revision`(+`digest`) | `GET /api/focuses/:id`.tasks 已给绑定任务;`GET /api/tasks/:id` 回 `{task, package, ...}`(包正文在 `package`);`GET /api/attention` 橙区 `confirmKind=dispatch` 且 `focusId` 匹配。**禁止新包表** | 包的 `projectId` 须落在该 focus 的 `focus_project_refs`;pending dispatch 卡的 `sessionId`+`focusId` 必须同时匹配 | 组包权威=`proposeStart`(§13),不是页面 | 无 id/revision 的「这份决策包」占位当实体 |
+| 4 批准 | 同上 + `receiptId`+`digest` | live `confirm.card`;`GET /api/attention` 同 focus 的 dispatch 卡 | 卡 `sessionId` 必须是当前或该 focus 的会话;卡 `focusId` 必须等于页 focus | `confirm.click`/`confirm.decision`(digest 绑定)。`confirmAndDispatch` 只经确认环消费收据 | **任意** `voice.confirmCard` 当所点包批准;草稿「拍板,开始」当批准 |
+| 5 执行 | `taskId`+`attempt`;绑定 `action_execution_bindings` | `GET /api/focuses/:id`.tasks(已有);`GET /api/tasks/:id` | `task.focus` 经 binding;`GET /api/focuses/:id/sessions` 只作会话列表 | 派发权威=`confirmAndDispatch` 已建任务。页上 retry=`POST /api/tasks/:id/retry` | 用 fixture/rail 空数组声称无任务 |
+| 6 证据验收 | `taskId`+`packageId`+`package_rev`+`attempt` | `GET /api/tasks/:id`(acceptanceChecks/settle proof + 同任务受控解析的 `evidenceRef` 正文);`#/review/:tid` | 验收页读真 projectId;读不到回落 review 并如实报错。证据正文必须是该条 `evidenceRef` 所指原始输出/文件差异/检查结果;缺 ref、digest 不匹配、跨 run、无权 = 诚实缺证,禁止把 runId/treeSha/status 拼成 log | `POST /api/tasks/:id/review`;S3=`POST /api/tasks/:id/approve-merge` | 语音放行 S3;把 TaskModal 预填当已验收;用运行元数据冒称验收输出 |
+| 7 记忆复用 | 记忆事件 id + `claimDigest`;trusted=`user_approved` | 账本投影;`compileLivePack`/`recordContextSnapshotUse` | 下一回合同一 `sessionId`+`projectId` 编 pack | 写路径 candidate→确认环 `kind=memory`→`user_approved`。下一用户回合必须把该条编进 pack 并记 use | 只读展示当复用;mock LLM 当云验收 |
+
+**页面灌数最小义务**(生产 `useFocusPageData`/`getFocusDetail`):
+
+1. `rail.tasks` 与 `lookups.tasks` = `GET /api/focuses/:id`.tasks,再按需 `GET /api/tasks/:id` 补齐 TaskView(含 `package_id`/`package_rev`/`projectId`/`viewStatus`)。禁止恒空数组。
+2. `lookups.packages` = 上列任务的 `package` 正文 ∪ 本 focus 上 `confirmKind=dispatch` 的 attention/live 卡对应包(`getPackage(id,revision)` 或任务详情里的 `package`)。键=`packageId`(必要时 `id@revision`)。缺 key 才诚实占位。
+3. `interview` 仅从**当前已归属本 focus 的 live 会话**投影;HTTP 无采访权威。无归属会话 → `undefined`,不渲染假卡。
+4. 时间线权威仍是 `GET /api/focuses/:id/timeline` 的 `event|session_segment`。`kind:task|pkg` 只是呈现层引用,必须能在 lookups 找到同一 id/revision;不得把 fixture 时间线当生产事件流。对话页必须从 `lookups`/`rail` 给出可点任务卡/包卡(允许在时间线外渲染工作面,seq 不得写回 timeline API);禁止只靠 fixture 的 `kind:task|pkg` 成员才出现动作。
+
+#### 15.2.4 所点包/任务与确认卡匹配
+
+- 包 `approve`:仅当当前 pending 卡 `kind=dispatch` 且 `packageId`+`revision` 等于所点包,且 `digest` 与该 `receiptId` 一致,才打开确认面并允许 `confirm.click`。`confirm.card` 必须带这两字段(§10 additive)。
+- 任务 `step_ok`/`billing`:仅当卡绑该 `taskId`(payload 或 additive `taskId`)且 kind 为对应确认种。`confirmCardMatches` 只比 `receiptId` 不够,还要比实体身份。
+- 不匹配:诚实失败/引导到拥有该卡的会话 Chat。禁止用「现在任意一张卡」顶替。无卡时不得把可编辑预填当作已批准/已应答;预填只算自由沟通。
+- 自由沟通草稿(`pendingAnchor`+`#/chat-new`)允许用于改期待、改包、开口续聊;发出后仍是 `turn.text`,不是收据消费。
+
+#### 15.2.5 移动事件投影与成本读口(已有形状,只补消费)
+
+- 移动:`mobileFocusDetailSchema.events[].payload` 已含可选 `laneId`/`obligationId`(contracts)。daemon `getMobileFocusDetail` 已放行这两 id。console `projectMobileEvent` 必须保留,不得只留 title/revision。Lane 航迹过滤依赖这两字段;剥掉即具名支线空、主线串线。不扩 schema。
+- 成本:见 §9 `cost_entries` 读口注。`GET /api/costs`.byProject 是全量合计;`entries` 是窗口。UI「全部」不得用窗口重聚合冒充全账本。
 
 ## 16. 可分发运行时合同(桌面地基 D1;2026-08-12)
 

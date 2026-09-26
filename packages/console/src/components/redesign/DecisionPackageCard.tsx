@@ -41,7 +41,7 @@ export function DecisionPackageCard({ pkg, onAction }: {
       </div>
 
       <Section title="做出来什么样">
-        <div style={{ fontSize: "var(--text-sm)" }}>{pkg.outcomePreview}</div>
+        <div data-pkg-outcome style={{ fontSize: "var(--text-sm)" }}>{pkg.outcomePreview}</div>
         {pkg.demoRef && pkg.projectId ? <PackageDemoPreview demoRef={pkg.demoRef} projectId={pkg.projectId} /> : null}
       </Section>
 
@@ -77,8 +77,8 @@ export function DecisionPackageCard({ pkg, onAction }: {
       </Section>
 
       <Section title="验收标准">
-        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 5, fontSize: "var(--text-sm)" }}>
-          {pkg.acceptance.map((s, i) => <li key={i} style={{ display: "flex", gap: 8 }}><Flag size={12} aria-hidden style={{ flex: "none", marginTop: 4, color: "var(--text-muted)" }} /><span>{s}</span></li>)}
+        <ul data-pkg-acceptance style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 5, fontSize: "var(--text-sm)" }}>
+          {pkg.acceptance.map((s, i) => <li key={i} data-pkg-acceptance-item style={{ display: "flex", gap: 8 }}><Flag size={12} aria-hidden style={{ flex: "none", marginTop: 4, color: "var(--text-muted)" }} /><span>{s}</span></li>)}
         </ul>
       </Section>
 

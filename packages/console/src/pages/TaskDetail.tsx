@@ -12,6 +12,10 @@ import { useAsync } from "../lib/useAsync";
 import { ErrorCard, PaperCard, Mono, SectionTitle, CostText } from "../components/ui";
 import { RiskBadge, RouteBadge, StatusChip } from "../components/StatusChip";
 import { PackageDemoPreview } from "../components/redesign/DemoFrame";
+import { CANCELABLE_TASK_STATUSES } from "../lib/taskModalView";
+import { acceptanceApprovalBlocked, judgeAcceptanceCheck, type AcceptanceEvidenceRow } from "../lib/acceptanceEvidenceGate";
+
+export { CANCELABLE_TASK_STATUSES as CANCELABLE } from "../lib/taskModalView";
 
 interface Acceptance {
   text?: string;
@@ -21,16 +25,20 @@ interface Acceptance {
 
 export function acceptanceStateForCriterion(
   criterion: string,
-  checks: AcceptanceCheck[]
+  checks: AcceptanceCheck[],
+  evidence?: readonly AcceptanceEvidenceRow[]
 ): "pass" | "fail" | "unknown" {
   const matches = checks.filter((check) => check.criterion === criterion);
   if (matches.length !== 1) return "unknown";
   const check = matches[0]!;
-  if (check.status !== "unknown" && !check.evidenceRef?.trim()) return "unknown";
-  return check.status;
+  if (!evidence) {
+    if (check.status !== "unknown" && !check.evidenceRef?.trim()) return "unknown";
+    return check.status;
+  }
+  const ref = check.evidenceRef?.trim() ?? "";
+  const row = ref ? evidence.find((item) => item.evidenceRef === check.evidenceRef || item.evidenceRef === ref) : undefined;
+  return judgeAcceptanceCheck(check, row).status;
 }
-
-const CANCELABLE = ["confirmed", "queued", "running", "blocked", "paused_step_boundary", "ready_for_review"];
 
 export function humanizeTier1RunEvidence(value: unknown): string | null {
   return renderTier1BlockedReason(value);
@@ -69,6 +77,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const decisions = (data["decisions"] ?? []) as Row[];
   const writingProof = data["writingProof"] as { acceptanceChecks?: { criterion: string; source: string; status: string }[] } | null;
   const acceptanceChecks = (data["acceptanceChecks"] ?? []) as AcceptanceCheck[];
+  const acceptanceEvidence = (data["acceptanceEvidence"] ?? []) as AcceptanceEvidenceRow[];
+  const evidenceBlocked = acceptanceApprovalBlocked(acceptanceChecks, acceptanceEvidence);
   const isWriting = String(task["project_type"] ?? "") === "writing" && writingProof !== null;
   const acceptance = ((pkg?.["acceptance"] as (string | Acceptance)[] | undefined) ?? []).map((a) =>
     typeof a === "string" ? a : a.text ?? a.criterion ?? JSON.stringify(a)
@@ -156,9 +166,16 @@ export function TaskDetail({ taskId }: { taskId: string }) {
           <ul style={{ margin: 0, padding: 0, listStyle: "none" }} data-acceptance-list>
             {acceptance.map((ac, i) => {
               // 只消费 daemon 返回的逐条 AcceptanceCheck；task/run 终态不能代替 criterion 证据。
-              const state = acceptanceStateForCriterion(ac, acceptanceChecks);
+              const state = acceptanceStateForCriterion(ac, acceptanceChecks, acceptanceEvidence);
+              const boundInvalid = acceptanceChecks.some((check) => {
+                if (check.criterion !== ac) return false;
+                const ref = check.evidenceRef?.trim() ?? "";
+                if (!ref) return false;
+                const row = acceptanceEvidence.find((item) => item.evidenceRef === check.evidenceRef || item.evidenceRef === ref);
+                return judgeAcceptanceCheck(check, row).boundInvalid;
+              });
               return (
-                <li key={i} className="flex items-center gap-[8px]" style={{ padding: "6px 0", fontSize: "var(--text-sm)" }}>
+                <li key={i} className="flex items-center gap-[8px]" style={{ padding: "6px 0", fontSize: "var(--text-sm)" }} data-acceptance-evidence={boundInvalid ? "bound_invalid" : "open"}>
                   {state === "pass" ? (
                     <Check size={16} color="var(--color-success)" aria-label="通过" />
                   ) : state === "fail" ? (
@@ -167,7 +184,11 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                     <CircleDashed size={16} color="var(--text-muted)" aria-label="未验证" />
                   )}
                   <span>{ac}</span>
-                  {state === "unknown" ? <span style={{ color: "var(--text-faint)", fontSize: "var(--text-xs)" }}>未验证</span> : null}
+                  {boundInvalid ? (
+                    <span style={{ color: "var(--color-error)", fontSize: "var(--text-xs)" }}>证据引用失效</span>
+                  ) : state === "unknown" ? (
+                    <span style={{ color: "var(--text-faint)", fontSize: "var(--text-xs)" }}>未验证</span>
+                  ) : null}
                 </li>
               );
             })}
@@ -295,16 +316,22 @@ export function TaskDetail({ taskId }: { taskId: string }) {
       ) : null}
 
       {/* 操作行(11 §5.5;接线批任务②接真实写口):按状态渲染可用动作 */}
-      {settled || status === "failed" || status === "blocked" || CANCELABLE.includes(status) ? (
+      {settled || status === "failed" || status === "blocked" || (CANCELABLE_TASK_STATUSES as readonly string[]).includes(status) ? (
         <PaperCard>
           <div className="flex flex-wrap items-center gap-[var(--space-3)]" data-review-actions>
             {status === "ready_for_review" ? (
               <>
                 <button
-                  style={{ ...secondaryBtn, cursor: isWriting && !allManualDecided ? "not-allowed" : "pointer", opacity: isWriting && !allManualDecided ? "var(--disabled-opacity)" : 1 }}
+                  style={{ ...secondaryBtn, cursor: (isWriting && !allManualDecided) || evidenceBlocked ? "not-allowed" : "pointer", opacity: (isWriting && !allManualDecided) || evidenceBlocked ? "var(--disabled-opacity)" : 1 }}
                   data-action="approve"
-                  disabled={isWriting && !allManualDecided}
-                  title={isWriting && !allManualDecided ? "先逐条裁决每个验收项(settled 不等于全绿)" : "验收通过"}
+                  disabled={(isWriting && !allManualDecided) || evidenceBlocked}
+                  title={
+                    evidenceBlocked
+                      ? "已绑定的证据引用失效,不能批准"
+                      : isWriting && !allManualDecided
+                        ? "先逐条裁决每个验收项(settled 不等于全绿)"
+                        : "验收通过"
+                  }
                   onClick={() =>
                     run(() =>
                       api.reviewTask(taskId, {
@@ -472,7 +499,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 {status === "failed" ? "重试(重新排队)" : "答复并继续"}
               </button>
             ) : null}
-            {CANCELABLE.includes(status) ? (
+            {(CANCELABLE_TASK_STATUSES as readonly string[]).includes(status) ? (
               <button
                 style={dangerBtn}
                 data-action="cancel"

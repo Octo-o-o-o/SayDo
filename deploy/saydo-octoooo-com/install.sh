@@ -33,8 +33,58 @@ need tar
 
 [ -n "${HOME:-}" ] || fail "缺少 HOME 环境变量,无法确定用户目录"
 case "$HOME" in /*) ;; *) fail "HOME 必须是绝对路径:$HOME" ;; esac
+# 换行/回车无法在 POSIX/fish 启动文件或 #!/bin/sh 启动器里安全嵌套:提前拒绝,零写入。
+# 空格、单引号、$()、反引号是合法路径,由 posix_sq / fish_sq 按目标语法引用,不靠禁字绕过。
+# 用删掉 \n\r 前后的字节数比较,避免把路径再放进 test 被换行拆开;必须在任何 mkdir 之前拒绝。
+path_is_embeddable() {
+  orig=$(printf '%s' "$1" | wc -c | tr -d '[:space:]')
+  stripped=$(printf '%s' "$1" | tr -d '\n\r' | wc -c | tr -d '[:space:]')
+  [ "$orig" = "$stripped" ]
+}
+reject_unembeddable_path() {
+  label="$1"
+  value="$2"
+  if ! path_is_embeddable "$value"; then
+    fail "$label 含换行或回车,无法安全生成启动器或 shell 配置,已拒绝且未写入"
+  fi
+}
+# POSIX 单引号:层1(本脚本赋值/printf)只插已引用字面量;层2(启动器/sh/bash/zsh)不再解释 $() ` `。
+posix_sq() {
+  printf "'"
+  rest=$1
+  while [ -n "$rest" ]; do
+    ch=${rest%"${rest#?}"}
+    rest=${rest#?}
+    if [ "$ch" = "'" ]; then
+      # %s:printf 会把 \' 当成转义,必须按字面写出 '\''。
+      printf '%s' "'\\''"
+    else
+      printf '%s' "$ch"
+    fi
+  done
+  printf "'"
+}
+# fish 单引号:\' 与 \\ 有特殊含义;$()、反引号、空格在单引号内保持字面。
+fish_sq() {
+  printf "'"
+  rest=$1
+  while [ -n "$rest" ]; do
+    ch=${rest%"${rest#?}"}
+    rest=${rest#?}
+    if [ "$ch" = '\' ]; then
+      printf '%s' '\\'
+    elif [ "$ch" = "'" ]; then
+      printf '%s' "\\'"
+    else
+      printf '%s' "$ch"
+    fi
+  done
+  printf "'"
+}
+reject_unembeddable_path "HOME" "$HOME"
 SAYDO_HOME="${SAYDO_HOME:-$HOME/.saydo}"
 case "$SAYDO_HOME" in /*) ;; *) fail "SAYDO_HOME 必须是绝对路径:$SAYDO_HOME" ;; esac
+reject_unembeddable_path "SAYDO_HOME" "$SAYDO_HOME"
 # 只在用户目录内写文件:安装根目录必须位于 $HOME 之下;确需其他位置须显式 SAYDO_INSTALL_ALLOW_OUTSIDE_HOME=1。
 # 词法约束在任何写入之前做:含 ".." 的路径一律拒绝(否则 $HOME/../../var 之类会绕过前缀判断);
 # 再用 POSIX 自带的 `cd -P && pwd -P`(不依赖 realpath)按解析后的真实路径复核一次:symlink 越出 HOME 同样拒绝。
@@ -152,18 +202,26 @@ CLI_MJS="$PREFIX/lib/node_modules/@saydo/cli/dist/cli.mjs"
 [ -f "$CLI_MJS" ] || fail "安装后未找到 $CLI_MJS"
 
 # 3. 启动器:固定用上面选定的 Node,不依赖当时 PATH 上是哪个 node。
-cat > "$BIN_DIR/saydo" <<EOF
-#!/bin/sh
-# SayDo 启动器(由 install.sh 生成;重新运行 install.sh 可重建)
-export PATH="$NODE_DIR:\$PATH"
-exec "$NODE_BIN" "$CLI_MJS" "\$@"
-EOF
+#    用 POSIX 单引号写出路径,使层2(启动器被 sh 解释)不再展开 $() / 反引号;printf %s 保证层1不二次解释。
+reject_unembeddable_path "NODE_DIR" "$NODE_DIR"
+reject_unembeddable_path "NODE_BIN" "$NODE_BIN"
+reject_unembeddable_path "CLI_MJS" "$CLI_MJS"
+reject_unembeddable_path "BIN_DIR" "$BIN_DIR"
+q_node_dir=$(posix_sq "$NODE_DIR")
+q_node_bin=$(posix_sq "$NODE_BIN")
+q_cli_mjs=$(posix_sq "$CLI_MJS")
+{
+  printf '%s\n' '#!/bin/sh'
+  printf '%s\n' '# SayDo 启动器(由 install.sh 生成;重新运行 install.sh 可重建)'
+  printf 'export PATH=%s:"$PATH"\n' "$q_node_dir"
+  printf 'exec %s %s "$@"\n' "$q_node_bin" "$q_cli_mjs"
+} > "$BIN_DIR/saydo"
 chmod +x "$BIN_DIR/saydo"
 "$BIN_DIR/saydo" status >/dev/null 2>&1 || true
 ok "已安装:$BIN_DIR/saydo"
 
 # 4. PATH:默认在 shell 启动文件追加一行(带 "# saydo" 标记;整行精确匹配已存在则跳过,可重复执行);
-#    SAYDO_INSTALL_NO_MODIFY_PATH=1 跳过。路径一律加引号,HOME 含空格也安全。
+#    SAYDO_INSTALL_NO_MODIFY_PATH=1 跳过。POSIX 用 posix_sq,fish 用 fish_sq,空格/单引号/$()/反引号可嵌。
 append_path_line() {
   rc_file="$1"
   rc_line="$2"
@@ -176,11 +234,14 @@ append_path_line() {
 }
 if [ "${SAYDO_INSTALL_NO_MODIFY_PATH:-0}" != "1" ]; then
   shell_name="$(basename "${SHELL:-sh}")"
-  posix_line="export PATH=\"$BIN_DIR:\$PATH\" # saydo"
+  q_bin=$(posix_sq "$BIN_DIR")
+  posix_line="export PATH=${q_bin}:\"\$PATH\" # saydo"
+  q_bin_fish=$(fish_sq "$BIN_DIR")
+  fish_line="set -gx PATH ${q_bin_fish} \$PATH # saydo"
   case "$shell_name" in
     zsh) append_path_line "$HOME/.zshrc" "$posix_line" ;;
     bash) append_path_line "$HOME/.bashrc" "$posix_line"; append_path_line "$HOME/.bash_profile" "$posix_line" ;;
-    fish) append_path_line "$HOME/.config/fish/config.fish" "set -gx PATH \"$BIN_DIR\" \$PATH # saydo" ;;
+    fish) append_path_line "$HOME/.config/fish/config.fish" "$fish_line" ;;
     *) append_path_line "$HOME/.profile" "$posix_line" ;;
   esac
 fi

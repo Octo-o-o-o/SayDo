@@ -1,5 +1,7 @@
 # 85 · W5.4-a 批 评审 3(A-2 复核;Grok grok-4.6 xhigh 只读;Codex 配额耗尽回落)
 
+> 2026-09-13 对账勘误：下文关于 `path.join(homedir(), "/foo")` 会丢弃家目录的判断不成立，混淆了 `join` 与 `resolve`。本次实际 Node 探针：`path.posix.join("/example/home", "/foo")` 为 `/example/home/foo`，`path.posix.resolve` 才为 `/foo`。因此不能用这一理由认定 `~/` 或 `~//` 展开有该缺陷。此勘误不撤销悬空 symlink、`..` 词法预折叠等独立问题及其历史修复；原评审正文保留为过程记录，不代表当前候选验收。
+
 > prompt:`prompts/85-w54a-claude-cli-review-3.md`;session `01a01b91-411b-7560-a6bc-af41d6429392`;调度方沙箱外 `just ci` EXIT=0(contracts 103 / cli 19 / console 253 / daemon 1592|4 / python 33)。
 
 先读评审 2 报告、返工 diff 和必读源码，再按 A-2 / lint / 回归三项逐条对账。评审 2 和核心源码已拿到。接着读返工 patch、HANDOFF、cmdEffect 期望和相关回归锚点。patch 前半已对上。接着核调用点、cmdEffect 223、凭据字面量、gate 脚本和剩余绕过面。对照评审 2 的 A-2、返工 patch 和当前 `fileToolEffect.ts` / 测试全文后，A-2 已按分量在 `normalize` 之前拒绝，要求的真 symlink 用例也在。下面按 ①②③ 给结论。

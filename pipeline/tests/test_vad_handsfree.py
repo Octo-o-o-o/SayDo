@@ -107,6 +107,8 @@ def test_hands_free_five_rounds_no_false_cut() -> None:
                 await client._feed_vad(ws, QUIET)
         assert len(ws.finals()) == 5, f"应恰 5 轮,得到 {ws.finals()}"
         assert len(asr.calls) == 5  # 轮内停顿未触发额外识别(不误断)
+        hf_finals = [m for m in ws.sent if m.get("t") == "asr.final"]
+        assert all(m.get("captureMode") == "hands_free" and m.get("recognitionOutcome") == "ok" for m in hf_finals)
         # 每轮一对 start/end(短停顿不产生额外边界)
         assert ws.vad_phases() == ["start", "end"] * 5
 
@@ -202,6 +204,52 @@ def test_voice_mode_rebinds_session_even_same_mode() -> None:
     run(scenario())
 
 
+def test_force_finalize_idle_handsfree_emits_classified_empty() -> None:
+    """无开轮的说完按钮不补造空 final。已拥有轮的空识别仍是一条 ok 空终态。"""
+
+    async def scenario() -> None:
+        client, asr = make_client([])
+        ws = FakeWs()
+        await client._handle(ws, {"t": "turn.done_speaking", "sessionId": client._active_sid})
+        assert [m for m in ws.sent if m.get("t") == "asr.final"] == []
+        assert asr.calls == []
+
+        owned, owned_asr = make_client([""])
+        owned_ws = FakeWs()
+        for _ in range(10):
+            await owned._feed_vad(owned_ws, LOUD)
+        await owned._handle(owned_ws, {"t": "turn.done_speaking", "sessionId": owned._active_sid})
+        finals = [m for m in owned_ws.sent if m.get("t") == "asr.final"]
+        assert len(finals) == 1
+        assert finals[0]["text"] == ""
+        assert finals[0]["captureMode"] == "hands_free"
+        assert finals[0]["recognitionOutcome"] == "ok"
+        assert finals[0]["hfSegmentIds"]
+        assert owned_asr.calls
+
+    run(scenario())
+
+
+def test_force_finalize_then_mode_switch_keeps_classified_empty() -> None:
+    """已拥有轮的空 final 发出后切 PTT,不再补第二条,也不抹掉已发出的终态。"""
+
+    async def scenario() -> None:
+        client, _ = make_client([""])
+        ws = FakeWs()
+        for _ in range(10):
+            await client._feed_vad(ws, LOUD)
+        await client._handle(ws, {"t": "turn.done_speaking", "sessionId": client._active_sid})
+        await client._handle(ws, {"t": "voice.mode", "sessionId": client._active_sid, "mode": "ptt"})
+        finals = [m for m in ws.sent if m.get("t") == "asr.final"]
+        assert len(finals) == 1
+        assert finals[0]["text"] == ""
+        assert finals[0]["captureMode"] == "hands_free"
+        assert finals[0]["recognitionOutcome"] == "ok"
+        assert client._mode == "ptt"
+
+    run(scenario())
+
+
 def test_done_speaking_button_force_finalizes() -> None:
     """第三层兜底(说完了按钮):进行中 utterance + EOU 缓存立即合并发出(绕语义判定)。"""
 
@@ -213,6 +261,31 @@ def test_done_speaking_button_force_finalizes() -> None:
         assert ws.finals() == []
         await client._handle(ws, {"t": "turn.done_speaking", "sessionId": client._active_sid})
         assert ws.finals() == ["这一段还在说没有断轮"]
+
+    run(scenario())
+
+
+def test_force_finalize_mid_speech_emits_end_before_final() -> None:
+    """自然 utterance_end 前点说完:须先发 vad.speech end,再发分类 HF final(09 §10.1.12 闭合证明)。"""
+
+    async def scenario() -> None:
+        client, _ = make_client(["免手说完一句"])
+        ws = FakeWs()
+        for _ in range(10):
+            await client._feed_vad(ws, LOUD)
+        assert ws.vad_phases() == ["start"]
+        assert ws.finals() == []
+        await client._handle(ws, {"t": "turn.done_speaking", "sessionId": client._active_sid})
+        vad = [(i, m) for i, m in enumerate(ws.sent) if m.get("t") == "vad.speech"]
+        finals = [(i, m) for i, m in enumerate(ws.sent) if m.get("t") == "asr.final"]
+        assert vad[0][1]["phase"] == "start"
+        ends = [i for i, m in vad if m["phase"] == "end"]
+        assert ends, "force finalize while speaking must emit vad.speech end"
+        assert finals
+        assert ends[0] < finals[0][0]
+        assert finals[0][1]["text"] == "免手说完一句"
+        assert finals[0][1]["captureMode"] == "hands_free"
+        assert finals[0][1]["recognitionOutcome"] == "ok"
 
     run(scenario())
 
@@ -233,5 +306,65 @@ def test_mode_switch_clears_state() -> None:
         assert client._pending_text == ""
         assert client._vad.speaking is False
         assert client._mic_buf == []
+
+    run(scenario())
+
+
+class SlowThenFailAsr:
+    def __init__(self, delay_s: float, fail: bool = False, text: str = "尾续") -> None:
+        self.delay_s = delay_s
+        self.fail = fail
+        self.text = text
+        self.started = asyncio.Event()
+        self.calls = 0
+
+    async def recognize(self, wav_audio: bytes, hotwords: list[str] | None = None, timeout_s: float = 20) -> str:
+        self.calls += 1
+        self.started.set()
+        await asyncio.sleep(self.delay_s)
+        if self.fail:
+            raise RuntimeError("asr down")
+        return self.text
+
+
+def test_force_finalize_waits_same_sid_asr_then_one_emit() -> None:
+    """force_finalize 等已收同 sid ASR 再锁内收尾,一轮 emit。"""
+
+    async def scenario() -> None:
+        asr = SlowThenFailAsr(0.05, fail=False, text="已收尾续")
+        client = HubClient("ws://x", tts=None, asr=asr)  # type: ignore[arg-type]
+        client._mode = "hands_free"
+        client._active_sid = "ses_01TESTVAD00000000000000001"
+        ws = FakeWs()
+        for _ in range(10):
+            await client._feed_vad(ws, LOUD, wait_recognize=False)
+        for _ in range(45):
+            await client._feed_vad(ws, QUIET, wait_recognize=False)
+        await asr.started.wait()
+        await client._force_finalize(ws, client._active_sid)
+        finals = [m for m in ws.sent if m.get("t") == "asr.final"]
+        assert len(finals) >= 1
+        assert all(m.get("captureMode") == "hands_free" for m in finals)
+        assert asr.calls >= 1
+
+    run(scenario())
+
+
+def test_force_finalize_asr_fail_is_not_fake_ok() -> None:
+    """锁内 flush ASR 失败发 failed,不假 ok。"""
+
+    async def scenario() -> None:
+        asr = SlowThenFailAsr(0.0, fail=True)
+        client = HubClient("ws://x", tts=None, asr=asr)  # type: ignore[arg-type]
+        client._mode = "hands_free"
+        client._active_sid = "ses_01TESTVAD00000000000000001"
+        ws = FakeWs()
+        for _ in range(20):
+            await client._feed_vad(ws, LOUD)
+        await client._force_finalize(ws, client._active_sid)
+        finals = [m for m in ws.sent if m.get("t") == "asr.final"]
+        assert len(finals) == 1
+        assert finals[0]["recognitionOutcome"] == "failed"
+        assert finals[0]["captureMode"] == "hands_free"
 
     run(scenario())

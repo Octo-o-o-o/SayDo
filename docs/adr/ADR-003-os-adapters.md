@@ -124,8 +124,8 @@ file_read   {"kind":"file_read",  "path": string, "cwd": string}
 - **identity**:仅在上述卷上使用 `stat.dev`/`stat.ino` 字符串。
 - **owner**:Owner SID 必须等于当前用户 SID;Administrators/SYSTEM 持有 ⇒ 状态根不可用。
 - **owner-only**:禁用继承并**清空后**只授当前 SID(文件 R,W;目录再加子对象继承)。
-  回读 DACL:不得残留 Everyone/Users/Authenticated Users。旧 `.cap-token` 每次启动先收紧再读。
-  生产失败 fail-closed;测试必须注入 stub,禁止把生产 icacls 绑在 `test/setup.ts`。
+  回读核每个 ACE 的 trustee 与有效权限,且 DACL 必须 protected / 无继承 ACE;Owner 字段正确 + 任意 allow ACE + 宽组黑名单 ≠ 仅当前 SID。旧 `.cap-token` 每次启动先收紧再读。
+  生产失败 fail-closed。纯函数测试可注入 stub;Windows 集成测试必须在本次创建、可回收的隔离状态根验证真实 owner/ACL,不得对宿主 `%TEMP%` 根或用户既有目录改 ACL。`test/setup.ts` 不得把隔离状态根的 owner 修正替换为 no-op(2026-08-26 修复)。
 - **runtime 切换**:macOS symlink;Windows junction,失败则复制树 + owner-only 指针文件。
 
 ## 5. 路径词法
@@ -157,13 +157,13 @@ quoted span 的闭合内容必须**整段**是路径(以 `/`、`~/` 或盘符绝
 - `justfile`:`set windows-shell := "pwsh.exe"` 不强制。优先让 recipe 只调 `pnpm`/`node`,
   避免 shebang bash。`just dev` 的三进程:Windows 用 `Start-Process` 或
   一个 Node supervisor 脚本 `scripts/dev.mjs`(推荐,跨 OS 单一入口)。
-- CI:P0 不阻塞于 Actions Windows 矩阵(公开仓 billing/pnpm 冲突未清)。
-  本地 `just ci` 在 owner Windows 机必须绿。P1 再加 `windows-latest`。
+- 当前 CI 的 `distribution` 在 Ubuntu、macOS、Windows 三平台运行制品安装验证;Node 全量单测与浏览器门仍在 Ubuntu,不能把 Windows distribution 通过称为 Windows 全量单测通过。
+  Windows 完整门禁仍须实际验收。历史 billing/pnpm 冲突不是当前失败原因,以当次 run/job/step 为准。
 
 ## 8. 测试纪律
 
 - 禁止新测试硬编码 `/Users/`、`/tmp/`、`chmod 0o755` 当唯一断言。
-- 用 `os.tmpdir()` / `homedir()` / `restrictOwnerOnly`(测试注入 stub,禁止在 `packages/daemon/test/setup.ts` 对 `%TEMP%` 跑生产 ACL)。
+- 用 `os.tmpdir()` / `homedir()` / `restrictOwnerOnly`;Windows 真实 ACL 测试仅操作本次创建的隔离目录。禁止对宿主 `%TEMP%` 根跑 ACL;公共 setup 对自己的临时状态根保留真实 owner 修正。
 - **红线:`os.tmpdir()` 不是平台中立的**(2026-08-22 实撞,4 处回归):
   - win32 `%TEMP%` 在 `USERPROFILE` **子树内**,POSIX `$TMPDIR` **不在** `$HOME` 下。
     受 workspace 政策(`workspace_outside_owner_home`)约束的 fixture 根,在 win32 用 tmpdir 恰好成立、

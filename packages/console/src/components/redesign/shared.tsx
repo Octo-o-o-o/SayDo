@@ -93,17 +93,23 @@ export function RailSection({ title, icon: Icon, count, warn, children }: {
   );
 }
 
-export function RailItem({ icon: Icon, title, sub, right, onClick, warning }: {
+export function RailItem({ icon: Icon, title, sub, right, onClick, warning, ariaLabel, dataKind, dataId }: {
   icon?: LucideIcon;
   title: ReactNode;
   sub?: ReactNode;
   right?: ReactNode;
   onClick?: () => void;
   warning?: boolean;
+  ariaLabel?: string;
+  dataKind?: string;
+  dataId?: string;
 }) {
   return (
     <button
       type="button"
+      aria-label={ariaLabel}
+      data-rail-item={dataKind}
+      data-rail-id={dataId}
       onClick={onClick}
       style={{
         display: "flex", gap: "var(--space-2)", alignItems: "flex-start", width: "100%", textAlign: "left",

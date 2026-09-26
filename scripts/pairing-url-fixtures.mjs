@@ -172,12 +172,43 @@ function fchdirFn() {
   return cachedFchdir;
 }
 
+const boundTestHooks = {
+  closeSync: null,
+  fchdir: null,
+  readSync: null
+};
+
+function boundFchdirImpl() {
+  const real = fchdirFn();
+  if (!real) return null;
+  if (!boundTestHooks.fchdir) return real;
+  return (fd) => boundTestHooks.fchdir(fd, real);
+}
+
+function boundClose(fd) {
+  if (boundTestHooks.closeSync) return boundTestHooks.closeSync(fd, closeSync);
+  return closeSync(fd);
+}
+
+function boundRead(fd, buf, offset, length, position) {
+  if (boundTestHooks.readSync) {
+    return boundTestHooks.readSync(fd, buf, offset, length, position, readSync);
+  }
+  return readSync(fd, buf, offset, length, position);
+}
+
+export function setPromptTreeBoundHooksForTests(hooks) {
+  boundTestHooks.closeSync = hooks && typeof hooks.closeSync === "function" ? hooks.closeSync : null;
+  boundTestHooks.fchdir = hooks && typeof hooks.fchdir === "function" ? hooks.fchdir : null;
+  boundTestHooks.readSync = hooks && typeof hooks.readSync === "function" ? hooks.readSync : null;
+}
+
 export function promptTreeHandleBindingAvailable() {
   return typeof fchdirFn() === "function" && typeof constants.O_NOFOLLOW === "number" && constants.O_NOFOLLOW !== 0;
 }
 
 function withBoundDirCwd(dirFd, fn) {
-  const fchdir = fchdirFn();
+  const fchdir = boundFchdirImpl();
   if (!fchdir) scanFail();
   let prev;
   try {
@@ -185,18 +216,30 @@ function withBoundDirCwd(dirFd, fn) {
   } catch {
     scanFail();
   }
+  let workError;
+  let result;
   try {
     if (fchdir(dirFd) !== 0) scanFail();
-    return fn();
-  } finally {
-    const restored = fchdir(prev);
-    try {
-      closeSync(prev);
-    } catch {
-      // restore first; close failure still fail-closed below
-    }
-    if (restored !== 0) scanFail();
+    result = fn();
+  } catch (error) {
+    workError = error;
   }
+  let restoreError;
+  try {
+    if (fchdir(prev) !== 0) restoreError = new Error("prompt tree scan");
+  } catch (error) {
+    restoreError = error && error.message === "prompt tree scan" ? error : new Error("prompt tree scan");
+  }
+  let closeError;
+  try {
+    boundClose(prev);
+  } catch (error) {
+    closeError = error && error.message === "prompt tree scan" ? error : new Error("prompt tree scan");
+  }
+  if (workError) throw workError;
+  if (restoreError) throw restoreError;
+  if (closeError) throw closeError;
+  return result;
 }
 
 function openBoundRoot(promptDir) {
@@ -244,33 +287,40 @@ function openBoundChild(dirFd, name) {
   });
 }
 
+function sameBoundRegularFile(left, right) {
+  return (
+    left.dev === right.dev &&
+    left.ino === right.ino &&
+    Number(left.size) === Number(right.size) &&
+    left.mtimeMs === right.mtimeMs &&
+    left.isFile() === true &&
+    right.isFile() === true
+  );
+}
+
 function readBoundRegularFile(fd, before) {
   const start = before || fstatSync(fd);
   if (!start.isFile()) scanFail();
   const size = Number(start.size);
-  if (!Number.isFinite(size) || size < 0) scanFail();
+  if (!Number.isFinite(size) || size < 0 || !Number.isInteger(size)) scanFail();
+  const live = fstatSync(fd);
+  if (!sameBoundRegularFile(start, live)) scanFail();
   const buf = Buffer.alloc(size);
   let off = 0;
   while (off < size) {
     let n;
     try {
-      n = readSync(fd, buf, off, size - off, off);
+      n = boundRead(fd, buf, off, size - off, off);
     } catch {
       scanFail();
     }
-    if (n === 0) break;
+    if (!Number.isInteger(n) || n <= 0) scanFail();
     off += n;
+    if (off > size) scanFail();
   }
   const after = fstatSync(fd);
-  if (
-    after.dev !== start.dev ||
-    after.ino !== start.ino ||
-    after.size !== start.size ||
-    !after.isFile()
-  ) {
-    scanFail();
-  }
-  return buf.subarray(0, off).toString("utf8");
+  if (!sameBoundRegularFile(start, after) || off !== size) scanFail();
+  return buf.toString("utf8");
 }
 
 function childRel(prefix, name) {
@@ -346,6 +396,7 @@ function escapeKotlin(value) {
     const cp = ch.codePointAt(0);
     if (ch === "\\") out += "\\\\";
     else if (ch === '"') out += '\\"';
+    else if (ch === "$") out += "\\$";
     else if (ch === "\n") out += "\\n";
     else if (ch === "\r") out += "\\r";
     else if (ch === "\t") out += "\\t";

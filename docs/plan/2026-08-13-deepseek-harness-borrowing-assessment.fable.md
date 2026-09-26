@@ -1,5 +1,7 @@
 # DeepSeek Harness 借鉴评估
 
+> 2026-09-13 对账说明：本文记录 2026-08-13 的候选评估，不是当前排产或支持声明。D-31 的 BYOA cage 定位与 Hopper 重叠判断已由 [默认 Runner 决策](2026-08-15-default-runner-decision.md) 纠正，下面摘要与 owner 清单保留的同项旧建议一并失效。当前执行与供给范围按 canonical 和 `IMPLEMENTATION-PLAN-2.md`；不因本评估自动开 `native_api` 或 DSH 批。
+
 > 对方 repo:`~/WorkSpace/Reference/deepseek-harness`
 > 对方版本:git `47f943859bef60e4160492346772ded9b24f765a`(`0.1.0-rc.5`, 2026-08-13, `Merge pull request #2519 ... feat/npm-public`)  
 > 对方 license:**MIT**(`LICENSE` 原文, Copyright (c) 2026 DeepSeek);第三方声明见对方 `THIRD_PARTY_NOTICES.md`(Cordis 全家 MIT;ACP SDK Apache-2.0;Claude Agent SDK 见其 README)。  

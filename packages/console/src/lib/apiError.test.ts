@@ -90,6 +90,17 @@ describe("失败分类", () => {
     });
     expect(lan.kind).toBe("client");
     expect(lan.message).toBe("手机局域网面未开放此内容");
+    const remote = apiErrorFromResponse(403, {
+      ok: false,
+      code: "remote_business_forbidden",
+      message: "remote business surface is closed"
+    });
+    expect(remote.kind).toBe("client");
+    expect(remote.message).toBe("远程业务入口已关闭,请在本机浏览器打开控制台");
+    expect(remote.message).not.toContain("凭证");
+    expect(remote.hint).toBeUndefined();
+    expect(remote.code).toBe("remote_business_forbidden");
+    expect(remote.code).not.toBe("remote_business_closed");
   });
 
   it("retryable 以 daemon 响应体为准,不由状态码替它做主", () => {

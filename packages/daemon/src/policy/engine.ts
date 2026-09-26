@@ -26,6 +26,8 @@ export interface EffectDescriptor {
     | "send_external";
   /** 分支名/包名/路径(圈内外判定用) */
   target?: string;
+  /** 同条/复合命令的全部已知 push 目标;computeRisk 对 main/master∪项目 protected 逐个检查,禁止只留首个 */
+  targets?: readonly string[];
   /** 触及 .env/凭据/客户数据(04 §5.1 升级规则:升 S2+) */
   touchesSensitiveData?: boolean;
   /** install 的包带 postinstall 脚本(升 S2 且必须出清单,09 §2 constraints.packages 注) */
@@ -50,6 +52,17 @@ const BASE_RISK: Record<EffectDescriptor["kind"], RiskLevel> = {
 };
 
 const ORDER: RiskLevel[] = ["S0", "S1", "S2", "S3"];
+
+function pushDestinations(d: EffectDescriptor): string[] {
+  const names: string[] = [];
+  if (d.target !== undefined && d.target !== "") names.push(d.target);
+  if (d.targets) {
+    for (const name of d.targets) {
+      if (name !== "" && !names.includes(name)) names.push(name);
+    }
+  }
+  return names;
+}
 
 function maxRisk(a: RiskLevel, b: RiskLevel): RiskLevel {
   return ORDER.indexOf(a) >= ORDER.indexOf(b) ? a : b;
@@ -78,9 +91,15 @@ export function computeRisk(d: EffectDescriptor, ctx?: RiskContext): { level: Ri
     }
     // 09 §11 [git].protected 取并集(Codex 14 #3):项目值只能追加,不能顶掉 main/master 安全默认
     const protectedBranches = effectiveProtectedBranches(ctx?.protectedBranches);
-    if (d.target !== undefined && protectedBranches.includes(d.target)) {
+    const dests = pushDestinations(d);
+    if (dests.length === 0) {
       level = maxRisk(level, "S3");
-      escalations.push(`push to protected branch ${d.target} => S3`);
+      escalations.push("push dest unresolved; cannot prove non-protected => S3");
+    }
+    const hit = dests.find((name) => protectedBranches.includes(name));
+    if (hit !== undefined) {
+      level = maxRisk(level, "S3");
+      escalations.push(`push to protected branch ${hit} => S3`);
     }
   }
   return { level, escalations };

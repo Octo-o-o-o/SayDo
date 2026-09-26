@@ -172,7 +172,7 @@ export interface LiveToolsDeps {
   /** 与 drafterFor 同律；复用 governor，provider/expectedFamily 按现势重解。 */
   readinessFor?: () => LiveToolsDeps["readiness"];
   now?: () => Date;
-  /** S1:proposeStart 同轮上屏;via=local 才投(实现侧 sendScreenText 已过滤) */
+  /** S1:proposeStart 同轮提示(生成可查看);via=local 才投。提示送达≠预览已展示,不得给原轮 screen credit */
   sendScreenText?: (sessionId: string, turnId: string, text: string) => VoiceDelivery;
   /** 本地 console 在连(等价 hub.hasLocalConsolePeerForSession) */
   hasConsolePeerForSession?: (sessionId: string) => boolean;
@@ -797,7 +797,7 @@ export function registerLiveTools(reg: ToolRegistry, deps: LiveToolsDeps): void 
   reg.register(
     {
       name: "proposeStart",
-      description: "就绪后消费任务草稿组装决策包(成果预览/范围/验收/计划/封顶/小样);返回包 id、digest、demoRef 与 demoPresented",
+      description: "就绪后消费任务草稿组装决策包(成果预览/范围/验收/计划/封顶/小样);返回包 id、digest、demoRef、demoPresented(实际展示回执)与 demoHintDelivered(提示送达)",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -915,21 +915,28 @@ export function registerLiveTools(reg: ToolRegistry, deps: LiveToolsDeps): void 
         nowIso: now().toISOString(),
         ttlHours: deps.proposedTtlHours?.() ?? 24
       });
-      let demoPresented = false;
+      // 现役无 DemoFrame 展示回执:demoPresented 不得因提示文字成功而为 true。
+      // demoHintDelivered 只记提示送达;不得 credit 原轮,以免 SCREEN_CLAIM 把提示当「小样已上屏」。
+      const demoPresented = false;
+      let demoHintDelivered = false;
       const localOnline = deps.hasConsolePeerForSession?.(ctx.sessionId) ?? false;
       if (pkg.demoRef && localOnline && deps.sendScreenText) {
         const preview = pkg.outcomePreview.slice(0, 40);
         const demoTurnId = newId("ses");
-        const delivery = deps.sendScreenText(ctx.sessionId, demoTurnId, `决策包小样已放到屏幕：${preview}`);
-        demoPresented = delivery.succeeded >= 1;
-        creditScreenDelivery(ctx.sessionId, ctx.turnId, delivery);
+        const delivery = deps.sendScreenText(
+          ctx.sessionId,
+          demoTurnId,
+          `决策包小样已生成，可在决策包点看小样：${preview}`
+        );
+        demoHintDelivered = delivery.succeeded >= 1;
       }
       return {
         packageId: pkg.id,
         revision: pkg.revision,
         digest: pkg.digest,
         ...(pkg.demoRef ? { demoRef: pkg.demoRef } : {}),
-        demoPresented
+        demoPresented,
+        demoHintDelivered
       };
     }
   );
@@ -1177,7 +1184,8 @@ export function registerLiveTools(reg: ToolRegistry, deps: LiveToolsDeps): void 
           taskId: String(a["taskId"] ?? ""),
           verdict: a["verdict"] as "approve" | "request_changes" | "reject",
           expectedAttempt: Number(a["expectedAttempt"] ?? 0),
-          ...(typeof a["comments"] === "string" ? { comments: a["comments"] } : {})
+          ...(typeof a["comments"] === "string" ? { comments: a["comments"] } : {}),
+          ...(deps.runsDir ? { runsDir: deps.runsDir } : {})
         },
         now().toISOString()
       );

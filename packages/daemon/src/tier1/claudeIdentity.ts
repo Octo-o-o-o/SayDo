@@ -77,7 +77,7 @@ export type ClaudeIdentityVerdict =
 
 /**
  * 登记核验:登记存在 + binaryPath 与配置一致 + digest 与实际文件一致
- * Tier1 每次调用都对 wrapper 与 runtime target 重哈希；BYOA 的 mtime/size 缓存不参与此安全门。
+ * Tier1 每次调用都对 wrapper 与 runtime target 重哈希；此安全门不复用 mtime/size 缓存。
  */
 export function verifyClaudeIdentity(
   saydoHome: string,

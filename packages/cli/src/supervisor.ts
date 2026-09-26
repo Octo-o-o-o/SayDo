@@ -129,6 +129,8 @@ interface OwnedRunOptions {
   paths: SupervisorPaths;
   openBrowser: boolean;
   now?: () => number;
+  /** 测试关掉 SIGINT/setInterval;生产缺省挂接。 */
+  attachSignals?: boolean;
 }
 
 type ChildEvent =
@@ -194,13 +196,30 @@ export function homeLockOwnership(home: string, generation: OwnedDaemonGeneratio
       typeof owner.processStart === "string" &&
       owner.processStart !== "";
     if (!wellFormed) return "unreadable";
-    const mine = owner.pid === generation.pid &&
-      owner.instanceId === generation.instanceId &&
-      processStart(generation.pid) === owner.processStart;
-    return mine ? "self" : "foreign";
+    return lockMatchesGeneration(owner, generation) ? "self" : "foreign";
   } catch {
     return "unreadable";
   }
+}
+
+function lockMatchesGeneration(
+  owner: { version?: unknown; pid?: unknown; processStart?: unknown; instanceId?: unknown },
+  generation: OwnedDaemonGeneration
+): boolean {
+  if (
+    owner.version !== 1 ||
+    !Number.isInteger(owner.pid) ||
+    owner.pid !== generation.pid ||
+    owner.instanceId !== generation.instanceId ||
+    typeof owner.processStart !== "string" ||
+    owner.processStart === ""
+  ) {
+    return false;
+  }
+  if (typeof generation.processStart === "string" && generation.processStart !== "") {
+    return owner.processStart === generation.processStart;
+  }
+  return processStart(generation.pid) === owner.processStart;
 }
 
 export function homeLockAllowsReap(home: string, generation: OwnedDaemonGeneration): boolean {
@@ -213,13 +232,7 @@ export function homeLockAllowsReap(home: string, generation: OwnedDaemonGenerati
       processStart?: unknown;
       instanceId?: unknown;
     };
-    return owner.version === 1 &&
-      Number.isInteger(owner.pid) &&
-      owner.pid === generation.pid &&
-      owner.instanceId === generation.instanceId &&
-      typeof owner.processStart === "string" &&
-      owner.processStart !== "" &&
-      processStart(generation.pid) === owner.processStart;
+    return lockMatchesGeneration(owner, generation);
   } catch {
     return false;
   }
@@ -348,7 +361,7 @@ export async function runOwned(options: OwnedRunOptions): Promise<void> {
     throw new Error("distribution_incomplete:daemon 或 console 产物缺失");
   }
   mkdirSync(home, { recursive: true, mode: 0o700 });
-  const signals = new SignalQueue(home);
+  const signals = new SignalQueue(home, { attach: options.attachSignals !== false });
   let pendingSignal: Promise<{ kind: "signal"; reason: PrepareShutdownReason }> = signals.next().then((reason) => ({
     kind: "signal",
     reason
@@ -369,7 +382,12 @@ export async function runOwned(options: OwnedRunOptions): Promise<void> {
       }
     });
     if (!child.pid) throw new Error("daemon fork 未返回 pid");
-    const generation: OwnedDaemonGeneration = { pid: child.pid, instanceId };
+    const capturedStart = processStart(child.pid);
+    const generation: OwnedDaemonGeneration = {
+      pid: child.pid,
+      instanceId,
+      ...(capturedStart ? { processStart: capturedStart } : {})
+    };
     const events = new ChildEventQueue(child);
     const startupDeadline = new Promise<{ kind: "startup_deadline" }>((resolveDeadline) => {
       setTimeout(() => resolveDeadline({ kind: "startup_deadline" }), 30_000).unref();

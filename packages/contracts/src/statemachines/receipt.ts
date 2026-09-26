@@ -3,6 +3,19 @@
 import type { ReceiptDecision, ReceiptOutcome } from "../types/approval.js";
 import type { ExecutionMode } from "../types/project.js";
 
+/** 09 §3 收据事件 kind 闭合词表;与 ReceiptEvent 联合一致,不另造第五类。 */
+export const RECEIPT_EVENT_KINDS = [
+  "user_accept",
+  "user_reject",
+  "user_ignore",
+  "user_edit",
+  "consume",
+  "timeout",
+  "conflict_voided",
+  "expire"
+] as const;
+export type ReceiptEventKind = (typeof RECEIPT_EVENT_KINDS)[number];
+
 export type ReceiptEvent =
   | { kind: "user_accept" }
   | { kind: "user_reject" }

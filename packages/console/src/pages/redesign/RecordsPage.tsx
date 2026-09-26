@@ -11,12 +11,16 @@ export interface RecordsPageView {
   focus: FocusView;
   /** 支线航迹:lanes × 事件序(eventCount 渲染圆点;retired 的线不再亮当前水位) */
   lanes: { id: string; title: string; eventCount: number; retired?: boolean }[];
-  /** 依赖链(waiting 态且挂在别的义务上的安排;解除依赖走 onAction) */
+  /** 依赖链(waiting 态且挂了结构化前置的安排;解除依赖走 onAction) */
   dependencies: ObligationView[];
+  /** DAILY-01:本 Focus 全部义务(依赖面板候选集) */
+  obligations: ObligationView[];
+  /** DAILY-01:本 Focus 绑定任务(任务级前置候选集) */
+  tasks: { id: string; title: string; status: string }[];
   /** 历史会话段(label 含「第 N 次会话 · 时间段」;closed=false=中断缺尾;live=当前活跃段显示「进行中」) */
   segments: { sessionRef: string; label: string; turnCount: number; closed: boolean; transcriptAvailable: boolean; live?: boolean }[];
-  /** FocusEvent append-only 事件流(按 seq 倒序还是正序由接线线定,页面照传) */
-  events: { seq: number; type: string; text: string }[];
+  /** FocusEvent append-only 事件流(laneId 供重走锚点按线过滤) */
+  events: { seq: number; type: string; text: string; laneId?: string }[];
 }
 
 export function RecordsPage({ view, onNavigate, onAction, onExpandSegment }: {
@@ -39,6 +43,8 @@ export function RecordsPage({ view, onNavigate, onAction, onExpandSegment }: {
         focus={view.focus}
         lanes={view.lanes}
         dependencies={view.dependencies}
+        obligations={view.obligations}
+        tasks={view.tasks}
         segments={view.segments}
         events={view.events}
         onAction={handle}

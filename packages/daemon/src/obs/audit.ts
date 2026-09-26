@@ -17,6 +17,11 @@ export interface AuditEvent {
 
 export interface AuditSink {
   record(event: AuditEvent): { id: string };
+  /**
+   * 与给定 SQLite 连接同库时,调用方可纳入同一事务。
+   * 未实现(文件 sink / mock)则不得假设与账本写入原子。
+   */
+  sharesSqlite?(db: unknown): boolean;
 }
 
 /**
@@ -59,6 +64,9 @@ export function createFileAuditSink(
         throw new AuditWriteError(code, err);
       }
       return { id };
+    },
+    sharesSqlite() {
+      return false;
     }
   };
 }

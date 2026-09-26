@@ -40,8 +40,21 @@ export function cursorParseLine(line: string): Tier1Event {
   return { kind: "unknown" };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** 只认完整 JSON 顶层 type=result。嵌套/转义字样不是终态;错误顶层 result 仍是终态(parseLine 可能 unknown)。 */
 export function cursorIsTerminalResult(line: string): boolean {
-  return /"type"\s*:\s*"result"/.test(line);
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return false;
+  }
+  return isRecord(parsed) && parsed["type"] === "result";
 }
 
 export function cursorBackend(): Tier1Backend {

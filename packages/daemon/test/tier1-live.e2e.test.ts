@@ -158,7 +158,7 @@ describe.skipIf(!LIVE)("真 cursor-agent 端到端(SAYDO_LIVE_E2E)", () => {
       log.info("live gate decisions", { count: gateDecisions.c });
 
       // 验收 approve -> 人工合并 -> task_done
-      reviewTask(db, audit, { taskId: TSK, verdict: "approve", expectedAttempt: run.attempt }, new Date().toISOString());
+      reviewTask(db, audit, { taskId: TSK, verdict: "approve", expectedAttempt: run.attempt, runsDir: join(saydoHome, "tier1", "runs") }, new Date().toISOString());
       const approvedTree = (db.prepare("SELECT approved_tree_sha FROM tasks WHERE id=?").get(TSK) as { approved_tree_sha: string }).approved_tree_sha;
       requestManualMerge(db, audit, TSK);
       const parent = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo, encoding: "utf8" }).trim();

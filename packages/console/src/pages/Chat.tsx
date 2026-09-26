@@ -3,11 +3,31 @@
 // 右栏(>=1280 双栏):「这次聊出来的东西」(批 4 实体卡流)+ 任务卡草稿 + 就绪自省。
 
 import { FileQuestion, Mic, Square, X } from "lucide-react";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { EmptyState, PaperCard, SectionTitle } from "../components/ui";
 import { useSetup } from "../shell/SetupContext";
 import { useVoice } from "../shell/VoiceContext";
-import { apiPost } from "../lib/api";
+import { claimFocusAnchorOwner, isCurrentFocusAnchorOwner } from "../lib/chatAnchor";
+import { releaseFocusAnchorOwner, type FocusAnchorOwner } from "../lib/focusAnchorCoordinator";
+import { retryAnchorPayload, runVoiceAnchorFlow } from "../lib/voiceAnchorFlow";
+import { buildAnchorSuccessPayload } from "../lib/chatAnchorSuccess";
+import {
+  anchoredBannerText,
+  canSendThemedContent,
+  consumeOwnedPendingDraft,
+  gateChatSend,
+  planChatSend,
+  readPendingAnchor,
+  shouldConsumeSentDraft,
+  writePendingAnchor,
+  type AnchorPhase,
+  type PendingAnchorPayload,
+  type SentDraftBinding
+} from "../lib/pendingAnchor";
+import { applyChatDraftEvent, readInitialChatDraft } from "../lib/chatDraftEvent";
+import { desktopTextOutcomeCopy } from "../lib/captureQueue";
+import { planAdoptQuiescedDraft } from "../lib/quiescedTranscripts";
+import { setThemedVoiceHold } from "../lib/themedVoiceHold";
 import { navigate } from "../lib/router";
 import { postFirstRunQuery, type FirstRunQueryResult, type SetupProbe } from "../lib/setupApi";
 import {
@@ -207,30 +227,231 @@ export function Chat({
   const spokenTtsKeysRef = useRef(new Set<string>());
   // 双动作交互(2026-07-28,11 §5.10 四态):待命 / 录音中 / 转写中(仅 B 档占输入区)/ 待确认
   const [inputState, setInputState] = useState<"idle" | "recording" | "transcribing" | "confirm">("idle");
-  // L6/L5:续推锚定条("已接上 X · 工作线:Y");pendingAnchor 由详情页/线菜单写入
-  const [anchoredBanner, setAnchoredBanner] = useState<string | null>(null);
-  useEffect(() => {
-    const raw = sessionStorage.getItem("saydo.chat.pendingAnchor");
-    if (!raw) return;
-    sessionStorage.removeItem("saydo.chat.pendingAnchor");
-    try {
-      const p = JSON.parse(raw) as { focusId: string; title?: string; laneTitle?: string };
-      if (!p.focusId) return;
-      void apiPost(`/api/sessions/${encodeURIComponent(voice.sessionId)}/focus-anchor`, {
-        focusId: p.focusId,
-        ...(p.laneTitle ? { laneTitle: p.laneTitle } : {})
-      })
-        .then(() => {
-          setAnchoredBanner(`已接上「${p.title ?? p.focusId}」${p.laneTitle ? ` · 工作线:「${p.laneTitle}」` : ""}`);
-        })
-        .catch(() => {
-          setAnchoredBanner("续推锚定没接上,直接开口说也行(说「接着 XX 继续」)");
-        });
-    } catch {
-      // 坏数据直接丢弃
-    }
+  // L6/L5:续推锚定条;pendingAnchor 成功前不删、失败可重试,带主题内容等当前会话接上才发
+  const [anchoredBanner, setAnchoredBanner] = useState<string | null>(() =>
+    typeof sessionStorage !== "undefined" && readPendingAnchor(sessionStorage) ? "正在接上主题…" : null
+  );
+  const [pendingAnchor, setPendingAnchor] = useState<PendingAnchorPayload | null>(() =>
+    typeof sessionStorage === "undefined" ? null : readPendingAnchor(sessionStorage)
+  );
+  const [anchorPhase, setAnchorPhase] = useState<AnchorPhase>(() =>
+    typeof sessionStorage !== "undefined" && readPendingAnchor(sessionStorage) ? "pending" : "idle"
+  );
+  const [anchoredSessionId, setAnchoredSessionId] = useState<string | null>(null);
+  const [anchorError, setAnchorError] = useState<string | null>(null);
+  const [unknownEpochs, setUnknownEpochs] = useState<number[]>([]);
+  const [lastAnchorCode, setLastAnchorCode] = useState<string | undefined>();
+  const [adoptChoice, setAdoptChoice] = useState<{ requestId: string; turnId: string; text: string } | null>(null);
+  const shownUnknownEpochs =
+    unknownEpochs.length > 0 ? unknownEpochs : (voice.lastAnchorStatus?.unknownEpochs ?? []);
+  const [draftText, setDraftText] = useState(() =>
+    readInitialChatDraft(typeof sessionStorage === "undefined" ? undefined : sessionStorage)
+  );
+  const pendingRef = useRef<PendingAnchorPayload | null>(null);
+  const phaseRef = useRef<AnchorPhase>("idle");
+  const anchoredSessionRef = useRef<string | null>(null);
+  const sessionIdRef = useRef(voice.sessionId);
+  const draftTextRef = useRef(draftText);
+  const draftVersionRef = useRef(0);
+  const ownerRef = useRef<FocusAnchorOwner | null>(null);
+  const runTokenRef = useRef(0);
+  pendingRef.current = pendingAnchor;
+  phaseRef.current = anchorPhase;
+  anchoredSessionRef.current = anchoredSessionId;
+  sessionIdRef.current = voice.sessionId;
+  draftTextRef.current = draftText;
+  const voiceRef = useRef(voice);
+  voiceRef.current = voice;
+
+  const persistLiveDraft = useCallback((base?: PendingAnchorPayload | null) => {
+    const current = base ?? pendingRef.current;
+    if (!current) return;
+    const next = { ...current, draft: draftTextRef.current };
+    pendingRef.current = next;
+    setPendingAnchor(next);
+    writePendingAnchor(sessionStorage, next);
   }, []);
-  const [draftText, setDraftText] = useState("");
+
+  const runFocusAnchor = useCallback(async (payload: PendingAnchorPayload, sessionId: string) => {
+    const token = ++runTokenRef.current;
+    const owner = claimFocusAnchorOwner(sessionId, payload.focusId);
+    ownerRef.current = owner;
+    setAnchorPhase("pending");
+    setAnchorError(null);
+    setAnchoredBanner("正在接上主题…");
+    const persist = (next: PendingAnchorPayload): void => {
+      pendingRef.current = next;
+      setPendingAnchor(next);
+      writePendingAnchor(sessionStorage, next);
+    };
+    const live = voiceRef.current;
+    live.beginInterviewAnchor({ sessionId, focusId: payload.focusId, requestId: payload.requestId });
+    const epoch = live.daemonEpoch;
+    if (!live.connected || !epoch || !live.peerId) {
+      persist(payload);
+      setAnchorPhase("pending");
+      setAnchoredSessionId(null);
+      setAnchorError("还没接到当前对话,草稿还在,可重试");
+      setAnchoredBanner("还没接到当前对话,草稿还在,可重试");
+      return;
+    }
+    const result = await runVoiceAnchorFlow({
+      ownerOk: () => token === runTokenRef.current && isCurrentFocusAnchorOwner(owner),
+      payload,
+      liveDraft: () => draftTextRef.current,
+      persist,
+      port: {
+        sessionId,
+        daemonEpoch: epoch,
+        connected: live.connected,
+        micActive: live.mic.active,
+        mode: live.mode,
+        stopMic: () => live.stopLocalCapture(),
+        finalizeRecordingEdit: () => live.endCaptureEdit(0),
+        sendPrepare: live.sendPrepare,
+        sendRearm: live.sendRearm,
+        waitStatus: live.waitStatus,
+        cancelWait: live.cancelWait
+      }
+    });
+    if (token !== runTokenRef.current || result.status === "stale" || !isCurrentFocusAnchorOwner(owner)) {
+      voiceRef.current.abandonInterviewAnchorAttempt(sessionId);
+      return;
+    }
+    if (result.status === "failed") {
+      voiceRef.current.failInterviewAnchor({
+        sessionId,
+        focusId: result.payload.focusId,
+        requestId: result.payload.requestId
+      });
+      persist(result.payload);
+      setLastAnchorCode(result.code);
+      setUnknownEpochs(result.unknownEpochs ?? []);
+      setAnchorPhase("failed");
+      setAnchoredSessionId(null);
+      setAnchorError(result.reason);
+      setAnchoredBanner(result.reason);
+      return;
+    }
+    persist(
+      buildAnchorSuccessPayload(payload, pendingRef.current, draftTextRef.current, {
+        requestId: result.requestId,
+        daemonEpoch: epoch
+      })
+    );
+    setLastAnchorCode(undefined);
+    setUnknownEpochs([]);
+    setAnchorPhase("ready");
+    setAnchoredSessionId(result.sessionId);
+    voiceRef.current.commitInterviewAnchor({
+      sessionId: result.sessionId,
+      focusId: payload.focusId,
+      requestId: result.requestId
+    });
+    setAnchoredBanner(anchoredBannerText(payload));
+  }, []);
+
+  useEffect(() => {
+    const p = pendingRef.current ?? readPendingAnchor(sessionStorage);
+    if (!p || !sessionIdRef.current) return;
+    if (phaseRef.current === "ready" && anchoredSessionRef.current === sessionIdRef.current) return;
+    if (!voice.connected || !voice.daemonEpoch || !voice.peerId) {
+      runTokenRef.current += 1;
+      if (ownerRef.current) releaseFocusAnchorOwner(ownerRef.current);
+      if (phaseRef.current !== "failed") {
+        setAnchorPhase("pending");
+        setAnchoredBanner("还没接到当前对话,草稿还在");
+      }
+      return;
+    }
+    void runFocusAnchor(p, sessionIdRef.current);
+    return () => {
+      runTokenRef.current += 1;
+      if (ownerRef.current) releaseFocusAnchorOwner(ownerRef.current);
+    };
+  }, [runFocusAnchor, voice.sessionId, voice.connected, voice.daemonEpoch, voice.peerId]);
+
+  useEffect(() => {
+    if (!pendingRef.current || phaseRef.current === "idle") return;
+    if (anchoredSessionRef.current && anchoredSessionRef.current !== sessionIdRef.current) {
+      if (ownerRef.current) releaseFocusAnchorOwner(ownerRef.current);
+      persistLiveDraft();
+      voiceRef.current.failInterviewAnchor({
+        sessionId: anchoredSessionRef.current,
+        focusId: pendingRef.current?.focusId,
+        requestId: pendingRef.current?.requestId
+      });
+      setAnchorPhase("failed");
+      setAnchoredSessionId(null);
+      setAnchorError("会话已切换,请重新接上主题后再发");
+      setAnchoredBanner("会话已切换,草稿还在,可重试");
+    }
+  }, [persistLiveDraft, voice.sessionId]);
+
+  const consumeSentDraft = useCallback((binding: SentDraftBinding): void => {
+    if (
+      !shouldConsumeSentDraft({
+        binding,
+        currentText: draftTextRef.current,
+        currentVersion: draftVersionRef.current,
+        currentOwner: ownerRef.current,
+        currentRequestId: pendingRef.current?.requestId,
+        currentEpoch: pendingRef.current?.daemonEpoch ?? voiceRef.current.daemonEpoch,
+        isCurrentOwner: isCurrentFocusAnchorOwner
+      })
+    ) {
+      return;
+    }
+    draftTextRef.current = "";
+    setDraftText("");
+    consumeOwnedPendingDraft(binding.owner, sessionStorage, isCurrentFocusAnchorOwner, {
+      requestId: binding.requestId,
+      draft: binding.text
+    });
+  }, []);
+
+  const trySendChatText = useCallback(
+    async (text: string): Promise<boolean> => {
+      const binding: SentDraftBinding = {
+        text: text.trim(),
+        version: draftVersionRef.current,
+        owner: ownerRef.current,
+        requestId: pendingRef.current?.requestId,
+        daemonEpoch: pendingRef.current?.daemonEpoch ?? voiceRef.current.daemonEpoch ?? undefined
+      };
+      const result = await gateChatSend({
+        pending: pendingRef.current,
+        phase: phaseRef.current,
+        sessionId: sessionIdRef.current,
+        anchoredSessionId: anchoredSessionRef.current,
+        text,
+        sendText: voice.sendText
+      });
+      if (result.reason) setAnchorError(result.reason);
+      else setAnchorError(null);
+      if (result.sent) consumeSentDraft(binding);
+      return result.sent;
+    },
+    [consumeSentDraft, voice.sendText]
+  );
+
+  const themedSendBlocked =
+    pendingAnchor !== null && !canSendThemedContent(anchorPhase, sessionIdRef.current, anchoredSessionId);
+
+  useEffect(() => {
+    setThemedVoiceHold(themedSendBlocked);
+    return () => {
+      const still = typeof sessionStorage === "undefined" ? null : readPendingAnchor(sessionStorage);
+      if (!still) setThemedVoiceHold(false);
+    };
+  }, [themedSendBlocked]);
+
+  const rememberDraft = (value: string): void => {
+    setDraftText(value);
+    draftTextRef.current = value;
+    draftVersionRef.current += 1;
+    if (pendingRef.current) persistLiveDraft({ ...pendingRef.current, draft: value });
+  };
   const [firstRunTurn, setFirstRunTurn] = useState<{ key: string; text: string } | null>(null);
   useEffect(() => {
     let alive = true;
@@ -295,7 +516,7 @@ export function Chat({
     if (projectId !== null) voice.setAnchorProjectId(projectId);
   };
   const startRecording = (): void => {
-    if (voiceUnavailable) return;
+    if (voiceUnavailable || themedSendBlocked) return;
     anchorNow();
     setTranscribeError(false);
     setInputState("recording");
@@ -324,17 +545,46 @@ export function Chat({
     if (systemVoice) {
       const text = systemAsrRef.current?.stop() ?? "";
       setInputState("idle");
-      setDraftText("");
       if (text === "") {
         setTranscribeError(true);
         return;
       }
-      voice.sendText(text);
+      const plan = planChatSend({
+        surface: "system_voice",
+        pending: pendingRef.current,
+        phase: phaseRef.current,
+        liveSessionId: sessionIdRef.current,
+        anchoredSessionId: anchoredSessionRef.current,
+        text
+      });
+      if (plan.action === "hold_as_draft" || plan.action === "block") {
+        rememberDraft(text);
+        if (plan.reason) setAnchorError(plan.reason);
+        return;
+      }
+      if (plan.action === "send_text") {
+        void trySendChatText(plan.text).then((sent) => {
+          if (!sent) rememberDraft(plan.text);
+        });
+        return;
+      }
+      setDraftText("");
+      return;
+    }
+    const plan = planChatSend({
+      surface: "cloud_ptt",
+      pending: pendingRef.current,
+      phase: phaseRef.current,
+      liveSessionId: sessionIdRef.current,
+      anchoredSessionId: anchoredSessionRef.current
+    });
+    if (plan.action === "hold_as_draft" || plan.action === "block") {
+      stopRecordingToEdit();
+      if (plan.reason) setAnchorError(plan.reason);
       return;
     }
     voice.endCaptureSend(recElapsed);
     setInputState("idle");
-    setDraftText("");
   };
   /** 动作 B·转写编辑:只进输入框,编辑后发送才进对话 */
   const stopRecordingToEdit = (): void => {
@@ -347,7 +597,7 @@ export function Chat({
         setInputState(draftText.trim() === "" ? "idle" : "confirm");
         return;
       }
-      setDraftText(text);
+      rememberDraft(text);
       setInputState("confirm");
       return;
     }
@@ -369,25 +619,31 @@ export function Chat({
     setDraftText("");
   };
   const confirmSend = (): void => {
-    voice.sendText(draftText);
-    setInputState("idle");
-    setDraftText("");
+    void trySendChatText(draftText).then((sent) => {
+      if (!sent) return;
+      setInputState("idle");
+    });
   };
   // B 档转写结果事件消费(评审 C1:守卫在消费端——用户转写中已打字则不覆盖;error 给显式反馈)
   useEffect(() => {
     const ev = voice.draftEvent;
     if (!ev) return;
     voice.consumeDraftEvent();
-    if (inputState !== "transcribing") return; // 迟到事件(已切态)丢弃
-    if (ev.kind === "error") {
+    const next = applyChatDraftEvent({
+      ev,
+      inputState,
+      draftText,
+      draftBase: draftBaseRef.current
+    });
+    if (!next.applied) return;
+    if (next.transcribeError) {
       setTranscribeError(true);
-      setInputState(draftText.trim() === "" ? "idle" : "confirm");
+      setInputState(next.inputState);
       window.setTimeout(() => setTranscribeError(false), 5000);
       return;
     }
-    // B-3:等于基线(未在转写中打新字,含待命残稿)⇒ 转写覆盖;打了新字 ⇒ 不覆盖(C1 守卫)
-    if (draftText === draftBaseRef.current || draftText.trim() === "") setDraftText(ev.text);
-    setInputState("confirm");
+    if (next.draftText !== draftText) rememberDraft(next.draftText);
+    setInputState(next.inputState);
   }, [voice.draftEvent, voice, inputState, draftText]);
   // 空格 hold(键盘长按;仅待命态、非文本框聚焦时)——松开 = 直接发送(A 主路径);Esc = 取消
   useEffect(() => {
@@ -396,6 +652,7 @@ export function Chat({
         e.code === "Space" &&
         inputState === "idle" &&
         !voiceUnavailable &&
+        !themedSendBlocked &&
         !(e.target as HTMLElement)?.closest?.("input,textarea")
       ) {
         e.preventDefault();
@@ -532,19 +789,214 @@ export function Chat({
             </button>
           </div>
         ) : null}
-        {anchoredBanner ? (
+        {anchoredBanner || anchorError ? (
           <div
+            data-anchor-phase={anchorPhase}
+            role="status"
             style={{
               fontSize: "var(--text-sm)",
               color: "var(--text-secondary)",
               background: "var(--active-ink-wash)",
               border: "1px solid var(--line)",
               borderRadius: "var(--radius-xs)",
-              padding: "6px 10px",
-              marginBottom: 8
+              padding: "10px 12px",
+              marginBottom: 8,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+              alignItems: "center"
             }}
           >
-            {anchoredBanner}
+            <span>{anchorError ?? anchoredBanner}</span>
+            {shownUnknownEpochs.length > 0 ? (
+              <>
+                <button
+                  type="button"
+                  data-unknown-review
+                  onClick={() => {
+                    setAnchorError("上次语音未确认保存,可先处理旧稿,或放弃这段未确认语音后继续");
+                  }}
+                  style={{
+                    height: 32,
+                    padding: "0 12px",
+                    borderRadius: "var(--radius-xs)",
+                    border: "1px solid var(--line)",
+                    background: "var(--surface-raised)",
+                    color: "var(--text-primary)",
+                    fontSize: "var(--text-sm)",
+                    cursor: "pointer"
+                  }}
+                >
+                  返回处理
+                </button>
+                <button
+                  type="button"
+                  data-unknown-discard
+                  onClick={() => {
+                    if (!pendingAnchor) return;
+                    const next = {
+                      ...pendingAnchor,
+                      requestId: undefined,
+                      discardUnknownEpochs: shownUnknownEpochs,
+                      draft: draftTextRef.current
+                    };
+                    persistLiveDraft(next);
+                    void runFocusAnchor(next, sessionIdRef.current);
+                  }}
+                  style={{
+                    height: 32,
+                    padding: "0 12px",
+                    borderRadius: "var(--radius-xs)",
+                    border: "1px solid var(--line)",
+                    background: "var(--surface-raised)",
+                    color: "var(--text-primary)",
+                    fontSize: "var(--text-sm)",
+                    cursor: "pointer"
+                  }}
+                >
+                  放弃后继续
+                </button>
+              </>
+            ) : null}
+            {pendingAnchor && (anchorPhase === "failed" || anchorPhase === "pending") ? (
+              <button
+                type="button"
+                data-anchor-retry
+                disabled={anchorPhase === "pending"}
+                onClick={() => {
+                  const next = retryAnchorPayload(pendingAnchor, draftTextRef.current, lastAnchorCode);
+                  persistLiveDraft(next);
+                  void runFocusAnchor(next, sessionIdRef.current);
+                }}
+                style={{
+                  height: 32,
+                  padding: "0 12px",
+                  borderRadius: "var(--radius-xs)",
+                  border: "1px solid var(--line)",
+                  background: "var(--surface-raised)",
+                  color: "var(--text-primary)",
+                  fontSize: "var(--text-sm)",
+                  cursor: anchorPhase === "pending" ? "not-allowed" : "pointer"
+                }}
+              >
+                重试接上
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        {voice.lastTextOutcome === "rejected" || voice.lastTextOutcome === "unknown" ? (
+          <p role="status" data-text-outcome={voice.lastTextOutcome} style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)", margin: "0 0 8px" }}>
+            {desktopTextOutcomeCopy(voice.lastTextOutcome)}
+          </p>
+        ) : null}
+        {voice.quiescedDrafts.length > 0 ? (
+          <div data-quiesced-drafts style={{ marginBottom: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+            {voice.quiescedDrafts.map((row) => (
+              <div
+                key={`${row.requestId}:${row.turnId}`}
+                data-quiesced-draft={row.turnId}
+                style={{
+                  fontSize: "var(--text-sm)",
+                  border: "1px solid var(--line)",
+                  borderRadius: "var(--radius-xs)",
+                  padding: "10px 12px"
+                }}
+              >
+                <p style={{ margin: "0 0 8px" }}>{row.text}</p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    data-quiesced-adopt
+                    onClick={() => {
+                      const plan = planAdoptQuiescedDraft(draftTextRef.current, row.text);
+                      if (plan.action === "fill") {
+                        rememberDraft(plan.next);
+                        voice.discardQuiescedDraft(row.requestId, row.turnId);
+                        setAdoptChoice(null);
+                        return;
+                      }
+                      setAdoptChoice({ requestId: row.requestId, turnId: row.turnId, text: row.text });
+                    }}
+                    style={{
+                      height: 32,
+                      padding: "0 12px",
+                      borderRadius: "var(--radius-xs)",
+                      border: "1px solid var(--line)",
+                      background: "var(--surface-raised)",
+                      color: "var(--text-primary)",
+                      fontSize: "var(--text-sm)",
+                      cursor: "pointer"
+                    }}
+                  >
+                    采用
+                  </button>
+                  {adoptChoice && adoptChoice.requestId === row.requestId && adoptChoice.turnId === row.turnId ? (
+                    <>
+                      <button
+                        type="button"
+                        data-quiesced-append
+                        onClick={() => {
+                          const plan = planAdoptQuiescedDraft(draftTextRef.current, row.text);
+                          rememberDraft(plan.action === "confirm" ? plan.append : plan.next);
+                          voice.discardQuiescedDraft(row.requestId, row.turnId);
+                          setAdoptChoice(null);
+                        }}
+                        style={{
+                          height: 32,
+                          padding: "0 12px",
+                          borderRadius: "var(--radius-xs)",
+                          border: "1px solid var(--line)",
+                          background: "var(--surface-raised)",
+                          color: "var(--text-primary)",
+                          fontSize: "var(--text-sm)",
+                          cursor: "pointer"
+                        }}
+                      >
+                        追加
+                      </button>
+                      <button
+                        type="button"
+                        data-quiesced-replace
+                        onClick={() => {
+                          rememberDraft(row.text);
+                          voice.discardQuiescedDraft(row.requestId, row.turnId);
+                          setAdoptChoice(null);
+                        }}
+                        style={{
+                          height: 32,
+                          padding: "0 12px",
+                          borderRadius: "var(--radius-xs)",
+                          border: "1px solid var(--line)",
+                          background: "var(--surface-raised)",
+                          color: "var(--text-primary)",
+                          fontSize: "var(--text-sm)",
+                          cursor: "pointer"
+                        }}
+                      >
+                        替换
+                      </button>
+                    </>
+                  ) : null}
+                  <button
+                    type="button"
+                    data-quiesced-discard
+                    onClick={() => voice.discardQuiescedDraft(row.requestId, row.turnId)}
+                    style={{
+                      height: 32,
+                      padding: "0 12px",
+                      borderRadius: "var(--radius-xs)",
+                      border: "1px solid var(--line)",
+                      background: "transparent",
+                      color: "var(--text-muted)",
+                      fontSize: "var(--text-sm)",
+                      cursor: "pointer"
+                    }}
+                  >
+                    丢弃
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         ) : null}
         <div className="flex min-h-[220px] flex-col gap-[var(--space-2)]" data-transcript>
@@ -558,12 +1010,13 @@ export function Chat({
                 }
               />
               <p style={{ margin: "12px 0 0", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>试试这样说</p>
-              <ChatExampleCards onPick={setDraftText} />
+              <ChatExampleCards onPick={rememberDraft} />
             </div>
           ) : (
             turns.map((t) => (
               <div key={t.key} className="flex" style={{ justifyContent: t.who === "user" ? "flex-end" : "flex-start" }}>
                 <span
+                  data-who={t.who}
                   data-voice-turn={t.transcribing ? "transcribing" : t.failed ? "failed" : undefined}
                   style={{
                     maxWidth: "72%",
@@ -687,32 +1140,63 @@ export function Chat({
             没听清这段语音(转写为空或失败)——重说一次,或直接打字。
           </div>
         ) : null}
-        <div className="mt-[var(--space-4)] flex flex-col gap-[var(--space-2)]" data-input-region data-input-state={inputState}>
+        <div
+          className="mt-[var(--space-4)] flex flex-col gap-[var(--space-2)]"
+          data-input-region
+          data-input-state={inputState}
+          data-themed-voice-hold={themedSendBlocked ? "1" : "0"}
+        >
           {inputState === "idle" ? (
             <div className="flex items-center gap-[var(--space-3)]" style={{ flexWrap: "wrap" }}>
               {/* ① 点击 toggle 采集(桌面习惯:点开始、再点停)*/}
               <VoiceStartButton
-                unavailable={voiceUnavailable}
-                unavailableMessage={voiceUnavailableMessage}
+                unavailable={voiceUnavailable || themedSendBlocked}
+                unavailableMessage={themedSendBlocked ? "还在接上主题,先不要开口" : voiceUnavailableMessage}
                 handsFree={!systemVoice && voice.mode === "hands_free"}
                 systemNote={systemVoice && !voiceUnavailable ? VOICE_SYSTEM_NOTE : undefined}
-                onClick={() =>
-                  !systemVoice && voice.mode === "hands_free"
-                    ? (anchorNow(), voice.doneSpeaking())
-                    : startRecording()
-                }
+                onClick={() => {
+                  if (!systemVoice && voice.mode === "hands_free") {
+                    const plan = planChatSend({
+                      surface: "handsfree",
+                      pending: pendingRef.current,
+                      phase: phaseRef.current,
+                      liveSessionId: sessionIdRef.current,
+                      anchoredSessionId: anchoredSessionRef.current
+                    });
+                    if (plan.action === "block") {
+                      if (plan.reason) setAnchorError(plan.reason);
+                      return;
+                    }
+                    anchorNow();
+                    voice.doneSpeaking();
+                    return;
+                  }
+                  startRecording();
+                }}
               />
               {/* 直接打字(文本框;免手/手动皆可)*/}
               <input
                 type="text"
                 data-text-input
                 value={draftText}
-                onChange={(e) => setDraftText(e.target.value)}
+                onChange={(e) => rememberDraft(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && draftText.trim() !== "") {
+                  if (e.key === "Enter" && draftText.trim() !== "" && !themedSendBlocked) {
+                    const plan = planChatSend({
+                      surface: "text",
+                      pending: pendingRef.current,
+                      phase: phaseRef.current,
+                      liveSessionId: sessionIdRef.current,
+                      anchoredSessionId: anchoredSessionRef.current,
+                      text: draftText
+                    });
+                    if (plan.action !== "send_text") {
+                      if (plan.action === "hold_as_draft") rememberDraft(plan.text);
+                      if ("reason" in plan && plan.reason) setAnchorError(plan.reason);
+                      return;
+                    }
                     anchorNow();
-                    voice.sendText(draftText);
-                    setDraftText("");
+                    void trySendChatText(plan.text);
                   }
                 }}
                 placeholder="或直接打字,回车发送"
@@ -721,28 +1205,53 @@ export function Chat({
               <button
                 type="button"
                 data-text-send
-                disabled={draftText.trim() === ""}
+                disabled={draftText.trim() === "" || themedSendBlocked}
                 onClick={() => {
+                  const plan = planChatSend({
+                    surface: "text",
+                    pending: pendingRef.current,
+                    phase: phaseRef.current,
+                    liveSessionId: sessionIdRef.current,
+                    anchoredSessionId: anchoredSessionRef.current,
+                    text: draftText
+                  });
+                  if (plan.action !== "send_text") {
+                    if (plan.action === "hold_as_draft") rememberDraft(plan.text);
+                    if ("reason" in plan && plan.reason) setAnchorError(plan.reason);
+                    return;
+                  }
                   anchorNow();
-                  voice.sendText(draftText);
-                  setDraftText("");
+                  void trySendChatText(plan.text);
                 }}
-                style={{ height: 36, padding: "0 14px", borderRadius: "var(--radius-xs)", border: "1px solid var(--line)", background: "var(--surface-control)", color: "var(--text-primary)", fontSize: "var(--text-sm)", cursor: draftText.trim() === "" ? "not-allowed" : "pointer", opacity: draftText.trim() === "" ? "var(--disabled-opacity)" : 1 }}
+                style={{ height: 36, padding: "0 14px", borderRadius: "var(--radius-xs)", border: "1px solid var(--line)", background: "var(--surface-control)", color: "var(--text-primary)", fontSize: "var(--text-sm)", cursor: draftText.trim() === "" || themedSendBlocked ? "not-allowed" : "pointer", opacity: draftText.trim() === "" || themedSendBlocked ? "var(--disabled-opacity)" : 1 }}
               >
                 发送
               </button>
               <button
                 type="button"
                 data-voice-mode-toggle
-                disabled={voiceUnavailable || systemVoice}
-                onClick={() => voice.setMode(voice.mode === "ptt" ? "hands_free" : "ptt")}
-                style={{ height: 36, padding: "0 12px", borderRadius: "var(--radius-xs)", border: "1px solid var(--line)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", cursor: voiceUnavailable || systemVoice ? "not-allowed" : "pointer", opacity: voiceUnavailable || systemVoice ? "var(--disabled-opacity)" : 1 }}
+                disabled={
+                  voiceUnavailable ||
+                  systemVoice ||
+                  (voice.mode === "ptt" && themedSendBlocked)
+                }
+                onClick={() => {
+                  if (voice.mode === "hands_free") {
+                    voice.setMode("ptt");
+                    return;
+                  }
+                  if (themedSendBlocked) return;
+                  voice.setMode("hands_free");
+                }}
+                style={{ height: 36, padding: "0 12px", borderRadius: "var(--radius-xs)", border: "1px solid var(--line)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", cursor: voiceUnavailable || systemVoice || (voice.mode === "ptt" && themedSendBlocked) ? "not-allowed" : "pointer", opacity: voiceUnavailable || systemVoice || (voice.mode === "ptt" && themedSendBlocked) ? "var(--disabled-opacity)" : 1 }}
                 title={
                   systemVoice
                     ? "系统语音只用点击说话;配好 VOLC 后可切免手"
-                    : voice.mode === "ptt"
-                      ? "切免手:开口即说,停顿自动断轮"
-                      : "切回按住说(PTT 兜底通道)"
+                    : themedSendBlocked
+                      ? "还在接上主题,免手自动断轮先停着"
+                      : voice.mode === "ptt"
+                        ? "切免手:开口即说,停顿自动断轮"
+                        : "切回按住说(PTT 兜底通道)"
                 }
               >
                 {voice.mode === "ptt" ? "切免手模式" : "切回按住说"}
@@ -751,7 +1260,9 @@ export function Chat({
               <button
                 type="button"
                 data-undo
-                onClick={() => voice.sendText("撤销")}
+                onClick={() => {
+                  if (!themedSendBlocked) void trySendChatText("撤销");
+                }}
                 title="撤回上一次直通操作(接上/记事/办结)"
                 style={{ height: 36, padding: "0 12px", borderRadius: "var(--radius-xs)", border: "1px solid var(--line)", background: "transparent", color: "var(--text-muted)", fontSize: "var(--text-xs)", cursor: "pointer" }}
               >
@@ -824,7 +1335,7 @@ export function Chat({
               <textarea
                 data-confirm-transcript
                 value={draftText}
-                onChange={(e) => setDraftText(e.target.value)}
+                onChange={(e) => rememberDraft(e.target.value)}
                 rows={2}
                 placeholder="转写中…也可以直接打字(后到的转写不会覆盖你打的字)"
                 style={{ width: "100%", padding: "8px 12px", borderRadius: "var(--radius-xs)", border: "1px solid var(--line)", background: "var(--surface-control)", color: "var(--text-primary)", fontSize: "var(--text-base)", resize: "vertical" }}
@@ -843,7 +1354,7 @@ export function Chat({
               <textarea
                 data-confirm-transcript
                 value={draftText}
-                onChange={(e) => setDraftText(e.target.value)}
+                onChange={(e) => rememberDraft(e.target.value)}
                 rows={2}
                 style={{ width: "100%", padding: "8px 12px", borderRadius: "var(--radius-xs)", border: "1px solid var(--line)", background: "var(--surface-control)", color: "var(--text-primary)", fontSize: "var(--text-base)", resize: "vertical" }}
               />

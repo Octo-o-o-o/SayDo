@@ -1,4 +1,4 @@
-// DecisionPackageCard fixture:proposed 未选模式(中性)/已选每步问你/已批准。
+// DecisionPackageCard fixture:proposed 未选模式(中性,默认逐步确认可拍板)/已选每步问你/已批准。
 import type { DecisionPackageView } from "./types";
 
 const BASE: DecisionPackageView = {
@@ -28,7 +28,7 @@ const BASE: DecisionPackageView = {
 };
 
 export const decisionPackageFixtures: { name: string; pkg: DecisionPackageView }[] = [
-  { name: "proposed · 未选模式(中性,拍板禁用)", pkg: BASE },
+  { name: "proposed · 未选模式(中性,默认逐步确认可拍板)", pkg: BASE },
   { name: "proposed · 已选「每步问你」", pkg: { ...BASE, selectedMode: "step_confirm" } },
   { name: "proposed · 旧 direct 值 fail-closed", pkg: { ...BASE, selectedMode: "direct_to_review" } },
   { name: "approved · 已批准", pkg: { ...BASE, status: "approved", selectedMode: "step_confirm" } }

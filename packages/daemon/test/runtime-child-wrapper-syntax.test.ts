@@ -36,6 +36,10 @@ describe("RUNTIME_CHILD_WRAPPER 语法自检", () => {
     expect(source).toMatch(/else process\.exit\(code\)/u);
     expect(source).toMatch(/stream\._handle\.writeQueueSize/u);
     expect(source).not.toMatch(/setTimeout\(finish, 1000\)/u);
+    expect(source).not.toMatch(/finish\(\s*\)/u);
+    expect(source).toMatch(/typeof code === "number" && code !== 0 \? code : 124/u);
+    expect(source).toMatch(/now - stalledSince >= 10000/u);
+    expect(source).toMatch(/saydo: wrapper stdio flush /u);
     expect(source).toMatch(/child-stdout-data/u);
     expect(source).not.toMatch(/WRAPPER-SELF-TEST/u);
   });

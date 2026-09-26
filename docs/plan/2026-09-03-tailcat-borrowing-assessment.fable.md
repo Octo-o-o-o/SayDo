@@ -1,5 +1,7 @@
 # Tailcat 借鉴评估
 
+> 2026-09-13 对账注：本文保留所列旧基线的评估原文，不是当前手机入口操作指南。PG-01B 已关闭远程业务面；当前 API/WS 拒绝远程业务，历史配对 URL、二维码与 S2 手机审批描述不得用于当前验收。Tailcat 未被采纳，运输面不因本文改换。下表逐行实际为 A×0/B×8/C×22；原文 A×1/B×8/C×21 的总括混入了表外 A1 身份红线建议，不能作为表内裁决计数。
+
 > 对方 repo:`https://github.com/tailscale/tailcat`
 > 对方版本:git `476c217fa9fa5b304cdb7f07404a6c3844eac0b0`(2026-09-02, `cmd/tailcat: default --derpmap-url from TAILCAT_DERPMAP_URL env var`)
 > 对方 license:**BSD 3-Clause**(`LICENSE` 原文, Copyright (c) 2020 Tailscale Inc & contributors;保留版权声明、禁以权利人名义背书)

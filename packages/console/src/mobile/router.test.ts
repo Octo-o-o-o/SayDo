@@ -10,6 +10,9 @@ describe("M1 移动 hash 路由", () => {
     expect(parseMobileHash("#/m/lane/foc_1/lan_1")).toEqual({ page: "lane", focusId: "foc_1", laneId: "lan_1" });
     expect(parseMobileHash("#/m/card/confirmation/apr_1")).toEqual({ page: "card", kind: "confirmation", id: "apr_1" });
     expect(parseMobileHash("#/m/chat")).toEqual({ page: "chat" });
+    // DAILY-01:只读全局页深链
+    expect(parseMobileHash("#/m/arrangements")).toEqual({ page: "arrangements" });
+    expect(parseMobileHash("#/m/archive")).toEqual({ page: "archive" });
   });
 
   it("窄屏接手桌面 hash 时映射到对应移动页", () => {
@@ -24,6 +27,8 @@ describe("M1 移动 hash 路由", () => {
     expect(desktopRouteForMobileHash("#/m/things")).toBe("/focuses");
     expect(desktopRouteForMobileHash("#/m/focus/foc_1")).toBe("/focus/foc_1");
     expect(desktopRouteForMobileHash("#/m/lane/foc_1/lan_1")).toBe("/focus/foc_1");
+    expect(desktopRouteForMobileHash("#/m/arrangements")).toBe("/arrangements");
+    expect(desktopRouteForMobileHash("#/m/archive")).toBe("/archive");
     expect(desktopRouteForMobileHash("#/m/card/task/tsk_1")).toBe("/today");
     expect(desktopRouteForMobileHash("#/m/chat")).toBe("/chat-new");
     expect(desktopRouteForMobileHash("#/today")).toBeNull();

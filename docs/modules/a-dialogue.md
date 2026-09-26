@@ -5,13 +5,13 @@
 
 ## A1 · 语音管线(voice-pipeline)
 
-- **职责**:独立 Python/Pipecat 进程,承载 VAD(Silero)→ 流式 ASR → 分句 TTS → 打断(playout watermark);经 WS 与 daemon 通信。**不做**:任何业务状态(无状态可随时重启)、轮次语义裁决(daemon 侧)、供应商选择(E1 注入)。
-- **接口面**:09 §10 WS 契约(sessionId/seq/health/版本协商/重连);消息形态见 08 §4 `PipelineMsg` 草案(canonical 以 09 §10 为准)。
+- **职责**:独立 Python 自写 WS 管线，承载 RMS/hangover VAD → 整轮 ASR → 分句 TTS → 打断(playout watermark)；Pipecat/Silero 未进入现役运行链;经 WS 与 daemon 通信。**不做**:任何业务状态(无状态可随时重启)、轮次语义裁决(daemon 侧)、供应商选择(E1 注入)。
+- **接口面**:09 §10 WS 契约(sessionId/seq/health/版本协商/重连);消息形态见 08 §4 `PipelineMsg` 草案(canonical 以 09 §10 为准)。主题锚定语音屏障见 09 §10.1(本候选已接线处理链,完整语音硬件/云 ASR 未验;`hello.ack.peerId/daemonEpoch`、`voice.anchor_prepare` / `voice.anchor_status`、`voice.quiesce` / `voice.quiesced` 成败联合无 drained、`emptyRound`、`discardUnknownEpochs`/`unknownEpochs`、PTT `captureId`/`captureIntent`、`asr.final.recognitionOutcome`、`CaptureRegistry` consumed+discarded tombstone、`voice.quiesced_transcript`+ACK、`turn.text` 的 `receiptAction`/`daemonEpoch` 与 `turn.text.result`)。HF 残留须 flush 识别;新 epoch ACK 只证明本 epoch;quiesce 须汇总本连接该 sid 全部未裁决 HF/PTT 失败(含已结束失败),保留至显式放弃;新 HF final 也必带 `recognitionOutcome:"ok"`;匹配 `ok` final 出账本为 confirmed,`failed` 直接 unknown;discard CAS 同时结算所列 epoch 的 pending registry;failed 后新 ID 观察 unknown(09 §10.1.12)。**免手显式「说完了」(09 §10,2026-09-20)**:console 发 `turn.done_speaking{sessionId,captureMode:"hands_free"}`(禁 PTT `captureId`);已拥有逻辑轮的空终态须发分类 HF `asr.final{captureMode:"hands_free",recognitionOutcome:"ok"|"failed",text:""}`,不得只 `pass`;无开轮的有效空/短 leftover 只走 `emptyRound` ACK,不造 final。`failed` 为轮次终态、unknown 账本、不进 Brain。新线身份分层见 09 §10.1.13:`hfSegmentId`=VAD 开口,`hfRoundId`=EOU 逻辑用户轮(已拥有轮=句段集+一条终态;无开轮空 leftover 不签发),按录音序提交识别结果;缺全部新身份的旧客户只准 FIFO,不得声称乱序对应,也不得借旧兼容消费已带新身份的在途项。该收尾不得记入 legacy 未分类。主题屏障准备路径仍是 HF 停采不补 done。
 - **设计要点**:① 打断正确语义 = watermark 截断"已听到的历史",unheard 文本不进对话事实(03 §3,选 Pipecat/LiveKit 的判定点);② 回声消除 P0 = 耳机/PTT + 浏览器 AEC(可测 baseline 非质量保证,须查 `track.getSettings()` 实际生效);③ 轮次三层(VAD/语义 EOU/打断策略)+ 显式轮次按钮兜底;④ TTS 已定档火山豆包 seed-tts-2.0 v3 双向流式(07 D5),ASR 已定档火山 bigmodel sauc(07 D4,2026-07-24;P0=PTT 整段识别,工程 ADR-101);⑤ 热词偏置:M0 积累的 repo 符号/分支名注入 ASR(2.4);⑥ **测试音频注入通道**(mock ASR 输出直入,一人可跑音频断言,1.2)。
 - **依赖**:A2(WS 对端);E1(ASR/TTS provider);无下游依赖。
-- **失效与恢复**:进程死 = 无损(状态全在 daemon);daemon 检测断连 → 自动重启 + 会话按 A2 挂起规则处理;WS 版本不匹配 fail-closed 拒连。
+- **失效与恢复**:pipeline 进程死 = **daemon 持久状态**无损(会话/锚/任务等在 daemon);进程内未确认音频、未移交旧稿与未 ACK 转写不承诺无损(09 §10.1.8 / §10.1.12)。daemon 检测断连 → 自动重启 + 会话按 A2 挂起规则处理;WS 版本不匹配 fail-closed 拒连。
 - **验证归属**:1.1(打断后 unheard 不进事实)、1.2(WS 契约测试 + 注入通道)、5.3(owner 音频底板 5 条烟测)。
-- **分期与开放项**:P0。D2 spike 已结项为 Pipecat 留任(见工程 ADR-001);本地兜底链(`say`+MLX)质量线仍开放。
+- **分期与开放项**:P0。D2 spike 已结项为 Pipecat 留任但运行时未接入(工程 ADR-001 后记、07 D2)；本地兜底链(`say`+MLX)质量线仍开放。
 
 ## A2 · 会话管理器(SessionManager)
 
@@ -19,11 +19,18 @@
   TranscriptTurn 或仅维护 EphemeralHeardTurn,跨引擎(级联/S2S)统一接口。**不做**:对话内容生成(A3)、pack 编译(B1)。
 - **接口面**:09 §9 `sessions` 表 + `[privacy].store_transcript=true` 时 transcripts 逐轮
   durable；false 时当前 heard turn 只留在进程内到下一用户轮/候选终局。挂起/重建语义 02 §5;
-  G1 单用户假设(05 §4 口径)。
+  G1 单用户假设(05 §4 口径)。会话主题锚定 HTTP 见 09 §15;`POST /api/sessions/:id/focus-anchor`
+  的「同 WS `voice.anchor_prepare` 关门排空 → `prepared` 后写锚 → `rearmed`」为 09 §10.1
+  本候选已接线(body additive `requestId`,无 `voicePeerId`;200 带
+  `voiceBoundaryId` 且 `voiceBoundaryRequired:true`)。旧稿移交
+  为进程内队列+console sessionStorage,daemon 重启不保证未 ACK 稿。`turn.text` 以
+  `turn.text.result` 为接收回执(`accepted`=已成功记该用户轮);新 console 桌面路径不再把 `ws.send` 当接收成功。
 - **设计要点**:① 会话短命任务长命(03 §1 铁律二):挂起是常态出口,超时自动挂起;② 重建 = 同 packDigest + turnId 连续(体验"接着聊");③ 切导航/切项目不断会话(顶栏指示器锚定,08 §6 语义 ②);④ G1 P0 口径 = 单用户假设显式化 + PTT 窗口外/挂起态音频不产生指令(不造假"声纹");⑤ C4/C5 重建接通时第一句 = 原因(10 回叫纪律)。
 - **依赖**:B1(pack)、A1(WS)、E3(审计);被 C4/C5 依赖(重建会话入口)。
 - **失效与恢复**:daemon 重启 → 会话按挂起态恢复；`store_transcript=true` 的转写逐轮 durable，
   false 时 EphemeralHeardTurn 不恢复，这是用户隐私选择的预期结果。模型进程丢弃可重建(03 §1 铁律一)。
+  09 §10.1 已接线的待移交旧稿只在 daemon 进程内+console sessionStorage:未 ACK 时 daemon
+  重启 = unknown,不得假称无旧稿;已写入 console 的稿跨重挂/重载仍在。
 - **验证归属**:1.3a(断/重建上下文连续:packDigest 一致 + turnId 连续;G1 = PTT 窗口外/挂起态音频不产生指令测试——P0 无声纹,不做"软过滤"断言,05 §4 口径)。
 - **分期与开放项**:P0。开放:S2S 引擎(P2)接入时的挂起语义映射。
 - **项目锚定持久化(场次① 2026-07-30 live 回修)**:归属 accept 的 SQLite 事务更新
@@ -38,7 +45,7 @@
 
 ## A3 · 对话引擎(ConversationEngine / Brain)
 
-- **职责**:调三档模型(对话/沉思/廉价,07 D3/D18)、工具路由、口播话术与过渡语;**会话内对话历史治理(M8/③-3,2026-07-25 归属落定——原 A2/A3 互相让渡的缺口)**:高低水位滞回截断(`params.dialog_context_high/low_watermark_tokens`),P0 可简化"全量直到高水位",被裁轮次蒸馏"会话滚动 gist"属 P1;**否定/修订 utterance 即时落账本(M5)**:检出"不要 X/改成 Y"即经 `remember`(trust=user_stated),防被 M3 预算挤出后静默消失。**不做**:就绪判定(A5)、任何副作用(03 §1 铁律:无执行权,一切经工具 → daemon)、结构化任务卡起草(daemon 侧文本模型,`create_task` 语义)。
+- **职责**:调三档模型(对话/沉思/廉价,07 D3/D18)、工具路由、口播话术与过渡语;**会话内对话历史治理(M8/③-3,2026-07-25 归属落定——原 A2/A3 互相让渡的缺口)**:高低水位滞回截断(`params.dialog_context_high/low_watermark_tokens`),P0 可简化"全量直到高水位",被裁轮次蒸馏"会话滚动 gist"属 P1;**否定/修订 utterance 的记忆处理(M5)**:经 `remember` 保留需要持久记忆的修订,防被 M3 预算挤出后静默消失;M0 偏好先提议并经用户确认,确认前账本零写入(SD-2,09 §4/§13),不得把模型检出当成已确认保存。**不做**:就绪判定(A5)、任何副作用(03 §1 铁律:无执行权,一切经工具 → daemon)、结构化任务卡起草(daemon 侧文本模型,`create_task` 语义)。
 - **接口面**:工具入出参**照抄 09 §13**(全部工具 daemon 侧执行,返回即 Brain 全部世界观);instructions 与话术 10 §4(编号展开为自包含文本);工具清单 03 §4。
 - **设计要点**:① 两类行为:准备知识(proactive)+ 回答问题(reactive);人格 = 简短、口语、不念代码;② 工具耗时 >2s 必接自然过渡语;③ 高危工具复述确认 + daemon 二次校验(03 §4);④ 对话档 API 为主;全局槽可接 CLI binding(投影为 `mode:"oneshot"`,T18b,09 §11),项目级恒拒 CLI(07 D18 结案表的「恒 API」表述已被 T18b 收窄,2026-08-27 月度审计对齐);⑤ 状态词三级纪律与数字纪律由 golden 锁(10 §1)。
 - **依赖**:A4(问题选择)、A6(决策包)、B1(pack)、C 层全部工具、E1(模型供给)。
@@ -72,7 +79,7 @@
 ## A4 · 采访策略(InterviewPolicy)
 
 - **职责**:问题选择 = 覆盖扫描 + Impact×Uncertainty 排序;一次一问、选择题优先(**2-5 个互斥选项 + 推荐项**,04 §2.1 为准——本行旧写"≤3"与 canonical 冲突,2026-07-24 修正);问题预算与停止策略在**代码层**强制(不靠 prompt 自觉)。**不做**:就绪判定(A5)、问题生成的最终话术(A3 渲染)。
-- **接口面**:04 §2.1 采访纪律;预算参数 `interview_question_budget`(09 §11 [params],缺省 8)。
+- **接口面**:04 §2.1 采访纪律;预算参数 `interview_question_budget`(09 §11 [params],缺省 8)。**无独立采访 REST**;身份=`sessionId`+本轮 `turnId`+问题原文(09 §15.2.3)。Focus 页 `interview` 只投影已归属该 focus 的 live 会话;应答写口=`turn.text` 或 readiness 卡 `confirm.click`,禁止可编辑草稿冒充已答。
 - **设计要点**:① 预算耗尽必停 → 转"以我现在的理解……"摘要 + 就绪判定;② 覆盖扫描对 A5 的证据维度(不重复问已有高置信答案);③ 选项式提问优先于开放问(语音输入负担)。
 - **依赖**:A5(证据缺口)、B2/B5(已知事实)。
 - **验证归属**:3.1(预算耗尽必停;golden 采访 3 条真 Pack)。
@@ -91,10 +98,10 @@
 
 - **职责**:就绪后组装三件套(成果预览 / 计划含人机分工 / Demo 引用),生成 revision+digest,计划落盘为可编辑 artifact。**不做**:预授权清单推导(E2)、就绪判定(A5)。
 - **接口面**:`DecisionPackage`(09 §2 canonical;08 §4 是草图);digest 签名域 §0.1;`decision_packages` 表(status 仅表列,body 不存 status);`proposeStart`/`getDecisionPackage`(09 §13)。
-- **设计要点**:① `acceptance[]` 必须可测(路径二渲染成 Hopper 认的验收标题,C1;缺 ⇒ triage blocked);② cost 用 known/asOf 结构(unknown 不显示 0);③ `preauthorizedEffects` 由 E2 从计划推导,Brain 不得自由声明;④ mode 两档随包签署(04 §5.4:预授权范围属包、模式只是开关);⑤ 改包 = revision+1、新 digest、旧包收据作废(superseded_by_edit);⑥ 包级机械边(R-A 2026-07-26/27,09 §2 注 ④):proposed 24h TTL 到期→expired(daemon 调度器扫描)、同项目新提议事务内 CAS 关旧 proposed→superseded(§9 唯一活跃索引兜底);组包装配时写入 `readinessRef`(当次评估绑定,proposed 起必填)。
+- **设计要点**:① `acceptance[]` 必须可测(路径二渲染成 Hopper 认的验收标题,C1;缺 ⇒ triage blocked);② cost 用 known/asOf 结构(unknown 不显示 0);③ `preauthorizedEffects` 由 E2 从计划推导,Brain 不得自由声明;④ schema 保留双 mode，现役 PG-01B 只组装/批准 step_confirm；direct_to_review 与预授权清单消费为 designed/deferred，不可把旧 direct 包静默降档后派发(09 §2/§13)；⑤ 改包 = revision+1、新 digest、旧包收据作废(superseded_by_edit);⑥ 包级机械边(R-A 2026-07-26/27,09 §2 注 ④):proposed 24h TTL 到期→expired(daemon 调度器扫描)、同项目新提议事务内 CAS 关旧 proposed→superseded(§9 唯一活跃索引兜底);组包装配时写入 `readinessRef`(当次评估绑定,proposed 起必填)。
 - **依赖**:A5(就绪 verdict)、E2(效果类推导)、B4(计划落盘)、C8(cost 估算)。
 - **验证归属**:§12-1(digest 确定性/跨状态不变/revision 变则 digest 变)、3.3(cost unknown 不显示 0;产物版本链)。
-- **分期与开放项**:P0(Demo 三件套中 Demo 生成器本体是 P0.5-E,P0 用占位引用)。
+- **分期与开放项**:原分期为 P0/P0.5-E；S1 已将 Demo 生成接入组包与改包同轮，生成引用签入 demoRef，当前不再仅用占位引用(07 D14、packages/factory.ts)。
 
 ## A7 · 意图与转写存证(IntentLedger)
 

@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
 import { FocusWriteError } from "../focus/writeTx.js";
-import { redoFromLane, retireLane } from "../focus/lanes.js";
+import { createLane, redoFromLane, retireLane, unretireLane } from "../focus/lanes.js";
 
 export interface ApiResponse {
   status: number;
@@ -38,6 +38,64 @@ export function retireLaneApi(
       return err(e.code === "lane_not_found" ? 404 : 409, e.code, e.message);
     }
     return err(409, "retire_failed", e instanceof Error ? e.message : String(e));
+  }
+}
+
+const createLaneBody = z.object({
+  title: z.string().min(1),
+  parentLaneId: z.string().nullable().optional()
+});
+
+/** DAILY-01:POST /api/focuses/:fid/lanes —— 用户建空支线 */
+export function createLaneApi(
+  db: Db,
+  audit: AuditSink,
+  focusId: string,
+  body: unknown
+): ApiResponse {
+  const parsed = createLaneBody.safeParse(body ?? {});
+  if (!parsed.success) return err(400, "invalid_input", parsed.error.message);
+  try {
+    const r = createLane(db, {
+      focusId,
+      title: parsed.data.title,
+      parentLaneId: parsed.data.parentLaneId ?? null,
+      actorKind: "user"
+    });
+    audit.record({
+      actor: "owner",
+      action: "lane.created",
+      meta: { focusId, laneId: r.laneId, eventId: r.eventId }
+    });
+    return { status: 200, payload: { ok: true, focusId, laneId: r.laneId, eventId: r.eventId } };
+  } catch (e) {
+    if (e instanceof FocusWriteError) {
+      return err(e.code === "lane_parent_missing" ? 404 : 409, e.code, e.message);
+    }
+    return err(409, "lane_create_failed", e instanceof Error ? e.message : String(e));
+  }
+}
+
+/** DAILY-01:POST /api/focuses/:fid/lanes/:lid/unretire —— 恢复已收起的线 */
+export function unretireLaneApi(
+  db: Db,
+  audit: AuditSink,
+  focusId: string,
+  laneId: string
+): ApiResponse {
+  try {
+    const r = unretireLane(db, { focusId, laneId, actorKind: "user" });
+    audit.record({
+      actor: "owner",
+      action: "lane.restored",
+      meta: { focusId, laneId, eventId: r.eventId }
+    });
+    return { status: 200, payload: { ok: true, focusId, laneId, eventId: r.eventId } };
+  } catch (e) {
+    if (e instanceof FocusWriteError) {
+      return err(e.code === "lane_not_found" ? 404 : 409, e.code, e.message);
+    }
+    return err(409, "unretire_failed", e instanceof Error ? e.message : String(e));
   }
 }
 

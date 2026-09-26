@@ -21,8 +21,16 @@ import { ArtifactStore } from "../src/artifacts/store.js";
 import { claimDigestOf, evidenceFor } from "../src/evaluator/readinessBinding.js";
 import { insertProject } from "../src/storage/dao/projects.js";
 import { managedProjectPath } from "../src/projects/workspace.js";
-import { confirmMemoryProposal, MemoryConfirmError } from "../src/memory/m0Confirm.js";
+import {
+  confirmMemoryProposal,
+  MemoryConfirmBoundaryError,
+  MemoryConfirmError,
+  MemoryConfirmWriteError,
+  memoryConfirmPendingRejectAuditOf,
+  memoryConfirmPersistOf
+} from "../src/memory/m0Confirm.js";
 import { runDialogTurnWithTools } from "../src/brain/dialogLoop.js";
+import { compileLivePack } from "../src/live/pack.js";
 import type { LlmProvider, ChatToolCall } from "../src/providers/types.js";
 
 const PRJ = "prj_01SD2M0000000000000000000A";
@@ -192,6 +200,26 @@ describe("SD-2 确认消费:正确确认一次写入;错上下文/改内容/过�
     expect(rig.confirm.consumeReply(SES, "好", "s-x").kind).toBe("not_pending");
   });
 
+  it("user_approved 后下一回合 compileLivePack 进 pack 且落 context_snapshot_uses", async () => {
+    const { turnId, receiptId, payload } = await propose();
+    const laterTurn = newId("ses");
+    expect(rig.confirm.consumeReply(SES, "好", `s-confirm-${laterTurn}`).kind).toBe("accepted");
+    confirmMemoryProposal(memoryDeps(rig), { sessionId: SES, turnId: laterTurn, receiptId, payload });
+    expect(m0Rows(rig.db)[0]).toMatchObject({ trust: "user_approved", claim: CLAIM });
+    const pack = compileLivePack(
+      { db: rig.db, ledger: rig.ledger, hotwords: new HotwordStore(rig.ledger) },
+      { sessionId: SES, projectId: PRJ, userText: "发布不用再问" }
+    );
+    expect(pack).not.toBeNull();
+    expect(pack!.packText).toContain("不再询问即可发布");
+    const uses = rig.db
+      .prepare("SELECT pack_digest FROM context_snapshot_uses WHERE session_id = ?")
+      .all(SES) as { pack_digest: string }[];
+    expect(uses.length).toBeGreaterThan(0);
+    expect(uses.some((u) => u.pack_digest === pack!.packDigest)).toBe(true);
+    expect(turnId).toBeTruthy();
+  });
+
   it("否认 ⇒ rejected,零写入;pending 清空", async () => {
     await propose();
     expect(rig.confirm.consumeReply(SES, "不要", "s-x").kind).toBe("rejected");
@@ -264,5 +292,224 @@ describe("SD-2 × SD-1:真实工具环里 M0 提议停在待确认,口播不出�
     expect(n).toBe(1);
     expect(m0Rows(rig.db)).toEqual([]);
     expect(rig.confirm.pending(SES)?.payload.kind).toBe("memory");
+  });
+});
+
+describe("SC-12 确认审计失败与拒写审计事务边界", () => {
+  function payloadOf(claim = CLAIM, sourceTurnId = "turn_source"): MemoryPendingPayload {
+    return {
+      kind: "memory",
+      tier: "M0",
+      claim,
+      claimDigest: claimDigestOf(claim),
+      sourceTurnId,
+      projectId: PRJ
+    };
+  }
+
+  it("真实 SQLite TRIGGER 让 memory.m0_confirmed 失败时回滚 add,persist=none", () => {
+    const rig = buildRig();
+    rig.db.exec(`
+      CREATE TRIGGER fail_m0_confirmed
+      BEFORE INSERT ON audit_log
+      WHEN NEW.action = 'memory.m0_confirmed'
+      BEGIN
+        SELECT RAISE(ABORT, 'injected m0_confirmed failure');
+      END;
+    `);
+    let caught: unknown;
+    try {
+      confirmMemoryProposal(memoryDeps(rig), {
+        sessionId: SES,
+        turnId: "t-confirm",
+        receiptId: "mrc_1",
+        payload: payloadOf()
+      });
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(MemoryConfirmWriteError);
+    expect(memoryConfirmPersistOf(caught)).toBe("none");
+    expect(m0Rows(rig.db)).toEqual([]);
+    const confirmed = rig.db.prepare("SELECT action FROM audit_log WHERE action = 'memory.m0_confirmed'").all();
+    expect(confirmed).toHaveLength(0);
+  });
+
+  it("无 transaction 时确认审计失败 persist=unknown 且 add 已落账", () => {
+    const rig = buildRig();
+    const throwingAudit = {
+      record(event: { action: string }) {
+        if (event.action === "memory.m0_confirmed") throw new Error("injected confirm audit failure");
+        return rig.audit.record(event as never);
+      }
+    };
+    const db = { prepare: rig.db.prepare.bind(rig.db) };
+    let caught: unknown;
+    try {
+      confirmMemoryProposal(
+        { db, ledger: rig.ledger, audit: throwingAudit },
+        { sessionId: SES, turnId: "t-confirm", receiptId: "mrc_2", payload: payloadOf() }
+      );
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(MemoryConfirmWriteError);
+    expect(memoryConfirmPersistOf(caught)).toBe("unknown");
+    expect(m0Rows(rig.db)).toHaveLength(1);
+  });
+
+  it("sharesSqlite 未实现时确认审计失败不假装同库回滚,persist=unknown 且 add 已落账", () => {
+    const rig = buildRig();
+    const throwingAudit = {
+      record(event: { action: string }) {
+        if (event.action === "memory.m0_confirmed") throw new Error("injected confirm audit failure");
+        return rig.audit.record(event as never);
+      }
+    };
+    let caught: unknown;
+    try {
+      confirmMemoryProposal(
+        { db: rig.db, ledger: rig.ledger, audit: throwingAudit },
+        { sessionId: SES, turnId: "t-confirm", receiptId: "mrc_share", payload: payloadOf() }
+      );
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(MemoryConfirmWriteError);
+    expect(memoryConfirmPersistOf(caught)).toBe("unknown");
+    expect(m0Rows(rig.db)).toHaveLength(1);
+  });
+
+  it("重复确认已有记录时确认审计失败 persist=unknown,不删已有行也不说没记", () => {
+    const rig = buildRig();
+    const first = confirmMemoryProposal(memoryDeps(rig), {
+      sessionId: SES,
+      turnId: "t-first",
+      receiptId: "mrc_dup_1",
+      payload: payloadOf()
+    });
+    expect(first.duplicate).toBe(false);
+    expect(m0Rows(rig.db)).toHaveLength(1);
+    rig.db.exec(`
+      CREATE TRIGGER fail_dup_confirmed
+      BEFORE INSERT ON audit_log
+      WHEN NEW.action = 'memory.m0_confirmed'
+      BEGIN
+        SELECT RAISE(ABORT, 'injected duplicate confirm audit failure');
+      END;
+    `);
+    let caught: unknown;
+    try {
+      confirmMemoryProposal(memoryDeps(rig), {
+        sessionId: SES,
+        turnId: "t-dup",
+        receiptId: "mrc_dup_2",
+        payload: payloadOf()
+      });
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(MemoryConfirmWriteError);
+    expect(memoryConfirmPersistOf(caught)).toBe("unknown");
+    expect(m0Rows(rig.db)).toHaveLength(1);
+    expect(m0Rows(rig.db)[0]?.id).toBe(first.memId);
+  });
+
+  it("外层事务已有写入时 digest 拒写:回滚后由外层持久化拒写审计,不误报已保存", () => {
+    const rig = buildRig();
+    const good = payloadOf();
+    const tampered: MemoryPendingPayload = { ...good, claim: "用户偏好:随便谁都能发布" };
+    let caught: unknown;
+    try {
+      rig.db.transaction(() => {
+        rig.db
+          .prepare("INSERT INTO audit_log(id, ts, actor, action) VALUES ('outer_lock', '2026-09-13T00:00:00.000Z', 'daemon', 'probe')")
+          .run();
+        confirmMemoryProposal(memoryDeps(rig), {
+          sessionId: SES,
+          turnId: "t",
+          receiptId: "mrc_3",
+          payload: tampered
+        });
+      })();
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(MemoryConfirmBoundaryError);
+    expect(memoryConfirmPersistOf(caught)).toBe("none");
+    expect(m0Rows(rig.db)).toEqual([]);
+    const probe = rig.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'probe'").get() as { n: number };
+    expect(probe.n).toBe(0);
+    expect(
+      rig.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'memory.m0_confirm_rejected'").get() as { n: number }
+    ).toEqual({ n: 0 });
+    const pending = memoryConfirmPendingRejectAuditOf(caught);
+    expect(pending?.action).toBe("memory.m0_confirm_rejected");
+    if (!pending) throw new Error("expected deferred reject audit");
+    expect(rig.db.inTransaction).toBe(false);
+    rig.audit.record(pending);
+    expect(
+      rig.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'memory.m0_confirm_rejected'").get() as { n: number }
+    ).toEqual({ n: 1 });
+    expect(m0Rows(rig.db)).toEqual([]);
+  });
+
+  it("外层事务已有写入时凭据拒写不写正文,回滚后补拒写审计", () => {
+    const rig = buildRig();
+    const secret = ["sk", "-", "A".repeat(16)].join("");
+    const claim = `偏好 ${secret}`;
+    let caught: unknown;
+    try {
+      rig.db.transaction(() => {
+        rig.db
+          .prepare("INSERT INTO audit_log(id, ts, actor, action) VALUES ('outer_secret', '2026-09-13T00:00:00.000Z', 'daemon', 'probe')")
+          .run();
+        confirmMemoryProposal(memoryDeps(rig), {
+          sessionId: SES,
+          turnId: "t-secret",
+          receiptId: "mrc_secret",
+          payload: payloadOf(claim)
+        });
+      })();
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(MemoryConfirmBoundaryError);
+    expect(memoryConfirmPersistOf(caught)).toBe("none");
+    expect(m0Rows(rig.db)).toEqual([]);
+    const dumped = JSON.stringify(
+      rig.db.prepare("SELECT action, meta_json FROM audit_log").all()
+    );
+    expect(dumped).not.toContain(secret);
+    const pending = memoryConfirmPendingRejectAuditOf(caught);
+    expect(pending?.action).toBe("memory.secret_literal_rejected");
+    if (!pending) throw new Error("expected deferred secret reject audit");
+    rig.audit.record(pending);
+    expect(
+      rig.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'memory.secret_literal_rejected'").get() as { n: number }
+    ).toEqual({ n: 1 });
+    expect(m0Rows(rig.db)).toEqual([]);
+    expect(JSON.stringify(pending)).not.toContain(secret);
+  });
+
+  it("调用方事务内的合法确认直接拒绝,不落账", () => {
+    const rig = buildRig();
+    let caught: unknown;
+    try {
+      rig.db.transaction(() => {
+        confirmMemoryProposal(memoryDeps(rig), {
+          sessionId: SES,
+          turnId: "t-in-tx",
+          receiptId: "mrc_tx",
+          payload: payloadOf()
+        });
+      })();
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(MemoryConfirmBoundaryError);
+    expect(memoryConfirmPersistOf(caught)).toBe("none");
+    expect(memoryConfirmPendingRejectAuditOf(caught)).toBeUndefined();
+    expect(m0Rows(rig.db)).toEqual([]);
   });
 });

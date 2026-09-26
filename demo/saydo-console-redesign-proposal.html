@@ -13,6 +13,10 @@
   v2 变更：Focus 页加右栏实体列表（安排/产物/项目/记忆）；新增全景看板（泳道=Focus）；
   空间管理；待命与唤醒（sparse agent）演示；邮件推送概念（P1 提案）；全部控件可点。
   硬约束：零 emoji、状态词三级、11 §2.6 四联映射、S3 仅屏幕强认证、禁伪精确、中性二选一。
+
+  DAILY-01 同步（2026-09-20，docs/08 §6）：
+  Focus 页已重绘为事内按需页签（对话/产物/泳道/依赖/记录/上下文），不再常驻右栏。
+  侧栏「全景看板」在生产已更名「泳道」；#/arrangements、#/archive 仍见生产实现。
 -->
 <style>
 /* ============ Tokens（照抄 packages/console/src/styles/tokens.css 值） ============ */
@@ -135,9 +139,13 @@ main{flex:1;overflow-y:auto;padding:var(--space-5) var(--shell-gutter) var(--spa
 .focus-quick{display:flex;flex-direction:column;gap:var(--space-2)}
 .focus-quick-item{display:flex;align-items:center;gap:var(--space-3);padding:10px var(--space-3);border-radius:var(--radius-sm);border:1px solid transparent;width:100%;text-align:left}
 .focus-quick-item:hover{background:var(--surface-ink-wash);border-color:var(--glass-border)}
-/* Focus 页：对话 + 右栏 */
-.focus-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:var(--space-5);align-items:start}
-@media (max-width:1100px){.focus-layout{grid-template-columns:1fr}}
+/* Focus 页：事内按需页签（DAILY-01 / docs/08 §6） */
+.focus-layout{display:block;max-width:860px;margin:0 auto}
+.focus-tabs{display:flex;gap:var(--space-2);flex-wrap:wrap;margin:var(--space-3) 0 var(--space-4)}
+.focus-tab-btn{padding:7px 14px;border-radius:var(--radius-xs);border:1px solid var(--glass-border);background:transparent;color:var(--text-secondary);font-size:var(--text-sm)}
+.focus-tab-btn.active{background:var(--active-ink-wash);color:var(--active-ink);border-color:var(--active-ink-border)}
+.focus-tab-panel{display:flex;flex-direction:column;gap:var(--space-4)}
+.rail{max-width:420px}
 .statecard{position:sticky;top:calc(0px - var(--space-5));z-index:5;padding:var(--space-3) var(--space-4);display:flex;gap:var(--space-4);align-items:center;background:var(--bg-app)}
 .timeline{display:flex;flex-direction:column;gap:var(--space-4);margin-top:var(--space-4)}
 .tl-note{display:flex;align-items:center;gap:var(--space-3);color:var(--text-faint);font-size:var(--text-xs)}
@@ -789,8 +797,9 @@ const state = {
   pkgMode:null, pkgApproved:false,
   reviewSel:{}, acVerdicts:{}, blockedAnswer:{},
   attnAck:{}, tripWoken:false, datePicked:null, csvPlaced:false, billingCut:false,
-  stepConfirmed:{}, retried:{}, liveTurns:{}, boardCollapsed:{}, boardExpand:{},
-  spaceCollapsed:{}, orangeExpanded:false, quickExpanded:false, playing:null
+  stepConfirmed:{}, retried:{}, liveTurns:{}, boardCollapsed:{}, boardExpand:{}, boardMode:'lanes',
+  spaceCollapsed:{}, orangeExpanded:false, quickExpanded:false, playing:null,
+  focusTab:'convo'
 };
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
 function focusById(id){return DB.focuses.find(f=>f.id===id);}
@@ -931,7 +940,13 @@ function renderSidebar(route){
         ${needCount?`<span class="count-pill">${needCount}</span>`:''}
       </button>
       <button class="nav-item ${route==='#/board'?'active':''}" data-go="#/board">
-        ${icon('grid',15)}<span class="grow">全景看板</span>
+        ${icon('grid',15)}<span class="grow">泳道</span>
+      </button>
+      <button class="nav-item ${route==='#/arrangements'?'active':''}" data-go="#/arrangements">
+        ${icon('inbox',15)}<span class="grow">安排</span>
+      </button>
+      <button class="nav-item ${route==='#/archive'?'active':''}" data-go="#/archive">
+        ${icon('book',15)}<span class="grow">归档</span>
       </button>
       <div class="nav-sec"><span>正在持续的事</span><button id="btn-new-focus" title="新 Focus">${icon('plus',13)}</button></div>
       ${spacesHtml}
@@ -1091,9 +1106,10 @@ function renderToday(){
 
 /* ---------- 全景看板（泳道 = Focus） ---------- */
 function boardColumnOf(t){
-  if(['queued','confirmed'].includes(t.viewStatus)) return 0;
-  if(['running','merging','superseded'].includes(t.viewStatus) && t.viewStatus!=='superseded') return 1;
-  if(['paused_step_boundary','blocked','waiting_confirmation','ready_for_review','review_approved_waiting_merge','merge_failed','failed','parked'].includes(t.viewStatus)) return 2;
+  const vs = t.viewStatus;
+  if(['ready_for_review','paused_step_boundary','waiting_confirmation','parked','blocked','failed','merge_failed'].includes(vs)) return 0;
+  if(['queued','confirmed','running','merging','review_approved_waiting_merge'].includes(vs)) return 1;
+  if(['task_done','cancel_settled','superseded'].includes(vs)) return 3;
   return 3;
 }
 function boardCard(t){
@@ -1105,13 +1121,17 @@ function boardCard(t){
   </button>`;
 }
 function obCard(o){
+  const chip = o.owner==='external'
+    ? (o.waitingOn ? `等 ${o.waitingOn}` : '等外部')
+    : (NEEDS_LABEL[o.needs]||'等你');
   return `<button class="board-card" data-board-ob="${o.id}">
     <div class="t">${esc(o.title)}</div>
-    <div class="meta"><span class="chip st-warning">${icon('user',11)} ${NEEDS_LABEL[o.needs]||'等你'}</span></div>
+    <div class="meta"><span class="chip st-warning">${icon('user',11)} ${esc(chip)}</span></div>
   </button>`;
 }
 function renderBoard(){
-  const cols = ['队列 / 收到','进行中','需要你','已收尾'];
+  const mode = state.boardMode || 'lanes';
+  const cols = ['等你','我在做','等外部','已收尾'];
   const focuses = DB.focuses.filter(f=>['active','captured','dormant'].includes(f.lifecycle));
   const CELL_CAP = 4;
   const cellHtml = (htmls, key)=>{
@@ -1120,14 +1140,53 @@ function renderBoard(){
     const more = htmls.length - shown.length;
     return shown.join('') + (more>0 ? `<button class="board-more" data-bexpand="${key}">+ ${more} 张，展开</button>` : '');
   };
-  return `<div class="page" style="max-width:1360px">
-    <div style="display:flex;align-items:baseline;gap:var(--space-3);margin-bottom:var(--space-4)">
-      <span class="h-page">全景看板</span>
-      <span class="muted small">按 Focus 分组，多条支线拆子泳道 · 你只需要看「需要你」那一列 · 格子多了会折叠</span>
-    </div>
+  const modeBtn = (key, label) => `<button class="btn ${mode===key?'btn-primary':''}" data-board-mode="${key}">${label}</button>`;
+  const header = `<div style="display:flex;align-items:baseline;gap:var(--space-3);margin-bottom:var(--space-4)">
+      <span class="h-page">泳道</span>
+      <span class="muted small">三态:泳道 / 列表 / 看板 · 与生产 BoardPage 同步</span>
+      <span class="topbar-spacer"></span>
+      ${modeBtn('lanes','泳道')}${modeBtn('list','列表')}${modeBtn('kanban','看板')}
+    </div>`;
+  if(mode==='list'){
+    return `<div class="page" style="max-width:860px" data-board-view="list">
+      ${header}
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${focuses.map(f=>{
+          const lanes = (f.lanes && f.lanes.length ? f.lanes : [{id:'lan_main'}]).filter(l=>!l.retiredAt);
+          const tasks = DB.tasks.filter(t=>t.focusId===f.id);
+          const needYou = openObs(f.id).filter(o=>o.owner==='human').length;
+          return `<button class="board-card" data-board-list-row="${f.id}" data-go="#/focus/${f.id}" style="display:flex;align-items:center;gap:12px;text-align:left;width:100%">
+            <strong style="flex:1">${esc(f.title)}</strong>
+            <span class="xs faint">${{active:'进行中',captured:'刚记下',dormant:'休眠中'}[f.lifecycle]} · 支线 ${lanes.length} · 任务 ${tasks.length} · 等你 ${needYou}</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+  if(mode==='kanban'){
+    const buckets = [[],[],[],[]];
+    for(const f of focuses){
+      const myTasks = DB.tasks.filter(t=>t.focusId===f.id);
+      const myObs = openObs(f.id).filter(o=>o.owner==='human');
+      for(const t of myTasks) buckets[boardColumnOf(t)].push({focus:f.title, html:boardCard(t)});
+      const allObs = openObs(f.id);
+      for(const o of allObs) buckets[o.owner==='external'?2:o.owner==='human'?0:1].push({focus:f.title, html:obCard(o)});
+    }
+    return `<div class="page" style="max-width:1360px" data-board-view="kanban">
+      ${header}
+      <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+        ${cols.map((c,i)=>`<div style="flex:1;min-width:220px" data-board-col="${i}" data-board-col-name="${c}">
+          <div class="board-head" style="margin-bottom:8px;${i===0?'color:var(--color-warning);font-weight:600':''}">${c}</div>
+          ${buckets[i].map(item=>`<div style="margin-bottom:8px"><div class="xs faint" style="margin-bottom:4px">${esc(item.focus)}</div>${item.html}</div>`).join('') || '<div class="empty" style="padding:12px">这一列还没有卡片</div>'}
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+  return `<div class="page" style="max-width:1360px" data-board-view="lanes">
+    ${header}
     <div class="board">
       <div class="board-cols-header">
-        <div></div>${cols.map((c,i)=>`<div class="board-head" style="${i===2?'color:var(--color-warning);font-weight:600':''}">${c}</div>`).join('')}
+        <div></div>${cols.map((c,i)=>`<div class="board-head" style="${i===0?'color:var(--color-warning);font-weight:600':''}">${c}</div>`).join('')}
       </div>
       ${focuses.map(f=>{
         const fl = (f.lanes && f.lanes.length ? f.lanes : [{id:'lan_main', title:'主线'}]).filter(l=>!l.retiredAt);
@@ -1150,8 +1209,13 @@ function renderBoard(){
             return `<div class="lane-subrow">
               <div class="lane-subtitle">${fl.length>1?icon('layers',10):''} ${esc(lane.title)}</div>
               ${[0,1,2,3].map(ci=>{
-                const cards = [...ts.filter(t=>boardColumnOf(t)===ci).map(boardCard), ...(ci===2?obs.map(obCard):[])];
-                return `<div class="lane-cell">${cellHtml(cards, f.id+':'+lane.id+':'+ci)}</div>`;
+                const laneObs = myObs.filter(o=>(o.laneId||'lan_main')===lane.id);
+                const obsCards = ci===0 ? laneObs.filter(o=>o.owner==='human').map(obCard)
+                  : ci===2 ? laneObs.filter(o=>o.owner==='external').map(obCard)
+                  : ci===1 ? laneObs.filter(o=>o.owner==='agent').map(obCard)
+                  : [];
+                const cards = [...ts.filter(t=>boardColumnOf(t)===ci).map(boardCard), ...obsCards];
+                return `<div class="lane-cell" data-board-col="${ci}">${cellHtml(cards, f.id+':'+lane.id+':'+ci)}</div>`;
               }).join('')}
             </div>`;
           }).join('')}
@@ -1504,12 +1568,87 @@ function composerFor(f){
   }
   return composerHtml();
 }
+function focusTabBtn(key, label, active){
+  return `<button type="button" class="focus-tab-btn${active?' active':''}" data-focus-tab-btn="${key}">${label}</button>`;
+}
+function renderFocusArtifacts(f){
+  const arts = DB.artifacts.filter(a=>a.focusId===f.id);
+  if(!arts.length) return `<div class="card card-pad small muted" data-focus-tab="artifacts">这件事还没有产物;产物落地会出现在这里。</div>`;
+  return `<div class="focus-tab-panel" data-focus-tab="artifacts">${arts.map(a=>`
+    <div class="card card-pad" data-focus-artifact="${a.id}">
+      <strong>${esc(a.title)}</strong>
+      <span class="tag">${a.kind} · ${a.role}</span>
+    </div>`).join('')}<div class="xs faint">逐行 diff 与任意选版对比在项目产物库。</div></div>`;
+}
+function renderFocusLanes(f){
+  const lanes = f.lanes || [];
+  return `<div class="focus-tab-panel" data-focus-tab="lanes">${lanes.map(l=>{
+    const laneTasks = DB.tasks.filter(t=>t.focusId===f.id && (t.laneId===l.id || (!t.laneId && l.id==='lan_main')));
+    const laneObs = DB.obligations.filter(o=>o.focusId===f.id && (o.laneId===l.id || (!o.laneId && l.id==='lan_main')));
+    return `<div class="card card-pad" data-focus-lane="${l.id}">
+      <strong>${esc(l.title)}</strong>
+      ${!laneTasks.length && !laneObs.length ? `<div class="xs faint">这条线还没有挂任务或义务。</div>` : ''}
+      ${laneTasks.map(t=>`<div class="xs" data-focus-lane-task="${t.id}">任务 ${esc(t.title)} · ${t.viewStatus||t.status||''}</div>`).join('')}
+      ${laneObs.map(o=>`<div class="xs" data-focus-lane-ob="${o.id}">${esc(o.owner)} ${esc(o.title)} · ${OB_STATUS_LABEL[o.status]||o.status}</div>`).join('')}
+    </div>`;
+  }).join('')}<div class="xs faint">支线结构操作(新建/收线/重走)在「记录」页;这里是查看视图。</div></div>`;
+}
+function renderFocusDeps(f){
+  const obs = DB.obligations.filter(o=>o.focusId===f.id);
+  const waiting = obs.filter(o=>o.waitingOn || o.waitingOnTaskId || o.waitingOnObligationId);
+  if(!waiting.length) return `<div class="card card-pad small muted" data-focus-tab="deps">这件事还没有挂依赖。</div>`;
+  return `<div class="focus-tab-panel" data-focus-tab="deps">${waiting.map(o=>`
+    <div class="card card-pad" data-focus-dep="${o.id}">
+      <strong>${esc(o.title)}</strong>
+      <div class="xs muted">在等 ${esc(o.waitingOn || o.waitingOnTaskId || o.waitingOnObligationId)}</div>
+    </div>`).join('')}</div>`;
+}
 function renderFocus(focusId){
   const f = focusById(focusId) || DB.focuses[0];
   const tl = TIMELINES[f.id] || [];
   const ob = openByOwner(f.id);
+  const tab = state.focusTab || 'convo';
   const lifecycleLabel = {active:'进行中',captured:'刚记下',dormant:'休眠中',closed:'已收官',abandoned:'已放弃',archived:'已归档'}[f.lifecycle];
-  const convo = `<div class="convo-col">
+  const tabs = `<div class="focus-tabs" data-focus-tabs>
+    ${focusTabBtn('convo','对话',tab==='convo')}
+    ${focusTabBtn('artifacts','产物',tab==='artifacts')}
+    ${focusTabBtn('lanes','泳道',tab==='lanes')}
+    ${focusTabBtn('deps','依赖',tab==='deps')}
+    <button type="button" class="focus-tab-btn" data-goto-records="${f.id}" data-focus-tab-btn="records">记录</button>
+    ${focusTabBtn('context','上下文',tab==='context')}
+  </div>`;
+  const convo = `<div class="focus-tab-panel" data-focus-tab="convo">
+    ${f.learning?`<div class="card-item" style="border-color:var(--active-ink-border)">
+      <div style="display:flex;gap:var(--space-2);align-items:center"><span class="dot breathing" style="background:var(--active-ink)"></span><strong>学习中</strong><span class="tag">learning · 一等会话状态</span></div>
+      <div class="small" style="margin-top:6px">我在读这件事相关的材料和你之前说过的话，大概还要一两分钟。学完我会告诉你学了什么、还缺什么，然后再开聊。（演示里缩短了）</div>
+    </div>`:''}
+    ${tl.map(item=>{
+      if(item.kind==='note') return `<div class="tl-note">${esc(item.text)}</div>`;
+      if(item.kind==='turn') return turnHtml(item);
+      if(item.kind==='confirm') return confirmCardHtml(item.receiptId);
+      if(item.kind==='entity') return entityHtml(item);
+      if(item.kind==='pkg') return pkgHtml();
+      if(item.kind==='progress') return progressHtml();
+      if(item.kind==='standby') return standbyHtml();
+      if(item.kind==='drift') return driftHtml();
+      if(item.kind==='interview') return interviewHtml();
+      if(item.kind==='task') return taskCardHtml(taskById(item.taskId));
+      return '';
+    }).join('')}
+    <div id="live-turns">${(state.liveTurns[f.id]||[]).map(turnHtml).join('')}</div>
+    ${state.playing && state.playing.key===f.id ? `<div class="card-item" style="display:flex;gap:var(--space-2);align-items:center;border-color:var(--active-ink-border)">
+      ${icon('loader',14,'breathing')}<span class="small">播报中（TTS）· 前半句已送达</span>
+      <span class="topbar-spacer"></span>
+      <button class="btn" data-barge="1">打断（barge-in）</button>
+    </div>`:''}
+    ${composerFor(f)}
+  </div>`;
+  const body = tab==='convo' ? convo
+    : tab==='artifacts' ? renderFocusArtifacts(f)
+    : tab==='lanes' ? renderFocusLanes(f)
+    : tab==='deps' ? renderFocusDeps(f)
+    : `<div data-focus-tab="context">${railHtml(f)}</div>`;
+  return `<div class="page"><div class="focus-layout">
     <div class="statecard card">
       <div style="flex:1;min-width:0">
         <div style="display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap">
@@ -1525,36 +1664,10 @@ function renderFocus(focusId){
         ${ob.external?`<div class="muted">等外部 ${ob.external} 件</div>`:''}
         ${!ob.human&&!ob.agent&&!ob.external?'<div class="muted">没有未结的事</div>':''}
       </div>
-      <button class="btn" data-goto-records="${f.id}" title="工程航迹、事件流与版本记录">${icon('history',13)} 记录</button>
     </div>
-    <div class="timeline">
-      ${f.learning?`<div class="card-item" style="border-color:var(--active-ink-border)">
-        <div style="display:flex;gap:var(--space-2);align-items:center"><span class="dot breathing" style="background:var(--active-ink)"></span><strong>学习中</strong><span class="tag">learning · 一等会话状态</span></div>
-        <div class="small" style="margin-top:6px">我在读这件事相关的材料和你之前说过的话，大概还要一两分钟。学完我会告诉你学了什么、还缺什么，然后再开聊。（演示里缩短了）</div>
-      </div>`:''}
-      ${tl.map(item=>{
-        if(item.kind==='note') return `<div class="tl-note">${esc(item.text)}</div>`;
-        if(item.kind==='turn') return turnHtml(item);
-        if(item.kind==='confirm') return confirmCardHtml(item.receiptId);
-        if(item.kind==='entity') return entityHtml(item);
-        if(item.kind==='pkg') return pkgHtml();
-        if(item.kind==='progress') return progressHtml();
-        if(item.kind==='standby') return standbyHtml();
-        if(item.kind==='drift') return driftHtml();
-        if(item.kind==='interview') return interviewHtml();
-        if(item.kind==='task') return taskCardHtml(taskById(item.taskId));
-        return '';
-      }).join('')}
-      <div id="live-turns">${(state.liveTurns[f.id]||[]).map(turnHtml).join('')}</div>
-      ${state.playing && state.playing.key===f.id ? `<div class="card-item" style="display:flex;gap:var(--space-2);align-items:center;border-color:var(--active-ink-border)">
-        ${icon('loader',14,'breathing')}<span class="small">播报中（TTS）· 前半句已送达</span>
-        <span class="topbar-spacer"></span>
-        <button class="btn" data-barge="1">打断（barge-in）</button>
-      </div>`:''}
-    </div>
-    ${composerFor(f)}
-  </div>`;
-  return `<div class="page"><div class="focus-layout">${convo}${railHtml(f)}</div></div>`;
+    ${tabs}
+    ${body}
+  </div></div>`;
 }
 function renderChatNew(){
   return `<div class="page page-narrow">
@@ -2309,6 +2422,8 @@ function route(hash, keepScroll){
   renderSidebar(hash);
   if(hash==='#/today' || hash==='#/' || hash==='') main.innerHTML = renderToday();
   else if(hash==='#/board') main.innerHTML = renderBoard();
+  else if(hash==='#/arrangements') main.innerHTML = `<div class="page"><span class="h-page">安排</span><p class="muted">跨事义务清单(与生产 #/arrangements 同步)</p></div>`;
+  else if(hash==='#/archive') main.innerHTML = `<div class="page"><span class="h-page">归档</span><p class="muted">已收尾的事(与生产 #/archive 同步)</p></div>`;
   else if(path==='#/focus') main.innerHTML = renderFocus(arg);
   else if(hash==='#/chat-new') main.innerHTML = renderChatNew();
   else if(path==='#/review') main.innerHTML = renderReview(arg);
@@ -2342,6 +2457,12 @@ function wirePage(){
   const om = document.querySelector('[data-orange-more]'); if(om) om.onclick = ()=>{ state.orangeExpanded=true; rerenderMain(); };
   const ol = document.querySelector('[data-orange-less]'); if(ol) ol.onclick = ()=>{ state.orangeExpanded=false; rerenderMain(); };
   const qm = document.querySelector('[data-quick-more]'); if(qm) qm.onclick = ()=>{ state.quickExpanded=!state.quickExpanded; rerenderMain(); };
+  main.querySelectorAll('[data-focus-tab-btn]').forEach(el=> el.onclick = ()=>{
+    const key = el.dataset.focusTabBtn;
+    if(key==='records') return;
+    state.focusTab = key;
+    rerenderMain();
+  });
   main.querySelectorAll('[data-goto-records]').forEach(el=> el.onclick = ()=>{ location.hash = '#/records/'+el.dataset.gotoRecords; });
   main.querySelectorAll('[data-comp]').forEach(el=> el.onclick = ()=>composerAction(el.dataset.comp));
   main.querySelectorAll('[data-barge]').forEach(el=> el.onclick = ()=>{
@@ -2454,6 +2575,10 @@ function wirePage(){
   main.querySelectorAll('[data-bexpand]').forEach(el=> el.onclick = (e)=>{
     e.stopPropagation();
     state.boardExpand[el.dataset.bexpand] = true;
+    rerenderMain();
+  });
+  main.querySelectorAll('[data-board-mode]').forEach(el=> el.onclick = ()=>{
+    state.boardMode = el.dataset.boardMode;
     rerenderMain();
   });
   main.querySelectorAll('[data-art]').forEach(el=> el.onclick = ()=>{

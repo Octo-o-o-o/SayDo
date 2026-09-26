@@ -4,6 +4,8 @@
 import type { TaskCard, TaskStatus, TaskTrigger, Tier1RunState } from "@saydo/contracts";
 import { canTransitionTask, canTransitionTier1Run, taskCardSchema } from "@saydo/contracts";
 import type { Db } from "../db.js";
+// DAILY-01:任务状态推进后唤醒/阻塞任务级依赖方(合同 §15.2);运行时调用,循环依赖可接受(同 writeTx↔dependency 先例)
+import { applyTaskDependencyTransition } from "../../focus/dependency.js";
 
 export function insertTask(db: Db, t: TaskCard, createdAt: string): void {
   taskCardSchema.parse(t);
@@ -111,6 +113,8 @@ export function transitionTask(
   if (res.changes === 0) {
     throw new Error(`task transition race: ${id} left ${row.status} concurrently (CAS, 先提交者胜)`);
   }
+  // DAILY-01:到达验收/交付态唤醒任务级依赖方;负向终态阻塞之(同事务,事件随状态写原子落账)
+  applyTaskDependencyTransition(db, id, to);
 }
 
 export interface Tier1RunRow {

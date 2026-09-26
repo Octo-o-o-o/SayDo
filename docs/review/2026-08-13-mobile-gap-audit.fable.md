@@ -1,5 +1,7 @@
 # 移动端缺口、阻断与规范体检
 
+> 2026-09-13 对账限定：本文保留8月13日的历史建议与证据，不是现行排产或合同。PG-01B 后远程业务 HTTP `/api/**` 返回 `remote_business_forbidden`，远程 WS fail-closed；旧 `remote-mobile` 放行建议不得用于恢复入口。现行形状以 `docs/09-data-contracts.md` 为准，顺序以 `docs/plan/IMPLEMENTATION-PLAN-2.md` 为准。提审政策与真机行为需在实际提审或验收时另行核实。
+
 > 施工顺序与旁路处方以 `docs/review/2026-08-13-mobile-shell-strategy-final.fable.md` 为准(2026-08-13 交叉对比 + Codex 69)。本文保留证据链;「CallKit 不要做」应读成本周不做;旁路须 `remote-mobile` 而不是把错误码映射成 `app`。
 >
 > 日期:2026-08-13

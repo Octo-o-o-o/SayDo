@@ -21,6 +21,7 @@ export * from "./types/dispatch.js";
 export * from "./types/outbox.js";
 export * from "./types/artifact.js";
 export * from "./types/pipeline.js";
+export * from "./types/voiceBarrier.js";
 export * from "./types/modelbinding.js";
 export * from "./types/tools.js";
 export * from "./types/presentation.js"; // §14-A2/A8 完整形态(P0.5-A)

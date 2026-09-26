@@ -229,7 +229,7 @@ export function parseClaudeTier1Line(line: string): Tier1Event[] {
 }
 
 export function claudeIsTerminalResult(line: string): boolean {
-  return /"type"\s*:\s*"result"/.test(line);
+  return parseClaudeTier1Line(line).some((e) => e.kind === "result");
 }
 
 export function claudeBackend(): Tier1Backend {

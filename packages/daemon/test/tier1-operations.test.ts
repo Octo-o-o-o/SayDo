@@ -2,19 +2,21 @@
 // (expectedAttempt 防串)/ 人工合并 MergeProof(treeSha 匹配才 task_done)/ retryTask /
 // E2E 故事一(逐步确认版全链:决策包 -> 收据 -> run -> review approve -> 人工合并 -> task_done)。
 
-import { mkdtempSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   computePackageDigest,
   newId,
+  textDigest,
   type DecisionPackage,
   type MergeProof,
   type TaskCard,
   type Tier1CancelProof
 } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
+import * as acceptanceEvidence from "../src/api/acceptanceEvidence.js";
 import type { Tier1RunRow } from "../src/storage/dao/tasks.js";
 import {
   steerApplied,
@@ -410,6 +412,164 @@ describe("reviewTask 三态 + expectedAttempt", () => {
     });
     db.prepare("UPDATE tasks SET project_id=? WHERE id=?").run(otherProject, TASK);
     expect(() => reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1 }, NOW)).toThrow(/决策包/);
+  });
+
+  it("coding approve 核对真实 verify;篡改或删除拒批,人工 unknown 不走同一条禁令", () => {
+    seedTask("ready_for_review");
+    seedRun(1, "settled_review");
+    const manual = reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1 }, NOW);
+    expect(manual.state).toBe("review_approved_waiting_merge");
+
+    db.prepare("UPDATE tasks SET status='ready_for_review', approved_tree_sha=NULL WHERE id=?").run(TASK);
+    const runId = "run_01AAAAAAAAAAAAAAAAAAAAAAA1";
+    const home = mkdtempSync(join(tmpdir(), "saydo-verify-approve-"));
+    const payload = JSON.stringify([{ templateRef: "check", exitCode: 0, stdoutTail: "kept" }]);
+    mkdirSync(join(home, runId), { recursive: true });
+    writeFileSync(join(home, runId, "verify.json"), payload);
+    const digest = textDigest(payload);
+    db.prepare("UPDATE tier1_runs SET settle_proof_json=? WHERE id=?").run(
+      JSON.stringify({
+        taskId: TASK,
+        runId,
+        attempt: 1,
+        packageRevision: 1,
+        treeSha: "tree-good",
+        tier1VerifyDigest: digest,
+        acceptanceChecks: [{ criterion: "Excel 能打开", status: "pass", source: "verify", evidenceRef: `verify:${digest.slice(7)}` }],
+        transcriptCursor: "cursor-1",
+        settledAt: NOW
+      }),
+      runId
+    );
+    const ok = reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1, runsDir: home }, NOW);
+    expect(ok.state).toBe("review_approved_waiting_merge");
+
+    db.prepare("UPDATE tasks SET status='ready_for_review', approved_tree_sha=NULL WHERE id=?").run(TASK);
+    writeFileSync(join(home, runId, "verify.json"), `${payload}\n`);
+    expect(() => reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1, runsDir: home }, NOW)).toThrow(
+      /digest_mismatch/
+    );
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TASK) as { status: string }).status).toBe("ready_for_review");
+
+    rmSync(join(home, runId, "verify.json"));
+    expect(() => reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1, runsDir: home }, NOW)).toThrow(
+      /not_found/
+    );
+  });
+
+  it("Executor 形状的 manual/unknown 已绑 verify 时,失效引用拒批,无引用和有效引用仍可批", () => {
+    seedTask("ready_for_review");
+    seedRun(1, "settled_review");
+    const unbound = reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1 }, NOW);
+    expect(unbound.state).toBe("review_approved_waiting_merge");
+
+    db.prepare("UPDATE tasks SET status='ready_for_review', approved_tree_sha=NULL WHERE id=?").run(TASK);
+    const runId = "run_01AAAAAAAAAAAAAAAAAAAAAAA1";
+    const home = mkdtempSync(join(tmpdir(), "saydo-manual-verify-"));
+    const payload = JSON.stringify([{ templateRef: "test", exitCode: 0, stdoutTail: "[ok] npm install retained" }], null, 2);
+    mkdirSync(join(home, runId), { recursive: true });
+    writeFileSync(join(home, runId, "verify.json"), payload);
+    const digest = textDigest(payload);
+    const executorShape = {
+      taskId: TASK,
+      runId,
+      attempt: 1,
+      packageRevision: 1,
+      treeSha: "tree-good",
+      tier1VerifyDigest: digest,
+      acceptanceChecks: [
+        { criterion: "Excel 能打开", status: "unknown" as const, source: "manual" as const, evidenceRef: `verify:${digest}` }
+      ],
+      transcriptCursor: "cursor-1",
+      settledAt: NOW
+    };
+    db.prepare("UPDATE tier1_runs SET settle_proof_json=? WHERE id=?").run(JSON.stringify(executorShape), runId);
+    const kept = reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1, runsDir: home }, NOW);
+    expect(kept.state).toBe("review_approved_waiting_merge");
+
+    db.prepare("UPDATE tasks SET status='ready_for_review', approved_tree_sha=NULL WHERE id=?").run(TASK);
+    writeFileSync(join(home, runId, "verify.json"), `${payload}\n`);
+    expect(() => reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1, runsDir: home }, NOW)).toThrow(
+      /digest_mismatch/
+    );
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TASK) as { status: string }).status).toBe("ready_for_review");
+
+    writeFileSync(join(home, runId, "verify.json"), payload);
+    db.prepare("UPDATE tier1_runs SET settle_proof_json=? WHERE id=?").run(
+      JSON.stringify({
+        ...executorShape,
+        acceptanceChecks: [
+          { criterion: "Excel 能打开", status: "unknown", source: "agent_claim", evidenceRef: `verify:${digest}` }
+        ]
+      }),
+      runId
+    );
+    writeFileSync(join(home, runId, "verify.json"), `${payload} `);
+    expect(() => reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1, runsDir: home }, NOW)).toThrow(
+      /digest_mismatch/
+    );
+
+    writeFileSync(join(home, runId, "verify.json"), payload);
+    db.prepare("UPDATE tier1_runs SET settle_proof_json=? WHERE id=?").run(JSON.stringify(executorShape), runId);
+    rmSync(join(home, runId, "verify.json"));
+    expect(() => reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1, runsDir: home }, NOW)).toThrow(
+      /not_found/
+    );
+
+    mkdirSync(join(home, runId), { recursive: true });
+    const outside = join(home, "outside-verify.json");
+    writeFileSync(outside, payload);
+    symlinkSync(outside, join(home, runId, "verify.json"));
+    expect(() => reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1, runsDir: home }, NOW)).toThrow(
+      /unauthorized/
+    );
+    rmSync(join(home, runId, "verify.json"));
+    writeFileSync(join(home, runId, "verify.json"), payload);
+
+    const otherRun = "run_01OTHER0000000000000000000";
+    const aud = newId("aud");
+    db.prepare("INSERT INTO audit_log(id, ts, actor, action, meta_json) VALUES (?, ?, 'owner', 'task.review_approve', ?)").run(
+      aud,
+      NOW,
+      JSON.stringify({
+        taskId: TASK,
+        runId: otherRun,
+        kind: "coding",
+        evidenceDigest: digest,
+        attempt: 1,
+        acceptancePassed: 1,
+        verdicts: [{ criterion: "Excel 能打开", status: "pass" }]
+      })
+    );
+    db.prepare("UPDATE tier1_runs SET settle_proof_json=? WHERE id=?").run(
+      JSON.stringify({
+        ...executorShape,
+        acceptanceChecks: [{ criterion: "Excel 能打开", status: "unknown", source: "manual", evidenceRef: `audit:${aud}` }]
+      }),
+      runId
+    );
+    expect(() => reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1, runsDir: home }, NOW)).toThrow(
+      /cross_run/
+    );
+
+    db.prepare("UPDATE tier1_runs SET settle_proof_json=? WHERE id=?").run(JSON.stringify(executorShape), runId);
+    const realResolve = acceptanceEvidence.resolveAcceptanceEvidence;
+    let resolverCalls = 0;
+    const spy = vi.spyOn(acceptanceEvidence, "resolveAcceptanceEvidence").mockImplementation((dbArg, ref, scope) => {
+      resolverCalls += 1;
+      if (resolverCalls === 1) return realResolve(dbArg, ref, scope);
+      writeFileSync(join(home, runId, "verify.json"), `${payload}\n`);
+      return realResolve(dbArg, ref, scope);
+    });
+    try {
+      expect(() => reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1, runsDir: home }, NOW)).toThrow(
+        /digest_mismatch/
+      );
+    } finally {
+      spy.mockRestore();
+    }
+    expect(resolverCalls).toBeGreaterThanOrEqual(2);
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TASK) as { status: string }).status).toBe("ready_for_review");
   });
 
   it("request_changes:同 task 新 attempt,这轮不作废(回 running)", () => {

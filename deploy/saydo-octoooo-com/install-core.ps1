@@ -32,6 +32,8 @@ if (-not $env:LOCALAPPDATA -or -not $env:USERPROFILE) { Fail "缺少 LOCALAPPDAT
 $Root = if ($env:SAYDO_INSTALL_ROOT) { $env:SAYDO_INSTALL_ROOT } else { Join-Path $env:LOCALAPPDATA "SayDo" }
 if (-not [IO.Path]::IsPathRooted($Root)) { Fail "SAYDO_INSTALL_ROOT 必须是绝对路径:$Root" }
 $Root = [IO.Path]::GetFullPath($Root)
+# cmd 启动器无法安全编码换行/引号;%~dp0 相对段与根外绝对路径里的 % / ! 会在 .cmd 二次展开。
+if ($Root -match '[\r\n"]') { Fail "SAYDO_INSTALL_ROOT 含换行或引号,无法安全生成启动器,已拒绝且未写入:$Root" }
 # 只在用户目录内写文件:安装根目录必须位于 %USERPROFILE% 或 %LOCALAPPDATA%(可能被重定向到其他盘)之下;
 # GetFullPath 已消解 ".."。确需其他位置须显式 SAYDO_INSTALL_ALLOW_OUTSIDE_HOME=1。
 $userBases = @([IO.Path]::GetFullPath($env:USERPROFILE).TrimEnd('\'), [IO.Path]::GetFullPath($env:LOCALAPPDATA).TrimEnd('\'))
@@ -150,7 +152,12 @@ if (-not (Test-Path $CliMjs)) { Fail "安装后未找到 $CliMjs" }
 #    只有 Node 在根目录之外(如 C:\Program Files\nodejs)时才写它的字面路径,且含非 ASCII 时按系统 ANSI 代码页写入。
 function ConvertTo-LauncherPath([string]$p) {
   $rootPrefix = $Root.TrimEnd('\') + '\'
-  if ($p.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) { return '%~dp0..\' + $p.Substring($rootPrefix.Length) }
+  if ($p.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+    $rel = $p.Substring($rootPrefix.Length)
+    if ($rel -match '[\r\n"%!]') { Fail "启动器相对路径含换行/引号/%/!,无法安全写入 .cmd,已拒绝:$p" }
+    return '%~dp0..\' + $rel
+  }
+  if ($p -match '[\r\n"%!]') { Fail "根外启动器路径含换行/引号/%/!,无法安全写入 .cmd,已拒绝:$p" }
   return $p
 }
 $launcher = Join-Path $BinDir "saydo.cmd"

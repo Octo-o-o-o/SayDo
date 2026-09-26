@@ -45,6 +45,28 @@ describe("createReviewPageSession", () => {
     session.dispose();
   });
 
+  it("dispose 把 AbortSignal 传到 /api/tasks,晚到响应不回调", async () => {
+    const stub = routes();
+    const t = fakeTargets();
+    const results: unknown[] = [];
+    const hold = stub.holdNext(`/api/tasks/${TSK}`);
+    const session = createReviewPageSession(TSK, { onResult: (v) => results.push(v), onError: () => {} }, { targets: t });
+    session.run();
+    await flush();
+    const taskInit = stub.inits.find((init, i) => stub.calls[i] === `/api/tasks/${TSK}`);
+    expect(taskInit?.signal).toBeTruthy();
+    expect(taskInit?.signal?.aborted).toBe(false);
+    session.dispose();
+    expect(taskInit?.signal?.aborted).toBe(true);
+    hold.release({
+      task: { id: TSK, title: "晚到", status: "ready_for_review", created_at: "2026-09-09T00:00:00.000Z" },
+      package: { acceptance: ["有三段"] },
+      runs: []
+    });
+    await flush();
+    expect(results).toEqual([]);
+  });
+
   it("dispose 后:失效事件/兜底定时器不再重取,在途晚到响应不回调", async () => {
     const stub = routes();
     const t = fakeTargets();

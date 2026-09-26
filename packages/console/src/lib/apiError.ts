@@ -40,7 +40,8 @@ const AUTH_CODES = new Set(["token_missing", "token_mismatch", "identity_rejecte
 /** 业务 403:不是凭证失效,按 code 给人话(S1 评审 1 B1) */
 const BUSINESS_403_MESSAGES: Record<string, string> = {
   artifact_project_mismatch: "这份产物不属于当前项目",
-  mobile_lan_route_rejected: "手机局域网面未开放此内容"
+  mobile_lan_route_rejected: "手机局域网面未开放此内容",
+  remote_business_forbidden: "远程业务入口已关闭,请在本机浏览器打开控制台"
 };
 
 export class ApiError extends Error {

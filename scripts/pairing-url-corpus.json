@@ -370,6 +370,62 @@
       "prefix": "http://",
       "port": "47100",
       "pathQuery": "/?token=abc"
+    },
+    {
+      "id": "reject-raw-combining-acute",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=a\u0301"
+    },
+    {
+      "id": "accept-percent-combining-acute",
+      "accept": true,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=a%CC%81",
+      "token": "a\u0301",
+      "expectPort": "47100"
+    },
+    {
+      "id": "reject-raw-variation-selector",
+      "accept": false,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=a\ufe0f"
+    },
+    {
+      "id": "accept-percent-variation-selector",
+      "accept": true,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=a%EF%B8%8F",
+      "token": "a\ufe0f",
+      "expectPort": "47100"
+    },
+    {
+      "id": "accept-percent-dollar-identifier",
+      "accept": true,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=%24identifier",
+      "token": "$identifier",
+      "expectPort": "47100"
+    },
+    {
+      "id": "accept-percent-dollar-braces",
+      "accept": true,
+      "host": "lan4",
+      "prefix": "http://",
+      "port": "47100",
+      "pathQuery": "/?token=%24%7Bname%7D",
+      "token": "${name}",
+      "expectPort": "47100"
     }
   ]
 }

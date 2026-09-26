@@ -182,6 +182,12 @@ function MobileMenu({
           <a href="#/m/things" onClick={onClose}>
             事<span>Focus 与泳道</span>
           </a>
+          <a href="#/m/arrangements" onClick={onClose}>
+            安排<span>跨事义务 · 只读</span>
+          </a>
+          <a href="#/m/archive" onClick={onClose}>
+            归档<span>已收起来的事 · 只读</span>
+          </a>
         </nav>
         <div className="m-menu-memory" data-mobile-memory>
           <span>记忆库</span>

@@ -20,6 +20,8 @@
 
 ### 1.1 校验器与门禁（本会话真实执行）
 
+> 2026-09-13 对账说明：旧 authority_sha256=2a83fe23…只是当时落盘报告值，后续PG-01A对48份历史authority输入重算为e62d2115…，两份投影已修正；不能以validator输出重复旧值证明其正确。v8未闭合来源随后按PG-01A降级为986条unresolved，并非连接器验收通过。
+
 | 命令 | 退出码（紧跟命令取） | 输出摘录 |
 |---|---:|---|
 | `node research/customer-question-corpus/validate.mjs` | 0 | `[ok] 600 条语料结构、登记合同完整性与已知语义反例门通过`；stats 含 `records: 600, requiredClaims: 172, liveSourceContracts: 465, f1CapabilityContracts: 46` |

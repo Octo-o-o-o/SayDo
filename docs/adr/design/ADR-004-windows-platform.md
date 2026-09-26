@@ -49,7 +49,7 @@
 | 不变量 | 跨 OS 语义 | macOS / POSIX 实现 | Windows 实现 |
 |---|---|---|---|
 | 状态根 | 绝对路径、实体目录、不可为可漂移链接、owner 匹配、realpath 等于词法位置 | 非 symlink + `uid` + `realpath` | 非 reparse(含 junction/symlink) + 当前用户 SID 为 Owner + `GetFinalPathNameByHandle`/`realpathSync` |
-| workspace 身份 | canonical path + filesystem identity 元组,漂移 fail-closed | `(dev,ino)` | 同列存 **volume serial + file index**(Node `stat.dev`/`stat.ino` 在 NTFS 已是此映射;合同改称 `fsId`,列名保持 `workspace_dev`/`workspace_ino`) |
+| workspace 身份 | canonical path + filesystem identity,按 09 §1 的平台重校验规则拒绝身份漂移 | 硬锚 `(realpath,ino)`;`dev` 仍登记,重挂载漂移不单独拒绝(2026-08-22 补注) | 同列存 **volume serial + file index**(Node `stat.dev`/`stat.ino` 在 NTFS 已是此映射;合同改称 `fsId`,列名保持 `workspace_dev`/`workspace_ino`) |
 | 路径词法 | 当前用户轮恰好一个绝对路径字面量 | `/` 或 `~/` | 另接受 `X:\` / `X:/`(盘符 + 斜杠任一);quoted span 同;拒 `file://`、`~user/`、`\\?\`、UNC `\\server\share` |
 | owner-only 机密 | `.cap-token`、锁文件、sessions 对非特权用户不可读 | mode `0600`/`0700` | 去继承 ACL,仅 Owner:(R,W)(目录再加 D);Administrators ≡ Unix root,诚实声明 |
 | 单 HOME 单实例 | birth identity 锁,PID 复用不得误杀/误夺 | 进程起始时刻(darwin:`ps -o lstart=` 或等价;失败=`null`,禁止 `pgrep`/`alive1`) + `linkSync` | `GetProcessTimes` 100ns FILETIME + pid;失败=`null`。NTFS hardlink |
@@ -84,7 +84,7 @@
 - `SetThreadExecutionState` 防睡眠(对位 `caffeinate`)。
 - SAPI/piper 本地 TTS 兜底。
 - GitHub Actions `windows-latest` 矩阵(better-sqlite3 预编译必须先绿)。
-- 官网 FAQ 翻转(另需 owner 授权)。
+- 官网 FAQ 翻转:本 ADR 批次已于 2026-08-22 获 owner 授权并实施(见 §2);后续版本承诺仍须匹配当次发布证据。
 
 **Windows 明确不做(本 ADR 生命期内)**:
 
@@ -114,7 +114,7 @@
 | `docs/11` §5.4/§5.5 | "用本机认证批准"(Touch ID / Windows Hello);iCloud 注脚改为平台同步凭据条款 |
 | `docs/adr/README.md` | 登记本 ADR + 工程 ADR-003 |
 | `docs/plan/IMPLEMENTATION-PLAN-2.md` | 增 W-Win 行 |
-| 官网 FAQ | **本批不动**;收口后另授权 |
+| 官网 FAQ | 2026-08-22 已获 owner 授权并翻转(见 §2);保留平台能力差异说明 |
 
 ## 7. 后果
 

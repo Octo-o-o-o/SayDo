@@ -11,6 +11,14 @@ export const recordsFixture = {
   dependencies: [
     makeObligation({ id: "dep1", title: "排 5 天行程草案", owner: "agent", status: "waiting", waitingOn: "等酒店确认" })
   ] as ObligationView[],
+  // DAILY-01:依赖卡需要全量义务 + 任务候选(支撑「加前置」下拉)
+  obligations: [
+    makeObligation({ id: "dep1", title: "排 5 天行程草案", owner: "agent", status: "waiting", waitingOn: "等酒店确认" }),
+    makeObligation({ id: "dep2", title: "酒店确认海景大床房", owner: "external", status: "open" })
+  ] as ObligationView[],
+  tasks: [
+    { id: "tsk_style", title: "样式实现", status: "running", laneId: "lan_main" }
+  ],
   segments: [
     { sessionRef: "ses_12", label: "第 12 次会话 · 昨天 15:02 – 17:40", turnCount: 41, closed: true, transcriptAvailable: true },
     { sessionRef: "ses_11", label: "第 11 次会话 · 周二 10:12 – 11:05", turnCount: 23, closed: true, transcriptAvailable: true },

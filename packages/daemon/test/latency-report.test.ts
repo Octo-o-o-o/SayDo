@@ -70,6 +70,23 @@ describe("decompose:SLO 三态", () => {
     // 总体 P90 被工具轮拉高 ⇒ 总体 fail,但 ptt 自身 pass(这就是不混分布的意义)
     expect(rep.slo.status).toBe("fail");
   });
+
+  it("有效样本超过 20 但仍含非法测量 ⇒ 保留分位数且不得 pass", () => {
+    const traces = [
+      ...Array.from({ length: 21 }, (_, i) => good(i, "ptt")),
+      t("bad-nan", [0, Number.NaN, 700, 900, 1000], "ptt")
+    ];
+    const rep = decompose(traces);
+    expect(rep.n).toBe(21);
+    expect(rep.invalid).toBe(1);
+    expect(Number.isFinite(rep.totalP50)).toBe(true);
+    expect(Number.isFinite(rep.totalP90)).toBe(true);
+    expect(rep.slo.status).toBe("undeterminable");
+    expect(rep.slo.passPublish).toBe(false);
+    expect(rep.byOrigin.ptt?.n).toBe(21);
+    expect(rep.byOrigin.ptt?.invalid).toBe(1);
+    expect(rep.byOrigin.ptt?.status).toBe("undeterminable");
+  });
 });
 
 describe("LatencyCollector:pending 生命周期", () => {
@@ -170,5 +187,40 @@ describe("LatencyCollector:pending 生命周期", () => {
     }
     expect(c.traces()).toHaveLength(2);
     expect(c.countsSnapshot().completed).toBe(3);
+  });
+
+  it("Collector 丢弃 invalid 后仍按 origin 计数,>20 valid 也不得 pass", () => {
+    const c = new LatencyCollector();
+    for (let i = 0; i < 21; i++) {
+      let at = i * 1000;
+      for (const s of stages) c.record(`ok${i}`, s, (at += 10), "ptt");
+    }
+    c.record("bad", "vad_end", 0, "ptt");
+    c.record("bad", "asr_final", Number.NaN, "ptt");
+    c.record("bad", "llm_first_token", 20, "ptt");
+    c.record("bad", "tts_first_byte", 30, "ptt");
+    expect(c.record("bad", "playout_start", 40, "ptt")).toBeNull();
+    const rep = c.report();
+    expect(rep.n).toBe(21);
+    expect(rep.invalid).toBe(1);
+    expect(rep.byOrigin.ptt?.n).toBe(21);
+    expect(rep.byOrigin.ptt?.invalid).toBe(1);
+    expect(rep.slo.status).toBe("undeterminable");
+    expect(rep.byOrigin.ptt?.status).toBe("undeterminable");
+  });
+
+  it("maxPending=1 时同一被拒轮只计一次 overflow,释放槽后不能再进入 pending", () => {
+    const c = new LatencyCollector({ maxPending: 1 });
+    c.start("keep", "ptt", 0);
+    c.start("rej", "ptt", 1);
+    c.record("rej", "vad_end", 2, "ptt");
+    expect(c.countsSnapshot()).toMatchObject({ overflow: 1, started: 2, late: 1 });
+    expect(c.pendingSize()).toBe(1);
+    for (const s of stages) c.record("keep", s, 10);
+    expect(c.pendingSize()).toBe(0);
+    expect(c.record("rej", "asr_final", 20, "ptt")).toBeNull();
+    expect(c.countsSnapshot().overflow).toBe(1);
+    expect(c.pendingSize()).toBe(0);
+    expect(c.countsSnapshot().late).toBeGreaterThanOrEqual(2);
   });
 });

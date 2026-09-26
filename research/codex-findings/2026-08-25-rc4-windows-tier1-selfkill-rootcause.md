@@ -1,5 +1,7 @@
 # RC4 Windows Tier1 自杀链根因定位（Codex gpt-5.6-sol / max，零上下文只读）
 
+> 2026-09-13 后续实现边界:以下为 08-25 候选的根因与历史真机记录,本次未重跑 Windows。当前 `childFromOwnedWindows` 在 wait 已 signaled 后把 STILL_ACTIVE(259) 当实际退出码,不再沿用下文“live 一律续轮询”的旧修法。读取/关闭 stdio 错误传播仍有 SC-51 反例,独立回修中,不能从历史 distribution 通过推断现役 native 链完整。
+
 - 日期：2026-08-25
 - 触发：Windows 真机 `verify:distribution` 在 `:961`「同 HOME 不同端口 lock loser 误杀现役 Tier1 进程组」失败
 - 结论已由 Windows 真机验证：修复后整条 `verify:distribution` exit 0

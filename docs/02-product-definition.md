@@ -2,6 +2,8 @@
 
 > 本篇定义 SayDo 的用户、场景、核心交互循环与产品边界。上一篇:[01 · 背景与问题](01-vision-and-problem.md);技术实现见 [03 · 架构](03-architecture.md) 与 [04 · 关键机制](04-key-mechanisms.md)。
 
+> **现役与目标边界(2026-09-13 对账)**:本文的愿景、交互目标和未来分期不构成当前可用性证明。PG-01B 后现役为本机 T1、逐步确认；远程业务面与直达验收保持关闭，手机回叫只提示回运行 SayDo 的电脑处理。执行器现役为 Cursor/Claude CLI，Codex 执行后端及 Hopper 延期；语音延迟是待测目标，不宣称当前达到亚秒首响。具体合同及证据以 [09](09-data-contracts.md)、[07](07-tech-stack-decisions.md) 和 [本轮对账](review/2026-09-13-consolidation-crosscheck.md) 为准。
+
 ## 1. 目标用户与三个基准场景
 
 三个场景由窄到宽,构成同一个工具的能力光谱(原始需求基线与逐条 checklist 见 `../history/scenarios/`):

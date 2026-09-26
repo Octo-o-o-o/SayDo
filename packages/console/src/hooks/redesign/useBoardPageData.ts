@@ -58,9 +58,14 @@ export function assembleBoardView(
   const boardFocuses = list.filter((f) => BOARD_LIFECYCLES.has(f.lifecycle));
   const detailMap = new Map(details.map((d) => [d.id, d] as const));
 
-  // attention task 项 → TaskView(按 focus 分组);viewStatus 只是按提醒颜色近似,一律记为待核实
-  const tasksByFocus = new Map<string, TaskView[]>();
+  // DAILY-01:detail.tasks = 真实绑定任务(action_execution_bindings);attention 任务项只补缺,
+  // 且仍按颜色近似标「待核实」——有了真账就不再拿近似顶替,也不再标待核实。
+  const realTaskIds = new Set<string>();
+  for (const d of details) {
+    for (const t of d.detail?.tasks ?? []) realTaskIds.add(t.id);
+  }
   const approxStatusTaskIds: string[] = [];
+  const approxByFocus = new Map<string, TaskView[]>();
   for (const it of attention) {
     if (!it.focusId) continue;
     if (!(it.sourceKind === "task" || it.id.startsWith("task:"))) continue;
@@ -74,16 +79,15 @@ export function assembleBoardView(
       },
       it.focusId
     );
-    // 绿区=进行中任务,用 running 近似;橙 task 常=ready_for_review
     if (it.color === "green") tv.viewStatus = "running";
     else if (it.color === "orange") tv.viewStatus = "ready_for_review";
     else if (it.color === "blue") tv.viewStatus = "queued";
-    const arr = tasksByFocus.get(it.focusId) ?? [];
+    const arr = approxByFocus.get(it.focusId) ?? [];
     if (!arr.some((t) => t.id === tv.id)) {
       arr.push(tv);
-      approxStatusTaskIds.push(tv.id);
+      if (!realTaskIds.has(tv.id)) approxStatusTaskIds.push(tv.id);
     }
-    tasksByFocus.set(it.focusId, arr);
+    approxByFocus.set(it.focusId, arr);
   }
 
   const groups: BoardLaneGroupData[] = [];
@@ -112,10 +116,21 @@ export function assembleBoardView(
       (obligationsByLane[lid] ??= []).push(ob);
     }
 
-    const tasks = tasksByFocus.get(row.id) ?? [];
+    // 真实任务(detail.tasks)按 laneId 落线;attention 近似项补未覆盖的,仍挂主线并标待核实
+    const realTasks = (detail?.tasks ?? []).map((t) =>
+      mapTaskRowToView({ id: t.id, title: t.title, status: t.status }, row.id)
+    );
+    const realIds = new Set(realTasks.map((t) => t.id));
+    const approxOnly = (approxByFocus.get(row.id) ?? []).filter((t) => !realIds.has(t.id));
+    const laneOfTask = new Map((detail?.tasks ?? []).map((t) => [t.id, t.laneId ?? null]));
     const tasksByLane: Record<string, TaskView[]> = {};
     for (const lane of lanes) tasksByLane[lane.id] = [];
-    for (const t of tasks) {
+    for (const t of realTasks) {
+      const lid = laneOfTask.get(t.id);
+      const target = lid && tasksByLane[lid] !== undefined ? lid : defaultLane;
+      (tasksByLane[target] ??= []).push(t);
+    }
+    for (const t of approxOnly) {
       (tasksByLane[defaultLane] ??= []).push(t);
     }
 
@@ -171,17 +186,54 @@ export function createBoardPageSession(
   refresh?: PageSessionRefresh
 ): BoardPageSession {
   let raw: { list: FocusListRow[]; attention: AttentionItemRow[]; details: Map<string, BoardDetailResult> } | null = null;
-  const retries = new Map<string, AbortController>();
+  const retries = new Map<string, { controller: AbortController; gen: number }>();
+  const appliedGen = new Map<string, number>();
+  let seq = 0;
+  let latestFullGen = 0;
   let disposed = false;
   const emit = () => {
     if (!raw) return;
     callbacks.onResult(assembleBoardView(raw.list, raw.attention, [...raw.details.values()]));
   };
-  const session = createPageSession<BoardLoadResult>({
-    load: loadBoard,
+  const dropRetry = (focusId: string): void => {
+    const rec = retries.get(focusId);
+    if (!rec) return;
+    rec.controller.abort();
+    retries.delete(focusId);
+  };
+  const session = createPageSession<{ data: BoardLoadResult; gen: number }>({
+    load: async (signal) => {
+      const g = ++seq;
+      latestFullGen = g;
+      for (const [id, rec] of [...retries]) {
+        if (rec.gen < g) dropRetry(id);
+      }
+      const data = await loadBoard(signal);
+      return { data, gen: g };
+    },
     callbacks: {
-      onResult: (res) => {
-        raw = { list: res.list, attention: res.attention, details: new Map(res.details.map((d) => [d.id, d])) };
+      onResult: ({ data, gen }) => {
+        if (disposed) return;
+        const prev = raw;
+        const ids = new Set(data.details.map((d) => d.id));
+        const nextDetails = new Map<string, BoardDetailResult>();
+        for (const d of data.details) {
+          const inflight = retries.get(d.id)?.gen ?? 0;
+          const applied = appliedGen.get(d.id) ?? 0;
+          if ((inflight > gen || applied > gen) && prev?.details.has(d.id)) {
+            nextDetails.set(d.id, prev.details.get(d.id)!);
+          } else {
+            nextDetails.set(d.id, d);
+            appliedGen.set(d.id, gen);
+          }
+        }
+        for (const [id] of [...retries]) {
+          if (!ids.has(id)) dropRetry(id);
+        }
+        for (const id of [...appliedGen.keys()]) {
+          if (!ids.has(id)) appliedGen.delete(id);
+        }
+        raw = { list: data.list, attention: data.attention, details: nextDetails };
         emit();
       },
       onError: callbacks.onError
@@ -193,7 +245,7 @@ export function createBoardPageSession(
     inFlight: () => session.inFlight(),
     dispose: () => {
       disposed = true;
-      for (const c of retries.values()) c.abort();
+      for (const rec of retries.values()) rec.controller.abort();
       retries.clear();
       session.dispose();
     },
@@ -204,18 +256,25 @@ export function createBoardPageSession(
         session.run();
         return;
       }
-      retries.get(focusId)?.abort();
+      retries.get(focusId)?.controller.abort();
+      const g = ++seq;
       const controller = new AbortController();
-      retries.set(focusId, controller);
+      retries.set(focusId, { controller, gen: g });
       fetchBoardDetail(focusId, controller.signal).then(
         (result) => {
-          if (disposed || controller.signal.aborted || retries.get(focusId) !== controller || !raw) return;
+          if (disposed || controller.signal.aborted || retries.get(focusId)?.gen !== g || !raw) return;
+          if (latestFullGen > g) return;
+          if (!raw.list.some((f) => f.id === focusId && BOARD_LIFECYCLES.has(f.lifecycle))) {
+            retries.delete(focusId);
+            return;
+          }
           retries.delete(focusId);
+          appliedGen.set(focusId, g);
           raw.details.set(focusId, result);
           emit();
         },
         () => {
-          // 仅 abort 会走到这里(dispose / 被更新的重试取代):丢弃
+          // 仅 abort 会走到这里(dispose / 被更新的重试取代 / 更新的全页):丢弃
         }
       );
     }

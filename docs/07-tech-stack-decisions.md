@@ -17,12 +17,12 @@
 | # | 域 | 定稿 | 状态 |
 |---|---|---|---|
 | D1 | daemon 运行时 | TypeScript / Node 22+ | 定稿 |
-| D2 | 语音管线 | Pipecat(独立 Python 进程)+ Silero VAD | 待 spike(打断语义) |
+| D2 | 语音管线 | 现役自写 Python WS client + RMS/hangover VAD | Pipecat spike 已验证但运行时未接入；Silero 升级待验，见 D2 |
 | D3 | 模型分档 | 对话档 / 沉思档 / 廉价档三档 + 异族 evaluator | 定稿(具体模型可配置) |
 | D4 | ASR | **火山豆包 bigmodel 流式(sauc)+ 热词偏置**(定档;MLX Whisper 本地选项) | 定稿(2026-07-24;工程 ADR-101) |
 | D5 | TTS | **火山豆包 seed-tts-2.0 大模型 · v3 双向流式 WebSocket**(定档)+ 本地兜底按 OS(macOS:Kokoro MLX/`say`;Windows P0:无本地则 ntfy,P1:SAPI/piper) | 定稿(2026-07-23;Windows 投影 2026-08-21 设计 ADR-004) |
 | D6 | S2S 引擎 | OpenAI Realtime,仅对话呈现层 | 分期(P2) |
-| D7 | 执行后端 | Hopper(现状 task 粒度起步) | 定稿 |
+| D7 | 执行后端 | 现役 daemon Tier 1；Hopper 为后续集成方向 | 选型定稿，Hopper 未接入 |
 | D8 | agent 接入 | Claude=**CLI `-p` + PreToolUse hooks**(Tier 1,产品目标缺省;原"Agent SDK"传输 2026-08-21 supersede,生产主流程已接线、live conformance 收口中);**Cursor=CLI hooks(Tier 1,当前稳定/dev 缺省;SDK=P1)**;Codex=经 Hopper exec(Tier 2)→ 评估 app-server | 定稿(传输形态 2026-08-21 修订) |
 | D9 | 记忆存储与检索 | Markdown 真相 + append-only 账本 + SQLite FTS5 | 待 spike(中文分词) |
 | D10 | 审批持久化 | 自建 SQLite 表,抄 LangGraph interrupt 语义 | 定稿 |
@@ -30,7 +30,7 @@
 | D12 | 移动外壳 | Capacitor + 自写薄原生模块(音频/推送) | 分期(P1) |
 | D13 | 移动连接 | Tailscale(T2)/ 自建 WS 密文中继(T3),不用 WebRTC P2P | 定稿 |
 | D14 | 控制台前端 | Vite + React 单页,daemon 静态托管,不用 Electron | 定稿 |
-| D15 | 成本与观测 | Hopper usage 中枢 + daemon 会话账本;LiteLLM/Langfuse 按需后引 | 定稿 |
+| D15 | 成本与观测 | 现役 Tier 1 usage + daemon 会话账本；Hopper usage 为后续集成方向 | 定稿，集成边界见 D15 |
 | D16 | 存储 | SQLite(better-sqlite3)+ JSONL 事件流 | 定稿 |
 | D17 | 分发形态 | CLI + daemon 手动起步 → macOS launchd(已提前) / Windows CLI supervisor(P0)+ Scheduled Task(P1) → 菜单栏(P2) | 定稿(Windows 投影设计 ADR-004) |
 | D18 | 模型供给 | API 直连 + 本地 Agent CLI 订阅复用;thinking/cheap/evaluator 的 CLI 无状态一发一收与 `dialog_cli_oneshot` 文本单发均为正式形态 | 已实施(T18 三轮精化;对话 CLI 仅判死语音实时环与完整多轮工具环,2026-08-11) |
@@ -67,7 +67,9 @@ localhost 控制台,不适合作为默认桌面入口；原生 `.dmg/.msi/.deb` 
 
 ## 3. 语音链路
 
-### D2 语音管线:Pipecat 独立进程(待 spike)
+### D2 语音管线:选型实验与现役自写管线
+
+工程 ADR-001 已记录 Pipecat 打断实验通过及「留任但未消费」结论；下面候选/暂定/切换条款是原选型依据，不能解释为当前已用 Pipecat，也不能说该实验尚未进行。实际运行形态见本节实施状态注。
 
 - **候选**:**Pipecat**(BSD-2,13k stars,Python)· **LiveKit Agents**(Apache-2.0,11k stars)· 自研薄管线(浏览器采集 → WS → daemon 直调流式 API)。
 - **暂定**:P0 用 **Pipecat 作为独立 Python 语音进程**,经 WS 与 TS daemon 通信(daemon 是唯一状态持有者,语音进程无状态可随时重启)。理由:级联集成最全、provider 一行可换、BSD-2 干净;P0 单机 localhost 不需要 LiveKit 的 WebRTC SFU 底座。自研薄管线看似省一个进程,实际要重写 VAD 对齐、分句 TTS、打断管线,省不了。
@@ -115,7 +117,9 @@ localhost 控制台,不适合作为默认桌面入口；原生 `.dmg/.msi/.deb` 
 
 ## 5. 执行与适配
 
-### D7 执行后端:Hopper(定稿)
+### D7 执行后端:现役 Tier 1 与后续 Hopper 选型
+
+**当前实施边界(2026-09-13)**:生产执行由 daemon 的 Tier 1 执行器与 Cursor/Claude CLI 后端承载；Hopper 集成尚未接线，Codex 经 Hopper 的 Tier 2 也不能记为现役能力。下面保留选型依据与未来集成约束，不作为已实施或当前验收通过的证据。
 
 - **候选**:Hopper · 自建薄下游 · OctoDesk ExternalAgentBridge 桥接 · OpenHands Agent Canvas · OpenClaw-Kit CLI 桥。
 - **理由**(详见 `../research/local-projects-borrowing-assessment.md`):同栈 TS/MIT、1076 单测全绿、作者唯一在推;runners/worktree/事件溯源/预算/恢复/审批 schema 全有。OpenClaw-Kit 编排正整体并入 Hopper(短期桥接可行、长期没有意义);OctoDesk 无库边界不能当内核;OpenHands 是重载体,与"薄缝合"定位冲突;自建薄下游 = 把 Hopper 已测试过的东西重写一遍。
@@ -151,7 +155,7 @@ localhost 控制台,不适合作为默认桌面入口；原生 `.dmg/.msi/.deb` 
 ### D11 通知/推送:ntfy 起步,直连收尾(定稿)
 
 - P0:**ntfy**(自托管,32k stars,自带 `X-Call` 电话 TTS)+ OS 桌面通知(macOS=`osascript`;Windows=toast,失败同构降 ntfy;工程 ADR-003)——一天接通。
-- P0.5 候选(EMAIL-A 阶段 A,2026-09-09 决策单第 11 节立项):**标准邮件(SMTP submission 出站)**作 L1 与 ntfy 并列的可选通道(任一配置即启用),不自建 IMAP/SMTP 服务、不替代 outbox/升级链/审批内核;客户端只用 Node 内置 `net`/`tls`,不新增依赖;阶段 B(入站文字轮次)后议,Web Push / CalDAV 不另开。
+- 已入源码(EMAIL-A 阶段 A,2026-09-09 决策单第 12 节授权合入;真实 SMTP 与收件端线程展示未验):**标准邮件(SMTP submission 出站)**作 L1 与 ntfy 并列的可选通道(任一配置即启用),不自建 IMAP/SMTP 服务、不替代 outbox/升级链/审批内核;客户端只用 Node 内置 `net`/`tls`,不新增依赖;阶段 B(入站文字轮次)后议,Web Push / CalDAV 不另开。**当前边界(PG-01B 远程业务关闭后)**:L1 ntfy/邮件的任务入口只给本机受信地址(loopback),不把 tailnet/远程任务 URL 当作可点入口;正文须写明回到运行 SayDo 的电脑打开或处理,不得声称手机可处理远程业务 API。不因此重开远程业务面,也不改 outbox 升级/投递/线程/ACK 状态机。
 - P1(随移动端):**自建 APNs(JWT ES256 HTTP/2)/ FCM(OAuth)直连**,抄 OctoDesk 推送隐私契约(payload 只带 opaque id + meta 白名单、token 只存 digest);PushKit/CallKit 承载"来电式汇报"。
 - P2:电话回叫用 Realtime SIP **呼入**模型(外呼要 Twilio + 自建媒体桥,成本运维高,进阶可选)。
 
@@ -162,7 +166,9 @@ localhost 控制台,不适合作为默认桌面入口；原生 `.dmg/.msi/.deb` 
 - **降级/升级路径**:若音频质量(AEC/路由切换/double-talk)不达标,P2 把**传输与音频层整体换 Swift 原生**(参照 OctoDesk 的做法:原生壳 own 传输,WebView 只渲染),UI 层继续复用 web。
 - RN 不选:等于同时维护第三种 UI 技术栈,而我们的 UI 主体已是 web。
 
-### D13 移动连接(定稿,详见 `../research/mobile-desktop-connectivity.md`)
+### D13 移动连接(设计方向,详见 `../research/mobile-desktop-connectivity.md`)
+
+**当前实施边界(2026-09-13)**:PG-01B 已关闭远程业务面；下列 T2/T3 为后续设计，不表示手机或 tailnet 当前可操作业务 API。通知要求回到运行 SayDo 的电脑处理，重开远程业务须单独立项与验收。
 
 T2 用 **Tailscale**;需要"QR 配对 + LAN 直连"体验或 T3 时,按 **OctoDesk 协议模板重实现瘦身版**(LAN WS 直连优先 + WS 密文中继兜底 + Noise XX E2E,配对/信任/resume/推送隐私五件套照抄设计);**不用 WebRTC P2P/TURN**(OctoDesk 与 Happy 两个产线实现都刻意不用);跨设备 sync/流 resume 自建(OctoDesk 该处是 503 stub,无现成可抄)。
 
@@ -174,7 +180,7 @@ daemon 静态托管的单页应用(麦克风采集、任务看板、决策包/De
 
 ### D15 成本与观测(定稿)
 
-- 成本:执行域用 **Hopper usage 中枢**(真实额度窗口 + cost-aware 派发);对话域 daemon 自记会话账本(ASR 分钟/LLM token/TTS 字符),汇成 04 §3 的全链账本。**LiteLLM 网关 P0 不引**(链路少,直连 provider 即可),多 provider 计费混乱时再上。
+- 成本:现役执行域读取 **Tier 1 后端 usage**，对话域由 daemon 记录会话账本(ASR 分钟/LLM token/TTS 字符)，汇成 04 §3 的全链账本；Hopper usage 中枢、真实额度窗口与 cost-aware 派发属于尚未接入的后续方向。**LiteLLM 网关 P0 不引**(链路少,直连 provider 即可),多 provider 计费混乱时再上。
 - 观测:P0 结构化日志(JSONL)+ SQLite 查询就够;P1 可选 Langfuse(MIT,本地 docker)做 trace/成本归因。不上 OTel 全家桶。
 
 ## 9. 刻意不用的技术(反向清单)
@@ -265,7 +271,7 @@ daemon 静态托管的单页应用(麦克风采集、任务看板、决策包/De
 
 ## 10. P0 第一周 spike 清单(按风险排序)
 
-1. **Pipecat 打断 watermark**:能否截断"已听到的历史"、未播文本标 unheard——定 Pipecat vs LiveKit Agents(D2 的去留开关);
+1. **Pipecat 打断 watermark**:工程 ADR-001 的实验已通过，留任结论有效但运行时未接入；后续接入需按现役链路重验，原去留实验不作为已接入证明；
 2. **Claude Agent SDK 实测**:streaming input + canUseTool 阻塞审批 + steer 全链路(Tier 1 成立的前提)——**状态注(2026-08-21)**:已改道 CLI 路径结项,`-p` + PreToolUse hooks 的 S1-S3 裁决/同步等待/超时语义均经 W5.4 方案 §1.2 十七项 spike 实证(2.1.220);streaming input 仅可行性 spike(B-6),live steer 不实现;
 3. **Hopper 对接现状**:task drop 格式、events.jsonl 消费(cursor/gap/重放幂等)、NotificationIntent 挂语音 transport;
 4. ~~ASR golden 集跑分~~ **已结项(2026-07-24,D4 定档)**:60 条种子语料火山单家定档(工程 ADR-101);第二家对比与 300–500 条真实 golden = 换 provider 门禁,非开工门;
@@ -275,6 +281,8 @@ daemon 静态托管的单页应用(麦克风采集、任务看板、决策包/De
 8. **Cursor 当 Tier 1 后端**(D8,dev 机去 Claude 的前提)——**CLI 变体 2026-07-23 已实测通过**(`research/spikes/cursor-cli-tier1/`:beforeShellExecution 钩子无头触发+deny 拦截+阻塞等待三测全过,零 API key 走订阅);剩余待测项 = ① 真实多步执行任务里 setup(装依赖)/push 的钩子覆盖面 ② `--resume` 崩溃恢复上下文完整性 ③ SDK/API 变体(`research/spikes/cursor-sdk-tier1/`,后续要用 API 时跑,验计费口径)。
 
 ## 11. 与分期的映射
+
+下表保留原始选型的分期归属，不作为当前排产或实施完成表；现役排产以 `docs/plan/IMPLEMENTATION-PLAN-2.md` 为准，Hopper 与远程业务边界分别见 D7、D13。
 
 | 阶段 | 本篇引入项 |
 |---|---|

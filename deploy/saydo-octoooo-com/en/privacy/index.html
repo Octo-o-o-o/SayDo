@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Privacy Policy · SayDo</title>
-  <meta name="description" content="SayDo runs no servers. Core ledger data stays on your computer; model, voice, and push egress follow your current configuration. Product data travels on your LAN or an encrypted overlay you configure." />
+  <meta name="description" content="SayDo runs no servers. Core ledger data stays on your computer; model, voice, and push egress follow your current configuration. Remote business access is currently closed; use the local interface on your computer." />
   <meta name="theme-color" content="#f0ede4" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#171410" media="(prefers-color-scheme: dark)" />
   <link rel="canonical" href="https://saydo.octoooo.com/en/privacy/" />
@@ -16,13 +16,13 @@
   <script>
     (function () {
       var t = "";
-      try { t = localStorage.getItem("saydo.theme") || ""; } catch (e) {}
+      try { t = localStorage.getItem("saydo-site-theme") || ""; } catch (e) {}
       if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
       else if (t === "light") document.documentElement.setAttribute("data-theme", "light");
     })();
   </script>
   <link rel="stylesheet" href="/tokens.css" />
-  <link rel="stylesheet" href="/site.css?v=20260825d" />
+  <link rel="stylesheet" href="/site.css?v=20260917a" />
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to main content</a>
@@ -35,12 +35,13 @@
         <span class="brand-en">说到</span>
       </a>
       <nav class="nav" data-nav aria-label="Primary">
-        <a class="nav-link" href="/en/#why">Why</a>
-        <a class="nav-link" href="/en/#dialogue">A conversation</a>
-        <a class="nav-link" href="/en/#how">How it works</a>
-        <a class="nav-link" href="/en/#status">Status</a>
-        <a class="nav-link" href="/en/#privacy">Privacy</a>
+        <a class="nav-link" href="/en/#product-tour">Why</a>
+        <a class="nav-link" href="/en/#mobile">A conversation</a>
+        <a class="nav-link" href="/en/#say-voice">How it works</a>
+        <a class="nav-link" href="/en/#examples">Status</a>
+        <a class="nav-link" href="/en/privacy/">Privacy</a>
         <a class="nav-link" href="/en/#faq">FAQ</a>
+        <a class="nav-link" href="/en/quick-start/">Quick start</a>
         <a class="nav-link" href="/en/docs/">Docs</a>
       </nav>
       <div class="header-actions">
@@ -66,12 +67,13 @@
       <p class="lede">Effective: August 21, 2026&ensp;|&ensp;Developer: Yixiao&nbsp;Wang&nbsp;(individual)&ensp;|&ensp;Contact: <a href="mailto:support@octoooo.com">support@octoooo.com</a></p>
 
       <h2>The one-sentence version</h2>
-      <p>SayDo runs no servers. Core ledger data stays on <strong>your computer</strong>. Cloud voice, AI upstreams, and push that you enable yourself are called directly from your computer to those third parties, and egress follows your current configuration. Product data travels on your own LAN or an encrypted overlay you configure. The developer cannot access — and does not collect — any of your data.</p>
+      <p>SayDo runs no servers. Core ledger data stays on <strong>your computer</strong>. Cloud voice, AI upstreams, and push that you enable yourself are called directly from your computer to those third parties, and egress follows your current configuration. Remote business access is currently closed; use the local interface on your computer. The developer cannot access — and does not collect — any of your data.</p>
 
       <h2>What we collect</h2>
       <p>Nothing. The app has no developer-operated backend, no account system, no analytics, and no third-party tracking or advertising SDKs. No user data is uploaded to the developer. AI, optional cloud voice, and optional push that you configure yourself are governed by your agreements with those third parties.</p>
 
-      <h2>Device capabilities the app uses, and why</h2>
+      <h2>Mobile-shell device permissions</h2>
+      <p>The following describes existing mobile-shell permissions and the historical pairing design. It does not mean that remote business features are available on phones in the current version. See the <a href="/en/docs/#quickstart">usage documentation</a> for available entry points. Cloud voice, AI, and push egress still depend on your configuration.</p>
       <div class="table-scroll">
       <table>
         <thead>
@@ -94,7 +96,7 @@
       </ul>
 
       <h2>Data deletion</h2>
-      <p>Deleting the app removes all phone-side local data (pairing information and caches). Desktop-side data is managed and deleted by you on your computer.</p>
+      <p>You can delete pairing records within the app. Uninstalling the app does not guarantee that all data in secure system storage or system backups is erased; check the data-management options provided by your operating system. Desktop-side data is managed and deleted by you on your computer.</p>
 
       <h2>Children</h2>
       <p>The app is not designed for children under 14, collects no personal information, and contains no content directed at children.</p>
@@ -120,10 +122,10 @@
         <div class="footer-col">
           <h4>PRODUCT</h4>
           <ul>
-            <li><a href="/en/#how">How it works</a></li>
-            <li><a href="/en/#why">Why different</a></li>
-            <li><a href="/en/#status">Status</a></li>
-            <li><a href="/en/#start">Get Started</a></li>
+            <li><a href="/en/#say-voice">How it works</a></li>
+            <li><a href="/en/#product-tour">Why different</a></li>
+            <li><a href="/en/#examples">Status</a></li>
+            <li><a href="/en/quick-start/">Get Started</a></li>
           </ul>
         </div>
         <div class="footer-col">

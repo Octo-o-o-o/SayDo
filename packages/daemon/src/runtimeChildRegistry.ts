@@ -460,12 +460,21 @@ function flushStdioThenExit(code) {
     return;
   }
   // 等 fd1/fd2 内核队列空再退；不得用固定超时截断尾部输出。
+  // 完全停滞只截止等待：未排空不得带着原成功码退出。原失败码保持，0 升为 124。
   let finished = false;
-  const finish = () => {
+  const finish = (exitCode) => {
     if (finished) return;
     finished = true;
-    wlog("flush-exit " + code);
-    process.exit(code);
+    wlog("flush-exit " + exitCode);
+    process.exit(exitCode);
+  };
+  const keepFailure = typeof code === "number" && code !== 0 ? code : 124;
+  const failIncomplete = (reason, pending) => {
+    wlog("flush-" + reason + " pending=" + String(pending));
+    try {
+      process.stderr.write("saydo: wrapper stdio flush " + reason + " pending=" + String(pending) + " (fail-closed)\n");
+    } catch {}
+    finish(keepFailure);
   };
   const drained = (stream) => {
     if (!stream || !stream.writable || stream.destroyed) return true;
@@ -486,23 +495,54 @@ function flushStdioThenExit(code) {
   // 故只对"完全停滞"设限,不对总时长设限。
   let lastPending = -1;
   let stalledSince = 0;
+  let emptying = false;
   const wait = () => {
+    if (finished) return;
     if (drained(process.stdout) && drained(process.stderr)) {
-      process.stdout.write("", () => {
-        process.stderr.write("", () => finish());
-      });
+      if (!emptying) {
+        emptying = true;
+        stalledSince = performance.now();
+        try {
+          process.stdout.write("", (err) => {
+            if (finished) return;
+            if (err) {
+              failIncomplete("write-error", pendingBytes(process.stdout) + pendingBytes(process.stderr));
+              return;
+            }
+            try {
+              process.stderr.write("", (err2) => {
+                if (finished) return;
+                if (err2) {
+                  failIncomplete("write-error", pendingBytes(process.stdout) + pendingBytes(process.stderr));
+                  return;
+                }
+                finish(code);
+              });
+            } catch {
+              failIncomplete("write-error", pendingBytes(process.stdout) + pendingBytes(process.stderr));
+            }
+          });
+        } catch {
+          failIncomplete("write-error", pendingBytes(process.stdout) + pendingBytes(process.stderr));
+          return;
+        }
+      }
+    } else {
+      const pending = pendingBytes(process.stdout) + pendingBytes(process.stderr);
+      const now = performance.now();
+      if (pending !== lastPending) {
+        lastPending = pending;
+        stalledSince = now;
+      } else if (stalledSince > 0 && now - stalledSince >= 10000) {
+        failIncomplete("stalled", pending);
+        return;
+      }
+    }
+    if (emptying && stalledSince > 0 && performance.now() - stalledSince >= 10000) {
+      failIncomplete("write-stalled", pendingBytes(process.stdout) + pendingBytes(process.stderr));
       return;
     }
-    const pending = pendingBytes(process.stdout) + pendingBytes(process.stderr);
-    const now = performance.now();
-    if (pending !== lastPending) {
-      lastPending = pending;
-      stalledSince = now;
-    } else if (stalledSince > 0 && now - stalledSince >= 10000) {
-      wlog("flush-stalled pending=" + String(pending));
-      finish();
-      return;
-    }
+    if (finished) return;
     setTimeout(wait, 0);
   };
   wait();
@@ -1415,7 +1455,7 @@ const OWNED_WINDOWS_READ_PIPE_CLOSE_CODES = new Set([
   "ERR_STREAM_PREMATURE_CLOSE"
 ]);
 
-function wrapOwnedWindowsReadStream(stream: Readable): Readable {
+export function wrapOwnedWindowsReadStream(stream: Readable): Readable {
   const out = new PassThrough();
   let done = false;
   const finish = (): void => {

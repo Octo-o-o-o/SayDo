@@ -77,18 +77,24 @@ async function loadRecords(
         }))
       : [{ id: "__main__", title: "主线", eventCount: mainCount || events.length }];
 
-  // 依赖:waiting 且挂了 waitingOnObligationId
-  const dependencies = detail.obligations
-    .filter((o) => o.status === "waiting" && (o.waitingOnObligationId || o.waitingOn))
-    .map((o) => mapObligationView(o, focusId));
+  // 依赖:waiting/blocked 且挂了结构化前置(义务级或 DAILY-01 任务级)
+  const obligations = detail.obligations.map((o) => mapObligationView(o, focusId));
+  const dependencies = obligations.filter(
+    (o) =>
+      (o.status === "waiting" || o.status === "blocked") &&
+      (o.waitingOnObligationId || o.waitingOnTaskId || o.waitingOn)
+  );
 
   const segments = mapRecordSegments(timeline);
   const recordEvents = mapRecordEvents(events).slice().sort((a, b) => b.seq - a.seq);
+  const tasks = (detail.tasks ?? []).map((t) => ({ id: t.id, title: t.title, status: t.status }));
 
   return {
     focus,
     lanes,
     dependencies,
+    obligations,
+    tasks,
     segments,
     events: recordEvents
   };

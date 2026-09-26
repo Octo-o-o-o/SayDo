@@ -185,7 +185,25 @@ export async function collectDoctor(input: {
         ...(stateRootDigest !== undefined ? { stateRootDigest } : {})
       };
       if (state !== "home_mismatch") {
-        readiness = parseReadiness((await fetchJson(`http://127.0.0.1:${input.port}/readyz`)).body);
+        const readyz = await fetchJson(`http://127.0.0.1:${input.port}/readyz`);
+        readiness = parseReadiness(readyz.body);
+        const readyIdentity = runtimeIdentitySchema.safeParse(readyz.body?.["identity"]);
+        if (readyIdentity.success) {
+          const a = identity.data;
+          const b = readyIdentity.data;
+          if (
+            a.buildId !== b.buildId ||
+            a.sourceRevision !== b.sourceRevision ||
+            a.protocolVersion !== b.protocolVersion
+          ) {
+            findings.push({
+              code: "identity_drift",
+              severity: "warn",
+              summary: "health 与 readyz 的 runtime identity 不一致",
+              next: "稍候再执行 saydo doctor;持续漂移时重启 daemon"
+            });
+          }
+        }
       }
     }
   }
@@ -288,11 +306,43 @@ export async function collectDoctor(input: {
         summary: "语音 pipeline 未接入(未安装或未启动);控制台可用,语音不可用",
         next: "需要语音时安装并启动 pipeline(源码树:cd pipeline && uv sync && uv run python -m saydo_pipeline);否则用打字或浏览器系统语音"
       });
-    } else if (!readiness.voiceReady && readiness.voiceReason !== "unknown") {
+    } else if (!readiness.voiceReady) {
+      if (readiness.voiceReason === "unknown") {
+        findings.push({
+          code: "voice_unknown",
+          severity: "warn",
+          summary: "语音未就绪,原因未知",
+          next: "稍候再执行 saydo doctor;持续未知时查看 daemon 与 pipeline 日志"
+        });
+      } else {
+        findings.push({
+          code: "voice_degraded",
+          severity: "warn",
+          summary: `语音降级:${readiness.voiceReason}(asr ${readiness.asr} / tts ${readiness.tts})`,
+          next: readiness.voiceReason === "health_stale"
+            ? "pipeline 心跳过期:检查 pipeline 进程是否卡住,必要时重启 pipeline"
+            : readiness.voiceReason === "protocol_mismatch" || readiness.voiceReason === "home_mismatch"
+              ? "pipeline 与 daemon 版本或数据目录不一致:用同一安装、同一 SAYDO_HOME 重启 pipeline"
+              : "检查对应语音服务商的 key 与网络;恢复后 pipeline 会自动回到 ok"
+        });
+      }
+    } else if (
+      readiness.voiceReason === "unknown" ||
+      readiness.asr === "unknown" ||
+      readiness.tts === "unknown"
+    ) {
+      // voiceReady=true 不能与未知/缺失/非法字段拼成全部正常(asr/tts 非法值已归一成 unknown)。
+      findings.push({
+        code: "voice_unknown",
+        severity: "warn",
+        summary: `语音声称就绪但状态未知(asr ${readiness.asr} / tts ${readiness.tts})`,
+        next: "稍候再执行 saydo doctor;持续未知时查看 daemon 与 pipeline 日志"
+      });
+    } else if (readiness.asr !== "ok" || readiness.tts !== "ok" || readiness.voiceReason !== "ready") {
       findings.push({
         code: "voice_degraded",
         severity: "warn",
-        summary: `语音降级:${readiness.voiceReason}(asr ${readiness.asr} / tts ${readiness.tts})`,
+        summary: `语音声称就绪但链路未正常:${readiness.voiceReason}(asr ${readiness.asr} / tts ${readiness.tts})`,
         next: readiness.voiceReason === "health_stale"
           ? "pipeline 心跳过期:检查 pipeline 进程是否卡住,必要时重启 pipeline"
           : readiness.voiceReason === "protocol_mismatch" || readiness.voiceReason === "home_mismatch"

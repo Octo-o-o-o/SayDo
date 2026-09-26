@@ -99,9 +99,9 @@ expected_tag     = "v0.1.0-saydo-baseline.2"  # annotated tag(^{commit}=上面 S
 enabled = true
 bypass  = false                # 恒 false;为 true 时 dispatch 一律拒绝(防误配)
 
-# ============ T2 薄版(Tailscale 组网;09 §11)============
-# 本机 Tailscale 连上后,把 MagicDNS 主机名与 100.x 地址写入枚举,listen 改 0.0.0.0,
-# 再重启 daemon;`just t2-pair` 出配对 URL。禁通配;含非法项则整面不开。
+# ============ T2 历史配置形状(09 §11)============
+# PG-01B 已关闭远程业务入口;以下枚举只保留配置兼容,不开放远程任务/语音。
+# `just t2-pair` 不再生成业务配对 URL;当前请在运行 SayDo 的电脑上操作。禁通配。
 # [t2]
 # tailnet_hosts = ["your-machine.tailxxxx.ts.net", "100.x.y.z"]
 # listen        = "0.0.0.0"

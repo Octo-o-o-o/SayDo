@@ -16,7 +16,7 @@
 
 > 从属关系:十条是"注意力经济"与"诚实优先"在协作场景的实现细则,与上五条冲突时让位于五条。
 
-1. **操作面唯一性**:同一实体两个投影——推进投影(对话时间线内,可操作)与状态投影(右栏,只读);操作永远单点。
+1. **操作面唯一性**:同一实体两个投影——推进投影(对话时间线内,可操作)与状态投影(右栏,只读);操作永远单点。(**DAILY-01 修订 2026-09-19**:Focus 页状态投影由常驻右栏改为事内「上下文」按需页签;投影语义不变,仅挂载方式变。)
 2. **对话-账本双向锚定**:每个实体可反向定位到生成它的对话时刻;账本与叙事互锚(叙事-账本分叉的呈现层防线)。
 3. **球权分流,而非优先级分流**:收件箱四色按「球在谁+需要什么动作」组织(橙=拍板/回答、蓝=你的动作、绿=AI 在做、灰=等外部)。
 4. **对齐是 AI 的义务,不是用户的查询**:进度对齐卡由 AI 主动推入。
@@ -332,6 +332,8 @@
 ## 3. 布局与信息架构(与 08 §6 对齐)
 
 - **外壳**(2026-08-27 月度审计随实现回写;IA 演进史见 08 §6 修订):左侧栏(`--w-sidebar`,宣纸通底 `--bg-app` + 墨线分隔,树形导航="开口聊 CTA/今天/全景看板/正在持续的事/记录/旧版折叠",项目选择器沉底)+ 顶栏(52px,宣纸通底:语音会话指示器 + 通知铃 + 免打扰 + 主题切换)+ 内容区(最大宽 1600px 居中,gutter 20px;`8b74430` 08-06 起)。默认路由 `#/today`。
+  - **DAILY-01 修订(2026-09-19)**:侧栏「全景看板」更名「泳道」,新增「安排」(`#/arrangements`)与「归档」(`#/archive`)两项;顶栏新增 ⌘K 命令菜单入口。Focus 页改按需页签(对话/产物/泳道/依赖/记录/上下文),`≥1100px` 常驻右栏约定废止;移动支线页加 工作/航迹/依赖 页签,`/m/arrangements`、`/m/archive` 为只读页。
+  - **JOURNEY-01 生产动作(2026-09-20,09 §15.2)**:Focus 页任务卡/决策包卡必须来自 `GET /api/focuses/:id`.tasks 与 `GET /api/tasks/:id`/`attention`/live 卡的同一 `taskId`/`packageId`+`revision`;批准只消费匹配该实体的确认卡,禁止用当前任意 `confirmCard`。采访应答走已归属本 focus 的会话 `turn.text` 或 readiness 卡,不用可编辑草稿冒充已答。`#/cost`「全部」合计用 `GET /api/costs`.byProject;明细窗口截断必须可见(09 §9)。移动航迹投影保留 `laneId`/`obligationId`(schema 已有,不得剥身份)。
 - **画布**:`--bg-app` + 双光斑 + 细噪点(唯一装饰,照抄 OctoBlog `.canvas-atmosphere` 配方)。
 - **卡片即单位**:一切内容承载在纸面卡片(`--surface` + `--radius-md`/`lg` + `--line` + `--shadow-card`;组件为 `PaperCard`);票据类卡用 `--radius-ledger` 系不对称角。卡片不嵌卡片超过两层。**禁 `backdrop-filter`**——纸是清晰的,不做玻璃模糊。
 - **断点**:`≥1280` 双栏(对话页转写流+右栏草稿);`768–1279` 单栏可折叠侧栏;`<768` 移动式(侧栏抽屉、底部主操作)。D2 原生外壳(P1)复用同一套响应式,不另做设计。
@@ -370,8 +372,8 @@
 
 ### 5.5 review 证据视图(任务详情主体)
 
-- 按 `DecisionPackage.acceptance[]` 分组:每条 AC 一行 `AcceptanceCheck`(pass=`check`/fail=`x`/unknown=`circle-dashed`+"未验证",禁伪精确)。逐条状态只读 settle proof / 人工裁决的显式证据;`ready_for_review`、`failed` 等任务终态不得批量投影成 pass/fail。旧 proof、重复/缺失 criterion、或 pass/fail 缺非空 `evidenceRef` 一律显示 unknown。**decisions 区已实施(W5a 2026-07-27)**:证据视图内 decisions 列表(每条=决策+理由+可推翻,≤5 条)读 `tier1_runs.decisions_json`——与语音口播同一落库份(09 §13 生产语义注)。
-- 路径二任务:证据主体 = 嵌 Hopper trust-report(自包含单文件,09/设计 ADR-001)。**嵌入合同(Codex 复审 A2/A4)**:`RunSettled.summary_path` 指向 `.md`——校验其在受信 vault 内(防越界路径)后**受控映射到同 basename 的 `.html`**(post-run 同时生成),文件缺失/扩展名异常按证据缺失处理;**展示层做确定性字符转换**(Hopper 报告内含 emoji,渲染前按映射表替换为 Lucide 图标/文本标记 + DOM 字符门禁),**原始文件原样留存、不改变证据 digest**——转换只发生在呈现层。
+- 按 `DecisionPackage.acceptance[]` 分组:每条 AC 一行 `AcceptanceCheck`(pass=`check`/fail=`x`/unknown=`circle-dashed`+"未验证",禁伪精确)。逐条状态只读 settle proof / 人工裁决的显式证据;`ready_for_review`、`failed` 等任务终态不得批量投影成 pass/fail。旧 proof、重复/缺失 criterion、或 pass/fail 缺非空 `evidenceRef` 一律显示 unknown。**证据正文**(2026-09-22):必须是该条 `evidenceRef` 所指的原始输出/文件差异/检查结果,由 `GET /api/tasks/:id` 在同任务、同 run 边界内受控解析;缺 ref、digest 不匹配、跨 run、无权、文件不在该 run 树内 = 诚实缺证。禁止把 runId/treeSha/attempt/status 拼成 log 冒称证据。**decisions 区已实施(W5a 2026-07-27)**:证据视图内 decisions 列表(每条=决策+理由+可推翻,≤5 条)读 `tier1_runs.decisions_json`——与语音口播同一落库份(09 §13 生产语义注)。
+- **延期设计(设计 ADR-005;非现役 Tier1 实现)**:路径二任务的证据主体 = 嵌 Hopper trust-report(自包含单文件,09/设计 ADR-001)。**嵌入合同(Codex 复审 A2/A4)**:`RunSettled.summary_path` 指向 `.md`——校验其在受信 vault 内(防越界路径)后**受控映射到同 basename 的 `.html`**(post-run 同时生成),文件缺失/扩展名异常按证据缺失处理;**展示层做确定性字符转换**(Hopper 报告内含 emoji,渲染前按映射表替换为 Lucide 图标/文本标记 + DOM 字符门禁),**原始文件原样留存、不改变证据 digest**——转换只发生在呈现层。
 - 操作行:验收通过(次按钮)/ 提修改(次按钮,文案"这轮不作废")/ **作废这轮**(危险描边,带二次确认对话框——§5.1 危险确认纪律;走取消链,10 #34)/ 合并(S3 组件;**批准前置灰**,§5.4 终局置灰同款)/ **我已合并,核验**(次按钮,归 S3 组件组)。零外部跳转(diff/日志深链仅工程排障入口,collapsed)。**writing 任务(R-A 补完 2026-07-27,Codex 21 A5)**:manual 验收项未逐条裁决前"验收通过"置灰(writingSettleBarrier ④,09 §6.1a);AcceptanceCheck 行提供逐条 pass/fail 勾选,勾选结果即 approve 载荷的一部分——settled ≠ 全绿,禁默认 pass 投影。
 - **合并按钮语义(R-A 2026-07-26;S3 卡兑现后收窄;设计 ADR-004)**:`review_approved_waiting_merge` 态下——**主路径 = "用本机认证批准合并"**(S3 卡,§5.4;过卡→daemon 本地 rebase+verify+合并,09 §3.3);**"我已合并,核验"降级为次要入口**(仅未注册 passkey / owner 选人工时用,触发 MergeProof watcher 对账外部合并)。coding 与 writing(content_done 态)同构此操作行;writing 的"合并"= 文章稿并回主分支(02 §5.0)。
 
@@ -518,7 +520,8 @@ shadcn 原样(Input/Select/Switch/Tabs);设置页每项带一句 muted 说明;�
 - **思考中反馈**(场次① A3;02 §3 learning 一等状态):用户轮发出(A 档转写到达/文本发送)到 Brain 首句回话之间,消息流末尾显示"思考中…"占位;首句 TTS 到达即替换,45s 兜底自动清——**不留白让用户以为卡死;B 档转写期间绝不显示思考中**(AI 尚未收到任何内容)。
 - **CLI 慢速模式**:probe 的 dialog `mode="oneshot"` 时,对话页常驻徽标"CLI 慢速模式·每轮约 15-25 秒·配 API key 立即变快"。轮次进行中使用现有 turn/thinking 状态显示按秒更新的"CLI 慢速模式处理中",这是 UI 状态而非 assistant 消息,不得写入对话历史。
 - **语音传输三态**(`40a607f` 08-13 起,10 §3-8 同批合同):`VoiceTransport = "cloud"|"system"|"unavailable"`。cloud=火山 ASR/TTS 全链;system=VOLC 未配但浏览器支持时走 SpeechRecognition/speechSynthesis 系统语音回退(话筒可用,话术见 systemVoice.ts 的 `VOICE_SYSTEM_NOTE` 系常量);仅 `unavailable`(未配且浏览器不支持)才禁用「点击说话」与模式切换,固定人话为"语音未配置(可选)——用键盘上的话筒,或直接打字;配好豆包 key 后这里可以开口即说"。文本输入和发送任何态下保持可用。
-- **轮次守恒(09 §10 同批合同)**:PTT 下每个 done_speaking 恰好一个 asr.final(可空)——console 采集意图按 FIFO 队列逐条消费(直发/编辑/取消三种意图),超时(录音时长+30s,至少 20s)逐出并置失败态。
+- **轮次守恒(09 §10 同批合同)**:PTT 下每个 done_speaking 恰好一个 asr.final(可空)。无 `captureId` 的旧客户端按 FIFO 消费(直发/编辑/取消),旧空 final 无法区分识别失败,不得画成已分类成功。**设计候选(09 §10.1)**:新 console 每条 PTT 带 `captureId`+`captureIntent`,按 ID 匹配;新分类 PTT final 必带 `recognitionOutcome`。正常空=`ok`+空文本,给空反馈,不造第二条 final。识别失败=`failed`+空文本,不得经发送/编辑/取消画成成功旧稿;取消仍零原文。超时(录音时长+30s,至少 20s)只置显示失败,不得删除 cancel 身份让迟到轮复活。
+- **主题续接(09 §10.1 / 10 §3-9;本候选已接线处理链,完整语音硬件/云 ASR 未验)**:准备期间输入区显式「正在接上主题…」,禁开麦/切档/说完;失败显式可重试。`pendingAnchor` 必须持久本次 `requestId` 与 `daemonEpoch`;同意图重试用同一 ID,新意图新 ID。`voice_audio_unknown` 另呈「上次语音未确认保存,可返回处理,或放弃这段未确认语音后继续」;两按钮只在屏幕可点,不预选、不自动重试、不把语音/文本当授权。点放弃才把 `discardUnknownEpochs` 写入新 `pendingAnchor` 并换新 `requestId`;返回处理不写该集合。旧 `failed` requestId 不可重跑,也不带回未知集;重连后用新 ID 默认 prepare 观察 `unknownEpochs`,再在屏幕批准后另一新 ID 带 discard。旧 owner 仍在时不得由新 peer 点放弃。立即接上(无排空)的条件以 09 §10.1.2 为准:无 pending CaptureRegistry 且账本已结算;不把「曾经收音频」单独当成阻塞。点放弃的 discard CAS 必须同时结算所列 epoch 的 pending registry tombstone,禁止只改音频账本。`emptyRound:"empty"` 只画**没有开口**的空轮反馈,不得画成已保存稿,也不得当成已拥有逻辑轮已结算;`emptyRound:"unusable"` 与 `voice_recognition_failed` 用「没听清 / 无可用转写」,与已交接旧稿列表分开;已拥有轮的空 final 给空反馈但不画成已保存转写;识别失败不得画成可发送旧稿。不得只凭最后 HF tail 把整段接上画成成功。跨 Chat 卸载用共享串行协调等待在途 `anchor_status`,不得因旧 Chat 卸载把 `preparing` 锁死。未发送当前草稿保留到匹配的 `turn.text.result.accepted`,`voice.anchor_status prepared` / focus-anchor HTTP 200 / `rearmed` / `ws.send` 都不清存储;取消当前录音不得清其它持久旧稿。rejected/断线 unknown/跨 `daemonEpoch` 保稿且禁止自动换 `turnId` 重发。旧语音稿与当前输入框分开列出,按 `captureMode`/`captureIntent` 标明来源(免手/PTT 发送/PTT 编辑;取消不展示原文),动作仅「采用 / 丢弃」;键 `saydo.chat.quiescedTranscripts.<sessionId>`,写入成功后才 ACK daemon;有人工新草稿时采用须确认追加或替换,不得覆盖后自动发送。Chat idle、卸载重挂与页面重载仍显示未消费旧稿。同会话切导航不断 sid。零 emoji。手机 LAN 业务入口仍 403/deferred(§5.6b);本机 390 只证明窄视口,不是语音证据。
 - 状态词纪律:输入区任何提示文案禁结果句式(10 §4-1);禁 emoji(§12)。
 
 ### 5.11 三面一栏新组件登记(2026-08-08 增设;原编号 5.1 与上方按钮节撞号,2026-08-27 月度审计改号;视觉参考实现=demo/saydo-console-redesign-proposal.html,唯一样式规范)
@@ -532,13 +535,13 @@ shadcn 原样(Input/Select/Switch/Tabs);设置页每项带一句 muted 说明;�
 | 四色收件箱条目 | 左色条(橙/蓝/绿/灰)+标题+Focus 归属+needs 标签;绿/灰带「知道了」(ack),橙/蓝无 ack(源数据驱动消失) | ② |
 | 任务状态 chip | CHIP_TABLE 16 呈现态四联映射(状态→颜色→图标→文案)全站唯一渲染表,消费 TaskRowView.viewStatus,禁读原始 status | ② |
 | 球权徽章 | owner 三色(我来做/需要你/外部);数字徽章全站单源=attention,openByOwner 仅文字描述 | ② |
-| 决策包卡 | 做出来什么样/做不做/每步谁做/验收标准/成本熔断/预授权(所闻即所签)/怎么跑现役仅逐步确认(每步问你);直达验收档 designed/deferred,不提供现役 selector,旧 `selectedMode=direct_to_review` fail-closed 不可拍板(PG-01B);「看小样」动作(s1 批 08-20)打开 DemoFrame 内联预览 | ③b |
-| DemoFrame | 决策包「看小样」内联渲染(s1-demo-wiring 批 `5c48eb4`,08-20):iframe `sandbox=""` 零 allow 渲染 srcdoc,产物版本经 `/api/artifacts/:id/versions/:version` 拉取;红线=沙箱零权限、token 不进 URL;另有「在产物库查看」链接 | s1 |
+| 决策包卡 | 做出来什么样/做不做/每步谁做/验收标准/成本熔断/预授权(所闻即所签)/怎么跑现役仅逐步确认(每步问你);直达验收档 designed/deferred,不提供现役 selector,旧 `selectedMode=direct_to_review` fail-closed 不可拍板(PG-01B);「看小样」动作(s1 批 08-20)打开 DemoFrame 内联预览。**证据边界**:`demoRef`=生成可查看(按钮可点);点「看小样」并完成内联渲染=实际已展示;对话 `screen_text` 提示送达不是展示回执,不得把提示成功写成已上屏(09 §2/§13;10 #10) | ③b |
+| DemoFrame | 决策包「看小样」内联渲染(s1-demo-wiring 批 `5c48eb4`,08-20):iframe `sandbox=""` 零 allow 渲染 srcdoc,产物版本经 `/api/artifacts/:id/versions/:version` 拉取;红线=沙箱零权限、token 不进 URL;另有「在产物库查看」链接。现役不自动开窗、无展示 ACK;未点击则未展示 | s1 |
 | 确认卡 | kind 枚举与 daemon 同源(`@saydo/contracts` `CONFIRM_KINDS`,GAP-02 2.1),表外 kind 显示通用「确认」前缀;`memory` 行 = 普通 M0 记忆提议(SD-2):前缀「记忆 · 信息确认 · 不是授权」,按钮「记 / 不用记」,超时不记(过期即丢);倒计时;「也可以直接开口回答」;超时语义按 v0.4 落账机制 | ③b |
 | 进度对齐卡 | AI 主动对账:决策包步进/产物计数/下一步在谁 | ③a |
 | 待命卡 | 虚线边;在等什么+叫醒条件+到期兜底 | ③a |
 | 采访卡 | 一次一问,选择题优先,口播选项≤3,推荐只占徽章不占预选位 | ③b |
-| 会话段卡 | timeline 历史会话折叠段,点开懒加载转写;未存转写显示占位不伪造 | ③a |
+| 会话段卡 | timeline 历史会话折叠段,点开懒加载转写;未存转写显示占位不伪造;读取失败(null/抛错)与真空([])分开,失败显式可重试,不把失败画成空转写 | ③a |
 | 验收面 | 左标准清单(机器验/自报/人工三源;自报=空心勾降权)右证据;讲给我听三层;判断可推翻;S3 独立按钮 | ④ |
 
 ## 6. 通知与外呼文本(ntfy/桌面通知)
@@ -582,7 +585,7 @@ shadcn 原样(Input/Select/Switch/Tabs);设置页每项带一句 muted 说明;�
 
 ### 10.2 书写细则
 
-- 中文为主,中英文与数字之间留半角空格;标点全角;金额"N 元"、时长"N 分钟"。
+- 中文为主,中英文与数字之间留半角空格;标点全角;金额按 `Money.currency` 原币种展示(CNY 用元、USD 用美元或 USD),不得将美元数值直接标成人民币;时长"N 分钟"。
 - 术语表:验收(不说"审核")、拍板(不说"提交")、回叫(不说"提醒")、作废(不说"失效");与 10 词表一致。公开能力只用「支持 / 条件可用 / 预览 / 不支持」,禁止「全面支持」「任意兼容」「已开箱即用」等同义膨胀;细则 §10.3。
 - 大小写:产品名「说到 SayDo」(字标组合);中文自称「说到」;代码/命令/仓库名仍写 `SayDo`/`saydo`,一律代码体(mono),不加书名号。
 - 禁:感叹号堆叠、"成功!"式庆祝语、拟人卖萌("我尽力啦")、emoji(§0-5)。
@@ -606,7 +609,7 @@ C1 起,现役公开根上的文案必须能投影到上述四态之一;本节与
 
 ## 11. 主题与个性化边界
 
-P0 提供:亮/暗/跟随系统 + 免打扰。**不提供**:自定义主题色、字号缩放(用浏览器缩放)、卡片密度选项。个性化最小化是维护成本决策(owner v2.3 反空壳纪律的延伸)。
+P0 提供:亮/暗/跟随系统 + 免打扰,以及§3已实施的舒适/紧凑密度切换。**不提供**:自定义主题色、自定义字号缩放(用浏览器缩放)、逐卡片密度定制。个性化最小化是维护成本决策(owner v2.3 反空壳纪律的延伸)。
 
 ## 12. 工程落地与门禁
 
@@ -622,6 +625,14 @@ P0 提供:亮/暗/跟随系统 + 免打扰。**不提供**:自定义主题色、
 - 视觉回归:Phase 5 起 Playwright 截图基线(亮暗各 11 页),token 改动必须重录基线。
   - **2026-08-23 复验:历史红灯已解除。**`open()` 显式复现用户选择「先随便看看」,Fresh HOME 的首启专项仍穿真实向导;路由断言按正式 Today / Focus IA 对齐,云语音交互用带身份与 HOME digest 的测试 pipeline,停靠 fixture 不再使用会随墙钟过期的日期。`pnpm exec playwright test e2e/console` 实测 **35 passed**,亮暗各 11 页截图成功重录。2026-08-13 的 29 failed / 3 passed 是历史装配缺口,不得再当现势。
 
+### 12.1 默认 UI 动作登记(PG-02 C3,2026-09-06)
+
+默认 UI 中任何会发起写请求的入口必须在 action ledger 登记;未登记入口不得出现在生产导航。写请求判定口径的 canonical 落点属 PG-02 真相控制面,当前在途,09 尚无对应章节;落地后形状冲突以 09 为准,本小节不复述细则。
+
+- `#/dev-components`、`#/dev-pages` 是 dev-only 走查页:不进分母,且不得进生产导航。
+
+文案上限沿用 §10.3 与 [06 §8](06-references.md) 的状态词上限,本节不新增文案规则。
+
 ## 13. 与其他文档的关系
 
 | 文档 | 分工 |
@@ -629,6 +640,7 @@ P0 提供:亮/暗/跟随系统 + 免打扰。**不提供**:自定义主题色、
 | 10 语音 UX | 口播话术/状态词/数字纪律(本篇的文案层引用它) |
 | 08 §6 / modules/d-presentation | 信息架构与页面清单(本篇管每页长什么样) |
 | 09 §7 | 状态枚举真相源(§2.6 映射表的键);公开声明四态不是该枚举 |
+| 09 真相控制面(PG-02 在途) | 默认 UI 写动作判定口径的 canonical 落点;本篇 §12.1 只立登记义务,口径落地后冲突以 09 为准 |
 | 06 §7 | 公开声明四态、证据四事实与 Q0 报告合同;本篇 §10.3 是其文案上限 |
 | 05 §4 | review 面最小交付线(§5.5 是其视觉合同) |
 | OctoBlog tokens.css | token 上游参照(同名同值起步,分叉时本篇为 SayDo 真相源) |

@@ -21,6 +21,11 @@ const standbyOb = makeObligation({
 
 export const focusPageActive: FocusPageView = {
   focus: FOCUS_DEMO,
+  lanes: [
+    { id: "lan_main", title: "主线" },
+    { id: "lan_tokens", title: "token 迁移" }
+  ],
+  focusTasks: railTasks.map((t) => ({ id: t.id, title: t.title, status: t.viewStatus, laneId: "lan_main" })),
   timeline: [
     { seq: 1, ts: min(60 * 26), kind: "note", text: "昨天下午 · 第 12 次会话开始" },
     { seq: 2, ts: min(60 * 26), kind: "session_segment", sessionRef: "ses_12", turnCount: 41, startTs: "昨天 15:02", endTs: "17:40", transcriptAvailable: true },
@@ -55,6 +60,8 @@ export const focusPageClosed: FocusPageView = {
     direction: "voice-coding 双目录并入 SayDo 单仓",
     openByOwner: { human: 0, agent: 0, external: 0 }
   },
+  lanes: [],
+  focusTasks: [],
   timeline: [
     { seq: 1, ts: min(60 * 90), kind: "note", text: "上周 · 第 3 次会话" },
     { seq: 2, ts: min(60 * 90), kind: "session_segment", sessionRef: "ses_3", turnCount: 18, startTs: "上周三 14:00", endTs: "15:12", transcriptAvailable: true },

@@ -116,3 +116,48 @@ describe("cursor backend seam(B1-a 快照,行为对齐抽取前)", () => {
     ).toBe("unknown");
   });
 });
+
+describe("cursorIsTerminalResult 只认完整 JSON 顶层 type=result", () => {
+  it("嵌套/转义/无效/数组/null 非终态;成功与错误顶层仍终态且错误不改成成功", () => {
+    const nestedTool = JSON.stringify({
+      type: "tool_call",
+      subtype: "started",
+      tool_call: { name: "shell", args: { type: "result" } }
+    });
+    expect(cursorIsTerminalResult(nestedTool)).toBe(false);
+    expect(cursorParseLine(nestedTool)).toEqual({ kind: "tool_started", tool: "started" });
+    expect(cursorBackend().parseLine(nestedTool).map((e) => e.kind)).toEqual(["tool_started"]);
+    expect(cursorBackend().isTerminalResult(nestedTool)).toBe(false);
+
+    const nestedAssistant = JSON.stringify({
+      type: "assistant",
+      message: { content: [{ type: "text", text: "ordinary" }] },
+      metadata: { type: "result" }
+    });
+    expect(cursorIsTerminalResult(nestedAssistant)).toBe(false);
+    expect(cursorParseLine(nestedAssistant).kind).toBe("ignore");
+    expect(cursorBackend().isTerminalResult(nestedAssistant)).toBe(false);
+
+    const escaped = JSON.stringify({
+      type: "assistant",
+      message: { content: [{ type: "text", text: '{"type":"result"}' }] }
+    });
+    expect(cursorIsTerminalResult(escaped)).toBe(false);
+    expect(cursorParseLine(escaped).kind).toBe("ignore");
+
+    expect(cursorIsTerminalResult("{type:result")).toBe(false);
+    expect(cursorIsTerminalResult(JSON.stringify([{ type: "result" }]))).toBe(false);
+    expect(cursorIsTerminalResult("null")).toBe(false);
+    expect(cursorIsTerminalResult(JSON.stringify("result"))).toBe(false);
+
+    const success = JSON.stringify({ type: "result", subtype: "success", result: "done" });
+    expect(cursorIsTerminalResult(success)).toBe(true);
+    expect(cursorParseLine(success).kind).toBe("result");
+    expect(cursorBackend().isTerminalResult(success)).toBe(true);
+
+    const err = JSON.stringify({ type: "result", subtype: "error", result: "oops" });
+    expect(cursorIsTerminalResult(err)).toBe(true);
+    expect(cursorParseLine(err).kind).toBe("unknown");
+    expect(cursorBackend().isTerminalResult(err)).toBe(true);
+  });
+});

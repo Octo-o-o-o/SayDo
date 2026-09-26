@@ -15,13 +15,21 @@ export function fakeTargets(): RefreshSignalTargets & { doc: FakeDoc } {
 
 export type FetchRoute = (url: string, init?: RequestInit) => unknown;
 
+export interface FetchHold {
+  release(payload?: unknown): void;
+  fail(err?: unknown): void;
+}
+
 export interface FetchStub {
   /** 按 pathname 计数(含 query 剥离) */
   count(pathname: string): number;
   calls: string[];
+  inits: Array<RequestInit | undefined>;
   /** 让某路径下一次起返回 5xx(人话 message);再次调用恢复 */
   fail(pathname: string, message: string): void;
   restore(pathname: string): void;
+  /** 拦住该 pathname 的下一次请求,直到 release;后续同路径走普通路由 */
+  holdNext(pathname: string): FetchHold;
 }
 
 /** node 单测无 DOM:为 capToken/localStorage/daemonBase 提供最小桩,并按 pathname 路由 JSON 响应 */
@@ -38,13 +46,33 @@ export function installFetchStub(routes: Record<string, FetchRoute>): FetchStub 
     }
   });
   const calls: string[] = [];
+  const inits: Array<RequestInit | undefined> = [];
   const failing = new Map<string, string>();
+  const holds = new Map<string, Array<{ resolve: (v: unknown) => void; reject: (e: unknown) => void }>>();
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const raw = String(input);
     const pathname = raw.split("?")[0] ?? raw;
     calls.push(pathname);
+    inits.push(init);
     // abort 语义:调用方已 abort 则按 fetch 规范拒绝
     if (init?.signal?.aborted) throw new DOMException("aborted", "AbortError");
+    const queued = holds.get(pathname);
+    if (queued && queued.length > 0) {
+      const slot = queued.shift()!;
+      const onAbort = () => slot.reject(new DOMException("aborted", "AbortError"));
+      init?.signal?.addEventListener("abort", onAbort);
+      try {
+        const held = await new Promise<unknown>((resolve, reject) => {
+          slot.resolve = resolve;
+          slot.reject = reject;
+        });
+        if (init?.signal?.aborted) throw new DOMException("aborted", "AbortError");
+        const payload = held !== undefined ? held : routes[pathname]?.(raw, init);
+        return new Response(JSON.stringify(payload), { status: 200, headers: { "content-type": "application/json" } });
+      } finally {
+        init?.signal?.removeEventListener("abort", onAbort);
+      }
+    }
     const failMsg = failing.get(pathname);
     if (failMsg !== undefined) {
       return new Response(JSON.stringify({ ok: false, code: "server_error", message: failMsg, retryable: false }), {
@@ -64,12 +92,26 @@ export function installFetchStub(routes: Record<string, FetchRoute>): FetchStub 
   vi.stubGlobal("fetch", fetchMock);
   return {
     calls,
+    inits,
     count: (pathname) => calls.filter((c) => c === pathname).length,
     fail: (pathname, message) => {
       failing.set(pathname, message);
     },
     restore: (pathname) => {
       failing.delete(pathname);
+    },
+    holdNext: (pathname) => {
+      const q = holds.get(pathname) ?? [];
+      const slot = {
+        resolve: (_v: unknown) => undefined,
+        reject: (_e: unknown) => undefined
+      };
+      q.push(slot);
+      holds.set(pathname, q);
+      return {
+        release: (payload?: unknown) => slot.resolve(payload),
+        fail: (err?: unknown) => slot.reject(err ?? new Error("held request failed"))
+      };
     }
   };
 }

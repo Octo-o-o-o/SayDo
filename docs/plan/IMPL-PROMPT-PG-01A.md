@@ -1,5 +1,7 @@
 # IMPL-PROMPT · PG-01A 公开承诺与 corpus 安全降级
 
+> 2026-09-13 对账说明：本文件保留 PG-01A 在途派发合同，历史状态、角色与额度不构成新任务授权。该批实施已入库 `2a786ed803f8229ea2fefe8240d9e644306331c4`，证据入库 `f4d8de9be1abb74657c6117bb84e224dc1983356`；结论与未验边界见 [PG-01A 证据](../../e2e/evidence/project-gap-pg-01a.md)，现行排产见 [PLAN-2](IMPLEMENTATION-PLAN-2.md)。不得据此重开旧修复预算或把 986 条 unresolved 来源当作已验证连接器。
+
 ## 1. 授权、角色与固定坐标
 
 task=project-gap-closure；batch=PG-01A；cycle=owner-night-recovery-20260901。旧 owner-continuation-20260831、owner-recovery-20260831-1/2 的计数、RED/GREEN 和被拒 I 记录均保留于唯一 evidence；本次仅登记一次夜间恢复周期。

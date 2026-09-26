@@ -1,5 +1,7 @@
 # SayDo 增量批：`tier1/cmdEffect.ts` 词表加固（从 dsh-approval-tiers 回哺）· 实施 Prompt（第九轮交接；**准备稿，owner 说"开始实施"才开批**）
 
+> **2026-09-13 对账补注：历史准备稿，不再作为开批入口。** 本批已由 `e79d1d8` 及后续回修实施，记录见 [cmdeffect-hardening](../../e2e/evidence/cmdeffect-hardening.md)。现役另经 SD-3 与整合 SC38/39 收紧；下方旧基线、main 直推与角色命令仅保留历史语境，当前排产及施工纪律以现役 PLAN-2/AGENTS 为准。
+
 > 背景：2026-08-18 在 DSH 插件线把 SayDo 的 E2 shell 效果词表移植成 `dsh-approval-tiers`（`~/WorkSpace/dsh-approval-tiers`），两轮零上下文对抗评审在**移植源本身**（即本仓 `packages/daemon/src/tier1/cmdEffect.ts`）抓到一批"S3 效果被判成 S0/S1 自动放行"的洞（原文 `~/WorkSpace/dsh-approval-tiers/docs/evidence/review-1-raw.md`、`review-2-raw.md`；裁决与修法 `review-1-fixlist.md`、`review-2-fixlist.md`；已落地的 TS 实现 `~/WorkSpace/dsh-approval-tiers/src/command.ts`，表驱动反例 `test/command.test.mjs`）。本批把同一套加固回哺进 SayDo 执行器的 shell 门。评估文档 `docs/plan/2026-08-17-dsh-plugin-line-assessment.fable.md` §5 实施记录已登记此项。
 > 性质：**纯实现修复**——04 §5.1 与 09 §11 均未规定命令词表，不涉 canonical（与 2026-08-15 缺口 B/`just` 收紧同口径）；`EffectDescriptor` 与 `computeRisk` API 不变；分级只更保守，不放宽任何一档。
 > 开批前置（SayDo 纪律）：HANDOFF「当前批次指针」为空 → 开批写 `cmdeffect-hardening`，收口清除；两提交法（feat/fix → chore(evidence)）；evidence `e2e/evidence/cmdeffect-hardening.md`；零 emoji；不部署常驻（8 月纪律）。

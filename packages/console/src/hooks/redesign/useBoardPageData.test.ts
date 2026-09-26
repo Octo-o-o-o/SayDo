@@ -62,6 +62,38 @@ describe("assembleBoardView", () => {
     expect(view.approxStatusTaskIds).toEqual(["tsk_1"]);
     expect(view.groups[1]!.tasksByLane["__main__"]?.[0]?.viewStatus).toBe("running");
   });
+
+  it("DAILY-01:detail.tasks 真账按 laneId 落线,状态不被 attention 近似顶替", () => {
+    const detailWithTasks: FocusDetailPayload = {
+      ...okDetail,
+      lanes: [
+        { id: "lan_a", title: "支线 A" },
+        { id: "lan_b", title: "支线 B" }
+      ],
+      tasks: [
+        { id: "tsk_real_a", title: "真任务 A", status: "merging", laneId: "lan_a" },
+        { id: "tsk_1", title: "跑中的任务", status: "ready_for_review", laneId: "lan_b" }
+      ]
+    };
+    const view = assembleBoardView(
+      rows,
+      [
+        ...attention,
+        // attention 也报了 tsk_1(green→running 近似)——真账在 lan_b 且状态是 ready_for_review,近似项不得顶替
+        { id: "task:tsk_1", color: "green", title: "跑中的任务", focusId: "foc_ok", sourceKind: "task", refId: "tsk_1" }
+      ],
+      [
+        { id: "foc_ok", detail: detailWithTasks, error: null },
+        { id: "foc_bad", detail: null, error: "boom" }
+      ]
+    );
+    const ok = view.groups[0]!;
+    expect(ok.tasksByLane["lan_a"]?.map((t) => t.id)).toEqual(["tsk_real_a"]);
+    expect(ok.tasksByLane["lan_b"]?.map((t) => t.id)).toEqual(["tsk_1"]);
+    expect(ok.tasksByLane["lan_b"]?.[0]?.viewStatus).toBe("ready_for_review");
+    // 主线只收近似补缺;foc_ok 的 attention 近似项被真账覆盖后不重复出现
+    expect(ok.tasksByLane["__main__"] ?? []).toEqual([]);
+  });
 });
 
 describe("createBoardPageSession.retryDetail(GAP-02 残项 2.2)", () => {
@@ -126,6 +158,132 @@ describe("createBoardPageSession.retryDetail(GAP-02 残项 2.2)", () => {
     const view = views.at(-1)!;
     expect(view.groups.map((g) => g.focus.id)).toEqual(["foc_ok", "foc_bad"]);
     expect(view.detailErrors?.["foc_bad"]).toContain("第二次 503");
+    session.dispose();
+  });
+
+  it("旧定向重试晚到不能覆盖新全页", async () => {
+    let title = "initial";
+    const stub = installFetchStub({
+      "/api/focuses": () => [{ id: "foc_ok", title, lifecycle: "active", currentRevision: 1 }],
+      "/api/attention": () => ({ items: [] }),
+      "/api/focuses/foc_ok": () => ({
+        focus: { id: "foc_ok", title, lifecycle: "active", currentRevision: 1, direction: null },
+        obligations: [],
+        lanes: [],
+        events: [],
+        repos: [],
+        artifacts: []
+      })
+    });
+    const t = fakeTargets();
+    const titles: string[] = [];
+    const session = createBoardPageSession(
+      { onResult: (v) => titles.push(v.groups[0]?.focus.title ?? ""), onError: () => {} },
+      { targets: t }
+    );
+    session.run();
+    await flush();
+    expect(titles.at(-1)).toBe("initial");
+    const hold = stub.holdNext("/api/focuses/foc_ok");
+    session.retryDetail("foc_ok");
+    await flush();
+    title = "new-full";
+    session.run();
+    await flush();
+    expect(titles.at(-1)).toBe("new-full");
+    hold.release({
+      focus: { id: "foc_ok", title: "old-retry", lifecycle: "active", currentRevision: 1, direction: null },
+      obligations: [],
+      lanes: [],
+      events: [],
+      repos: [],
+      artifacts: []
+    });
+    await flush();
+    expect(titles.at(-1)).toBe("new-full");
+    expect(titles).not.toContain("old-retry");
+    session.dispose();
+  });
+
+  it("新定向重试不被在途旧全页覆盖", async () => {
+    let title = "initial";
+    const stub = installFetchStub({
+      "/api/focuses": () => [{ id: "foc_ok", title, lifecycle: "active", currentRevision: 1 }],
+      "/api/attention": () => ({ items: [] }),
+      "/api/focuses/foc_ok": () => ({
+        focus: { id: "foc_ok", title, lifecycle: "active", currentRevision: 1, direction: null },
+        obligations: [],
+        lanes: [],
+        events: [],
+        repos: [],
+        artifacts: []
+      })
+    });
+    const t = fakeTargets();
+    const titles: string[] = [];
+    const session = createBoardPageSession(
+      { onResult: (v) => titles.push(v.groups[0]?.focus.title ?? ""), onError: () => {} },
+      { targets: t }
+    );
+    session.run();
+    await flush();
+    const hold = stub.holdNext("/api/focuses/foc_ok");
+    title = "old-full";
+    session.run();
+    await flush();
+    title = "new-retry";
+    session.retryDetail("foc_ok");
+    await flush();
+    expect(titles.at(-1)).toBe("new-retry");
+    hold.release({
+      focus: { id: "foc_ok", title: "old-full", lifecycle: "active", currentRevision: 1, direction: null },
+      obligations: [],
+      lanes: [],
+      events: [],
+      repos: [],
+      artifacts: []
+    });
+    await flush();
+    expect(titles.at(-1)).toBe("new-retry");
+    session.dispose();
+  });
+
+  it("列表移除 Focus 后旧 retry 不得复活", async () => {
+    let list = rows;
+    const stub = installFetchStub({
+      "/api/focuses": () => list,
+      "/api/attention": () => ({ items: attention }),
+      "/api/focuses/foc_ok": () => okDetail,
+      "/api/focuses/foc_bad": () => ({
+        focus: { id: "foc_bad", title: "复活?", lifecycle: "captured", currentRevision: 1, direction: null },
+        obligations: [],
+        lanes: [],
+        events: [],
+        repos: [],
+        artifacts: []
+      })
+    });
+    const t = fakeTargets();
+    const views: ReturnType<typeof assembleBoardView>[] = [];
+    const session = createBoardPageSession({ onResult: (v) => views.push(v), onError: () => {} }, { targets: t });
+    session.run();
+    await flush();
+    const hold = stub.holdNext("/api/focuses/foc_bad");
+    session.retryDetail("foc_bad");
+    await flush();
+    list = [rows[0]!];
+    session.run();
+    await flush();
+    hold.release({
+      focus: { id: "foc_bad", title: "复活?", lifecycle: "captured", currentRevision: 1, direction: null },
+      obligations: [],
+      lanes: [],
+      events: [],
+      repos: [],
+      artifacts: []
+    });
+    await flush();
+    expect(views.at(-1)?.groups.map((g) => g.focus.id)).toEqual(["foc_ok"]);
     session.dispose();
   });
 

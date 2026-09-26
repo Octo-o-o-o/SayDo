@@ -1,5 +1,7 @@
 # 84 · W5.4-a 批 评审 2(返工复核;Grok grok-4.6 xhigh 只读;Codex 配额耗尽回落)
 
+> 2026-09-13 对账勘误：下文关于 `path.join(homedir(), "/foo")` 会丢弃家目录的判断不成立，混淆了 `join` 与 `resolve`。本次实际 Node 探针：`path.posix.join("/example/home", "/foo")` 为 `/example/home/foo`，`path.posix.resolve` 才为 `/foo`。因此不能用这一理由认定 `~/` 或 `~//` 展开有该缺陷。此勘误不撤销悬空 symlink、`..` 词法预折叠等独立问题及其历史修复；原评审正文保留为过程记录，不代表当前候选验收。
+
 > prompt:`prompts/84-w54a-claude-cli-review-2.md`;session `01a01b82-249f-7b62-a1f7-fe357b916ea2`;门禁由调度方沙箱外实跑(见 evidence)。
 
 先按评审约定读技能说明和必读材料，再对照返工 diff 与代码核实 A-1、B 项和回归。评审 1 已读完。接着读规格、返工 diff 和必读源码。规格前半已拿到。接着读返工 diff 和核心实现文件。实现主干已读到。接着核对测试、executor 竞态和 patch 后半。接着核 cmdEffect 期望、canary、路径边界和脱敏残留。# 84 · W5.4-a 批 评审 2（返工复核；零上下文只读；Grok 回落）

@@ -1,5 +1,7 @@
 # IMPL-PROMPT · AS-01-AS-02 隐私批
 
+> 2026-09-13 对账说明：下文的“当前阶段”“现况”和预算是 2026-09-06 开批时的冻结记录，不是当前开工指针。产品提交为 `7ab7ab394f97a9c1e9a666d218ac41cee3d2ef45`，后继证据提交为 `21ed2840b11d824f970528b94f1366f8300206a8`，见 [隐私批证据](../../e2e/evidence/as-01-as-02-privacy.md)。当前顺序以 [PLAN-2](IMPLEMENTATION-PLAN-2.md) 为准；历史恢复授权不自动追加本次整合任务的修复额度。源码、历史门禁与本次最终候选验收分别记录。
+
 日期：2026-09-06。任务标识 `ecc-as01-as02-privacy`。这是本批唯一执行卡。配套 canonical 已按统一方案 §3 回写；来源方案 `docs/plan/2026-09-05-engineering-unified.astra.md` 原字节不改。
 
 当前阶段 = **contract / c1**（本文件冻结范围、正反例、exact-set、成本与 gates）。后续阶段 = **implementation / c1**。两阶段已预先接受；contract 语义 GREEN 且文档门通过后才改 daemon/console。收口后不自动实施 AS-03..07 或 PG-02。

@@ -200,14 +200,19 @@ export type Row = Record<string, unknown>;
 export const api = {
   overview: () => apiGet<Overview>("/api/overview"),
   projectTasks: (id: string) => apiGet<TaskRowView[]>(`/api/projects/${id}/tasks`),
-  taskDetail: (tid: string) => apiGet<Row | null>(`/api/tasks/${tid}`),
+  taskDetail: (tid: string, signal?: AbortSignal) => apiGet<Row | null>(`/api/tasks/${tid}`, signal),
   memory: (id: string) => apiGet<Row[]>(`/api/projects/${id}/memory`),
   artifacts: (id: string) => apiGet<Row[]>(`/api/projects/${id}/artifacts`),
   projectSettings: (id: string) => apiGet<Row | null>(`/api/projects/${id}/settings`),
   approvals: (project?: string) => apiGet<Row[]>(`/api/approvals${project ? `?project=${project}` : ""}`),
   outbox: () => apiGet<Row[]>("/api/outbox"),
   ackOutbox: (id: string) => apiPost<{ ok: true; state: string; already?: boolean }>(`/api/outbox/${encodeURIComponent(id)}/ack`, {}),
-  costs: () => apiGet<{ byProject: Row[]; entries: Row[] }>("/api/costs"),
+  costs: () =>
+    apiGet<{
+      byProject: Row[];
+      entries: Row[];
+      entriesWindow?: { limit: number; returned: number; total: number; truncated: boolean };
+    }>("/api/costs"),
   config: () => apiGet<Row>("/api/config"),
   // 任务动作(接线批任务②;11 §5.5 操作行 / 取消 / 重试)
   reviewTask: (

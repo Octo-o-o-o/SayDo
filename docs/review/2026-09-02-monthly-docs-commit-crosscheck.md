@@ -7,6 +7,8 @@
 
 ## 1. 结论
 
+> 2026-09-13 对账更正：下方历史 hex 统计不闭合，696 + 198 = 894，与所记 1071 相差 177。本文未提供足以重建当时在途文档集合及这 177 项分类的完整清单，故原“没有发现引用不存在 commit”的表述不能作为全量排除依据；保留原始数字，不擅自改成推测值。commit 被文档点名或落在批次区间，也只证明可追溯，不证明逐项实施正确。本次冻结清单与逐项核验另见 `docs/review/2026-09-13-consolidation-crosscheck.md`。
+
 - **文档 → commit**:全月 976 份文档中出现的 1071 个 7–40 位十六进制串,696 个解析为本仓 Git 对象;其余 198 个经逐条上下文分类全部是**非 SayDo commit 标识**(Codex 会话 id 26、文件/日志 SHA-256 前缀 24、Cloudflare deployment id 7、外部仓 commit 或 tree OID、显式标注的临时 checkpoint、示例串 `0123456789abcdef…`)。**没有发现引用不存在 commit 的文档**。
 - **commit → 文档**:565 个 commit 中 429 个被文档以 hash 直接点名;其余 136 个全部落在 `history/DEV-VERSION-LEDGER.md` §2 已登记的批次区间内(08-04–08-13 的 Focus/E2/redesign/向导/UI 标准化各批以「代码 SHA 段 + 提交信息」登记;08-25–08-27 的 `chore(evidence)` 账本重生成与 rc.10–rc.12 `--verify` 证据提交由内容文件本身承载)。**没有发现脱离任何批次记录的孤儿 commit**。
 - **R114 修复清单复核**:R114 列出的 30 项文档修复逐项 grep 核验,29 项直接命中;1 项(「DSH D-09 勘误」)文件名与 R114 缩写不同(实际在 `docs/plan/2026-08-13-deepseek-harness-borrowing-assessment.fable.md` §表 D-09 行与 §第一刀表),已核实存在。**R114 的修复无一虚报**。

@@ -48,7 +48,7 @@ async function resolveFocusForTask(
 
 async function loadReview(taskId: string, signal: AbortSignal): Promise<ReviewPageView> {
   const [data, focusHint, list] = await Promise.all([
-    api.taskDetail(taskId) as Promise<TaskDetailPayload | null>,
+    api.taskDetail(taskId, signal) as Promise<TaskDetailPayload | null>,
     resolveFocusForTask(taskId, signal),
     apiGet<FocusListRow[]>("/api/focuses", signal).catch(() => [] as FocusListRow[])
   ]);

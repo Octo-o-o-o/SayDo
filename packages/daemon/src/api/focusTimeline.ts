@@ -103,6 +103,19 @@ export function summarizeFocusEvent(type: string, payload: Record<string, unknow
       return `依赖阻塞「${str(payload.depTitle)}」`;
     case "focus_forked":
       return `分叉自「${str(payload.sourceTitle)}」`;
+    // DAILY-01
+    case "dependency_task_set":
+      return `设定任务依赖「${str(payload.depTitle)}」←「${str(payload.preTaskTitle)}」(${str(payload.condition) === "delivered" ? "已交付" : "验收通过"})`;
+    case "dependency_task_woken":
+      return `任务依赖满足「${str(payload.depTitle)}」`;
+    case "dependency_task_blocked":
+      return `任务依赖阻塞「${str(payload.depTitle)}」(前置 ${str(payload.preStatus)})`;
+    case "lane_created":
+      return `新建支线「${str(payload.title)}」`;
+    case "lane_restored":
+      return `恢复支线「${str(payload.title)}」`;
+    case "obligation_deferred":
+      return `推迟义务「${str(payload.title)}」(${str(payload.deferReason)})`;
     case "activation_started":
       return "会话段开始";
     case "activation_closed":
@@ -126,7 +139,8 @@ const REF_KEYS = [
   "sourceId",
   "newId",
   "depId",
-  "preId"
+  "preId",
+  "preTaskId"
 ] as const;
 
 export function extractTimelineRefs(payload: Record<string, unknown>): FocusTimelineItemRefs {

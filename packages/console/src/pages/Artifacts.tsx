@@ -16,6 +16,49 @@ interface DiffState {
   lines: { kind: "same" | "add" | "del"; text: string }[];
 }
 
+/** DAILY-01:任意两版对比选择器(diff API 本就支持任意 from/to;UI 不再限相邻) */
+function VersionComparePicker({ id, versions, onCompare }: {
+  id: string;
+  versions: number[];
+  onCompare: (artifactId: string, from: number, to: number) => void;
+}) {
+  const desc = versions.slice().sort((a, b) => b - a);
+  const [from, setFrom] = useState<number>(desc[desc.length - 1] ?? 1);
+  const [to, setTo] = useState<number>(desc[0] ?? 1);
+  const sel: React.CSSProperties = {
+    background: "var(--surface-control)", border: "1px solid var(--line)",
+    borderRadius: "var(--radius-xs)", padding: "3px 8px",
+    fontSize: "var(--text-xs)", color: "var(--text-primary)", fontFamily: "var(--font-mono)"
+  };
+  return (
+    <span className="flex items-center gap-[6px]" data-version-compare={id}>
+      <Mono>对比</Mono>
+      <select aria-label="起始版本" style={sel} value={from} onChange={(e) => setFrom(Number(e.target.value))} data-compare-from>
+        {desc.map((v) => <option key={v} value={v}>v{v}</option>)}
+      </select>
+      <Mono>→</Mono>
+      <select aria-label="目标版本" style={sel} value={to} onChange={(e) => setTo(Number(e.target.value))} data-compare-to>
+        {desc.map((v) => <option key={v} value={v}>v{v}</option>)}
+      </select>
+      <button
+        type="button"
+        data-action="artifact-diff-arbitrary"
+        disabled={from === to}
+        style={{
+          height: 24, padding: "0 10px", borderRadius: "var(--radius-xs)",
+          border: "1px solid var(--line)", background: "transparent",
+          color: "var(--text-primary)", fontSize: "var(--text-xs)",
+          cursor: from === to ? "not-allowed" : "pointer",
+          opacity: from === to ? "var(--disabled-opacity)" : 1
+        }}
+        onClick={() => onCompare(id, Math.min(from, to), Math.max(from, to))}
+      >
+        看差异
+      </button>
+    </span>
+  );
+}
+
 export function Artifacts({ projectId }: { projectId: string }) {
   const { data, error } = useAsync(() => api.artifacts(projectId), [projectId]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -116,7 +159,14 @@ export function Artifacts({ projectId }: { projectId: string }) {
                     </span>
                     <Mono>{id.slice(-8)}</Mono>
                   </div>
-                  <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+                  <span className="flex items-center gap-[10px]" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+                    {versions.length > 1 ? (
+                      <VersionComparePicker
+                        id={id}
+                        versions={versions.map((v) => Number(v["version"]))}
+                        onCompare={showDiff}
+                      />
+                    ) : null}
                     最新 v{String(latest["version"])} · 共 {versions.length} 版
                   </span>
                 </div>

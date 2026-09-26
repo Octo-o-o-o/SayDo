@@ -1,5 +1,7 @@
 # SayDo iOS 壳
 
+> 当前源码边界(2026-09-13 对账):PG-01B 已关闭 daemon 的远程业务入口。以下 LAN + token 是历史开发壳能力,当前 main 不支持据此完成跨设备业务连接;解析测试或壳构建通过不等于配对可用。重开条件以 `docs/09-data-contracts.md`、`docs/11-ui-spec.md` 为准。
+
 这是用于移动端评估的 SwiftUI 壳。它扫描桌面端生成的
 `http://<ip>:<port>/?token=<token>`，在 `WKWebView` 中打开现有 SayDo 页面，并支持保存、
 切换和删除多个桌面 profile。profile 元数据保存在 `UserDefaults`，token 单独保存在

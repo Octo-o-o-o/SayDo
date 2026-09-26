@@ -6,17 +6,19 @@
 // git write-tree 产出(不是手填 "tree-r1"),合并对账走真实 git 对象——执行器批的完成判定 fake-agent 层。
 
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { computePackageDigest, newId, type DecisionPackage } from "@saydo/contracts";
+import { computePackageDigest, newId, textDigest, type DecisionPackage } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
 import { createSqliteAuditSink } from "../src/storage/dao/misc.js";
 import { insertProject } from "../src/storage/dao/projects.js";
 import { insertTask } from "../src/storage/dao/tasks.js";
 import { insertPackage } from "../src/storage/dao/packages.js";
 import { CallbackEngine } from "../src/callback/engine.js";
+import { handleTaskAction } from "../src/api/actions.js";
+import { getTaskDetail } from "../src/api/console.js";
 import { requestManualMerge, reviewTask, verifyAndCompleteMerge } from "../src/tier1/operations.js";
 import { reconnectFirstLine } from "../src/callback/arbitration.js";
 import { checkStatusWords } from "../src/brain/golden.js";
@@ -219,7 +221,7 @@ describe("故事一执行器驱动全闭环(01 §5;真 git/真 verify/fake agent
     expect(checkStatusWords(first).ok).toBe(true);
 
     // 验收 approve(evidenceDigest/treeSha 库内自取)-> review_approved_waiting_merge
-    const rv = reviewTask(db, audit, { taskId: TSK, verdict: "approve", expectedAttempt: run.attempt }, new Date().toISOString());
+    const rv = reviewTask(db, audit, { taskId: TSK, verdict: "approve", expectedAttempt: run.attempt, runsDir: join(saydoHome, "tier1", "runs") }, new Date().toISOString());
     expect(rv.state).toBe("review_approved_waiting_merge");
     const approvedTree = (db.prepare("SELECT approved_tree_sha FROM tasks WHERE id=?").get(TSK) as { approved_tree_sha: string }).approved_tree_sha;
     expect(approvedTree).toBe(run.tree_sha); // 批准落库 = 真实 settle treeSha
@@ -250,7 +252,7 @@ describe("故事一执行器驱动全闭环(01 §5;真 git/真 verify/fake agent
     executor.tick();
     await waitStatus(TSK, "ready_for_review");
     const run = db.prepare("SELECT tree_sha, attempt FROM tier1_runs WHERE task_id=?").get(TSK) as { tree_sha: string; attempt: number };
-    reviewTask(db, audit, { taskId: TSK, verdict: "approve", expectedAttempt: run.attempt }, new Date().toISOString());
+    reviewTask(db, audit, { taskId: TSK, verdict: "approve", expectedAttempt: run.attempt, runsDir: join(saydoHome, "tier1", "runs") }, new Date().toISOString());
     // 主仓 HEAD 未合并(tree 仍是 init tree,≠ 批准 tree)⇒ 拒
     const headTree = execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: repo, encoding: "utf8" }).trim();
     const r = verifyAndCompleteMerge(
@@ -262,4 +264,63 @@ describe("故事一执行器驱动全闭环(01 §5;真 git/真 verify/fake agent
     expect(r.done).toBe(false);
     expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("review_approved_waiting_merge");
   });
+
+  it("真实执行器 manual/unknown 绑 verify 后,删文件经 API 拒批,还原后 owner 仍可批", async () => {
+    const TSK = "tsk_01STRY0000000000000000000C";
+    seedQueued(TSK);
+    const executor = makeExecutor(new FileWritingSpawner({ "src/kept.ts": "export const kept = 1;\n" }));
+    executor.tick();
+    await waitStatus(TSK, "ready_for_review");
+    const run = db.prepare("SELECT id, attempt, settle_proof_json FROM tier1_runs WHERE task_id=?").get(TSK) as {
+      id: string;
+      attempt: number;
+      settle_proof_json: string;
+    };
+    const proof = JSON.parse(run.settle_proof_json) as {
+      tier1VerifyDigest: string;
+      acceptanceChecks: Array<{ criterion: string; status: string; source: string; evidenceRef?: string }>;
+    };
+    expect(proof.acceptanceChecks.length).toBeGreaterThan(0);
+    expect(
+      proof.acceptanceChecks.every(
+        (check) => check.status === "unknown" && check.source === "manual" && check.evidenceRef === `verify:${proof.tier1VerifyDigest}`
+      )
+    ).toBe(true);
+    const runsDir = join(saydoHome, "tier1", "runs");
+    const verifyPath = join(runsDir, run.id, "verify.json");
+    const raw = readFileSync(verifyPath, "utf8");
+    expect(textDigest(raw)).toBe(proof.tier1VerifyDigest);
+    const before = getTaskDetail(db, TSK, { runsDir });
+    const beforeEvidence = before?.["acceptanceEvidence"] as Array<{ ok: boolean; body?: string }>;
+    expect(beforeEvidence.every((row) => row.ok && (row.body ?? "").length > 0)).toBe(true);
+
+    rmSync(verifyPath);
+    const rejected = handleTaskAction(
+      db,
+      audit,
+      TSK,
+      "review",
+      { verdict: "approve", expectedAttempt: run.attempt },
+      new Date().toISOString(),
+      { runsDir }
+    );
+    expect(rejected.status).toBe(409);
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TSK) as { status: string }).status).toBe("ready_for_review");
+    const missing = getTaskDetail(db, TSK, { runsDir });
+    const missingEvidence = missing?.["acceptanceEvidence"] as Array<{ ok: boolean; reason?: string }>;
+    expect(missingEvidence.every((row) => row.ok === false && row.reason === "not_found")).toBe(true);
+
+    writeFileSync(verifyPath, raw);
+    const accepted = handleTaskAction(
+      db,
+      audit,
+      TSK,
+      "review",
+      { verdict: "approve", expectedAttempt: run.attempt },
+      new Date().toISOString(),
+      { runsDir }
+    );
+    expect(accepted.status).toBe(200);
+    expect(accepted.payload).toMatchObject({ ok: true, state: "review_approved_waiting_merge" });
+  }, 30_000);
 });

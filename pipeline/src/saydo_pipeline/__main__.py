@@ -6,12 +6,32 @@ import os
 import re
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 from .doubao_asr import DoubaoAsr
 from .doubao_tts import DoubaoTts
 from .hub_client import HubClient, log, pcm16_to_wav
 from .platform import install_stop_signal, saydo_state_root
+
+
+@dataclass(frozen=True)
+class PipelineIo:
+    cap: str | None
+    tts: DoubaoTts | None
+    asr: DoubaoAsr | None
+
+
+def prepare_pipeline_io() -> PipelineIo:
+    """独立入口前置:先过状态根身份闸,再读凭据并构造 provider。拒绝根不得探活。"""
+    saydo_state_root()
+    cap = read_cap_token()
+    key = read_env_key("DOUBAO_TTS_API_KEY")
+    tts = DoubaoTts(key) if key else None
+    app_id = read_env_key("VOLC_APP_ID")
+    access_token = read_env_key("VOLC_ACCESS_TOKEN")
+    asr = DoubaoAsr(app_id, access_token) if app_id and access_token else None
+    return PipelineIo(cap=cap, tts=tts, asr=asr)
 
 
 def read_env_key(name: str) -> str | None:
@@ -76,14 +96,11 @@ def self_exec_reread_env() -> None:
 
 async def main() -> None:
     daemon_port = os.environ.get("SAYDO_DAEMON_PORT", "47100")
-    cap = read_cap_token()
-    suffix = f"?token={cap}" if cap else ""
+    io = prepare_pipeline_io()
+    suffix = f"?token={io.cap}" if io.cap else ""
     url = f"ws://127.0.0.1:{daemon_port}/ws/voice{suffix}"
-    key = read_env_key("DOUBAO_TTS_API_KEY")
-    tts = DoubaoTts(key) if key else None
-    app_id = read_env_key("VOLC_APP_ID")
-    access_token = read_env_key("VOLC_ACCESS_TOKEN")
-    asr = DoubaoAsr(app_id, access_token) if app_id and access_token else None
+    tts = io.tts
+    asr = io.asr
     gen_raw = os.environ.get("SAYDO_PIPELINE_GENERATION")
     generation: int | None = None
     if gen_raw and gen_raw.isdigit():

@@ -322,6 +322,24 @@
       "composition_root": "main",
       "protocol": "HTTP",
       "method": "GET",
+      "path": "/api/obligations",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "GET",
       "path": "/api/outbox",
       "message": null,
       "via": [
@@ -804,6 +822,42 @@
       "composition_root": "main",
       "protocol": "HTTP",
       "method": "POST",
+      "path": "/api/focuses/:id/fork",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/focuses/:id/lanes",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
       "path": "/api/focuses/:id/lanes/:id/redo-from",
       "message": null,
       "via": [
@@ -823,6 +877,24 @@
       "protocol": "HTTP",
       "method": "POST",
       "path": "/api/focuses/:id/lanes/:id/retire",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/focuses/:id/lanes/:id/unretire",
       "message": null,
       "via": [
         "local",
@@ -877,6 +949,24 @@
       "protocol": "HTTP",
       "method": "POST",
       "path": "/api/memory/:id/(approve|reject)",
+      "message": null,
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "main",
+      "protocol": "HTTP",
+      "method": "POST",
+      "path": "/api/obligations/:id/defer",
       "message": null,
       "via": [
         "local",
@@ -2133,7 +2223,61 @@
       "protocol": "WS",
       "method": "NOT_APPLICABLE",
       "path": null,
+      "message": "voice.anchor_prepare",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
       "message": "voice.mode",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "voice.quiesced",
+      "via": [
+        "local",
+        "mobile_lan",
+        "tailnet"
+      ],
+      "class": "business",
+      "outcome": {
+        "local": "allow",
+        "mobile_lan": "remote_business_403",
+        "tailnet": "remote_business_403"
+      }
+    },
+    {
+      "composition_root": "voice",
+      "protocol": "WS",
+      "method": "NOT_APPLICABLE",
+      "path": null,
+      "message": "voice.quiesced_transcript_ack",
       "via": [
         "local",
         "mobile_lan",

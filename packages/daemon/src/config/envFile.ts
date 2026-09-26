@@ -1,5 +1,6 @@
 // ~/.saydo/.env 读写合并(first-run onboarding secret 写口)。
 // 纪律:同名替换、其余行原样保留;权限 0600;value 永不进日志/audit。
+// CR/LF/NUL 不能安全落入单行 KEY=VALUE,必须在写入前拒绝,不得 trim 冒充原值。
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -19,6 +20,21 @@ export type SecretName = (typeof SECRET_NAME_WHITELIST)[number];
 
 export function isSecretName(name: string): name is SecretName {
   return (SECRET_NAME_WHITELIST as readonly string[]).includes(name);
+}
+
+/** .env 单行赋值不能安全承载的控制字符(会拆出新 KEY= 或截断)。 */
+const ENV_UNSAFE_VALUE_CHARS = /[\0\r\n]/;
+
+export function envValueHasUnsafeChars(value: string): boolean {
+  return ENV_UNSAFE_VALUE_CHARS.test(value);
+}
+
+export class EnvValueRejectedError extends Error {
+  readonly code = "env_value_rejected";
+  constructor() {
+    super("env value contains characters that .env cannot carry");
+    this.name = "EnvValueRejectedError";
+  }
 }
 
 /** probe 回显布尔的密钥名(pipeline 实际读 + 对话常用) */
@@ -85,6 +101,7 @@ export function secretPresent(values: Record<string, string | undefined>, name: 
  * 若 name 原不存在则追加一行。返回新全文。
  */
 export function mergeEnvText(existingText: string | null, name: string, value: string): string {
+  if (envValueHasUnsafeChars(value)) throw new EnvValueRejectedError();
   const lines = existingText === null || existingText === "" ? [] : existingText.split("\n");
   // 去掉末尾因 split 产生的空元素若原文以 \n 结尾会有;保留结构:逐行处理
   let replaced = false;

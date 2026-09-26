@@ -799,7 +799,8 @@ export const MIGRATIONS: ReadonlyArray<Migration> = [
   { version: 29, apply: applyDdlV29RestartPending },
   { version: 30, apply: applyDdlV30NativeSessionConfirmed },
   { version: 31, apply: applyDdlV31FinalizePending },
-  { version: 32, apply: applyDdlV32OutboxThreadMessageId }
+  { version: 32, apply: applyDdlV32OutboxThreadMessageId },
+  { version: 33, apply: applyDdlV33TaskDependency }
 ];
 
 // v29(D1 可分发运行时):可恢复退出使用 additive marker,不扩 tier1 run 状态机。
@@ -831,6 +832,14 @@ export function applyDdlV32OutboxThreadMessageId(db: DbLike): void {
 // 保持 run 仍为既有活跃态；恢复时先消费该 marker，禁止重新 spawn agent，终态事务成功或取消结算时原子清除。
 export function applyDdlV31FinalizePending(db: DbLike): void {
   addColumnIfMissing(db, "tier1_runs", "finalize_pending_json", "TEXT");
+}
+
+// v33(DAILY-01 功能补齐,合同 §15.2):focus_obligations 任务级前置依赖两列——
+// waiting_on_task_id(同 Focus 绑定的任务)+ waiting_task_condition(accepted|delivered)。
+// 与 waiting_on_obligation_id 互斥由写路径保证;列型校验上移 contracts zod(库无 CHECK,同 v21 后口径)。
+export function applyDdlV33TaskDependency(db: DbLike): void {
+  addColumnIfMissing(db, "focus_obligations", "waiting_on_task_id", "TEXT NULL");
+  addColumnIfMissing(db, "focus_obligations", "waiting_task_condition", "TEXT NULL");
 }
 
 // v27(Focus v0.4 ④b):focus_obligations.provenance 可选列——过期确认降格溯源

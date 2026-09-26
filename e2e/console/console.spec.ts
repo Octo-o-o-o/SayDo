@@ -189,6 +189,8 @@ test("Focus 详情正式页渲染(方向/球权/安排)", async ({ page }) => {
   await expect(state).toContainText("整理 D2 观察表素材");
   await expect(state).toContainText("整理素材");
   await expect(state).toContainText("你 1 件");
+  // DAILY-01:右栏改按需页签;安排组在「上下文」页签
+  await page.locator("[data-focus-tab-btn=context]").click();
   await expect(page.locator("[data-focus-rail]")).toContainText("整理观察表行");
   await expect(page.locator("[data-focus-rail]")).toContainText("需要你");
 });
@@ -258,8 +260,10 @@ test("W5a 3.7 紧凑模式(11 §3):顶栏切换 -> data-density=compact + 持久
 
 test("成本页:unknown 纪律(还没有确切数字,禁 0)", async ({ page }) => {
   await open(page, "/cost");
+  // DAILY-01:默认时段窗口会滤掉 fixture 旧行;切「全部」再断言 unknown 纪律
+  await page.getByRole("button", { name: "全部" }).click();
   await expect(page.locator("[data-page=cost]")).toContainText("还没有确切数字");
-  const text = await page.locator("[data-cost-by-project]").innerText();
+  const text = await page.locator("[data-cost-groups]").innerText();
   expect(text).not.toMatch(/0\.00 元/);
 });
 

@@ -13,6 +13,8 @@
 | Codex 对抗复核 | `87-status-alignment-post-implementation-codex.md` | `FAIL`，A 2 / B 4 |
 | 首次收口后迟到复核 | `87-status-alignment-post-implementation-late.md` | 新增 A 1 / B 2；其余为已关闭重复项 |
 
+> 2026-09-25 更正:Codex 复核行的"B 4"为原首轮登记;按原报告 B-1–B-5 校正计数应为 B 5(含证据来源 B-5),2026-09-13 对账登记。
+
 首轮三路共同命中：云端绝对句、系统语音联网例外、tailnet 三层状态、CLI / SDK 与 live steer 范围、证据归属。迟到复核另命中一条 A 级合同冲突：Docs 误写「语音不放行审批」，但 canonical 明确 voice / `voice_weak` 封顶 S2；并补出 LLM 深研状态分叉与备份证据来源缺注。
 
 ## 2. 冲突终裁

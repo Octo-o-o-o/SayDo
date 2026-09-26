@@ -81,6 +81,11 @@ export const mobileObligationSchema = z.strictObject({
   laneId: idSchema.nullable(),
   waitingOn: z.string().nullable(),
   waitingOnObligationId: idSchema.nullable(),
+  /** DAILY-01:任务级前置与推迟字段(合同 §15.2) */
+  waitingOnTaskId: idSchema.nullable(),
+  waitingTaskCondition: z.enum(["accepted", "delivered"]).nullable(),
+  deferReason: z.string().nullable(),
+  dueOrTrigger: z.string().nullable(),
   createdFromEvent: z.number().int().nonnegative().nullable(),
   actionRef: z.string().nullable()
 });
@@ -116,7 +121,10 @@ export const mobileFocusDetailSchema = z.strictObject({
       type: z.string().min(1),
       payload: z.strictObject({
         title: z.string().optional(),
-        revision: z.union([z.string(), z.number()]).optional()
+        revision: z.union([z.string(), z.number()]).optional(),
+        /** DAILY-01:泳道航迹归线(id 非敏感文本,可出 LAN 边界) */
+        laneId: idSchema.optional(),
+        obligationId: idSchema.optional()
       }),
       actorKind: z.string().min(1),
       createdAt: tsSchema

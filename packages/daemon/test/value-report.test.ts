@@ -34,7 +34,7 @@ describe("价值证据轨周报", () => {
     ).run(NOW);
     const r = buildValueReport(db, NOW);
     const star = r.metrics.find((m) => m.name.includes("verified outcome"))!;
-    expect(star.raw).toMatchObject({ done: 1, eligible: 6 }); // fixture:6 任务 1 done(intent-to-treat)
+    expect(star.raw).toMatchObject({ done: 1, eligible: 7 }); // fixture:7 任务 1 done(intent-to-treat;含隔离验收)
     expect(r.metrics.find((m) => m.name.includes("回叫接通率"))!.value).toContain("(0/1)"); // notified 1 未 ack
     expect(r.metrics.find((m) => m.name.includes("S2 审批"))!.value).toContain("2 /"); // fixture S2 两条 + 每任务比率
     expect(r.metrics.find((m) => m.name.includes("车道"))!.value).toContain("unknown:1");

@@ -4,9 +4,11 @@
 >
 > **分域详设(2026-07-24 补充,实施与核对入口)**:每模块的七栏详设(职责边界/接口引用/设计要点/依赖/失效恢复/§12 测试归属/计划步骤映射)拆在 `modules/` 五份文档——[A 对话域](modules/a-dialogue.md) · [B 记忆域](modules/b-memory.md) · [C 控制面桥](modules/c-control-bridge.md) · [D 呈现域](modules/d-presentation.md) · [E 横切域](modules/e-crosscutting.md)。本篇保留总表/依赖图/信息架构与回改记录;**详设只引用 09/10/11 不复制合同**,冲突时 canonical 胜。视觉与交互合同见 [11 · UI 规范](11-ui-spec.md)。
 >
-> **[warn] 当前交付分期以 `plan/IMPLEMENTATION-PLAN-2.md` 为准**;`plan/IMPLEMENTATION-PLAN.md` 仅保留 2026-07-23 首发裁决的历史出处。首发 = 完整双路径，P0/P0.5 是阶段序号不是两次交付;本篇模块表的"分期"列早于该切分——**C1/C3(Hopper 桥)、Demo、Hopper usage 属 P0.5 阶段(首发后半程)**;§6 信息架构中 Hopper 相关页同理。P0 阶段只落 Tier 1 相关模块(见计划模块归属)。
+> **[warn] 当前交付分期以 `plan/IMPLEMENTATION-PLAN-2.md` 为准**;`plan/IMPLEMENTATION-PLAN.md` 仅保留 2026-07-23 首发裁决的历史出处。历史首发“双路径”定义已由设计 ADR-005 supersede,现役仅 Tier1;P0/P0.5 仍保留为历史阶段序号;本篇模块表的"分期"列早于该切分——**C1/C3(Hopper 桥)、Demo、Hopper usage 属 P0.5 阶段(首发后半程)**;§6 信息架构中 Hopper 相关页同理。P0 阶段只落 Tier 1 相关模块(见计划模块归属)。
 
 ## 1. 进程拓扑(P0 / T1 单机)
+
+以下为早期拓扑图。现役语音是 Python 自写 WS client + RMS/hangover VAD,Pipecat 只完成实验；Claude 执行走 CLI hooks,不使用图中的 SDK 进程内传输。Hopper 分支保持 designed/deferred(07 D2/D8、设计 ADR-005)。
 
 ```
 ┌───────────────┐  WS(音频帧↑ / TTS句↓ / watermark事件)  ┌──────────────────────────┐
@@ -25,7 +27,7 @@
                                                       └──────────────────────────┘
 ```
 
-原则(承 03 §1):daemon 是对话域唯一 durable 状态持有者;voice-pipeline 与浏览器页随时可死;执行域状态归 Hopper,跨域只走 §5 的合同。
+原则(承 03 §1):daemon 是对话域唯一 durable 状态持有者;voice-pipeline 与浏览器页随时可死。现役 Tier1 执行域也由 daemon 持有;图中的 Hopper 及 §5 跨域合同属于 designed/deferred 历史路径,不代表当前生产所有权。
 
 ## 2. 模块总表(5 个子系统 + 横切)
 
@@ -50,10 +52,10 @@
 | C2 | 执行客户端(ExecutionClient) | drop / 状态查询 / cancel;能力探测(steer 可用性按运行时,不按型号) | P0 |
 | C3 | 事件消费器(EventConsumer) | 消费 events.jsonl:游标 + gap/损坏行处理 + 重放幂等 + **settle barrier**(等闸门/产物落盘对账) | P0 |
 | C4 | 回叫引擎(CallbackEngine) | PagerDuty 式升级链状态机、durable outbox(重启只叫一次)、免打扰/输出仲裁 | P0 |
-| C5 | 审批服务(ApprovalService) | 两类审批(dispatch 包审批 / 运行中 effect 审批)、digest 绑定单次消费 receipt、超时默认终局、落盘可恢复;**执行模式策略承载点**(两档的 S2 姿态差异全在此,04 §5.4) | P0 |
+| C5 | 审批服务(ApprovalService) | 两类审批(dispatch 包审批 / 运行中 effect 审批)、digest 绑定单次消费 receipt、超时默认终局、落盘可恢复;**执行模式策略承载点**(现役仅逐步确认；两档的 S2 姿态差异为 designed/deferred,04 §5.4) | P0 |
 | C6 | 摘要器(Summarizer) | 规则统计(实时免费)+ 模型叙事(惰性);one_liner/walkthrough/decisions[] | P0 |
 | C7 | 对账与恢复(Reconciler) | 启动对账(孤儿进程/中断任务)、delivery preflight、电源断言 | P0 |
-| C8 | 成本账本(CostLedger) | 全链:对话(ASR 分钟/token/TTS 字符)+ 执行(Hopper usage 读取);estimate→budget→actual | P0(记账)/P1(表盘) |
+| C8 | 成本账本(CostLedger) | 全链:对话(ASR 分钟/token/TTS 字符)+ 执行(现役 Tier1 usage；Hopper usage 为延期桥);estimate→budget→actual | P0(记账)/P1(表盘) |
 | **D 呈现域** | | | |
 | D1 | Web 控制台(Console) | 页面结构见 §6(与 Demo HTML 一致):全局区(Dashboard/审批/通知/成本/设置)+ 项目区(对话/任务/记忆/产物/项目设置)+ 项目切换器 | P0 |
 | D2 | 移动外壳(MobileShell) | Capacitor + 薄原生模块(PushKit/CallKit/AVAudioSession);连接走 Tailscale/中继 | P1 |
@@ -87,6 +89,13 @@ type PipelineMsg =
   | { t: "tts.playout"; sentenceId: string; watermarkMs: number } // 已播进度(打断截断依据)
   | { t: "barge_in"; atMs: number }
   | { t: "turn.done_speaking" };                                  // 显式轮次按钮
+// 主题屏障候选消息(hello.ack.peerId/daemonEpoch、voice.anchor_prepare/status、
+// voice.quiesce、classified 成败联合 ACK 无 drained、emptyRound、
+// discardUnknownEpochs/unknownEpochs、captureId/captureIntent、
+// asr.final.recognitionOutcome、CaptureRegistry consumed+discarded tombstone、
+// quiesced_transcript+ACK、turn.text.receiptAction/daemonEpoch、turn.text.result)
+// failed 后放弃资格转移 / final 出账本 / discard 同时结算 registry / 立即 prepared
+// 结算条件见 09 §10.1.4/7/12。只以 09 §10 / §10.1 为准,本草图不复制。
 
 // A6 决策包(canonical schema 的 P0 最小集,字段清单对齐 04 §2.4 缺口声明)
 interface DecisionPackage {
@@ -95,7 +104,7 @@ interface DecisionPackage {
   assumptions: Claim[];                    // 每条带 source/confidence/critical
   acceptance: string[];                    // 验收标准(review 证据视图按此组织)
   plan: { step: string; owner: "ai" | "human" }[];
-  demoRef?: ArtifactRef;                   // 与实现同源,元素与 plan 编号互引
+  demoRef?: ArtifactRef;                   // 与实现同源,元素与 plan 编号互引;生成可查看≠实际已展示(09 §2;11 看小样)
   cost: { expected: number; p95: number; max: number };
   risks: string[];
   mode: "direct_to_review" | "step_confirm";   // 底层两档 schema 保留(04 §5.4);现役仅 step_confirm。direct_to_review=designed/deferred(PG-01B,D3 未签),拍板不可选
@@ -164,6 +173,13 @@ P0 现实(05 §1):Hopper 的 DecisionRequest/NotificationIntent/Command/workflow
 
 > **2026-08-08 修订(三面一栏 IA,console 重构方案 v2 §4+v4 收口,四轮对抗审后放行)**:主轴由 project 倒置为 Focus(project 降为承载边界资源);目标侧栏树=`[开口聊]主 CTA / 今天(徽章=attention 橙区,唯一"需要你"入口)/ 全景看板 / 正在持续的事(空间分组)/ 记录(记忆库·产物库·成本·设置)`;下表旧 IA **分批退役、先立后破**(批次②新树上线旧页降权入「旧版」折叠组→③d 起 Dashboard/Approvals/Notify/Focuses 退栏→④ Tasks/TaskDetail 退栏(由 #/review 验收面承载)→⑤删除文件与重定向)。14 页去向映射与 15 项功能承载对账表见方案 v2 §4-§5(OctoAgent docs/product/2026-08-08-console重构方案-v2.md);canonical 路由新增 `#/today`、`#/review/:tid`、`#/records/:fid`、`#/chat-new`;旧深链兼容矩阵按目标页 readiness 分批启用。批次⑤收口前,下表描述的旧 IA 对未迁移页面仍有效。
 > **进度对齐(2026-08-09)**:新 IA 已全量上线(今天页/Focus 对话页/验收面/看板/记录页+接线);旧页保留于侧栏「旧版」折叠组与 #/legacy/* 路由,**文件删除与重定向矩阵移除(原批次⑤收口项)尚未执行**——留待 dogfood 稳定后收官。
+>
+> **DAILY-01 修订(2026-09-19;设计包 `SayDo_日常工作版_功能补齐` 的功能回补,owner 拍板插队)**:
+> ① Focus 页右栏由「≥1100px 常驻」改为**事内按需页签**:对话(默认)/产物/泳道/依赖/记录(跳 `#/records/:fid`)/上下文——上下文组(安排/产物/涉及项目/记住的事)不再是常驻栏,想看再点;窄屏折叠摘要条升级为常驻「摘要条」。此条取代 2026-08-08 修订中「右栏常驻」的呈现约定(HANDOFF-2 右栏数据形状不变,仅挂载方式变)。
+> ② 侧栏「全景看板」更名「**泳道**」(`/board` 不变);看板页加**泳道/列表/看板三态切换**(零任务也可切);看板任务归线改用 `detail.tasks`(action_execution_bindings 真账),attention 近似项只补缺并标「待核实」。
+> ③ 新增全局页:`#/arrangements`(跨 Focus 义务按 owner 三组;收尾须依据、推迟须理由)、`#/archive`(归档清单 + 恢复——恢复不自动续跑);顶栏加 **⌘K 命令菜单**(页面直达 + 正在持续的事跳转,纯导航无写口)。
+> ④ 移动端:支线页加 工作/航迹/依赖 三页签;新增 `#/m/arrangements`、`#/m/archive` **只读**页(结构编辑仍归桌面);菜单补「安排/归档」。原生壳(iOS/Android/HarmonyOS)沿用移动 web 深链,结构编辑保持只读引导。
+> ⑤ **JOURNEY-01 生产读口(2026-09-20)**:Focus 对话页七步动作必须按 [09 §15.2](09-data-contracts.md) 从现有 `GET /api/focuses/:id`(含 `tasks`)、`GET /api/tasks/:id`、`GET /api/attention`、live 确认卡/采访通道灌 `lookups`;禁止 fixture 或可编辑草稿冒充批准/应答。形状冲突以 09 为准。
 
 **侧栏结构**(原则:账要全局记、看要就地看——只有"必须跨项目聚合才不误事"的才设全局页):
 

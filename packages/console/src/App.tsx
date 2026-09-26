@@ -33,6 +33,8 @@ import { FocusPageRoute } from "./pages/redesign/FocusPageRoute";
 import { ReviewPageRoute } from "./pages/redesign/ReviewPageRoute";
 import { BoardPageRoute } from "./pages/redesign/BoardPageRoute";
 import { RecordsPageRoute } from "./pages/redesign/RecordsPageRoute";
+import { ArchivePage } from "./pages/Archive";
+import { Arrangements } from "./pages/Arrangements";
 import { useVoice } from "./shell/VoiceContext";
 import { MobileApp } from "./mobile/MobileApp";
 import { desktopRouteForMobileHash, useMobileRoute } from "./mobile/router";
@@ -79,13 +81,17 @@ function Page({ route, overview }: { route: ReturnType<typeof useHashRoute>; ove
       return <Focuses />;
     case "focus":
       // 批次③:正式 Focus 页 = redesign FocusPage
-      return <FocusPageRoute focusId={route.focusId as string} />;
+      return <FocusPageRoute focusId={route.focusId as string} initialTab={route.focusTab} />;
     case "legacy-focus":
       return <FocusDetail focusId={route.focusId as string} />;
     case "review":
       return <ReviewPageRoute taskId={route.taskId as string} />;
     case "records":
       return <RecordsPageRoute focusId={route.focusId as string} />;
+    case "archive":
+      return <ArchivePage />;
+    case "arrangements":
+      return <Arrangements />;
     case "dev-components":
       // dev-only:redesign 组件库走查页(handoff §5;不进生产导航)
       return <DevComponents />;

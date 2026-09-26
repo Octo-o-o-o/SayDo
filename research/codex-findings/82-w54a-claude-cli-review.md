@@ -1,5 +1,7 @@
 # 82 · W5.4-a 批 code review(Grok grok-4.6 xhigh 只读;Codex 配额耗尽回落)
 
+> 2026-09-13 对账勘误：下文关于 `path.join(homedir(), "/foo")` 会丢弃家目录的判断不成立，混淆了 `join` 与 `resolve`。本次实际 Node 探针：`path.posix.join("/example/home", "/foo")` 为 `/example/home/foo`，`path.posix.resolve` 才为 `/foo`。因此不能用这一理由认定 `~/` 或 `~//` 展开有该缺陷。此勘误不撤销悬空 symlink、`..` 词法预折叠等独立问题及其历史修复；原评审正文保留为过程记录，不代表当前候选验收。
+
 > prompt:`prompts/82-w54a-claude-cli-review.md`;session `01a01b65-0803-77f3-8279-08dbdabfe0cf`;门禁由调度方沙箱外实跑:`just ci` EXIT=0(contracts 103 / cli 19 / console 253 / daemon 1580|4 / python 33)。
 
 先按对抗审查口径读规格、上一轮 A 级清单和 `.tmp/batch-diff.patch`，再逐项对照实现。规格和上一轮 A 级清单已读到前半；接着读方案关键条款、评审后半和 diff。评审技能走的是编排子代理；本轮按用户口径由本会话只读对账。接下来读 patch、源码和 A-01…A-10 对照点。先读安全关键实现：`fileToolEffect`、`gateScript`、`claude` backend、`cmdEffect` 和 outcome。关键文件已读完，接着核 `cmdEffect` 收紧、`executor` seam，以及测试覆盖是否对得上规格。对照规格、A-01…A-10 清单和实现后，结论先说：**需返工** [fail]。不是测试条数不够，而是 `fileToolToEffect` 把「断链中间目录」做成了圈内 `write_worktree`；W5.4-b 一旦按此接线，hook `allow` 会拆掉 Claude 对圈外写的第二层。

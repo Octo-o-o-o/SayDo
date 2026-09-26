@@ -10,4 +10,6 @@
 | [2026-08-20-homepage-structure-copy.fable.md](2026-08-20-homepage-structure-copy.fable.md) | 首页结构与文案稿 v2:不动 UI,只调区块取舍、按钮指向与逐区文案(中英);含事实红线与待裁决项 | 现行(文案事实面);**结构面已被 2026-08-25 稿 supersede**(对话式 FAQ/单条安装命令/四卡现状等) |
 | [archive/2026-08-20-docs-page-content-v1-glm53.md](archive/2026-08-20-docs-page-content-v1-glm53.md) | GLM 5.3 起草的 Docs 页内容 v1(原 `prompts/76-website-docs-content.md`) | 已归档,被 v2 supersede |
 
+2026-09-13事实面校正：上述两份文稿的正文已同步本机业务入口、CLI计费与自检、小样提示及回叫边界；历史结构/评审段仍保留当时坐标。正文更新不代表当前整合候选已通过最终验收,也不代表已部署网站同步上线。
+
 维护规则:每次产品批次收口后同步 Docs 稿对应小节与 §B.16 完成度总表;正文不含仓内批号 / 内部路径 / SHA;改 `templates/` 配置模板必同步 Docs 配置示例;入库前过 `scripts/check-emoji.sh`。

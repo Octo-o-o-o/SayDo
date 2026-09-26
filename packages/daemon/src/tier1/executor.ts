@@ -2858,10 +2858,13 @@ export class Tier1Executor {
     }
     // verify 模板与 acceptance 目前没有显式一一绑定合同。即使所有冻结 verify 都通过，
     // 也不能把每条 criterion 伪投影成 pass；先固化为 manual/unknown，交给验收者逐条判断。
+    // evidenceRef 指向本 run 真实 verify.json,不把任务终态当逐条证据。
+    const verifyDigest = textDigest(verifyPayload);
     const acceptanceChecks: AcceptanceCheck[] = body.acceptance.map((criterion) => ({
       criterion,
       status: "unknown",
-      source: "manual"
+      source: "manual",
+      evidenceRef: `verify:${verifyDigest}`
     }));
     const proof: Tier1SettleProof = tier1SettleProofSchema.parse({
       kind: "tier1",
@@ -2870,14 +2873,14 @@ export class Tier1Executor {
       attempt: run.attempt,
       packageRevision: run.packageRevision,
       treeSha,
-      tier1VerifyDigest: textDigest(verifyPayload),
+      tier1VerifyDigest: verifyDigest,
       acceptanceChecks,
       transcriptCursor: `events:${run.runId}:line:${run.eventLine}`,
       settledAt: nowIso
     } satisfies Tier1SettleProof);
 
     if (this.reviewSettlementInterrupted(run)) return;
-    this.commitSettle(run, treeSha, proof, `verify:${textDigest(verifyPayload)}`);
+    this.commitSettle(run, treeSha, proof, `verify:${verifyDigest}`);
   }
 
   /**

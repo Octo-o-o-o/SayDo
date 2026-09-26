@@ -80,6 +80,8 @@ ACP permission 帧**只有 `toolCallId`，没有工具名、参数或理由**（
 | C：现有 CLI 直接吃 DeepSeek key | 4–8 人天 | 7–12 人天 | 低至中 | 取决于 vendor |
 | 第四路：DSH SDK JSON-RPC sidecar | 13–20 人天 | 20–30 人天 | 中高 | 高，但免日志 tail |
 
+> 2026-09-25 更正:方案 A 行"rc 漂移暴露=无"的原义是不引入 DSH rc 漂移,并非无任何漂移——仍有模型 API 与自身依赖漂移。
+
 **方案 C 当前不成立**：executor 会主动剥离 API key 环境变量（`packages/daemon/src/tier1/executor.ts:106`、`tier1/validateConfig.ts:103`），仓内没有"Cursor 接任意 DeepSeek endpoint"的实现证据。需 spike 才能判定。
 
 **裁决理由**：DSH 相对 A 可能节省几天 agent loop / compaction / FS-shell 工具建设，但审批缺省 allow、hook 故障放行、ACP 帧信息不足、`SessionEvent` 无兼容承诺、egress 不受控，把这些节省基本吃完。**作为安全承重的默认 Runner，这笔交换不划算。**
@@ -155,6 +157,7 @@ ACP permission 帧**只有 `toolCallId`，没有工具名、参数或理由**（
 
 - 根因不是 `reasoning_effort`，是 **`max_tokens` 下限 3000 本身不够**。实测同一难题：3000 ⇒ content=0/finish=length；8000 ⇒ content=730/finish=stop；16000 ⇒ 687/stop；32000 ⇒ 848/stop。`reasoning_effort` 三档在难题上均救不回来（pro low/medium/high 全部 content=0），只是辅助省 reasoning。**先前"改用 reasoning_effort"的结论建立在一道更简单的题上，已作废。**
 - 修法一：输出预算下限按端点分档——DeepSeek 官方直连 16000，其余维持 3000。**收窄到已验证端点**：其他端点各有输出上限，盲目抬高可能被上游拒。max_tokens 是上限不是用量（32000 上限下实际只用 2875），不抬高成本。
+  > 2026-09-25 更正:max_tokens 是请求上限;"32000 上限下实际只用 2875"是历史单次样本,增大上限本身不等于实际用量,不能承诺成本不变。
 - 修法二：`finish_reason=length` 且无 content 无 toolCalls ⇒ **返回 error 而非静默空 text**。此前 `content=""` 是合法 string，会通过既有检查被当成"模型回了空话"放行（fail-open）；空回答对上游是**坏结果而非无结果**，必须显形。
 - 端到端复验：同一场景 pro 由 `content=0 / finish=length` 变为 **`content=583` / `finish=stop`**（reasoning 7236，预算够即留得下正文）。
 - **已知权衡**：预算抬高后请求更耗时，`timeoutMs` 缺省 30s 更易触发（复验中 flash 难题一例 60s 被 abort）。但这是**把"静默返回空回答"换成"显式超时失败"**，方向正确、非 regression。是否为 thinking 槽单独放宽超时涉及 10 的语音延迟合同，**未擅自改，留 owner**。
@@ -187,6 +190,7 @@ ACP permission 帧**只有 `toolCallId`，没有工具名、参数或理由**（
 
 - 方案 C 的 vendor 能力：仓内证据不足，需真实 CLI spike。
 - DeepSeek 当前模型的真实工具调用质量、thinking wire 行为与价格：**两方均未做网络调用**，不能从 DSH 示例配置推定。
+  > 2026-09-25 更正:原句指初始静态评估与独立报告 72 未做网络调用;后续作者已在第七、八节记录有限在线 spike,不证明真实 coding 任务质量、当前模型目录或价格,也不替代取消、故障与跨平台验收。
 - "DSH 全仓没有 triage/交付验收域"是未核验的全局否定；只确认了 jobs/plan/session 的边界。
 - `SessionEvent` 正式发布后是否稳定：不可预测。
 - 人天估算是架构粗估，最大不确定项是原生执行器达标所需的上下文管理与工具调优。

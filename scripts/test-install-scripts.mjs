@@ -7,7 +7,7 @@
 // 两份脚本、_headers 与 README/官网入口共同构成"快速启动"承诺面,任一漂移即红。
 // 同时带 mutation 自证:篡改 digest / 版本 / 删除 _headers 条目必须被判红。
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -90,7 +90,14 @@ export function checkInstallScripts(input) {
     ["sh PATH 写入语句", "printf '\\n%s\\n' \"$rc_line\" >> \"$rc_file\""],
     ["sh PATH 标记整行精确匹配", 'grep -Fxq -- "$rc_line" "$rc_file"'],
     ["sh fish 分支", 'fish) append_path_line "$HOME/.config/fish/config.fish"'],
-    ["sh fish PATH 写入", 'set -gx PATH \\"$BIN_DIR\\" \\$PATH # saydo'],
+    ["sh fish PATH 写入", 'fish_line="set -gx PATH ${q_bin_fish} \\$PATH # saydo"'],
+    ["sh POSIX 单引号引用函数", "posix_sq()"],
+    ["sh posix_sq 按字面写单引号", "printf '%s' \"'\\\\''\""],
+    ["sh fish 单引号引用函数", "fish_sq()"],
+    ["sh fish_sq 按字面写反斜杠", "printf '%s' '\\\\'"],
+    ["sh 拒绝换行 HOME", 'reject_unembeddable_path "HOME" "$HOME"'],
+    ["sh 拒绝换行 SAYDO_HOME", 'reject_unembeddable_path "SAYDO_HOME" "$SAYDO_HOME"'],
+    ["sh 启动器路径经 posix_sq", 'posix_sq "$NODE_BIN"'],
     ["sh Node 下载校验", '[ "$actual" = "$expected" ] || fail "Node 下载校验失败']
   ];
   const PS_INVARIANTS = [
@@ -104,9 +111,12 @@ export function checkInstallScripts(input) {
     ["ps1 根目录先 GetFullPath 消解 ..", '$Root = [IO.Path]::GetFullPath($Root)'],
     ["ps1 用户 PATH 前插且保留原值", '[Environment]::SetEnvironmentVariable("Path", (@($BinDir) + $parts) -join ";", "User")'],
     ["ps1 启动器用 %~dp0 相对引用根目录", 'function ConvertTo-LauncherPath'],
-    ["ps1 启动器 cli 路径相对启动器目录", "return '%~dp0..\\' + $p.Substring($rootPrefix.Length)"],
+    ["ps1 启动器 cli 路径相对启动器目录", "return '%~dp0..\\' + $rel"],
     ["ps1 Node 下载校验", 'if ($actual -ne $expected) { Fail "Node 下载校验失败'],
-    ["ps1 Node 版本按 node -v 解析", "if ($v -match '^v(\\d+)\\.') { return [int]$Matches[1] }"]
+    ["ps1 Node 版本按 node -v 解析", "if ($v -match '^v(\\d+)\\.') { return [int]$Matches[1] }"],
+    ["ps1 Root 拒换行与引号", "$Root -match '[\\r\\n\"]'"],
+    ["ps1 启动器相对段拒 cmd 二次展开", "$rel -match '[\\r\\n\"%!]'"],
+    ["ps1 根外启动器路径拒 cmd 二次展开", "$p -match '[\\r\\n\"%!]'"]
   ];
   for (const [label, needle] of SH_INVARIANTS) if (!input.sh.includes(needle)) errors.push(`install.sh 缺少关键语句:${label}`);
   for (const [label, needle] of PS_INVARIANTS) if (!input.ps1.includes(needle)) errors.push(`install.ps1 缺少关键语句:${label}`);
@@ -225,7 +235,16 @@ expectRed("sh PATH 写入语句被抹掉", (mutated) => {
   mutated.sh = mutated.sh.replace("printf '\\n%s\\n' \"$rc_line\" >> \"$rc_file\"", ":");
 });
 expectRed("sh fish 新终端找不到 saydo", (mutated) => {
-  mutated.sh = mutated.sh.replace('set -gx PATH \\"$BIN_DIR\\" \\$PATH # saydo', ':');
+  mutated.sh = mutated.sh.replace('fish_line="set -gx PATH ${q_bin_fish} \\$PATH # saydo"', ':');
+});
+expectRed("sh 删除 posix_sq", (mutated) => {
+  mutated.sh = mutated.sh.replace("posix_sq()", "posix_sq_removed()");
+});
+expectRed("sh 删除换行拒绝", (mutated) => {
+  mutated.sh = mutated.sh.replaceAll("reject_unembeddable_path", "skip_embed_check");
+});
+expectRed("sh 启动器退化为裸插值", (mutated) => {
+  mutated.sh = mutated.sh.replace('q_node_bin=$(posix_sq "$NODE_BIN")', 'q_node_bin=\'"\'$NODE_BIN\'"\'');
 });
 expectRed("ps1 用户 PATH 只写 BinDir", (mutated) => {
   mutated.ps1 = mutated.ps1.replace('(@($BinDir) + $parts) -join ";"', '$BinDir');
@@ -235,6 +254,12 @@ expectRed("ps1 irm|iex 形态被 MyInvocation 短路", (mutated) => {
 });
 expectRed("ps1 启动器改回字面路径 + ASCII 写入", (mutated) => {
   mutated.ps1 = mutated.ps1.replace('function ConvertTo-LauncherPath', 'function ConvertTo-LauncherPathX').replace('$launcherEncoding)', '$launcherEncoding); Set-Content -Path $launcher -Encoding ASCII -Value $launcherText');
+});
+expectRed("ps1 启动器不再拒绝 cmd 二次展开", (mutated) => {
+  mutated.ps1 = mutated.ps1.replace('if ($rel -match \'[\\r\\n"%!]\')', 'if ($false)');
+});
+expectRed("ps1 Root 换行引号拒绝被删", (mutated) => {
+  mutated.ps1 = mutated.ps1.replace('if ($Root -match \'[\\r\\n"]\')', 'if ($false)');
 });
 expectRed("digest 篡改", (mutated) => {
   mutated.sh = mutated.sh.replace(/^SAYDO_TGZ_SHA256="([0-9a-f]{63})([0-9a-f])"$/mu, (_match, head, last) =>
@@ -279,4 +304,229 @@ expectRed("镜像 URL 漂移", (mutated) => {
 expectRed("README 丢入口", (mutated) => {
   mutated.readme = mutated.readme.replace("https://saydo.octoooo.com/install.sh", "");
 });
-process.stdout.write(`[ok] install scripts pinned to v${pinOf(input.sh, "sh").version}; mutations=26 all red; dynamic no-write checks=6\n`);
+// 隔离全安装探针(SC-17 回归):桩掉 curl/sha256sum/node/npm,在含空格、单引号、$()、反引号的 HOME 名
+// 下真跑 install.sh,验证生成的启动器与 shell 启动文件不触发命令替换且可实际执行。
+function writeExec(path, body) {
+  writeFileSync(path, body);
+  chmodSync(path, 0o755);
+}
+
+function runIsolatedInstall({ homeName, shell = "/bin/sh", extraEnv = {} }) {
+  const base = mkdtempSync(join(tmpdir(), "saydo-install-full-"));
+  const fakeHome = join(base, homeName);
+  mkdirSync(fakeHome, { recursive: true });
+  const stubBin = join(base, "stub-bin");
+  mkdirSync(stubBin);
+  const tools = join(fakeHome, ".tools");
+  mkdirSync(tools, { recursive: true });
+  mkdirSync(join(fakeHome, "lib/node_modules/npm/bin"), { recursive: true });
+  writeFileSync(join(fakeHome, "lib/node_modules/npm/bin/npm-cli.js"), "// npm stub\n");
+  const sha = pinOf(read(SH), "sh").sha;
+  writeExec(
+    join(stubBin, "curl"),
+    `#!/bin/sh
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = "-o" ]; then shift; : > "$1"; fi
+  shift
+done
+`
+  );
+  writeExec(
+    join(stubBin, "sha256sum"),
+    `#!/bin/sh
+printf "${sha}  %s\\n" "$1"
+`
+  );
+  writeExec(
+    join(tools, "node"),
+    `#!/bin/sh
+if [ "$1" = "-p" ]; then printf '22\\n'; exit 0; fi
+if [ "$1" = "-v" ]; then printf 'v22.0.0\\n'; exit 0; fi
+prefix=""
+prev=""
+for a in "$@"; do
+  if [ "$prev" = "--prefix" ]; then prefix="$a"; fi
+  prev="$a"
+done
+if [ -n "$prefix" ]; then
+  dest="$prefix/lib/node_modules/@saydo/cli/dist/cli.mjs"
+  mkdir -p "$(dirname "$dest")"
+  printf '%s\\n' 'console.log("saydo-stub-ok")' > "$dest"
+  exit 0
+fi
+if [ -f "$1" ]; then
+  printf '%s\\n' "$1" > "$SAYDO_LAUNCHER_MARK"
+  printf 'saydo-stub-ok\\n'
+  exit 0
+fi
+exit 0
+`
+  );
+  const mark = join(base, "launcher-mark");
+  const result = spawnSync("/bin/sh", [join(repo, SH)], {
+    encoding: "utf8",
+    cwd: base,
+    timeout: 20000,
+    env: {
+      PATH: `${tools}:${stubBin}:/usr/bin:/bin`,
+      HOME: fakeHome,
+      SHELL: shell,
+      SAYDO_LAUNCHER_MARK: mark,
+      TMPDIR: base,
+      ...extraEnv
+    }
+  });
+  return { base, fakeHome, tools, result, mark, binDir: join(fakeHome, ".saydo/bin") };
+}
+
+function assertNoInjection(base, label) {
+  if (existsSync(join(base, "injected"))) {
+    throw new Error(`[fail] unexpected marker after ${label}`);
+  }
+}
+
+function assertInstallUsable({ homeName, shell, rcRel, sourceCmd }) {
+  const run = runIsolatedInstall({ homeName, shell });
+  try {
+    const combined = `${run.result.stdout}${run.result.stderr}`;
+    if (run.result.status !== 0) {
+      throw new Error(`[fail] install.sh exit=${run.result.status} home=${homeName}\n${combined}`);
+    }
+    assertNoInjection(run.base, `install ${homeName}`);
+    const launcher = join(run.binDir, "saydo");
+    if (!existsSync(launcher)) throw new Error(`[fail] missing launcher for ${homeName}`);
+    const launcherText = readFileSync(launcher, "utf8");
+    if (!/exec '.*' '.*' "\$@"/s.test(launcherText)) {
+      throw new Error(`[fail] launcher is not POSIX-single-quoted:\n${launcherText}`);
+    }
+    const launched = spawnSync("/bin/sh", [launcher, "status"], {
+      encoding: "utf8",
+      cwd: run.base,
+      timeout: 10000,
+      env: { PATH: "/usr/bin:/bin", HOME: run.fakeHome, SAYDO_LAUNCHER_MARK: run.mark }
+    });
+    if (launched.status !== 0) {
+      throw new Error(`[fail] launcher exit=${launched.status} home=${homeName}\n${launched.stdout}${launched.stderr}`);
+    }
+    assertNoInjection(run.base, `launcher ${homeName}`);
+    if (!existsSync(run.mark)) throw new Error(`[fail] launcher did not reach stub cli for ${homeName}`);
+    const marked = readFileSync(run.mark, "utf8").trim();
+    const cli = join(run.fakeHome, ".saydo/toolchain/prefix/lib/node_modules/@saydo/cli/dist/cli.mjs");
+    if (marked !== cli || !existsSync(cli)) {
+      throw new Error(`[fail] launcher path not usable: marked=${marked} cli=${cli}`);
+    }
+    const rc = join(run.fakeHome, rcRel);
+    if (!existsSync(rc)) throw new Error(`[fail] missing ${rcRel} for ${homeName}`);
+    const sourced = spawnSync("/bin/sh", ["-c", sourceCmd], {
+      encoding: "utf8",
+      cwd: run.base,
+      timeout: 10000,
+      env: { HOME: run.fakeHome, PATH: "/usr/bin:/bin", SHELL: shell }
+    });
+    if (sourced.status !== 0) {
+      throw new Error(`[fail] source ${rcRel} exit=${sourced.status}\n${sourced.stdout}${sourced.stderr}`);
+    }
+    assertNoInjection(run.base, `source ${rcRel} ${homeName}`);
+    if (!sourced.stdout.includes(run.binDir)) {
+      throw new Error(`[fail] sourced PATH missing BIN_DIR for ${homeName}: ${sourced.stdout}`);
+    }
+  } finally {
+    rmSync(run.base, { recursive: true, force: true });
+  }
+}
+
+assertInstallUsable({
+  homeName: "home with space",
+  shell: "/bin/sh",
+  rcRel: ".profile",
+  sourceCmd: '. "$HOME/.profile"; printf "%s\\n" "$PATH"'
+});
+assertInstallUsable({
+  homeName: "home's-dir",
+  shell: "/bin/sh",
+  rcRel: ".profile",
+  sourceCmd: '. "$HOME/.profile"; printf "%s\\n" "$PATH"'
+});
+assertInstallUsable({
+  homeName: "home-$(touch injected)",
+  shell: "/bin/sh",
+  rcRel: ".profile",
+  sourceCmd: '. "$HOME/.profile"; printf "%s\\n" "$PATH"'
+});
+assertInstallUsable({
+  homeName: "home-`touch injected`",
+  shell: "/bin/sh",
+  rcRel: ".profile",
+  sourceCmd: '. "$HOME/.profile"; printf "%s\\n" "$PATH"'
+});
+assertInstallUsable({
+  homeName: "home with space",
+  shell: "/bin/bash",
+  rcRel: ".bashrc",
+  sourceCmd: '. "$HOME/.bashrc"; printf "%s\\n" "$PATH"'
+});
+assertInstallUsable({
+  homeName: "home-$(touch injected)",
+  shell: "/bin/zsh",
+  rcRel: ".zshrc",
+  sourceCmd: '. "$HOME/.zshrc"; printf "%s\\n" "$PATH"'
+});
+
+{
+  const fishHome = "home-$(touch injected)";
+  const run = runIsolatedInstall({ homeName: fishHome, shell: "/usr/bin/fish" });
+  try {
+    if (run.result.status !== 0) {
+      throw new Error(`[fail] fish install exit=${run.result.status}\n${run.result.stdout}${run.result.stderr}`);
+    }
+    assertNoInjection(run.base, "fish install");
+    const rc = join(run.fakeHome, ".config/fish/config.fish");
+    if (!existsSync(rc)) throw new Error("[fail] missing fish config");
+    const line = readFileSync(rc, "utf8");
+    if (!line.includes("set -gx PATH '") || line.includes('set -gx PATH "')) {
+      throw new Error(`[fail] fish config is not single-quoted:\n${line}`);
+    }
+    const fishBin = spawnSync("/bin/sh", ["-c", "command -v fish"], { encoding: "utf8" });
+    if (fishBin.status === 0 && fishBin.stdout.trim()) {
+      const sourced = spawnSync(fishBin.stdout.trim(), ["-c", "source $HOME/.config/fish/config.fish; printf '%s\\n' $PATH"], {
+        encoding: "utf8",
+        cwd: run.base,
+        timeout: 10000,
+        env: { HOME: run.fakeHome, PATH: "/usr/bin:/bin" }
+      });
+      if (sourced.status !== 0) {
+        throw new Error(`[fail] fish source exit=${sourced.status}\n${sourced.stdout}${sourced.stderr}`);
+      }
+      assertNoInjection(run.base, "fish source");
+      if (!sourced.stdout.includes(run.binDir)) {
+        throw new Error(`[fail] fish PATH missing BIN_DIR: ${sourced.stdout}`);
+      }
+    }
+  } finally {
+    rmSync(run.base, { recursive: true, force: true });
+  }
+}
+
+{
+  const base = mkdtempSync(join(tmpdir(), "saydo-install-nl-"));
+  const fakeHome = join(base, "home\nline");
+  mkdirSync(fakeHome);
+  const before = spawnSync("/bin/sh", [join(repo, SH)], {
+    encoding: "utf8",
+    cwd: base,
+    timeout: 10000,
+    env: { PATH: "/usr/bin:/bin", HOME: fakeHome, SHELL: "/bin/sh" }
+  });
+  const combined = `${before.stdout}${before.stderr}`;
+  if (before.status === 0 || !combined.includes("[fail]") || !combined.includes("换行")) {
+    rmSync(base, { recursive: true, force: true });
+    throw new Error(`[fail] newline HOME was not rejected (exit=${before.status})\n${combined}`);
+  }
+  if (existsSync(join(fakeHome, ".saydo"))) {
+    rmSync(base, { recursive: true, force: true });
+    throw new Error("[fail] newline HOME still wrote .saydo");
+  }
+  rmSync(base, { recursive: true, force: true });
+}
+
+process.stdout.write(`[ok] install scripts pinned to v${pinOf(input.sh, "sh").version}; mutations=31 all red; dynamic no-write checks=6; isolated full-install path cases=7+newline\n`);

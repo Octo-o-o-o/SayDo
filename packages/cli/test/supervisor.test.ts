@@ -59,6 +59,38 @@ describe("startup emergency cleanup ownership", () => {
     expect(homeLockAllowsReap(root, { pid: process.pid, instanceId: "current-instance" })).toBe(false);
   });
 
+  it("捕获的 processStart 在 daemon pid 死后仍允许 reap;未捕获则保持旧行为", () => {
+    const root = home();
+    const captured = "captured-birth-of-dead-child";
+    writeFileSync(join(root, ".daemon-supervisor.lock"), JSON.stringify({
+      version: 1,
+      pid: DEAD_PID,
+      processStart: captured,
+      instanceId: "dead-instance"
+    }));
+    expect(homeLockAllowsReap(root, { pid: DEAD_PID, instanceId: "dead-instance" })).toBe(false);
+    expect(homeLockAllowsReap(root, { pid: DEAD_PID, instanceId: "dead-instance", processStart: captured })).toBe(true);
+    expect(homeLockAllowsReap(root, { pid: DEAD_PID, instanceId: "dead-instance", processStart: "other-birth" })).toBe(false);
+  });
+
+  it("daemon pid 复用时以捕获 birth 对锁,不因 live birth 不同拒绝 reap", () => {
+    const root = home();
+    const live = processBirth(process.pid);
+    if (!live) throw new Error("本进程 birth 不可用");
+    writeFileSync(join(root, ".daemon-supervisor.lock"), JSON.stringify({
+      version: 1,
+      pid: process.pid,
+      processStart: "old-dead-birth",
+      instanceId: "reused-instance"
+    }));
+    expect(homeLockAllowsReap(root, { pid: process.pid, instanceId: "reused-instance" })).toBe(false);
+    expect(homeLockAllowsReap(root, {
+      pid: process.pid,
+      instanceId: "reused-instance",
+      processStart: "old-dead-birth"
+    })).toBe(true);
+  });
+
   it("未持锁的 generation reapOwnedAgentsIfHomeOwner 必须是 no-op", async () => {
     const root = home();
     // 锁属于他人。

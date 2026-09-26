@@ -5,7 +5,9 @@
 
 ## 1. 总体分层:语音前脑 + 控制面桥 + 执行后端
 
-经三个本地项目(Hopper / OpenClaw-MultiAgent-Kit / OctoDesk)实读评估与 6 路竞品调研(证据见 `../research/`),SayDo **不从零造全栈**——自建范围收缩为三块独特能力 + 一层控制面桥,下游执行复用现成实现(首选 Hopper):
+经三个本地项目(Hopper / OpenClaw-MultiAgent-Kit / OctoDesk)实读评估与 6 路竞品调研(证据见 `../research/`),SayDo **不从零造全栈**——自建范围收缩为三块独特能力 + 一层控制面桥,下游执行复用现成 coding CLI。现役路线由 daemon 的 Tier1 执行器管理 worktree、执行状态、预算、恢复与验证,生产后端为 Cursor/Claude Code。
+
+以下框图保留早期 Hopper 双路径设计,其中“首选 Hopper”“执行域归 Hopper”只适用于 designed/deferred 桥,不是当前运行对象。当前生产路线以设计 ADR-005 与 `packages/daemon/src/tier1/` 为准:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -39,7 +41,7 @@
 1. **Brain 的模型进程可丢弃、无直接执行权。** 语音会话/推理进程随时可死掉重建(会话断了,任务照跑);所有副作用发生在 daemon/执行后端。但注意:**对话域本身不是无状态的**——daemon 持有 durable 的对话证据、意图账本、就绪评估与决策包引用,模型进程只是这些状态的可重建投影(把 Brain 说成"无状态"会漏掉恢复与审计设计)。
 2. **语音会话短命,任务长命,生命周期彻底解耦。** 会话是事件驱动的窗口(用完挂起);任务在后台持续执行,靠回叫把人拉回来。
 
-**所有权矩阵(防 split-brain,来自 Codex 红队审查的硬要求)**:task status / approval / budget / retry / notification 每项状态**只能有一个 owner**(执行域归 Hopper,对话域归 daemon);跨边界用 durable 协议连接(DispatchEnvelope + 事件 cursor + 幂等 key),不共用数据库、不直接改对方内部状态。
+**所有权矩阵(防 split-brain,来自 Codex 红队审查的硬要求)**:task status / approval / budget / retry / notification 每项状态**只能有一个 owner**(现役 Tier1 执行域与对话域均由 daemon 内各自模块持有;Hopper 桥的执行域才归独立 Hopper);跨边界用 durable 协议连接(DispatchEnvelope + 事件 cursor + 幂等 key),不共用数据库、不直接改对方内部状态。
 
 ## 2. 组件职责
 
@@ -50,12 +52,12 @@
 | **Brain(对话大脑)** | 采访式澄清/脑暴、调用工具、口播摘要、把细节推屏幕;决策包三件套由其下属的"决策包工厂"生成(含 Demo) | 两类行为:**准备知识(proactive)** + **回答问题(reactive)**;人格:简短、口语、不念代码 |
 | **就绪评估器(独立)** | 只读证据账本判定"够不够开始"(四维 + critical 硬门槛),shadow 记录供校准 | **与 Brain 解耦**:不同模型家族 + 规则引擎,不读 Brain 自辩(04 §2.3 防相关错误链的组件载体) |
 | **安全策略引擎** | effect-based 风险计算(S0–S3):effect × 目标 × 数据敏感度 × 身份 × 下游触发 × 成本;verify 白名单校验 | 04 §5.1 的"按效果计算"由此组件承载,禁止按动作名硬编码 |
-| **成本账本** | 全链记账:对话(ASR 分钟/token/TTS 字符)+ 执行(读 Hopper usage);estimate → budget → actual | 04 §3 全链成本账本的组件落点 |
+| **成本账本** | 全链记账:对话(ASR 分钟/token/TTS 字符)+ 执行(现役读 Tier1 usage,Hopper usage 仅属延期桥);estimate → budget → actual | 04 §3 全链成本账本的组件落点 |
 | **Context 预研器** | 项目奠基(一次性,重)+ 会话预热(每次,轻) | 让 Brain "开聊前已读过项目";预研只读、可缓存、带 commit 快照 |
 | **voiced daemon(控制面桥)** | 执行 Brain 工具调用、组装 Context Pack、drop 任务、消费事件(settle 对账)、发回叫、持有对话域 durable 状态 | 常驻后台;语音会话断了它也活着 |
 | **摘要器** | 把 agent 原始事件流压成三层口播摘要 | 统计走纯规则(免费实时);叙事走廉价文本模型(仅关键节点惰性生成);原始事件流**永不**直接进 Brain |
 | **回叫策略引擎** | 事件 → 通知升级链 + 免打扰 + 输出仲裁 | 机制见 04 §4 |
-| **执行后端(Hopper)** | worktree 隔离、agent 驱动、事件真相源、验收闸门、预算、恢复 | 复用现状能力;流式 steer 等待其 M3b(§5 有降级路径) |
+| **执行后端(Tier1)** | daemon 管理 worktree 隔离、CLI 驱动、状态、验收闸门、预算与恢复 | 当前为 Cursor/Claude Code;Hopper 桥 designed/deferred(设计 ADR-005) |
 
 ## 3. 语音引擎:可插拔双引擎
 
@@ -90,7 +92,7 @@ Brain 通过工具指挥 daemon,工具集与引擎无关:
 | `assess_readiness` | 每轮末调用发起就绪判定;**Brain 只发起,判定由独立就绪评估器执行**(机制见 04 §2,模块见 08 A5) |
 | `propose_start` | 就绪时产出决策包(成果预览 + 计划 + Demo),请求 go/no-go |
 | `create_task` | 上交对话原话要点;**结构化任务卡由 daemon 侧文本模型起草**(语音模型的结构化输出不可靠,不让它写契约),Brain 拿复述稿逐点口头确认 |
-| `confirm_and_dispatch` | 口头确认后派发(drop 进执行后端;参数含**执行模式两档与预授权效果清单**,04 §5.4) |
+| `confirm_and_dispatch` | 口头确认后派发(drop 进执行后端;历史工具草图含两档与预授权清单;现役仅逐步确认,09 §13 为正式工具签名,04 §5.4 为状态边界) |
 | `get_status` / `steer_task` / `cancel_task` | 查状态 / 中途追加指令 / 取消 |
 | `answer_agent_question` / `approve_action` | 回答 agent 提问 / 审批(仅限 S2 风险,见 04 §5) |
 | `explain_result` | 让摘要器按层级出稿(one_liner / walkthrough / decisions),Brain 朗读 |
@@ -122,6 +124,8 @@ Brain 通过工具指挥 daemon,工具集与引擎无关:
 
 ## 6. 数据与存储
 
+下图是早期双路径逻辑模型,不是当前 DDL 清单。现役执行状态由 daemon 的 Tier1 表与状态机持有;`phases` 属规划设计,`current_projection` 不落表(09 §4),不能据此要求现役迁移补表。
+
 ```
 执行域(Hopper 所有):任务状态 / events.jsonl 事件真相源 / worktree / 预算
 对话域(daemon 所有,SQLite + JSONL):
@@ -140,9 +144,11 @@ Brain 通过工具指挥 daemon,工具集与引擎无关:
   ~/.saydo/profile.md             # M0:用户档案(跨项目)
 ```
 
-真相源边界:执行域以 Hopper 事件溯源为真相;对话域以**记忆事件账本**为真相,Markdown 文件与 SQLite 索引都是可重建投影(源码/Git 永远是代码事实的最终权威,见 04 §1.4)。一切可恢复(daemon 重启后任务和会话都能接上);知识库默认 gitignore(可显式选择提交以团队共享)。**AS-01-AS-02**:daemon 对声明私有 write set(`<workspace>/.saydo/foundation/` 含 `staging-gen-*`、`<workspace>/.saydo/knowledge/` 投影)做 create-only ignore 与实际保护验证——无覆盖文件则写最小规则,已有等价规则(经 `git check-ignore -v` 覆盖声明 write set)接受且不覆盖用户文件;已跟踪目标停**本次**私有投影并保留文件与人工配置,不自动 `git rm`、不清历史、不把既有手工共享当作继续写入新私有生成物的无条件豁免。私有投影文档(`core.md` 等与 `manifest-gen-N.json`)不得写入原始绝对 workspace 路径。声明支持的 `.cursor/rules` 直系读取受 contracts `classifyRulesReadBound` 有限上限约束,超界不发布新 generation。不新增 `knowledgeShare` / `projectOverrides` 共享字段或 DDL;不把整个 `.saydo` 改成字节全等 `*`。
+真相源边界:现役执行域以 daemon 的 Tier1 持久状态和运行证据为真相;仅 dormant Hopper 桥按其事件溯源对账;对话域以**记忆事件账本**为真相,Markdown 文件与 SQLite 索引都是可重建投影(源码/Git 永远是代码事实的最终权威,见 04 §1.4)。恢复按各域合同处理：有完整持久化证据的状态可重建；缺失或无法确认的执行/语音状态必须保留 interrupted/unknown,不得宣称重启后总能无缝接上;知识库默认 gitignore(可显式选择提交以团队共享)。**AS-01-AS-02**:daemon 对声明私有 write set(`<workspace>/.saydo/foundation/` 含 `staging-gen-*`、`<workspace>/.saydo/knowledge/` 投影)做 create-only ignore 与实际保护验证——无覆盖文件则写最小规则,已有等价规则(经 `git check-ignore -v` 覆盖声明 write set)接受且不覆盖用户文件;已跟踪目标停**本次**私有投影并保留文件与人工配置,不自动 `git rm`、不清历史、不把既有手工共享当作继续写入新私有生成物的无条件豁免。私有投影文档(`core.md` 等与 `manifest-gen-N.json`)不得写入原始绝对 workspace 路径。声明支持的 `.cursor/rules` 直系读取受 contracts `classifyRulesReadBound` 有限上限约束,超界不发布新 generation。不新增 `knowledgeShare` / `projectOverrides` 共享字段或 DDL;不把整个 `.saydo` 改成字节全等 `*`。
 
 ## 7. 部署拓扑与移动连接
+
+本节是 T2/T3 目标设计。PG-01B 已关闭当前远程业务入口;Noise、设备信任与生产配对尚未交付,不得按下列选型宣称已可连接。
 
 三拓扑(产品定位见 02 §7):T1 单机(P0)→ T2 手机沟通 + 桌面执行(P1 主形态)→ T3 手机 + 服务端(P2)。
 
@@ -154,6 +160,8 @@ Brain 通过工具指挥 daemon,工具集与引擎无关:
 4. **记忆归属**:M1/M2 + 执行在执行端;手机只做 I/O + M3 会话缓存;M0 可云同步。
 
 ## 8. 移动端形态:iOS 语音必须原生外壳
+
+本节为目标形态,不是当前壳的已实现清单;当前构建、签名与真机边界见 `release/version-matrix.md`。
 
 **PWA 承载不了 iOS 语音**(Safari/PWA 后台杀音频、无 VoIP push、后台任务受限)。正解:
 
@@ -168,12 +176,12 @@ Brain 通过工具指挥 daemon,工具集与引擎无关:
 | 层 | 选型 | 理由 |
 |---|---|---|
 | daemon | **TypeScript / Node 22+** | 两个 Tier 1 CLI 后端、控制台与 Hopper 桥均可复用同一 TS/Node 进程与协议栈 |
-| 语音底座 | **Pipecat**(BSD-2,Python,独立语音进程)+ Silero VAD;**状态:暂定,待打断语义 spike**(Codex 技术报告倾向 LiveKit Agents,07 D2 记录了反向裁决理由与切换条件) | 级联集成最全,一行换 STT/TTS 供应商;经 WS 与 TS daemon 通信 |
+| 语音底座 | 现役为独立 Python 自写 WS client + RMS/hangover VAD；Pipecat 打断 spike 已验证但运行时未接入(工程 ADR-001)，Silero 升级待验 | 无状态 WS 边界保持 provider 可替换；框架接入须单独验收，见07 D2 |
 | STT / TTS | 云(gpt-4o-transcribe / 火山等)或本地(MLX Whisper / Kokoro) | 可替换 Provider,本地兜底 |
-| Brain / 摘要器 | 文本旗舰模型 / 廉价快速文本模型;**供给双后端:API 直连(支持三方 base_url 命名端点)或 本地订阅 CLI(BYOA:codex exec / claude -p / cursor-agent -p,07 D18)**——沉思/评估档推荐走用户已有订阅,省 key 省 token 计费 | 对话与摘要分开计费;对话档**恒 API**(BYOA 已实测判死:每轮 13–23s,07 D18 结案表) |
+| Brain / 摘要器 | 文本旗舰模型 / 廉价快速文本模型;**供给双后端:API 直连(支持三方 base_url 命名端点)或 本地订阅 CLI(BYOA:codex exec / claude -p / cursor-agent -p,07 D18)**——沉思/评估档推荐走用户已有订阅,省 key 省 token 计费 | 对话与摘要分开计费;实时语音对话档为 API;全局 CLI 对话仅支持 `dialog_cli_oneshot` 文本单发,不进入实时语音/完整多轮工具环(07 D18) |
 | 语音前台 | 桌面浏览器页(借浏览器 AEC);移动 Capacitor 外壳 | 零原生开发起步 |
-| 执行后端 | **Hopper**(MIT,同栈,1076 单测全绿) | 复用 runners/worktree/事件/预算/恢复 |
+| 执行后端 | **Tier1:Cursor / Claude Code CLI** | daemon 持有执行状态并驱动 CLI;Hopper 桥 designed/deferred,不把其历史测试数当本仓验收 |
 | 记忆检索 | SQLite FTS5(BM25)起步,可叠 sqlite-vec | 零运维;代码事实永远 agentic grep 现读、不进知识库 |
 | 审批持久化 | 抄 LangGraph interrupt 落盘模型 | 中断点可恢复 |
 | 推送 | ntfy(自托管,自带电话)→ P1 迁 APNs/FCM 直连 | 一步到位起步 |
-| 成本熔断 | Hopper usage 中枢(+ 可选 LiteLLM 网关) | 真实额度窗口 + cost-aware 派发 |
+| 成本熔断 | daemon 成本账本 + Tier1 预算/墙钟/回合上限 | API 与订阅成本分开投影;不预测订阅剩余额度(09 §11) |

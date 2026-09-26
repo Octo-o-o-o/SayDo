@@ -1,9 +1,14 @@
+import { spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { createLogger } from "../src/obs/logger.js";
 import { AuditWriteError, createFileAuditSink } from "../src/obs/audit.js";
+
+const require = createRequire(import.meta.url);
 
 describe("logger (E3 JSONL 底座)", () => {
   it("写出可解析的 JSONL 且人读行走 stderr 回调", async () => {
@@ -104,6 +109,32 @@ describe("logger 背压隔离(GAP-02 2.8:日志可降级、审计不可)", () =>
     expect(after.dropped).toBe(3);
     expect(after.degraded).toBe(false);
   });
+
+  it("默认 stderr 异步断管不杀进程,也不走全局 uncaughtException", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "saydo-log-epipe-"));
+    const childPath = fileURLToPath(new URL("./fixtures/logger-stderr-child.mts", import.meta.url));
+    const tsxCli = require.resolve("tsx/cli");
+    const child = spawn(process.execPath, [tsxCli, childPath, dir], {
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    let stdout = "";
+    let closedStderr = false;
+    const finished = new Promise<{ code: number | null; stdout: string }>((resolve, reject) => {
+      child.stdout.on("data", (buf: Buffer) => {
+        stdout += String(buf);
+        if (!closedStderr && stdout.includes("READY")) {
+          closedStderr = true;
+          child.stderr.destroy();
+        }
+      });
+      child.on("error", reject);
+      child.on("close", (code) => resolve({ code, stdout }));
+    });
+    const result = await finished;
+    expect(result.stdout).toContain("SURVIVED");
+    expect(result.stdout).not.toContain("EPIPE");
+    expect(result.code).toBe(0);
+  }, 15_000);
 
   it("stderr 写失败同样不冒进业务调用栈", () => {
     const log = createLogger({

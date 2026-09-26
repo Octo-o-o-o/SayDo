@@ -347,3 +347,49 @@ describe("saydo doctor 五种判定", () => {
     }
   });
 });
+
+describe("SC-14 doctor 异常/矛盾状态不得报 all_ok(断言生产 collectDoctor 返回值)", () => {
+  it("voiceReady=false 且原因未知:voice_unknown,无 all_ok,退出码非 0", async () => {
+    const home = makeHome();
+    const port = await serveDaemon(
+      home,
+      healthBody(home),
+      readyBody({
+        voiceReady: false,
+        voice: { enabled: true, reason: "unrecognized-reason" },
+        asr: "ok",
+        tts: "ok"
+      })
+    );
+    const report = await collectDoctor({ home, port, protocolVersion: PROTOCOL, installed });
+    expect(codes(report)).toContain("voice_unknown");
+    expect(codes(report)).not.toContain("all_ok");
+    expect(report.exitCode).not.toBe(0);
+    keepSample("voice_unknown_reason", home, report);
+  });
+
+  it("voiceReady=true 但 asr/tts=unknown(矛盾状态):voice_unknown,无 all_ok", async () => {
+    const home = makeHome();
+    const port = await serveDaemon(home, healthBody(home), readyBody({ asr: "bogus", tts: "bogus" }));
+    const report = await collectDoctor({ home, port, protocolVersion: PROTOCOL, installed });
+    expect(codes(report)).toContain("voice_unknown");
+    expect(codes(report)).not.toContain("all_ok");
+    expect(report.exitCode).not.toBe(0);
+    keepSample("voice_contradictory", home, report);
+  });
+
+  it("身份漂移:/health 与 /readyz 的 runtime identity 不一致判 identity_drift,无 all_ok", async () => {
+    const home = makeHome();
+    const driftIdentity = {
+      sourceRevision: "c".repeat(64),
+      buildId: "0.1.0-rc.13+cccccccccccc.p1-0-0.cccccccccccc",
+      protocolVersion: PROTOCOL
+    };
+    const port = await serveDaemon(home, healthBody(home), readyBody({ identity: driftIdentity }));
+    const report = await collectDoctor({ home, port, protocolVersion: PROTOCOL, installed });
+    expect(codes(report)).toContain("identity_drift");
+    expect(codes(report)).not.toContain("all_ok");
+    expect(report.exitCode).not.toBe(0);
+    keepSample("identity_drift", home, report);
+  });
+});

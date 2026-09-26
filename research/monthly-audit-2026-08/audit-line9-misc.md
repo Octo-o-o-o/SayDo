@@ -99,6 +99,8 @@
 
 本线 11 个 merge(`254491d`、`6d3c050`、`6cd362d`、`a7d517c`、`aa8034e`、`1a41b45`、`aa2dffc`、`11e3653`、`1edd3d0`、`aa3fe34`;另 `f28489d` 是单亲迁移提交非 merge):
 
+> 2026-09-25 更正:原句"11 个"与所列 hash 不符,实际列举 10 个 merge;`f28489d` 为单亲迁移提交不计。
+
 1. **combined diff 形态**:多数为干净 merge(combined diff 0 文件);`aa2dffc`(s2)含 4 文件冲突解决(docs/09 + console + daemon,与 s1/s2 相邻批冲突相符)、`1edd3d0` 含 1 文件(journal,R109 明记编号重排冲突处置)、`aa3fe34` 含 2 文件(scripts,release 线合并)。均有对应记录,无未解释的 evil-merge。
 2. **原线有始有终**:当前本地分支仅 3 条(实测 `git branch -vv`):`claude/trusting-panini-f5d41b` ahead=0(已由 `f723ab7` 并入)、`codex/week-audit-faststart-20260822` ahead=0、`codex/week-audit-evidence-20260823` ahead=1(`6624299` 旧账本冻结)。该 1 条未并入是 R113 盘点明文裁决的"不该合并"项("main 上的账本更新…合并会用旧版覆盖新版");R113 记录 17 本地分支 15 条 `git cherry`=0、2 条留存有因。远端 `origin/feature/focus-contract-v0`(tip=`6d3c050`)ahead-of-main=0,仅为陈旧引用。
 3. **结论**:merge 线闭合状况良好,唯陈旧远端分支 `origin/feature/focus-contract-v0` 可删(C-4)。

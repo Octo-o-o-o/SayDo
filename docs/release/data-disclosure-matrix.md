@@ -3,11 +3,24 @@
 > 三商店隐私表单的唯一上游。改行为先改本表,再投影到 ASC App Privacy / Play Data safety / AGC 隐私标签。
 > 挂网隐私正文在 `docs/release/2026-08-13-app-materials.md` §2(已上线 `https://saydo.octoooo.com/privacy/`)。
 > 当前移动端是 LAN 评估壳,不是可提审二进制。表 A = 今日二进制事实;表 B = 目标首发 T2 预告,未实现的行不得填进商店表单。
+> 2026-09-25 更正:"LAN 评估壳/今日"为 2026-08-13 时点表述;当前移动端不是可提审二进制,表 A 是该日评估壳快照,表 B 是当时 T2 预告,两表均不得直接投影为当前商店声明。当前源码差异见下节,提交表单前必须绑定实际送审包。
 > 阅读地图:`docs/release/README.md`。
 
 最后更新: 2026-08-13
+最后核对: 2026-09-13(源码与材料;未登录商店、未验送审包)
+
+## 当前源码与历史表的差异
+
+- PG-01B 已关闭 daemon 的远程业务入口;三端旧 LAN + token 壳不能据此完成当前跨设备业务连接。Noise 配对、设备信任与移动推送仍不得作为已交付功能申报。
+- iOS `NativeSpeechController` 优先设备内中文识别;设备不支持时,只有用户在壳设置显式开启联网识别才允许使用系统联网识别。音频可能直达系统厂商,不必经过桌面。桌面 AI/语音外发由用户配置决定,不能统一写成“全部留在局域网”。
+- iOS `ConnectionStore.delete` 删除档案时调用 Keychain 删除;卸载应用不能保证系统安全存储与备份全部清除。手机档案删除也不等于删除桌面账本。相关源码路径和[Apple 说明](https://developer.apple.com/forums/thread/36442)支持这一边界,并非本次真机清除实测。
+- Android、HarmonyOS 当前壳的源校验和权限以各端源码/README 为准;下面“没有源白名单”等表述只描述旧版本。现行远程入口关闭也不等于壳已可提审。
+
+以下保留历史表,供对账使用。
 
 ## A. 今日二进制实际采集(spike)
+
+> 本节为 2026-08-13 当日采集记录,"今日"指该日;不是当前送审包或线上状态。
 
 依据:`apps/ios` Info.plist、`apps/android/.../AndroidManifest.xml`、`apps/harmonyos/.../module.json5`、三份 README。
 

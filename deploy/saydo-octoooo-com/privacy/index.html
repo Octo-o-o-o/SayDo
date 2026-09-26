@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>隐私政策 · 说到</title>
-  <meta name="description" content="「说到」不运营任何服务器。核心账本在你的电脑上；模型、语音与推送等外发以当前配置为准。产品数据走你自己的局域网或你自行配置的加密组网。" />
+  <meta name="description" content="「说到」不运营任何服务器。核心账本在你的电脑上；模型、语音与推送等外发以当前配置为准。当前远程业务入口关闭，产品使用以本机入口为准。" />
   <meta name="theme-color" content="#f0ede4" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#171410" media="(prefers-color-scheme: dark)" />
   <link rel="canonical" href="https://saydo.octoooo.com/privacy/" />
@@ -16,13 +16,13 @@
   <script>
     (function () {
       var t = "";
-      try { t = localStorage.getItem("saydo.theme") || ""; } catch (e) {}
+      try { t = localStorage.getItem("saydo-site-theme") || ""; } catch (e) {}
       if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
       else if (t === "light") document.documentElement.setAttribute("data-theme", "light");
     })();
   </script>
   <link rel="stylesheet" href="/tokens.css" />
-  <link rel="stylesheet" href="/site.css?v=20260825d" />
+  <link rel="stylesheet" href="/site.css?v=20260917a" />
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主内容</a>
@@ -35,12 +35,13 @@
         <span class="brand-en">SAYDO</span>
       </a>
       <nav class="nav" data-nav aria-label="主导航">
-        <a class="nav-link" href="/#why">为什么</a>
-        <a class="nav-link" href="/#dialogue">一段对话</a>
-        <a class="nav-link" href="/#how">机制</a>
-        <a class="nav-link" href="/#status">产品现状</a>
-        <a class="nav-link" href="/#privacy">隐私</a>
+        <a class="nav-link" href="/#product-tour">为什么</a>
+        <a class="nav-link" href="/#mobile">一段对话</a>
+        <a class="nav-link" href="/#say-voice">机制</a>
+        <a class="nav-link" href="/#examples">产品现状</a>
+        <a class="nav-link" href="/privacy/">隐私</a>
         <a class="nav-link" href="/#faq">问答</a>
+        <a class="nav-link" href="/quick-start/">快速开始</a>
         <a class="nav-link" href="/docs/">文档</a>
       </nav>
       <div class="header-actions">
@@ -66,12 +67,13 @@
       <p class="lede">生效日期：2026 年 8 月 21 日　|　开发者：<span style="white-space:nowrap">汪义骁（个人）</span>　|　联系方式：<a href="mailto:support@octoooo.com">support@octoooo.com</a></p>
 
       <h2>一句话版本</h2>
-      <p>「说到」不运营任何服务器。核心账本在<strong>你的电脑</strong>上；你自行启用的云端语音、AI 上游和推送由你的电脑直连第三方，外发范围以当前配置为准。产品数据在你自己的局域网或你自行配置的加密组网内传输。开发者无法访问、也不收集你的任何数据。</p>
+      <p>「说到」不运营任何服务器。核心账本在<strong>你的电脑</strong>上；你自行启用的云端语音、AI 上游和推送由你的电脑直连第三方，外发范围以当前配置为准。当前版本的远程业务入口关闭，产品使用以本机入口为准。开发者无法访问、也不收集你的任何数据。</p>
 
       <h2>我们收集哪些信息</h2>
       <p>不收集。本应用没有开发者运营的服务端，不设账号体系，不埋点，不接入第三方统计/广告 SDK，不向开发者上传任何用户数据。你自行配置的 AI、可选云端语音、可选推送，适用你与相应第三方的协议。</p>
 
-      <h2>应用会使用哪些设备能力，为什么</h2>
+      <h2>移动壳的设备权限</h2>
+      <p>以下说明移动壳已有权限与历史配对设计，不代表当前版本可通过手机使用远程业务。当前可用入口见<a href="/docs/#quickstart">使用文档</a>；云端语音、AI 与推送仍按你的配置决定是否外发。</p>
       <div class="table-scroll">
       <table>
         <thead>
@@ -94,7 +96,7 @@
       </ul>
 
       <h2>数据删除</h2>
-      <p>删除应用即删除手机端全部本地数据（配对信息与缓存）；电脑端数据由你在电脑上自行管理与删除。</p>
+      <p>你可以在应用内删除配对记录。卸载应用不等于保证清除系统安全存储或系统备份中的全部数据；请结合操作系统的数据管理功能核对。电脑端数据由你在电脑上自行管理与删除。</p>
 
       <h2>未成年人</h2>
       <p>本应用不面向未满 14 周岁的未成年人设计，不收集任何个人信息，亦不含针对未成年人的内容。</p>
@@ -120,10 +122,10 @@
         <div class="footer-col">
           <h4>产品</h4>
           <ul>
-            <li><a href="/#how">怎么工作</a></li>
-            <li><a href="/#why">为什么不一样</a></li>
-            <li><a href="/#status">产品现状</a></li>
-            <li><a href="/#start">开始使用</a></li>
+            <li><a href="/#say-voice">怎么工作</a></li>
+            <li><a href="/#product-tour">为什么不一样</a></li>
+            <li><a href="/#examples">产品现状</a></li>
+            <li><a href="/quick-start/">开始使用</a></li>
           </ul>
         </div>
         <div class="footer-col">

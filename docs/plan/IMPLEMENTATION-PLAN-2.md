@@ -9,23 +9,23 @@
 
 <!-- schedule-pointer:begin -->
 schema_version=1
-revision=10
+revision=18
 active=none
-next=JOURNEY-01
-last_closed=EMAIL-A-outbound
-evidence_ref=e2e/evidence/email-a-outbound.md
-updated_at=2026-09-15
+next=PG-02
+last_closed=SC-RELAND-01
+evidence_ref=e2e/evidence/sc-reland-01.md
+updated_at=2026-09-26
 <!-- schedule-pointer:end -->
 
-> 本节是 2026-08-29 起 PLAN-2 的唯一当前排产坐标。下方 §0 现状锚点与 §1 W1–W9 / 合同轮 / `ai-supply` 为历史原文，只增加 superseded/disposition，不删除历史节点、不重写既有 evidence。当前现势指针见本节顶部 schedule-pointer 块,由 `scripts/schedule-pointer.mjs` 守护;不得手写第二套 active/next。字段原逐字来自 `docs/plan/2026-08-28-project-gap-closure-program.md` §20 批卡与 D17 §4.2；2026-09-06 在 PG-01B 与 PG-02 之间插入唯一批 ID `AS-01-AS-02`（owner 决策单第 10 节，不是 D17 扩权）；2026-09-09 在 AS-01-AS-02 与 PG-02 之间插入唯一批 ID `GAP-02-consolidation`（执行卡 `IMPL-PROMPT-2026-09-09-gap-consolidation.md` §0 排产关系，与 AS 同法插批；owner 2026-09-09 已确认插批）；2026-09-15 在 EMAIL-A-outbound 与 PG-02 之间插入唯一批 ID `JOURNEY-01`（owner 决策单第 13 节，回应外部审查「治理链全在前、参考旅程无排产」的失衡警告）。不新增功能平台。`PLAN2-default-all` 已 `superseded`；未被 exact 选入的未来项一律 deferred，取消“未回复则缺省全做”。
+> 本节是 2026-08-29 起 PLAN-2 的唯一当前排产坐标。下方 §0 现状锚点与 §1 W1–W9 / 合同轮 / `ai-supply` 为历史原文，只增加 superseded/disposition，不删除历史节点、不重写既有 evidence。当前现势指针见本节顶部 schedule-pointer 块,由 `scripts/schedule-pointer.mjs` 守护;不得手写第二套 active/next。字段原逐字来自 `docs/plan/2026-08-28-project-gap-closure-program.md` §20 批卡与 D17 §4.2；2026-09-06 在 PG-01B 与 PG-02 之间插入唯一批 ID `AS-01-AS-02`（owner 决策单第 10 节，不是 D17 扩权）；2026-09-09 在 AS-01-AS-02 与 PG-02 之间插入唯一批 ID `GAP-02-consolidation`（执行卡 `IMPL-PROMPT-2026-09-09-gap-consolidation.md` §0 排产关系，与 AS 同法插批；owner 2026-09-09 已确认插批）；2026-09-15 在 EMAIL-A-outbound 与 PG-02 之间插入唯一批 ID `JOURNEY-01`（owner 决策单第 13 节，回应外部审查「治理链全在前、参考旅程无排产」的失衡警告）；2026-09-19 在 EMAIL-A-outbound 与 JOURNEY-01 之间插入唯一批 ID `DAILY-01-workbench-restore`（owner 当场授权「改 + 插队 + 现在开始完整实施」，插批位置 JOURNEY-01 前，JOURNEY-01 顺延为 next）；2026-09-23 在 JOURNEY-01 与 PG-02 之间插入 `VOICE-MEASURE-01`、`CODEX-AS-SPIKE-01`（owner 采纳 v3;执行卡 [`2026-09-23-voice-measure-app-server.md`](2026-09-23-voice-measure-app-server.md)）。不新增功能平台。`PLAN2-default-all` 已 `superseded`；未被 exact 选入的未来项一律 deferred，取消“未回复则缺省全做”。
 
 ### 唯一串行链
 
 ```text
-PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → EMAIL-A-outbound → JOURNEY-01 → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop
+PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → EMAIL-A-outbound → DAILY-01-workbench-restore → JOURNEY-01 → VOICE-MEASURE-01 → CODEX-AS-SPIKE-01 → SC-RELAND-01 → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop
 ```
 
-断言形态：`PLAN2_chain == PROC-01>PG-01B>AS-01-AS-02>GAP-02-consolidation>EMAIL-A-outbound>JOURNEY-01>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop`。
+断言形态：`PLAN2_chain == PROC-01>PG-01B>AS-01-AS-02>GAP-02-consolidation>EMAIL-A-outbound>DAILY-01-workbench-restore>JOURNEY-01>VOICE-MEASURE-01>CODEX-AS-SPIKE-01>SC-RELAND-01>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop`。
 
 PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代码批，也不占用 active/next。
 
@@ -53,6 +53,8 @@ PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代�
 | `W9` | `preserved_trigger_track` |
 | `PLAN2-default-all` | `superseded` |
 | `Codex-app-server` | `deferred_by_AI_decision_2` |
+
+2026-09-23 有限重议:上表 18 行与 `Codex-app-server`=`deferred_by_AI_decision_2` 保持历史值,不改 AI-2 已签结论,不改旧任务额度。owner 采纳 v3 后,只把受控实验原型 `CODEX-AS-SPIKE-01` 排进唯一串行链,位于 `VOICE-MEASURE-01` 与 `PG-02` 之间。该原型不装配生产 index 或后端选择器;PG-07 生产接线与设计 ADR-005 原边界不变,生产仍 deferred。
 
 #### deferred 项重议触发条件（2026-09-15 owner 决策单第 13 节补登）
 
@@ -145,7 +147,20 @@ PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代�
 - not_run：真实 SMTP 发送(需 owner 提供临时邮箱凭据,本机不代填);真实收件端线程展示
 - 批卡摘要：通知通道扩展,规模 S;canonical_change=yes(已随候选回写)。只发 ready_for_review / blocked / failed / approval_request;每任务一线程;DND 只发一次;全通道失败留 pending;不新增依赖(Node `net`/`tls` 最小 SMTP submission 客户端)。不做 IMAP/入站、不做 Web Push、不做 CalDAV。
 
-### JOURNEY-01 · reference-journey-wiring——**状态:未开工(2026-09-15 插批,owner 决策单第 13 节)**
+### DAILY-01-workbench-restore · daily-workbench-restore——**状态:已收口(2026-09-23 本地集成;LOCAL_GREEN_REMOTE_PENDING,不代表部署或真人验收)**
+
+- depends_on：EMAIL-A-outbound evidence commit(已收口)
+- A-ID exact-set：`close_set=[]`；`stop_loss_set=[]`(日常体验恢复批,不关闭 program A 级项)
+- deferred exact-set：`[]`
+- scope roots：外部设计包 `~/Downloads/SayDo_日常工作版_功能补齐` 接入的日常工作版能力——泳道/支线航迹/依赖/安排/归档/产物选版/审批通知筛选/用量分析;事项内按需页签取代常驻右栏(owner 已拍板 IA 变更);设计包仅作视觉/交互参考,fixture 与内存状态机不进生产,新增写口先落 `docs/09` 合同
+- focused gate：随批登记;收口前跑 `node scripts/schedule-pointer.mjs --check`
+- full gate：`just ci`；`pnpm exec playwright test`
+- evidence path：`e2e/evidence/journey-01.md`(DAILY/JOURNEY 同一集成候选验收,产品 `62b07c2`,证据 `d05d8ee`)
+- 回滚上限：未接线动作显式占位,不伪造闭环;`safe_default=placeholder_toast_not_silent`
+- 验收：review15/16与三项本地完整门禁已核;同候选重复评审按owner具名例外接受。not_run：远端CI、真实模型/CLI、麦克风/云ASR与多设备;三个P2沿用原登记延期。
+- 批卡摘要：日常工作版功能恢复批,规模 M;canonical_change=yes(新增写口先落 09)。恢复工作能力的按需入口,不恢复常驻右栏。
+
+### JOURNEY-01 · reference-journey-wiring——**状态:已收口(2026-09-23 本地集成;LOCAL_GREEN_REMOTE_PENDING,不代表部署或真人验收)**
 
 - depends_on：EMAIL-A-outbound evidence commit(已收口);canonical 先行项(docs/11 §0.2 White 方向、demo 资产归位、AGENTS.md demo 条款、本决策单第 13 节)已随方向登记批入库
 - A-ID exact-set：`close_set=[]`；`stop_loss_set=[]`(旅程接线批,不关闭 program A 级项;用户旅程计划行见 program §旅程轨)
@@ -157,6 +172,48 @@ PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代�
 - 回滚上限：未接线动作保持显式占位 toast,不得静默吞掉或假接;写口失败如实呈现不粉饰;`safe_default=placeholder_toast_not_silent + real_write_or_honest_fail`
 - not_run：真实多设备/真麦旅程(归 owner 场次①–④,本批不宣称替代)
 - 批卡摘要：参考旅程接线批,规模 M;canonical_change=yes(White 方向已随 2026-09-15 方向登记批先行入库)。目标 = 一条参考任务旅程端到端真实可达:提需求 → 采访澄清 → 决策包 → 批准 → 执行 → 证据验收 → 记忆复用,每步可定位真实数据/事件权威。Focus 页 6 个 toast 占位动作(pkg/standby/interview_pick/expect/expectation_edit/fork)与 TaskModal 吞语义的 8 个动作(step_ok/step_no/billing/s3_merge/retry/answer/explain/merge_conflict)按旅程需要接真实写口,不接的显式收窄;页面字段 vs live 通道的 Interview 卡归位(FocusPage.tsx OPEN QUESTION)在本批拍板。旅程所触页面按 White 方向迁移,不做全仓换肤。收口后 owner 跑四场真人验收;本批不自动开 PG-02。
+
+### VOICE-MEASURE-01 · voice-eou-tts-attribution——**状态:已收口(2026-09-23;本地 EOU/TTS;L5 延期)**
+
+- depends_on：JOURNEY-01 已收口(evidence `e2e/evidence/journey-01.md`)
+- A-ID exact-set：`close_set=[]`；`stop_loss_set=[]`(局部语义修复,不关闭 program A 级项)
+- deferred exact-set：`[L5-HF-FIVE-STAGE]`(可靠五段需要候选端点修订和 turn 映射合同。本批不伪造 vad_end,不重写 HF 状态机,不加协议、表或跨时钟减法。HF 五段仍 undeterminable,不报 SLO 或真实麦克风性能。延期不阻止后面的 CODEX-AS-SPIKE-01)
+- scope roots：`pipeline/src/saydo_pipeline/vad.py` 的 EOU 判定视图,`pipeline/src/saydo_pipeline/hub_client.py` 的标准 `s-<turnId>-<数字>` 归属与按 turn 有界去重,以及对应 `pipeline/tests/**`。daemon 只在已有 sentenceId 归属测试确有必要时触达。不含 console 新字段、新 WS 词表、DDL、HF 状态机重写
+- focused gate：`FG-VOICE-MEASURE-01` = 定向 pytest(新 EOU/TTS 反例,以及既有 HF/PTT/barrier/order/quiesce/epoch 套件);`node scripts/schedule-pointer.mjs --check`;`node scripts/schedule-pointer.mjs --self-test`
+- full gate：`just ci`;`pnpm exec playwright test`;`just precommit`;`node scripts/schedule-pointer.mjs --self-test`。迭代只跑定向检查;完整门禁由 supervisor 在固定候选执行。本卡不记录通过
+- evidence path：`e2e/evidence/voice-measure-01.md`;本地独立验收通过,远端与设备未验
+- 回滚上限：只回退本批判定视图与 TTS 归属。不放宽 Gate 0 / S3 / TTS 脱敏 / 审计。`safe_default=keep_original_asr_text + unattributed_not_recent_turn + no_fake_vad_end`
+- not_run：外部真实模型、云 ASR/TTS、真人麦克风与设备、远端 CI、SLO
+- policy：只对本批和 `CODEX-AS-SPIKE-01` 适用具名例外,见执行卡与 `.octoworkflow/project-profile.md` 末节。不改全局默认,不迁移旧任务额度。该例外在 CODEX-AS-SPIKE-01 施工期间继续有效
+- canonical_change：no。wire 形状不变;语义沿既有 EOU 与按 turn 延迟合同
+- 批卡摘要：语音末端判断与 TTS 归属小批,规模 S。执行卡 [`2026-09-23-voice-measure-app-server.md`](2026-09-23-voice-measure-app-server.md)。`native.reply` 不是 `tts.say`。
+
+### CODEX-AS-SPIKE-01 · codex-app-server-controlled-spike——**状态:已收口(owner 2026-09-23「本地提交、合并与收口」;LOCAL_GREEN_REMOTE_PENDING)**
+
+- depends_on：VOICE-MEASURE-01 本地收口(evidence `e2e/evidence/voice-measure-01.md`)
+- A-ID exact-set：`close_set=[]`；`stop_loss_set=[]`
+- deferred exact-set：`[PG-07-PRODUCTION-WIRING]`(生产接线仍 deferred;本批只做未装配生产的受控原型)
+- scope roots：`packages/daemon/src/experimental/codex-app-server/`、`packages/daemon/test/codex-app-server/`、本批卡、执行卡续授权与 `docs/plan/OWNER-DECISIONS.md` 的有限重议续记。不装配生产 index,不改后端选择器,不改现役 BYOA / Claude / Cursor,不改 contracts 与数据库
+- focused gate：`FG-CODEX-AS-SPIKE-01` = `pnpm --filter @saydo/daemon exec vitest run test/codex-app-server`；`pnpm --filter @saydo/daemon exec tsc --noEmit`；`pnpm exec eslint packages/daemon/src/experimental/codex-app-server`；`node scripts/schedule-pointer.mjs --check`；`node scripts/schedule-pointer.mjs --self-test`；`bash scripts/check-emoji.sh`；`git diff --check`
+- full gate：`just ci`;`pnpm exec playwright test`;`just precommit`;`node scripts/schedule-pointer.mjs --self-test`;真实 stdio 握手。完整门禁与真实无模型握手已由 supervisor 执行通过,独立review-5 GREEN
+- evidence path：`e2e/evidence/codex-as-spike-01.md`
+- 回滚上限：原型不进入生产选择器;关掉实验入口即停。不放宽 Gate 0 / S3。`safe_default=production_route_unchanged + prototype_unwired + experiment_off`
+- not_run：真实Agent、真实审批效果、生产接线、设备、远端CI及重启恢复未验。真实CLI无模型握手和本地完整门禁通过不替代这些结论
+- 批卡摘要：Codex App Server 受控实验原型,规模 S;canonical_change=no。AI-2 历史签署不改,生产仍 `deferred_by_AI_decision_2`。2026-09-23 继续授权只覆盖这个未装配生产的 stdio 原型。执行卡 [`2026-09-23-voice-measure-app-server.md`](2026-09-23-voice-measure-app-server.md)。
+
+### SC-RELAND-01 · consolidation-defect-reland——**状态:已收口(2026-09-26;插批 `90e0777`,I `f8405cf`,evidence `e2e/evidence/sc-reland-01.md`;独立复审 rereview-10 GREEN;LOCAL_GREEN_REMOTE_PENDING)**
+
+- depends_on：CODEX-AS-SPIKE-01 本地收口(evidence `e2e/evidence/codex-as-spike-01.md`);来源 = 本地归档 tag `archive/wip-consolidation-20260913`(2026-09-13 暂停的整合候选,基线 `49ed96f`,未评审、未合并)与其对账报告
+- A-ID exact-set：`close_set=[]`；`stop_loss_set=[]`(缺陷重落地,不关闭 program A 级项)
+- deferred exact-set：`[DF-SC51-WIN-STDIO,DF-SC54-SPIKE-EVIDENCE,DF-TIER1-SHELL-01]`(前两项在来源任务中经两次同根因回修仍 RED 并等待 owner,且需 Windows 原生或历史 spike 重放,本批不搬;重议须具名授权)。HEAD 上同样存在、候选未更松的 shell/git 分类绕过(评审各轮反例清单见 e2e/evidence/sc-reland-01.md)转后续批 TIER1-SHELL-01;本批以 legacyCommandToEffect 单调下限保证不比 main 更松
+- 排除(不属本批,非 deferred)：SC-01(09-13 当时的远端 CI 状态,已过时);SC-02/03/21/25/31 与 truth-plane 账本/检查器(归 PG-02 在途候选);SC-06/35/37 语音修复(JOURNEY-01 已按 2026-09-20 取舍吸收,本批只核不搬)
+- scope roots：来源候选中 SC-04–SC-59(扣除上两行)对应的 `packages/{daemon,cli,console,contracts,platform}/**`、`pipeline/**`、`scripts/**`(不含 PG-02 账本/检查器)、`apps/*/`配对语料与 README、`deploy/**` 站点源码文案(不部署)、`templates/**`、canonical 对齐(`docs/01–11`、`docs/adr/**`、`docs/modules/**`)、历史证据/评审/计划文档的时点补注、对账报告入 `docs/review/`、本批卡与执行卡。每项先在当前 main 真实入口复现,已被后续批修复或替代的只记证据不搬
+- focused gate：`FG-SC-RELAND-01` = `pnpm -r typecheck`；`pnpm lint`；受影响包 `vitest run <文件>`；`uv --directory pipeline run python -m pytest -q`；`node scripts/schedule-pointer.mjs --check`；`node scripts/schedule-pointer.mjs --self-test`；`bash scripts/check-emoji.sh`；`node scripts/check-doc-links.mjs`；`node scripts/check-public-tree-privacy.mjs --fs`；`node scripts/check-active-claims.mjs`；`git diff --check`
+- full gate：`just ci`；`pnpm exec playwright test`；`just precommit`
+- evidence path：`e2e/evidence/sc-reland-01.md`
+- 回滚上限：逐项独立,可按 SC 回退;不放宽 Gate 0 / S3 / TTS 脱敏 / 审计不可变;远程业务面保持关闭;不改 WS 词表语义、不改 DDL。`safe_default=current_main_behavior_unless_reproduced + fail_closed_on_unknown`
+- not_run(预期)：Windows 原生 API(koffi DACL/ACE、命名管道)只在宿主上以单测/注入覆盖;iOS/Android/HarmonyOS 真机;官网部署;真实 SMTP/ntfy;发布动作
+- 批卡摘要：consolidation 残余缺陷按当前 main 逐项复现后重落地,规模 L;canonical_change=yes。一名实施者、一名零上下文 reviewer 最终统一评审。执行卡 [`IMPL-PROMPT-SC-RELAND-01.md`](IMPL-PROMPT-SC-RELAND-01.md)。
 
 ### PG-02 · minimal-truth-gate-bootstrap
 
@@ -332,7 +389,7 @@ edit 审批细则(若 5.2 撞缺口)· **共享黑板实体 + 并发预检**(09 
 
 ### W8 · 通用化与治理完整版(6–10 天,开批时拆子批重估;前置=R-C 合同已落)——**PG-00 disposition=`inventory_deferred`；非当前 next**
 
-四类型执行器 + writing 全量 + network_fetch 落地 → 记忆治理完整版(自动 consolidation 提名流水/审计/衰减)→ 主动巡检(窄版先行:每晨一次/只读/草稿卡上限;完整版挂使用率)→ remote_repo workspace → 菜单栏分发 → Codex app-server 交互审批评估(spike)。**PG-00：**`Codex-app-server`=`deferred_by_AI_decision_2`（原文 spike 保留，不再构成当前 next）。
+四类型执行器 + writing 全量 + network_fetch 落地 → 记忆治理完整版(自动 consolidation 提名流水/审计/衰减)→ 主动巡检(窄版先行:每晨一次/只读/草稿卡上限;完整版挂使用率)→ remote_repo workspace → 菜单栏分发 → Codex app-server 交互审批评估(spike)。**PG-00：**`Codex-app-server`=`deferred_by_AI_decision_2`（原文 spike 保留。该历史值不改;2026-09-23 受控原型的有限重议见 legacy 表下说明,不把本行改成当前 next）。
 **挂起轨(不入批收口判定;每项 = bounded spike + owner gate,外部条件未到保持 deferred 不计欠账)**:Hopper capabilities 演进消费(steer/settle/merge 升级时 bridge 按握手分级升级,设计 ADR-001;bounded = 每次握手能力变化做一次消费评估,不无限跟随)· T3 服务端执行(挂 owner 服务器)· 多人旁听 discovery(合规/说话人分离/授权模型预研+被动旁听实验,owner 触发才开)。
 
 ### W9 · 数据触发与校准(持续轨;执行载体 = W1.5 周报"触发线读数"栏 + 每批收口巡检节)——**PG-00 disposition=`preserved_trigger_track`；不是 active/next batch**

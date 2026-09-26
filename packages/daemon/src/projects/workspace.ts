@@ -258,8 +258,8 @@ export function canonicalizeWorkspace(raw: string): WorkspaceIdentity {
  *   ```
  *
  *   故 POSIX 上 `dev` 漂移**不判身份变化**,返回当前 identity 供调用方刷新;`path` 或 `ino` 变仍硬拒。
- *   威胁模型不放宽:目录被真正替换必然换 inode,且 `canonicalizeWorkspace` 已有
- *   realpath + 非 reparse point + `assertAllowedWorkspacePath` 位置约束。
+ *   inode 只在同一 filesystem 内唯一;这项兼容策略不证明跨卷身份连续性。
+ *   `canonicalizeWorkspace` 的 realpath、非 reparse point 与位置约束继续生效,不能替代稳定卷身份。
  *
  * 09 §规则 1 已随本改动加「POSIX dev 语义」补注(评审 92 A 级:此前只改实现未回写契约,属静默双改)。
  */

@@ -151,6 +151,8 @@ export function DevComponents() {
             focus={recordsFixture.focus}
             lanes={recordsFixture.lanes}
             dependencies={recordsFixture.dependencies}
+            obligations={recordsFixture.obligations}
+            tasks={recordsFixture.tasks}
             segments={recordsFixture.segments}
             events={recordsFixture.events}
             onAction={(a) => debug("records", a)}

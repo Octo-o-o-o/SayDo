@@ -3914,3 +3914,398 @@ unit economics 决定扩张;持续承担账号/API、CI/设备、证据刷新、
 **产出**:本 E 提交(证据 + 本条)。
 
 **结论**:quickstart 主链无阻断;缺口属 JOURNEY-01 范围,建议并入其执行卡,本批不修。
+
+## R166 · 官网 White Edition 改版、零上下文评审回修与 production 部署(2026-09-17)
+
+**输入**:owner 要求官网按 `index(3).html`(首页)与 `quick_start(1).html`(Quick Start)设计稿完全对齐,补齐 demo 未覆盖的既有官网 UI(Docs/隐私/条款/支持/安装脚本/旧 URL),部署到 saydo.octoooo.com;跨会话续作。
+
+**行动**:独立 worktree 实施:首页中英整页对齐 White Edition;新增 `/quick-start/`、`/en/quick-start/`;8 个保留子页统一导航/主题兼容;`site.css` +99、`theme.js`、`_redirects`。候选冻结 `8086af1`(指纹 e42dd19c…),派零上下文只读 reviewer(本宿主仅有 subagent_explore 通道,按 v2-policy 同模型回落)于 detached worktree 评审:轮 0 RED——major `id="faq"` 缺失(8 子页 16 处引用落空)+ minor 英文页 `data-internal` 路由回落中文 + minor 存量 QR 文案;回修 `a06613d`(faq 锚点 + `/en/` 前缀),轮 1 GREEN;门禁校验发现首页丢了 rc.13 availability 锚句,`7d40e9d` 以非切换 `.micro` 元素补回,轮 2 YELLOW(仅"锚句不随语言切换"的门禁约束)。评审记录落 `research/codex-findings/`(`6c19e1e`)。`just ci` 与 Playwright 41/41 在最终 HEAD 全绿。合并 main → push 私有归档;wrangler `pages deploy --branch main` 部署 `b9c53998`。线上 12 路由全 200、三安装脚本 text/plain 且 SHA-256 与仓内全等、双语 availability/mobile/faq 标记齐、headless 线上交互零页面 error;CF 自注入 analytics beacon 被设计稿自带 CSP 拦截,与"无追踪"口径一致,已如实登记。证据 `e2e/evidence/2026-09-17-site-redesign-deploy.md`。
+
+**产出**:本 E 提交(部署证据 + 本条);`origin/main` = `6c19e1e` → 收口提交后顺延。
+
+**结论**:官网上线待 owner 验收;`--deploy` 门禁全链未走(需整仓公开快照,独立 checkpoint 未授权);遗留登记:terms/support/privacy 存量 QR 配对文案待 owner 排期。
+
+## R167 · DAILY-01 日常工作版功能补齐批(2026-09-19)
+
+**输入**:owner 要求把设计包 `~/Downloads/SayDo_日常工作版_功能补齐` 完整对照仓内各平台前端并生成计划;随后拍板「改」(采纳设计稿 IA:Focus 常驻右栏→事内按需页签,改 canonical)+「插队」+「现在开始完整实施」。批次指针 DAILY-01 插入 JOURNEY-01/PG-02 之前;施工于 worktree `SayDo-daily01`。
+
+**行动**:合同先行——`docs/09` §15.2 落义务任务级等待(waiting_on_task_id + waiting_task_condition accepted|delivered)、defer_reason、6 个新事件类型;contracts 同步 zod schema 与 mobile strict schema;ddl v33。daemon:waiting-on 任务级写口+环检测+唤醒钩子挂入任务状态机单点与 6 个裸写点;lane create/unretire;fork(不复制义务/任务/审批);defer/archive 生命周期守卫;`GET /api/obligations` 全局读口(owner/status/waiting 过滤);focus detail 增 lanes/tasks/依赖字段;mobile 事件 payload 补 laneId。console:记录页接 redo preview→confirm 两步、依赖设/解、fork、支线 create/unretire(__main__ 合成线禁用写);FocusPage 改按需页签(对话/产物/泳道/依赖/上下文)+常驻摘要条;侧栏全景看板→泳道+安排/归档入口;看板三态(泳道/列表/看板)与 detail.tasks 真账归线(attention 仅补缺并标待核实,真账覆盖后不再标);安排页(owner 三组+依据完成+推迟必填理由);归档页(恢复不自动续跑);审批三态、通知全部/未读/已读、产物任意选版 diff、成本时段/分组/下钻/CSV(未知不写 0);⌘K 命令菜单纯导航。移动端:LanePage 工作/航迹/依赖三页签;新增只读 /m/arrangements、/m/archive;菜单补项;三原生壳沿用 mobile-web 深链不做独立结构编辑。文档:docs/08 §6、docs/11 修订落盘;正本 demo 文件头+布局注释做 DAILY-01 标注(留档结构不静默矛盾)。
+
+**产出**:worktree `SayDo-daily01` 未提交候选(57 文件改动);测试 `test/focus-daily01.test.ts` 14 条 + 看板真账归线/移动深链回归断言。`just ci` 全绿(typecheck+lint+node 矩阵 daemon 2341/console 331/contracts 135 等 + python 34 + emoji/颜色/隐私门禁),`scripts/check-emoji.sh` clean。
+
+**结论**:功能补齐批施工与本地门禁完毕,候选未 commit、未合并、未过独立零上下文评审(supervised-delivery 未发起,待 owner 授权)。九条回归自检映射:①零任务可进泳道看板(空态+模式切换不依赖任务数);②泳道任务卡按 detail.tasks laneId 精确落线(单测);③/m/lane 深链+无效 lane 不回落(router 测试+LanePage 守卫);④redo-from 只追加不重写原记录;⑤preview 需 confirm 精确集不自动套用;⑥accepted/delivered 条件独立(daemon 测试);⑦archive reopen 仅翻 lifecycle 不派发;⑧事件 append-only,fork 不动源(测试);⑨看板三态共享同一份装配数据不混结构。not_run:端到端真实 daemon+console 联调走查、hosted CI。
+
+### R167 补记 · 设计包二次全量核对(同日)
+
+**输入**:owner 要求再次完整阅读设计包,核对未对齐项并继续对应。
+
+**行动**:重读 README/COVERAGE/MODULE_AUDIT/IMPLEMENTATION_PROMPT/SCENARIOS + source/*.js 行为层,逐项对回生产代码。发现并补齐:①依赖有向图(SVG 前置→依赖方,blocked 红边);②记录页四分区改页签(航迹/依赖/会话段/事件),航迹升级为全局事件轴×支线占位格网格(−/+ 缩放、点选事件详情、事件级「从此步重走」锚点);③通知行加定位链接(#/review/:taskId);④成本页补按需图表(组内已知金额条,未知不进条不写 0);⑤安排页补「处理记录」折叠回看;⑥命令菜单补事项/依赖/记录条目,焦点页签深链 #/focus/:id?tab=deps(router focusTab → FocusPage initialTab)。门禁:console typecheck+331 测+lint 绿;emoji/颜色门禁 clean;`just ci` 双矩阵再绿。
+
+**结论**:设计包 13 项修订的生产对应在此轮收口;仍属未提交候选,未评审未合并。语义差异如实登记:redo_from 在生产是「锚点后义务 exact-set 转 superseded + 事件 baseline 快照」,非设计的「新建草稿分支复制任务」;期待不被重走改写(保持现值而非复制为待判断)——若要严格对齐需另立合同变更。
+
+## R168 · JOURNEY-01 验收缺陷一次对应(2026-09-20)
+
+**输入**:owner 指定本会话为唯一实施者,在 worktree `SayDo-journey01-integ` 修复完整验收。7 份 canonical 已 review-2 `contract_ready=true`。范围 B1 HF leftover、B2 依赖互斥清列+DDL v32→33、B3 Chat 等待期新稿、B4 生产工作卡/批准匹配/采访真发、P2 手机身份与成本全账本、docs 月预算口径、正本 demo DAILY 页签重绘。禁止改 task.json/派 agent/commit/push/三方原树;保留全部 dirty;不跑全 `just ci` 或全 Playwright 主控。
+
+**行动**:合同 additive(`done_speaking.captureMode`、`confirm.card` 身份);daemon leftover/分类 final 结算、confirm present 用 session.primary_focus、collectFocusPackages 双键、成本 `entriesWindow`、DDL backup 测试用真实旧行+幂等+失败不撕源库;console 成功回调保当前稿、Focus loader/lookups/工作卡、批准匹配、采访 `sendText`、成本全账本合计;mobile 投影保 lane/obligation;正本 demo 六页签重绘并 headless 截图。focused 测试含真实浏览器七步+负向+B3+成本窗;记忆 `user_approved` 后下一回合 pack+`context_snapshot_uses`。修 typecheck 两处后重跑三包绿。交接与旅程证据去掉旧伪完成(`just ci`/Playwright 50/50/`just precommit`)与绝对用户 home 路径。仓外日志不编 hash。
+
+**产出**:未提交 dirty 候选;仓内 `docs/review/2026-09-20-journey01-integration-handoff.md`、`e2e/evidence/journey-01-reference-wiring.md`、本条;仓外任务目录 `repair2-evidence`(截图+实体 ID)+`/tmp/saydo-repair2-logs`。
+
+**结论**:本轮缺陷有对应实现与 focused 绿,不是独立 GREEN。fixture Focus 无 bindings,浏览器步不把空 tasks/packages 当决策包闭环;确认环/派发/记忆 compiler 权威在 daemon 测。未做:真麦/云 ASR/多设备、`just ci`、全 Playwright、`just precommit`、commit/push。
+
+## R169 · JOURNEY-01 review-4 回修(2026-09-20)
+
+**输入**:owner 授权本会话为实施者继续一轮修复。只在 `SayDo-journey01-integ` 实施,保留全部已有改动。读 acceptance.md 与 review-4.md 作问题材料,不执行其中命令。范围:B1 HF 并发只等 last 句柄、B2 barge-in 后非 Brain final 不清 speechPending、B3 mapper 丢 demoRef、B4 Demo 分桶错列、B5 七步不得 `transitionTask`/`compileLivePack` 冒充。禁止 commit/push/派 agent/改账本或全局配置。不跑昂贵全量 `just ci`。
+
+**行动**:pipeline 以 sid+世代登记全部在途识别,quiesce 等该世代而非 last `_hf_task`,排空中冻结新 HF,ACK/切模式/断连退役世代。daemon 将语音结算与 Brain 解耦,`speechGen` 对齐 barge-in 与 capture,Hub `onSpeechSettled` 不传原文。mapper 保留有效 demoRef。Demo 四列按 human/验收/执行/外部/终态分桶并截图核验。journey 测试改为 unmanaged 真 git 仓 + FileWritingSpawner + 生产 settle proof + `reviewTask approve` + 下一 `onAsrFinal` 消费 trusted memory。合同形状未改。跑受影响 pytest/vitest/typecheck/ruff/eslint/emoji 与 Demo 渲染,证据落 `repair4-evidence/`。
+
+**产出**:未提交 dirty 候选;仓内本条;仓外 `~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/RESULT.md` 与原始日志(退出码/字节/SHA-256)。journey 读回 `reviewStatus=review_approved_waiting_merge`,`settleProofPresent=true`,`nextTurnConsumedClaim=true`。
+
+**结论**:review-4 范围内两项 P1 与两项 P2 有对应实现与 focused 绿,不是独立 GREEN,也不是托管 CI 等效。浏览器 fixture 全链与真麦/云 ASR/`just ci` 为 `not_run`。未把 `ready_for_review` 称作已验收。未 commit/push。
+
+## R170 · JOURNEY-01 review-5 回修(2026-09-22)
+
+**输入**:owner 授权本会话为既有 supervised 实施者续接。只写候选仓,保留全部 dirty。读 acceptance.md 与 review-5.md。施工包仅 P1 B1、P1 B2 与 DAILY 58 来源对账。B4 等待、不得施工或改名;三个原 P2 只登记。禁止 commit/push/merge、派 agent/reviewer、改账本或全局配置。main/DAILY/选定 consolidation 只读。先失败回归再改产品。外部合同形状若须改,先只准备 canonical 并停在一致性 review 闸。不跑全量 `just ci` 或全量 Playwright。
+
+**行动**:先写会红的断言并记录修复前日志。pipeline 说完 flush 若仍 speaking 先发 `vad.speech:end`。barrier 用同一录音轮身份:HF done 闭合开口项,barge-in 把该轮 `hfSpeechGen` 改到新世代;FIFO 仍只确认最老 closed。未删世代校验、未放行全部空 final、未加 sleep、未改测试顺序。生产序测等真实 peer 消息再发 barge-in/final。DAILY 58 路径逐项比源 diff/候选 diff,30 全等保留、28 不同合理替换、0 遗漏;consolidation 范围外不回灌。跑定向失败→修复回归与所涉 lint/typecheck/契约/ruff/emoji。合同形状未改。
+
+**产出**:未提交 dirty 候选;仓内本条;仓外任务目录 `repair5-evidence/RESULT.md`、`source-reconciliation.md`/`.json`、pre-fix 与 focused 日志(退出码/字节/SHA-256)。daemon 定向 45 passed,pipeline 24 passed,schema 10 passed。
+
+**结论**:review-5 范围内两个 P1 有对应实现与 focused 绿,不是独立 GREEN,也不是托管 CI 等效。B4 与三个 P2 未施工。HF `failed` 与 09 只允许 `ok` 的冲突只报告。未 commit/push。
+
+## R171 · JOURNEY-01 repair-6(B4 浏览器七步 + HF failed 合同提案)(2026-09-22)
+
+**输入**:同一 supervised 实施者续接。只写候选 `SayDo-journey01-integ`,保留 dirty。B4 具名追加最多 5 次已到位,根因保持 `B4-missing-production-journey-contract`。并行准备 HF failed 合同一致性,本调用不得在合同 review 前改 schema/runtime。P2 原三项只登记。证据落 `repair6-evidence/`。只跑 focused/browser 定向/lint/typecheck,不跑 `just ci`。
+
+**行动**:e2e 同库 harness 拉起生产 daemon + 同源 console + 临时 SQLite;scripted OpenAI 兼容 LLM 与 FileWriting cursor-agent 替身明确标注。浏览器走需求/采访/包/正确 receipt/真实执行与 settle proof/Review 通过/记忆下一轮,断言同 sid/focus/package/task/run。廉价 thinking 调用不计入 dialog 序。验收页补 `getTaskDetail.attempt` 与 mapper 回退,避免 `expectedAttempt=0` 挡住 `reviewTask`。09 增 HF failed 支、`hfRoundId` 与 §10.1.13 映射;不改 contracts/Hub/pipeline。来源对账只读复核 repair5 的 30/28/0。未扫 P2。
+
+**产出**:未提交 dirty 候选;仓内本条与 09/10/a-dialogue 合同提案、`e2e/journey01-browser/*`、console/daemon 验收 attempt 投影;仓外 `repair6-evidence/RESULT.md`、身份 JSON、八张截图、定向日志(退出码/字节/SHA-256)。Playwright 1 passed;mappers 14;console-api 11。
+
+**结论**:B4 同库浏览器闭环有对应定向绿,不是独立 GREEN,也不是托管 CI 或云服务验收。HF failed/乱序身份停在合同审查闸。P2 未扫尾。未 commit/push。
+
+## R172 · JOURNEY-01 repair-7(HF 合同前提 + B3 证据 + 补 B4 真采访)(2026-09-22)
+
+**输入**:同一 supervised 实施者续接。只写候选 `SayDo-journey01-integ`,保留全部 dirty。不 commit/push/merge,不派 agent,不改 task 或全局。读 AGENTS、canonical、review-6。本包先修 HF 合同前提(不改 schema/runtime/pipeline 产品);独立施工 B3 验收证据展示;补 B4 浏览器测试并保留原 B4 根因/授权(只关联不清零)。原三个 P2 不扫尾。只跑 focused/browser 定向/lint/typecheck,不跑全量。证据落 `repair7-evidence/`,不引用旧 hash 当新证据。合同可实施性由 fresh reviewer 判。
+
+**行动**:09 以三层身份 + 录音序提交 + 逻辑轮(句段集+一条终态)重写 10.1.13/10.1.14,同步 10 与 a-dialogue;未落语音产品。mapper 从最新一致 settled run 拼可读证据并给任务详情链,ReviewPanel 渲染正文/链接;digest 不当正文。seed-rig 去掉 coverReadiness/confirmBindings,只留最小项目/会话/Focus 锚;scripted 采访走生产 remember×4+confirmReadiness,再出包。浏览器在通过前断言证据对应该 run/tree;包卡元素截图非空且与 API 正文一致;复用断言 claimDigest 与 context_snapshot_uses/refs。
+
+**产出**:未提交 dirty 候选;仓内本条、09/10/a-dialogue 合同前提、console mapper/ReviewPanel/包卡、`e2e/journey01-browser/*`;仓外 `repair7-evidence/RESULT.md`、身份 JSON、八张截图、定向日志(退出码/字节/SHA-256)。Playwright 1 passed;console focused 23;typecheck/eslint/emoji 退出 0。
+
+**结论**:HF 合同停在审查闸,不是产品落地。B3/B4 定向绿不是独立 GREEN,也不是托管 CI 或云服务验收。原 B4 根因未清零。P2 未扫尾。未 commit/push。
+
+## R173 · JOURNEY-01 repair-9(空识别合同分流 + 验收证据原文 + npm 反例)(2026-09-22)
+
+**输入**:同一任务改由本地 Grok 4.7 续做。不派 agent,不自称独立 GREEN,不 reset。先核当前 dirty,再补 review-7 的两处 P1 与 B4/来源清单。不改语音 schema/runtime/pipeline。不 commit/push。原三个 P2 不扫尾。
+
+**行动**:09 §10.1.6 把空识别收成一条规则:没有开口只发 empty ack,不造 final;已拥有逻辑轮才发一条 `ok`+空文本 final。验收页只展示 evidenceRef 解析出的 verify/树/审计正文。verify 非零时逐条 fail,并禁用「通过」。README 检查按词边界区分 npm 与 pnpm。正例测试改为先读真实 README、diff 和 verify.json。反例用删 npm 的替身。来源清单对照 candidate-1 的 176 条、main、DAILY 58 和 handoff 边界;28 条不同理由原文保留。
+
+**产出**:未提交 dirty 候选。浏览器没跑完:本沙箱 `/bin/ps` EPERM,daemon 监督锁拿不到进程出生时间,监听前退出。127.0.0.1 四端口可以 bind。focused:daemon 证据测试 6 passed,console 证据测试 20 passed,两端 typecheck 与本轮 emoji 退出 0。证据因写不了任务目录,落在 `/private/tmp/saydo-repair9-grok-evidence`,哈希见该目录 `RESULT.md`。
+
+**结论**:合同分流和证据读口有定向测试,不是独立 GREEN。浏览器正反例未执行到点击。`just ci`、全量 Playwright、`just precommit`、真麦、云 ASR 未跑。P2 未扫尾。未 commit/push。
+
+## R174 · JOURNEY-01 repair-10(HF 录音序逻辑轮 + 坏证拒批)(2026-09-22)
+
+**输入**:review-8 已给 `contract_ready: true`。同一候选继续，保留 dirty。不派 agent，不 commit/push。按 09 §10.1.13–14 实现 HF 协议，并修 R8-B1/R8-B2。原三个 P2 不扫尾。`just ci` 留到最后，这次没跑。
+
+**行动**:先跑会红的录音序测试：后段先完成时先发了「补 pnpm」。pipeline 改为 `resultsBySeq` + `commitHead`，一轮一条终态；无开轮不补空 final，已拥有轮的空识别才发一条 ok 空 final；失败保持到显式 discard。contracts 增加句段/轮/seq 与 HF failed 支。daemon 按句段集结算，旧 FIFO 不消费新身份，旧非空 final 不把新 `speechPending` 清掉，HF final 不消费 PTT registry。解析失败不再保留 pass；coding approve 读真实 verify；审计引用只返回裁决关联字段。symlink run 目录和 symlink `verify.json` 拒绝读取。
+
+**产出**:未提交 dirty 候选。证据在 `/private/tmp/saydo-repair10-grok-evidence`。pipeline pytest 53 passed；daemon focused 135 passed；contracts schema 11 passed；console mappers 18 passed。三端 typecheck、eslint、ruff、本轮 emoji 退出 0。浏览器、`just ci`、全量 Playwright、`just precommit`、真麦、云 ASR 未跑。
+
+**结论**:HF 身份和坏证拒批有定向测试，不是独立 GREEN。P2 未扫尾。未 commit/push。
+
+
+## R175 · JOURNEY-01 repair-12(采访改锚归属 + 浏览器证据同轮根)(2026-09-22)
+
+**输入**:review-10 B1。Focus A 的 live 采访留在 `voice.spoken`,同一 session 重新锚定到 B 后,只按当前 session 归属把 A 的问题投影到 B,Focus 页点击直接 `sendText`。同时正例日志里的 focus 和所复制 identity 不是同一次执行,旧浏览器 exit 1 与后一次 exit 0 被放在一起。不派 agent,不 reset,不 commit/push,不改 task/policy,不打开主树、DAILY 或 consolidation。三个 P2 保持原处。
+
+**行动**:先记录修复前回归:投影仍返回 `turn-from-focus-A`,点击仍发出「A 项目受众是谁」的选项。然后给 assistant 的 `tts.say` / `screen_text` 盖上当时已提交锚定的 focus、`requestId` 和代次;在途、失败和过时结果不改已提交代次,也不重标旧 turn。Focus 页提交前核对页 focus、代次、原 turn 和问题原文,对不上不调用 `sendText`。`docs/09` 未改,写口仍是该 session 的 `turn.text`。浏览器 harness 改为必须带同一轮 `SAYDO_JOURNEY_EVIDENCE_ROOT` 与 `SAYDO_JOURNEY_RUN_ID`;`run-round.ts` 把正反例日志、exit、seed、identity 和截图放进该根,focus 不一致或 exit 非 0 时 `associated` 为 false。`pnpm lint` 纳入 `e2e/journey01-browser` 和原先被配置漏掉的 `voice-hf-terminal-lifecycle.test.ts`。
+
+**产出**:未提交 dirty 候选。证据在 `/private/tmp/saydo-repair12-grok-evidence`。红灯日志 `interview-ownership-red.log` 5831 字节,SHA-256 `d5919f9933d1b67bfe7486dfc419f17f317e010855a578c6605cdbe8103b9db5`,退出码 1。绿灯 `interview-ownership-green.log` 3457 字节,`61edbd51e6c46655ca9c53a35b6934c15b0a93e82d7cd065a9e122fc033ac8ea`,5 passed,退出码 0。console vitest 17220 字节,`e8b6136706dea7f114c83c2614fdb1f030f8404c78129241d896bc7968af655a`,65 files / 480 passed。console typecheck 288 字节,`3e020ecee70a187597c40fba66c000407e298d34c4d2ac4cba576cf3f61d7b14`,退出码 0。`pnpm lint` 446 字节,`a51534aa14faa2f30b18f6c6ddd46cf87b53f9f483c9578ff5e030e12bf4fbcf`,退出码 0。daemon `voice-barrier.test.ts` 1307 字节,`f079bd04322814575cfd1fed7c1d175dabe23d759fb97f5f0ed445a9926306e7`,19 passed。证据关联测试 1277 字节,`3021e8d51d6ebea3d9b2adc3cafdd537dda13b59db5ff3196233055bf8a54cb7`,2 passed。emoji 30 字节,`396c8020e80afd6414df1a0170507c876e01677d1e738a401f09bf8c2e5e2a64`,`[ok] emoji gate: clean`。来源清单 `source-map.md` 10242 字节,`019588d66034854e2a3dbbcbe56e0e9762ea93493a6638ce80a392bbdf7d1e8d`。candidate-1 的 176 条都在,当前脏路径 233。DAILY 58 的 30 同 / 28 异沿用 repair-5,本轮未重算。
+
+**结论**:B1 的投影和点击有修复后定向测试,浏览器这一轮没有实跑。宿主命令见该目录 `RESULT.md`。`just ci`、全量 Playwright、`just precommit`、真麦、云 ASR、多设备未跑。三个 P2 未扫尾。未 commit/push。
+
+
+## R176 · JOURNEY-01 repair-13(采访首包轮归属 + PTT 切档终态)(2026-09-23)
+
+**输入**:review-11 B1、B2。B1 是 repair-12 采访归属的同根第二次:A 的模型请求已启动但还没有 TTS/`screen_text`,同 session 重新锚定 B 后,A 的首包被盖成 B。B2 是 repair-11 模式切换终态的同根第二次:PTT 松开后识别仍在途时切到 hands-free,`ptt_flush` 被取消,`CancelledError` 绕过 final。不派 agent,不 commit/push,不改主树、DAILY、consolidation、task 或 policy,不清历史。三个 P2 未动。`docs/09` 未改。
+
+**行动**:先写会红的回归。console 上迟到首包被盖成 `foc_B`,错误自盖的 B 印章仍能发出。daemon 上锚定 B 和同 Focus 新 `requestId` 之后仍发出「A项目受众是谁？」。pipeline 上切档取消在途 PTT,成功/空/失败/取消/断连都没有 final。然后让模型轮在启动时记下已提交锚;HTTP 锚定 CAS 只有身份变化才 abort,重复 `requestId` 和锚定失败不退役;abort 后不再发 `screen_text`/`tts.say`。console 用用户轮开始时的租约盖印章,发送校验不接受和租约不一致的自盖印章。切档仍退役 HF 世代并取消 `hf_recognize`,但留下 `ptt_flush`;取消和断连只补一条空的 failed final,不编造未返回的文本。
+
+**产出**:未提交 dirty 候选。证据在 `/private/tmp/saydo-repair13-grok-evidence`。红灯:`interview-ownership-red.log` 6411 字节,`05955d2e04aa696df8e6d3478d75b5ab74717f572603a62d748c2fabffdc789c`,退出码 1;`interview-round-red.log` 4715 字节,`1888a7ed8075949597966cd38a580b15e1be9198ad450be9c11de35067d28a58`,退出码 1;`ptt-mode-red.log` 2588 字节,`6bc778b7b8e61aa9281a7f9e94d248e036a5cace7924d22cf609d77d3d24cc59`,退出码 1。绿灯:`interview-round-green.log` 1740 字节,`4bf9e5a1c6aab6228e3e7f1f3a4904dbe25eedb71ef02250953308adfbb7dc5f`,3 passed,退出码 0;`console-vitest.log` 17906 字节,`d8a53dd54b83117546a3d83860a8aac6ba550f351daa8a06fc8421dddac0cab2`,65 files / 482 passed,退出码 0;`daemon-focused.log` 3082 字节,`15860be28b7b187a19abb33be8f4de56b451293ccec79235db17132e14bc59d0`,9 files / 74 passed,退出码 0;`pipeline-pytest.log` 113 字节,`a48e70ff51fdfa0fd1987164eafb8cd236e4b4d2be0a4086283dc3668b45899a`,59 passed,退出码 0;`pipeline-ruff.log` 42 字节,`f56ce0b5286af165ae62c2ea87b106a4ac44293928da4a8cdfceefbed8411852`,退出码 0。console typecheck 288 字节,`0d0b697eea240b870707eba1c34ea50bec8657dc4f124f93ea644137689a6699`,退出码 0。daemon typecheck 286 字节,`49f167f5a231c702a61b01779fb59e49086b525cf99dc836a3d4e06972aadfd4`,退出码 0。`pnpm lint` 446 字节,`326695bddd724dab0ea8e48a5529d8e5897f2d326e7192683c3df9dec5a2fccc`,退出码 0。emoji 30 字节,`396c8020e80afd6414df1a0170507c876e01677d1e738a401f09bf8c2e5e2a64`,`[ok] emoji gate: clean`。来源清单 `source-map.md` 1043 字节,`b975fc963040ba00bf4844d25c9e217a5e5a6b1b56d705b84cabf429e9b2360a`。review-11 的 233 条之外新增 2 条,当前脏路径 235。DAILY 沿用 review-11 的 29 同 / 29 异,本轮未重算,不沿用旧的 30/28。
+
+**结论**:两条 P1 有修复后的定向测试,不是独立 GREEN。全量 daemon vitest 退出码 1(15 files failed / 136 passed);单独的 first-run 进程测试也退出码 1,stderr 是临时目录父级符号链接触发的 `WorkspacePolicyError`(`index.ts:251`),不是本轮锚定代码。浏览器、`just ci`、全量 Playwright、`just precommit`、真麦、云 ASR 未跑。宿主浏览器要用新的空根 `/private/tmp/saydo-repair13-journey-only`,不要和本证据目录的单测日志混放。三个 P2 未扫尾。未 commit/push。
+
+## R177 · JOURNEY-01 repair-14(证据引用与语音终态)(2026-09-23)
+
+**输入**:review-12 的 B1、B2、B3。owner 允许证据校验和语音终态生命周期两个既有根因再各修一次,不新开 ID。不派 agent,不 commit/push,不改主树、DAILY、consolidation、task 或 policy,不改 `docs/09`。三个 P2 仍延期。
+
+**行动**:先跑会红的生产链。coding 批准对 Executor 形状的 `manual/unknown` 加 `verify:` 引用,篡改后仍批准。legacy 成功 final 重放再进 Brain,并拿到下一轮 `speechGen`;换 epoch 后再播旧 turn 也会再进 Brain。console 切档把带 `captureId` 的发送占位和没有 captureId 的旧占位一起标失败。然后让已绑定引用必须能解析,无引用的人工/自报 unknown 仍可批;同一校验在批准事务内再读一次。legacy 成功、空转写和失败按 turn 身份只消费一次,重放不广播、不进 Brain、不结算、不清新的 `speechPending`。切档保留有 `captureId` 的在途 PTT,终态仍按成功、空、失败、取消分开;断连后的旧 capture 留 unknown,不补成功。`run-round.ts` 去掉写死的本机缓存路径。
+
+**产出**:未提交 dirty 候选。证据在 `/private/tmp/saydo-repair14-grok-evidence`。红灯:`red-daemon.log` 11414 字节,`5ead136900bf3bc956b36cfa07a9b394c075aeeeb6a9fc4e8579df52c92276c7`,退出码 1;`red-console.log` 5684 字节,`3b5473e8f3d5938e21effe6b3267bf7ed2c35dcd6478adfa0a21fd429f9542cc`,退出码 1。绿灯:`green-daemon.log` 2046 字节,`4ab52a37127b01649db5a3eea0e9cb59c756ec94e1bb77ccd55bec26ca5e91ca`,9 passed,退出码 0;`green-console.log` 4093 字节,`279b70cf18627e5ef6bcaa247090f4c916167cfe16e3017e314d2b1ada284ab5`,41 passed,退出码 0;`console-vitest.log` 17573 字节,`d54c2c603283eb6232163f9082ef4c142e9ddd7fea875f9d1dc9269b8d0bf28c`,486 passed,退出码 0;`daemon-focused.log` 2655 字节,`d8fbc1eb73b1fdff560166c9e882fdb053fadd5ec2b6087ca8aaae8c5ca01cb2`,75 passed,退出码 0;`pipeline-pytest.log` 99 字节,`2c14dcca9e5ab41e97c2b28168186084f5cb5e7ca1eb414ea42325ef7a0e07eb`,59 passed,退出码 0;`pipeline-ruff.log` 30 字节,`5b196eb3a6acb50d3fa398d04ca284985cc1ffec870e940264b00780bfd2c971`,退出码 0。`pnpm lint` 439 字节,`5f48396dc3f08557e1cbac5c188bc9b7bb1466c3656bddadc21647cd3b6f9e4d`,退出码 0。emoji 23 字节,`e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3`,`[ok] emoji gate: clean`。daemon 与 console 的 `tsc --noEmit` 退出码 0。`just precommit` 407 字节,`78b0884c8c15092cf7567ff5ac0bf2d54bdd5a32dd6db6b17226314d51127f6c`,退出码 0。
+
+**结论**:B1/B2/B3 有修复后的定向测试,不是独立 GREEN。真实执行器全链、first-run 进程、`just ci`、根 Playwright 和浏览器七步都卡在本环境读不到进程出生证明:`/bin/ps` 返回 EPERM,`processBirth` 为 null。daemon 因此在拿 home 锁时退出码 1,没有把这写成产品缺陷,也没有拿掉 symlink 防护。`just-ci.log` 32229 字节,`7ae0ccfa81d10b5fa7492f76f4bbf393bf708bcca60eb4ae6953801041c643d8`,退出码 1。`playwright.log` 1538 字节,`0cb9006f23c8ab278bf87831daa5f33e06b5d2240b86d1fa5429c7aa7c787b77`,退出码 1。浏览器轮目录 `/private/tmp/saydo-repair14-journey-host`,`journey-host.log` 7214 字节,`c37a657c641c68efdc3a9a3ed41a1dd603bd1919a451f757797b709e796ca7ea`,退出码 1,正反例 daemon 都没到 health。TMPDIR 规范化到 `/private/var/folders/g9/td5m11510gb69wv2d0wb9c280000gn/T` 后 first-run 仍是退出码 1。真麦、云 ASR、多设备未跑。三个 P2 未动。未 commit/push。来源索引在证据目录 `source-map.json`,在本条写入后重新生成。
+
+**补记**:本条编号从误写的 R178 改为 R177,上一条仍是 R176。`typecheck.log` 2693 字节,`e8ef1fe68444adb673cb5efa38f2a4806848634308de4cd52b8fc2974e5b2372`,退出码 2,是 `speechGen` 精确可选属性修好之前的根 typecheck。随后 `just-ci.log` 开头的 `pnpm typecheck` 与 `pnpm lint` 已通过,失败停在 `packages/platform` 进程出生测试,4 failed / 68 passed / 14 skipped。`console-vitest.log` 的 486 早于 `TaskDetail.test.tsx` 最后一次修改;随后 `console-evidence-ui.log` 3649 字节,`4236d307c44d369bb375557ddcd813f07c5dd5d5171a4a68599bafbd113a1c21`,退出码 0,TaskDetail 9 与 mappers 19。`run-round.ts` 去掉本机缓存路径的时间晚于 `just-ci` 里的 lint,早于 `precommit.log` 退出码 0。`docs/09-data-contracts.md` 仍是 2026-09-22 的既有 dirty,本轮未改。
+
+## R178 · JOURNEY-01 repair-15(PTT 跨切档排空所有权)(2026-09-23)
+
+**输入**:review-13 B1。这是同一语音终态根因的第四次、也是 owner 授权的最后一次。PTT 识别在途时 PTT→HF→PTT,新 Focus 的 quiesce 只等当前 speech generation,漏掉仍合法的旧 generation `ptt_flush`,先发 `classified:true` 再发 final;daemon 因此拒绝锚定并把 capture 标成 consumed/discarded。不派 agent,不 commit/push,不改主树、DAILY、consolidation、task 或 policy。`docs/09` 本轮未改,合同已要求旧 final 先于成功 ACK。三个 P2 仍延期。
+
+**行动**:先跑会红的生产顺序。`HubClient` 在 ASR 门未放开时已经发出 `voice.quiesced classified:true, emptyRound:unusable`。然后把 quiesce 等待从「当前 speech generation」改成同一连接纪元、同一 sid 的未结算 PTT 终态,加上未退役的当前 HF 世代。切档不再把这条 PTT 排出排空集合。已退役 HF、别的 sid、断连后的新连接纪元不混入。成功、空文本、失败、超时、取消都先有一条终态;失败、超时和取消不得发成功 ACK,除非本次请求显式 discard。成功 ACK 在已有分类 final 时不带 `emptyRound`。这次排空结算之后,旧失败不再挡住下一轮空 ACK。daemon 侧不放宽提前 ACK:final 先到才保留转写且准备期间不进 Brain,提前 ACK 仍拒绝并丢弃。
+
+**产出**:未提交 dirty 候选。证据在 `/private/tmp/saydo-repair15-grok-evidence`。红灯:`logs/ptt-quiesce-red.log` 3262 字节,`a8b5aa661beff40f2f595cb8b5860fa545487889341a328ad8955db4c0ff1625`,退出码 1。绿灯:`logs/pipeline-pytest.log` 106 字节,`3faa82c99462260f12d9a27b36c3a6a16f18fb865454fb251ab83c0e3111135a`,64 passed,退出码 0;`logs/pipeline-ruff.log` 37 字节,`49fa5a42067dda1641f2c5086fe2c8f786199ad2f2b2450de4f2072ec9f5399d`,退出码 0;`logs/daemon-focused.log` 3155 字节,`ed4861b350e028ee1902ef33591d5449da6c0b31f5c12297baa04380df206c35`,11 files / 125 passed,退出码 0;`logs/console-focused.log` 4501 字节,`f30a8cbe1a5180d9ee2ea1bfb9194eda1c451bee6c560fcb984e666d0c167713`,7 files / 63 passed,退出码 0。daemon `tsc --noEmit` 292 字节,`b9e192db20ba768ed41eb0e5f7d7a7b9bbfce55e0504f7b90dcfef380283b713`,退出码 0。console `tsc --noEmit` 295 字节,`6ac23b701cce4bd60256a773eb80f882ce3aa9ee7a9b4395dbfaf2858d2567b3`,退出码 0。`pnpm lint` 446 字节,`ed5dda7fd08c986661a3497be0d5f6fafc89065a23253ac09aaaa8742aa7f503`,退出码 0。emoji 31 字节,`1da18d1daf40dbd97f1b988817e0b9b73518fdb776e92cfe512a74cbbfba5e8b`,`[ok] emoji gate: clean`,退出码 0。
+
+**结论**:B1 有修复后的 HubClient 事件顺序和 VoiceHub 接收测试,不是独立 GREEN。`just ci`、全量 Playwright、浏览器、真麦、云 ASR、多设备未跑。进程身份锁未删。三个 P2 未动。未 commit/push。来源索引在证据目录 `source-map.json`,在本条写入后生成,只含路径和 hash。
+
+## R179 · JOURNEY-01 repair-16(门禁测试与夹具合同)(2026-09-23)
+
+**输入**:新根因 `gate15-stale-test-fixture-contract`。只修门禁测试和夹具,不改语音、证据批准产品实现,不 commit/push,不派 agent,不打开主树或 DAILY。`final15-ci.log` 里 daemon 两处失败:closed-loop 从 `packages/daemon/test` 读根 `e2e` 少了一层;tier1 成功链的 `acceptanceChecks` 还停在没有 `evidenceRef` 的旧形状。host15 负例里 `package_script:test` 的 `node -e "process.exit(0)"` 记成 exit 1、stdout 空,`check-readme` 没跑到。历史失败保留。
+
+**行动**:路径改为仓库根再进 `e2e/journey01-browser/check-readme-install.mjs`。直接跑检查脚本时 cwd 用本轮 worktree,不读仓根上尚未被替身改过的 README。`tier1-executor` 成功链读本轮 `verify.json`,用 `textDigest` 对上 `tier1VerifyDigest` 和每条 `evidenceRef`;登记项必须是 `package_script:test` 且 exit 0。host15 的 `run_01M3611J2KKH90QAJQ86376R6D` 审计是 `verify_failed:package_script:test:exit1`,reap 里该 managed 进程有 owner 并已释放,不是身份锁缺失。同目录正例这条无操作是 exit 0,更早两轮负例也是先 exit 0 再由 `check-readme` 打出 `[fail] npm install missing`。在失败 worktree 里复跑 `pnpm --ignore-workspace run test`:stdout 空,stderr 是 corepack 下载 `pnpm@12.5.1` 失败。夹具 `package.json` 没有 `packageManager`,隔离 `COREPACK_HOME` 里只有 daemon 启动时拉下的 `pnpm@10.33.1`。因此删掉这条无操作 verify,只留 `check-readme`,并把 `packageManager` 钉成仓库的 `pnpm@x.y.z`。负例断言没改。
+
+**产出**:未提交 dirty 候选。证据在 `/private/tmp/saydo-repair16-grok-evidence`。daemon `tsc --noEmit` 244 字节,`bf16bf6ae8eab94992e1ef7e5fcc5bbc57b99bddbc8f21a66f846917ad1bb3c9`,退出码 0。`pnpm lint` 483 字节,`811c14a83b5bde8b42e3373e104884ac764de6aeae033ca6067342040fed436e`,退出码 0。emoji 86 字节,`8a192bdccab8fe1a2cde6a628b0fc289433235d10c223cd3bebd713423d30861`,`[ok] emoji gate: clean`,退出码 0。本沙箱 focused vitest 未通过,也没有重跑:`logs/daemon-tier1-success.log` 24644 字节,`d10a3e615f7586592cf9e0e0fa9e10e947567350ae43b5d2e209b11dfd1032e5`,退出码 1,15 秒超时;`logs/daemon-closed-loop.log` 21300 字节,`3080eba08749e0be77643c103d7a302bceaaf8248ad90e9d97b0b9d72c1a0416`,退出码 1,任务停在 `running`。一次 `ps` 探测是 `operation not permitted`。进程身份锁未删。
+
+**结论**:两处 CI 断言按当前 verify 合同改到测试里,不是独立 GREEN。浏览器正反例、`just ci`、全量 Playwright、真麦、云 ASR 未跑。宿主命令见该目录 `RESULT.md`。三个 P2 未动。未 commit/push。来源索引在证据目录 `source-map.json`,在本条写入后生成,只含路径和 hash。
+
+
+## R180 · JOURNEY-01 本地两提交与owner流程例外（2026-09-23）
+
+**输入**：冻结候选、review15语义通过、final16三门禁exit0、review16 GREEN及重复review校验拒绝。
+
+**行动**：owner明确接受本次重复review流程例外；保留原失败和全部事件，不改全局规则。核产品238路径字节一致，产品提交`62b07c243879189fca221f42449e033fc596b2f7`。按HANDOFF要求刷新审计账本，证据另提交，不合并推送。
+
+**产出**：`docs/review/2026-09-23-journey01-local-acceptance.md`含实际日志字节/hash、fixture边界及未跑项。
+
+**结论**：本地验收依据owner特定流程例外收口；未主仓集成、未远端CI、未生产部署。三个P2继续延期，排产active不变。
+
+## R181 · DAILY/JOURNEY 本地主仓集成收口(2026-09-23)
+
+**输入**：owner“确认本地合并与收口”；已验收产品62b07c2与证据d05d8ee；本轮逐项产品hash、原门禁日志核验一致。
+
+**行动**：主仓干净且可快进，git merge --ff-only exit0。独立收口worktree只更新PLAN-2/HANDOFF、批卡和当前证据链接；DAILY/JOURNEY本地收口，next PG-02未启动。旧在途记载保留历史标记，不改原测试事实。
+
+**产出**：e2e/evidence/journey-01.md；收口文档及随后重生成的审计账本。门禁实际结果见后续记录。
+
+**结论**：LOCAL_GREEN_REMOTE_PENDING；三个P2及真实服务/硬件/远端CI未验边界保留，无push或部署，App Server未开批。
+
+**收口检查**：schedule --render/--check、文档链接(160文件0坏链)、emoji、隐私(2250扫描0命中)、diff检查均exit0。schedule --self-test首次exit1：它从HEAD创建临时worktree，仅复制排产文件，不包含尚未提交的新evidence_ref；待本次证据入Git后重跑，不改校验器绕过。
+
+**自测复核**：收口提交 `4f9d6c6` 后，schedule --self-test exit0，七类故意破坏的负例均按预期exit1。产品文件相对d05d8ee未变；随后按项目要求刷新证据账本。
+
+## R182 · VOICE-MEASURE-01 EOU/TTS 实施候选(2026-09-23)
+
+**输入**：owner 2026-09-23「按你的建议开始施工」采纳研究方案 v3。本轮授权是独立工作树里的产品实施与本地检查,不 commit / merge / push。范围是开批、EOU 判定视图、TTS 句级归属;HF 五段 L5 延期。
+
+**行动**：在 detached `595725bad012302ef75ec7ab68c4aaf773f7155a` 同步 PLAN-2 指针 revision 13、两张批卡、有限 ID 与 self-test,`--render` 生成 HANDOFF 指针。legacy `Codex-app-server` 保持 `deferred_by_AI_decision_2`,旁边记下受控原型有限重议。profile 只追加本批例外。排产 `--render` / `--check` / `--self-test` 均 exit 0 之后,才用生产 `semantic_eou_complete` 与 `HubClient` 写反例。修复前 pytest exit 1(20 failed, 19 passed)。随后改判定视图和 sentenceId 绑定,复跑新文件与既有 HF/PTT/barrier/order/quiesce/epoch/hotwords 套件。没有改 wire,没有重写 HF 状态机,没有伪造 vad_end。
+
+**产出**：工作树未提交候选。报告 `IMPLEMENTATION-1.md`。日志在 `/tmp/saydo-voice-measure-20260923/`,任务目录写入被拒绝。`eou-tts-before.txt` 104288 字节,SHA-256 `ba9785fa1a846a8b46f299b237829146b376adc32eaf182f61bd41e6147d0cc2`,exit 1。`eou-tts-after.txt` 544 字节,SHA-256 `9ff80c83e34cd4258fa2b705dbed9530dc19eec5a5364d15ad5562045dceaec1`,exit 0(39 passed)。`pipeline-regression.txt` 1104 字节,SHA-256 `15e7c1619e023be17aae0a4b364b2ced9e39857c13dab8fe2aa13a0e74920709`,exit 0(90 passed,含上述 39)。daemon 归属测试日志 8779 字节,SHA-256 `7fb485ab92aab9fed0127d3e06acf1949bd3d9ba04f4aebbe891897a9ccf4bfb`,exit 0(1 passed, 51 skipped)。离线 `pnpm install --frozen-lockfile` 日志 4288 字节,SHA-256 `75ac8b4e8d4260430c529620b507ab9bfc051aa8517a4c98fb6b216ab356a159`,exit 1。
+
+**结论**：候选停在本工作树,未提交。L5 仍延期,免手五段仍不可判定。`just ci`、Playwright、`just precommit`、真实模型与真人设备 not_run。没有独立评审,没有全门通过。报告落盘后 `git diff --check` 与变更文件 emoji 检查均为 exit 0。
+
+## R183 · VOICE-MEASURE-01 repair-1(系统句归属与 EOU 续接标点)(2026-09-23)
+
+**输入**：review-1 B1。生产系统句 `s-cb-<时间戳>`、`s-cb-txt-<时间戳>`、`s-suspend-<时间戳>`、`s-focus-close-<时间戳>` 被 `^s-(.+)-\d+$` 记成虚构 turn。要求先核对真实 turn 形状,TTS 与 playout 用同一允许集;补 HANDOFF `--render` 执行日志;执行卡「两者字节相同」改为各副本分别与各来源相同;EOU 在 `修改配置，。` / `修改配置、！` 这类混合终止标点上不得剥句号后放行。不 commit/add/merge/push,不派 agent,不改 canonical wire,不改 task.json、policy、acceptance。
+
+**行动**：先加反例再改产品。旧 `turn_id_of_sentence` 与 `semantic_eou_complete` 上 pytest exit 1(8 failed, 38 passed)。随后把 `index.ts` 的 `turnIdOfSentence` 与 playout 记账抽到 `packages/daemon/src/obs/sentenceTurn.ts`,`index.ts` 真实 import。抽完、规则未收紧时 daemon 测试 exit 1(2 failed, 1 passed),系统句进入 playout 集合并创建 pending。收紧后只接受三类对话 turn:`ses_<26 位 Crockford>`(pipeline `new_turn_id`、console `newId("ses")`、daemon `appendTurn` 缺省)、测量夹具 `evt_<数字>`、以及 `dialog.ts` 控制轮 `ctl-<kind>-<收据末 8 位或 x>-<base36>`。没有找到 daemon 生成 `evt_<数字>` 的生产路径,按本轮要求保留该夹具形状;没有把其它 `idSchema` 前缀猜进去。判定视图剥掉终止标点后若末尾仍是逗号或顿号,返回未完成。`node scripts/schedule-pointer.mjs --render` exit 0,HANDOFF 字节未变。任务目录 `policy.frozen.json` / `roles.override.frozen.json` 分别与 `~/.octoworkflow/policy.json` / `roles.override.json` 字节相同。
+
+**产出**：未提交候选。报告 `REPAIR-1.md`。日志在 `/tmp/saydo-voice-measure-20260923/repair-1/`。`eou-tts-red.txt` 21749 字节,`a9df71ce95c808f4c8c0ea14efcdca2c2f82145fdf7e3281fb321c94c504d85d`,exit 1。`daemon-sentence-turn-red.txt` 3168 字节,`38698a06a1fdc56ad70f67e4f2a2aa4014c4a60e59aa6da2e4e8e6357378ee45`,exit 1。`eou-tts-green.txt` 106 字节,`dfe5def599903a1faa420570e21df0fb7fe01784436510b1b2cafd4eac7d1af6`,46 passed,exit 0。`daemon-sentence-turn-green.txt` 1314 字节,`3eb6cade46f4f7d29da991b5c49a9de1d624050eb45b87cb4d31f61484c6afb6`,3 passed,exit 0。`daemon-voice-hub-playout.txt` 1342 字节,`86ee648415cf0685b56883d7908086bc26399085b6f8506d08d5f2ef7eab52b5`,1 passed / 51 skipped,exit 0。`daemon-tsc.txt` 171 字节,`c86e6ddeb103d19522442adc0ce33165e05436a2ff455359c6f081402debd5fa`,exit 0。`ruff.txt` 37 字节,`49fa5a42067dda1641f2c5086fe2c8f786199ad2f2b2450de4f2072ec9f5399d`,exit 0。`handoff-render.txt` 233 字节,`7b55d28628420cae23c306233be88253a0b77b847fc677924d7a681d593da002`,exit 0,HANDOFF 49624 字节,`fd7a254766ec8c50e9475dc47d2c1a7e6b5478e4bf24d1034e4370027eafd7b8`,内容未变。`policy-copies.txt` 568 字节,`1affc73fed22f8d4e2c84dcb2235042dc553e0d2d2e1496a2883f97baf894163`。`git diff --check` exit 0。触达文件 emoji 扫描无命中。eslint 对四个 daemon 文件 exit 0,两个测试文件因无匹配配置各一条 warning,0 error。
+
+**结论**：B1 的系统句不再占用 TTS 去重或 playout 测量。定向测试有修复后的通过记录,不是独立 GREEN。`just ci`、Playwright、`just precommit`、schedule `--self-test`、全量 daemon/pipeline、真实模型、ASR/TTS 与真人设备 not_run。未 commit/push。没有写评审通过。
+
+
+## R184 · VOICE-MEASURE-01 本地提交与收口（2026-09-23）
+
+- 输入:owner「确认，请你继续实施」;固定候选review-2 GREEN及完整门禁。
+- 行动:逐一核15文件SHA与main干净基线,两提交法,记录证据、render排产。
+- 产出:代码提交`b751843b4ebad43ff45949ad69f4f0798ffff5c2`,证据`e2e/evidence/voice-measure-01.md`;active清空、next受控AppServer、L5明确延期。
+- 结论:仅本地收口,无push/deploy;不外推设备/远端或原型。后继按本会话已采纳顺序执行。
+
+## R185 · CODEX-AS-SPIKE-01 repair 1（2026-09-23）
+
+**输入**：review-1 RED，B1–B8 与 spawn error / 纯 close 清理。repair 1/3。只在当前独立 clone 修原型，不派 agent，不 commit / add / merge / push，不改 task.json、acceptance、frozen policy，不调用真实 CLI 或真实模型。
+
+**行动**：先加边界反例。隐私门修复前 exit 1。定向 vitest 在修复前失败：pending 无上限、排队帧在 drain 后仍被写出、旧 steer 把新轮标成 unknown、畸形 start/steer/resume 被当成 rejected、跨 task 操作挂起、userAgent 把 OS `27.2.0` 和 client `0.0.1` 算进 CLI 比较、墙钟 3 秒后请求仍未结束。只 destroy stdout 的 close 路径 400ms 后仍 pending。失败 spawn 上的 `SIGKILL` 曾把测试进程打成 code -9。随后改 `session`、`framing`、`protocol`、`handshake`、`processControl`、README 和 fixture 路径。同一活动轮的 steer 超时在修复前已经是 unknown，保留为回归保护。
+
+**产出**：未提交候选。报告 `REPAIR-1.md`。日志在 `/tmp/saydo-codex-as-spike-20260923/repair-1/`。`privacy-red.txt` 273 字节，`5d5bb2e38fe7651f57cde22bdaa2ff04c6f8886f89b819fea1b520b1f44ea927`，exit 1。`vitest-red-full.txt` 2544 字节，`7776ccace04ce0982418c6358d301ca8bb69171e458bff6874abb64fbb409eda`，跑到墙钟用例时被信号打断，没有完整退出码。`wall-only.txt` 3141 字节，`809e9564a7d13ba87c34a85a9c34ef30c2b6cdc6b75f4809bf36a7f51c3b4459`，exit 1。`vitest-green.txt` 6180 字节，`58c55b7b5c235beab21ceeb59a388aafe4752c7308e0f123c746bbefa5018763`，5 files / 40 passed，exit 0。`tsc.txt` 7 字节，`194ff5bca66278888f0f00be5c7ca523d15098ece958b14952533811089f6106`，exit 0。`eslint.txt` 335 字节，`a41bdea800c9689a597dd5aaabf385862dfb9b7e3225f42c8217c3552fafb3a4`，exit 0。`privacy.txt` 74 字节，`6b286651683d781d937580b586c34d205cbfea4abedc36f62298419275084d81`，hits=0，exit 0。`emoji.txt` 30 字节，`396c8020e80afd6414df1a0170507c876e01677d1e738a401f09bf8c2e5e2a64`，exit 0。`schedule-check.txt` 112 字节，`2c9baf499949578c608cc80c6217715446cb23a3ae5eed7dd142fd127dc0303a`，exit 0。`schedule-self-test.txt` 405 字节，`375d24f7160dd460ef92f53ef416e93241d9203db12b135b0ca27631dddf7472`，exit 0。`git diff --check` exit 0。
+
+**结论**：B1–B8 与 spawn/close 清理有代码和反例，不是只改报告。定向检查通过，不是独立 GREEN。`just ci`、Playwright、`just precommit` 整方、真实 stdio 握手、真实模型 not_run。RED 待复审。未 commit。
+
+## R186 · CODEX-AS-SPIKE-01 repair 2（2026-09-23）
+
+**输入**：repair 2/3，版本解析同根第 2 次。`gate-2-1.log` 返回 `Codex Desktop/0.153.3 (Mac OS 27.2.0; arm64) dumb (saydo-codex-as-spike; 0.0.1)`，initialize 与 SIGTERM 退出正常，但产品名空格被正则误拒。只修该解析，不派 agent，不 commit / add / merge / push，不改 task 目录、acceptance、frozen policy，不调用真实 CLI 或真实模型，不跑全量 CI。
+
+**行动**：先对原始日志复现。修复前 `userAgentVersions` 得到 `[]`，握手 fixture 的 `ok` 为 false。随后只放宽最前产品名的空格，仍只取一段 `x.y.z`，括号内 OS / client 版本不返回。`0.153.30`、`0.153.3.1`、`v0.153.3`、缺失版本和错误版本继续拒绝。`parseCodexCliVersion` 与 `PINNED_CODEX_CLI_VERSION` 未改。旧的无空格反例保留。
+
+**产出**：未提交候选。报告 `REPAIR-2.md`。日志在 `/tmp/saydo-codex-as-spike-20260923/repair-2/`。`parse-before.txt` 809 字节，`5611bbe3732ec40e5a8a390e275c0c23644d601ece67c72ed0590e4ee91432aa`，命令 exit 0，结果 `versions: []`。`vitest-red.txt` 4860 字节，`d0e94c243d769f94a860252c0c94065ef199acf9a77bbe889a1204755a4e4c6d`，exit 1。`parse-after.txt` 643 字节，`26122e46ef379b039a34f1462bbbd28eba36186df8be0d89c0e547e4ec294804`，exit 0，结果 `["0.153.3"]`。`vitest-green.txt` 2762 字节，`ca7b0286aa5825ed343ee7408150229ce3f7549a52c6ccf12686894f3a22a359`，5 files / 42 passed，exit 0。`tsc.txt` 164 字节，`36d371695fc292241eae44799d7dcd54dd2427e2320e10bfadf0948a8ffba7b0`，exit 0。`eslint.txt` 328 字节，`e41f5636a7ab9e05bd0f0e91c6d68c6e80297431f28f155024aa971a72a56d93`，exit 0。`emoji.txt` 23 字节，`e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3`，`[ok] emoji gate: clean`，exit 0。
+
+**结论**：gate-2-1 这条 userAgent 的解析和握手 fixture 已按原文补上，不是独立 GREEN。`just ci`、Playwright、`just precommit` 整方、真实 stdio 握手、真实模型 not_run。未重新启动本机 codex。未 commit。
+
+## R187 · CODEX-AS-SPIKE-01 repair 3（2026-09-23）
+
+**输入**：repair 3/3。review-2 确认 B1：背压排队的 `turn/start` 不预占 `maxTurns`；B2：interrupt 的 `null` / 数字 / 数组被当成 ACK，并清掉 unknown 保护。只修这两项。不派 agent，不 commit / add / merge / push，不改 task.json、acceptance、frozen policy，不调用真实 CLI 或真实模型，不跑全量 CI。
+
+**行动**：先加 fake link 上的 `openRealSession` 反例。修复前 8 条失败：双 thread / 三 thread 背压仍能把超额 `turn/start` 留在队列里；取消一个排队 turn 后再并发，第四次仍 pending；三种畸形 interrupt 结果都是 `acked`；先终态或新轮之后的畸形 ACK 也是 `acked`。队列满和已写后退额度两条当时已符合，保留。随后在入队前预占，未写失败和排队取消只退一次，写出后不退；interrupt 结果按 `TurnInterruptResponse` 的 object 校验，畸形结果绑定原轮进入 unknown，终态和新轮不被改写。旧测试保留。
+
+**产出**：未提交候选。报告 `REPAIR-3.md`。日志在 `/tmp/saydo-codex-as-spike-20260923/repair-3/`。`vitest-red.txt` 11085 字节，`eb04c7407fc71c5e258fe6e5c3e5572315b9d555fcb941631c9a2773ba37485e`，exit 1。`vitest-green.txt` 2685 字节，`a0ecafc741447069f79b63911742eb58fef3e62b2e49c08ac2c51509eab62520`，5 files / 52 passed，exit 0。`tsc.txt` 164 字节，`7c95435ab134a5fb23b739f88f3d0421ca2696ba52bd1927a2adb57e83489eab`，exit 0。`eslint.txt` 328 字节，`735ff4cc9ebdc5ecb19cf7041b65c15e2b5cedc599e137b06bc7a61604b02ac2`，exit 0。`emoji.txt` 23 字节，`e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3`，`[ok] emoji gate: clean`，exit 0。
+
+**结论**：B1 预占和 B2 畸形 ACK 有代码和修复前失败日志，不是只改报告，也不是独立 GREEN。`just ci`、Playwright、`just precommit` 整方、真实 stdio 握手、真实模型 not_run。未 commit。
+
+## R188 · CODEX-AS-SPIKE-01 repair 4（2026-09-23）
+
+**输入**：owner 追加的最后一次修复，只解决 review-3 的 R3-B1 / R3-B2。旧 steer 畸形或冲突 ACK 在原轮终态或换轮后不得新增永久 `req:` unknown；本次调用仍返回 unknown，同轮未终态仍要阻断，不能靠清空全部 unknown 掩盖别的未知。传输 EOF / close / error 必须幂等终止所属仍活进程，shutdown 等待同一个 `killPromise`。先补失败反例再修。不派 agent，不 commit / add / merge / push，不改 task 目录、acceptance、frozen policy，不调用真实 CLI 或真实模型，不跑全量 CI 或真实握手。
+
+**行动**：先在 fake link 和 `openRealSession` 上加 15 条反例。修复前 13 条失败：终态先到、新轮先到、另一个 thread，配畸形 `{}` 和冲突 turnId，都会留下 `unknownBlocks`；已有一条真实 unknown 时，旧 steer ACK 再加一条。stdout EOF、close、error 把 session 收成 closed 并清掉计时器，但 `terminate` 次数是 0。同一未终态轮的冲突 ACK，以及墙钟已经开始的 terminate 与随后的 close/shutdown，修复前就已经符合，保留。随后 steer ACK 只走 `keepBoundTurnUnknown`，不再写 `req:`。`onLinkClosed` 在摘 data/end/close 监听前调用一次 `killChild`；shutdown 等待该 promise，terminate 同步重入时不等待自己。error 监听留着，避免关闭后的 `destroy(err)` 变成未捕获异常。所属进程是 `node -e setInterval`，旁路进程单独存活。旧 52 条保留。
+
+**产出**：未提交候选。报告 `REPAIR-4.md`。日志在 `/tmp/saydo-codex-as-spike-20260923/repair-4/`。`vitest-red.txt` 17236 字节，`35c2a82c4406e3a4206d563bbbfb8a7a834ce8fa0b62a8c23f2083bd5eb0ce0d`，exit 1。`vitest-green.txt` 2712 字节，`91c2cf8946b8f93c3f0390bb6500718c0beb8b87f81746e3438f88504ef5bd88`，5 files / 67 passed，exit 0。`tsc.txt` 164 字节，`8908305cbfc287ac9c77b24219cdf8cef10860376ada23fd46de5a79d0513143`，exit 0。`eslint.txt` 328 字节，`51d06a7f2d96a302bec900bcb66ead111ca20fa1d24b84bc9da0fe253a642cbd`，exit 0。`emoji.txt` 23 字节，`e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3`，`[ok] emoji gate: clean`，exit 0。
+
+**结论**：R3-B1 的永久 `req:` 阻断和 R3-B2 的传输关闭后进程遗留有代码和修复前失败日志。定向检查通过，不是独立 GREEN。`just ci`、Playwright、`just precommit` 整方、schedule self-test、真实 stdio 握手、真实模型 not_run。未 commit。
+
+## R189 · CODEX-AS-SPIKE-01 repair 5（2026-09-23）
+
+**输入**：owner 追加的最后一次修复，只解决 review-4 B1。`turn/start` 已终态或换轮后的畸形 ACK 不得再加全局 unknown；同 request 尚未终态的畸形 ACK 仍必须 unknown。旧调用可以返回 `protocol_error` / `unknown`，不得污染新轮，也不得清空其他真实 unknown。同时用表覆盖 start / steer / interrupt 的活动轮、原轮终态、已换轮，以及各协议适用的合法、畸形、冲突 ACK。interrupt 的空 object 没有 turnId，不造冲突项。先补失败反例再修。不派 agent，不 commit / add / merge / push，不改 task 目录、acceptance、frozen policy，不调用真实 CLI 或真实模型，不跑全量 CI 或真实握手。
+
+**行动**：先在 fake link 上加 41 条反例。修复前 4 条失败：start 终态畸形、start 换轮畸形把 `unknownBlocks` 从 0 加成 1；旁边已有一条 `thread/start` unknown 时，这两条再加成 2。轮次本身没有被复活。start 的其余 ACK，以及 steer、interrupt 的适用格，修复前已经符合。随后只删掉 `turn/start` 畸形 ACK 在终态或换轮时追加 `turn:` token 的分支。同 request 未终态仍走 `markUnknown`。没有全局清空 `unknownTokens`。
+
+**产出**：未提交候选。报告 `REPAIR-5.md`。日志在 `/tmp/saydo-codex-as-spike-20260923/repair-5/`。`vitest-red.txt` 14887 字节，`3e94256899edd55977c515669c1b79d40d9a0e5f97b1843552b58a38f5b646cf`，exit 1。`vitest-green.txt` 17536 字节，`4d6ec41d45834e7bd94427b4b6d8d19c7b9f0378858ebcc8a21c1b0ffda9bbff`，5 files / 108 passed，exit 0。`tsc.txt` 164 字节，`a3f6d1340734391131ec28dab50e0c653250699bef7a8c37d5188de65527a46c`，exit 0。`eslint.txt` 328 字节，`9443282095c11a2026731ccfd3436450307e6e0bfce37f6704136d49b437a198`，exit 0。`eslint-with-test.txt` 679 字节，`0affa048a574aae450f00b0c6401dc17b26da138f741967a3a1b7f3b1c870d17`，exit 0。`emoji.txt` 23 字节，`e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3`，`[ok] emoji gate: clean`，exit 0。
+
+**结论**：review-4 B1 的迟到畸形 start ACK 有代码和修复前失败日志。旧 67 条仍在，合计 108 条定向测试通过。这不是独立 GREEN。`just ci`、Playwright、`just precommit` 整方、schedule self-test、真实 stdio 握手、真实模型 not_run。未 commit。
+
+## R190 · CODEX-AS-SPIKE-01 本地验收与收口（2026-09-23）
+
+**输入**：owner明确授权本地提交、合并与收口；review-5 GREEN与--deliver=true。
+
+**行动**：逐一核25个候选文件SHA与主仓基线，原样提交代码`cbfdcde6bace96b68a7d78e3f67a7a8ab0af7d52`；证据独立第二提交，排产revision16回active=none、next=PG-02。
+
+**产出**：`e2e/evidence/codex-as-spike-01.md`记录五项原始日志字节、hash、exit及旧失败；完整门禁通过，108原型测试通过。
+
+**结论**：仅本地受控协议原型验收通过；真实模型与生产接线not_run，无push/deploy。PG-02未启动。
+
+## R191 · 语音与 Codex 研究包入库(原 2026-09-22 草稿 R167)
+
+**输入**:研究工作树 `saydo-research-20260922`(detached,基线 `25d9659`)中的研究包与 journal 草稿一直未入主线;2026-09-25 owner 授权清理本地副本并把该合并的产物合并。
+
+**行动**:原样收入 `research/saydo-interaction-20260922/` 六个文件(方案、K0 续接核查、2026-09-23 实施复核与推进、两份已标注"历史交接,不再直接执行"的 IMPL-PROMPT、`probe.py`);仅按 `scripts/public-text-redaction.mjs` 把本机 home 路径脱敏为 `~`,不改结论。草稿原文要点:读完 SayDo 12 份与共享/历史 6 份 Markdown(18/18 SHA 匹配),替身 I/O 调用真实 HubClient 复现控制阻塞、免手计时缺段、EOU 标点敏感与慢 TTS 错轮归属,两名零上下文 subagent 交叉评审并限定复核一次修订。
+
+**产出**:[方案](../research/saydo-interaction-20260922/方案.md)(第 0 章为当前唯一行动结论,其余章节为 09-22 研究与评审历史)。它是 VOICE-MEASURE-01(R183–R184)与 CODEX-AS-SPIKE-01(R185–R190)的研究来源。
+
+**结论**:研究方案复核,不是产品 GREEN;完整 CI/Playwright/真人/付费模型/生产均未运行。入库只补齐证据链,不改排产指针。
+
+## R192 · 语音运行时调研与 Qwen-Audio-Agent 借鉴评估入库(2026-09-23 研究)
+
+**输入**:研究工作树 `saydo-voice-runtime-20260923`(基线 `d0b7edc`)的评估与实验记录未入主线。
+
+**行动**:收入 `docs/plan/2026-09-23-qwen-audio-agent-borrowing-assessment.md` 与 `research/voice-runtime-20260923/`(README、TTS 取消交错探针、两份结果 JSON),home 路径脱敏同 R191。
+
+**产出**:评估结论为值得投入连续语音协作,不把 Qwen-Audio-Agent 整套接入为主运行时;探针在当时基线上复现生产 HubClient 取消后仍下发旧句(exit=1 为预期反例,未测真实声音)。
+
+**结论**:研究候选,未独立验收;just ci、Playwright、真实 provider、真人/设备均 not_run。是否据此开批上浮 owner。
+
+## R193 · 本地副本清理与未合并工作树归档(2026-09-25)
+
+**输入**:`~/.codex/worktrees` 下 23 个 saydo-* 目录约 8G 占满磁盘;owner 要求逐一核对后清理,不误删、不保守。
+
+**行动**:逐目录核对 HEAD 是否在 main、未提交改动与 main 的内容哈希对比、reflog 独有提交与进程占用。15 个 JOURNEY 评审 clone 的 git-diff-v1 与任务目录 candidate-1..15 逐一相等,直接删除;codex-as-spike、voice-measure、closeout 无改动且已在 main,直接删除。有独有内容的工作树先打主仓归档 tag,再在临时 worktree 还原并比对 git-diff-v1 全部相等后才删除:`archive/wip-consolidation-20260913`(含暂存区层)、`archive/wip-handoff-20260912`、`archive/wip-pg02-20260906`、`archive/wip-research-20260922`、`archive/wip-voice-runtime-20260923`、`archive/wip-daily01-20260925`;旧 stash 转 `archive/stash-main-tree-pre-checkout-20260909`。pg02 旧候选的忽略控制目录打包存入 PG-02 续接任务目录;各任务目录留归档说明。另删除已合并且干净的 `SayDo-journey01-integ`、`SayDo-site-redesign-20260917` 及对应本地分支。
+
+**产出**:保留 `saydo-pg02-resumption-20260923`(PG-02 在途候选,等待 owner 决定)与 `saydo-pg02-20260906-BACKUP`;其余 saydo 副本清空,约 7G 释放。
+
+**结论**:consolidation-20260913 暂停候选中的 SC 缺陷修复未进入 main,已归档而非合并;是否重开需 owner 决定。归档 tag 仅在本地,未推送。
+
+## R194 · SC-RELAND-01 repair-3:git 执行配置键表修复与文档/测试 P2 收口(2026-09-25)
+
+**输入**:rereview-1 独立复核 B2/P1(A3):`isGitExecConfig` 手写键表不全,`git config include.path`、`diff.<driver>.command` 漏判 `write_worktree` 自动放行;P2-01..04 文档/测试项。任务为最后一次修复额度,改动留在候选树未提交。
+
+**行动**:重写 `isGitExecConfig` 为精确键+整节前缀+末段后缀兜底三层(词表按本机 `git help config` 2.55),`isGitExecSection` 按节头判定(rename 目标节同样命中);`tier1-cmd-effect.test.ts` 新增 B2 用例 6 项(修复前 5/6 失败留证);doctor 补三用例锁 already_fixed_on_main 修复;删去 11/06 中不存在的「09 §17.2」类引用并标 PG-02 在途;十一份历史文档恢复原结论+追加日期限定更正;证据表拆 DOC-* 六行并记 B2。
+
+**产出**:门禁全绿——daemon vitest 2 文件 317 用例、cli doctor 15 用例、`pnpm -r typecheck`、`pnpm lint`、check-doc-links(166 文件 0 broken)、check-emoji、check-public-tree-privacy(2303 扫描 0 hit)、`git diff --check` 均 exit 0。逐条输出与指纹见 `~/.codex/tasks/saydo-sc-reland-20260925/repair-3/REPORT.md`。
+
+**结论**:B2/P1 修复落地且整链 S3 deny 不自动放行;P2-01..04 全部收口。Playwright 由 supervisor 另行复跑;未 commit/stash/reset。
+
+## R195 · SC-RELAND-01 repair-4:sendemail 执行配置漏判修复与历史文档只追加收口(2026-09-25)
+
+**输入**:rereview-2 独立复核 B2/P1(A3):repair-3 三层词表未含 `sendemail.` 节,`git config sendemail.smtpServer /tmp/sendmail-probe` 判 `write_worktree` 经 gate S1 自动放行(本机 git-send-email 对绝对路径 smtp_server 直接 exec),`sendemail.<identity>.smtpServer` 三段变体同漏;P2-03(A5):`2026-08-19-w54-claude-cli-tier1.fable.md` 四处仍直接替换历史原文。owner 追加最后一次修复额度,候选树不提交。
+
+**行动**:`sendemail.` 整节纳入 `GIT_EXEC_CONFIG_PREFIX`(覆盖全部 identity 三段变体与文档外自定义键,只读查询仍 `read`);`git help --config` 导出 1003 有效键逐一核对,命中执行配置 489(较 repair-3 新增 400):补 `fsck.*`/`uploadarchive.*`/`lfs.customtransfer.*`/`imap.*` 整节,`core.protectHFS/NTFS/checkStat/trustctime/ignoreStat`/`clean.requireForce`/`diff.trustExitCode`/`format.signature`/`format.to`/`gc.repackFilterTo`/`tar.<fmt>.command` 等精确键,后缀兜底扩至 exec/socket/handler/plugin/extension/daemon/service/resolve/env/username/password/secret/sender/exitCode 词族(`to` 后缀误伤 `gc.auto`/`maintenance.*.auto` 撤下改精确键);`GIT_EXEC_SECTION_HEADS` 扩至 68 节头。测试新增 sendemail 全系与整链 deny 用例,修复前 6 失败/311 通过留证,修复后 317/317。fable 文档四处恢复 v2 原文并追加 `2026-09-25 更正` 块;机械检查脚本核对 docs/plan、docs/review、e2e/evidence 非新建、research 共 44 个改动文件,删除行 0、违规 0。
+
+**产出**:`cmdEffect.ts` 键表与节头表扩版、`tier1-cmd-effect.test.ts` 317 用例全绿、`sc-reland-01.md` SC-39 行与 repair-4 补记、R195 本条;逐条门禁输出与指纹见 `~/.codex/tasks/saydo-sc-reland-20260925/repair-4/REPORT.md`。
+
+**结论**:B2/P1 二次修复落地,sendemail 全节与审计新增键均 fail-closed 至 S3 deny 不自动放行;P2-03 四处只追加收口,全批历史文档机械检查 0 违规。候选未 commit/stash/reset;Playwright 未跑(本批不要求)。
+
+## R196 · SC-RELAND-01 repair-5:shell 词归一化收口与 http 节收窄、SC-50 焦点回归(2026-09-25)
+
+**输入**:rereview-3 独立复核 B1/P1(A3):`tokenize` 留引号原样、`unquote` 只剥整词外层一对,shell 执行前的引号去除在分类时缺失;生产反例 `git config core.hooksPath"" ./hooks` 判 `write_worktree`,decide S1 allow 零确认;同类 `core."hooksPath"`、`g""it`、`"--global"`、`--unset"-all"`、`$`/`$(`/反引号展开、敏感位置未加引号通配符、未闭合引号同面。R3-P2-01:`http.` 整节过宽(`http.postBuffer` 误升 S3)。R3-P2-02:SC-50 菜单焦点修复缺现役自动回归。owner 追加最后一次修复,候选树不提交。
+
+**行动**:新增 `normalizeShellWord` POSIX 词归一化(单引号全字面;双引号内 `\$`/`` \` ``/`\"`/`\\`/`\newline` 转义;引号外 `\` 转义下一字符;片段拼接),命令头、git 全局旗标/子命令/长参数、配置键与段名、sed/awk 脚本、sh -c/eval 脚本体一律用归一化词面;包裹命令递归重组仍 join 原始词。词内展开/未闭合引号/词尾悬空反斜杠 ⇒ dynamic,引号外 `*`/`?`/`[` ⇒ glob;命令头不可确定落 install_dependency 最严档,git 旗标位/子命令/config 词面不可确定按执行配置 fail-closed S3,push refspec 不可确定按 unresolved;pathClass 的 `$HOME`/unknown 语义不变。`http.` 移出整节前缀,改 `GIT_HTTP_EXEC_LEAVES` 末段白名单(proxy/sslCAInfo/sslCAPath/sslCert/sslKey/sslCertPasswordProtected/cookieFile/curloptResolve/extraHeader 及 http.<url>. 同名键),普通键恢复普通写、兜底后缀命中键仍执行配置;`--rename-section/remove-section http` 仍 deny。SC-50 新增 `e2e/console/site-mobile-nav-focus.spec.ts` 2 用例(真实 docs/index.html + site.css + theme.js 内联加载):390px 收起态程序 focus 与 24 步 Tab 均不进导航、展开恢复可聚焦、Escape 收拢且焦点回菜单钮、1280px 清 inert。新 B3/B3-P2 用例修复前 4 块失败留证(prefix-test.log),修复后 324/324。
+
+**产出**:`cmdEffect.ts` 词法层重写接入、`tier1-cmd-effect.test.ts` 324 用例全绿、daemon 全量 2706 pass/6 skip、Playwright 该文件 2/2、`sc-reland-01.md` SC-38/39/50 行与 repair-5 补记、R196 本条;逐条门禁输出与指纹见 `~/.codex/tasks/saydo-sc-reland-20260925/repair-5/REPORT.md`。
+
+**结论**:B1/P1 按类别收口于词法层,拼接/包围/展开/未闭合/通配各形态不再与正常拼写分流;R3-P2-01 http 节收窄保留信任链/外发键 S3;R3-P2-02 进现役覆盖。候选未 commit/stash/reset;`e2e/screenshots` 已还原。
+
+## R197 · SC-RELAND-01 repair-6:续行 POSIX 折叠与键位白名单按构造收口、SC-14 表述更正(2026-09-25)
+
+**输入**:rereview-4 独立复核 R4-B1/P1(A3):`commandToEffect` 把 `\<换行>` 替换为空格——POSIX 续行语义是整体删除、前后直接拼接;`git config core.hooks\<LF>Path ./hooks` 实执写 `core.hooksPath` 却判 `write_worktree`,经 gate S1 自动放行零确认;前五轮在同一分类器逐条识别 shell 语法均被再绕过(长参数缩写、执行键表、sendemail、引号拼接、续行)。R4-P2-01:SC-14 行判定列 relanded 与结果列 already_fixed_on_main 矛盾。owner 追加最后一次修复,目标是按构造闭合这一类问题;候选树不提交。
+
+**行动**:新增 `foldLineContinuations` 按 POSIX 删续行(引号外与双引号内 `\<LF>`/`\<CR><LF>` 整体删除拼接,单引号内字面保留);新增键位安全字符集白名单——命令头(含 sudo/env 包装后的真实命令)、git 全局旗标/子命令/长短旗标(`--opt=v` 只看 `=` 前名部)、config 键/节名/作用域参数、`-c` 的 `key=` 部分,归一化词面必须只含 `[A-Za-z0-9._/:=@%+,-]`,否则按不可确定 fail-closed(命令头 ⇒ install_dependency 最严档;git 键位 ⇒ delete_data/git-c-exec S3)。构造保证:词面只剩安全字符 ⇒ shell 不再变换该词,分类所见即实参;值位(config 值、-m 消息、--format= 格式串、--get-regexp 模式)不受约束。白名单作用于归一化词面而非原始词——纯原始词检查与 repair-5 锁定正例(`"user.name"`、`g""it`)冲突,不采用。判定变化均为从严方向:git 子命令位不可确定 S2→S3;`git config core.hooksPath\ x`(转义空格)read/S0→S3、`git config user．name x`(全角点同形)write_worktree/S1→S3;repair-5 九条正例与值位续行不变。新增 B4 describe 4 项(修复前 4 块失败留证),B3 两条子命令断言按新口径改期 S3;SC-14 行与 repair-3 补记 P2-01 按 `git diff HEAD` 更正为 relanded 口径,SC-38/39 行与 repair-6 补记同步。
+
+**产出**:`cmdEffect.ts` 续行折叠+键位白名单、`tier1-cmd-effect.test.ts` 328 用例全绿、daemon 全量 2710 pass/6 skip、`sc-reland-01.md` SC-14/38/39 行与 repair-6 补记、R197 本条;逐条门禁输出与指纹见 `~/.codex/tasks/saydo-sc-reland-20260925/repair-6/REPORT.md`。
+
+**结论**:R4-B1/P1 按构造闭合——键位词面不再逐条识别 shell 语法,归一化后残留字符出白名单即不可确定;R4-P2-01 表述矛盾收口。候选未 commit/stash/reset;Playwright 未跑(本批不要求)。
+
+## R198 · SC-RELAND-01 repair-7:多行命令从严地板,续行解析整体移除(rereview-5 R5-B1/P1/A3)(2026-09-25)
+
+**输入**:rereview-5 独立复核 R5-B1:`foldLineContinuations` 未区分被转义反斜杠,`echo x \\<LF>git config core.hooksPath ./hooks` 判 `write_worktree`,经 `decideCommand` S1 自动放行零确认;评审在 /bin/sh 与 /bin/zsh 实测第二行被执行(`INTERCEPTED_GIT <config> <core.hooksPath> <./hooks>`)。owner 一次性授权最后一次修复,规则取最保守、最简单——不再尝试解析续行;候选树不提交。
+
+**行动**:`commandToEffect` 最前面加单引号态状态机(`hasNewlineOutsideSingleQuotes`):单引号字符串之外出现 `\n`/`\r`(含 `\<换行>`)即地板判 `install_dependency`(S2 至少需确认,不落 read/S0/S1),与常规分段判定取严者;命令任意位置出现归一化 `git` 词(`containsGitWord`,整词/basename、大小写不敏感)按 git 执行配置最严档 `delete_data`/git-c-exec S3。`foldLineContinuations` 与续行折叠路径整体删除;`matchesFrozenVerify` 拒收含 `\r`/`\n` 的命令(防 `\s+` 折叠把第二行藏进"与冻结 argv 相同"的 S1 假象)。单行命令判定与 repair-5/6 完全一致。测试新增 B5 describe 6 项(修复前 B5 4 块 + B4 正例 1 条断言失败留证 `prefix-test.log`);既有断言改 2 处:`rm -rf \<LF>/` delete_data/S3→install_dependency/S2、`git commit -m "line1\<LF>line2"` write_worktree/S1→delete_data/S3。证据文件 SC-38/39 行与 repair-7 补记同步。
+
+**产出**:`tier1-cmd-effect.test.ts` 334/334、daemon 全量 2716 pass/6 skip;逐条门禁输出与指纹见 `~/.codex/tasks/saydo-sc-reland-20260925/repair-7/REPORT.md`。
+
+**结论**:R5-B1/P1 按 owner 规则落地——多行命令一律至少需确认,含归一化 git 词即 S3 deny;合法多行命令(双引号内换行 commit、续行 pnpm 等)按有意从严同样上浮,判定变化均有用例锁。候选未 commit/stash/reset;Playwright 未跑(本批不要求)。
+
+## R199 · SC-RELAND-01 repair-8:多行命令判定叠加 main 式折叠下限(rereview-6 B1/P1/A3)(2026-09-25)
+
+**输入**:rereview-6 独立复核 B1/P1(A3):repair-7 的多行地板相对 main 放宽——`rm -rf \<换行>/` 在 main(HEAD `90e0777`,`commandToEffect` 先 `command.replace(/\\\r?\n/g," ")` 折叠再分类)判 `delete_data`/S3 deny,在候选只判 `install_dependency`/S2,经逐步确认即可 allow。owner 授权最后一次定点修复,只改 `commandToEffect` 一处;候选树不提交。
+
+**行动**:`commandToEffect` 命中多行地板分支时,另对 `command.replace(/\\\r?\n/g," ")` 的 main 式折叠串走同一单行分类路径得 `legacy`(分类主路径抽为 `classifyCommandText` 供两处共用、不带地板避免递归),与「地板 + 分段判定 + git 词最严档」经 `maxDescriptor` 取最严者(`touchesSensitiveData` 任一携带)——单调规则:多行命令判定不低于 main 式折叠判定。单行路径、白名单与归一化、其它文件产品代码均不动;单引号内换行不触发地板也不触发 legacy。测试:review-1 表行 `rm -rf \<LF>/` 恢复 delete_data/S3;新增 B6 describe 3 项(续行版 S3 用例 `rm -rf \<LF>/`、`rm -rf \<LF>~`、`rm -rf \<LF>$HOME`、`git push --force \<LF>origin main` 四条;整链 decide deny 零确认;plan/review-1/review-2 三表全部单行用例首空格插 `\<换行>` 的单调自检)。修复前 4 块失败留证(`prefix-test.log`:恢复断言实判 install_dependency/S2;自检抓 26 条 S3→S2 放宽)。证据文件 SC-38/39 行与 repair-8 补记同步。
+
+**产出**:`cmdEffect.ts` 单调下限落地、`tier1-cmd-effect.test.ts` 337/337、`sc-reland-01.md` repair-8 补记、R199 本条;逐条门禁输出与指纹见 `~/.codex/tasks/saydo-sc-reland-20260925/repair-8/REPORT.md`。
+
+**结论**:B1/P1 收口——候选对任意命令判定不低于 main 式折叠判定,无相对 main 的放宽;单行命令判定不变。候选未 commit/stash/reset;Playwright 未跑(本批不要求)。
+
+## R200 · SC-RELAND-01 repair-9:多行地板去引号判断,main 式折叠下限无条件化(rereview-7 B1/P1/A3)(2026-09-25)
+
+**输入**:rereview-7 独立复核 B1/P1(A3):repair-7 的 `hasNewlineOutsideSingleQuotes` 是不处理双引号的简化单引号态状态机——`echo "'" && rm -rf \<换行>/tmp/saydo-review-example` 中 `"` 内字面 `'` 被当作单引号串开始,换行判"单引号内" ⇒ 不触发多行地板也不算 repair-8 的 legacy 下限;候选判 `install_dependency`/S2 经确认可放行,main(HEAD `90e0777`)折叠判 `delete_data`/S3 deny——相对 main 放宽第二轮。owner 授权定点修复,只改 `cmdEffect.ts` 入口与测试/证据;候选树不提交。
+
+**行动**:`commandToEffect` 改为——① main 式下限对所有命令无条件计算:`maxDescriptor(classifyCommandText(command), classifyCommandText(command.replace(/\\\r?\n/g," ")))`(单行两路同值判定不变);② 多行地板无引号判断:命令任意位置 `\n`/`\r` 即触发,含归一化 `git` 词 git-c-exec S3、否则 install_dependency,与①取最严;`hasNewlineOutsideSingleQuotes` 删除(无其它调用者),不再保留引号状态机。测试:B6 单调自检扩展两变体×双下限(首空格插 `\<换行>`、前置 `echo "'" && ` 再插续行;断言不低于单行版与 HEAD 式折叠判定);新增 B7 describe 4 项(原反例 + 4 条双引号内单引号多行同类 S3、原反例 HEAD 式折叠 S3、`sh -c 'a\nb'` 至少 S2 从严锁定 + 引号外独立 git 词 S3、整链 decide deny 零确认)。修复前 4 块失败留证 `prefix-test.log`(原反例 install_dependency、扩展自检 26 条 `echo "'" && ` 变体 S3→S2)。既有断言改动:B5 `it` 标题 1 处改述,断言值未变。证据 SC-38/39 行与 repair-9 补记同步。
+
+**产出**:`cmdEffect.ts` 无引号化双下限落地、`tier1-cmd-effect.test.ts` 341/341、daemon 全量 2723 pass/6 skip;门禁 typecheck/lint/doc-links/emoji/privacy --fs/`git diff --check` 全绿;逐条输出与指纹见 `~/.codex/tasks/saydo-sc-reland-20260925/repair-9/REPORT.md`。
+
+**结论**:B1/P1 二次收口——多行判定不再依赖任何引号状态机,候选对任意命令判定不低于 main 式折叠判定;单引号内换行从严为有意锁定。候选未 commit/stash/reset;Playwright 未跑(本批不要求)。
+
+## R201 · SC-RELAND-01 repair-10:HEAD 分类器原样拷贝作单调下限,按构造闭合「相对 main 放宽」(rereview-8 B1/P1/A3)(2026-09-26)
+
+**输入**:rereview-8 独立复核 B1/P1(A3,根因 legacy-classifier-floor):最近三轮 RED(续行折叠、引号骗过换行检测、动态命令头)同一模式——候选新规则在部分路径上替换了 HEAD 判定而非与之取严;repair-8/9 的「main 式下限」复用候选自己的 `classifyCommandText`,不等于 HEAD 真实判定。生产反例 `"/bin/${PWD:+.}/rm" -rf /tmp/saydo-review-example`:HEAD(`90e0777`)判 `delete_data`/S3 deny,候选判 `install_dependency`/S2 经确认可放行——相对 main 放宽第三轮。owner 2026-09-26 复审口径:按构造闭合,并把「HEAD 上同样存在、候选未更松的 shell/git 分类绕过」转后续批 DF-TIER1-SHELL-01;候选树不提交。
+
+**行动**:新增 `packages/daemon/src/tier1/cmdEffectLegacy.ts` = `git show 90e0777:packages/daemon/src/tier1/cmdEffect.ts` 原样拷贝(仅 `commandToEffect`→`legacyCommandToEffect` 改名、`classifySegment` 去导出、删 `matchesFrozenVerify` 导出;diff 只有头注/改名/导出差异,分类逻辑逐位未改);`commandToEffect` 最终返回前对所有命令无条件 `maxDescriptor(candidate, legacyCommandToEffect(command))`,`touchesSensitiveData` 任一携带。测试:新建 `tier1-cmd-effect-monotonic.test.ts` 6 用例——rereview-8 原反例与续行变体回 S3、动态命令头变体 3 条单调断言、tier1-* 全部命令样字符串语料(993 条)× 4 变体逐点单调、legacy 与 HEAD 固化快照逐位一致、单行正例锁值。既有断言改动 4 处:`git config get <key>` 子命令式查询由 read/S0 从严为 write_worktree/S1(HEAD 不识 `get` 动词;S1 仍自动放行零确认)。文档:批卡 deferred exact-set 追加 `DF-TIER1-SHELL-01` 与说明句;决策单 §14 第 3 条同步;证据文件新增「评审各轮 shell/git 分类反例清单与当前判定」节与 repair-10 补记。
+
+**产出**:`cmdEffectLegacy.ts` 单调下限落地、`tier1-cmd-effect.test.ts` 341/341、`tier1-cmd-effect-monotonic.test.ts` 6/6、daemon 全量 2729 pass/6 skip;修复前 3 块失败留证(`prefix-test.log`:原反例 install_dependency、单调自检 198 条 candidate<legacy);逐条门禁输出与指纹见 `~/.codex/tasks/saydo-sc-reland-20260925/repair-10/REPORT.md`。
+
+**结论**:B1/P1 收口——`commandToEffect` 对任意命令判定按构造不低于 HEAD 分类器(下限是 HEAD 原样拷贝而非候选路径),「相对 main 放宽」一类问题构造性闭合;HEAD 固有绕过(`"$(command -v rm)"`、`${RM:-rm}` 等)转 DF-TIER1-SHELL-01。候选未 commit/stash/reset;Playwright 未跑(本批不要求)。
+
+## R202 · SC-RELAND-01 repair-11:A2 修复前失败证据落档(2026-09-26)
+
+**输入**:rereview-9 独立复审判 INCOMPLETE——无 P0/P1,唯一缺口是验收项 A2「每个 relanded 代码缺陷的修复前失败证据」。supervisor 已在候选外独立检出(`~/.codex/worktrees/saydo-sc-reland-prefix`,HEAD `90e0777`,即 main 等价代码)完成修复前实跑,结果在 `~/.codex/tasks/saydo-sc-reland-20260925/prefix-check/`(SUMMARY.md + 原始日志)。本批授权范围:只改 `e2e/evidence/sc-reland-01.md` 与本 journal,不改任何代码/测试/脚本;不 commit/stash/reset,不跑测试套件。
+
+**行动**:逐项核对 SUMMARY 表与原始日志——vitest-daemon/cli/platform JSON 逐文件断言计数(如 tier1-cmd-effect 53 failed/341、callback-email 6/24、win32-acl-readback 9/9+win32-volume 6/6、doctor 3/15、supervisor 2/19+run-owned-reap 3/4)、各脚本日志 [fail] 明细与 exit 码(test-install-scripts/mobile-release-contract/pairing-url-corpus/prompt-scan-completion/release-physical-evidence/dev-lifecycle 均 exit 1)、pytest collection error(win32_native 不存在,exit=2)、playwright 1 failed/2、swiftc 对照(main 吞组合符 token=["61"],候选 REJECT),全部一致;26 个原始日志文件 SHA-256 复算全部匹配。`sc-reland-01.md` 新增「修复前失败证据(A2)」节(方法/逐项表/不适用项/日志 SHA-256),处置表 28 个 relanded 行行尾补「修复前失败见 A2 节」;SC-14 行内 repair-3 时的「修复前未复跑」表述随证据落地同步更正为指向 A2 节。
+
+**产出**:`e2e/evidence/sc-reland-01.md`(A2 节 + 28 行指针)、R202 本条;门禁 check-emoji/check-doc-links/check-public-tree-privacy --fs/`git diff --check` 退出码、指纹与 diff 范围见 `~/.codex/tasks/saydo-sc-reland-20260925/repair-11/REPORT.md`。
+
+**结论**:A2 缺口补齐——每个 relanded 代码缺陷均有 main 等价检出上的修复前失败实跑记录,并与修复后 gate-10(just ci/precommit/playwright 56 passed,均 exit 0,同一指纹 `9e48bece…`)对应;纯文档/注释项与测试卫生项按 A2 规定以内容比对为证,列入不适用清单。候选未 commit/stash/reset,本轮只改文档两份。
+
+## R203 · SC-RELAND-01 收口(2026-09-26)
+
+**输入**:owner 2026-09-25「请你仔细检查是否应该合并，应该合并的话请按标准流程对应，都按你的建议，都完成后提交完整的更新到github」;其后多次追加额度(「追加额度 请你继续」「1」「2」「continue」「批准…需要review的由你自己来做」「请继续推进」)。
+
+**行动**:consolidation-20260913 整包不合并,仍有效缺陷插批 SC-RELAND-01 逐项复现后重落地。Devin swe-2-max 实施与 11 次返修;独立复审 11 次(Codex gpt-6-astra medium ×10,其中 1 次配额失败记程序重试;最后 1 次按 owner 指示改为 Claude claude-opus-5-5 fresh 只读会话)。反复 RED 集中在 tier1 shell/git 命令分类器,最终以 HEAD 分类器原样作单调下限收口,HEAD 同样存在的绕过转 DF-TIER1-SHELL-01。修复前失败证据在候选外独立检出实跑后入证据文件。
+
+**产出**:I `f8405cf`;本 E 提交(证据、指针 revision 17→18 关批、批卡状态、HANDOFF 现役行、本条)。rereview-10 GREEN,4 条 P2 延期登记于证据文件收口节。
+
+**结论**:SC-RELAND-01 本地收口,LOCAL_GREEN_REMOTE_PENDING;推送私有归档与公开快照随后执行,远端 CI 以公开快照仓为准。PG-02 仍为 next,未开工。

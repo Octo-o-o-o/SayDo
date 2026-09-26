@@ -74,6 +74,10 @@ describe("E2 风险计算(效果升级,04 §5.1)", () => {
     expect(computeRisk({ kind: "push_branch", target: "feature/x" }).level).toBe("S2");
     expect(computeRisk({ kind: "push_branch", target: "feature/x", triggersDeployPreview: true }).level).toBe("S3");
     expect(computeRisk({ kind: "push_branch", target: "main" }).level).toBe("S3"); // protected
+    expect(computeRisk({ kind: "push_branch", target: "feature/x", targets: ["feature/x", "release"] }, { protectedBranches: ["release"] }).level).toBe("S3");
+    expect(computeRisk({ kind: "push_branch", target: "release", targets: ["release", "feature/x"] }, { protectedBranches: ["release"] }).level).toBe("S3");
+    expect(computeRisk({ kind: "push_branch", target: "feature/x", targets: ["feature/x", "topic"] }, { protectedBranches: ["release"] }).level).toBe("S2");
+    expect(computeRisk({ kind: "push_branch" }).level).toBe("S3");
     for (const kind of ["merge_to_protected", "deploy", "spend_money", "delete_data", "send_external"] as const) {
       expect(computeRisk({ kind }).level).toBe("S3");
     }

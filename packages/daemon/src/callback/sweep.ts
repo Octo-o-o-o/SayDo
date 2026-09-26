@@ -2,6 +2,7 @@
 // L0 = 语音(console peer ∧ TTS 健康 ∧ 不 busy,经 arbitrate);
 // L1 = 桌面通知 + ntfy + 邮件(EMAIL-A,可选,与 ntfy 并列;任一投递成功即 notified);L2 电话不做(escalation 上限 1)。
 // DND:只推低优先级 ntfy / 邮件各一次并 snooze,不语音不桌面。投递失败绝不写 notified。
+// 跨 await 后及新渠道发送前重读 durable outbox:冻结/ack 只拦未启动投递,已出口计数保留、不冒写 notified。
 // micHeldByMeeting 无数据源,调用方恒传 false。
 
 import { renderTier1BlockedReason, type OutboxTrigger } from "@saydo/contracts";
@@ -180,6 +181,33 @@ function nowHmOf(now: Date): string {
   return now.toTimeString().slice(0, 5);
 }
 
+/** 投递链上的 durable 快照。跨 await 后必须重读,不得沿用 sweep 入口行。 */
+function readLiveOutbox(db: Db, id: string): { state: string; escalation: number } | undefined {
+  return db.prepare("SELECT state, escalation FROM callback_outbox WHERE id=?").get(id) as
+    | { state: string; escalation: number }
+    | undefined;
+}
+
+/** L0 只对仍 pending 的条目开口播;冻结/ack/已 notified 都不再新拨语音。 */
+function allowsL0Voice(live: { state: string } | undefined): boolean {
+  return live?.state === "pending";
+}
+
+/**
+ * L1 未启动渠道:pending/requeued,或 L0 应答窗内的 notified(escalation=0)。
+ * resolved/acked/已升过 L1 的 notified 不再外呼。
+ */
+function allowsL1Channel(live: { state: string; escalation: number } | undefined): boolean {
+  if (!live) return false;
+  if (live.state === "pending" || live.state === "requeued") return true;
+  return live.state === "notified" && live.escalation === 0;
+}
+
+/** DND 只推仍 due 的 pending/requeued;冻结或 ack 后不再补推。 */
+function allowsDndChannel(live: { state: string } | undefined): boolean {
+  return live?.state === "pending" || live?.state === "requeued";
+}
+
 export async function runCallbackSweep(deps: SweepDeps, now: Date): Promise<SweepReport> {
   const report = emptyReport();
   const nowIso = now.toISOString();
@@ -230,23 +258,31 @@ export async function runCallbackSweep(deps: SweepDeps, now: Date): Promise<Swee
         { voiceBusy: false, micHeldByMeeting: false }
       );
       if (result.action === "speak") {
-        const text = spokenLine(deps.db, speakCandidate.row);
-        const ok = await deps.voice.say(speakCandidate.sessionId, text, "callback");
-        if (ok) {
-          deps.engine.attemptNotify(speakCandidate.row.id, { nowHm, channelReachable: true });
-          deps.audit.record({
-            actor: "daemon",
-            action: "callback.voice_sent",
-            meta: { entryId: speakCandidate.row.id, sessionId: speakCandidate.sessionId }
-          });
-          spoken.add(speakCandidate.row.id);
-          report.voiceSent += 1;
-          deps.log.info("callback L0 voice sent", {
-            entryId: speakCandidate.row.id,
-            sessionId: speakCandidate.sessionId
-          });
+        if (!allowsL0Voice(readLiveOutbox(deps.db, speakCandidate.row.id))) {
+          // 开口前已冻结/ack:不拨语音,也不落入 L1。
         } else {
-          noVoice.push(speakCandidate.row);
+          const text = spokenLine(deps.db, speakCandidate.row);
+          const ok = await deps.voice.say(speakCandidate.sessionId, text, "callback");
+          if (ok) {
+            // 语音已出口;冻结/ack 不能假装撤回。发送审计照实录,守卫只拦 notified 冒写与后续 L1。
+            report.voiceSent += 1;
+            spoken.add(speakCandidate.row.id);
+            deps.audit.record({
+              actor: "daemon",
+              action: "callback.voice_sent",
+              meta: { entryId: speakCandidate.row.id, sessionId: speakCandidate.sessionId }
+            });
+            deps.log.info("callback L0 voice sent", {
+              entryId: speakCandidate.row.id,
+              sessionId: speakCandidate.sessionId
+            });
+            const live = readLiveOutbox(deps.db, speakCandidate.row.id);
+            if (live?.state === "pending" || live?.state === "requeued") {
+              deps.engine.attemptNotify(speakCandidate.row.id, { nowHm, channelReachable: true });
+            }
+          } else {
+            noVoice.push(speakCandidate.row);
+          }
         }
       } else if (result.action === "downgrade_notify") {
         noVoice.push(speakCandidate.row);
@@ -279,6 +315,7 @@ export async function runCallbackSweep(deps: SweepDeps, now: Date): Promise<Swee
   for (const row of l0Timeouts) pushL1(row);
 
   for (const row of l1Queue) {
+    if (!allowsL1Channel(readLiveOutbox(deps.db, row.id))) continue;
     await deliverL1(deps, row, nowHm, report);
   }
 
@@ -307,8 +344,9 @@ async function deliverDnd(deps: SweepDeps, now: Date, nowIso: string, report: Sw
   const until = deps.dnd.windowEnd(now);
   const due = [...loadDue(deps.db, nowIso, "pending"), ...loadDue(deps.db, nowIso, "requeued")];
   for (const row of due) {
+    if (!allowsDndChannel(readLiveOutbox(deps.db, row.id))) continue;
     let sent = false;
-    if (deps.ntfy.enabled) {
+    if (deps.ntfy.enabled && allowsDndChannel(readLiveOutbox(deps.db, row.id))) {
       const base = deps.ntfy.render(deps.db, {
         id: row.id,
         task_id: row.task_id,
@@ -323,14 +361,17 @@ async function deliverDnd(deps: SweepDeps, now: Date, nowIso: string, report: Sw
         deps.log.info("callback DND ntfy pushed", { entryId: row.id });
       }
     }
-    const emailSent = await deliverEmail(deps, row, report, true);
-    if (emailSent) {
-      sent = true;
-      deps.audit.record({ actor: "daemon", action: "callback.dnd_pushed", meta: { entryId: row.id, channel: "email" } });
-      deps.log.info("callback DND email pushed", { entryId: row.id });
+    if (allowsDndChannel(readLiveOutbox(deps.db, row.id))) {
+      const emailSent = await deliverEmail(deps, row, report, true);
+      if (emailSent) {
+        sent = true;
+        deps.audit.record({ actor: "daemon", action: "callback.dnd_pushed", meta: { entryId: row.id, channel: "email" } });
+        deps.log.info("callback DND email pushed", { entryId: row.id });
+      }
     }
+    const live = readLiveOutbox(deps.db, row.id);
     const anyPushChannel = deps.ntfy.enabled || deps.email?.enabled === true;
-    if ((sent || !anyPushChannel) && until) {
+    if ((sent || !anyPushChannel) && until && allowsDndChannel(live)) {
       deps.engine.snooze(row.id, until);
       report.snoozed += 1;
     }
@@ -338,6 +379,7 @@ async function deliverDnd(deps: SweepDeps, now: Date, nowIso: string, report: Sw
 }
 
 async function deliverL1(deps: SweepDeps, row: OutboxRow, nowHm: string, report: SweepReport): Promise<void> {
+  if (!allowsL1Channel(readLiveOutbox(deps.db, row.id))) return;
   const msg = deps.ntfy.render(deps.db, {
     id: row.id,
     task_id: row.task_id,
@@ -348,13 +390,15 @@ async function deliverL1(deps: SweepDeps, row: OutboxRow, nowHm: string, report:
   const title = `SayDo · ${redactText(projectTitle)}`;
   let desktopOk = false;
   let ntfyOk = false;
-  try {
-    desktopOk = await deps.desktop.notify({ title, body: msg.body });
-  } catch {
-    desktopOk = false;
+  if (allowsL1Channel(readLiveOutbox(deps.db, row.id))) {
+    try {
+      desktopOk = await deps.desktop.notify({ title, body: msg.body });
+    } catch {
+      desktopOk = false;
+    }
+    if (desktopOk) report.desktopSent += 1;
   }
-  if (desktopOk) report.desktopSent += 1;
-  if (deps.ntfy.enabled) {
+  if (deps.ntfy.enabled && allowsL1Channel(readLiveOutbox(deps.db, row.id))) {
     try {
       ntfyOk = await deps.ntfy.post(msg);
     } catch {
@@ -362,31 +406,40 @@ async function deliverL1(deps: SweepDeps, row: OutboxRow, nowHm: string, report:
     }
     if (ntfyOk) report.ntfySent += 1;
   }
-  const emailOk = await deliverEmail(deps, row, report, false);
+  const emailOk = allowsL1Channel(readLiveOutbox(deps.db, row.id))
+    ? await deliverEmail(deps, row, report, false)
+    : false;
+  const live = readLiveOutbox(deps.db, row.id);
   if (!desktopOk && !ntfyOk && !emailOk) {
-    if (!deps.l1FailWarned.has(row.id)) {
+    if (allowsL1Channel(live) && !deps.l1FailWarned.has(row.id)) {
       deps.l1FailWarned.add(row.id);
-      deps.log.warn("callback L1 delivery failed; entry stays for retry", { entryId: row.id, state: row.state });
+      deps.log.warn("callback L1 delivery failed; entry stays for retry", {
+        entryId: row.id,
+        state: live?.state ?? row.state
+      });
       report.alerts += 1;
     }
     return;
   }
   deps.l1FailWarned.delete(row.id);
-  if (row.state === "pending" || row.state === "requeued") {
+  if (live?.state === "pending" || live?.state === "requeued") {
     const notify =
-      row.escalation < ESCALATION_CAP
+      live.escalation < ESCALATION_CAP
         ? { nowHm, channelReachable: true, escalationDelta: 1 as const }
         : { nowHm, channelReachable: true };
-    deps.engine.attemptNotify(row.id, notify);
-  } else if (row.state === "notified" && row.escalation === 0) {
-    deps.engine.bumpUnackedToL1(row.id);
+    if (deps.engine.attemptNotify(row.id, notify).delivered) {
+      report.l1Notified += 1;
+    }
+  } else if (live?.state === "notified" && live.escalation === 0) {
+    if (deps.engine.bumpUnackedToL1(row.id)) {
+      report.l1Notified += 1;
+    }
   }
-  report.l1Notified += 1;
   deps.log.info("callback L1 delivered", {
     entryId: row.id,
     desktop: desktopOk,
     ntfy: ntfyOk,
     email: emailOk,
-    state: row.state
+    state: live?.state ?? row.state
   });
 }

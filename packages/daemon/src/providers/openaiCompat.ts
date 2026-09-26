@@ -21,29 +21,46 @@ export interface OpenAICompatOptions {
     observedFamily?: Family;
   }) => void;
   /** M2/①-4 OpenRouter 钉路由:provider 白名单固定排序 + 禁 fallback——否则首 token 抖动 + 前缀缓存跨供应商全量 miss。
-   *  仅对聚合网关(via=openrouter)设置;单家直连端点留空。 */
+   *  由调用方显式传入,不从 baseUrl 推断;单家直连通常留空。 */
   providerPinning?: { order: string[]; allowFallbacks: boolean };
 }
 
 /**
  * 输出预算下限(reasoning 模型把预算先花在 reasoning 字段,留不下 content 就是空回答)。
  *
- * OpenRouter 路径靠下方统一 `reasoning:{max_tokens:1200}` 把推理压住,3000 够留给 content。
+ * OpenRouter 官方 origin 靠下方统一 `reasoning:{max_tokens:1200}` 把推理压住,3000 够留给 content。
  * DeepSeek 官方直连**不认**该键——2026-08-15 实测:发了也静默忽略(不报错、reasoning 照吃满),
  * 于是 3000 预算下 content 恒空、`finish=length`(v4-pro 与 v4-flash 同现象;
  * `reasoning_effort` 三档在难题上均救不回来)。同题实测 8000 起即稳定 `finish=stop`,
- * 取 16000 留余量——**max_tokens 是上限不是用量**(32000 上限下实际只用 2875),不抬高成本。
- * 证据:`e2e/spikes/deepseek-toolloop/`。
- * 收窄到已验证端点:其他端点各有输出上限,盲目抬高可能被上游拒。
+ * 取 16000 留余量。max_tokens 是请求上限:历史样本在 32000 上限下实际用量 2875
+ * (`e2e/spikes/deepseek-toolloop/`);增大上限本身不等于实际用量,不能承诺成本不变。
+ * 收窄到已验证官方 origin:其他端点各有输出上限,盲目抬高可能被上游拒。
+ * 只认解析后的 origin/hostname,路径/子串/后缀仿冒不触发;自定义网关走通用下限。
  */
 const DEEPSEEK_DIRECT_MIN_OUTPUT_TOKENS = 16000;
 const DEFAULT_MIN_OUTPUT_TOKENS = 3000;
+const DEEPSEEK_DIRECT_ORIGIN = "https://api.deepseek.com";
+const OPENROUTER_ORIGIN = "https://openrouter.ai";
 
-function minOutputBudget(baseUrl: string): number {
-  return baseUrl.includes("api.deepseek.com") ? DEEPSEEK_DIRECT_MIN_OUTPUT_TOKENS : DEFAULT_MIN_OUTPUT_TOKENS;
+function parseProviderBaseUrl(baseUrl: string): URL {
+  let parsed: URL;
+  try {
+    parsed = new URL(baseUrl);
+  } catch {
+    throw new Error("invalid provider baseUrl");
+  }
+  if ((parsed.protocol !== "http:" && parsed.protocol !== "https:") || parsed.hostname === "") {
+    throw new Error("invalid provider baseUrl");
+  }
+  return parsed;
+}
+
+function minOutputBudget(endpoint: URL): number {
+  return endpoint.origin === DEEPSEEK_DIRECT_ORIGIN ? DEEPSEEK_DIRECT_MIN_OUTPUT_TOKENS : DEFAULT_MIN_OUTPUT_TOKENS;
 }
 
 export function createOpenAICompatProvider(opts: OpenAICompatOptions): LlmProvider {
+  const endpoint = parseProviderBaseUrl(opts.baseUrl);
   const timeoutMs = opts.timeoutMs ?? 30000;
   const doFetch = opts.fetchImpl ?? fetch;
   const rejectObservedModel = (
@@ -93,9 +110,9 @@ export function createOpenAICompatProvider(opts: OpenAICompatOptions): LlmProvid
         // 8/6 晚破案:deepseek-v4-pro 等 reasoning 模型把预算花在 reasoning 字段,content=null 被判
         // invalid_response(今日"上游抖动"总根因,instructions 加长后暴增)。max_tokens 上调给推理留
         // 空间 + OpenRouter 统一 reasoning 限额(非 reasoning 模型忽略该字段,无害)
-        ...(req.maxTokens !== undefined ? { max_tokens: Math.max(req.maxTokens, minOutputBudget(opts.baseUrl)) } : {}),
-        // reasoning 限额是 OpenRouter 统一参数;其他 openai 兼容端点可能拒未知字段,按 baseUrl 收窄
-        ...(opts.baseUrl.includes("openrouter") ? { reasoning: { max_tokens: 1200 } } : {})
+        ...(req.maxTokens !== undefined ? { max_tokens: Math.max(req.maxTokens, minOutputBudget(endpoint)) } : {}),
+        // reasoning 限额是 OpenRouter 官方参数;其他 openai 兼容端点可能拒未知字段,按官方 origin 收窄
+        ...(endpoint.origin === OPENROUTER_ORIGIN ? { reasoning: { max_tokens: 1200 } } : {})
       };
       if (req.jsonSchema) {
         body["response_format"] = { type: "json_schema", json_schema: { name: "result", schema: req.jsonSchema } };

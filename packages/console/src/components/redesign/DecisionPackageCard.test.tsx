@@ -1,7 +1,13 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { DecisionPackageCard } from "./DecisionPackageCard";
-import { applyDemoFetchResult, DemoFrame, DemoPreviewStatus } from "./DemoFrame";
+import {
+  applyDemoFetchResult,
+  applyOwnedDemoFailure,
+  applyOwnedDemoFetch,
+  DemoFrame,
+  DemoPreviewStatus
+} from "./DemoFrame";
 import type { DecisionPackageView } from "./types";
 import { decisionPackageFixtures } from "./DecisionPackageCard.fixture";
 import { apiErrorFromResponse } from "../../lib/apiError";
@@ -94,6 +100,34 @@ describe("看小样 fetch 失败渲染", () => {
     expect(applyDemoFetchResult({ artifact: { type: "demo" }, content: "<p>ok</p>" })).toEqual({
       html: "<p>ok</p>",
       err: null
+    });
+  });
+});
+
+describe("PackageDemoPreview 请求归属(生产消费 applyOwnedDemoFetch)", () => {
+  const demoOk = { artifact: { type: "demo" as const }, content: "<p>NEW_VERSION_2</p>" };
+  const demoOld = { artifact: { type: "demo" as const }, content: "<p>OLD_VERSION_1</p>" };
+
+  it("旧成功不得改当前 html/err", () => {
+    expect(applyOwnedDemoFetch({ id: 1 }, { id: 2 }, demoOld)).toBeUndefined();
+    expect(applyOwnedDemoFetch({ id: 2 }, { id: 2 }, demoOk)).toEqual({
+      html: "<p>NEW_VERSION_2</p>",
+      err: null
+    });
+  });
+
+  it("旧失败不得改当前 html/err", () => {
+    expect(applyOwnedDemoFailure({ id: 1 }, { id: 3 }, new Error("stale fail"))).toBeUndefined();
+    expect(applyOwnedDemoFailure({ id: 3 }, { id: 3 }, new Error("当前错误"))).toEqual({
+      html: null,
+      err: "当前错误"
+    });
+  });
+
+  it("当前请求仍走类型检查,非 demo 不进 srcDoc", () => {
+    expect(applyOwnedDemoFetch({ id: 4 }, { id: 4 }, { artifact: { type: "plan" }, content: "# 计划" })).toEqual({
+      html: null,
+      err: "这份产物不是决策包小样"
     });
   });
 });

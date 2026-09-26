@@ -4,10 +4,10 @@
 
 ## E1 · Provider 抽象(ModelProviders)
 
-- **职责**:五槽位模型供给(dialog/thinking/cheap/evaluator/dev)+ ASR/TTS 供应商抽象;统一超时/重试/降级;用量事件供 C8。**不做**:槽位约束裁决(校验器在配置层,09 §11 校验规则 1–6)、把 BYOA 用于对话档(已判死,07 D18 结案表)。
+- **职责**:五槽位模型供给(dialog/thinking/cheap/evaluator/dev)+ ASR/TTS 供应商抽象;统一超时/重试/降级;用量事件供 C8。**不做**:槽位约束裁决(校验器在配置层,09 §11 校验规则 1–6)、把 CLI 一发一收当实时语音传输(07 D18；对话槽选 CLI 时只提供文本单发，不能据此宣称实时语音可用)。
 - **接口面**:`ModelBinding` 四形态(09 §11:api 简写/api+via 命名端点/codex_cli/claude_cli/cursor_cli 档位词表);`[providers.api.<name>]`(base_url/api_key env 引用/family 规则:前缀表优先、网关端点必须省略端点级 family);`buildCageArgv()` 三档笼参数集(09 §12-9 快照);invocation 审计记录(07 D18)。
 - **设计要点**:① BYOA 笼子:无状态一发一收(砍 resume)、tripwire(tool_call ⇒ 作废+审计)、observedModel 族断言**按 09 §11 规则 2 分档**(api/cursor 严格——api 响应体 model 字段同断言,**官方直连缺字段同样作废**,2026-07-24 严格口径;codex/claude 恒定族缺失豁免、有值仍校验,工程 ADR-002——Codex 14 横切-4 统一引用);② cursor 独立 raw NDJSON parser(六类 golden,未知事件作废 fail-closed);③ 限流 = fail-fast + billing-switch 一次性收据,无收据不产生 api 计费行,禁跨计费源静默降级;④ 改造自 OctoDesk `engines/bridge/` 四层拆(core 可搬,spawn/discovery 重写,1.2b);⑤ ASR/TTS:doubao v3 双向流式(07 D5)+ 可换 provider + 本地兜底链。
-- **依赖**:配置(09 §11 校验规则 1–6)、`~/.saydo/.env`(key);被 A3/A5/B3/C6/A1 消费。
+- **依赖**:配置(09 §11 校验规则 1–6)、`~/.saydo/.env`(key);被 A3/A5/B3/C6/A1 消费。C4 的 L1 ntfy/邮件现役只供给本机受信入口文案,不把远程任务 URL 当可点业务面(07 D11 当前边界;不新增合同形状)。
 - **失效与恢复**:探测失败拒启动(处方化报错一次列全);运行中单请求失败按槽位重试策略,不静默换供给。
 - **验证归属**:§12-9 全绿(异族/双开关/family 冲突/argv 快照/tripwire/限流收据竞态/深评律/TOML 模板解析)。
 - **分期与开放项**:P0(1.2 provider + 1.2b BYOA);acp 供给 P1。开放:cursor_sdk(API key)后续优化档。

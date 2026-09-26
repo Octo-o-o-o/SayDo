@@ -407,6 +407,75 @@ export function redoFromLane(
   });
 }
 
+export interface CreateLaneInput {
+  focusId: string;
+  title: string;
+  parentLaneId?: string | null;
+  actorKind?: "user" | "daemon" | "brain_proposal";
+  sessionId?: string;
+}
+
+/** DAILY-01:用户建支线(空线;不含义务迁移——迁义务走 lane_split) */
+export function createLane(
+  db: Db,
+  input: CreateLaneInput,
+  opts: FocusWriteTxOptions = {}
+): { laneId: string; eventId: string } {
+  return withFocusWriteTx(db, opts, (ops) => {
+    const dbx = ops.db;
+    ops.getFocus(input.focusId);
+    const title = input.title.trim();
+    if (!title) throw new FocusWriteError("lane_title_required", "lane title required");
+    const parentLaneId = input.parentLaneId ?? null;
+    assertParentLaneOk(dbx, input.focusId, parentLaneId);
+
+    const baseline = readBaseline(dbx, input.focusId);
+    const laneId = newId("lan");
+    const ev = ops.appendEvent(input.focusId, {
+      type: "lane_created",
+      payload: { laneId, title, baseline },
+      actorKind: input.actorKind ?? "user",
+      sessionId: input.sessionId
+    });
+    dbx.prepare(
+      `INSERT INTO focus_lanes(focus_id, id, title, parent_lane_id, created_from_event, retired_at)
+       VALUES (?,?,?,?,?,NULL)`
+    ).run(input.focusId, laneId, title, parentLaneId, ev.seq);
+    return { laneId, eventId: ev.id };
+  });
+}
+
+/** DAILY-01:恢复已收起的线(清 retired_at;不复活被 superseded 的义务——那走 redo_from) */
+export function unretireLane(
+  db: Db,
+  input: RetireLaneInput,
+  opts: FocusWriteTxOptions = {}
+): { eventId: string } {
+  return withFocusWriteTx(db, opts, (ops) => {
+    const dbx = ops.db;
+    ops.getFocus(input.focusId);
+    const lane = dbx
+      .prepare(`SELECT id, title, retired_at FROM focus_lanes WHERE focus_id = ? AND id = ?`)
+      .get(input.focusId, input.laneId) as { id: string; title: string; retired_at: string | null } | undefined;
+    if (!lane) throw new FocusWriteError("lane_not_found", `lane ${input.laneId} not found`);
+    if (lane.retired_at == null) {
+      throw new FocusWriteError("lane_not_retired", `lane ${input.laneId} is not retired`);
+    }
+    dbx.prepare(`UPDATE focus_lanes SET retired_at = NULL WHERE focus_id = ? AND id = ?`).run(
+      input.focusId,
+      input.laneId
+    );
+    const baseline = readBaseline(dbx, input.focusId);
+    const ev = ops.appendEvent(input.focusId, {
+      type: "lane_restored",
+      payload: { laneId: input.laneId, title: lane.title, baseline },
+      actorKind: input.actorKind ?? "user",
+      sessionId: input.sessionId
+    });
+    return { eventId: ev.id };
+  });
+}
+
 export function listLanes(db: Db, focusId: string): Array<{
   id: string;
   title: string;

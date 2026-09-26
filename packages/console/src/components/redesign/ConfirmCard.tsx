@@ -25,7 +25,7 @@ const KIND_GROUP: Record<ConfirmKind, string> = {
 const KIND_GROUP_FALLBACK = "确认";
 
 export function confirmKindGroupLabel(kind: string): string {
-  return (KIND_GROUP as Record<string, string | undefined>)[kind] ?? KIND_GROUP_FALLBACK;
+  return Object.hasOwn(KIND_GROUP, kind) ? KIND_GROUP[kind as ConfirmKind] : KIND_GROUP_FALLBACK;
 }
 
 function fmtLeft(sec: number): string {

@@ -327,8 +327,8 @@ describe("ntfy 深链(IMPL-5 §2-B:只带路由,token 绝不进深链)", () => {
     expect(seedConsoleFixture(db).seeded).toBe(true);
   });
 
-  it("consoleBaseUrl:tailnet 首选枚举主机,未配置回落本机", () => {
-    expect(consoleBaseUrl(TAILNET, 47100)).toBe("http://mac-mini.tailnet-x.ts.net:47100");
+  it("consoleBaseUrl:配置 tailnet 仍只给本机受信入口", () => {
+    expect(consoleBaseUrl(TAILNET, 47100)).toBe("http://127.0.0.1:47100");
     expect(consoleBaseUrl([], 47100)).toBe("http://127.0.0.1:47100");
   });
 
@@ -366,10 +366,13 @@ describe("ntfy 深链(IMPL-5 §2-B:只带路由,token 绝不进深链)", () => {
       { id: "ntf_x", task_id: RDY, trigger: "ready_for_review" },
       { consoleBase: consoleBaseUrl(TAILNET, 47100) }
     );
-    expect(msg.click).toMatch(/^http:\/\/mac-mini\.tailnet-x\.ts\.net:47100\/#\/p\/prj_[A-Za-z0-9]+\/task\/tsk_/);
+    expect(msg.click).toMatch(/^http:\/\/127\.0\.0\.1:47100\/#\/p\/prj_[A-Za-z0-9]+\/task\/tsk_/);
     expect(msg.click).not.toContain("token");
+    expect(msg.click).not.toContain("tailnet");
     expect(msg.body).toContain("等你验收");
+    expect(msg.body).toContain("运行 SayDo 的电脑");
     expect(msg.body).not.toContain("完成");
+    expect(msg.body).not.toContain("手机可处理");
     expect(msg.title).toContain("SayDo");
     // blocked/failed 高优先级 + 如实话术
     const blocked = renderNtfyMessage(db, { id: "ntf_y", task_id: RDY, trigger: "blocked" }, { consoleBase: "http://127.0.0.1:47100" });

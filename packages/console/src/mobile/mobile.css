@@ -445,6 +445,29 @@
   font: 500 var(--m-fs-secondary)/1.45 sans-serif;
 }
 
+/* DAILY-01:支线三视图页签(工作/航迹/依赖) */
+.m-root .m-lane-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 16px;
+}
+
+.m-root .m-lane-tabs button {
+  flex: 1;
+  padding: 9px 0;
+  border: 1px solid var(--m-gray);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--m-muted);
+  font: 500 var(--m-fs-secondary)/1 sans-serif;
+}
+
+.m-root .m-lane-tabs button.is-active {
+  border-color: var(--m-ink);
+  color: var(--m-ink);
+  background: color-mix(in srgb, var(--m-ink) 6%, transparent);
+}
+
 .m-root .m-confirm-card,
 .m-root .m-read-card,
 .m-root .m-receipt {

@@ -11,9 +11,33 @@ import { EmptyState, ErrorCard, PaperCard, Mono, SectionTitle } from "../compone
 import { RiskBadge } from "../components/StatusChip";
 
 const TERMINAL = new Set(["consumed", "rejected", "timeout_rejected", "timeout_parked", "superseded_by_edit", "voided_by_conflict", "expired"]);
+const EXPIRED = new Set(["expired", "timeout_rejected", "timeout_parked"]);
+
+/** DAILY-01:待处理/已处理/过期 三态页签(终态收据不复活:过滤只是视角,不改数据) */
+type ApprovalTab = "pending" | "handled" | "expired";
+const TAB_LABEL: Record<ApprovalTab, string> = { pending: "待处理", handled: "已处理", expired: "已过期" };
+
+function tabOf(row: Record<string, unknown>): ApprovalTab {
+  const outcome = String(row["outcome"]);
+  if (EXPIRED.has(outcome)) return "expired";
+  if (TERMINAL.has(outcome) || outcome !== "pending") return "handled";
+  return "pending";
+}
+
+const tabBtn = (active: boolean): React.CSSProperties => ({
+  height: 30,
+  padding: "0 14px",
+  borderRadius: "var(--radius-xs)",
+  border: "1px solid var(--line)",
+  background: active ? "var(--selected-wash)" : "transparent",
+  color: active ? "var(--active-ink)" : "var(--text-secondary)",
+  fontSize: "var(--text-xs)",
+  cursor: "pointer"
+});
 
 export function Approvals() {
   const [bump, setBump] = useState(0);
+  const [tab, setTab] = useState<ApprovalTab>("pending");
   const [actionError, setActionError] = useState<string | null>(null);
   const { data, error } = useAsync(() => api.approvals(), [bump]);
   const decide = (aid: string, decision: "accept" | "reject"): void => {
@@ -34,14 +58,24 @@ export function Approvals() {
       .catch((e: Error) => setActionError(e.message));
   };
   if (error) return <ErrorCard message="审批加载失败" detail={error} />;
-  const rows = data ?? [];
+  const all = data ?? [];
+  const counts = { pending: 0, handled: 0, expired: 0 };
+  for (const a of all) counts[tabOf(a)] += 1;
+  const rows = all.filter((a) => tabOf(a) === tab);
   return (
     <div data-page="approvals">
       <SectionTitle>审批中心</SectionTitle>
+      <div className="flex items-center gap-[8px]" style={{ margin: "0 0 var(--space-3)" }} data-approval-tabs>
+        {(["pending", "handled", "expired"] as const).map((t) => (
+          <button key={t} style={tabBtn(tab === t)} data-approval-tab={t} onClick={() => setTab(t)}>
+            {TAB_LABEL[t]}({counts[t]})
+          </button>
+        ))}
+      </div>
       {actionError ? <ErrorCard message="审批操作失败" detail={actionError} /> : null}
       {rows.length === 0 ? (
         <PaperCard>
-          <EmptyState icon={ShieldCheck} text="没有待批的事" />
+          <EmptyState icon={ShieldCheck} text={tab === "pending" ? "没有待批的事" : tab === "handled" ? "还没有已处理的审批" : "没有过期的审批"} />
         </PaperCard>
       ) : (
         <div className="flex flex-col gap-[var(--space-3)]" data-approval-list>

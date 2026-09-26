@@ -60,8 +60,10 @@ Pages: 项目 `saydo` → `saydo-3xb.pages.dev` + 自定义域 `saydo.octoooo.co
 
 - Console coordinates: 复用千手账号 Huying `5565423440378520991`(owner 2026-08-13 确认)。`[occupy-0813]` 已创建应用 title「说到」,默认语言 zh-CN,免费 App,包名 `com.octoooo.saydo`(Check availability: available → 占用)。Play 应用 ID `4975182458667142159`。
 - 创建后 Dashboard 未见 12 人封闭测试门横幅;按 skill 视为该账号已有正式发布应用而豁免,仍勿传 spike 包。
+  > 2026-09-25 更正:上述为历史观察;"未见横幅"及账号已有其他应用均不足以证明本应用豁免,当前要求仍待核实。
 - `[setup-0813]` Android release keystore 已生成于仓库外 `~/.config/saydo/keystores/saydo-android-release.p12`,口令只在钥匙串。指纹已写入 `docs/release/filing-cheatsheet.md`。
 - Closed-testing gate: 该账号已有正式发布应用,按 skill 视为豁免;创建应用后在 Console 再确认横幅。
+  > 2026-09-25 更正:豁免判断未核实。[Google 官方规则](https://support.google.com/googleplay/android-developer/answer/14151465?hl=en)按个人账号创建日期界定适用范围,适用时要求至少 12 名测试者连续加入 14 天;提审前核对账号日期和本应用的生产访问状态,不能由另一应用已发布推定豁免。本次未登录 Console。
 - Artifacts: 无 AAB。图标草稿 `artifacts/release/store-assets/play-icon-512.png`。
 - 下一步:**不要上传 spike 包到正式轨。** 生产壳齐后再走内部测试/正式轨。
 

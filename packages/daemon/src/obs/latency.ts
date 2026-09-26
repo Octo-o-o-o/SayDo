@@ -155,8 +155,17 @@ const STAGE_FIELD: Record<LatencyStage, keyof Omit<LatencyTrace, "turnId" | "ori
 };
 const STAGES = Object.keys(STAGE_FIELD) as LatencyStage[];
 
-function sloStatus(n: number, p50: number, p90: number, ceilP50: number, ceilP90: number | undefined): SloStatus {
-  if (n < LATENCY_SLO.minSamples || !Number.isFinite(p50) || !Number.isFinite(p90)) return "undeterminable";
+function sloStatus(
+  n: number,
+  p50: number,
+  p90: number,
+  ceilP50: number,
+  ceilP90: number | undefined,
+  invalid = 0
+): SloStatus {
+  if (invalid > 0 || n < LATENCY_SLO.minSamples || !Number.isFinite(p50) || !Number.isFinite(p90)) {
+    return "undeterminable";
+  }
   if (p50 <= ceilP50 && (ceilP90 === undefined || p90 <= ceilP90)) return "pass";
   return "fail";
 }
@@ -192,6 +201,7 @@ export class LatencyCollector {
   private readonly pendingTtlMs: number;
   private readonly endedGraceMs: number;
   private readonly maxSettled: number;
+  private readonly invalidByOrigin: Partial<Record<LatencyOrigin, number>> = {};
   private readonly counts: LatencyCounts = {
     started: 0,
     completed: 0,
@@ -234,6 +244,8 @@ export class LatencyCollector {
     }
     if (this.partial.size >= this.maxPending) {
       this.counts.overflow += 1;
+      this.counts.started += 1;
+      this.rememberSettled(turnId);
       return null;
     }
     const p: PendingTurn = { stages: {}, origin: origin ?? "unknown", firstAtMs: atMs };
@@ -271,6 +283,8 @@ export class LatencyCollector {
     this.rememberSettled(turnId);
     if (!traceIsValid(trace)) {
       this.counts.invalid += 1;
+      const origin = trace.origin ?? "unknown";
+      this.invalidByOrigin[origin] = (this.invalidByOrigin[origin] ?? 0) + 1;
       return null;
     }
     this.counts.completed += 1;
@@ -323,7 +337,11 @@ export class LatencyCollector {
 
   /** 当前分解表(>=20 条才有统计意义;不足如实给 undeterminable) */
   report(): DecompositionReport & { counts: LatencyCounts; pending: number } {
-    return { ...decompose([...this.completed], this.counts.invalid), counts: this.countsSnapshot(), pending: this.partial.size };
+    return {
+      ...decompose([...this.completed], this.counts.invalid, this.invalidByOrigin),
+      counts: this.countsSnapshot(),
+      pending: this.partial.size
+    };
   }
 }
 
@@ -337,17 +355,37 @@ function rowsOf(traces: LatencyTrace[]): DecompositionRow[] {
 }
 
 /** P50/P90 分段分解表(Phase 1 出口;EOU 等待单列)。非法 trace(非有限/逆序)排除在分布外并计入 invalid */
-export function decompose(traces: LatencyTrace[], extraInvalid = 0): DecompositionReport {
+export function decompose(
+  traces: LatencyTrace[],
+  extraInvalid = 0,
+  extraInvalidByOrigin?: Partial<Record<LatencyOrigin, number>>
+): DecompositionReport {
   const valid = traces.filter(traceIsValid);
   const invalid = traces.length - valid.length + extraInvalid;
   const rows = rowsOf(valid);
   const totalRow = rows.find((r) => r.segment === "totalMs") as DecompositionRow;
-  const status = sloStatus(valid.length, totalRow.p50, totalRow.p90, LATENCY_SLO.publishCeilingP50Ms, LATENCY_SLO.publishCeilingP90Ms);
-  const internalStatus = sloStatus(valid.length, totalRow.p50, totalRow.p90, LATENCY_SLO.internalTargetP50Ms, undefined);
+  const status = sloStatus(
+    valid.length,
+    totalRow.p50,
+    totalRow.p90,
+    LATENCY_SLO.publishCeilingP50Ms,
+    LATENCY_SLO.publishCeilingP90Ms,
+    invalid
+  );
+  const internalStatus = sloStatus(
+    valid.length,
+    totalRow.p50,
+    totalRow.p90,
+    LATENCY_SLO.internalTargetP50Ms,
+    undefined,
+    invalid
+  );
   const byOrigin: Partial<Record<LatencyOrigin, OriginSummary>> = {};
   for (const origin of LATENCY_ORIGINS) {
     const own = valid.filter((t) => (t.origin ?? "unknown") === origin);
-    const ownInvalid = traces.filter((t) => (t.origin ?? "unknown") === origin && !traceIsValid(t)).length;
+    const ownInvalid =
+      traces.filter((t) => (t.origin ?? "unknown") === origin && !traceIsValid(t)).length +
+      (extraInvalidByOrigin?.[origin] ?? 0);
     if (own.length === 0 && ownInvalid === 0) continue;
     const total = rowsOf(own).find((r) => r.segment === "totalMs") as DecompositionRow;
     byOrigin[origin] = {
@@ -355,7 +393,14 @@ export function decompose(traces: LatencyTrace[], extraInvalid = 0): Decompositi
       invalid: ownInvalid,
       totalP50: total.p50,
       totalP90: total.p90,
-      status: sloStatus(own.length, total.p50, total.p90, LATENCY_SLO.publishCeilingP50Ms, LATENCY_SLO.publishCeilingP90Ms)
+      status: sloStatus(
+        own.length,
+        total.p50,
+        total.p90,
+        LATENCY_SLO.publishCeilingP50Ms,
+        LATENCY_SLO.publishCeilingP90Ms,
+        ownInvalid
+      )
     };
   }
   return {

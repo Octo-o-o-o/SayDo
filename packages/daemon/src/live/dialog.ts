@@ -38,6 +38,8 @@ import {
 import { getSession } from "../storage/dao/projects.js";
 import { compileLivePack, type LivePackDeps } from "./pack.js";
 import type { RuntimeApprovalFlow } from "../tier1/approvalFlow.js";
+import { memoryConfirmPendingRejectAuditOf, memoryConfirmPersistOf } from "../memory/m0Confirm.js";
+import { isMemorySecretLiteralError, MEMORY_SECRET_LITERAL_MESSAGE } from "../memory/credentialLiterals.js";
 import type { ReadinessCandidate } from "../evaluator/readinessBinding.js";
 import {
   classifyProjectAnchorTurn,
@@ -112,6 +114,8 @@ export interface LiveDialogDeps {
   configuredProvider?: string;
   /** 用户轮已写入 durable transcript 后通知 once 协调器；拒收/写入失败不得提前消费 marker。 */
   onUserMessageAccepted?: (sessionId: string) => void;
+  /** 09 §10.1.10:acceptUserTurn 成功后发 turn.text.result.accepted,不得提前。 */
+  onUserTurnAccepted?: (sessionId: string, turnId: string) => void;
   /** 用户轮开始:隐式 ack 本 session 项目的 L0 语音回叫条目。 */
   onUserTurnBegin?: (sessionId: string) => void;
   /**
@@ -174,6 +178,8 @@ export interface LiveDialogDeps {
     storeTranscript: boolean;
   };
   now?: () => Date;
+  /** 模型轮启动时的已提交语音锚。缺省表示调用方没有锚账。 */
+  currentAnchor?: (sessionId: string) => { focusId: string | null; requestId: string | null };
 }
 
 /** ④c 控制轮 payload(dialog 层注入,非 user 轮) */
@@ -201,7 +207,18 @@ interface ControlSessionState {
   /** barge-in 后到对应 ASR final 结算前，控制轮不得抢在用户输入前启动。 */
   speechPending: boolean;
   userTurnGeneration: number;
+  /** 当前待结算语音轮世代;过期 final 的 speechGen 对不上则不得解锁。 */
+  pendingSpeechGen: number;
   activeUserTurnController?: AbortController;
+}
+
+export function memoryConfirmFailureSpeech(err: unknown): string {
+  const cause = err instanceof Error ? err.cause : undefined;
+  if (isMemorySecretLiteralError(err) || isMemorySecretLiteralError(cause)) return MEMORY_SECRET_LITERAL_MESSAGE;
+  if (memoryConfirmPersistOf(err) === "unknown") {
+    return "记的时候出了问题,这条现在没法确认有没有记下,你在屏幕上看一眼。";
+  }
+  return "记的时候出了问题,这条先没记。";
 }
 
 export class LiveDialog {
@@ -209,8 +226,13 @@ export class LiveDialog {
   private readonly now: () => Date;
   /** ④c 控制轮 per-session 态 */
   private readonly controlBySession = new Map<string, ControlSessionState>();
-  /** 当前 session 的模型轮；新用户轮、barge-in、session suspend 会 abort 旧轮。 */
+  /** 当前 session 的模型轮；新用户轮、barge-in、session suspend、换锚会 abort 旧轮。 */
   private readonly modelTurnBySession = new Map<string, AbortController>();
+  /** 模型轮启动时的锚。换锚 CAS 用它判断该退役哪一轮,不按到达时刻重标。 */
+  private readonly modelRoundOwner = new Map<
+    string,
+    { controller: AbortController; focusId: string | null; requestId: string | null }
+  >();
   private readonly inFlightTurns = new Set<Promise<void>>();
   private acceptingTurns = true;
 
@@ -242,7 +264,8 @@ export class LiveDialog {
         cancelled: false,
         userTurnInFlight: false,
         speechPending: false,
-        userTurnGeneration: 0
+        userTurnGeneration: 0,
+        pendingSpeechGen: 0
       };
       this.controlBySession.set(sessionId, st);
     }
@@ -252,17 +275,39 @@ export class LiveDialog {
   private beginModelTurn(sessionId: string): AbortController {
     this.abortSession(sessionId);
     const controller = new AbortController();
+    const anchor = this.deps.currentAnchor?.(sessionId) ?? { focusId: null, requestId: null };
     this.modelTurnBySession.set(sessionId, controller);
+    this.modelRoundOwner.set(sessionId, {
+      controller,
+      focusId: anchor.focusId,
+      requestId: anchor.requestId
+    });
     return controller;
   }
 
   private finishModelTurn(sessionId: string, controller: AbortController): void {
     if (this.modelTurnBySession.get(sessionId) === controller) this.modelTurnBySession.delete(sessionId);
+    const owner = this.modelRoundOwner.get(sessionId);
+    if (owner?.controller === controller) this.modelRoundOwner.delete(sessionId);
   }
 
   abortSession(sessionId: string): void {
     this.modelTurnBySession.get(sessionId)?.abort();
     this.modelTurnBySession.delete(sessionId);
+    this.modelRoundOwner.delete(sessionId);
+  }
+
+  /**
+   * 锚定 CAS 写成功且身份变了:退役启动时不属于新锚的在途模型轮。
+   * 同一 focus+request 重复提交不退役。不删转写、不删回执、不清更新的 speechPending。
+   */
+  retireForAnchor(sessionId: string, next: { focusId: string; requestId: string }): void {
+    const owner = this.modelRoundOwner.get(sessionId);
+    if (!owner) return;
+    if (owner.focusId === next.focusId && owner.requestId === next.requestId) return;
+    const st = this.controlState(sessionId);
+    if (st.inFlight) st.cancelled = true;
+    owner.controller.abort();
   }
 
   /** session 挂起/关闭时退休当前世代；旧轮 finally 不得再泵起控制轮复活会话。 */
@@ -491,10 +536,10 @@ export class LiveDialog {
             turnId,
             signal,
             assertCurrent: () => {
-              if (st.cancelled || st.userTurnInFlight) throw new Error("stale control turn");
+              if (st.cancelled || st.userTurnInFlight || signal.aborted) throw new Error("stale control turn");
             }
           },
-          isCurrent: () => !st.cancelled && !st.userTurnInFlight,
+          isCurrent: () => !st.cancelled && !st.userTurnInFlight && !signal.aborted,
           onStep: (step) => this.recordStep(sessionId, turnId, step, "control"),
           onToolCall: (t) =>
             d.log.info("brain tool call", {
@@ -509,7 +554,7 @@ export class LiveDialog {
         })
       : await runDialogTurn(provider, input);
 
-    if (st.cancelled || st.userTurnInFlight) return;
+    if (st.cancelled || st.userTurnInFlight || signal.aborted) return;
 
     d.onLlmArrived?.(turnId, out.llmArrivedAtMs, {
       toolCallsMade: "toolCallsMade" in out ? (out as { toolCallsMade: number }).toolCallsMade : 0,
@@ -542,7 +587,7 @@ export class LiveDialog {
     });
 
     for (const s of out.sentences) {
-      if (st.cancelled || st.userTurnInFlight) break;
+      if (st.cancelled || st.userTurnInFlight || signal.aborted) break;
       if (s.text.replace(/[\s。,,.;;:!?!?、·—-]+/g, "").length === 0) continue;
       // 控制轮:TTS 可下发,但不写 JSONL、不刷新 idle
       this.sayControl(sessionId, turnId, s.sentenceId, s.text);
@@ -560,13 +605,14 @@ export class LiveDialog {
   }
 
   /** barge-in:unheard 标记 + presentation 作废(随后裸肯定不消费,必须重播——A8) */
-  onBargeIn(sessionId: string, truncatedSentenceId: string): void {
+  onBargeIn(sessionId: string, truncatedSentenceId: string, speechGen?: number): void {
     this.abortSession(sessionId);
     this.deps.sessions.onBargeIn(sessionId, truncatedSentenceId);
     this.deps.confirm?.invalidateOnBargeIn(sessionId, this.now().toISOString());
     const st = this.controlState(sessionId);
     // 退休旧用户轮所有权，并在 ASR final 结算前保留语音门；旧 finally 不得抢先泵 control。
     st.userTurnGeneration += 1;
+    st.pendingSpeechGen = speechGen ?? st.userTurnGeneration;
     delete st.activeUserTurnController;
     st.userTurnInFlight = false;
     st.speechPending = true;
@@ -575,17 +621,26 @@ export class LiveDialog {
   }
 
   /** 空 final 或确认采集截获 final：用户语音已结算，但不产生 Brain 用户轮。 */
-  settlePendingSpeech(sessionId: string): void {
+  settlePendingSpeech(sessionId: string, ownedGen?: number): void {
     const st = this.controlState(sessionId);
     if (!st.speechPending) return;
+    if (ownedGen !== undefined && ownedGen !== st.pendingSpeechGen) return;
     st.speechPending = false;
     if (!st.userTurnInFlight && !st.inFlight) void this.pumpControlQueue(sessionId);
   }
 
-  /** asr.final 主链(hub onAsrFinal 接线) */
-  async onAsrFinal(sessionId: string, turnId: string, text: string): Promise<void> {
+  /** asr.final 主链(hub onAsrFinal 接线)。带 speechGen 时旧轮不得清掉新一轮 speechPending,也不得 acceptUserTurn。 */
+  async onAsrFinal(sessionId: string, turnId: string, text: string, speechGen?: number): Promise<void> {
     if (!this.acceptingTurns) throw new Error("daemon_draining");
     const ctl = this.controlState(sessionId);
+    if (
+      speechGen !== undefined &&
+      ctl.speechPending &&
+      ctl.pendingSpeechGen !== undefined &&
+      speechGen !== ctl.pendingSpeechGen
+    ) {
+      return;
+    }
     ctl.speechPending = false;
     // 用户开口优先:打断控制轮并重置连锁深度
     if (ctl.inFlight) ctl.cancelled = true;
@@ -641,6 +696,7 @@ export class LiveDialog {
     const acceptUserTurn = (options?: { excludeFromHistory?: boolean }): void => {
       d.sessions.onUserTurn(sessionId, turnId, text, options);
       d.onUserMessageAccepted?.(sessionId);
+      d.onUserTurnAccepted?.(sessionId, turnId);
     };
     const ensured = d.sessions.ensureSession(sessionId);
     // 会话绑定装配(B-4 + A3-armed 补齐:消费点 = 每次 session↔project 绑定建立或变更——
@@ -1761,7 +1817,10 @@ export class LiveDialog {
           this.sayAndTrack(sessionId, `s-memory-${turnId}`, "记住了。");
         } catch (err) {
           d.log.warn("memory confirm failed", { error: String(err).slice(0, 160) });
-          this.sayAndTrack(sessionId, `s-memory-${turnId}`, "记的时候出了问题,这条先没记——稍后我再跟你确认一遍。");
+          this.sayAndTrack(sessionId, `s-memory-${turnId}`, memoryConfirmFailureSpeech(err));
+          if (d.db.inTransaction) throw err;
+          const pendingReject = memoryConfirmPendingRejectAuditOf(err);
+          if (pendingReject) d.audit.record(pendingReject);
         }
         return;
       }

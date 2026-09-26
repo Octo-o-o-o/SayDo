@@ -3,7 +3,7 @@
 // 晋升协议(mock 崩溃点) / secret 合并+0600 / test 响应无 key / health 含 pid 形状
 
 import { createHash } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,7 +30,13 @@ import {
   PLACEHOLDER_MODEL_API,
   PLACEHOLDER_MODEL_EVALUATOR
 } from "../src/config/defaultTemplate.js";
-import { fileModeBits, mergeEnvText, parseEnvText } from "../src/config/envFile.js";
+import {
+  EnvValueRejectedError,
+  envValueHasUnsafeChars,
+  fileModeBits,
+  mergeEnvText,
+  parseEnvText
+} from "../src/config/envFile.js";
 import {
   effectivePromotion,
   pendingPaths,
@@ -491,6 +497,78 @@ describe("setup secret staged", () => {
     expect(mergeEnvText(base, "A", "9")).toContain("B=2");
     expect(mergeEnvText(base, "C", "3")).toMatch(/C=3\n$/);
     expect(parseEnvText(mergeEnvText(null, "X", "y"))).toEqual({ X: "y" });
+  });
+
+  it("含等号的合法 value 仍可写入,不 trim 原值", () => {
+    const home = tmpHome();
+    const value = "  sk-eq=still-valid  ";
+    const r = writeSetupSecretStaged(home, { name: "SMTP_PASSWORD", value });
+    expect(r.ok).toBe(true);
+    expect(readFileSync(join(home, ".env.pending"), "utf8")).toContain(`SMTP_PASSWORD=${value}\n`);
+  });
+
+  it("CR/LF/NUL 在任何写入/审计前 422,空目录零文件", () => {
+    const cases: Array<{ label: string; value: string }> = [
+      { label: "LF", value: "probe-value\nUNREGISTERED_PROBE_KEY=injected" },
+      { label: "CR", value: "probe-value\rUNREGISTERED_PROBE_KEY=injected" },
+      { label: "NUL", value: "probe-value\0UNREGISTERED_PROBE_KEY=injected" }
+    ];
+    for (const c of cases) {
+      const home = tmpHome();
+      const audits: Array<{ action: string; meta?: Record<string, unknown> }> = [];
+      const r = writeSetupSecretStaged(
+        home,
+        { name: "SMTP_PASSWORD", value: c.value },
+        { record: (e) => {
+          audits.push(e);
+          return { id: "aud_x" };
+        } }
+      );
+      expect(r.ok, c.label).toBe(false);
+      if (!r.ok) {
+        expect(r.status, c.label).toBe(422);
+        expect(r.code, c.label).toBe("secret_body_rejected");
+        expect(r.message, c.label).not.toContain(c.value);
+        expect(r.message, c.label).not.toContain("UNREGISTERED_PROBE_KEY");
+        expect(r.message, c.label).not.toContain("probe-value");
+      }
+      expect(readdirSync(home), c.label).toEqual([]);
+      expect(existsSync(join(home, ".env")), c.label).toBe(false);
+      expect(existsSync(join(home, ".env.pending")), c.label).toBe(false);
+      expect(audits, c.label).toEqual([]);
+      expect(envValueHasUnsafeChars(c.value), c.label).toBe(true);
+    }
+  });
+
+  it("拒绝时已有 active/pending 逐字节不变,无成功审计", () => {
+    const home = tmpHome();
+    const active = "OPENROUTER_API_KEY=keep-active\n";
+    const pending = "SMTP_PASSWORD=keep-pending\n";
+    writeFileSync(join(home, ".env"), active, { mode: 0o600 });
+    writeFileSync(join(home, ".env.pending"), pending, { mode: 0o600 });
+    const audits: Array<{ action: string }> = [];
+    const r = writeSetupSecretStaged(
+      home,
+      { name: "SMTP_PASSWORD", value: "probe-value\nUNREGISTERED_PROBE_KEY=injected" },
+      { record: (e) => {
+        audits.push(e);
+        return { id: "aud_x" };
+      } }
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.status).toBe(422);
+      expect(r.code).toBe("secret_body_rejected");
+      expect(JSON.stringify(r)).not.toContain("probe-value");
+    }
+    expect(readFileSync(join(home, ".env"), "utf8")).toBe(active);
+    expect(readFileSync(join(home, ".env.pending"), "utf8")).toBe(pending);
+    expect(audits).toEqual([]);
+  });
+
+  it("mergeEnvText 对不安全 value 抛错且不产出可解析注入键", () => {
+    expect(() => mergeEnvText("A=1\n", "SMTP_PASSWORD", "x\nEVIL=1")).toThrow(EnvValueRejectedError);
+    expect(() => mergeEnvText(null, "SMTP_PASSWORD", "x\nEVIL=1")).toThrow(EnvValueRejectedError);
   });
 });
 

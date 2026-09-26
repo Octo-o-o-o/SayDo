@@ -1,7 +1,7 @@
 # 模块详设 C · 控制面桥(C1–C8)
 
 > **性质**:实施视角详设 + 核对索引,细化 [08](../08-module-design.md) §2 C 域。合同真相源 = [09](../09-data-contracts.md)(状态机 §6、投影 §7、DDL §9、工具 §13、测试 §12)与 [设计 ADR-001](../adr/design/ADR-001-execution-layer.md);本文引用不复制,冲突时 canonical 胜。
-> C 域是跨域边界的家:**执行域状态归 Hopper,对话域状态归 daemon,跨域只走 durable 合同**(03 §1 所有权矩阵)。
+> **现役边界(设计 ADR-005)**:Tier1 是唯一生产执行路线，执行与对话状态均由 daemon 持有。本文 C1/C3 及各节 Hopper 分支保留为 `designed/deferred` 的设计索引；不据此宣称 Hopper 已接入生产。跨系统 durable 合同及 dormant schema 保留(03 §1 所有权矩阵)。
 
 ## C1 · 任务卡渲染器(TaskCardRenderer)
 
@@ -14,10 +14,10 @@
 
 ## C2 · 执行客户端(ExecutionClient)
 
-- **职责**:两形态一接口——**C2-Tier1**(P0):SDK/CLI 薄执行器,canUseTool 语义审批门;**C2-Hopper**(P0.5):drop/run/cancel/review/merge/retry 经官方 CLI。**不做**:执行逻辑本身(agent/Hopper 的)、审批裁决(C5)。
-- **接口面(Tier1)**:`DevAgentBinding`(09 §11:agent=claude_code|cursor|codex、transport=sdk|cli,其中 claude_code 现行为 cli)、`tier1_runs` 表 + 转换规则(09 §9)、steer 应答 `queued_delta/cancel_resume`(09 §13);适配器矩阵 07 D8(claude_code=CLI `PreToolUse` hooks,生产主流程已接线、live conformance 收口中;cursor=CLI hooks 当前稳定缺省;两者均无 live steer;codex=Tier2 经 Hopper)。
+- **职责**:两形态一接口——**C2-Tier1**(现役):Cursor/Claude CLI 薄执行器，经 hooks 接入审批门；SDK 为历史/未来候选。**C2-Hopper**(`designed/deferred`):drop/run/cancel/review/merge/retry 经官方 CLI。**不做**:执行逻辑本身(agent/Hopper 的)、审批裁决(C5)。
+- **接口面(Tier1)**:`DevAgentBinding`(09 §11:agent=claude_code|cursor|codex、transport=sdk|cli,其中 claude_code 现行为 cli)、`tier1_runs` 表 + 转换规则(09 §9)、steer 应答 `queued_delta/cancel_resume`(09 §13);适配器矩阵 07 D8(claude_code=CLI `PreToolUse` hooks,生产主流程已接线、live conformance 收口中;cursor=CLI hooks 当前稳定缺省;两者均无 live steer;codex=PG-07 延后，非当前生产后端；Hopper=`designed/deferred`)。
 - **接口面(Hopper)**:`HopperCommand`(09 §6.2:op 词表/idemKey/先 intent 后 confirmed)、`--req-id`/`--expect-*`/`--origin`(baseline.2)、**retry 闸门**(高风险不自动 retry、分诊 blocked 恢复走 re-drop→unblock,09 §6.2)、capabilities 握手第一调用(09 §11 [hopper])。
-- **设计要点(Tier1 安全,4.1 全量)**:① cursor 审批门 = 每任务 worktree `.cursor/hooks.json` `beforeShellExecution` 阻塞回连 daemon socket,**fail-closed 四律**(只依赖 deny/jq 构造 JSON/超时=deny/每条命令独立审批);② 审批门完整性:gate 在 agent 不可写目录、**tool_call 无 hook 回调 canary ⇒ 立即 cancel**、`cursor-agent` 版本 pin;③ worktree 供给:setup 缺省 `--ignore-scripts`、凭据剥离(G4)、verify **内容冻结**(dispatch 冻结 argv+脚本 digest,执行前重校,不符 fail-closed,G3);④ daemon HTTP/WS 身份:capability token + Host/Origin 白名单(G1 网络半边);⑤ 恢复钥匙 =(adapter, nativeSessionId, cwd),失败降级"摘要+diff 注入新会话"。
+- **设计要点(Tier1 安全,4.1 全量)**:① cursor 审批门 = 每任务 worktree `.cursor/hooks.json` `beforeShellExecution` 阻塞回连 daemon socket,**fail-closed 四律**(只依赖 deny/jq 构造 JSON/超时=deny/每条命令独立审批);② 审批门完整性:gate 在 worktree 外但同 UID/SID 下无强制不可写保证；每个 gate 请求重校当前 backend 活动入口与绑定文件 digest，漂移即 deny/cancel；**tool_call 无 hook 回调 canary ⇒ cancel**、`cursor-agent` 版本 pin(完整边界见09 §11);③ worktree 供给:setup 缺省 `--ignore-scripts`、凭据剥离(G4)、verify **内容冻结**(dispatch 冻结 argv+脚本 digest,执行前重校,不符 fail-closed,G3);④ daemon HTTP/WS 身份:capability token + Host/Origin 白名单(G1 网络半边);⑤ 恢复钥匙 =(adapter, nativeSessionId, cwd),失败降级"摘要+diff 注入新会话"。
 - **设计要点(Hopper)**:提交串行 ≤1 in-flight、间隔 ≥200ms、撞 scheduler.lock 退避 ≥5s;MutationResult 五状态,`expired ≠ 失败`(对账 `.result.json`);merge 是独立命令,S3 收据绑 merge 动作本身(设计 ADR-001)。
 - **依赖**:C5(审批)、C1(卡)、E2(风险)、C7(恢复);Tier1 依赖所选 adapter 登录态(Phase -1 A⑤)。
 - **失效与恢复**:hopper_commands ≠confirmed 重放(idemKey);tier1_runs 崩溃重放基元(0.3);cancel 语义三分(answer_permission / kill_and_resume / cancel,03 §5)。
@@ -36,19 +36,19 @@
 
 ## C4 · 回叫引擎(CallbackEngine)
 
-- **职责**:durable outbox 状态机 + PagerDuty 式升级链(L0 语音 → L1 桌面+ntfy/邮件(EMAIL-A 候选,可选并列) → L2 电话 P1)+ 免打扰/输出仲裁。**不做**:消费原始事件(**只认 settle 后状态**,08 §3 硬规则 ②)、内容生成(C6 给 one_liner)。
+- **职责**:durable outbox 状态机 + PagerDuty 式升级链(L0 语音 → L1 桌面+ntfy/邮件(EMAIL-A 已入源码/真实投递未验,可选并列) → L2 电话 P1)+ 免打扰/输出仲裁。**不做**:消费原始事件(**只认 settle 后状态**,08 §3 硬规则 ②)、内容生成(C6 给 one_liner)。
 - **接口面**:`CallbackOutboxEntry`(09 §6.3:trigger 七值/occurrenceKey 口径表/dedupeKey 四段 NOT NULL/活跃唯一索引/requeued 唯一语义/取消与返工冻结 superseded);投递口径=至少一次+dedupe 收敛(诚实注记);回叫话术 10 #29–#35。
-- **设计要点**:① settle 四项缺一不叫(proof 齐备才写 outbox);② 重建接通第一句=原因;③ DND 窗口 snooze 补叫;ack 后 resolution-timeout(缺省 30min)重升级;④ 输出仲裁:同时多事件按优先级序播报,不叠音(02 §5);⑤ 多任务回叫聚合=P1(05 §6 盲区表态,P0 兜底=通知优先级+仲裁)。
-- **依赖**:C3(settle 态)、C6(摘要)、A2(重建会话)、ntfy(E1 供给)、邮件 SMTP submission(EMAIL-A 候选,可选,与 ntfy 并列;凭据经 setup secret 白名单 `SMTP_PASSWORD`);被 D1 通知页消费。
+- **设计要点**:① settle 四项缺一不叫(proof 齐备才写 outbox);② 重建接通第一句=原因;③ DND 窗口 snooze 补叫;ack 后 resolution-timeout(缺省 30min)重升级;④ 输出仲裁:同时多事件按优先级序播报,不叠音(02 §5);⑤ 多任务回叫聚合=P1(05 §6 盲区表态,P0 兜底=通知优先级+仲裁);⑥ **当前通知边界**:L1 ntfy/邮件只给本机受信入口并写明须在运行 SayDo 的电脑处理,不把远程任务 URL 当可用入口(07 D11;不改本状态机)。
+- **依赖**:C3(settle 态)、C6(摘要)、A2(重建会话)、ntfy(E1 供给)、邮件 SMTP submission(EMAIL-A 已入源码/真实投递未验,可选,与 ntfy 并列;凭据经 setup secret 白名单 `SMTP_PASSWORD`);被 D1 通知页消费。
 - **失效与恢复**:重启扫活跃条目,同 dedupeKey 不重复入队("重启只叫一次");拨出成功与落盘间的重复窗口如实声明(≤1 次是测试断言不是上界)。
 - **验证归属**:§12-5 全绿(dedupe NOT NULL 反例/settle 缺一不叫/DND 补叫/重升级/取消冻结)。
 - **分期**:P0(L2 电话 P1)。
 
 ## C5 · 审批服务(ApprovalService)
 
-- **职责**:两类审批(dispatch_package / runtime_effect)全生命周期:digest 绑定、单次消费 nonce、超时按档终局、落盘可恢复;**执行模式策略承载点**(两档的 S2 姿态差异全在此)。**不做**:风险计算(E2)、S3 语音放行(永不)。
+- **职责**:两类审批(dispatch_package / runtime_effect)全生命周期:digest 绑定、单次消费 nonce、超时按档终局、落盘可恢复;**执行模式策略承载点**(现役仅逐步确认；直达验收及两档的 S2 姿态差异为 designed/deferred,PG-01B)。**不做**:风险计算(E2)、S3 语音放行(永不)。
 - **接口面**:`approvals` DDL + 合法组合矩阵 CHECK(09 §9:S3 只走屏幕强认证/voice 弱认证封顶 S2 且**必绑 turn_ref**/push 配对 PIN 封顶 S2/preauthorized 须父包);收据状态机 09 §3;`approveAction`(09 §13);billing-switch 一次性收据(09 §11 规则 5);presentation 状态机(**09 §14-A2**,P0 最小版=S2 打断即作废;A8 = 完整 E2 签名 presentation 六字段形态,P0.5-A——Codex 复审 B16 勘误);**S3 卡 WebAuthn 挑战/收据链(R-A 2026-07-26/27,W4 实施)**:`webauthn_credentials`/`s3_challenges` 两表 + 四工具(registerWebauthn/issueS3Challenge/verifyS3Assertion/approveMerge)+ S3MergeReceipt 判别型 + assertS3LocalAndBound 守卫(09 §3.3/§13)。
-- **设计要点**:① 中断点落盘可恢复(LangGraph interrupt 范式),超时绝不悬挂:直达档=默认拒绝(agent 换路)、逐步档=转 blocked 停靠等人(04 §5.2);② 所闻即所签:S2 播报被打断 ⇒ presentation 失效,必须完整重播,裸"好"不消费(4.2 音频烟测);③ 审批卡必带项目/任务上下文;④ 三熔断挂本模块外沿(活跃墙钟停表+回合+成本,04 §6);⑤ 停靠老化 72h 取消转草稿,长停靠恢复强制复验收据有效期。
+- **设计要点**:① 中断点落盘可恢复(LangGraph interrupt 范式),超时绝不悬挂:现役逐步档=转 blocked 停靠等人；直达档=默认拒绝(agent 换路)为 designed/deferred(04 §5.2);② 所闻即所签:S2 播报被打断 ⇒ presentation 失效,必须完整重播,裸"好"不消费(4.2 音频烟测);③ 审批卡必带项目/任务上下文;④ 三熔断挂本模块外沿(活跃墙钟停表+回合+成本,04 §6);⑤ 停靠老化 72h 取消转草稿,长停靠恢复强制复验收据有效期。
 - **依赖**:E2(等级)、A7(turn_ref)、A2(重建);被 C2 的 canUseTool 回调消费。
 - **验证归属**:§12-3 全绿(单次消费/nonce/S3 CHECK/voice 缺 turn_ref 拒/超时按档/timeout_parked 复验)+ §12-13(S3 合并链反例集,09 §3.3)+ 4.2(熔断注入/打断作废)。
 - **分期**:P0(逐步确认档全量);EffectGrant 预授权链=P0.5-C;edit 动作=P1。
@@ -74,7 +74,7 @@
 ## C8 · 成本账本(CostLedger)
 
 - **职责**:全链记账 estimate → budget → actual:对话侧(ASR 分钟/token/TTS 字符,1.2 接线)+ 执行侧(Tier1 usage + Hopper `last_run_cost` 逐 run 按 taskId 累加,04 §6 2026-07-24 更新)。**不做**:预测剩余订阅额度、显示伪精确。
-- **接口面**:`cost_entries` DDL(09 §9:known/source CHECK,订阅行恒 known=0/amount=NULL);三态呈现纪律(09 §11 规则 5:known 金额/unknown"还没有确切数字"/subscription"订阅额度内已用 N 次");月预算与 maxCost 只 SUM `source='api'` 行;billing-switch 收据后才产生 api 行。
+- **接口面**:`cost_entries` DDL(09 §9:known/source CHECK,订阅行恒 known=0/amount=NULL);三态呈现纪律(09 §11 规则 5:known 金额/unknown"还没有确切数字"/subscription"订阅额度内已用 N 次");月预算与 maxCost 只 SUM `source='api'` 行;billing-switch 收据后才产生 api 行。**读口诚实(09 §9 / §15.2.5)**:`GET /api/costs`.byProject 是全账本合计权威;`entries` 是最新 300 窗;响应必带 `entriesWindow`;D1「全部」不得用窗口重聚合冒充全账本。不新增分页协议/DDL。
 - **设计要点**:① per-task 归因:dispatch_binding 的 taskId↔runId 映射 + `show --json` last_run_cost 累加(不需 Hopper 改);② codex 成本=估算 USD(订阅下等价 API 口径,非真实账单)如实标"估算";③ 熔断维度归 C5/04 §6,C8 只供数。
 - **依赖**:E1(用量事件)、C3(Hopper 成本);被 D1 成本页/A6(估算)消费。
 - **验证归属**:§12-9(subscription 行形状 DDL CHECK/限流未确认不产生 api 行)。

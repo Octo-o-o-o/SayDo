@@ -41,7 +41,7 @@ google:
   play_app_id: "4975182458667142159"
   play_app_signing: true
   upload_keystore_location: "~/.config/saydo/keystores/saydo-android-release.p12"  # password in keychain: SayDo Android Release Keystore Password
-  closed_testing_gate: false    # same personal Play account already has a published app (千手); treat as exempt, reconfirm in Console
+  closed_testing_gate: null     # 未核实。已有其他应用或未显示横幅不足以证明本应用豁免;须核对账号创建日期与本应用生产访问状态。
   eu_trader_decision: ""
 
 huawei:

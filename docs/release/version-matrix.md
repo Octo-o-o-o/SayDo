@@ -1,5 +1,7 @@
 # SayDo 版本矩阵
 
+> 2026-09-13 源码边界补注:本表自动测试与真机记录按各自日期解释。PG-01B(`ebd449080bb0e476eb2dd3334ee0b152cb3a7eeb`)已关闭当前 daemon 的远程业务入口;下文 LAN + token 描述是历史壳能力,不能据此声称当前 main 可完成跨设备配对和业务访问。rc.12 制品与当前源码分别验收,本次对账未发布新制品或更新真机证据。
+
 > 本文件是 `docs/release/release-profile.yaml` 的 `version_sot`。记录 desktop CLI 与三端壳的版本号、签名、自动测试、真机证据、可分发性与下一阻断。
 > 不写设备 ID、证书密码、token、私钥或个人目录。实施自报不构成验收。
 > 更新:2026-09-15。CLI 为 `0.1.0-rc.13`(available Release;实体门四项真机证据 `e2e/evidence/2026-09-15-rc13-physical/`)。三端壳统一 `0.1.0 (1)`。

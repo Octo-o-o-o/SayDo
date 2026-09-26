@@ -137,7 +137,7 @@ export type MemoryPendingPayload = {
 
 export type PendingPayload =
   | { kind: "dispatch"; packageId: string; revision: number; mode: "direct_to_review" | "step_confirm" }
-  | { kind: "runtime_effect" }
+  | { kind: "runtime_effect"; taskId?: string }
   // A3-armed(09 §13/10 #41):就绪复述确认环——信息确认(这些事实对不对)≠ dispatch 授权确认;
   // candidates = 环发起时的渲染快照(确认的是用户听到的那批,accept 时不重列——防新增候选竞态)
   | { kind: "readiness"; projectId: string; candidates: ReadinessCandidate[] }
@@ -302,6 +302,28 @@ function isFocusSemanticPayload(kind: string): boolean {
 function extractFocusId(payload: PendingPayload): string | null {
   if ("focusId" in payload && typeof payload.focusId === "string") return payload.focusId;
   return null;
+}
+
+function sessionPrimaryFocus(db: Db, sessionId: string): string | null {
+  const row = db.prepare("SELECT primary_focus_id FROM sessions WHERE id = ?").get(sessionId) as
+    | { primary_focus_id: string | null }
+    | undefined;
+  return row?.primary_focus_id ?? null;
+}
+
+/** confirm.card additive 身份:dispatch 必带 packageId+revision;任务锚仅当 payload 已有 taskId。 */
+export function confirmCardIdentityFromPayload(payload: PendingPayload): {
+  packageId?: string;
+  revision?: number;
+  taskId?: string;
+} {
+  if (payload.kind === "dispatch") {
+    return { packageId: payload.packageId, revision: payload.revision };
+  }
+  if ("taskId" in payload && typeof (payload as { taskId?: unknown }).taskId === "string") {
+    return { taskId: (payload as { taskId: string }).taskId };
+  }
+  return {};
 }
 
 /** title 截断至 ≤80 字(Unicode 码点) */
@@ -1218,7 +1240,7 @@ export class ConfirmationLoop {
           this.db!.prepare("DELETE FROM pending_confirmations WHERE session_id = ?").run(sessionId);
         }
 
-        const focusId = extractFocusId(pending.payload);
+        const focusId = extractFocusId(pending.payload) ?? sessionPrimaryFocus(this.db as Db, sessionId);
         const summary = buildPayloadSummary(pending.payload);
         this.insertPendingRowInTx(sessionId, pending, focusId);
         const riJson =

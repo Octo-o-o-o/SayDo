@@ -874,6 +874,8 @@ legacy active 用户在 Phase 5 切换点执行明确迁移：先静态盘点安
 
 “普通 CLI stdio”是长尾开箱路径，不是“执行任意 PATH 程序并猜 stdout”。自动阶段只把二进制 identity、publisher、版本和公开配置能力产成 candidate；若 release-bundled 或已签名 extension driver 声明了机器可读 wire、auth/rights 观察、取消、费用与逐工具 Gate，并通过当前二进制 digest 的 execution TCK，已安装且已登录的 CLI 才可直接进入一次确认后的验证与激活。实现 ACP/App Server 等公开协议的 CLI 优先复用相应 driver；只有专有机器协议的 CLI 才新增版本化 driver。未知二进制、仅人类终端文本、无法关闭隐藏工具/网络、无法在副作用前拦截或无法证明订阅分发 rights 时只显示“检测到一个可能的 AI CLI”，唯一主动作是选择受信连接器或改用官方 API，不自动运行、不要求用户手写解析规则，也不把 `generic.cli.stdio` 的 reference fixture 冒充为品牌支持。这样新增 CLI 通常只增加 detector/driver pack，不改 daemon 热路径或权限模型。
 
+> 2026-09-13 对账限定：下述为2026-08-25固定版本的历史探测记录，只覆盖 `initialize`，且此处响应为截断摘录；不证明认证、会话执行、审批回调、取消恢复或各家TCK通过。6个本机样本不足以独立确立全生态“事实标准”或自动触发整体迁移；共用JSON-RPC也不能推出成本相同、一个driver无差异覆盖所有实现。CLI标志变化不单独证明协议稳定性，单次认证报错不扩大为全体账号的当前政策结论。已签决策仍有效，能力与上线验收须另行取得；本文不更新厂商现行状态。
+
 **ACP 覆盖面实证（2026-08-25 补）**：上一段「实现 ACP/App Server 等公开协议的 CLI 优先复用相应 driver」
 在当前生态下的实际权重，比本方案早期版本预估的高得多。本机实测 11 个 agent CLI，
 其中 **6 个可直接作为 ACP server 启动并正确应答 `initialize`**——goose 1.37.0、opencode 1.18.21、

@@ -135,6 +135,9 @@ export class CallbackEngine {
   /**
    * 投递成功后落 notified。DND 选路在 sweep,本方法不做窗口 snooze(避免与 sweep 双真相)。
    * 设备不可达留原状态短周期重试。
+   * 跨 await 后先重读本连接上的 durable state:只允许 pending/requeued → notified;
+   * 冻结/acked 返回 delivered:false,不冒写。调用方必须看 delivered,不能默认成功。
+   * DAO 内部 SELECT 与 UPDATE 非原子;本方法不声称挡住其他连接的并发写。
    */
   attemptNotify(
     entryId: string,
@@ -145,13 +148,18 @@ export class CallbackEngine {
     if (!pf.ok) {
       return { delivered: false, snoozed: false, ...(pf.reason ? { reason: pf.reason } : {}) };
     }
-    const row = this.db.prepare("SELECT escalation FROM callback_outbox WHERE id=?").get(entryId) as
-      | { escalation: number }
+    const row = this.db.prepare("SELECT state, escalation FROM callback_outbox WHERE id=?").get(entryId) as
+      | { state: string; escalation: number }
       | undefined;
+    if (!row) {
+      return { delivered: false, snoozed: false, reason: "outbox missing" };
+    }
+    if (row.state !== "pending" && row.state !== "requeued") {
+      return { delivered: false, snoozed: false, reason: "outbox no longer deliverable" };
+    }
     // S2 路径封顶 1:只有当前 escalation<1 才传 delta;DAO 仍 MIN(...,2) 预留 L2
     const requested = ctx.escalationDelta ?? 0;
-    const patch =
-      requested > 0 && (row?.escalation ?? 0) < 1 ? { escalationDelta: 1 as const } : {};
+    const patch = requested > 0 && row.escalation < 1 ? { escalationDelta: 1 as const } : {};
     transitionOutbox(this.db, entryId, "notified", nowIso, patch);
     return { delivered: true };
   }

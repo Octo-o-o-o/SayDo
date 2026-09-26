@@ -239,7 +239,12 @@ function cmdInstall(opts: { withoutPipeline: boolean }): void {
 function cmdUninstall(): void {
   if (isLoaded()) {
     const r = launchctl(["bootout", serviceTarget()]);
-    console.log(r.ok ? "[ok] 已停止并卸载服务" : `[warn] bootout:${r.out}`);
+    if (!r.ok) {
+      console.error(`[fail] bootout 失败:${r.out}`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log("[ok] 已停止并卸载服务");
   } else {
     console.log("[ok] 服务未装载,无需 bootout");
   }
@@ -277,7 +282,12 @@ function cmdStart(): void {
   }
   if (isLoaded()) {
     const r = launchctl(["kickstart", serviceTarget()]);
-    console.log(r.ok ? "[ok] 服务已装载,kickstart 触发启动" : `[warn] kickstart:${r.out}`);
+    if (!r.ok) {
+      console.error(`[fail] kickstart 失败:${r.out}`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log("[ok] 服务已装载,kickstart 触发启动");
     return;
   }
   const r = bootstrapWithRetry(PLIST_PATH);
@@ -489,7 +499,7 @@ function printUsage(): void {
   );
   console.log("install 属系统级变更(写 ~/Library/LaunchAgents + launchctl bootstrap),先过 owner 检查点。");
   console.log(
-    "install --without-pipeline = 只装 daemon;桌面浏览器云端语音不可用(系统语音与 iPhone 原生语音仍可);已有 pipeline plist 时本旗标不拆除。"
+    "install --without-pipeline = 只装 daemon;本机文本/控制面可用,语音以 /readyz 的 voiceReady 为准;不开放远程。已有 pipeline plist 时本旗标不拆除。"
   );
   console.log("deploy = 常驻切 ~/.saydo/runtime 独立树锁定 SHA(会重启 daemon 与 pipeline;dogfood 时段不要跑)。");
 }

@@ -202,7 +202,7 @@ describe("recovery-only 真实进程组合根", () => {
     const daemon = await startDaemonProcess({
       home,
       port: await reservePort(),
-      env: { OPENAI_API_KEY: "process-test-key", PATH: `${installed.binDir}${delimiter}${process.env["PATH"] ?? ""}` }
+      env: { OPENAI_API_KEY: "process-test-key" }
     });
     try {
       const probe = (await (await daemon.api("/api/setup/probe")).json()) as {

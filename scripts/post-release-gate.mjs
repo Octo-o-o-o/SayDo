@@ -37,6 +37,7 @@ import {
   runPagesDeployStateMachine
 } from "./release-pages-deploy.mjs";
 import {
+  parseVerifierOutput,
   validatePhysicalReleaseEvidence,
   validatePhysicalReleaseRun
 } from "./release-physical-evidence.mjs";
@@ -385,20 +386,6 @@ function trustedPhysicalTools(releaseTagSha) {
   return { implementationBoundary: manifest.implementationBoundary, fingerprints };
 }
 
-function parseVerifierOutput(output, key) {
-  let evidence;
-  try {
-    evidence = JSON.parse(output.trim());
-  } catch {
-    // 附带原文长度与首尾片段:rc.10 实体门在此失败时旧文案连 stdout 是空是脏都看不出,
-    // 定位靠翻查 stderr 正文才发现 -File 未命中。
-    const head = JSON.stringify(output.slice(0, 200));
-    const tail = JSON.stringify(output.slice(-200));
-    throw new Error(`固定 URL verifier stdout 不是单一 JSON:${key}:len=${output.length}:head=${head}:tail=${tail}`);
-  }
-  return evidence;
-}
-
 function physicalExpected(releaseEvidence, tools, spec, challenge, path, gateRunId) {
   return {
     key: spec.key,
@@ -558,12 +545,16 @@ function runWindowsPhysical(releaseEvidence, tools, specs, gateRunId, sshConfig)
   const staging = join(stagingParent, root);
   let runError;
   let results;
+  // 远端根目录只有在本 run 显式创建成功后才归本 run 所有:本地闭包准备失败、
+  // 或远端目录已存在而拒绝创建(创建结果未知同理)时,不得靠同名 rmdir 清别人的目录。
+  let remoteRootOwned = false;
   try {
     materializeClosure(repo, files, staging, { failIfExists: true });
     sshText(
       sshConfig,
       `powershell.exe -NoLogo -NoProfile -NonInteractive -Command "if (Test-Path -LiteralPath '${root}') { throw 'remote root exists' }; New-Item -ItemType Directory -Path '${root}' | Out-Null"`
     );
+    remoteRootOwned = true;
     execFileSync("/usr/bin/scp", [...sshConfig.options, "-r", `${staging}/.`, `${sshConfig.host}:${root}/`], {
       env: sshClientEnv(),
       timeout: 60_000,
@@ -627,14 +618,16 @@ function runWindowsPhysical(releaseEvidence, tools, specs, gateRunId, sshConfig)
     runError = error;
   } finally {
     let cleanupError;
-    try {
-      sshText(
-        sshConfig,
-        `cmd.exe /d /c "if exist ${root} rmdir /s /q ${root} & if exist ${root} exit 8"`,
-        { timeout: 30_000 }
-      );
-    } catch (error) {
-      cleanupError = error;
+    if (remoteRootOwned) {
+      try {
+        sshText(
+          sshConfig,
+          `cmd.exe /d /c "if exist ${root} rmdir /s /q ${root} & if exist ${root} exit 8"`,
+          { timeout: 30_000 }
+        );
+      } catch (error) {
+        cleanupError = error;
+      }
     }
     rmSync(stagingParent, { recursive: true, force: true });
     if (cleanupError) {

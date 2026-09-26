@@ -1,6 +1,6 @@
 // 决策包 Demo 小样:iframe srcdoc + sandbox=""(零 allow,禁脚本);不把 token 放 URL。
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api";
 import { Btn } from "./shared";
 
@@ -42,6 +42,27 @@ export function applyDemoFetchResult(r: { artifact?: { type?: unknown }; content
   return { html: r.content, err: null };
 }
 
+export type DemoRequestEpoch = { id: number };
+
+/** 仅当前请求可改 html/err/loading;旧成功/失败都返回 undefined。 */
+export function applyOwnedDemoFetch(
+  epoch: DemoRequestEpoch,
+  current: DemoRequestEpoch,
+  result: { artifact?: { type?: unknown }; content?: unknown }
+): { html: string | null; err: string | null } | undefined {
+  if (epoch.id !== current.id) return undefined;
+  return applyDemoFetchResult(result);
+}
+
+export function applyOwnedDemoFailure(
+  epoch: DemoRequestEpoch,
+  current: DemoRequestEpoch,
+  error: unknown
+): { html: null; err: string } | undefined {
+  if (epoch.id !== current.id) return undefined;
+  return { html: null, err: error instanceof Error ? error.message : String(error) };
+}
+
 export function DemoPreviewStatus({
   err,
   html,
@@ -77,32 +98,41 @@ export function PackageDemoPreview({
   const [html, setHtml] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const epochRef = useRef(0);
 
   useEffect(() => {
+    epochRef.current += 1;
     setHtml(null);
     setErr(null);
     setLoading(false);
+    return () => {
+      epochRef.current += 1;
+    };
   }, [demoRef.artifactId, demoRef.version, projectId]);
 
   const open = (): void => {
+    const epoch = { id: ++epochRef.current };
     setErr(null);
     setLoading(true);
     void api
       .getArtifactContent(demoRef.artifactId, demoRef.version, projectId)
       .then((r) => {
-        const next = applyDemoFetchResult(r);
+        const next = applyOwnedDemoFetch(epoch, { id: epochRef.current }, r);
+        if (!next) return;
         setHtml(next.html);
         setErr(next.err);
         setLoading(false);
       })
       .catch((e: unknown) => {
-        setHtml(null);
-        setErr(e instanceof Error ? e.message : String(e));
+        const next = applyOwnedDemoFailure(epoch, { id: epochRef.current }, e);
+        if (!next) return;
+        setHtml(next.html);
+        setErr(next.err);
         setLoading(false);
       });
   };
   return (
-    <div data-demo-preview style={{ marginTop: "var(--space-3)" }}>
+    <div data-demo-preview data-demo-loading={loading ? "true" : "false"} style={{ marginTop: "var(--space-3)" }}>
       <Btn onClick={open} disabled={loading} style={{ minHeight: 40, minWidth: 40 }}>
         看小样
       </Btn>

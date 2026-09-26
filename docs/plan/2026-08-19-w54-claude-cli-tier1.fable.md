@@ -1,5 +1,7 @@
 # W5.4 方案：Claude Code CLI 作为 Tier1 执行器后端（adapter `claude_code` · 传输 = `claude -p` 子进程）
 
+> 对账注（2026-09-13）：本文保留 W5.4 设计演变和当时 spike，现行合同以 `docs/09-data-contracts.md` §11、当前排产以 `IMPLEMENTATION-PLAN-2.md` 为准。v2 的 `acceptEdits` / 圈内写 `no_decision` 已由 v3.1 作废；当前 argv 为 `default`，圈内非敏感写显式 allow、敏感写按 S2，圈外或判不出一律 deny。BYOA 与 Tier1 每次 spawn 前均强制重算登记摘要，旧 mtime/size 缓存描述不再是现行要求。历史 hook 试验只证明所测版本和场景，不能把 vendor 超时概括为所有工具天然 fail-closed；W5.4-c live conformance 仍未由自检 init 取代。§1.1 的政策摘录和自用解释是当时材料与判断，不构成当前服务条款核验或产品分发许可。
+
 > 版本：**v3.1（2026-08-20 凌晨；v3 + 阶段 A 终版 spike 结果回修：B-10' 在 `acceptEdits` 下红 ⇒ 改 `--permission-mode default` + 圈内写显式 allow，X1–X5 补测证实 fail-closed；详见 §9 v3.1 段）**。v2 经两路 subagent 评审回修；v3 = 对抗评审回修：Codex 配额耗尽（至 2026-08-20 11:29），按职能回落链由 Grok `grok-4.6`+`xhigh` 只读会话执行（prompt `prompts/77-w54-plan-adversarial-review.md`，报告 `research/codex-findings/77-w54-plan-adversarial-review.md`：A 10 / B 12 / C 6，总评"不能按 v2 开 W5.4-a"），A-01…A-10 与 B-01…B-12 全部处置见 §9 v3 段。Codex 配额恢复后可再补一轮，若再出 A 级则 v4。
 > 产出：Claude Fable 5（本会话实读 `packages/daemon/src/tier1/*`、`providers/byoa/*`、`docs/03/04/07/09`、设计 ADR-001、工程 ADR-002、PLAN-2 5.4；一路 Explore 子代理做接缝梳理（坐标经本会话抽查）；一路 claude-code-guide 子代理抓官方文档；**本会话亲手跑了 17 次 `claude -p` spike**（Claude Code 2.1.220，附录 A）。标"实测"者为本会话命令输出；标"文档"者为官方页原文；标"推断"者为未验证判断。
 > 对象：SayDo `main` @ `1ee5622`（cmdeffect-hardening 已合入）。
@@ -18,6 +20,8 @@
 | 不做什么 | 不 import `@anthropic-ai/*`；不启用 `bypassPermissions`/`dontAsk`；**不放开 `live` steer、不实现 streaming input**（仍 `queued_delta`/`cancel_resume`；`--input-format stream-json` 只做可行性 spike；这是对 5.4/0.0(b) 两件事的如实缩水，见 §2 D5/D9）；Tier1 不使用 `verified_binary_default` 豁免（恒 `exempted=false`）；不碰 Hopper 路径、不部署常驻、不改 BYOA 四槽 |
 | 拆批 | 三批（§6）：**W5.4-a** = spike 固化 + 纯函数层（零行为变化）；**W5.4-b** = 接线（配置/门/恢复/记账/自检）；**W5.4-c** = live 冒烟 + conformance + canonical 回写 + 对抗评审。合同"开批前置"项（§5 左栏）在 W5.4-b 开批前先回写 |
 | 代价 | 执行器要先把 cursor 硬耦合的三处（argv/解析/门）拆出 backend seam，且 `realAgentSpawner` 有两处 cursor 专属行为要改（吞 stderr、result 即 SIGKILL）；Claude Code 是滚动发布的 CLI（本会话 2.1.220，且会自更新），版本 pin + 身份核验 + `DISABLE_AUTOUPDATER` 必须做成一等公民；`-p` 下所有需要"问"的都会被拒，审批时延全压在 hook 等待窗 |
+
+> 2026-09-25 更正:"比 cursor 后端多什么安全面"行尾段保留 v2 原文;v3.1 起 argv 为 `--permission-mode default`,圈内非敏感写显式 allow、敏感写按 S2、圈外写 deny,圈内 Read 才保留 `no_decision`——"`acceptEdits` + 圈内写不裁决"是已退役设计(见 §9 v3.1 段)。
 
 ## 1. 事实底座
 
@@ -253,6 +257,8 @@ claude -p --output-format stream-json --verbose
 | R-7 | HANDOFF §2 #4/#6/#11、§3 环境、§5 实测知识 | #6 落地状态、#4 上浮结论、#11 ③ 文案、claude 版本/登录态、spike 事实 |
 | R-8 | 代码内文案与注释 | `validateConfig.ts:107` 拒起文案、`operations.ts:60-64` 注释、`parsers.ts:240` 注释、`executor.ts:1107` prompt 约定按 backend |
 
+> 2026-09-25 更正:R-3 行保留 v2 原文;按 v3.1,argv 快照中 `acceptEdits` 应为 `default`,"file_write 圈外 deny / 圈内 no_decision"应为"圈外 deny / 圈内非敏感 allow / 圈内敏感 S2"(见 §9 v3.1 段)。
+
 ## 6. 分批、阶段与验收锚（IMPL-PROMPT 照抄；每项可判定；阶段 A 的"红"分级）
 
 ### W5.4-a · spike 固化 + 纯函数层 + cursor seam 抽取（可离线验收；不需要合同前置；v3 删去"零行为变化"的说法，验收见三句可判定锚）
@@ -265,6 +271,7 @@ claude -p --output-format stream-json --verbose
 
 **阶段 B · 纯函数层**：
 - B1 `Tier1Backend` 接口 + `backends/cursor.ts`（把 `realAgentSpawner` 里 argv/解析/终态搬入，**独立提交**；三句可判定锚见 §3.1：cursor argv/解析/`kill_on_result`/canary 左值快照不变 + 既有 `tier1-*.test.ts` 期望值零改动（允许为可选入参/可选方法补一行类型适配并逐行登记）+ `just ci` 绿）→ `backends/claude.ts`（`buildArgv`/`buildClaudeHooksSettings`/`parseClaudeTier1Line`/`finishPolicy`/`explainFailure`）+ `AgentProcessHandle.stderrTail?()`（可选）。锚：`tier1-claude-backend.test.ts` 对 argv 做封闭集合断言（含 `--permission-mode acceptEdits`、五工具、`--disallowedTools`、`--setting-sources ""`、`--strict-mcp-config` 且无 `--mcp-config`、`--settings` 内联、`--session-id`/`--resume` 互斥；不含 `bypassPermissions`/`dontAsk`/`--dangerously-skip-permissions`/`--add-dir`/`--no-session-persistence`/`--bare`/`--fallback-model`）；hooks JSON 快照（matcher = 阶段 A A-04 选定形态、timeout ≥ 120、`> curl 100 + 余量` 断言）；`parseClaudeTier1Line` 对七件 fixture 逐行产出断言（并行 tool_use 两块都计、`user` tool_result、init 含 `apiKeySource`/`tools`、rate_limit、result_max_turns）；**禁止调用 `parseClaudeLine`（grep 断言）**。
+  > 2026-09-25 更正:B1 锚中 `--permission-mode acceptEdits` 为 v2 设计稿原文;v3.1 起断言应为 `--permission-mode default`(见 §9 v3.1 段)。
 - B2 `buildClaudeGateScript`（纯函数；失败路径 deny + `exit 2`、jq 缺失用 printf 静态 deny、curl `--max-time 100`）+ `fileToolToEffect`（最长现存祖先 realpath 算法；判不出 ⇒ S3）+ `SENSITIVE_FILE_BASENAME_RE` 导出 + cmdEffect 收紧（`cd`/`pushd` 含无参/`~`/`$HOME`、agent CLI 词头、bypass 旗标、`--force` 仅 agent 语境、圈外只读 S2；只升不降，降档扫描 0）。锚：`fileToolToEffect` 表驱动 ≥ 36（圈内 / 圈外 / `..` / 符号链接逃逸（真建 symlink）/ `~` / `$HOME` / 盘符 / 大小写 / **新文件圈内 / 新文件圈外 / 断链中间目录 / symlink 指向圈外后再 Write / 相对路径相对 cwd / 路径非字符串** / 圈内 `tokens.css` 不敏感 / `.env` 与 `id_ed25519` 敏感）；cmdEffect 新增 ≥ 26（含 `cd src && pnpm test` S1、`cd /tmp` S3、`cd` 无参 S3、`cd ~` S3、`cd $DIR` S2、`cd -` S2、`claude -p x` S3、`sudo cursor-agent --force` S3、`git push --force origin main` 仍 S3、`npm run build --force` 仍 S1、`cat /etc/hosts` S2、`cat ~/.ssh/config` S2 或更高、`cat src/a.ts` S0、`sed -n 1,3p /etc/passwd` S2）且既有 223 条期望零改动；`tier1-gate-socket.test.ts` 新增真 bash/jq/curl 用例 ≥ 10 跑 `buildClaudeGateScript` 产物（Bash allow / Bash deny / 畸形 stdin ⇒ deny+exit 2 / curl 不通 ⇒ deny+exit 2 / curl 超时（`--max-time 1` + 挂起假 server）⇒ deny+exit 2 / jq 不在 PATH ⇒ 静态 deny+exit 2 / Write 圈内非敏感空输出 exit 0 / Write 圈外 deny / Write 判不出 deny / Read 圈外 deny / 未知 tool deny），既有 7 例零改动。
 - B3 `classifyClaudeRunOutcome` 表驱动 ≥ 12（success / error_max_turns ⇒ failed 不 settle / rate limited / auth_required 含 "Login expired" / resume_not_found / 143+abort / 143 无 abort / agent_exit:n）+ `buildTier1SubscriptionCostEntry`（**只返回纯对象**：`kind='tier1.run'`、`source='subscription'`、amount null、known 0、tokens 四键、`requests=1`、meta `{modelUsage,num_turns,total_cost_usd_estimate,usage_unavailable}`；**不 INSERT**，落库随 W5.4-b 与 P-5 同批；A-06）。
 - 门禁：`just ci` 双矩阵绿；B 阶段末 code-review（零上下文只读会话，A 级必修）。**W5.4-a 不改 executor 主流程、不改 gateServer 接线、不改配置 schema、不改 `checkCanaries` 的 cursor 分支**（只加文件与纯函数，cursor seam 抽取除外）。
@@ -320,6 +327,7 @@ A 0.5–1 / B1 1.5–2 / B2 1–1.5 / B3 0.5 / C1 1 / C2 2–3（最大不确定
 1. **D1** 传输形态 = CLI 子进程；ADR-001 附注；supersede 07 D8 "不走 CLI"。
 2. **D2** `[tier1].agent` 新键、缺省 `claude_code`、devMode 双开关沿用 `[models.dev].agent`。
 3. **D3** 工具面封闭集 `Bash,Read,Write,Edit,NotebookEdit`，`Task`/Web 工具 P0 不开；`acceptEdits`；圈内文件操作 hook 不裁决。
+   > 2026-09-25 更正:D3 保留 v2 原文;v3.1 已替代为 `--permission-mode default`,圈内非敏感写显式 allow、敏感写按 S2、圈外写 deny,圈内 Read 不裁决(见 §9 v3.1 段)。
 4. **D4** Tier1 不用豁免（恒 `exempted=false`）、身份核验链 W5.4-b 实施；上浮文案按 v2 更正（BYOA 侧条件豁免已落地）。
 5. **D5 / D9** live steer 与 streaming input 本批不实现（范围缩水如实）；`--permission-prompt-tool` P1。
 6. **D6** Tier1 记账（含 cursor 顺带补）；**D7/D8** 模型 `opus`、`claude_max_turns` 200、派发 `maxTurns 80` 不动先观察。

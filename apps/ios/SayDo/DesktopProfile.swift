@@ -326,23 +326,27 @@ enum PairingPercentCoding {
 
     static func assertRawQueryAtom(_ raw: String) throws {
         guard !raw.isEmpty else { throw PairingURLValidationError.invalidFormat }
-        var index = raw.startIndex
-        while index < raw.endIndex {
-            if raw[index] == "%" {
-                guard let hexEnd = raw.index(index, offsetBy: 3, limitedBy: raw.endIndex) else {
+        let scalars = raw.unicodeScalars
+        var index = scalars.startIndex
+        let end = scalars.endIndex
+        while index < end {
+            let scalar = scalars[index]
+            if scalar == "%" {
+                // `limitedBy:` 落在 limit 上时返回 limit 本身;hexEnd==end 意味 % 后不足两字符,
+                // 必须先证 index+3 <= end 再取 scalars[hex1]/scalars[hex2](%A/abc%A 反例)。
+                guard let hexEnd = scalars.index(index, offsetBy: 3, limitedBy: end) else {
                     throw PairingURLValidationError.invalidFormat
                 }
-                let hex = raw[raw.index(after: index)..<hexEnd]
-                guard hex.count == 2,
-                      hex.unicodeScalars.allSatisfy({ CharacterSet(charactersIn: "0123456789abcdefABCDEF").contains($0) }) else {
+                let hex1 = scalars.index(after: index)
+                let hex2 = scalars.index(after: hex1)
+                guard isQueryHex(scalars[hex1]), isQueryHex(scalars[hex2]) else {
                     throw PairingURLValidationError.invalidFormat
                 }
                 index = hexEnd
                 continue
             }
-            let code = raw[index].unicodeScalars.first?.value ?? 0
-            guard isUnreserved(code) else { throw PairingURLValidationError.invalidFormat }
-            index = raw.index(after: index)
+            guard isUnreserved(scalar.value) else { throw PairingURLValidationError.invalidFormat }
+            index = scalars.index(after: index)
         }
     }
 
@@ -360,28 +364,33 @@ enum PairingPercentCoding {
 
     static func decode(_ value: String) throws -> String {
         var bytes: [UInt8] = []
-        var index = value.startIndex
-        while index < value.endIndex {
-            if value[index] == "%" {
-                guard let hexEnd = value.index(index, offsetBy: 3, limitedBy: value.endIndex) else {
+        let scalars = value.unicodeScalars
+        var index = scalars.startIndex
+        let end = scalars.endIndex
+        while index < end {
+            let scalar = scalars[index]
+            if scalar == "%" {
+                guard let hexEnd = scalars.index(index, offsetBy: 3, limitedBy: end) else {
                     throw PairingURLValidationError.invalidFormat
                 }
-                let hex = value[value.index(after: index)..<hexEnd]
-                guard hex.count == 2,
-                      hex.unicodeScalars.allSatisfy({ CharacterSet(charactersIn: "0123456789abcdefABCDEF").contains($0) }),
-                      let parsed = UInt8(hex, radix: 16) else {
+                let hex1 = scalars.index(after: index)
+                let hex2 = scalars.index(after: hex1)
+                guard isQueryHex(scalars[hex1]), isQueryHex(scalars[hex2]) else {
+                    throw PairingURLValidationError.invalidFormat
+                }
+                let hex = String(String.UnicodeScalarView([scalars[hex1], scalars[hex2]]))
+                guard let parsed = UInt8(hex, radix: 16) else {
                     throw PairingURLValidationError.invalidFormat
                 }
                 bytes.append(parsed)
                 index = hexEnd
                 continue
             }
-            let code = value[index].unicodeScalars.first?.value ?? 0
-            guard isUnreserved(code), let byte = UInt8(exactly: code) else {
+            guard isUnreserved(scalar.value), let byte = UInt8(exactly: scalar.value) else {
                 throw PairingURLValidationError.invalidFormat
             }
             bytes.append(byte)
-            index = value.index(after: index)
+            index = scalars.index(after: index)
         }
         guard let decoded = String(data: Data(bytes), encoding: .utf8) else {
             throw PairingURLValidationError.invalidFormat
@@ -391,6 +400,10 @@ enum PairingPercentCoding {
 
     private static func isAsciiWs(_ code: UInt32) -> Bool {
         code == 0x20 || code == 0x09 || code == 0x0a || code == 0x0d
+    }
+
+    private static func isQueryHex(_ scalar: Unicode.Scalar) -> Bool {
+        CharacterSet(charactersIn: "0123456789abcdefABCDEF").contains(scalar)
     }
 
     private static func isUnreserved(_ code: UInt32) -> Bool {

@@ -7,6 +7,7 @@ import { WebSocket } from "ws";
 import { newId } from "@saydo/contracts";
 import { VoiceHub, VOICE_WS_PROTOCOL_VERSION } from "../src/voice/hub.js";
 import { LatencyCollector } from "../src/obs/latency.js";
+import { notePlayout } from "../src/obs/sentenceTurn.js";
 import type { Logger } from "../src/obs/logger.js";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -1267,14 +1268,14 @@ describe("dogfood 冻结尸检回修(2026-07-28):死链诚实化", () => {
 describe("GAP-02 2.4 延迟观测真实接线(voice/hub.ts latency.stage → onLatencyStage → LatencyCollector)", () => {
   it("pipeline 注入 latency.stage 经 hub 事件进 collector;playout 经 tts.playout 派生;五段齐结算 completed", async () => {
     const collector = new LatencyCollector();
+    const playoutSeen = new Set<string>();
     const turnId = newId("ses");
     let clock = 1000;
     const now = () => (clock += 100);
     hub.setEvents({
       onLatencyStage: (msg) => void collector.record(msg.turnId, msg.stage, now()),
       onPlayout: (msg) => {
-        const m = /^s-(.+)-\d+$/.exec(msg.sentenceId);
-        if (m) collector.record(m[1] as string, "playout_start", now());
+        notePlayout(playoutSeen, msg.sentenceId, now(), (id, atMs) => collector.record(id, "playout_start", atMs));
       }
     });
     for (const stage of ["vad_end", "asr_final", "llm_first_token", "tts_first_byte"] as const) {

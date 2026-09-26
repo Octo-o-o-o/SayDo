@@ -349,6 +349,10 @@ const misleadingEn = [
 ];
 
 const zhSource = read("docs/site/2026-08-20-docs-page-content.fable.md");
+const zhHistoryMark = "\n# C. 维护注记";
+const zhHistoryAt = zhSource.indexOf(zhHistoryMark);
+const zhCurrentBody = zhHistoryAt >= 0 ? zhSource.slice(0, zhHistoryAt) : zhSource;
+const zhHistoryC = zhHistoryAt >= 0 ? zhSource.slice(zhHistoryAt) : "";
 includesAll(
   zhSource,
   [
@@ -363,11 +367,27 @@ includesAll(
     "unsigned HAP",
     "未上架",
     "无公开下载",
-    "移动浏览器 LAN dogfood"
+    "已关闭"
   ],
   "Docs source splits mobile status"
 );
 includesNone(zhSource, misleadingZh, "Docs source has no connectable-shell phrasing");
+includesNone(
+  zhCurrentBody,
+  [
+    "移动浏览器 LAN dogfood",
+    "当前可用的是移动浏览器",
+    "当前可用的是手机",
+    "手机扫码即连",
+    "手机当前可经局域网",
+    "App 壳当前可连接"
+  ],
+  "Docs source body does not claim current phone entry is available"
+);
+record(
+  zhHistoryC.includes("官网 FAQ「手机扫码即连」"),
+  "Docs source section C may retain historical FAQ wording"
+);
 
 const zhHtml = read("deploy/saydo-octoooo-com/docs/index.html");
 includesAll(
@@ -384,11 +404,16 @@ includesAll(
     "unsigned HAP",
     "未上架",
     "无公开下载",
-    "移动浏览器 LAN dogfood"
+    "已关闭"
   ],
   "Chinese Docs page splits mobile status"
 );
 includesNone(zhHtml, misleadingZh, "Chinese Docs page has no connectable-shell phrasing");
+includesNone(
+  zhHtml,
+  ["手机扫码即连", "手机当前可经局域网", "App 壳当前可连接"],
+  "Chinese Docs page does not claim current phone entry is available"
+);
 
 const enHtml = read("deploy/saydo-octoooo-com/en/docs/index.html");
 includesAll(
@@ -404,11 +429,16 @@ includesAll(
     "no current device evidence",
     "unsigned HAP",
     "no public download",
-    "mobile-browser LAN dogfood"
+    "Phone and remote business is closed"
   ],
   "English Docs page splits mobile status"
 );
 includesNone(enHtml, misleadingEn, "English Docs page has no connectable-shell phrasing");
+includesNone(
+  enHtml,
+  ["scan the QR code to connect", "phone entry is available today", "app shell currently connects"],
+  "English Docs page does not claim current phone entry is available"
+);
 
 const matrix = read("docs/release/version-matrix.md");
 includesAll(

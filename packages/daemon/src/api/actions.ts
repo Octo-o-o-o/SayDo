@@ -55,7 +55,7 @@ export function handleTaskAction(
   action: string,
   body: unknown,
   nowIso: string,
-  opts: { via?: "local" | "tailnet" } = {}
+  opts: { via?: "local" | "tailnet"; runsDir?: string } = {}
 ): ActionResponse {
   // 阶段 B:tailnet 来源的 S3 合并链动作拒 + 话术引导回受信终端(10 诚实纪律;审计留痕)
   if (opts.via === "tailnet" && S3_TRUSTED_TERMINAL_ONLY.has(action)) {
@@ -83,7 +83,8 @@ export function handleTaskAction(
             verdict: parsed.data.verdict,
             expectedAttempt: parsed.data.expectedAttempt,
             ...(parsed.data.comments !== undefined ? { comments: parsed.data.comments } : {}),
-            ...(parsed.data.acceptanceVerdicts !== undefined ? { acceptanceVerdicts: parsed.data.acceptanceVerdicts } : {})
+            ...(parsed.data.acceptanceVerdicts !== undefined ? { acceptanceVerdicts: parsed.data.acceptanceVerdicts } : {}),
+            ...(opts.runsDir ? { runsDir: opts.runsDir } : {})
           },
           nowIso
         );
