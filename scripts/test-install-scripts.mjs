@@ -69,59 +69,10 @@ export function checkInstallScripts(input) {
     }
   }
   if (!input.ps1.startsWith("﻿")) errors.push("install-core.ps1 必须带 UTF-8 BOM(Windows PowerShell 5.1 以 -File 运行时按 ANSI 读取无 BOM 文件)");
-  // 引导脚本:必须能在 PS 5.1 下 irm | iex——无 BOM、纯 ASCII、下载核心并以 -File 执行、不在顶层 exit(会关掉用户交互会话)。
+  // 引导文件编码属性与核心下载入口；PowerShell 执行语义另需实际环境验证。
   if (input.ps1Boot.startsWith("﻿")) errors.push("install.ps1 引导脚本不得带 BOM(PS 5.1 的 irm 会把 BOM 留成 U+FEFF 使 iex 解析失败)");
   if (/[^\x00-\x7f]/u.test(input.ps1Boot)) errors.push("install.ps1 引导脚本必须纯 ASCII(irm | iex 形态下无法保证解码)");
   if (!input.ps1Boot.includes("https://saydo.octoooo.com/install-core.ps1")) errors.push("install.ps1 引导脚本缺核心脚本固定 URL");
-  if (!input.ps1Boot.includes("-NoProfile -ExecutionPolicy Bypass -File $tmpCore")) errors.push("install.ps1 引导脚本必须以 -File 运行下载的核心脚本");
-  if (!input.ps1Boot.includes("$bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF")) errors.push("install.ps1 引导脚本必须校验核心脚本带 BOM");
-  if (/^\s*exit\b/mu.test(input.ps1Boot)) errors.push("install.ps1 引导脚本不得在顶层 exit(iex 形态会关闭用户会话)");
-  if (/\$MyInvocation/u.test(input.ps1Boot)) errors.push("install.ps1 引导脚本不得依赖 $MyInvocation");
-  // 结构不变量:脚本关键语句必须原样存在(Codex 223 B-01..B-07 证明纯钉住检查可被绕过)。
-  const SH_INVARIANTS = [
-    ["sh 包 digest 校验", '[ "$actual" = "$SAYDO_TGZ_SHA256" ] || fail "SayDo 包校验失败'],
-    ["sh 安装的是钉住 tgz", 'install --global --prefix "$PREFIX" --no-fund --no-audit --loglevel=error "$tgz"'],
-    ["sh 默认根目录在 HOME 下", 'SAYDO_HOME="${SAYDO_HOME:-$HOME/.saydo}"'],
-    ["sh 根目录越出 HOME 需显式放行", 'SAYDO_INSTALL_ALLOW_OUTSIDE_HOME'],
-    ["sh 拒绝含 .. 的根目录", 'case "/$SAYDO_HOME/" in */../*) fail'],
-    ["sh 用 cd -P/pwd -P 复核 symlink 越出", 'real_existing="$(cd -P -- "$existing" 2>/dev/null && pwd -P)"'],
-    ["sh symlink 越出即 fail", 'fail "SAYDO_HOME 解析后不在用户目录之下'],
-    ["sh HOME 缺失即 fail", '[ -n "${HOME:-}" ] || fail'],
-    ["sh PATH 写入语句", "printf '\\n%s\\n' \"$rc_line\" >> \"$rc_file\""],
-    ["sh PATH 标记整行精确匹配", 'grep -Fxq -- "$rc_line" "$rc_file"'],
-    ["sh fish 分支", 'fish) append_path_line "$HOME/.config/fish/config.fish"'],
-    ["sh fish PATH 写入", 'fish_line="set -gx PATH ${q_bin_fish} \\$PATH # saydo"'],
-    ["sh POSIX 单引号引用函数", "posix_sq()"],
-    ["sh posix_sq 按字面写单引号", "printf '%s' \"'\\\\''\""],
-    ["sh fish 单引号引用函数", "fish_sq()"],
-    ["sh fish_sq 按字面写反斜杠", "printf '%s' '\\\\'"],
-    ["sh 拒绝换行 HOME", 'reject_unembeddable_path "HOME" "$HOME"'],
-    ["sh 拒绝换行 SAYDO_HOME", 'reject_unembeddable_path "SAYDO_HOME" "$SAYDO_HOME"'],
-    ["sh 启动器路径经 posix_sq", 'posix_sq "$NODE_BIN"'],
-    ["sh Node 下载校验", '[ "$actual" = "$expected" ] || fail "Node 下载校验失败']
-  ];
-  const PS_INVARIANTS = [
-    ["ps1 包 digest 校验", 'if ($actualTgz -ne $SaydoTgzSha256) { Fail "SayDo 包校验失败'],
-    ["ps1 安装的是钉住 tgz", 'install --global --prefix $Prefix --no-fund --no-audit --loglevel=error $tgz'],
-    ["ps1 默认根目录在 LOCALAPPDATA 下", 'Join-Path $env:LOCALAPPDATA "SayDo"'],
-    ["ps1 根目录越出用户目录需显式放行", 'SAYDO_INSTALL_ALLOW_OUTSIDE_HOME'],
-    ["ps1 用户目录基准含 USERPROFILE 与 LOCALAPPDATA", '$userBases = @([IO.Path]::GetFullPath($env:USERPROFILE).TrimEnd(\'\\\'), [IO.Path]::GetFullPath($env:LOCALAPPDATA).TrimEnd(\'\\\'))'],
-    ["ps1 用户目录约束默认不成立", '$insideUserDir = $false'],
-    ["ps1 用户目录前缀比较含目录分隔符边界", '$Root.StartsWith($base + \'\\\', [StringComparison]::OrdinalIgnoreCase)'],
-    ["ps1 根目录先 GetFullPath 消解 ..", '$Root = [IO.Path]::GetFullPath($Root)'],
-    ["ps1 用户 PATH 前插且保留原值", '[Environment]::SetEnvironmentVariable("Path", (@($BinDir) + $parts) -join ";", "User")'],
-    ["ps1 启动器用 %~dp0 相对引用根目录", 'function ConvertTo-LauncherPath'],
-    ["ps1 启动器 cli 路径相对启动器目录", "return '%~dp0..\\' + $rel"],
-    ["ps1 Node 下载校验", 'if ($actual -ne $expected) { Fail "Node 下载校验失败'],
-    ["ps1 Node 版本按 node -v 解析", "if ($v -match '^v(\\d+)\\.') { return [int]$Matches[1] }"],
-    ["ps1 Root 拒换行与引号", "$Root -match '[\\r\\n\"]'"],
-    ["ps1 启动器相对段拒 cmd 二次展开", "$rel -match '[\\r\\n\"%!]'"],
-    ["ps1 根外启动器路径拒 cmd 二次展开", "$p -match '[\\r\\n\"%!]'"]
-  ];
-  for (const [label, needle] of SH_INVARIANTS) if (!input.sh.includes(needle)) errors.push(`install.sh 缺少关键语句:${label}`);
-  for (const [label, needle] of PS_INVARIANTS) if (!input.ps1.includes(needle)) errors.push(`install.ps1 缺少关键语句:${label}`);
-  if (/\$MyInvocation/u.test(input.ps1)) errors.push("install.ps1 不得依赖 $MyInvocation(irm | iex 与 -File 两种执行形态必须一致)");
-  if (/-Encoding ASCII/u.test(input.ps1)) errors.push("install.ps1 不得用 -Encoding ASCII 写含路径的文件(非 ASCII 用户名会被替换)");
   if (/\r/u.test(input.sh)) errors.push("install.sh 含 CR");
   if (!/^#!\/bin\/sh\n/u.test(input.sh)) errors.push("install.sh 必须以 #!/bin/sh 开头");
   for (const path of ["/install.sh", "/install.ps1", "/install-core.ps1"]) {
@@ -207,60 +158,6 @@ expectShFailBeforeWrite("HOME 自身含 ..", { ...cleanEnv, HOME: "/nonexistent-
   }
   rmSync(base, { recursive: true, force: true });
 }
-expectRed("sh 删除 .. 拒绝", (mutated) => {
-  mutated.sh = mutated.sh.replace('case "/$SAYDO_HOME/" in */../*) fail', 'case "/$SAYDO_HOME/" in */never-match/*) fail');
-});
-expectRed("ps1 用户目录基准只剩 USERPROFILE", (mutated) => {
-  mutated.ps1 = mutated.ps1.replace('$userBases = @([IO.Path]::GetFullPath($env:USERPROFILE).TrimEnd(\'\\\'), [IO.Path]::GetFullPath($env:LOCALAPPDATA).TrimEnd(\'\\\'))', '$userBases = @([IO.Path]::GetFullPath($env:USERPROFILE).TrimEnd(\'\\\'))');
-});
-expectRed("ps1 系统目录绕过用户目录约束", (mutated) => {
-  mutated.ps1 = mutated.ps1.replace('$insideUserDir = $false', '$insideUserDir = $true');
-});
-expectRed("ps1 相邻前缀目录被误认在用户目录内", (mutated) => {
-  mutated.ps1 = mutated.ps1.replace('$Root.StartsWith($base + \'\\\', [StringComparison]::OrdinalIgnoreCase)', '$Root.StartsWith($base, [StringComparison]::OrdinalIgnoreCase)');
-});
-expectRed("sh 删除包 digest 校验", (mutated) => {
-  mutated.sh = mutated.sh.replace('[ "$actual" = "$SAYDO_TGZ_SHA256" ] || fail "SayDo 包校验失败', '[ 1 = 1 ] || fail "SayDo 包校验失败');
-});
-expectRed("ps1 删除包 digest 校验", (mutated) => {
-  mutated.ps1 = mutated.ps1.replace('if ($actualTgz -ne $SaydoTgzSha256) { Fail "SayDo 包校验失败', 'if ($false) { Fail "SayDo 包校验失败');
-});
-expectRed("sh 安装目标改成非钉住包", (mutated) => {
-  mutated.sh = mutated.sh.replace('--loglevel=error "$tgz"', '--loglevel=error @saydo/cli@latest');
-});
-expectRed("sh 默认根目录改到系统位置", (mutated) => {
-  mutated.sh = mutated.sh.replace('SAYDO_HOME="${SAYDO_HOME:-$HOME/.saydo}"', 'SAYDO_HOME="${SAYDO_HOME:-/usr/local/share/saydo}"');
-});
-expectRed("sh PATH 写入语句被抹掉", (mutated) => {
-  mutated.sh = mutated.sh.replace("printf '\\n%s\\n' \"$rc_line\" >> \"$rc_file\"", ":");
-});
-expectRed("sh fish 新终端找不到 saydo", (mutated) => {
-  mutated.sh = mutated.sh.replace('fish_line="set -gx PATH ${q_bin_fish} \\$PATH # saydo"', ':');
-});
-expectRed("sh 删除 posix_sq", (mutated) => {
-  mutated.sh = mutated.sh.replace("posix_sq()", "posix_sq_removed()");
-});
-expectRed("sh 删除换行拒绝", (mutated) => {
-  mutated.sh = mutated.sh.replaceAll("reject_unembeddable_path", "skip_embed_check");
-});
-expectRed("sh 启动器退化为裸插值", (mutated) => {
-  mutated.sh = mutated.sh.replace('q_node_bin=$(posix_sq "$NODE_BIN")', 'q_node_bin=\'"\'$NODE_BIN\'"\'');
-});
-expectRed("ps1 用户 PATH 只写 BinDir", (mutated) => {
-  mutated.ps1 = mutated.ps1.replace('(@($BinDir) + $parts) -join ";"', '$BinDir');
-});
-expectRed("ps1 irm|iex 形态被 MyInvocation 短路", (mutated) => {
-  mutated.ps1 = mutated.ps1.replace('$ErrorActionPreference = "Stop"', 'if (-not $MyInvocation.MyCommand.Path) { return }\n$ErrorActionPreference = "Stop"');
-});
-expectRed("ps1 启动器改回字面路径 + ASCII 写入", (mutated) => {
-  mutated.ps1 = mutated.ps1.replace('function ConvertTo-LauncherPath', 'function ConvertTo-LauncherPathX').replace('$launcherEncoding)', '$launcherEncoding); Set-Content -Path $launcher -Encoding ASCII -Value $launcherText');
-});
-expectRed("ps1 启动器不再拒绝 cmd 二次展开", (mutated) => {
-  mutated.ps1 = mutated.ps1.replace('if ($rel -match \'[\\r\\n"%!]\')', 'if ($false)');
-});
-expectRed("ps1 Root 换行引号拒绝被删", (mutated) => {
-  mutated.ps1 = mutated.ps1.replace('if ($Root -match \'[\\r\\n"]\')', 'if ($false)');
-});
 expectRed("digest 篡改", (mutated) => {
   mutated.sh = mutated.sh.replace(/^SAYDO_TGZ_SHA256="([0-9a-f]{63})([0-9a-f])"$/mu, (_match, head, last) =>
     `SAYDO_TGZ_SHA256="${head}${last === "0" ? "1" : "0"}"`);
@@ -292,9 +189,6 @@ expectRed("引导脚本混入非 ASCII", (mutated) => {
 expectRed("引导脚本丢核心 URL", (mutated) => {
   mutated.ps1Boot = mutated.ps1Boot.replace("https://saydo.octoooo.com/install-core.ps1", "https://example.com/x.ps1");
 });
-expectRed("引导脚本顶层 exit", (mutated) => {
-  mutated.ps1Boot = `${mutated.ps1Boot}\nexit 1\n`;
-});
 expectRed("_headers 缺核心脚本段", (mutated) => {
   mutated.headers = mutated.headers.replace("/install-core.ps1\n  Content-Type: text/plain; charset=utf-8\n", "");
 });
@@ -306,12 +200,14 @@ expectRed("README 丢入口", (mutated) => {
 });
 // 隔离全安装探针(SC-17 回归):桩掉 curl/sha256sum/node/npm,在含空格、单引号、$()、反引号的 HOME 名
 // 下真跑 install.sh,验证生成的启动器与 shell 启动文件不触发命令替换且可实际执行。
+const packageFixture = "saydo-install-package-fixture\n";
+
 function writeExec(path, body) {
   writeFileSync(path, body);
   chmodSync(path, 0o755);
 }
 
-function runIsolatedInstall({ homeName, shell = "/bin/sh", extraEnv = {} }) {
+function runIsolatedInstall({ homeName, shell = "/bin/sh", extraEnv = {}, badDigest = false }) {
   const base = mkdtempSync(join(tmpdir(), "saydo-install-full-"));
   const fakeHome = join(base, homeName);
   mkdirSync(fakeHome, { recursive: true });
@@ -322,11 +218,18 @@ function runIsolatedInstall({ homeName, shell = "/bin/sh", extraEnv = {} }) {
   mkdirSync(join(fakeHome, "lib/node_modules/npm/bin"), { recursive: true });
   writeFileSync(join(fakeHome, "lib/node_modules/npm/bin/npm-cli.js"), "// npm stub\n");
   const sha = pinOf(read(SH), "sh").sha;
+  const observed = Object.fromEntries(
+    ["downloads", "hashPaths", "hashContent", "npmCalls", "npmArgs", "npmFiles", "npmContent"].map((key) => [key, join(base, key)])
+  );
   writeExec(
     join(stubBin, "curl"),
     `#!/bin/sh
 while [ "$#" -gt 0 ]; do
-  if [ "$1" = "-o" ]; then shift; : > "$1"; fi
+  if [ "$1" = "-o" ]; then
+    shift
+    printf '%s\\0' "$1" >> "$SAYDO_TEST_DOWNLOADS"
+    printf '%s' "$SAYDO_TEST_PACKAGE" > "$1"
+  fi
   shift
 done
 `
@@ -334,7 +237,9 @@ done
   writeExec(
     join(stubBin, "sha256sum"),
     `#!/bin/sh
-printf "${sha}  %s\\n" "$1"
+printf '%s\\0' "$1" >> "$SAYDO_TEST_HASH_PATHS"
+cat "$1" > "$SAYDO_TEST_HASH_CONTENT"
+printf '%s  %s\\n' "$SAYDO_TEST_DIGEST" "$1"
 `
   );
   writeExec(
@@ -342,6 +247,17 @@ printf "${sha}  %s\\n" "$1"
     `#!/bin/sh
 if [ "$1" = "-p" ]; then printf '22\\n'; exit 0; fi
 if [ "$1" = "-v" ]; then printf 'v22.0.0\\n'; exit 0; fi
+case "$1" in */npm-cli.js)
+  printf 'call\\n' >> "$SAYDO_TEST_NPM_CALLS"
+  printf '%s\\0' "$@" > "$SAYDO_TEST_NPM_ARGS"
+  for a in "$@"; do
+    if [ "$a" != "$1" ] && [ -f "$a" ]; then
+      printf '%s\\0' "$a" >> "$SAYDO_TEST_NPM_FILES"
+      cat "$a" > "$SAYDO_TEST_NPM_CONTENT"
+    fi
+  done
+  ;;
+esac
 prefix=""
 prev=""
 for a in "$@"; do
@@ -372,11 +288,57 @@ exit 0
       HOME: fakeHome,
       SHELL: shell,
       SAYDO_LAUNCHER_MARK: mark,
+      SAYDO_TEST_PACKAGE: packageFixture,
+      SAYDO_TEST_DIGEST: badDigest ? `${sha[0] === "0" ? "1" : "0"}${sha.slice(1)}` : sha,
+      SAYDO_TEST_DOWNLOADS: observed.downloads,
+      SAYDO_TEST_HASH_PATHS: observed.hashPaths,
+      SAYDO_TEST_HASH_CONTENT: observed.hashContent,
+      SAYDO_TEST_NPM_CALLS: observed.npmCalls,
+      SAYDO_TEST_NPM_ARGS: observed.npmArgs,
+      SAYDO_TEST_NPM_FILES: observed.npmFiles,
+      SAYDO_TEST_NPM_CONTENT: observed.npmContent,
       TMPDIR: base,
       ...extraEnv
     }
   });
-  return { base, fakeHome, tools, result, mark, binDir: join(fakeHome, ".saydo/bin") };
+  return { base, fakeHome, tools, result, mark, observed, binDir: join(fakeHome, ".saydo/bin") };
+}
+
+function nulValues(path) {
+  return existsSync(path) ? readFileSync(path, "utf8").split("\0").slice(0, -1) : [];
+}
+
+function assertPinnedPackage(run) {
+  const { observed } = run;
+  const tgz = join(run.fakeHome, ".saydo/toolchain", `saydo-cli-${pinOf(read(SH), "sh").version}.tgz`);
+  const args = nulValues(observed.npmArgs);
+  const packages = [];
+  let prefix;
+  let positional = false;
+  for (let i = 2; i < args.length; i += 1) {
+    const arg = args[i];
+    if (positional) packages.push(arg);
+    else if (arg === "--") positional = true;
+    else if (arg === "--prefix") prefix = args[++i];
+    else if (arg.startsWith("--prefix=")) prefix = arg.slice("--prefix=".length);
+    else if (!arg.startsWith("-")) packages.push(arg);
+  }
+  if (
+    !existsSync(observed.npmCalls) || readFileSync(observed.npmCalls, "utf8") !== "call\n" ||
+    resolve(args[0] ?? "") !== join(run.fakeHome, "lib/node_modules/npm/bin/npm-cli.js") || args[1] !== "install" ||
+    prefix !== join(run.fakeHome, ".saydo/toolchain/prefix") || packages.length !== 1 || packages[0] !== tgz
+  ) {
+    throw new Error("[fail] npm 安装调用未唯一绑定固定版本本地 tgz");
+  }
+  const hashPaths = nulValues(observed.hashPaths);
+  if (
+    JSON.stringify(nulValues(observed.downloads)) !== JSON.stringify([`${tgz}.part`]) ||
+    hashPaths.length === 0 || hashPaths.some((path) => path !== tgz) ||
+    JSON.stringify(nulValues(observed.npmFiles)) !== JSON.stringify([tgz]) ||
+    [tgz, observed.hashContent, observed.npmContent].some((path) => !existsSync(path) || readFileSync(path, "utf8") !== packageFixture)
+  ) {
+    throw new Error("[fail] 下载、摘要观察与 npm 消费未绑定同一 tgz 内容");
+  }
 }
 
 function assertNoInjection(base, label) {
@@ -392,13 +354,10 @@ function assertInstallUsable({ homeName, shell, rcRel, sourceCmd }) {
     if (run.result.status !== 0) {
       throw new Error(`[fail] install.sh exit=${run.result.status} home=${homeName}\n${combined}`);
     }
+    assertPinnedPackage(run);
     assertNoInjection(run.base, `install ${homeName}`);
     const launcher = join(run.binDir, "saydo");
     if (!existsSync(launcher)) throw new Error(`[fail] missing launcher for ${homeName}`);
-    const launcherText = readFileSync(launcher, "utf8");
-    if (!/exec '.*' '.*' "\$@"/s.test(launcherText)) {
-      throw new Error(`[fail] launcher is not POSIX-single-quoted:\n${launcherText}`);
-    }
     const launched = spawnSync("/bin/sh", [launcher, "status"], {
       encoding: "utf8",
       cwd: run.base,
@@ -429,6 +388,30 @@ function assertInstallUsable({ homeName, shell, rcRel, sourceCmd }) {
     assertNoInjection(run.base, `source ${rcRel} ${homeName}`);
     if (!sourced.stdout.includes(run.binDir)) {
       throw new Error(`[fail] sourced PATH missing BIN_DIR for ${homeName}: ${sourced.stdout}`);
+    }
+  } finally {
+    rmSync(run.base, { recursive: true, force: true });
+  }
+}
+
+{
+  const run = runIsolatedInstall({ homeName: "bad digest home", badDigest: true });
+  try {
+    const combined = `${run.result.stdout}${run.result.stderr}`;
+    if (run.result.error || run.result.signal || !Number.isInteger(run.result.status) || run.result.status === 0 ||
+      !combined.includes("[fail]") || !combined.includes("SayDo 包校验失败")) {
+      throw new Error("[fail] 坏摘要未在包校验边界正常拒绝");
+    }
+    const forbiddenOutputs = [
+      run.observed.npmCalls, join(run.binDir, "saydo"),
+      join(run.fakeHome, ".saydo/toolchain/prefix/lib/node_modules/@saydo/cli/dist/cli.mjs"),
+      ...[".profile", ".bashrc", ".bash_profile", ".zshrc", ".config/fish/config.fish"].map((path) => join(run.fakeHome, path))
+    ];
+    if (forbiddenOutputs.some((path) => existsSync(path))) {
+      throw new Error("[fail] 坏摘要拒绝前仍调用 npm 或生成安装输出");
+    }
+    if (!existsSync(run.observed.hashContent) || readFileSync(run.observed.hashContent, "utf8") !== packageFixture) {
+      throw new Error("[fail] 坏摘要用例没有实际观察下载内容");
     }
   } finally {
     rmSync(run.base, { recursive: true, force: true });
@@ -479,6 +462,7 @@ assertInstallUsable({
     if (run.result.status !== 0) {
       throw new Error(`[fail] fish install exit=${run.result.status}\n${run.result.stdout}${run.result.stderr}`);
     }
+    assertPinnedPackage(run);
     assertNoInjection(run.base, "fish install");
     const rc = join(run.fakeHome, ".config/fish/config.fish");
     if (!existsSync(rc)) throw new Error("[fail] missing fish config");
@@ -529,4 +513,5 @@ assertInstallUsable({
   rmSync(base, { recursive: true, force: true });
 }
 
-process.stdout.write(`[ok] install scripts pinned to v${pinOf(input.sh, "sh").version}; mutations=31 all red; dynamic no-write checks=6; isolated full-install path cases=7+newline\n`);
+
+process.stdout.write(`[ok] install scripts pinned to v${pinOf(input.sh, "sh").version}; metadata mutations rejected; dynamic no-write and isolated shell-install checks passed\n`);

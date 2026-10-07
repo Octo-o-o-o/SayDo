@@ -15,6 +15,14 @@ import { commitOwnerReapIfIdentity, formatSayDoJobName, runtimeOwnerIdentity, pa
 const CHILD_STOP_MS = 3_000;
 const ownedHomes: string[] = [];
 const ownedChildren: ChildProcess[] = [];
+const childDiagnostics = new WeakMap<ChildProcess, { output: Buffer; spawnError: string | null }>();
+
+/** 只保留测试子进程最后8KiB诊断；失败不能仅丢失为exit1。 */
+function childFailureDetail(child: ChildProcess): string {
+  const diag = childDiagnostics.get(child);
+  return JSON.stringify({ pid: child.pid ?? null, exitCode: child.exitCode, signalCode: child.signalCode,
+    spawnError: diag?.spawnError ?? null, output: diag?.output.toString("utf8") ?? "" });
+}
 
 function childHasExited(child: ChildProcess): boolean {
   return child.exitCode !== null || child.signalCode !== null;
@@ -120,7 +128,18 @@ function createOwnedHome(prefix: string): string {
 }
 
 function spawnOwned(command: string, args: string[], options: Parameters<typeof spawn>[2]): ChildProcess {
-  const child = spawn(command, args, options);
+  // ignore原先丢弃waiter启动错误；改为有界捕获，不改变stdin、argv或env。
+  const child = spawn(command, args, options?.stdio === "ignore"
+    ? { ...options, stdio: ["ignore", "pipe", "pipe"] }
+    : options);
+  const diag = { output: Buffer.alloc(0), spawnError: null as string | null };
+  childDiagnostics.set(child, diag);
+  const capture = (chunk: Buffer): void => {
+    diag.output = Buffer.concat([diag.output, chunk]).subarray(-8192);
+  };
+  child.stdout?.on("data", capture);
+  child.stderr?.on("data", capture);
+  child.once("error", (err) => { diag.spawnError = err.message; });
   ownedChildren.push(child);
   return child;
 }
@@ -288,10 +307,10 @@ describe("两进程 writer/reaper 窗口", () => {
     const home = createOwnedHome("saydo-lock-sync-proc-");
     const marker = join(home, "acquired.marker");
     const holdMarker = join(home, "holding.marker");
-    const tsx = fileURLToPath(new URL("../../daemon/node_modules/tsx/dist/cli.mjs", import.meta.url));
+    const tsx = fileURLToPath(new URL("../../daemon/node_modules/tsx/dist/loader.mjs", import.meta.url));
     const worker = fileURLToPath(new URL("./fixtures/home-lock-worker.mjs", import.meta.url));
     const lockModule = fileURLToPath(new URL("../src/homeLock.ts", import.meta.url));
-    const holder = spawnOwned(process.execPath, [tsx, worker], {
+    const holder = spawnOwned(process.execPath, ["--import", tsx, worker], {
       env: {
         ...process.env,
         SAYDO_LOCK_HOME: home,
@@ -307,7 +326,7 @@ describe("两进程 writer/reaper 窗口", () => {
         await new Promise((resolve) => setTimeout(resolve, 20));
       }
       expect(existsSync(holdMarker)).toBe(true);
-      const waiter = spawnOwned(process.execPath, [tsx, worker], {
+      const waiter = spawnOwned(process.execPath, ["--import", tsx, worker], {
         env: {
           ...process.env,
           SAYDO_LOCK_HOME: home,
@@ -319,14 +338,15 @@ describe("两进程 writer/reaper 窗口", () => {
       });
       await new Promise((resolve) => setTimeout(resolve, 200));
       expect(existsSync(marker)).toBe(false);
+      expect(childHasExited(holder), `holder:${childFailureDetail(holder)}`).toBe(false);
       holder.kill("SIGKILL");
       await waitChildTerminated(holder, CHILD_STOP_MS, () => new Error("holder stop timeout"));
       const waiterTerm = await waitChildTerminated(waiter, 8_000, () => {
-        return new Error(`sync waiter lock timeout:${existsSync(`${marker}.error`) ? readFileSync(`${marker}.error`, "utf8") : "no-error"}`);
+        return new Error(`sync waiter lock timeout:${childFailureDetail(waiter)}:${existsSync(`${marker}.error`) ? readFileSync(`${marker}.error`, "utf8") : "no-error"}`);
       });
       const waiterExit = waiterTerm.exitCode ?? 1;
       if (waiterExit !== 0) {
-        throw new Error(`waiter exit ${String(waiterExit)}:${existsSync(`${marker}.error`) ? readFileSync(`${marker}.error`, "utf8") : "no-error"}`);
+        throw new Error(`waiter exit ${String(waiterExit)}:${childFailureDetail(waiter)}:${existsSync(`${marker}.error`) ? readFileSync(`${marker}.error`, "utf8") : "no-error"}`);
       }
       expect(readFileSync(marker, "utf8")).toBe("acquired");
     } finally {
@@ -338,11 +358,10 @@ describe("两进程 writer/reaper 窗口", () => {
     const home = createOwnedHome("saydo-lock-proc-");
     const marker = join(home, "acquired.marker");
     const holdMarker = join(home, "holding.marker");
-    const tsx = fileURLToPath(new URL("../../daemon/node_modules/tsx/dist/cli.mjs", import.meta.url));
+    const tsx = fileURLToPath(new URL("../../daemon/node_modules/tsx/dist/loader.mjs", import.meta.url));
     const worker = fileURLToPath(new URL("./fixtures/home-lock-worker.mjs", import.meta.url));
     const lockModule = fileURLToPath(new URL("../src/homeLock.ts", import.meta.url));
-    const holderOut: Buffer[] = [];
-    const holder = spawnOwned(process.execPath, [tsx, worker], {
+    const holder = spawnOwned(process.execPath, ["--import", tsx, worker], {
       env: {
         ...process.env,
         SAYDO_LOCK_HOME: home,
@@ -352,20 +371,15 @@ describe("两进程 writer/reaper 窗口", () => {
       },
       stdio: ["ignore", "pipe", "pipe"]
     });
-    holder.stdout?.on("data", (c: Buffer) => holderOut.push(c));
-    holder.stderr?.on("data", (c: Buffer) => holderOut.push(c));
-    holder.once("exit", (code, signal) => {
-      holderOut.push(Buffer.from(`exit:${String(code)}:${String(signal)}`));
-    });
     try {
       const started = Date.now();
       while (!existsSync(holdMarker) && Date.now() - started < 5_000) {
         await new Promise((resolve) => setTimeout(resolve, 20));
       }
       if (!existsSync(holdMarker)) {
-        throw new Error(`holder failed:${Buffer.concat(holderOut).toString("utf8") || "no output"}:${existsSync(`${holdMarker}.error`) ? readFileSync(`${holdMarker}.error`, "utf8") : "no-error-file"}`);
+        throw new Error(`holder failed:${childFailureDetail(holder)}:${existsSync(`${holdMarker}.error`) ? readFileSync(`${holdMarker}.error`, "utf8") : "no-error-file"}`);
       }
-      const waiter = spawnOwned(process.execPath, [tsx, worker], {
+      const waiter = spawnOwned(process.execPath, ["--import", tsx, worker], {
         env: {
           ...process.env,
           SAYDO_LOCK_HOME: home,
@@ -377,9 +391,10 @@ describe("两进程 writer/reaper 窗口", () => {
       });
       await new Promise((resolve) => setTimeout(resolve, 200));
       expect(existsSync(marker)).toBe(false);
+      expect(childHasExited(holder), `holder:${childFailureDetail(holder)}`).toBe(false);
       holder.kill("SIGKILL");
       const waiterTerm = await waitChildTerminated(waiter, 8_000, () => new Error("waiter lock timeout"));
-      expect(waiterTerm.exitCode).toBe(0);
+      expect(waiterTerm.exitCode, `waiter:${childFailureDetail(waiter)}:marker-error:${existsSync(`${marker}.error`) ? readFileSync(`${marker}.error`, "utf8") : "absent"}`).toBe(0);
       expect(readFileSync(marker, "utf8")).toBe("acquired");
     } finally {
       await disposeOwned();
@@ -387,12 +402,12 @@ describe("两进程 writer/reaper 窗口", () => {
   }, 15_000);
 
   it("本测试子进程与 mkdtemp：先退出再删除，已 signal 退出按双条件收口", async () => {
-    const tsx = fileURLToPath(new URL("../../daemon/node_modules/tsx/dist/cli.mjs", import.meta.url));
+    const tsx = fileURLToPath(new URL("../../daemon/node_modules/tsx/dist/loader.mjs", import.meta.url));
     const worker = fileURLToPath(new URL("./fixtures/home-lock-worker.mjs", import.meta.url));
     const lockModule = fileURLToPath(new URL("../src/homeLock.ts", import.meta.url));
     const held = createOwnedHome("saydo-lock-cleanup-");
     const holdMarker = join(held, "holding.marker");
-    const holder = spawnOwned(process.execPath, [tsx, worker], {
+    const holder = spawnOwned(process.execPath, ["--import", tsx, worker], {
       env: {
         ...process.env,
         SAYDO_LOCK_HOME: held,

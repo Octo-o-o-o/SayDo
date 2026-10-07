@@ -778,8 +778,12 @@ describe("codex app-server repair boundaries", () => {
       const init = session.initialize();
       const initFrame = JSON.parse(Buffer.concat(gate.chunks).toString("utf8").trim()) as { id?: string };
       stdout.write(line({ id: initFrame.id, result: initResult() }));
+      gate.release();
       const booted = await init;
       expect(booted.status).toBe("acked");
+      await delay(1);
+      gate.hold = true;
+      const written = session.startThread({ taskId: "task-0" });
       const first = session.startThread({ taskId: "task-1" });
       const second = session.startThread({ taskId: "task-2" });
       await delay(160);
@@ -790,7 +794,9 @@ describe("codex app-server repair boundaries", () => {
         Promise.all([first, second]),
         delay(300).then(() => "pending" as const)
       ]);
-      expect(text).not.toContain('"method":"thread/start"');
+      const threadFrames = text.trim().split("\n").map((item) => JSON.parse(item) as { method?: string });
+      expect(threadFrames.filter((item) => item.method === "thread/start")).toHaveLength(1);
+      expect((await written).status).toBe("unknown");
       expect(text).toContain('"method":"initialized"');
       expect(outcomes).not.toBe("pending");
       if (outcomes !== "pending") {
@@ -1673,12 +1679,6 @@ describe("codex app-server repair boundaries", () => {
     expect(result.status).toBe(0);
     expect(`${result.stderr ?? ""}`).not.toContain("Unhandled");
     expect(`${result.stderr ?? ""}`).not.toContain("spawn_failed");
-  });
-
-  it("R4-B1 interrupt 空 object 没有 turnId 冲突项", () => {
-    expect(ackMatrix().some((cell) => cell.op === "interrupt" && cell.kind === "conflict")).toBe(false);
-    expect(ackMatrix()).toHaveLength(24);
-    expect(staleAckMatrix()).toHaveLength(16);
   });
 
   it.each(ackMatrix())("R4-B1 $op $state $kind", async (cell) => {

@@ -13,20 +13,29 @@ export const LLM_PORT = JOURNEY_MODE === "drop-npm" ? 47213 : 47211;
 export const PINNED = "1.0.0-pinned";
 export const CLAIM = "用户偏好:发布前不用再问我";
 
-const TEST_STATE_PARENT =
-  process.platform === "darwin" ? "/private/tmp" : process.platform === "linux" ? "/tmp" : tmpdir();
+export const TEST_STATE_PARENT = process.env["SAYDO_E2E_STATE_PARENT"] ??
+  (process.platform === "darwin" ? "/private/tmp" : process.platform === "linux" ? "/tmp" : tmpdir());
 
 /** 同一轮正反例共用。未设置时不得写入旧轮目录。 */
 export const JOURNEY_RUN_ID = (process.env["SAYDO_JOURNEY_RUN_ID"] ?? "").trim();
 export const EVIDENCE_ROOT = (process.env["SAYDO_JOURNEY_EVIDENCE_ROOT"] ?? "").trim();
-const runSuffix = JOURNEY_RUN_ID ? `-${JOURNEY_RUN_ID.replace(/[^0-9A-Za-z_-]/g, "")}` : "";
+// globalSetup 创建唯一owned root，并通过env传给worker/seed；不由port/runId推测目录所有权。
+export let STATE_ROOT = (process.env["SAYDO_JOURNEY_STATE_ROOT"] ?? "").trim();
+export let OWNER_HOME = STATE_ROOT ? join(STATE_ROOT, "first-run") : "";
+export let HOME = STATE_ROOT ? join(STATE_ROOT, "main") : "";
+export let WORKSPACE = STATE_ROOT ? join(OWNER_HOME, "workspace") : "";
+export let RUNTIME = STATE_ROOT ? join(HOME, "e2e-runtime.json") : "";
+export let LLM_LOG = STATE_ROOT ? join(HOME, "scripted-llm.jsonl") : "";
 
-/** 与 SAYDO_HOME 分开的可写临时家目录。本沙箱写不了真实 home 与任务目录。 */
-export const OWNER_HOME = join(TEST_STATE_PARENT, `saydo-journey01-owner-home-${DAEMON_PORT}${runSuffix}`);
-export const HOME = join(TEST_STATE_PARENT, `saydo-journey01-browser-home-${DAEMON_PORT}${runSuffix}`);
-export const WORKSPACE = join(OWNER_HOME, "workspace");
-export const RUNTIME = join(HOME, "e2e-runtime.json");
-export const LLM_LOG = join(HOME, "scripted-llm.jsonl");
+export function installJourneyStateRoot(root: string): void {
+  STATE_ROOT = root;
+  process.env["SAYDO_JOURNEY_STATE_ROOT"] = root;
+  OWNER_HOME = join(root, "first-run");
+  HOME = join(root, "main");
+  WORKSPACE = join(OWNER_HOME, "workspace");
+  RUNTIME = join(HOME, "e2e-runtime.json");
+  LLM_LOG = join(HOME, "scripted-llm.jsonl");
+}
 
 /** Crockford 26 位,过 console VoiceContext 与 contracts idSchema */
 export const SESSION_ID = "ses_01J01BR0WSER00000000000001";

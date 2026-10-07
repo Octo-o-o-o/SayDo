@@ -1,3 +1,4 @@
+import { sessionStoragePort } from "../../lib/sessionStoragePort";
 // 记录页接线容器:hook → RecordsPage;生命周期写口 + DAILY-01 全部接线:
 // fork / lane create·unretire / 依赖增设(义务级+任务级)·解除 / redo-from 两步弹窗
 // (anchor 选事件 → preview 建议集 → exact set 确认;不自动并建议集,关系变化后旧 preview 作废重取)。
@@ -225,14 +226,14 @@ export function RecordsPageRoute({ focusId }: { focusId: string }) {
             openRedo(action.laneId, action.anchorSeq);
             return;
           }
-          writePendingAnchor(
-            sessionStorage,
+          if (!writePendingAnchor(
+            sessionStoragePort,
             buildPendingAnchor({
               focusId,
               title: view?.focus.title,
               laneTitle: resolveLaneTitle(view?.lanes ?? [], action.laneId)
             })
-          );
+          )) { setToast("草稿保存失败，请重试后接上主题"); return; }
           navigate("/chat-new");
           return;
         case "dependency_undo": {

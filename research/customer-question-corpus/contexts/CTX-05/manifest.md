@@ -1,5 +1,9 @@
 # CTX-05 · 东南亚市场进入
 
+- `active_status`: `retired_no_updated_source`
+- `retired_on`: `2026-09-30`
+- 当前不可用于执行或有效事实证明；原日期、来源与逐题合同仅供历史回放。owner 已授权无更新来源时退役。
+
 - `as_of`: `2026-08-20`
 - `valid_until`: `2026-09-20`；法规、价格与竞品现势仍必须通过 `LIVE` 刷新。
 - `claim_scope`: 调研问题与交付边界用 `research-brief.md`；访谈原始线索与样本偏差用 `interview-notes.md`；冻结外部事实用 `official-and-market-snapshot.md`；检索状态用 `source-register.md`。

@@ -1,0 +1,35 @@
+# CODEOWNERS(草案 —— 角色占位,不具名;RF-11 启用前由 owner 指派真实人选)
+#
+# 路径与优先级规则遵循 GitHub CODEOWNERS;每行一个 pattern,最后匹配优先。
+# <role:*> 是未指派角色占位,不是有效 GitHub owner;启用前替换为真实账号/团队。
+# 本文件不放置到 .github/(未启用远端 ruleset,不激活)。
+# 同行多 owner 在 GitHub 只要求任一人批准,不代表各角色都必须批准。
+
+# 全局默认:owner
+*                             <role:owner>
+
+# 合同与 canonical:任何变更需 owner 级关注
+docs/                         <role:maintainer-docs> <role:owner>
+docs/09-data-contracts.md      <role:owner>
+packages/contracts/           <role:maintainer-contracts> <role:owner>
+
+# 运行核心
+packages/daemon/              <role:maintainer-daemon>
+packages/cli/                 <role:maintainer-cli>
+packages/platform/            <role:maintainer-platform>
+pipeline/                     <role:maintainer-pipeline>
+packages/console/             <role:maintainer-console>
+
+# 设备与发布
+apps/                         <role:maintainer-mobile>
+scripts/                      <role:maintainer-tooling>
+.github/workflows/            <role:owner>
+# 发布相关脚本与发布文档覆盖通用 scripts/docs 规则。
+scripts/*release*             <role:owner>
+docs/release/                 <role:owner>
+
+# 治理文件
+GOVERNANCE.md                 <role:owner>
+CONTRIBUTING.md               <role:owner>
+CODE_OF_CONDUCT.md            <role:owner>
+SECURITY.md                   <role:owner>

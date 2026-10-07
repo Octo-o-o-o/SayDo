@@ -6,8 +6,9 @@
 
 import {
   OPEN_SET,
+  createCostAccumulator,
+  type CostByProject,
   acceptanceExactSetViolations,
-  jcsDigest,
   mobileFocusDetailSchema,
   mobileFocusListItemSchema,
   tier1TerminalAuditActionSchema,
@@ -19,6 +20,7 @@ import {
   type MobileFocusListItem,
   type Tier1TerminalAuditAction
 } from "@saydo/contracts";
+import { hasTier1TerminalConflict } from "../tier1/terminalEvidence.js";
 import type { Db } from "../storage/db.js";
 import { MemoryLedger } from "../memory/ledger.js";
 import type { AuditSink } from "../obs/audit.js";
@@ -36,6 +38,7 @@ import { getPackage } from "../storage/dao/packages.js";
 import {
   acceptanceChecksForFailedVerify,
   collectAcceptanceEvidence,
+  isWritingApprovalForRun,
   readRunVerifyPayload,
   type AcceptanceEvidenceScope
 } from "./acceptanceEvidence.js";
@@ -220,7 +223,7 @@ export function getTaskDetail(db: Db, taskId: string, opts?: { runsDir?: string 
       evidence !== undefined &&
       ((state === "settled_review" && evidence.action === "tier1.settled_review") ||
         (state === "settled_failed" && (evidence.action === "tier1.failed" || evidence.action === "tier1.blocked")));
-    const conflict = entries.length > 0 && (!evidence || !stateMatches);
+    const conflict = hasTier1TerminalConflict(db, taskId, String(run["id"]), state);
     const validEvidence = stateMatches ? evidence : undefined;
     return {
       ...run,
@@ -237,12 +240,17 @@ export function getTaskDetail(db: Db, taskId: string, opts?: { runsDir?: string 
     status: "unknown",
     source: "manual"
   }));
+  const latestRun = runs.length > 0 ? runs[runs.length - 1] : undefined;
+  const proofBelongsToLatest = (proof: { taskId: string; runId: string; attempt: number; treeSha: string; packageRevision: number }): boolean =>
+    !!latestRun && proof.taskId === taskId && proof.runId === latestRun["id"] && proof.attempt === latestRun["attempt"] &&
+    proof.treeSha === latestRun["tree_sha"] && proof.packageRevision === task["package_rev"] && latestRun["state"] === "settled_review";
   const latestProofJson = runs.length > 0 ? (runs[runs.length - 1]?.["settle_proof_json"] as string | null) : null;
   if (latestProofJson) {
     try {
       const p = JSON.parse(latestProofJson) as { kind?: string };
       if (p.kind === "writing") {
         const parsed = writingSettleProofSchema.parse(p);
+        if (!proofBelongsToLatest(parsed) || acceptanceExactSetViolations(parsed.acceptanceChecks, packageAcceptance).length !== 0) throw new Error("writing proof 当前运行身份不符");
         writingProof = parsed;
         acceptanceChecks = parsed.acceptanceChecks;
         const review = db
@@ -258,17 +266,9 @@ export function getTaskDetail(db: Db, taskId: string, opts?: { runsDir?: string 
           String(task["status"])
         );
         if (approvalStillEffective && review?.actor === "owner") {
-          const meta = JSON.parse(review.meta_json) as Record<string, unknown>;
-          const manualCount = parsed.acceptanceChecks.filter((check) => check.source === "manual").length;
-          const exactCoverage = acceptanceExactSetViolations(parsed.acceptanceChecks, packageAcceptance).length === 0;
-          if (
-            exactCoverage &&
-            meta["kind"] === "writing" &&
-            meta["evidenceDigest"] === jcsDigest(parsed) &&
-            meta["prospectiveTreeSha"] === parsed.treeSha &&
-            meta["attempt"] === parsed.attempt &&
-            meta["acceptancePassed"] === manualCount
-          ) {
+          if (isWritingApprovalForRun(db, { ...review, action: "task.review_approve" }, {
+            taskId, runId: parsed.runId, treeSha: parsed.treeSha
+          })) {
             acceptanceChecks = parsed.acceptanceChecks.map((check) =>
               check.source === "manual"
                 ? { ...check, status: "pass", evidenceRef: `audit:${review.id}` }
@@ -280,13 +280,12 @@ export function getTaskDetail(db: Db, taskId: string, opts?: { runsDir?: string 
         const parsed = tier1SettleProofSchema.parse(p);
         const exactCoverage = acceptanceExactSetViolations(parsed.acceptanceChecks, packageAcceptance).length === 0;
         // 旧 proof 缺字段或集合漂移时只可信 DecisionPackage 的 criterion，状态全部 unknown。
-        if (exactCoverage) acceptanceChecks = parsed.acceptanceChecks;
+        if (exactCoverage && proofBelongsToLatest(parsed)) acceptanceChecks = parsed.acceptanceChecks;
       }
     } catch {
       writingProof = null;
     }
   }
-  const latestRun = runs.length > 0 ? runs[runs.length - 1] : undefined;
   if (
     latestRun &&
     String(latestRun["state"]) === "settled_failed" &&
@@ -321,6 +320,12 @@ export function getTaskDetail(db: Db, taskId: string, opts?: { runsDir?: string 
     const n = Number(r["attempt"]);
     return Number.isFinite(n) && n > max ? n : max;
   }, 0);
+  const acceptanceEvidence = collectAcceptanceEvidence(
+    db, acceptanceChecks.map(c => c.evidenceRef ?? "").filter(Boolean), evidenceScopeFor(runsWithEvidence, taskId, opts?.runsDir)
+  );
+  acceptanceChecks = acceptanceChecks.map(check => check.evidenceRef?.trim() &&
+    acceptanceEvidence.find(evidence => evidence.evidenceRef === check.evidenceRef?.trim())?.ok !== true
+    ? { ...check, status: "unknown" } : check);
   return {
     task: {
       ...task,
@@ -333,11 +338,7 @@ export function getTaskDetail(db: Db, taskId: string, opts?: { runsDir?: string 
     costs,
     decisions,
     acceptanceChecks,
-    acceptanceEvidence: collectAcceptanceEvidence(
-      db,
-      acceptanceChecks.map((c) => c.evidenceRef ?? "").filter(Boolean),
-      evidenceScopeFor(runsWithEvidence, taskId, opts?.runsDir)
-    ),
+    acceptanceEvidence,
     writingProof // null = 非 writing;否则含 sectionCoverage/acceptanceChecks 供逐条裁决 UI
   };
 }
@@ -348,7 +349,7 @@ function evidenceScopeFor(
   runsDir?: string
 ): AcceptanceEvidenceScope | null {
   const ranked = [...runs].sort((a, b) => Number(b["attempt"] ?? 0) - Number(a["attempt"] ?? 0));
-  for (const row of ranked) {
+  for (const row of ranked.slice(0, 1)) {
     const state = String(row["state"] ?? "");
     const runId = String(row["id"] ?? "");
     const treeSha = String(row["tree_sha"] ?? "");
@@ -361,7 +362,8 @@ function evidenceScopeFor(
     const raw = row["settle_proof_json"];
     if (typeof raw === "string" && raw.trim() !== "") {
       try {
-        const proof = JSON.parse(raw) as { treeSha?: unknown; runId?: unknown; tier1VerifyDigest?: unknown };
+        const proof = JSON.parse(raw) as { taskId?: unknown; attempt?: unknown; treeSha?: unknown; runId?: unknown; tier1VerifyDigest?: unknown };
+        if (state === "settled_review" && (proof.taskId !== taskId || proof.attempt !== row["attempt"] || proof.runId !== runId || proof.treeSha !== treeSha)) continue;
         if (typeof proof.treeSha === "string" && proof.treeSha !== treeSha) continue;
         if (typeof proof.runId === "string" && proof.runId !== runId) continue;
         if (typeof proof.tier1VerifyDigest === "string") proofVerifyDigest = proof.tier1VerifyDigest;
@@ -553,45 +555,30 @@ export function getOutbox(db: Db): Record<string, unknown>[] {
 /** 成本账本(按项目分组下钻;unknown 永不显示 0——unknownCount 单列,前端照 11 §2.6"还没有确切数字")。
  *  known 合计**分币种**(Hopper 路径二行是 USD,appendix §3.1;混币种合计=编数)。 */
 export function getCosts(db: Db): {
-  byProject: { projectId: string | null; projectTitle: string | null; knownByCurrency: Record<string, number>; unknownCount: number }[];
+  byProject: CostByProject[];
   entries: Record<string, unknown>[];
   entriesWindow: { limit: number; returned: number; total: number; truncated: boolean };
 } {
-  const rows = db
-    .prepare(
-      `SELECT c.project_id AS projectId, p.title AS projectTitle, c.currency AS currency,
-              SUM(CASE WHEN c.known = 1 THEN c.amount ELSE 0 END) AS knownTotal,
-              SUM(CASE WHEN c.known = 0 THEN 1 ELSE 0 END) AS unknownCount
-       FROM cost_entries c LEFT JOIN projects p ON p.id = c.project_id
-       GROUP BY c.project_id, c.currency`
-    )
-    .all() as { projectId: string | null; projectTitle: string | null; currency: string | null; knownTotal: number; unknownCount: number }[];
-  const byKey = new Map<string, { projectId: string | null; projectTitle: string | null; knownByCurrency: Record<string, number>; unknownCount: number }>();
-  for (const r of rows) {
-    const key = r.projectId ?? "(none)";
-    const agg = byKey.get(key) ?? { projectId: r.projectId, projectTitle: r.projectTitle, knownByCurrency: {}, unknownCount: 0 };
-    if (r.knownTotal > 0 && r.currency) agg.knownByCurrency[r.currency] = (agg.knownByCurrency[r.currency] ?? 0) + r.knownTotal;
-    agg.unknownCount += r.unknownCount;
-    byKey.set(key, agg);
-  }
-  const byProject = [...byKey.values()];
-  const entries = db
-    .prepare(
-      "SELECT id, ts, project_id, task_id, session_id, kind, amount, currency, known, source, meta_json FROM cost_entries ORDER BY ts DESC LIMIT 300"
-    )
-    .all() as Record<string, unknown>[];
-  const totalRow = db.prepare("SELECT COUNT(*) AS n FROM cost_entries").get() as { n: number };
-  const total = Number(totalRow.n ?? 0);
-  return {
-    byProject,
-    entries,
-    entriesWindow: {
-      limit: 300,
-      returned: entries.length,
-      total,
-      truncated: total > 300
+  // 第一个SELECT建立read snapshot；WAL并发写不让窗口/总数与全量来源分属不同集合。
+  return db.transaction(() => {
+    const byKey = new Map<string | null, { title: string | null; accumulator: ReturnType<typeof createCostAccumulator> }>();
+    const rows = db.prepare(`SELECT c.*, p.title AS projectTitle FROM cost_entries c
+      LEFT JOIN projects p ON p.id = c.project_id ORDER BY c.id`).iterate();
+    let total = 0;
+    for (const raw of rows) {
+      total++;
+      const row = raw as Record<string, unknown>;
+      const projectId = row["project_id"] as string | null;
+      const state = byKey.get(projectId) ?? { title: row["projectTitle"] as string | null, accumulator: createCostAccumulator() };
+      state.accumulator.add(row); byKey.set(projectId, state);
     }
-  };
+    const byProject: CostByProject[] = [...byKey].map(([projectId, state]) => ({
+      projectId, projectTitle: state.title, ...state.accumulator.finish()
+    }));
+    const entries = db.prepare("SELECT id, ts, project_id, task_id, session_id, kind, amount, currency, known, source, meta_json FROM cost_entries ORDER BY ts DESC LIMIT 300")
+      .all() as Record<string, unknown>[];
+    return { byProject, entries, entriesWindow: { limit: 300, returned: entries.length, total, truncated: total > 300 } };
+  })();
 }
 
 /** 项目设置(projects 行;project.toml 白名单域已在 config 层校验)+ 覆盖(W5a 3.5 受控表) */

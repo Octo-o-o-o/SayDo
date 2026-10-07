@@ -25,9 +25,9 @@ describe("coding 验收逐条证据", () => {
   ];
 
   it("只采用唯一同名 AcceptanceCheck，不据 settled 状态补绿", () => {
-    expect(acceptanceStateForCriterion("lint", checks)).toBe("pass");
+    expect(acceptanceStateForCriterion("lint", checks, [{ evidenceRef: "verify:lint", ok: true }])).toBe("pass");
     expect(acceptanceStateForCriterion("人工走查", checks)).toBe("unknown");
-    expect(acceptanceStateForCriterion("安全反例", checks)).toBe("fail");
+    expect(acceptanceStateForCriterion("安全反例", checks, [{ evidenceRef: "verify:security", ok: true }])).toBe("fail");
     expect(acceptanceStateForCriterion("没有证据", checks)).toBe("unknown");
   });
 

@@ -229,6 +229,7 @@ class AppServerSession implements CodexAppServerSession {
     if (this.disposed) return unsent("link_closed");
     if (this.phase !== "new") return unsent("duplicate_initialize");
     this.phase = "initializing";
+    let initializedWrite: Promise<boolean> = Promise.resolve(false);
     const outcome = await this.sendClient<InitializeValue>({
       method: "initialize",
       params: buildInitializeParams(),
@@ -254,14 +255,7 @@ class AppServerSession implements CodexAppServerSession {
         if (!this.persist(noted)) {
           return { status: "rejected", reason: "intent_persist_failed", value: null };
         }
-        const accepted = this.enqueueEncoded(buildInitializedNotification(), {
-          onWritten: () => undefined,
-          onDropped: () => undefined
-        });
-        if (accepted !== "accepted") {
-          return { status: "rejected", reason: "initialized_not_sent", value: null };
-        }
-        this.phase = "ready";
+        initializedWrite = this.writeInitialized();
         return {
           status: "acked",
           reason: "ok",
@@ -274,8 +268,35 @@ class AppServerSession implements CodexAppServerSession {
         };
       }
     });
+    if (outcome.status === "acked" && !(await initializedWrite)) {
+      return { ...outcome, status: "rejected", reason: "initialized_not_sent", value: null };
+    }
     if (outcome.status === "unsent" && this.phase === "initializing") this.phase = "new";
     return outcome;
+  }
+
+  private writeInitialized(): Promise<boolean> {
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (written: boolean): void => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        this.timerCount -= 1;
+        if (written && !this.disposed) this.phase = "ready";
+        resolve(written && !this.disposed);
+      };
+      this.timerCount += 1;
+      const timer = setTimeout(() => {
+        finish(false);
+        this.onLinkClosed("initialized_write_timeout");
+      }, this.requestTimeoutMs);
+      const accepted = this.enqueueEncoded(buildInitializedNotification(), {
+        onWritten: () => finish(true),
+        onDropped: () => finish(false)
+      });
+      if (accepted !== "accepted") finish(false);
+    });
   }
 
   startThread(input: { taskId: string; model?: string; cwd?: string }): Promise<SendOutcome<{ threadId: string }>> {
@@ -885,7 +906,7 @@ class AppServerSession implements CodexAppServerSession {
       return;
     }
     this.ignoredNotifications += 1;
-    this.pushWarning(`ignored_notification:${method.slice(0, 80)}`);
+    this.pushWarning("ignored_notification");
   }
 
   private handleServerRequest(id: RequestId, method: string, params: unknown): void {
@@ -1064,9 +1085,14 @@ class AppServerSession implements CodexAppServerSession {
 
   private sendServerError(id: RequestId, method: string, code: number, message: string, threadId: string | null, turnId: string | null): void {
     const summary: Summary = { decision: "error", code };
+    const knownMethod = [
+      "item/commandExecution/requestApproval", "item/fileChange/requestApproval",
+      "item/permissions/requestApproval", "item/tool/requestUserInput",
+      "execCommandApproval", "applyPatchApproval"
+    ].includes(method);
     const intent = this.record({
       requestId: idKey(id),
-      method,
+      method: knownMethod ? method : "unknown_server_method",
       taskId: null,
       threadId,
       turnId,
@@ -1311,4 +1337,3 @@ export function openRealSession(opts: {
     opts.frameLimits ?? DEFAULT_FRAME_LIMITS
   );
 }
-

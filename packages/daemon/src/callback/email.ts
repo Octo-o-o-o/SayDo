@@ -446,5 +446,7 @@ export async function sendEmailSmtp(
     return accepted;
   } finally {
     if (timer) clearTimeout(timer);
+    // DATA 的 250 已决定投递结果，QUIT/对端 FIN 不得让本次连接无限存活。
+    destroyAll();
   }
 }

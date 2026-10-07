@@ -1,6 +1,7 @@
 // 义务写口(批 3):resolve / waiting-on。
 
 import { z } from "zod";
+import { withSqliteAuditTransaction } from "./sqliteAuditTransaction.js";
 import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
 import { FocusWriteError, withFocusWriteTx } from "../focus/writeTx.js";
@@ -53,19 +54,19 @@ export function resolveObligationApi(
 
   const row = db.prepare("SELECT * FROM focus_obligations WHERE id = ?").get(obligationId) as
     | {
-        id: string;
-        focus_id: string;
-        kind: string;
-        title: string;
-        owner: string;
-        status: string;
-        verification: string;
-        dedupe_key: string;
-        detail: string | null;
-        next_step: string | null;
-        blocking: number;
-        needs: string | null;
-      }
+      id: string;
+      focus_id: string;
+      kind: string;
+      title: string;
+      owner: string;
+      status: string;
+      verification: string;
+      dedupe_key: string;
+      detail: string | null;
+      next_step: string | null;
+      blocking: number;
+      needs: string | null;
+    }
     | undefined;
   if (!row) return err(404, "not_found", `obligation ${obligationId} not found`);
   if (["resolved", "superseded"].includes(row.status)) {
@@ -73,42 +74,44 @@ export function resolveObligationApi(
   }
 
   try {
-    const r = withFocusWriteTx(db, {}, (ops) =>
-      ops.upsertObligation(row.focus_id, {
-        id: row.id,
-        kind: row.kind as "answer" | "decision" | "action" | "followup" | "check",
-        title: row.title,
-        owner: row.owner as "human" | "agent" | "external",
-        status: parsed.data.resolution === "superseded" ? "superseded" : "resolved",
-        verification: row.verification as "provisional" | "unverified" | "confirmed",
-        dedupeKey: row.dedupe_key,
-        resolution: parsed.data.resolution,
-        blocking: row.blocking === 1,
-        ...(row.detail ? { detail: row.detail } : {}),
-        ...(row.next_step ? { nextStep: row.next_step } : {}),
-        ...(parsed.data.evidence ? { evidence: parsed.data.evidence } : {}),
-        actorKind: "user"
-      })
-    );
-    audit.record({
-      actor: "owner",
-      action: "obligation.resolved",
-      meta: {
-        obligationId,
-        focusId: row.focus_id,
-        resolution: parsed.data.resolution,
-        eventId: r.eventId
-      }
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const r = withFocusWriteTx(db, {}, (ops) =>
+        ops.upsertObligation(row.focus_id, {
+          id: row.id,
+          kind: row.kind as "answer" | "decision" | "action" | "followup" | "check",
+          title: row.title,
+          owner: row.owner as "human" | "agent" | "external",
+          status: parsed.data.resolution === "superseded" ? "superseded" : "resolved",
+          verification: row.verification as "provisional" | "unverified" | "confirmed",
+          dedupeKey: row.dedupe_key,
+          resolution: parsed.data.resolution,
+          blocking: row.blocking === 1,
+          ...(row.detail ? { detail: row.detail } : {}),
+          ...(row.next_step ? { nextStep: row.next_step } : {}),
+          ...(parsed.data.evidence ? { evidence: parsed.data.evidence } : {}),
+          actorKind: "user"
+        })
+      );
+      audit.record({
+        actor: "owner",
+        action: "obligation.resolved",
+        meta: {
+          obligationId,
+          focusId: row.focus_id,
+          resolution: parsed.data.resolution,
+          eventId: r.eventId
+        }
+      });
+      return {
+        status: 200,
+        payload: {
+          ok: true,
+          id: obligationId,
+          resolution: parsed.data.resolution,
+          eventId: r.eventId
+        }
+      };
     });
-    return {
-      status: 200,
-      payload: {
-        ok: true,
-        id: obligationId,
-        resolution: parsed.data.resolution,
-        eventId: r.eventId
-      }
-    };
   } catch (e) {
     if (e instanceof FocusWriteError) {
       return err(409, e.code, e.message);
@@ -126,7 +129,7 @@ const waitingBody = z
     condition: taskDependencyConditionSchema.optional()
   })
   .superRefine((b, ctx) => {
-    if (b.preId && b.taskId) {
+    if (b.preId !== undefined && b.taskId !== undefined) {
       ctx.addIssue({ code: "custom", message: "preId 与 taskId 互斥" });
     }
   });
@@ -144,33 +147,34 @@ export function setWaitingOnApi(
   if (b.preId === undefined && b.taskId === undefined) {
     return err(400, "invalid_input", "preId 或 taskId 必填其一(清等待传 {preId:null})");
   }
-
   try {
-    if (b.taskId !== undefined) {
-      const r = setObligationWaitingOnTask(db, {
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      if (b.taskId !== undefined) {
+        const r = setObligationWaitingOnTask(db, {
+          obligationId,
+          taskId: b.taskId,
+          condition: b.condition ?? "accepted",
+          actorKind: "user"
+        });
+        audit.record({
+          actor: "owner",
+          action: "obligation.waiting_on_task",
+          meta: { obligationId, taskId: b.taskId, condition: b.condition ?? "accepted", status: r.status }
+        });
+        return { status: 200, payload: { ok: true, id: obligationId, status: r.status } };
+      }
+      const r = setObligationWaitingOn(db, {
         obligationId,
-        taskId: b.taskId,
-        condition: b.condition ?? "accepted",
+        preId: b.preId ?? null,
         actorKind: "user"
       });
       audit.record({
         actor: "owner",
-        action: "obligation.waiting_on_task",
-        meta: { obligationId, taskId: b.taskId, condition: b.condition ?? "accepted", status: r.status }
+        action: "obligation.waiting_on",
+        meta: { obligationId, preId: b.preId ?? null, status: r.status }
       });
       return { status: 200, payload: { ok: true, id: obligationId, status: r.status } };
-    }
-    const r = setObligationWaitingOn(db, {
-      obligationId,
-      preId: b.preId ?? null,
-      actorKind: "user"
     });
-    audit.record({
-      actor: "owner",
-      action: "obligation.waiting_on",
-      meta: { obligationId, preId: b.preId ?? null, status: r.status }
-    });
-    return { status: 200, payload: { ok: true, id: obligationId, status: r.status } };
   } catch (e) {
     if (e instanceof FocusWriteError) {
       const st =
@@ -207,29 +211,31 @@ export function deferObligationApi(
   }
 
   try {
-    const r = withFocusWriteTx(db, {}, (ops) => {
-      db.prepare(
-        `UPDATE focus_obligations
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const r = withFocusWriteTx(db, {}, (ops) => {
+        db.prepare(
+          `UPDATE focus_obligations
          SET status = 'deferred', defer_reason = ?, due_or_trigger = COALESCE(?, due_or_trigger), updated_at = ?
          WHERE id = ?`
-      ).run(parsed.data.reason, parsed.data.dueOrTrigger ?? null, ops.nowIso, row.id);
-      return ops.appendEvent(row.focus_id, {
-        type: "obligation_deferred",
-        payload: {
-          obligationId: row.id,
-          title: row.title,
-          deferReason: parsed.data.reason,
-          ...(parsed.data.dueOrTrigger ? { dueOrTrigger: parsed.data.dueOrTrigger } : {})
-        },
-        actorKind: "user"
+        ).run(parsed.data.reason, parsed.data.dueOrTrigger ?? null, ops.nowIso, row.id);
+        return ops.appendEvent(row.focus_id, {
+          type: "obligation_deferred",
+          payload: {
+            obligationId: row.id,
+            title: row.title,
+            deferReason: parsed.data.reason,
+            ...(parsed.data.dueOrTrigger ? { dueOrTrigger: parsed.data.dueOrTrigger } : {})
+          },
+          actorKind: "user"
+        });
       });
+      audit.record({
+        actor: "owner",
+        action: "obligation.deferred",
+        meta: { obligationId, focusId: row.focus_id, eventId: r.id }
+      });
+      return { status: 200, payload: { ok: true, id: obligationId, status: "deferred", eventId: r.id } };
     });
-    audit.record({
-      actor: "owner",
-      action: "obligation.deferred",
-      meta: { obligationId, focusId: row.focus_id, eventId: r.id }
-    });
-    return { status: 200, payload: { ok: true, id: obligationId, status: "deferred", eventId: r.id } };
   } catch (e) {
     if (e instanceof FocusWriteError) return err(409, e.code, e.message);
     return err(409, "defer_failed", e instanceof Error ? e.message : String(e));

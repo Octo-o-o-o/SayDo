@@ -281,13 +281,22 @@
 | 风险 S3 | error 填充徽章 + `shield-alert`;S3 审批按钮永远是屏幕强认证样式(§5.4) |
 | content-risk high(Hopper 维,09 §7) | 同 blocked 处理 + 副文案"内容被判高风险,不会自动执行" |
 | route=tier1 / hopper | mono 小徽章 `T1` / `HP`,muted 色;仅任务详情显示(用户不需要懂路由) |
-| 成本 known | mono 数字 + "元";预算进度条用 ink→warning(80%)→error(100%)三段 |
+| 成本 known | 按 Money.currency 显示原币种mono数字(CNY元、USD美元或USD)，合法已知0保留币种；预算进度条用 ink→warning(80%)→error(100%)三段 |
 | 成本 unknown | 文本"还没有确切数字",**禁 0/禁空** |
 | 期待/Focus 级预算无来源 | 显式 unknown 形状;文案「还没有确切数字」;**禁渲染 0/0、¥0 / ¥0 或用 0 冒充未知**(PG-01B) |
-| 成本 subscription | 文本"订阅额度内(已用 N 次)",不折算金额 |
+| 成本 subscription | source=subscription 且 provenance=subscription 才显示“订阅额度内”；完整合法N才带“已用 N 次”，缺失/不完整如实标调用次数未提供/不完整，不折算金额 |
 | 回叫升级 L0/L1/L2 | `phone`/`monitor-speaker`/`bell-ring` 图标 + 时间线行,颜色恒 muted(历史记录不再警示) |
 | 记忆 trust 层 | user_stated=ink 描边;user_approved=success 描边;auto_low_impact=muted;candidate/third_party=faint + `flask-conical`(待复核) |
 | BYOA/api 供给 | T18b 已实施四槽 CLI:dialog 为 `mode="oneshot"` 慢速文本形态,其余三槽一发一收;console 不得出现“尚未接线/接入开发中”,必须按 probe 的实际 self-test 状态呈现 |
+
+
+成本明细、任务详情、ReviewPanel 与Cost页共用 [09 §9.1](09-data-contracts.md#91-全账本计费来源只读汇总2026-10-04-repair61-合同候选待独立一致性检查点) 的三态/来源规则及 `@saydo/contracts` 形状，不能仅按 source=subscription 自称零成本。external_api/unknown/legacy缺失或非法meta用“按该 CLI 的上游计费方式，SayDo 不代付”；可信订阅没有金额不是API金额未知，不显示¥0或猜剩余额度。已知API金额小计、未知金额笔数、订阅声明与上游声明分别保留，不能只显示已知小计就称完整总开销。
+
+Cost“全部”的金额与可选 byProject.billing 来自同一全账本只读快照；最新300条entries仅用于窗口明细/下钻/窗口图表与CSV，“窗口笔数”不是全账本调用N。旧server缺billing或非法/不完整billing显示“计费来源与调用次数未汇总”，旧unknownCount只标“未提供金额”，不改叫新的API未知计数。新billing的unknownMoneyEntries=null显示未知笔数未提供，不能显示0；subscriptionEntries>0且N=null只显示订阅额度内/调用次数不完整，不给局部N；subscriptionEntries=0不造已用0次。合法API0按币种保留；项目内与跨项目overflow/null传播照09 §9.1，跨项目同币种金额溢出不得显示部分和，未知笔数总量为null，各项目原准确计数仍保留。相应字段缺失/null/非法不由最近窗口补全。不将该汇总当当月预算，不混CNY/USD。
+
+本增量已通过 review31 具名canonical一致性检查点（PASS_SCOPE_ONLY）；repair62 已按同形状接线共享投影与billing读口，具名本地反例另记该轮证据。独立实现验收与全任务required仍待定，不据合同检查点或本地通过宣称完整交付。
+
+风险展示只接受读口明确提供的合法 S0–S3 等级。风险属于具体效果或收据（09 §3），TaskCard 合同（09 §6.1）不提供任务级风险；无合法来源时显示「风险等级未知」或隐藏等级徽章。缺失、null 或非法值不得默认成 S0/S1，也不得从任务状态或最大收据等级推导整项任务风险。此未知仅是只读 UI 投影的缺数据边界，不新增业务风险枚举、schema 或 DDL，不提供自动放行依据；已知合法等级的展示与 S3 独立强认证要求不变。
 
 ### 2.7 品牌朱使用准则(盖章语义;2026-08-13 建立)
 
@@ -309,13 +318,13 @@
 
 ### 2.7a 写死色值门禁(防回潮)
 
-`scripts/check-hardcoded-colors.mjs`(`.sh` 保留为 exec shim),接入 `package.json ci:node` 与 `justfile ci-node`。
+`scripts/check-hardcoded-colors.mjs`(`.sh` 保留为 exec shim)作为颜色相关变更时的按需检查，不接入默认 `ci:node` 或 `just ci-node`。
 
 - **范围**:`packages/console/src` 的 `.css/.ts/.tsx`,排除 `*.test.*` / `*.fixture.*`。
 - **拦**:hex(含 Tailwind 任意值类 `[#fff]`)、`rgb/rgba/hsl/hsla/oklch/oklab/lab/lch/hwb/color()`、以及 `.css` 文件里的 CSS 具名色(`color: red` 之流)。
 - **放行**:`color-mix(...)`(基色仍是 token,只做本地 alpha 派生)、`transparent` / `currentColor` / `inherit`,以及 `.tsx` 里把 `orange/blue/green/gray` 当**球权枚举键**的写法——所以具名色只在 `.css` 查,避免误伤。
 - **白名单**:只有 `packages/console/src/styles/tokens.css`。`mobile.css` **不在**白名单:2026-08-13 起它只做消费映射、已零字面色,给它豁免等于给回潮开门。
-- **自测**:`scripts/test-color-gate.sh`,21 项(11 项必红固件 + 9 项不得误伤 + 白名单 + 错误路径)。
+- **自测**:`node scripts/test-color-gate.mjs`，验证违规色值、合法 token、白名单与错误路径。
 
 新增颜色的正道:先在 `tokens.css` 里加语义 token 并回写本篇 §2.5,再在组件里 `var()` 消费。
 
@@ -333,7 +342,9 @@
 
 - **外壳**(2026-08-27 月度审计随实现回写;IA 演进史见 08 §6 修订):左侧栏(`--w-sidebar`,宣纸通底 `--bg-app` + 墨线分隔,树形导航="开口聊 CTA/今天/全景看板/正在持续的事/记录/旧版折叠",项目选择器沉底)+ 顶栏(52px,宣纸通底:语音会话指示器 + 通知铃 + 免打扰 + 主题切换)+ 内容区(最大宽 1600px 居中,gutter 20px;`8b74430` 08-06 起)。默认路由 `#/today`。
   - **DAILY-01 修订(2026-09-19)**:侧栏「全景看板」更名「泳道」,新增「安排」(`#/arrangements`)与「归档」(`#/archive`)两项;顶栏新增 ⌘K 命令菜单入口。Focus 页改按需页签(对话/产物/泳道/依赖/记录/上下文),`≥1100px` 常驻右栏约定废止;移动支线页加 工作/航迹/依赖 页签,`/m/arrangements`、`/m/archive` 为只读页。
+  - **主线与支线展示(2026-10-03 事实对齐)**:泳道页签同时展示主线与具名支线;未归支线的任务、义务保留在主线,新增支线不得让它们消失。此处只规定只读展示,不改变 `laneId` 或支线状态合同。
   - **JOURNEY-01 生产动作(2026-09-20,09 §15.2)**:Focus 页任务卡/决策包卡必须来自 `GET /api/focuses/:id`.tasks 与 `GET /api/tasks/:id`/`attention`/live 卡的同一 `taskId`/`packageId`+`revision`;批准只消费匹配该实体的确认卡,禁止用当前任意 `confirmCard`。采访应答走已归属本 focus 的会话 `turn.text` 或 readiness 卡,不用可编辑草稿冒充已答。`#/cost`「全部」合计用 `GET /api/costs`.byProject;明细窗口截断必须可见(09 §9)。移动航迹投影保留 `laneId`/`obligationId`(schema 已有,不得剥身份)。
+  - **看板三态一致性(2026-09-27 对账修复)**:列表与看板不得漏掉待验收/待确认/失败待处理任务,这些任务归「等你」并可打开;取消请求仍归进行中,不显示为已收尾。三态共用真实任务与完整义务投影,仅泳道视图的「需要你」格筛 human 开放义务;agent、external 和收尾义务不得在 loader 提前丢弃。安排页及移动只读页用 GET /api/obligations 的 `waitingOnTaskTitle` / `waitingOnObligationTitle`,标题缺失才回落 ID。
 - **画布**:`--bg-app` + 双光斑 + 细噪点(唯一装饰,照抄 OctoBlog `.canvas-atmosphere` 配方)。
 - **卡片即单位**:一切内容承载在纸面卡片(`--surface` + `--radius-md`/`lg` + `--line` + `--shadow-card`;组件为 `PaperCard`);票据类卡用 `--radius-ledger` 系不对称角。卡片不嵌卡片超过两层。**禁 `backdrop-filter`**——纸是清晰的,不做玻璃模糊。
 - **断点**:`≥1280` 双栏(对话页转写流+右栏草稿);`768–1279` 单栏可折叠侧栏;`<768` 移动式(侧栏抽屉、底部主操作)。D2 原生外壳(P1)复用同一套响应式,不另做设计。
@@ -372,9 +383,10 @@
 
 ### 5.5 review 证据视图(任务详情主体)
 
-- 按 `DecisionPackage.acceptance[]` 分组:每条 AC 一行 `AcceptanceCheck`(pass=`check`/fail=`x`/unknown=`circle-dashed`+"未验证",禁伪精确)。逐条状态只读 settle proof / 人工裁决的显式证据;`ready_for_review`、`failed` 等任务终态不得批量投影成 pass/fail。旧 proof、重复/缺失 criterion、或 pass/fail 缺非空 `evidenceRef` 一律显示 unknown。**证据正文**(2026-09-22):必须是该条 `evidenceRef` 所指的原始输出/文件差异/检查结果,由 `GET /api/tasks/:id` 在同任务、同 run 边界内受控解析;缺 ref、digest 不匹配、跨 run、无权、文件不在该 run 树内 = 诚实缺证。禁止把 runId/treeSha/attempt/status 拼成 log 冒称证据。**decisions 区已实施(W5a 2026-07-27)**:证据视图内 decisions 列表(每条=决策+理由+可推翻,≤5 条)读 `tier1_runs.decisions_json`——与语音口播同一落库份(09 §13 生产语义注)。
+- 按 `DecisionPackage.acceptance[]` 分组:每条 AC 一行 `AcceptanceCheck`(pass=`check`/fail=`x`/unknown=`circle-dashed`+"未验证",禁伪精确)。逐条状态只读 settle proof / 人工裁决的显式证据;`ready_for_review`、`failed` 等任务终态不得批量投影成 pass/fail。旧 proof、重复/缺失 criterion、或 pass/fail 缺非空 `evidenceRef` 一律显示 unknown。**证据正文**(2026-09-22):必须是该条 `evidenceRef` 所指的原始输出/文件差异/检查结果,由 `GET /api/tasks/:id` 在同任务、同 run 边界内受控解析;缺 ref、digest 不匹配、跨 run、无权、文件不在该 run 树内 = 诚实缺证。已绑定引用必须收到成功解析回执;缺回执或任意解析失败(包括新增原因码)均显示 unknown 并禁用批准,不得保留原 pass 或推断为逐条 fail。禁止把 runId/treeSha/attempt/status 拼成 log 冒称证据。**decisions 区已实施(W5a 2026-07-27)**:证据视图内 decisions 列表(每条=决策+理由+可推翻,≤5 条)读 `tier1_runs.decisions_json`——与语音口播同一落库份(09 §13 生产语义注)。
 - **延期设计(设计 ADR-005;非现役 Tier1 实现)**:路径二任务的证据主体 = 嵌 Hopper trust-report(自包含单文件,09/设计 ADR-001)。**嵌入合同(Codex 复审 A2/A4)**:`RunSettled.summary_path` 指向 `.md`——校验其在受信 vault 内(防越界路径)后**受控映射到同 basename 的 `.html`**(post-run 同时生成),文件缺失/扩展名异常按证据缺失处理;**展示层做确定性字符转换**(Hopper 报告内含 emoji,渲染前按映射表替换为 Lucide 图标/文本标记 + DOM 字符门禁),**原始文件原样留存、不改变证据 digest**——转换只发生在呈现层。
-- 操作行:验收通过(次按钮)/ 提修改(次按钮,文案"这轮不作废")/ **作废这轮**(危险描边,带二次确认对话框——§5.1 危险确认纪律;走取消链,10 #34)/ 合并(S3 组件;**批准前置灰**,§5.4 终局置灰同款)/ **我已合并,核验**(次按钮,归 S3 组件组)。零外部跳转(diff/日志深链仅工程排障入口,collapsed)。**writing 任务(R-A 补完 2026-07-27,Codex 21 A5)**:manual 验收项未逐条裁决前"验收通过"置灰(writingSettleBarrier ④,09 §6.1a);AcceptanceCheck 行提供逐条 pass/fail 勾选,勾选结果即 approve 载荷的一部分——settled ≠ 全绿,禁默认 pass 投影。
+- 验收动作同时受持久任务状态约束(不以派生 `viewStatus=parked` 替代):未到 `ready_for_review` / `review_approved_waiting_merge` 时禁用通过与合并,不得因未绑定条目为 unknown 而放开失败任务。
+- 操作行:验收通过(次按钮)/ 提修改(次按钮,文案"这轮不作废")/ **作废这轮**(危险描边,带二次确认对话框——§5.1 危险确认纪律;走取消链,10 #34)/ 合并(S3 组件;**批准前置灰**,§5.4 终局置灰同款)/ **我已合并,核验**(次按钮,归 S3 组件组)。零外部跳转(diff/日志深链仅工程排障入口,collapsed)。**writing 任务(R-A 补完 2026-07-27,Codex 21 A5)**:manual 验收项未逐条裁决前"验收通过"置灰(writingSettleBarrier ④,09 §6.1a);AcceptanceCheck 行提供逐条 pass/fail 勾选,本地裁决仅绑定当前 task、attempt、决策包与验收条目快照,切换任务或新尝试/条目变化后必须重新逐条判断;勾选结果即 approve 载荷的一部分——settled ≠ 全绿,禁默认 pass 投影。
 - **合并按钮语义(R-A 2026-07-26;S3 卡兑现后收窄;设计 ADR-004)**:`review_approved_waiting_merge` 态下——**主路径 = "用本机认证批准合并"**(S3 卡,§5.4;过卡→daemon 本地 rebase+verify+合并,09 §3.3);**"我已合并,核验"降级为次要入口**(仅未注册 passkey / owner 选人工时用,触发 MergeProof watcher 对账外部合并)。coding 与 writing(content_done 态)同构此操作行;writing 的"合并"= 文章稿并回主分支(02 §5.0)。
 
 ### 5.6 转写流(对话页)
@@ -513,7 +525,7 @@ shadcn 原样(Input/Select/Switch/Tabs);设置页每项带一句 muted 说明;�
 
 对话页布局分两区,**恒定上下关系**:上 = **消息流**(转写流 §5.6,历史往上滚)、下 = **输入区**(常驻底部)——两区物理分离,消息(AI 输出/用户已发轮)只进消息流、**绝不渲染进输入区**(修场次① "Output 叠 Input" bug:§5.6 消息流内部 AI 句与用户轮按到达序 `seq` 交错,非两列表拼接)。输入区规格:
 
-- **四态 × 双动作**:① 待命(麦克风按钮 + 文本框 + 模式切换;点麦或按住空格进录音,直接打字回车发)② **录音中**(实时电平 + 计时 mono + 结束三选:「**发送**」主按钮(动作 A·直接发送;松开空格同义)/「**转文字改一改**」次按钮(动作 B·转写编辑)/「取消」(Esc 同义,彻底丢弃——不进对话、不打扰 AI,daemon 侧走 hold 语义零痕迹)③ **转写中**(仅 B 档占输入区:「转写中…」显式等待反馈 + 可先打字;**任何异步等待必须有状态呈现,禁止静默等待**)④ **待确认**(仅 B 档:可编辑转写 + "发送"主按钮 + "重录";提示明示"这里的内容 AI 还看不到")。
+- **四态 × 双动作**:① 待命(麦克风按钮 + 文本框 + 模式切换;点麦或按住空格进录音,直接打字回车发；输入法组词确认的 Enter 不发送)② **录音中**(实时电平 + 计时 mono + 结束三选:「**发送**」主按钮(动作 A·直接发送;松开空格同义)/「**转文字改一改**」次按钮(动作 B·转写编辑)/「取消」(Esc 同义,彻底丢弃——不进对话、不打扰 AI,daemon 侧走 hold 语义零痕迹)③ **转写中**(仅 B 档占输入区:「转写中…」显式等待反馈 + 可先打字;**任何异步等待必须有状态呈现,禁止静默等待**)④ **待确认**(仅 B 档:可编辑转写 + "发送"主按钮 + "重录";提示明示"这里的内容 AI 还看不到")。
 - **动作 A·直接发送(主路径,低摩擦)**:松开即发——消息流**立刻**插入语音气泡占位「语音 mm:ss · 转写中…」(已发出语义先行),转写到达后同气泡替换为文字(保留时长标签),同时"思考中…"出现(Brain 开跑);空转写/超时 ⇒ 气泡置失败态「没听清(转写失败),请重说」。**转写去向唯一**:A 档只进消息流。
 - **动作 B·转写编辑(纠错通道)**:转写**只进输入框**(绝不进消息流、不触发思考中),用户改字后发送才进对话(10 #8/#9 纠错链);转写中已打字则后到转写不覆盖;空转写/超时 ⇒ 显式错误条「没听清——重说一次,或直接打字」。
 - **免手档(hands_free)**:VAD 自动断轮天然直发语义(A 档),不变。
@@ -535,7 +547,7 @@ shadcn 原样(Input/Select/Switch/Tabs);设置页每项带一句 muted 说明;�
 | 四色收件箱条目 | 左色条(橙/蓝/绿/灰)+标题+Focus 归属+needs 标签;绿/灰带「知道了」(ack),橙/蓝无 ack(源数据驱动消失) | ② |
 | 任务状态 chip | CHIP_TABLE 16 呈现态四联映射(状态→颜色→图标→文案)全站唯一渲染表,消费 TaskRowView.viewStatus,禁读原始 status | ② |
 | 球权徽章 | owner 三色(我来做/需要你/外部);数字徽章全站单源=attention,openByOwner 仅文字描述 | ② |
-| 决策包卡 | 做出来什么样/做不做/每步谁做/验收标准/成本熔断/预授权(所闻即所签)/怎么跑现役仅逐步确认(每步问你);直达验收档 designed/deferred,不提供现役 selector,旧 `selectedMode=direct_to_review` fail-closed 不可拍板(PG-01B);「看小样」动作(s1 批 08-20)打开 DemoFrame 内联预览。**证据边界**:`demoRef`=生成可查看(按钮可点);点「看小样」并完成内联渲染=实际已展示;对话 `screen_text` 提示送达不是展示回执,不得把提示成功写成已上屏(09 §2/§13;10 #10) | ③b |
+| 决策包卡 | 做出来什么样/做不做/每步谁做/验收标准/成本熔断/预授权(所闻即所签)/怎么跑现役仅逐步确认(每步问你);直达验收档 designed/deferred,不提供现役 selector,旧 canonical `mode=direct_to_review` 必须保留并 fail-closed 不可拍板(PG-01B);`selectedMode` 仅 UI 兼容投影,不得覆盖合法 canonical `mode`(尤其不能用 `selectedMode=step_confirm` 放行旧 direct 包);「看小样」动作(s1 批 08-20)打开 DemoFrame 内联预览。**证据边界**:`demoRef`=生成可查看(按钮可点);点「看小样」并完成内联渲染=实际已展示;对话 `screen_text` 提示送达不是展示回执,不得把提示成功写成已上屏(09 §2/§13;10 #10) | ③b |
 | DemoFrame | 决策包「看小样」内联渲染(s1-demo-wiring 批 `5c48eb4`,08-20):iframe `sandbox=""` 零 allow 渲染 srcdoc,产物版本经 `/api/artifacts/:id/versions/:version` 拉取;红线=沙箱零权限、token 不进 URL;另有「在产物库查看」链接。现役不自动开窗、无展示 ACK;未点击则未展示 | s1 |
 | 确认卡 | kind 枚举与 daemon 同源(`@saydo/contracts` `CONFIRM_KINDS`,GAP-02 2.1),表外 kind 显示通用「确认」前缀;`memory` 行 = 普通 M0 记忆提议(SD-2):前缀「记忆 · 信息确认 · 不是授权」,按钮「记 / 不用记」,超时不记(过期即丢);倒计时;「也可以直接开口回答」;超时语义按 v0.4 落账机制 | ③b |
 | 进度对齐卡 | AI 主动对账:决策包步进/产物计数/下一步在谁 | ③a |
@@ -614,7 +626,7 @@ P0 提供:亮/暗/跟随系统 + 免打扰,以及§3已实施的舒适/紧凑密
 ## 12. 工程落地与门禁
 
 - token 文件:`packages/console/src/styles/tokens.css`(与本篇 §2 同步,PR 里两处一起改);Tailwind 经 `@theme` 消费同一组变量;移动 `mobile.css` 只做消费映射,不得自定义色值/字号。
-- **写死色值 CI 门禁**:`node scripts/check-hardcoded-colors.mjs`(口径与白名单见 §2.7a),自测 `scripts/test-color-gate.mjs`(`1482510` 08-22 Windows 对齐批 .sh→.mjs,.sh 保留为 shim);两者已接入 `ci:node` 与 `just ci-node`。
+- **写死色值按需检查**:`node scripts/check-hardcoded-colors.mjs`(口径与白名单见 §2.7a)，自测 `node scripts/test-color-gate.mjs`；颜色相关变更时执行，不接入默认 `ci:node` 或 `just ci-node`。
 - **禁 emoji CI 门禁(0.1 脚手架即接)**:对 git 追踪的全部文本文件跑
   `rg -nP "[\p{Emoji_Presentation}\x{FE0F}\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}]" --glob '!node_modules'`,
   命中即 CI 红;无豁免清单。HTML/Markdown numeric entity 与 HTML script 的 Unicode escape
@@ -625,13 +637,14 @@ P0 提供:亮/暗/跟随系统 + 免打扰,以及§3已实施的舒适/紧凑密
 - 视觉回归:Phase 5 起 Playwright 截图基线(亮暗各 11 页),token 改动必须重录基线。
   - **2026-08-23 复验:历史红灯已解除。**`open()` 显式复现用户选择「先随便看看」,Fresh HOME 的首启专项仍穿真实向导;路由断言按正式 Today / Focus IA 对齐,云语音交互用带身份与 HOME digest 的测试 pipeline,停靠 fixture 不再使用会随墙钟过期的日期。`pnpm exec playwright test e2e/console` 实测 **35 passed**,亮暗各 11 页截图成功重录。2026-08-13 的 29 failed / 3 passed 是历史装配缺口,不得再当现势。
 
-### 12.1 默认 UI 动作登记(PG-02 C3,2026-09-06)
+### 12.1 默认 UI 动作登记(PG-02,2026-09-23 续接)
 
-默认 UI 中任何会发起写请求的入口必须在 action ledger 登记;未登记入口不得出现在生产导航。写请求判定口径的 canonical 落点属 PG-02 真相控制面,当前在途,09 尚无对应章节;落地后形状冲突以 09 为准,本小节不复述细则。
+默认 UI 中任何会发起写请求的入口必须在 action ledger 登记;未登记入口不得出现在生产导航。写请求判定口径见 09 §18;形状冲突以 09 为准,本小节不复述细则。
 
 - `#/dev-components`、`#/dev-pages` 是 dev-only 走查页:不进分母,且不得进生产导航。
+- 已经进入 `App.tsx` 生产 `Page` 分支的 JOURNEY / White 页面,只要发起写请求,就用同一分母。不因为视觉方向不同而另造豁免,也不把未接线占位写成已登记动作。
 
-文案上限沿用 §10.3 与 [06 §8](06-references.md) 的状态词上限,本节不新增文案规则。
+文案上限沿用 §10.3 与 [06 §8](06-references.md)。本节不新增文案规则,不改公开页面。
 
 ## 13. 与其他文档的关系
 
@@ -640,7 +653,16 @@ P0 提供:亮/暗/跟随系统 + 免打扰,以及§3已实施的舒适/紧凑密
 | 10 语音 UX | 口播话术/状态词/数字纪律(本篇的文案层引用它) |
 | 08 §6 / modules/d-presentation | 信息架构与页面清单(本篇管每页长什么样) |
 | 09 §7 | 状态枚举真相源(§2.6 映射表的键);公开声明四态不是该枚举 |
-| 09 真相控制面(PG-02 在途) | 默认 UI 写动作判定口径的 canonical 落点;本篇 §12.1 只立登记义务,口径落地后冲突以 09 为准 |
+| 09 §18 真相控制面(PG-02 待验收) | 默认 UI 写动作判定口径的 canonical 落点;本篇 §12.1 只立登记义务,口径落地后冲突以 09 为准 |
 | 06 §7 | 公开声明四态、证据四事实与 Q0 报告合同;本篇 §10.3 是其文案上限 |
 | 05 §4 | review 面最小交付线(§5.5 是其视觉合同) |
 | OctoBlog tokens.css | token 上游参照(同名同值起步,分叉时本篇为 SayDo 真相源) |
+
+
+### 最近记忆入口（2026-09-27 审计补充）
+
+记录区的记忆库在无项目时打开 `#/memory`，读取既有本机 `/api/memory/recent`，只读显示跨项目和未关联项目的最近30条活跃投影，并保留 tier/trust。项目记忆页保留原批准/拒绝语义，同时提供“查看最近记忆”入口。最近投影不冒称全量记忆，M0仍在全局设置管理；不扩展远程业务权限。
+
+### 桌面最近对话回看(2026-09-27)
+
+对话页提供可折叠的“查看最近对话”只读入口，复用 `/api/sessions/recent-transcript?limit=40`。明确为最近一次会话的历史转写、可能来自其他项目；与当前会话分区，不冒充续聊、不自动提交给模型、不作为记忆权威。空列表与读取失败分别显示，无落盘内容时不得伪造历史。

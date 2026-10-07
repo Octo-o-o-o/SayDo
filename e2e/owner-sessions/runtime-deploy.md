@@ -1,5 +1,7 @@
 # 常驻 runtime 部署与回滚运行册
 
+> 2026-10-07 入口更新：旧 `scripts/runtime-preflight.sh` 已退役。按实际部署模式使用 `saydo doctor`、`saydo status` 与 health/readyz 诊断，并人工核对目标 SHA、磁盘 clean、runtime 路径、daemon/pipeline loaded SHA、stateRootDigest 和健康新鲜度。诊断不等价于旧预检；真人语音场次仍须实际 voice ready。旧 release-config digest 是历史验收格式，不得伪造或从 doctor 输出冒取；新场次需记录实际有效配置核对证据，配置变化仍使既有场次结果失效。
+
 > 用途:把已经 commit、评审和门禁通过的 SayDo SHA 部署到 `~/.saydo/runtime`。
 > `just daemon deploy` 会切换并重启 daemon 与 pipeline；dogfood 会话进行中不部署。
 
@@ -72,25 +74,25 @@ just daemon deploy <target-SHA>
 ## 3. 部署后验证
 
 ```bash
-scripts/runtime-preflight.sh <40位-target-SHA>
+saydo doctor
+saydo status
 sqlite3 ~/.saydo/saydo.db 'PRAGMA quick_check;'
 ```
 
-再检查 pipeline 日志出现重连成功，跑一条不派发、不消费审批的语音连接 smoke。全部通过后记录：
+按实际部署地址检查 health/readyz，人工核对目标 SHA、磁盘 clean、runtime 路径、进程 loaded SHA、stateRootDigest 与健康新鲜度。启用语音的部署还需检查 pipeline 重连成功，跑一条不派发、不消费审批的语音连接 smoke；真人语音场次必须 voice ready。按实际运行模式核验后记录：
 
 | 字段 | 记录 |
 |---|---|
 | deployed runtime SHA | 待填 |
-| release config digest | 待从 preflight 原样记录 |
+| 有效配置核对证据 | 待人工核对并记录；旧 release config digest 字段仅属历史格式 |
 | daemon health + loaded SHA | 待填 |
 | pipeline loaded SHA + fresh health | 待填 |
 | database quick_check | 待填 |
 | smoke | 待填 |
 
-`release config digest` 覆盖全局 `config.toml`、`.env`（只进入摘要，不打印内容）、daemon/
+旧 `release config digest` 格式曾覆盖全局 `config.toml`、`.env`（只进入摘要，不打印内容）、daemon/
 pipeline plist、数据库内全部 `project_settings`，以及数据库已登记 workspace 中实际存在的
-`.saydo/project.toml`。四场间其中任一项变化都会改变 digest；项目运行数据、session/任务/
-artifact 变化不计入该摘要。
+`.saydo/project.toml`。旧生成入口已退役，不得将 doctor 输出冒充该摘要。新场次须人工核对上述有效配置并记录证据，不打印 `.env` 等敏感原文；四场间任一有效配置变化仍使既有场次结果失效。项目运行数据、session/任务/artifact 变化不属于有效配置变化。
 
 ## 4. 失败回滚
 

@@ -228,7 +228,7 @@ const OB_STATUS_LABEL: Record<string, string> = {
 /** 泳道页签:支线 × 义务/任务(只读呈现;结构操作在「记录」页) */
 function LanesTab({ view }: { view: FocusPageView }) {
   const obs = view.rail.obligations;
-  const lanes = view.lanes.length ? view.lanes : [{ id: "__main__", title: "主线" }];
+  const lanes = [{ id: "__main__", title: "主线", retired: false }, ...view.lanes];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }} data-focus-tab="lanes">
       {lanes.map((lane) => {

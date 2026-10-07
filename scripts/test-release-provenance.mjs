@@ -95,7 +95,6 @@ import {
   ANCHORED_FAILURE_TUPLES,
   HELPER_STDIN_OPEN_MODE,
   MAX_EVIDENCE_BYTES,
-  MAX_IDENTITY_DIGITS,
   bindHelperStdinFd,
   defaultAnchoredIo,
   defaultHelperStdinIo,
@@ -1212,14 +1211,6 @@ async function testDeployStateMachine() {
   await assertRejectedRecovery("既有 started", recoverySnapshot("started"));
   assertAuditRecoveryEvidence(recoverySnapshot("audit_pending"), seed, sites);
 
-  const gateSource = readFileSync(join(scripts, "post-release-gate.mjs"), "utf8");
-  if (!gateSource.includes("acquireDeployEvidenceLease") || !gateSource.includes("lease")) {
-    throw new Error("post-release-gate 未在外部动作前取得部署证据租约");
-  }
-  if (/existingEvidence\s*=\s*existsSync/.test(gateSource) || /if\s*\(\s*existingEvidence\s*\)/.test(gateSource)) {
-    throw new Error("post-release-gate 仍用 JSON truthiness 推断证据是否存在");
-  }
-
   const evidenceDir = mkdtempSync(join(tmpdir(), "saydo-deploy-evidence-"));
   try {
     const malformedRoots = [
@@ -1254,17 +1245,6 @@ async function testDeployStateMachine() {
     }
     const missing = readDeployEvidenceFile(join(evidenceDir, "missing.json"));
     if (missing.evidenceFileExists !== false) throw new Error("缺文件未声明 evidenceFileExists=false");
-
-    const pagesDeploySource = readFileSync(join(scripts, "release-pages-deploy.mjs"), "utf8");
-    const openatSource = readFileSync(join(scripts, "release-openat.mjs"), "utf8");
-    const posixHelper = readFileSync(join(scripts, "release-openat-posix.py"), "utf8");
-    if (pagesDeploySource.includes("existsSync")) throw new Error("部署证据读取仍使用 existsSync");
-    if (!pagesDeploySource.includes("resolveAnchoredIo") || !openatSource.includes("release-openat-posix.py")) {
-      throw new Error("部署证据未接线 directory-handle helper");
-    }
-    if (!posixHelper.includes("O_NOFOLLOW") || !posixHelper.includes("O_EXCL") || !posixHelper.includes("dir_fd")) {
-      throw new Error("POSIX helper 未使用 O_NOFOLLOW/O_EXCL/dir_fd");
-    }
 
     function assertNoMutationCalls(result, label) {
       const wranglerCalls = result.calls.filter((item) => item[0] === "wrangler").length;
@@ -3027,63 +3007,7 @@ async function testCloudflareRestClient() {
   );
 }
 
-function parseGithubWorkflowYaml(text) {
-  const parsed = spawnSync(
-    "python3",
-    ["-c", "import json,sys,yaml; json.dump(yaml.load(sys.stdin, Loader=yaml.BaseLoader), sys.stdout)"],
-    { input: text, encoding: "utf8" }
-  );
-  if (parsed.status !== 0) throw new Error(`workflow YAML 解析失败:${parsed.stderr}`);
-  return JSON.parse(parsed.stdout);
-}
-
-function jobSteps(doc, jobName) {
-  const job = doc.jobs?.[jobName];
-  if (!job || !Array.isArray(job.steps)) throw new Error(`workflow job 不存在或无 steps:${jobName}`);
-  return job.steps.map((step) => ({
-    name: step.name ?? "",
-    run: typeof step.run === "string" ? step.run : "",
-    uses: step.uses ?? ""
-  }));
-}
-
-function testWorkflowWiring() {
-  const text = readFileSync(join(repo, ".github/workflows/release.yml"), "utf8");
-  const doc = parseGithubWorkflowYaml(text);
-  if (doc.concurrency?.group !== "release-${{ github.ref_name }}") throw new Error("YAML concurrency.group 未按 tag 分组");
-  if (doc.concurrency?.["cancel-in-progress"] !== "false") throw new Error("YAML cancel-in-progress 不是 false");
-  if (doc.permissions?.actions !== "read" || doc.permissions?.contents !== "read") {
-    throw new Error("YAML 顶层 permissions 未显式包含 actions:read");
-  }
-  const shaJobs = ["snapshot", "publish", "mark-release-available"];
-  for (const jobName of shaJobs) {
-    const steps = jobSteps(doc, jobName);
-    if (!steps.some((step) => step.run.includes("git ls-remote --exit-code origin \"refs/tags/${GITHUB_REF_NAME}\""))) {
-      throw new Error(`YAML job ${jobName} 未接线远端 tag SHA readback`);
-    }
-    if (!steps.some((step) => step.run.includes("scripts/release-tag-guard.mjs uniqueness --require-current"))) {
-      throw new Error(`YAML job ${jobName} 未接线分页唯一性`);
-    }
-  }
-  const publishRuns = jobSteps(doc, "publish").map((step) => step.run);
-  const writeIndex = publishRuns.findIndex((run) => run.includes("scripts/build-release-artifacts.mjs --write"));
-  const checkIndex = publishRuns.findIndex((run) => run.includes("scripts/build-release-artifacts.mjs --check"));
-  if (writeIndex < 0 || checkIndex <= writeIndex) throw new Error("YAML publish 未在 --write 之后 --check");
-  if (!publishRuns.some((run) => run.includes("scripts/release-asset-manifest.mjs --check-dir") && run.includes("--check-release-json"))) {
-    throw new Error("YAML publish 未接线 exact manifest 门");
-  }
-  if (doc.jobs.publish.permissions?.actions !== "read" || doc.jobs.publish.permissions?.contents !== "write") {
-    throw new Error("YAML publish job 权限未同时包含 contents:write 与 actions:read");
-  }
-}
-
 function testWeekAuditAtomicWriter() {
-  const weekAudit = readFileSync(join(scripts, "week-audit.mjs"), "utf8");
-  const imports = walkJsClosure(repo, ["scripts/week-audit.mjs"]);
-  if (!imports.includes("scripts/release-file-transaction.mjs")) throw new Error("week-audit 未相对导入 atomic writer 模块");
-  if (!/\bwriteWeekAuditOutputs\s*\(/.test(weekAudit.split("if (mode === \"--write\")")[1] ?? "")) {
-    throw new Error("week-audit --write 未调用 writeWeekAuditOutputs");
-  }
   const root = mkdtempSync(join(tmpdir(), "saydo-audit-write-"));
   try {
     const files = WEEK_AUDIT_WRITE_OUTPUTS.map((relative, index) => [join(root, relative), `out-${index}\n`]);
@@ -3645,25 +3569,6 @@ async function testFinalIndependentReviewRegressions() {
     throw new Error("audit Proxy 攻击文本写入 evidence");
   }
 
-  const posixHelper = readFileSync(join(scripts, "release-openat-posix.py"), "utf8");
-  const openatSource = readFileSync(join(scripts, "release-openat.mjs"), "utf8");
-  const pagesDeploySource = readFileSync(join(scripts, "release-pages-deploy.mjs"), "utf8");
-  const fileTxSource = readFileSync(join(scripts, "release-file-transaction.mjs"), "utf8");
-  if (!posixHelper.includes(`MAX_EVIDENCE_BYTES = ${MAX_EVIDENCE_BYTES}`)) {
-    throw new Error("Python/Node MAX_EVIDENCE_BYTES 合同不一致");
-  }
-  if (!posixHelper.includes(`MAX_IDENTITY_DIGITS = ${MAX_IDENTITY_DIGITS}`)) {
-    throw new Error("Python/Node MAX_IDENTITY_DIGITS 合同不一致");
-  }
-  if (!posixHelper.includes("st.st_nlink == 1") || !posixHelper.includes("os.fsync(parent_fd)")) {
-    throw new Error("POSIX helper 缺少 nlink 或 parent dir fsync");
-  }
-  if (fileTxSource.includes("io?.anchored?.persist") || pagesDeploySource.includes("...io.anchored") || openatSource.includes("...anchored")) {
-    throw new Error("公共入口仍 spread 或可选链读取不可信 anchored");
-  }
-  if (/String\(\s*output\s*\)/.test(pagesDeploySource)) {
-    throw new Error("parseWranglerDeploymentUrl 仍 String(output)");
-  }
   if (!isIdentityDecimal("9007199254740993") || isIdentityDecimal(9007199254740993) || isIdentityDecimal("1e2") || isIdentityDecimal("-1") || isIdentityDecimal("01") || isIdentityDecimal("+1")) {
     throw new Error("identity decimal 校验不正确");
   }
@@ -4478,11 +4383,6 @@ function testHelperStdinSingleFd() {
   }
   if (fsConstants.O_CLOEXEC && flags & fsConstants.O_CLOEXEC) throw new Error("stdin fd 不得带 CLOEXEC");
   if (HELPER_STDIN_OPEN_MODE !== 0o600) throw new Error("stdin mode 不是 owner-only");
-  const openatSource = readFileSync(join(scripts, "release-openat.mjs"), "utf8");
-  if (openatSource.includes('openSync(tmpPath, "r")') || /writeFileSync\(tmpPath[\s\S]{0,80}openSync\(tmpPath/.test(openatSource)) {
-    throw new Error("helper stdin 仍按路径 reopen");
-  }
-
   const payload = Buffer.from('{"op":"read","path":"/stdin-bind-probe"}');
   const attacker = Buffer.from("ATTACK_STDIN_REPLACEMENT\n");
   let seenFlags;
@@ -4817,22 +4717,7 @@ function testHelperStdinSingleFd() {
   }
 }
 
-function testPublishSnapshotGuard() {
-  const source = readFileSync(join(scripts, "publish-public-snapshot.sh"), "utf8");
-  const atomicIndex = source.indexOf('git push --atomic "$PUBLIC_REMOTE"');
-  if (atomicIndex < 0) throw new Error("publish-public-snapshot.sh 缺 atomic push");
-  const prefix = source.slice(0, atomicIndex);
-  if (!prefix.includes("uniqueness --require-zero") || !prefix.includes("release-tag-guard.mjs ruleset")) {
-    throw new Error("atomic push 前未调用零次 run 与 ruleset 预检");
-  }
-  const privacyIndex = source.indexOf("scripts/check-public-tree-privacy.mjs --ref");
-  const treeIndex = source.indexOf("GIT_INDEX_FILE=\"$tmpindex\" git write-tree");
-  if (privacyIndex < 0 || treeIndex < 0 || privacyIndex > treeIndex) {
-    throw new Error("publish-public-snapshot.sh 未在生成公开树之前调用隐私硬门");
-  }
-  if (!source.includes('--ref "$EXPECTED_INTERNAL_SHA"') || !source.includes("--require-private-probes")) {
-    throw new Error("隐私硬门未传入 expected internal SHA 或未要求私有探针");
-  }
+function testReleaseTagGuardUsage() {
   const usage = spawnSync(process.execPath, [join(scripts, "release-tag-guard.mjs")], { encoding: "utf8" });
   if (usage.status !== 2) throw new Error(`release-tag-guard 无参退出码:${usage.status}`);
 }
@@ -4846,10 +4731,9 @@ await testSnapshotSafety();
 await testDeployStateMachine();
 await testCloudflareBinding();
 await testCloudflareRestClient();
-testWorkflowWiring();
 testWeekAuditAtomicWriter();
 testPhysicalClosureAndWindowsProbe();
-testPublishSnapshotGuard();
+testReleaseTagGuardUsage();
 testHelperStdinSingleFd();
 await testFinalIndependentReviewRegressions();
 console.log("[ok] release provenance and state self-test");

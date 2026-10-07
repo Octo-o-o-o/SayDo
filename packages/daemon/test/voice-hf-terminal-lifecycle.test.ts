@@ -712,7 +712,10 @@ describe("Hub 上的 HF 终态", () => {
         captureMode: "hands_free",
         recognitionOutcome: "ok"
       };
+      // 真实console接收是本断言的因果前提；30ms定时不能代替WS消息已到达。
+      const firstFinalSeen = nextJson(consolePeer.ws, (msg) => msg["t"] === "asr.final" && msg["sessionId"] === sid && msg["turnId"] === turnA && msg["text"] === "A的原话", "console did not receive first final");
       pipeline.ws.send(JSON.stringify(finalA));
+      await firstFinalSeen;
       await settle();
       expect(brains).toEqual([{ text: "A的原话", speechGen: 0 }]);
       expect(seen).toEqual(["A的原话"]);

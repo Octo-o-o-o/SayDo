@@ -1,9 +1,10 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   assertExactTestRootsGone,
+  currentTestRunId,
   exactRootsDir,
   isOwnedTestRoot,
   registerExactTestRoot,
@@ -86,5 +87,92 @@ describe("exact-test-roots 先断言后清扫", () => {
     mkdirSync(saydoDir);
     expect(isOwnedTestRoot(saydoDir, plainTmp, plainTmp)).toBe(true);
     expect(isOwnedTestRoot(plainTmp, plainTmp, plainTmp)).toBe(false);
+  });
+});
+
+
+describe("登记清单不能遗忘同进程的旧根", () => {
+  function sandbox() {
+    const hostTmp = mkdtempSync(join(tmpdir(), "saydo-exact-register-"));
+    const oldRoot = mkdtempSync(join(hostTmp, "old-"));
+    const newRoot = mkdtempSync(join(hostTmp, "new-"));
+    const file = join(exactRootsDir(hostTmp), `${String(process.pid)}.json`);
+    return { hostTmp, oldRoot, newRoot, file, cleanup: () => rmSync(hostTmp, { recursive: true, force: true }) };
+  }
+
+  it("首次建立、多次追加及重复登记都保留旧集合；泄漏先失败再清扫", () => {
+    const f = sandbox();
+    try {
+      registerExactTestRoot(f.oldRoot, f.hostTmp);
+      registerExactTestRoot(f.newRoot, f.hostTmp);
+      registerExactTestRoot(f.oldRoot, f.hostTmp);
+      expect(JSON.parse(readFileSync(f.file, "utf8"))).toEqual({
+        runId: currentTestRunId(), paths: [f.oldRoot, f.newRoot]
+      });
+      rmSync(f.newRoot, { recursive: true });
+      expect(existsSync(f.oldRoot)).toBe(true);
+      expect(() => assertExactTestRootsGone(f.hostTmp)).toThrow(/测试根未回收/u);
+      expect(existsSync(f.oldRoot)).toBe(false);
+      expect(() => assertExactTestRootsGone(f.hostTmp)).not.toThrow();
+    } finally { f.cleanup(); }
+  });
+
+  it.each([
+    { label: "JSON语法损坏", invalid: () => "{bad" },
+    { label: "paths形状损坏", invalid: () => JSON.stringify({ runId: currentTestRunId(), paths: "unknown" }) },
+    { label: "paths夹杂非字符串", invalid: (old: string) => JSON.stringify({ runId: currentTestRunId(), paths: [old, 7] }) },
+    { label: "run归属不一致", invalid: (old: string) => JSON.stringify({ runId: "another-run", paths: [old] }) }
+  ])("$label 时登记必须拒绝且保持原字节", ({ invalid }) => {
+    const f = sandbox();
+    try {
+      registerExactTestRoot(f.oldRoot, f.hostTmp);
+      const damaged = Buffer.from(invalid(f.oldRoot));
+      writeFileSync(f.file, damaged);
+      expect(() => registerExactTestRoot(f.newRoot, f.hostTmp)).toThrow();
+      expect(readFileSync(f.file)).toEqual(damaged);
+      rmSync(f.newRoot, { recursive: true });
+      expect(existsSync(f.oldRoot)).toBe(true);
+      expect(() => assertExactTestRootsGone(f.hostTmp)).toThrow(/测试根未回收/u);
+    } finally { f.cleanup(); }
+  });
+
+  it.each(["array", "object"] as const)("合法legacy %s 登记保留旧根并由原归属门清扫", (shape) => {
+    const f = sandbox();
+    try {
+      mkdirSync(exactRootsDir(f.hostTmp), { recursive: true });
+      writeFileSync(f.file, JSON.stringify(shape === "array" ? [f.oldRoot] : { paths: [f.oldRoot] }));
+      registerExactTestRoot(f.newRoot, f.hostTmp);
+      expect(JSON.parse(readFileSync(f.file, "utf8"))).toEqual({
+        runId: currentTestRunId(), paths: [f.oldRoot, f.newRoot]
+      });
+      rmSync(f.newRoot, { recursive: true });
+      expect(() => assertExactTestRootsGone(f.hostTmp)).toThrow(/测试根未回收/u);
+      expect(existsSync(f.oldRoot)).toBe(false);
+      expect(() => assertExactTestRootsGone(f.hostTmp)).not.toThrow();
+    } finally { f.cleanup(); }
+  });
+
+  it("实际读取失败不能退回空清单写入；已有目录与哨兵字节保持", () => {
+    const f = sandbox();
+    try {
+      mkdirSync(f.file, { recursive: true });
+      const sentinel = join(f.file, "keep.txt");
+      writeFileSync(sentinel, "原读失败对象");
+      expect(() => registerExactTestRoot(f.newRoot, f.hostTmp)).toThrow(/测试根清单读取失败/u);
+      expect(lstatSync(f.file).isDirectory()).toBe(true);
+      expect(readFileSync(sentinel, "utf8")).toBe("原读失败对象");
+    } finally { f.cleanup(); }
+  });
+
+  it.skipIf(process.platform === "win32")("悬空链接并非文件缺失，不得新建链接指向的清单", () => {
+    const f = sandbox();
+    try {
+      mkdirSync(exactRootsDir(f.hostTmp), { recursive: true });
+      const absentTarget = join(f.hostTmp, "missing-target.json");
+      symlinkSync(absentTarget, f.file);
+      expect(() => registerExactTestRoot(f.newRoot, f.hostTmp)).toThrow(/测试根清单读取失败/u);
+      expect(lstatSync(f.file).isSymbolicLink()).toBe(true);
+      expect(existsSync(absentTarget)).toBe(false);
+    } finally { f.cleanup(); }
   });
 });

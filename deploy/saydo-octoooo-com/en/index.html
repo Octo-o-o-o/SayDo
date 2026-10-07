@@ -1061,7 +1061,7 @@ function guideLanguage(value,persist=true){
  root.dataset.lang=value==='en'?'en':'zh';root.lang=root.dataset.lang==='en'?'en':'zh-CN';
  if(persist)save('saydo-site-lang',root.dataset.lang);
  translate();document.title=t('快速开始 — SayDo','Quick start — SayDo');
- $('meta[name=description]').content=t('在自己的电脑上安装 SayDo，连接已有 AI 供给，开始第一段对话。macOS、Windows、Linux 安装命令与首次设置说明。','Install SayDo on your computer, connect an AI supply, and begin a conversation. macOS, Windows and Linux commands, first-run setup and troubleshooting.');
+ $('meta[name=description]').content=t('在自己的电脑上安装 SayDo，连接已有 AI 供给，开始第一段对话。GitHub Release 开发预览版：macOS、Windows、Linux 安装命令与首次设置说明。','Install SayDo on your computer, connect an AI supply, and begin a conversation. GitHub Release developer preview: macOS, Windows and Linux commands, first-run setup and troubleshooting.');
  $('#language').setAttribute('aria-label',t('Switch to English','切换为简体中文'));$('#language').title=t('Switch to English','切换为简体中文');
  guideTheme(root.dataset.preference,false);syncGuideMenu();renderGuide();
 }

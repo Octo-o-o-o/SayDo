@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -152,6 +152,23 @@ describe("codex app-server entries", () => {
     const decline = fake.frames().find((frame) => frame["id"] === "srv-1");
     expect(decline?.["result"]).toEqual({ decision: "decline" });
     expect(JSON.stringify(fake.frames().filter((frame) => frame["method"] === "turn/start"))).toContain("named-model");
+  });
+
+  it("CLI 拒绝未知或重复参数，错误输出不回显未知正文", () => {
+    const cli = fileURLToPath(new URL("../../src/experimental/codex-app-server/cli.ts", import.meta.url));
+    const tsx = fileURLToPath(new URL("../../node_modules/tsx/dist/cli.mjs", import.meta.url));
+    const secret = "private-cli-content";
+    for (const args of [
+      ["experiment", secret],
+      ["experiment", `--${secret}`, "value"],
+      ["experiment", "--enabled", "false", "--enabled", "true"],
+      ["handshake", "--text", secret]
+    ]) {
+      const result = spawnSync(process.execPath, [tsx, cli, ...args], { encoding: "utf8", timeout: 10_000 });
+      expect(result.status).toBe(2);
+      expect(result.stdout + result.stderr).not.toContain(secret);
+      expect(result.stderr).toMatch(/unknown|duplicate/);
+    }
   });
 
   it("命令行实验入口在默认参数下拒绝", () => {

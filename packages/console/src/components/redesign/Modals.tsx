@@ -1,3 +1,4 @@
+import { costEntryText } from "../../lib/costDisplay";
 // 弹窗族(handoff 清单第 13 行):Modal 壳 + 审批(含 S2 改后批准 textarea 流)/义务/产物/
 // HP 详情+DecisionRequest/S3 说明/tailnet 预览/新 Focus 表单/邮件预览(P1 提案挂 stage-tag,不接真实通道 §4.7)。
 // 全部 props 进、回调出;inline 模式供预览页平铺(无遮罩)。
@@ -214,7 +215,7 @@ export function HpTaskModal({ task, focusTitle, onAction, onClose, inline }: {
       </div>
       <KV k="Hopper 态"><span><Mono>{task.lastEvent.includes("接单") ? "received" : "—"}</Mono> → 投影「{HP_MAP[task.lastEvent.includes("接单") ? "received" : "ready"] ?? "…"}」(09 §7 映射)</span></KV>
       <KV k="账本">执行事实、证据、成本归 Hopper authoritative ledger,这里只投影</KV>
-      <KV k="熔断"><Mono>¥{task.budget.maxCost}</Mono> · 已花 {task.spent.known ? `¥${task.spent.value}` : "还没有确切数字"}</KV>
+      <KV k="熔断"><Mono>¥{task.budget.maxCost}</Mono> · 已花 {task.spentText ?? costEntryText({ source: "api", known: task.spent.known, amount: task.spent.value, currency: task.spent.currency })}</KV>
       {task.hpDecision && task.viewStatus === "blocked" ? (
         <>
           <div style={{ fontSize: "var(--text-md)", fontWeight: 600, margin: "var(--space-4) 0 var(--space-2)" }}>

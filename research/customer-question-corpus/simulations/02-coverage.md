@@ -132,3 +132,28 @@
 | SIM-FAM-04 | FAM-014 | M | C3 D1 H0 R2 K3 S2 | CTX-14+LIVE | F2/B-AUTH | 中途改需求或拒绝草稿；工具失败、空结果或脏数据；LIVE 查询与工具降级 | draft_ready |
 | SIM-FAM-05 | FAM-017 | L | C4 D4 H4 R3 K3 S2 | CTX-13+LIVE | F3/B-MED | LIVE 查询与工具降级 | draft_ready |
 | SIM-FAM-06 | FAM-020 | L | C3 D0 H4 R2 K3 S3 | LIVE | F4/B-AUTH | 明确越权请求 | refused_and_rescoped |
+
+## 当前上下文可用性（2026-09-30 原退役与 2026-10-04 追加退役投影）
+
+历史分母 72；因退役上下文不可执行 17；未被本次退役阻断 55（不代表执行通过）。未退役上下文 8/16（不代表当前有效，当前有效性见 expiry-observation-2026-10-03.md）。
+历史回放与理论状态保留；下列题目当前为 not_executable_retired_context，不得以历史 EXECUTABLE 或 REPLAY_PASS 宣称当前成功。
+
+| ID | 退役依赖 | 当前状态 |
+|---|---|---|
+| PRJ-032 | CTX-08 | not_executable_retired_context |
+| WRT-008 | CTX-16 | not_executable_retired_context |
+| RES-001 | CTX-05 | not_executable_retired_context |
+| RES-016 | CTX-05 | not_executable_retired_context |
+| OPS-005 | CTX-09 | not_executable_retired_context |
+| MKT-002 | CTX-08 | not_executable_retired_context |
+| MKT-003 | CTX-08 | not_executable_retired_context |
+| MKT-007 | CTX-08 | not_executable_retired_context |
+| DAT-003 | CTX-15 | not_executable_retired_context |
+| DAT-014 | CTX-15 | not_executable_retired_context |
+| DAT-016 | CTX-09 | not_executable_retired_context |
+| DAT-006 | CTX-15 | not_executable_retired_context |
+| DAT-028 | CTX-15 | not_executable_retired_context |
+| LIF-005 | CTX-13 | not_executable_retired_context |
+| LIF-008 | CTX-12 | not_executable_retired_context |
+| FAM-003 | CTX-13 | not_executable_retired_context |
+| FAM-017 | CTX-13 | not_executable_retired_context |

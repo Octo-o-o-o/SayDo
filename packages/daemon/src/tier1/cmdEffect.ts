@@ -600,12 +600,13 @@ const GIT_EXEC_CONFIG_SUFFIX =
  * 普通传输键误伤为 S3。收窄为改变外发目标/凭据/信任链的键:http.<url>. 子节
  * 按 URL 覆盖同名键,故只比末段。proxy/extraHeader/cookieFile/curloptResolve/
  * sslCAPath/sslCert 同时被兜底后缀命中,这里列出全集以保证语义自明;
- * 其余 http 键(postBuffer、lowSpeedLimit、maxRequests、version、delegation 等)
+ * delegation 控制 GSSAPI/Kerberos 凭据委派，写入/删除及 -c 与 URL 子节同属 S3。
+ * 其余 http 键(postBuffer、lowSpeedLimit、maxRequests、version 等)
  * 恢复普通写(兜底后缀命中的 sslVerify、userAgent 等仍执行配置,fail-closed 不放松)。
  */
 const GIT_HTTP_EXEC_LEAVES = new Set([
   "proxy", "sslcainfo", "sslcapath", "sslcert", "sslkey",
-  "sslcertpasswordprotected", "cookiefile", "curloptresolve", "extraheader"
+  "sslcertpasswordprotected", "cookiefile", "curloptresolve", "extraheader", "delegation"
 ]);
 
 function isGitExecConfig(spec: ShellWord): boolean {

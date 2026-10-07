@@ -3,7 +3,7 @@ import { isAbsolute, join, resolve } from "node:path";
 
 export const CLI_USAGE = [
   "用法:saydo <up|status|open|doctor|help> [--home PATH] [--port PORT] [--no-open] [--json]",
-  "  up       前台启动 daemon + Web 控制台(缺省自动打开浏览器;--no-open 不开,之后用 saydo open)",
+  "  up       前台启动 daemon + Web 控制台(缺省自动打开浏览器;--no-open 不开,之后用 saydo open 并沿用相同 --home/--port)",
   "  status   探活:退出码 0=已连上 / 1=端口空闲 / 2=端口冲突",
   "  open     用带访问凭证的地址打开控制台(需要 daemon 已在运行)",
   "  doctor   只读诊断(--json 机器可读;退出码 0=正常 / 1=有降级 / 2=有故障)",
@@ -41,10 +41,11 @@ export function resolveSaydoHome(explicit: string | undefined, envHome: string |
 export function parseCliOptions(argv: readonly string[], env: NodeJS.ProcessEnv = process.env): CliOptions {
   const command = argv[0];
   if (command === undefined || command === "help" || command === "--help" || command === "-h") {
-    return { command: "help", home: resolveSaydoHome(undefined, env["SAYDO_HOME"]), port: 47100, openBrowser: false };
+    // help 不启动运行对象，不依赖数据目录配置是否有效。
+    return { command: "help", home: "", port: 47100, openBrowser: false };
   }
   if (command !== "up" && command !== "status" && command !== "open" && command !== "doctor") {
-    throw new Error(`未知命令:${command}\n${CLI_USAGE}`);
+    throw new Error(`未知命令,请使用下列命令\n${CLI_USAGE}`);
   }
   let explicitHome: string | undefined;
   let rawPort: string | undefined;
@@ -76,12 +77,12 @@ export function parseCliOptions(argv: readonly string[], env: NodeJS.ProcessEnv 
       index += 1;
       continue;
     }
-    throw new Error(`未知参数:${arg}`);
+    throw new Error("未知参数,请检查下方用法");
   }
   if (explicitHome !== undefined && explicitHome.trim() === "") throw new Error("--home 不能为空");
   const home = resolveSaydoHome(explicitHome, env["SAYDO_HOME"]);
   const selectedPort = rawPort ?? "47100";
   const port = Number(selectedPort);
-  if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error(`端口非法:${selectedPort}`);
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error("端口非法:必须是 1 到 65535 的整数");
   return { command, home, port, openBrowser: !noOpen, ...(command === "doctor" ? { json } : {}) };
 }

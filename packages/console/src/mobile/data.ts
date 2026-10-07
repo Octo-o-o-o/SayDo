@@ -12,19 +12,7 @@ export const MOBILE_FOCUSES_ENDPOINT = "/api/focuses";
 export const MOBILE_RECENT_TRANSCRIPT_ENDPOINT = "/api/sessions/recent-transcript";
 export const MOBILE_RECENT_MEMORY_ENDPOINT = "/api/memory/recent";
 
-export type RecentTranscriptTurn = {
-  speaker: string;
-  text: string;
-  origin?: string;
-  turnId?: string;
-  ts?: string;
-};
-
-export type RecentTranscriptPayload = {
-  sessionId: string | null;
-  projectId: string | null;
-  turns: RecentTranscriptTurn[];
-};
+export { loadRecentTranscript, type RecentTranscriptTurn, type RecentTranscriptPayload } from "../lib/recentTranscript";
 
 /** 桌面 Memory.tsx 同源只读投影字段子集(+ recent 端点的 ts 兜底)。 */
 export type MobileMemoryRow = {
@@ -115,17 +103,6 @@ export async function loadMobileFocus(focusId: string): Promise<FocusDetailPaylo
 export async function loadMobileObligations(): Promise<unknown[]> {
   const raw = await apiGet<unknown>("/api/obligations");
   return Array.isArray(raw) ? raw : [];
-}
-
-export async function loadRecentTranscript(limit = 40): Promise<RecentTranscriptPayload> {
-  const raw = await apiGet<RecentTranscriptPayload>(
-    `${MOBILE_RECENT_TRANSCRIPT_ENDPOINT}?limit=${encodeURIComponent(String(limit))}`
-  );
-  return {
-    sessionId: raw.sessionId ?? null,
-    projectId: raw.projectId ?? null,
-    turns: Array.isArray(raw.turns) ? raw.turns : []
-  };
 }
 
 export function mobileMemoryPath(projectId: string): string {

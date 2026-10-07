@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
+import { processAnchor, processBirth } from "@saydo/platform";
 import { runOwned } from "../src/supervisor.js";
 
 const fixture = fileURLToPath(new URL("./fixtures/owned-daemon-exit.mjs", import.meta.url));
@@ -19,14 +20,22 @@ const envKeys = [
   "SAYDO_TEST_RELEASE"
 ] as const;
 
-afterEach(() => {
+afterEach(async () => {
   for (const key of envKeys) delete process.env[key];
+  // 启动或断言提前失败时也收回 fixture 已登记的子进程。
+  for (const home of homes) {
+    if (existsSync(join(home, "SAYDO_TEST_AGENT_PID"))) trackAgentPid(home);
+  }
   for (const pid of pids) {
     try { process.kill(pid, "SIGKILL"); } catch { /* 已退出 */ }
   }
-  pids.clear();
-  for (const home of homes) rmSync(home, { recursive: true, force: true });
-  homes.clear();
+  try {
+    await Promise.all([...pids].map((pid) => expect.poll(() => alive(pid), { timeout: 5_000 }).toBe(false)));
+  } finally {
+    pids.clear();
+    for (const home of homes) rmSync(home, { recursive: true, force: true });
+    homes.clear();
+  }
 });
 
 function tempHome(prefix: string): string {
@@ -98,8 +107,11 @@ describe("runOwned 生产路径:daemon 退出后按捕获身份 reap", () => {
     });
     const pid = trackAgentPid(home);
     expect(alive(pid)).toBe(true);
+    const owner = JSON.parse(readFileSync(join(home, "tier1", "runs", "run_owned_reap", "agent-owner.json"), "utf8"));
+    expect(owner.processStart).toBe(processBirth(pid));
+    expect(processAnchor(pid)?.pgid).toBe(pid);
     await expect(pending).rejects.toThrow(/owned daemon 意外退出/u);
-    expect(alive(pid)).toBe(false);
+    await expect.poll(() => alive(pid), { timeout: 5_000 }).toBe(false);
     expect(existsSync(join(home, "tier1", "runs", "run_owned_reap", "agent-owner.json"))).toBe(false);
   }, 20_000);
 
@@ -118,7 +130,7 @@ describe("runOwned 生产路径:daemon 退出后按捕获身份 reap", () => {
     const ownPid = trackAgentPid(home);
     const foreignPid = trackAgentPid(foreign);
     await expect(pending).rejects.toThrow(/owned daemon 意外退出/u);
-    expect(alive(ownPid)).toBe(false);
+    await expect.poll(() => alive(ownPid), { timeout: 5_000 }).toBe(false);
     expect(alive(foreignPid)).toBe(true);
     expect(existsSync(join(foreign, "tier1", "runs", "run_foreign", "agent-owner.json"))).toBe(true);
   }, 20_000);
@@ -157,5 +169,25 @@ describe("runOwned 生产路径:daemon 退出后按捕获身份 reap", () => {
     const pid = trackAgentPid(home);
     await expect(pending).rejects.toThrow(/identity mismatch/u);
     expect(alive(pid)).toBe(true);
+    expect(existsSync(join(home, "tier1", "runs", "run_owned_reap", "agent-owner.json"))).toBe(true);
+  }, 20_000);
+
+  it("birth 正确但实际 pgid 不是 agent PID 时不得误杀", async () => {
+    const home = tempHome("saydo-owned-pgid-");
+    const { pending } = await startOwned(home, {
+      SAYDO_TEST_SCENARIO: "wrong-pgid",
+      SAYDO_TEST_AGENT_GEN: randomUUID(),
+      SAYDO_TEST_RUN_ID: "run_owned_reap"
+    });
+    const pid = trackAgentPid(home);
+    const ownerPath = join(home, "tier1", "runs", "run_owned_reap", "agent-owner.json");
+    const owner = JSON.parse(readFileSync(ownerPath, "utf8"));
+    expect(owner.processStart).toBe(processBirth(pid));
+    const anchor = processAnchor(pid);
+    expect(anchor).not.toBeNull();
+    expect(anchor?.pgid).not.toBe(pid);
+    await expect(pending).rejects.toThrow(/identity unverified/u);
+    expect(alive(pid)).toBe(true);
+    expect(existsSync(ownerPath)).toBe(true);
   }, 20_000);
 });

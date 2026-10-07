@@ -3,6 +3,7 @@
 // 卡片点击回调;列定义由容器,卡片渲染复用 TaskCard 的 chip 语义但精简为看板卡。
 
 import { useState } from "react";
+import { OPEN_SET } from "@saydo/contracts";
 import { ChevronDown, ChevronRight, Folder, Layers, User } from "lucide-react";
 import { Mono } from "./shared";
 import { StatusChip, RiskBadge } from "../StatusChip";
@@ -12,7 +13,7 @@ const CELL_CAP = 4;
 
 export function boardColumnOf(vs: ViewStatus): 0 | 1 | 2 | 3 {
   if (["queued", "confirmed"].includes(vs)) return 0;
-  if (["running", "merging"].includes(vs)) return 1;
+  if (["running", "merging", "cancel_requested"].includes(vs)) return 1;
   if (["paused_step_boundary", "blocked", "waiting_confirmation", "ready_for_review", "review_approved_waiting_merge", "merge_failed", "failed", "parked"].includes(vs)) return 2;
   return 3;
 }
@@ -104,7 +105,7 @@ export function BoardLaneGroup({ data, collapsed, onToggleCollapse, onOpenTask, 
 
   const cell = (laneId: string, ci: number) => {
     const tasks = (data.tasksByLane[laneId] ?? []).filter(t => boardColumnOf(t.viewStatus) === ci);
-    const obs = ci === 2 ? (data.obligationsByLane[laneId] ?? []) : [];
+    const obs = ci === 2 ? (data.obligationsByLane[laneId] ?? []).filter((ob) => ob.owner === "human" && OPEN_SET.some((status) => status === ob.status)) : [];
     const cards = [
       ...tasks.map(t => <BoardCard key={t.id} task={t} onOpen={onOpenTask ? () => onOpenTask(t) : undefined} approxStatus={approxStatusTaskIds?.has(t.id)} />),
       ...obs.map(o => <ObBoardCard key={o.id} ob={o} onOpen={onOpenObligation ? () => onOpenObligation(o) : undefined} />)

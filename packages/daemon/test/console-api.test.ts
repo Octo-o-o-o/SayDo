@@ -21,6 +21,7 @@ import {
   getProjectTasks,
   getTaskDetail
 } from "../src/api/console.js";
+import { createSqliteAuditSink } from "../src/storage/dao/misc.js";
 import { insertPackage } from "../src/storage/dao/packages.js";
 import { abandonFocusApi, archiveFocusApi, createFocusApi } from "../src/api/focuses.js";
 import { changeFocusLifecycle } from "../src/focus/registry.js";
@@ -263,9 +264,11 @@ describe("PG-01B abandon 独立写口", () => {
   let db: Db;
   const recorded: Array<{ action: string; meta: Record<string, unknown> }> = [];
   const audit: AuditSink = {
+    sharesSqlite: (candidate) => candidate === db,
     record: (e) => {
+      const result = createSqliteAuditSink(db).record(e);
       recorded.push({ action: e.action, meta: (e.meta ?? {}) as Record<string, unknown> });
-      return { id: "aud_x" };
+      return result;
     }
   };
 

@@ -140,5 +140,8 @@ export {
   nativeReady,
   nativeSync,
   PlatformNativeError,
-  settleCheckedHandleWork
+  settleCheckedHandleWork,
+  createWin32HandleReadable,
+  WIN32_ERROR_BROKEN_PIPE,
+  type Win32PipeIoNative
 } from "./win32.js";

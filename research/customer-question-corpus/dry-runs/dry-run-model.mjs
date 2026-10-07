@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { contextAvailability } from "../context-availability.mjs";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join, relative, resolve } from "node:path";
@@ -397,6 +398,7 @@ export function listAuthorityRelativePaths(root = defaultCorpusRoot()) {
   for (const id of EXPECTED_CONTEXT_IDS) {
     paths.push(relative(repo, join(root, "contexts", id, "manifest.md")));
   }
+  paths.push(relative(repo, join(root, "context-availability.mjs")));
   paths.push(relative(repo, join(root, "simulations", "simulation-spec.mjs")));
   paths.push(relative(repo, join(root, "00-能力边界.md")));
   paths.push(relative(repo, join(repo, "docs", "09-data-contracts.md")));
@@ -855,6 +857,8 @@ export function loadCorpus(root = defaultCorpusRoot()) {
   const f1 = loadF1Contracts(root);
   const simulationIds = loadSimulationCorpusIds(root);
   const manifests = loadContextManifests(root);
+  const availability = contextAvailability(root);
+  const excluded = new Map(availability.excluded.map(row => [row.id, row]));
   const sourceTreeSha256 = hashCorpusSourceTree(root);
   const authoritySha256 = hashAuthorityInputs(root);
   for (const [id, recovery] of Object.entries(PERTURBATION_RECOVERY)) {
@@ -885,6 +889,8 @@ export function loadCorpus(root = defaultCorpusRoot()) {
     const inSimulation = simulationIds.has(record.id);
     const candidate = {
       ...record,
+      current_status: excluded.get(record.id)?.status ?? "not_blocked_by_retirement",
+      retired_dependencies: excluded.get(record.id)?.dependencies ?? [],
       liveContract,
       f1Contract,
       inSimulation,
@@ -911,6 +917,7 @@ export function loadCorpus(root = defaultCorpusRoot()) {
   });
   return {
     root,
+    availability,
     records: enriched,
     live,
     f1,
@@ -927,6 +934,7 @@ export function judgeCorpus(corpus) {
   const baselineMismatches = compareBaseline(summary);
   const usedIssueCodes = ISSUE_CODE_IDS.filter((code) => summary.issueCodes[code] > 0);
   return {
+    availability: corpus.availability,
     generatedAt: GENERATED_AT,
     sourceTreeSha256: corpus.sourceTreeSha256,
     authoritySha256: corpus.authoritySha256,

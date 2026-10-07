@@ -186,7 +186,7 @@ describe("verify-merge(MergeProof 核验按需触发形态:git 现读 treeSha �
 
 describe("PG-01B abandon reason 先 trim 再非空", () => {
   it("纯空白 reason 返回 400 且 lifecycle 不变", () => {
-    const created = createFocusApi(db, nullAudit, { title: "blank-reason" }, NOW);
+    const created = createFocusApi(db, createSqliteAuditSink(db), { title: "blank-reason" }, NOW);
     const id = (created.payload as { id: string }).id;
     changeFocusLifecycle(db, id, { to: "active", reason: "activate", actorKind: "user" });
     const before = (db.prepare("SELECT lifecycle FROM focuses WHERE id=?").get(id) as { lifecycle: string }).lifecycle;
@@ -199,10 +199,13 @@ describe("PG-01B abandon reason 先 trim 再非空", () => {
 
   it("非空值写入 abandoned,独立 audit 不落理由原文;archive 原语义不变", () => {
     const recorded: AuditEvent[] = [];
+    const base = createSqliteAuditSink(db);
     const audit: AuditSink = {
+      sharesSqlite: (candidate) => base.sharesSqlite!(candidate),
       record: (e) => {
+        const result = base.record(e);
         recorded.push(e);
-        return { id: "aud_x" };
+        return result;
       }
     };
     const created = createFocusApi(db, audit, { title: "trim-reason" }, NOW);

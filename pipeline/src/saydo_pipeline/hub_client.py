@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import re
@@ -71,7 +72,7 @@ _CONVERSATION_TURN = (
     r"-(?:[0-9A-HJKMNP-TV-Z]{8}|x)-[0-9a-z]+"
 )
 _TURN_RE = re.compile(rf"^(?:{_CONVERSATION_TURN})$")
-_SENTENCE_TURN_RE = re.compile(rf"^s-({_CONVERSATION_TURN})-\d+$")
+_SENTENCE_TURN_RE = re.compile(rf"^s-({_CONVERSATION_TURN})-[0-9]+$")
 _SOURCE_TURN_KEY = "sourceTurnId"
 _TTS_TURN_SEEN_MAX = 500
 
@@ -118,7 +119,12 @@ def pcm16_to_wav(pcm: bytes, rate: int = 16000) -> bytes:
 
 def log(level: str, msg: str, **fields: object) -> None:
     record = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "level": level, "name": "pipeline", "msg": msg}
-    record.update(fields)
+    for key, value in fields.items():
+        if key == "error":
+            record["error_type"] = type(value).__name__ if isinstance(value, BaseException) else "provider_error"
+            record["error_digest"] = hashlib.sha256(str(value).encode()).hexdigest()
+        else:
+            record[key] = value
     sys.stderr.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
@@ -188,7 +194,7 @@ class HubClient:
         self._tts_ready = tts is not None if tts_ready is None else tts_ready
         self._say_queues: dict[str, asyncio.Queue[dict[str, Any]]] = {}
         self._say_workers: dict[str, asyncio.Task[None]] = {}
-        self._cancelled_sessions: set[str] = set()
+        self._say_output_tokens: dict[str, object] = {}
         self._seq = 0
         self._mic_buf: list[bytes] = []
         # 最近 ASR 轮只作会话诊断。tts_first_byte 不读它。
@@ -239,14 +245,14 @@ class HubClient:
             except (OSError, websockets.WebSocketException) as err:
                 if self._restart_requested:
                     return
-                log("warn", "hub connection lost; reconnecting", error=str(err), backoff_s=backoff)
+                log("warn", "hub connection lost; reconnecting", error=err, backoff_s=backoff)
             except Exception as err:  # noqa: BLE001 冻结尸检回修
                 # dogfood 冻结尸检回修(2026-07-28):此前只 catch 网络两类——任何其他异常穿透
                 # while 杀死重连循环(进程活着、主循环死了、永不重连,且 launchd 看不出)。
                 # catch-all 保"重连循环不死"这条命根;异常本身如实记日志。
                 if self._restart_requested:
                     return
-                log("error", "hub loop crashed; reconnecting", error=f"{type(err).__name__}: {str(err)[:200]}", backoff_s=backoff)
+                log("error", "hub loop crashed; reconnecting", error=err, backoff_s=backoff)
             if self._restart_requested:
                 return
             await asyncio.sleep(backoff)
@@ -276,8 +282,10 @@ class HubClient:
                         # mic 上行帧:0x01 + 4B seq + PCM16LE(console 采集,hub 已路由)
                         if len(raw) > 5 and raw[0] == 0x01 and self.asr:
                             if self._mode == "hands_free":
-                                task = self._track_connection_task(self._feed_vad_locked(ws, raw[5:]))
-                                self._track_sid_task(self._active_sid, task)
+                                # 在读循环创建 coroutine 前固定所属会话/代次，不能等排队锁内再读。
+                                owner = (self._active_sid, self._speech_generation, self._connection_epoch, self._mode)
+                                task = self._track_connection_task(self._feed_vad_locked(ws, raw[5:], owner))
+                                self._track_sid_task(owner[0], task)
                             else:
                                 self._mic_buf.append(raw[5:])
                         continue
@@ -441,6 +449,7 @@ class HubClient:
     async def _reset_connection_tasks(self) -> None:
         """断线时清掉所有捕获旧 websocket 的任务与队列；新连接只能创建新 worker。"""
         self._connection_epoch += 1
+        self._say_output_tokens.clear()
         tasks = [task for task in self._connection_tasks if not task.done()]
         for task in tasks:
             task.cancel()
@@ -449,7 +458,6 @@ class HubClient:
         self._connection_tasks.clear()
         self._say_workers.clear()
         self._say_queues.clear()
-        self._cancelled_sessions.clear()
         self._asr_task = None
         self._hf_task = None
         self._eou_hold = None
@@ -495,21 +503,21 @@ class HubClient:
             try:
                 await ws.send(json.dumps({"t": "pipeline.restart_ack", "generation": self.generation or 0}))
             except websockets.WebSocketException as err:
-                log("warn", "restart_ack send failed", error=str(err)[:120])
+                log("warn", "restart_ack send failed", error=err)
             self._restart_requested = True
             log("info", "pipeline.restart_pending received; will self-exec", generation=self.generation)
             return
         if t == "tts.say":
             sid = msg["sessionId"]
-            self._cancelled_sessions.discard(sid)
+            self._say_output_tokens.setdefault(sid, object())
             queue = self._say_queues.setdefault(sid, asyncio.Queue())
             await queue.put(bind_say_source_turn(msg))
             if sid not in self._say_workers or self._say_workers[sid].done():
                 self._say_workers[sid] = self._track_connection_task(self._say_worker(ws, sid))
         elif t == "barge_in":
             sid = msg.get("sessionId", "")
-            # unheard 纪律(合成侧):取消排队中的合成;进行中的句子由 worker 检查标志后丢弃
-            self._cancelled_sessions.add(sid)
+            # 新句取得新令牌；在途旧合成永远不能重新获得发送资格。
+            self._say_output_tokens.pop(sid, None)
             queue = self._say_queues.get(sid)
             if queue:
                 while not queue.empty():
@@ -562,9 +570,14 @@ class HubClient:
 
     # ---------- W2 阶段 D:免手档(VAD 起停 + 语义 EOU + 按钮兜底) ----------
 
-    async def _feed_vad_locked(self, ws: websockets.ClientConnection, frame: bytes) -> None:
+    async def _feed_vad_locked(
+        self, ws: websockets.ClientConnection, frame: bytes,
+        owner: tuple[str, int, int, str],
+    ) -> None:
         async with self._vad_lock:
-            await self._feed_vad(ws, frame, wait_recognize=False)
+            if owner != (self._active_sid, self._speech_generation, self._connection_epoch, self._mode):
+                return
+            await self._feed_vad(ws, frame, wait_recognize=False, owner=owner)
 
     async def _feed_vad(
         self,
@@ -572,8 +585,12 @@ class HubClient:
         frame: bytes,
         *,
         wait_recognize: bool = True,
+        owner: tuple[str, int, int, str] | None = None,
     ) -> None:
+        owner = owner or (self._active_sid, self._speech_generation, self._connection_epoch, self._mode)
         for ev in self._vad.feed(frame):
+            if owner != (self._active_sid, self._speech_generation, self._connection_epoch, self._mode):
+                return
             if ev.kind == "speech_start":
                 # 排空中不再开新 HF 账,避免 ACK 后旧开口进入新 Brain。
                 if self._draining_sid and self._draining_sid == self._active_sid:
@@ -593,6 +610,8 @@ class HubClient:
                 if slot is None:
                     continue
                 await self._send_vad_phase(ws, "end", slot)
+                if owner != (self._active_sid, self._speech_generation, self._connection_epoch, self._mode):
+                    return
                 task = self._spawn_hf_recognize(ws, ev.pcm, self._active_sid, slot)
                 if wait_recognize:
                     await task
@@ -649,7 +668,7 @@ class HubClient:
             text = ""
             if emit_sid and not self._generation_retired(work_gen):
                 self._mark_failure(emit_sid)
-            log("error", "asr recognize failed (hands_free)", error=str(err)[:200])
+            log("error", "asr recognize failed (hands_free)", error=err)
         if self._generation_retired(work_gen) or self._hf.generation_retired(emit_sid, work_gen):
             return
         spec = self._hf.note_result(emit_sid, slot, text, "failed" if outcome == "failed" else "ok", work_gen)
@@ -668,7 +687,7 @@ class HubClient:
             self._asr_ready = False
             if not self._generation_retired(generation):
                 self._mark_failure(sid)
-            log("error", "asr recognize failed (untagged)", error=str(err)[:200])
+            log("error", "asr recognize failed (untagged)", error=err)
 
     async def _after_hf_result(
         self,
@@ -696,7 +715,7 @@ class HubClient:
         try:
             await self._emit_hf(ws, sid, spec)
         except (OSError, websockets.WebSocketException) as err:
-            log("warn", "eou hold emit failed; pending dropped (stale ws)", chars=len(spec.text), error=str(err)[:120])
+            log("warn", "eou hold emit failed; pending dropped (stale ws)", chars=len(spec.text), error=err)
             self._pending_text = ""
 
     def _rearm_eou_hold_if_pending(self, ws: websockets.ClientConnection, sid: str) -> None:
@@ -765,7 +784,7 @@ class HubClient:
             self._mark_failure(sid)
             outcome = "failed"
             text = ""
-            log("error", "asr recognize failed (force finalize)", error=str(err)[:200])
+            log("error", "asr recognize failed (force finalize)", error=err)
         if self._generation_retired(slot.speech_gen):
             return False
         spec = self._hf.note_result(sid, slot, text, "failed" if outcome == "failed" else "ok", slot.speech_gen)
@@ -847,7 +866,7 @@ class HubClient:
                 try:
                     await prev
                 except Exception as err:  # noqa: BLE001 链式只保序,旧轮失败不阻断新轮
-                    log("warn", "prior ptt flush ended with error (chained)", error=str(err)[:120])
+                    log("warn", "prior ptt flush ended with error (chained)", error=err)
             await self._flush_mic(ws, sid, pcm, capture_id)
 
         self._asr_task = self._track_connection_task(_chained())
@@ -904,13 +923,13 @@ class HubClient:
                         recognition_outcome="failed",
                     )
                 except Exception as err:  # noqa: BLE001 取消路径只补终态,发送失败不再掩盖取消
-                    log("warn", "ptt cancel final failed", error=str(err)[:160])
+                    log("warn", "ptt cancel final failed", error=err)
             raise
         except Exception as err:  # noqa: BLE001 识别单轮失败全形态如实记(ImportError 曾穿透杀循环)
             self._asr_ready = False
             if sid:
                 self._unresolved_failures[sid] = True
-            log("error", "asr recognize failed", error=str(err)[:200])
+            log("error", "asr recognize failed", error=err)
             if capture_id:
                 await self._emit_final(
                     ws,
@@ -1142,7 +1161,7 @@ class HubClient:
             self._mark_failure(sid)
             outcome = "failed"
             text = ""
-            log("error", "asr recognize failed (quiesce hf tail)", error=str(err)[:200])
+            log("error", "asr recognize failed (quiesce hf tail)", error=err)
         if outcome == "failed" and not self._hf.has_open_round(sid):
             return False
         if not self._hf.has_open_round(sid) and not text.strip():
@@ -1220,16 +1239,23 @@ class HubClient:
 
     async def _say_worker(self, ws: websockets.ClientConnection, sid: str) -> None:
         queue = self._say_queues[sid]
-        while not queue.empty():
+        connection_epoch = self._connection_epoch
+        while not queue.empty() and connection_epoch == self._connection_epoch:
             say = await queue.get()
-            if sid in self._cancelled_sessions:
-                continue
+            # queue.get 在非空队列不让出事件循环；barge_in 同步清空旧排队项。
+            output_token = self._say_output_tokens.setdefault(sid, object())
+
+            def current_output(token: object = output_token) -> bool:
+                return (connection_epoch == self._connection_epoch
+                        and self._say_output_tokens.get(sid) is token)
             if not self.tts:
                 log("warn", "tts.say dropped: no TTS provider configured", sentenceId=say.get("sentenceId"))
                 continue
             try:
                 t0 = time.monotonic()
                 audio = await asyncio.wait_for(self.tts.synthesize(say["text"]), TTS_TIMEOUT_S)
+                if not current_output():
+                    continue
                 if not audio:
                     # F04(E2 eval 2026-08-04):doubao 对引号/标记包裹短句可返回空音频——
                     # 剥引号星号重试一次;仍空则仅跳过本句(单句失败不降级全局 tts_ready)
@@ -1237,21 +1263,25 @@ class HubClient:
                     if stripped and stripped != say["text"]:
                         log("warn", "tts empty audio; retry stripped", sentenceId=say.get("sentenceId"))
                         audio = await asyncio.wait_for(self.tts.synthesize(stripped), TTS_TIMEOUT_S)
+                if not current_output():
+                    continue
                 if not audio:
                     log("warn", "tts empty audio; sentence skipped (health kept)", sentenceId=say.get("sentenceId"))
                     continue
                 self._tts_ready = True
-                if sid in self._cancelled_sessions:
-                    continue  # 合成期间被打断:该句作废,不下发,也不记入该 turn
                 source_turn = source_turn_of_say(say)
                 if source_turn and self._claim_tts_first_byte(source_turn):
                     await self._send_latency(ws, sid, source_turn, "tts_first_byte", time.monotonic())
+                if not current_output():
+                    continue
                 self._seq += 1
                 sentence_id = str(say.get("sentenceId", "")).encode()
                 # 二进制帧:tag 0x02 + seq(4B BE)+ sentenceId 长度(1B)+ sentenceId + mp3
                 frame = b"\x02" + struct.pack(">I", self._seq) + bytes([len(sentence_id)]) + sentence_id + audio
                 await ws.send(frame)
                 log("info", "tts synthesized", sentenceId=say.get("sentenceId"), bytes=len(audio), ms=round((time.monotonic() - t0) * 1000))
-            except Exception as err:  # noqa: BLE001 provider 超时/协议/实现故障都必须降级 health
+            except Exception as err:  # noqa: BLE001 当前输出的 provider 故障必须降级 health
+                if not current_output():
+                    continue
                 self._tts_ready = False
-                log("error", "tts synthesis failed", error=str(err)[:200])
+                log("error", "tts synthesis failed", error=err)

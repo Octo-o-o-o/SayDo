@@ -108,7 +108,7 @@
 - 人拍板才算数 [保留]
 - 数据完全在你手里 [改]:`没有开发者运营的云端后台，没有账号注册。对话、事项与账本保存在你自己的设备上；当前业务入口仅在daemon所在本机浏览器开放。开发者无法访问、也不收集。`
   *EN: No developer-operated backend, no accounts. Conversations, items, and the ledger stay on your devices. Business access is currently limited to the browser on the daemon host. The developer cannot access — and does not collect — any of your data.*
-- 跨设备同一本账 [保留]
+- 跨设备同一本账 [规划中]:当前远程业务入口关闭，不能作为现役卖点。
 
 ## B.6 产品现状(7 卡)
 
@@ -124,22 +124,21 @@
 
 ## B.7 沟通面 ↔ 执行面
 
-[改] 介绍段:`沟通天然是移动的，执行天然是固定的。手机只做沟通——说话、看进展、点头确认。局域网连接不能审批 S2 / S3；你自己的加密组网远程面审批封顶 S2；合并、删除等 S3 始终只在电脑上。重活留在你的电脑上。`
-*EN: Communication is naturally mobile; execution is naturally stationary. Your phone is for talking, watching progress, and nodding confirmations. A LAN connection cannot approve S2 / S3; a remote surface on your own encrypted overlay caps approvals at S2; merges, deletes, and other S3 actions stay on your computer.*
-架构节点:`说话、看进展、点头确认。局域网不能批 S2 / S3；自行配置的远程面审批封顶 S2；合并与删除始终回电脑。`
-*EN: Talk, watch progress, nod confirmations. LAN cannot approve S2 / S3; a remote surface you configure caps approvals at S2; merges and deletes always return to the computer.*
-连线标签:`局域网或自行配置的加密组网` / *LAN OR YOUR ENCRYPTED OVERLAY*
+[改 2026-09-27] 介绍段:`当前在运行 SayDo 的电脑上，用本机浏览器沟通、看进展和确认。手机与远程业务入口暂未开放；重活留在自己的电脑上。`
+*EN: Use the browser on the computer running SayDo to talk, track progress, and confirm actions. Phone and remote business access are currently closed; execution stays on your computer.*
+架构节点:`本机浏览器沟通 · 本机 daemon 持有状态 · 独立 worktree 执行`。
+*EN: Local browser interaction · Local daemon state · Isolated worktree execution.*
 
 ## B.8 隐私带
 
-[改] 保留标题「不运营任何服务器」/`No servers. Period.`。正文:`对话、事项与账本数据保存在你自己的设备上。手机与电脑之间的产品数据通道，走你自己的局域网或你自行配置的加密组网。你自行启用的云端语音、AI 上游和推送，由你的电脑直连第三方；开发者不接收这些数据。`
-*EN: Conversations, items, and ledger data stay on your devices. The product data path between phone and computer is your own LAN or an encrypted overlay you configure. Cloud voice, AI upstreams, and push that you enable yourself are called directly from your computer to those third parties; the developer does not receive that data.*
+[改 2026-09-27] 标题「无需开发者运营的云端后台」/`No developer-operated cloud backend`。正文:`对话、事项与账本保存在你自己的电脑上。你启用的 AI、联网语音与通知服务会按配置处理相应内容；由你的电脑直接连接服务商，开发者不接收这些内容。`
+*EN: Conversations, items, and the ledger are stored on your computer. AI, network speech, and notification services you enable process the relevant content according to your configuration. Your computer connects directly to those providers; the developer does not receive that content.*
 
 ## B.9 开始用(`#start`,保留 `#download` 锚点)
 
 - 标题 [改]:eyebrow `开始用` / H2 `桌面开源,App 在路上`(保留)
-- 引语 [改 2026-08-23]:`桌面服务是执行面：macOS 开源免费、现在可用；Windows 已完成原生适配并经真机验证，Linux 经 CI 全量验证，均可运行；常驻安装、系统通知等链路当前为 macOS 实现。移动 App 是沟通面，开发中、尚未上架、当前无可下载版本。在你的电脑上跑起桌面服务就能开聊；选择 SayDo 已支持且通过自检的登录态 AI CLI 时，无需另申请 API key，不支持的 CLI 会被明确拒绝。按文档显式打开局域网访问后，可用手机浏览器扫码连接。`
-  *EN: The desktop service is the execution side: the source form runs on macOS, Windows, and Linux today, while residency installation and system notifications remain macOS-only. Mobile apps are in development and are not available in any store. Run the desktop service and choose a signed-in AI CLI that SayDo supports and has passed through self-test; this needs no separate API key, and unsupported CLIs are rejected explicitly. After you enable LAN access as documented, a phone browser can connect by QR code.*
+- 引语 [改 2026-08-23]:`桌面服务是执行面：macOS 开源免费、现在可用；Windows 已完成原生适配并经真机验证，Linux 经 CI 全量验证，均可运行；常驻安装、系统通知等链路当前为 macOS 实现。移动 App 是沟通面，开发中、尚未上架、当前无可下载版本。在你的电脑上跑起桌面服务就能开聊；选择 SayDo 已支持且通过自检的登录态 AI CLI 时，无需另申请 API key，不支持的 CLI 会被明确拒绝。当前远程业务入口关闭，请在本机浏览器使用。`
+  *EN: The desktop service is the execution side: the source form runs on macOS, Windows, and Linux today, while residency installation and system notifications remain macOS-only. Mobile apps are in development and are not available in any store. Run the desktop service and choose a signed-in AI CLI that SayDo supports and has passed through self-test; this needs no separate API key, and unsupported CLIs are rejected explicitly. Remote business access is currently closed; use the browser on the daemon host.*
 - macOS 卡 [改]:`macOS 桌面服务 · 开源免费 · 现在可用` + 链接 `安装说明 →`(`/docs/#quickstart`)+ `GitHub →`
   *EN: macOS desktop service · Free & open source · Available now · Install guide → · GitHub →*
 - Windows / Linux 卡 [改 2026-08-22]:徽章 `开源 · 现在可用` / *Open source · Available now*;能力边界见引语(常驻安装与系统通知暂为 macOS 实现)

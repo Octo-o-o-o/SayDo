@@ -1,9 +1,18 @@
 import { createHash } from "node:crypto";
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 function posixBirth(pid) {
+  // 与 @saydo/platform processBirth 的 Linux 身份格式一致；测试回读平台值核对。
+  if (process.platform === "linux") {
+    const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+    const close = stat.lastIndexOf(")");
+    if (close < 0) throw new Error("invalid proc stat");
+    const starttime = stat.slice(close + 2).split(" ")[19];
+    if (!starttime) throw new Error("missing proc starttime");
+    return `ticks:${starttime}:${pid}`;
+  }
   const ps = existsSync("/bin/ps") ? "/bin/ps" : existsSync("/usr/bin/ps") ? "/usr/bin/ps" : "ps";
   return execFileSync(ps, ["-o", "lstart=", "-p", String(pid)], {
     encoding: "utf8",
@@ -18,9 +27,9 @@ function jobName(instanceId, runId, generation) {
   return `Local\\SayDoJob-v1-${digest}`;
 }
 
-function spawnAgent(token) {
+function spawnAgent(token, detached = true) {
   const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)", token], {
-    detached: true,
+    detached,
     stdio: "ignore"
   });
   child.unref();
@@ -67,9 +76,9 @@ writeFileSync(join(home, ".daemon-supervisor.lock"), JSON.stringify({
   instanceId
 }));
 
-if (scenario === "reap" || scenario === "wrong-birth" || scenario === "successor") {
+if (scenario === "reap" || scenario === "wrong-birth" || scenario === "wrong-pgid" || scenario === "successor") {
   const token = `saydo-child-${generation}`;
-  const agent = spawnAgent(token);
+  const agent = spawnAgent(token, scenario !== "wrong-pgid");
   writeOwner(home, {
     runId,
     generation,

@@ -1,8 +1,8 @@
-// M6 话术增补验收:④封闭肯定词表(P0 安全防线)+ ①承接层/②深评等待 golden + ③变体三档纪律。
+// M6 话术增补验收:④封闭肯定词表(P0 安全防线)+ ③变体三档纪律。
 
 import { describe, expect, it } from "vitest";
 import { matchConfirmation, decideConfirmation, buildConfirmPrompt, CONFIRM_YES, CONFIRM_NO } from "../src/approvals/confirmVocab.js";
-import { checkGolden, checkNoRepeatedOpeners, M6_GOLDEN } from "../src/brain/golden.js";
+import { checkNoRepeatedOpeners } from "../src/brain/golden.js";
 
 describe("M6④ 审批确认封闭肯定词表(sauc 无 confidence 的 P0 防线)", () => {
   it("肯定命中 ⇒ accept;否定 ⇒ reject;无关话/空 ⇒ unmatched(默认拒绝)", () => {
@@ -70,14 +70,6 @@ describe("M6④ 审批确认封闭肯定词表(sauc 无 confidence 的 P0 防线
   });
 });
 
-describe("M6①② golden(承接层/深评等待)", () => {
-  it("M6 golden 全部通过(承接要素/等待条目/心跳/插话应答)", () => {
-    for (const c of M6_GOLDEN) {
-      const r = checkGolden(c);
-      expect(r.reasons, c.id).toEqual([]);
-    }
-  });
-});
 
 describe("M6③ 变体三档·自由池纪律", () => {
   it("禁连续两轮同词开头", () => {

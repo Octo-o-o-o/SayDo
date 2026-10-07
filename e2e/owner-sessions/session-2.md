@@ -1,5 +1,7 @@
 # 场次② 现场清单 · 受控 dogfood gate(Phase 4 出口挂账)
 
+> 2026-10-07 入口更新：旧 `scripts/runtime-preflight.sh` 已退役。按实际部署模式使用 `saydo doctor`、`saydo status` 与 health/readyz 诊断，并人工核对目标 SHA、磁盘 clean、runtime 路径、daemon/pipeline loaded SHA、stateRootDigest 和健康新鲜度。诊断不等价于旧预检；真人语音场次仍须实际 voice ready。旧 release-config digest 是历史验收格式，不得伪造或从 doctor 输出冒取；新场次需记录实际有效配置核对证据，配置变化仍使既有场次结果失效。
+
 > 目的:轻任务 Tier1 全闭环(不依赖 Hopper)真人过一遍,之后 owner **在受控范围开始每天自用**。
 > 非正式交付;所有 Gate 0 项已关闭(dogfood 合法,证据 `e2e/evidence/gate0-checklist.md` 每门绑测试名)。
 > 本场次同时是 Brain live 工具环(function-call 采访/拍板)的 dogfood 增量起点(p0-readback staged 第 2 条)。
@@ -29,7 +31,7 @@
 | 检查 | 命令/动作 | 期望 |
 |---|---|---|
 | **dogfood 仓** | 使用 owner 已指定的 OctoDesk coding 项目 | 不在现场另换仓；从低风险小改动起 |
-| runtime 服务 | `scripts/runtime-preflight.sh <开场前记录的40位-runtime-SHA>` | 单条 fail-fast 同时断言磁盘与两进程 loaded SHA、clean、runtime 路径及 fresh readyz；禁止另起 `just dev` 验到开发树 |
+| runtime 服务 | `saydo doctor`、`saydo status`，按实际部署地址读取 health/readyz 并人工核对 | 目标 SHA、磁盘 clean、runtime 路径、双方 loaded SHA、stateRootDigest 与健康新鲜度正确；真人语音必须 voice ready，禁止另起 `just dev` 验到开发树 |
 | Tier1 后端 | `cursor-agent status` | 订阅态可用(dev 机缺省 cursor_cli,审批门 e2e 已绿) |
 | Gate 0 | console 全局设置页看 gate0 状态 | enabled=true / bypass=false(显式配置) |
 | A3 readiness | 先完成 OctoDesk 四项 critical 的采访与逐项复述确认 | active binding 从 0 升到 4；新包带 readinessRef |
@@ -80,7 +82,7 @@
 | 人工 fallback status | `not_run` |
 | 日期 | 待约 |
 | runtime SHA | 待开场记录 |
-| release config digest | 待从本场 preflight 原样记录；须与场次①相同 |
+| 有效配置核对证据 | 待记录并与场次①核对；旧 release config digest 格式已退役 |
 | owner verdict | 待 owner |
 | A3 前置 | owner 门语义待确认；active binding 当前 0，场内目标 4 |
 | 证据来源 | 待注明 `live` / `fixture` / `test`，不可互相替代 |

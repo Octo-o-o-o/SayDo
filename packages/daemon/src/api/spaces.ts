@@ -3,7 +3,9 @@
 
 import { newId } from "@saydo/contracts";
 import { z } from "zod";
+import { withSqliteAuditTransaction } from "./sqliteAuditTransaction.js";
 import type { Db } from "../storage/db.js";
+import { FocusWriteError } from "../focus/writeTx.js";
 import type { AuditSink } from "../obs/audit.js";
 
 export interface ApiResponse {
@@ -27,12 +29,12 @@ export function listSpaces(db: Db): unknown {
        FROM focus_spaces s ORDER BY s.updated_at DESC`
     )
     .all() as Array<{
-    id: string;
-    title: string;
-    created_at: string;
-    updated_at: string;
-    focus_count: number;
-  }>;
+      id: string;
+      title: string;
+      created_at: string;
+      updated_at: string;
+      focus_count: number;
+    }>;
   return {
     spaces: rows.map((r) => ({
       id: r.id,
@@ -47,16 +49,23 @@ export function listSpaces(db: Db): unknown {
 export function createSpace(db: Db, audit: AuditSink, body: unknown, nowIso: string): ApiResponse {
   const parsed = createBody.safeParse(body ?? {});
   if (!parsed.success) return err(400, "invalid_input", parsed.error.message);
-  const id = newId("foc"); // 空间 id 复用 foc 前缀族(contracts 未单列 spc)
-  db.prepare(
-    `INSERT INTO focus_spaces(id, title, created_at, updated_at) VALUES (?,?,?,?)`
-  ).run(id, parsed.data.title, nowIso, nowIso);
-  audit.record({
-    actor: "owner",
-    action: "space.created",
-    meta: { spaceId: id, title: parsed.data.title }
-  });
-  return { status: 200, payload: { ok: true, id, title: parsed.data.title } };
+  try {
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const id = newId("foc"); // 空间 id 复用 foc 前缀族(contracts 未单列 spc)
+      db.prepare(
+        `INSERT INTO focus_spaces(id, title, created_at, updated_at) VALUES (?,?,?,?)`
+      ).run(id, parsed.data.title, nowIso, nowIso);
+      audit.record({
+        actor: "owner",
+        action: "space.created",
+        meta: { spaceId: id, title: parsed.data.title }
+      });
+      return { status: 200, payload: { ok: true, id, title: parsed.data.title } };
+    });
+  } catch (e) {
+    if (e instanceof FocusWriteError) return err(409, e.code, e.message);
+    return err(409, "create_failed", e instanceof Error ? e.message : String(e));
+  }
 }
 
 export function renameSpace(
@@ -68,16 +77,24 @@ export function renameSpace(
 ): ApiResponse {
   const parsed = renameBody.safeParse(body ?? {});
   if (!parsed.success) return err(400, "invalid_input", parsed.error.message);
-  const r = db
-    .prepare("UPDATE focus_spaces SET title = ?, updated_at = ? WHERE id = ?")
-    .run(parsed.data.title, nowIso, spaceId) as { changes: number };
-  if (r.changes !== 1) return err(404, "not_found", `space ${spaceId} not found`);
-  audit.record({
-    actor: "owner",
-    action: "space.renamed",
-    meta: { spaceId, title: parsed.data.title }
-  });
-  return { status: 200, payload: { ok: true, id: spaceId, title: parsed.data.title } };
+  if (!db.prepare("SELECT id FROM focus_spaces WHERE id=?").get(spaceId)) return err(404, "not_found", `space ${spaceId} not found`);
+  try {
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const r = db
+        .prepare("UPDATE focus_spaces SET title = ?, updated_at = ? WHERE id = ?")
+        .run(parsed.data.title, nowIso, spaceId) as { changes: number };
+      if (r.changes !== 1) return err(404, "not_found", `space ${spaceId} not found`);
+      audit.record({
+        actor: "owner",
+        action: "space.renamed",
+        meta: { spaceId, title: parsed.data.title }
+      });
+      return { status: 200, payload: { ok: true, id: spaceId, title: parsed.data.title } };
+    });
+  } catch (e) {
+    if (e instanceof FocusWriteError) return err(409, e.code, e.message);
+    return err(409, "rename_failed", e instanceof Error ? e.message : String(e));
+  }
 }
 
 /** 删除:置空 focuses.space_id + 删行(合同 §2 无级联删 Focus) */
@@ -86,23 +103,30 @@ export function deleteSpace(db: Db, audit: AuditSink, spaceId: string, nowIso: s
     | { id: string; title: string }
     | undefined;
   if (!exists) return err(404, "not_found", `space ${spaceId} not found`);
-  const result = db.transaction(() => {
-    const affected = db
-      .prepare("SELECT id FROM focuses WHERE space_id = ?")
-      .all(spaceId) as { id: string }[];
-    db.prepare("UPDATE focuses SET space_id = NULL, updated_at = ? WHERE space_id = ?").run(nowIso, spaceId);
-    db.prepare("DELETE FROM focus_spaces WHERE id = ?").run(spaceId);
-    return affected.map((r) => r.id);
-  })();
-  audit.record({
-    actor: "owner",
-    action: "space.deleted",
-    meta: { spaceId, title: exists.title, affectedFocusIds: result, affectedCount: result.length }
-  });
-  return {
-    status: 200,
-    payload: { ok: true, id: spaceId, affectedFocusIds: result, affectedCount: result.length }
-  };
+  try {
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const result = db.transaction(() => {
+        const affected = db
+          .prepare("SELECT id FROM focuses WHERE space_id = ?")
+          .all(spaceId) as { id: string }[];
+        db.prepare("UPDATE focuses SET space_id = NULL, updated_at = ? WHERE space_id = ?").run(nowIso, spaceId);
+        db.prepare("DELETE FROM focus_spaces WHERE id = ?").run(spaceId);
+        return affected.map((r) => r.id);
+      })();
+      audit.record({
+        actor: "owner",
+        action: "space.deleted",
+        meta: { spaceId, title: exists.title, affectedFocusIds: result, affectedCount: result.length }
+      });
+      return {
+        status: 200,
+        payload: { ok: true, id: spaceId, affectedFocusIds: result, affectedCount: result.length }
+      };
+    });
+  } catch (e) {
+    if (e instanceof FocusWriteError) return err(409, e.code, e.message);
+    return err(409, "delete_failed", e instanceof Error ? e.message : String(e));
+  }
 }
 
 export function assignFocusSpace(
@@ -120,15 +144,22 @@ export function assignFocusSpace(
     const sp = db.prepare("SELECT id FROM focus_spaces WHERE id = ?").get(parsed.data.spaceId);
     if (!sp) return err(404, "space_not_found", `space ${parsed.data.spaceId} not found`);
   }
-  db.prepare("UPDATE focuses SET space_id = ?, updated_at = ? WHERE id = ?").run(
-    parsed.data.spaceId,
-    nowIso,
-    focusId
-  );
-  audit.record({
-    actor: "owner",
-    action: "space.assigned",
-    meta: { focusId, spaceId: parsed.data.spaceId }
-  });
-  return { status: 200, payload: { ok: true, focusId, spaceId: parsed.data.spaceId } };
+  try {
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      db.prepare("UPDATE focuses SET space_id = ?, updated_at = ? WHERE id = ?").run(
+        parsed.data.spaceId,
+        nowIso,
+        focusId
+      );
+      audit.record({
+        actor: "owner",
+        action: "space.assigned",
+        meta: { focusId, spaceId: parsed.data.spaceId }
+      });
+      return { status: 200, payload: { ok: true, focusId, spaceId: parsed.data.spaceId } };
+    });
+  } catch (e) {
+    if (e instanceof FocusWriteError) return err(409, e.code, e.message);
+    return err(409, "assign_failed", e instanceof Error ? e.message : String(e));
+  }
 }

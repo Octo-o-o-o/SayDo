@@ -96,3 +96,22 @@ describe("ReviewPanel 证据", () => {
     expect(html).not.toContain("data-acceptance-status=\"pass\"");
   });
 });
+
+for (const status of ["failed", "running", "cancel_settled"] as const) {
+  it(`${status} 任务的 unknown 项不能放开通过按钮`, () => {
+    const value = ctx(undefined);
+    value.task.viewStatus = status;
+    const html = renderToStaticMarkup(<ReviewPanel ctx={value} />);
+    expect(html).toContain('data-review-approve-blocked="1"');
+    expect(html).toContain('data-acceptance-status="unknown"');
+    expect(html).toContain('disabled=""');
+    expect(html).not.toContain("执行和检查都跑完了");
+  });
+}
+
+it.each([["ready_for_review", "0"], ["failed", "1"]])("parked 呈现态按底层 %s 判断验收", (status, blocked) => {
+  const value = ctx(undefined);
+  value.task.viewStatus = "parked";
+  value.taskStatus = status;
+  expect(renderToStaticMarkup(<ReviewPanel ctx={value} />)).toContain(`data-review-approve-blocked="${blocked}"`);
+});

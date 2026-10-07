@@ -1,4 +1,4 @@
-// Focus 侧栏真实入口:安排打开 TaskModal;期待只带 Focus 进对话草稿;fork 不伪造 REST。
+// Focus 真实入口:安排打开 TaskModal;期待只带 Focus 进对话草稿;批准与采访核对实体身份。
 // 批准/采访消费走同 session 生产确认卡或 turn.text,不对任意卡开放。
 
 import type { TaskModalTarget } from "../../components/TaskModal";

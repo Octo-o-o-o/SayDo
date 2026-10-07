@@ -3,7 +3,7 @@
 <html data-lang="zh" data-page="guide" data-theme="light" lang="zh-CN"><head><!-- SayDo website v4 / Voice input + real-time conversation + mobile in-development concept. All voice is scripted and silent; no microphone APIs. --><!-- SayDo website v3 / Definition first · Product illustrations · Separate Quick Start / Sources read 2026-09-16. No installer or live agent is executed by this website. --><meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
 <meta content="light dark" name="color-scheme"/><meta content="#ffffff" name="theme-color"/>
-<meta content="在自己的电脑上安装 SayDo，连接已有 AI 供给，开始第一段对话。macOS、Windows、Linux 安装命令与首次设置说明。" name="description"/>
+<meta content="在自己的电脑上安装 SayDo，连接已有 AI 供给，开始第一段对话。GitHub Release 开发预览版：macOS、Windows、Linux 安装命令与首次设置说明。" name="description"/>
 <meta content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'" http-equiv="Content-Security-Policy"/>
 <link rel="canonical" href="https://saydo.octoooo.com/quick-start/"/>
 <link rel="alternate" hreflang="zh-Hans" href="https://saydo.octoooo.com/quick-start/"/>
@@ -564,7 +564,7 @@ function guideLanguage(value,persist=true){
  root.dataset.lang=value==='en'?'en':'zh';root.lang=root.dataset.lang==='en'?'en':'zh-CN';
  if(persist)save('saydo-site-lang',root.dataset.lang);
  translate();document.title=t('快速开始 — SayDo','Quick start — SayDo');
- $('meta[name=description]').content=t('在自己的电脑上安装 SayDo，连接已有 AI 供给，开始第一段对话。macOS、Windows、Linux 安装命令与首次设置说明。','Install SayDo on your computer, connect an AI supply, and begin a conversation. macOS, Windows and Linux commands, first-run setup and troubleshooting.');
+ $('meta[name=description]').content=t('在自己的电脑上安装 SayDo，连接已有 AI 供给，开始第一段对话。GitHub Release 开发预览版：macOS、Windows、Linux 安装命令与首次设置说明。','Install SayDo on your computer, connect an AI supply, and begin a conversation. GitHub Release developer preview: macOS, Windows and Linux commands, first-run setup and troubleshooting.');
  $('#language').setAttribute('aria-label',t('Switch to English','切换为简体中文'));$('#language').title=t('Switch to English','切换为简体中文');
  guideTheme(root.dataset.preference,false);syncGuideMenu();renderGuide();
 }

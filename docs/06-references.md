@@ -98,7 +98,7 @@
 | settle barrier | 回叫前的状态/产物落盘对账——runner 退出 ≠ 可以叫人 |
 | Context Pack | 每次建会话临时拼接的小上下文切片(≠ 持久知识库) |
 | 决策包(DecisionPackage) | 就绪时给用户拍板的三件套:成果预览 + 计划(人机分工)+ Demo |
-| 生成可查看 / 实际已展示 | 小样证据两档(09 §2/§13;10 #10;11 决策包卡):`demoRef`=已生成、可在决策包点「看小样」;`demoPresented`=DemoFrame 已内联渲染的展示回执。提示文字送达(`demoHintDelivered`)不得升格为已展示 |
+| 生成可查看 / 实际已展示 | 小样证据两档(09 §2/§13;10 #10;11 决策包卡):`demoRef`=已生成、可在决策包点「看小样」;`demoPresented`=小样实际展示回执；现役工具尚无该回执，返回 false，不得将生成引用当已展示。提示文字送达(`demoHintDelivered`)不得升格为已展示 |
 | 两把钥匙 | Epistemic(证据够了)与 Authority(有权者批准)分离(04 §2.5) |
 | 直达验收 / 逐步确认 | 执行模式两档(现役仅逐步确认;直达验收档 designed/deferred,PG-01B):拍板即授权整包(预授权清单)/ 每个出圈动作与步骤边界确认(04 §5.4;S3 门槛与档位无关) |
 | taint / provenance | 记忆条目的污染标记 / 来源链(04 §1.4) |
@@ -126,7 +126,7 @@
 
 ## 7. 公开声明与语料证据词义(PG-01A C0,2026-08-31)
 
-> 本节约束**公开声明与语料证据词义**。运行时任务状态、API、权限与模型行为仍以 [09 · 数据契约](09-data-contracts.md) 为唯一形状源;本批不得把下列词写成 09 新枚举,也不得改 CLI/网络/状态机。用户可见文案上限见 [11 §10.3](11-ui-spec.md)。升降级权、证据 TTL、capability ledger schema 归后续 PG-02/E0,本批不建账本平台。
+> 本节约束**公开声明与语料证据词义**。运行时任务状态、API、权限与模型行为仍以 [09 · 数据契约](09-data-contracts.md) 为唯一形状源;本批不得把下列词写成 09 新枚举,也不得改 CLI/网络/状态机。用户可见文案上限见 [11 §10.3](11-ui-spec.md)。capability ledger 的词义见 §8。升降级权、证据 TTL、distribution/platform 失效、状态 migration、投影失败是否阻断发布仍标 `deferred_to_E0`。本节不建账本平台,也不把七态写成公开声明的第五态。
 
 ### 7.1 公开声明四态(不是运行时任务枚举)
 
@@ -210,71 +210,10 @@ Q0 报告本身不写 `repo_status`。当 `unresolved_count>0` 时,G-A1 在批 e
 
 C1 起,现役公开根按本节四态与 11 §10.3 收紧;Q0 producer/checker 为 `research/customer-question-corpus/check-q0-truth-report.mjs`,本批 I 不预置绑定自身 SHA 的报告。
 
-## 8. 最小真相控制面词义(PG-02 C0,2026-09-06)
+## 8. 静态控制面退役后的声明边界（2026-10-07）
 
-> 本节约束**capability / action / scope / gate-ID / support claim 词义**。总案 §1.3 七态表在 E0 前「不可用作生产状态机」;自 PG-02 起升为 capability ledger 的状态词表,形状以 09 最小真相控制面章节(PG-02 在途,09 尚无该节)与 `@saydo/contracts` `truthPlane`(PG-02 在途)为准。运行时任务状态、收据、Brain 工具签名仍以 09 既有节为唯一形状源;本批不得把七态写成 09 新运行时枚举,也不得改 CLI/网络/状态机。用户可见文案上限见 [11 §10.3](11-ui-spec.md);公开声明四态仍只许 §7.1 四值。升降级权、证据 TTL、distribution/platform 失效、状态 migration、投影失败是否阻断发布五项标 `deferred_to_E0`,本批不建通用账本平台。
+PG-02 的 ledger、gate registry、有限静态解释器及专用 truthPlane 合同已退役，详见 [09 §18](09-data-contracts.md)。旧七态、静态闭合超界、原生接收者证明等仅属历史工具词义，不是新的运行时状态或现役登记义务。
 
-### 8.1 capability 成熟度七态(不是公开声明四态,不是运行时任务枚举)
+公开能力声明继续使用 §7.1 的 `supported`、`conditional`、`preview`、`unsupported`，以真实产品入口、条件和实际验证证据为依据，不以台账登记或源码文本匹配授予支持。平台与分发状态仍以 `docs/release/version-matrix.md` 和 `docs/release/release-profile.yaml` 为准。没有验证的能力不得当作已支持。
 
-每条 capability ledger 记录必须且只能取下列一态。用户文案上限逐字取自总案 §1.3;公开根上的可见文案还受 §7.1 与 11 §10.3 约束,冲突时取更紧上限。禁止用 `preview` 充当第七态,也禁止把 `implemented_hidden` 与 `preview` 写成同一个词。
-
-| 状态 | 含义 | 用户文案上限 |
-|---|---|---|
-| `inventory_only` | 只发现名称、安装或配置痕迹 | “检测到，尚不能使用” |
-| `designed` | 有方案或草案，没有生产合同/实现 | “规划中” |
-| `contracted` | canonical 与 production contract 已落，未接线 | “开发中”，不得出现在默认选择器 |
-| `implemented_hidden` | 已实现但无完整默认旅程或门禁 | “开发者预览” |
-| `conditional` | 在列明的平台、账户、协议、权限或网络条件下可用 | 明示条件后称“可用” |
-| `supported` | 默认入口可达、恢复闭合、门禁与真实证据齐全 | 可称“支持” |
-| `deprecated` | 只为迁移保留 | 明示替代与截止点 |
-
-七态到 §7.1 公开声明四态的**单向投影**(不造第五套同义词;投影后的公开根仍只许四态之一):
-
-| ledger 七态 | §7.1 公开声明四态 |
-|---|---|
-| `supported` | `supported` |
-| `conditional` | `conditional` |
-| `implemented_hidden` | `preview` |
-| `inventory_only` / `designed` / `contracted` / `deprecated` | `unsupported` |
-
-`implemented_hidden` 是 ledger 态;`preview` 是公开声明态。二者可映射,不得混称为一词。
-
-### 8.2 安全缺省 `unregistered_not_claimable`
-
-未在 capability ledger 登记的能力,在任何公开根一律按 `unsupported` 处理,不得出现在默认选择器或公开声明。缺登记不是「待补字段」,而是不可宣称。
-
-### 8.3 action
-
-**action** = 默认 UI 或 Brain 可发起、且可能产生 durable 写入或对用户回报结果的一次调用。每条 action 绑定 request、目标 durable transition、禁止 transition、投影/回报形状与用户文案来源。形状见 09 最小真相控制面(PG-02 在途章节);`durable_transition` 允许字面 `none`,但必须同时给出 `no_durable_write_reason`。非 TaskCard 域须用 09 §17(PG-02 在途章节)有界命名空间(`decision_packages` / `receipt` / `outbox` / 表级 `insert|delete`),不得把包/收据/outbox 状态或表名写成裸任务状态词。任务状态词表见 09 §6.1,收据词表见 09 §3,Brain 工具签名见 09 §13——本节只引用,不重列枚举。
-
-### 8.4 scope
-
-**scope** = 一条 action 或 capability 的可达面与注册闸。可达面只许 `default_ui` / `brain` / `both`;注册闸只许 `always` / `focus_stage_ge_1` / `setup_only`。扫描根、排除根、排除符号与各自理由由 09 `ScopeRecord` 承载(`surface_roots` / `excluded_roots` / `excluded_symbols`)。未在 `surface_roots` 声明、却命中 09 §17.2 (b)(PG-02 在途章节)写动作谓词(含 catalog / 直接调用 / WS)的文件,implementation 阶段 checker 非零退出。默认 UI 写动作判定口径、引用匹配与 `lib/api.ts` 处理见 09 §17.2 (b)(同上,在途);通用传输原语不是动作。
-
-### 8.5 gate-ID
-
-**gate-ID** = `FG-<批次>-<名称>` 形态的稳定标识,只做引用锚点,不承载执行语义。registry 不执行任何门禁。capability ledger 引用的每个 `gate_id` 必须在 gate-ID registry 中存在。现役计划层列表见总案 §20.2.2,本批只登记不运行。
-
-### 8.6 support claim
-
-**support claim** = 对平台、分发渠道或商店可得性的公开陈述。真相源唯一为 `docs/release/version-matrix.md` §1 与 `docs/release/release-profile.yaml`。本批判定面是 09 §17.2 (c)(PG-02 在途章节)声明的 claim 根 slice(`SUPPORT_CLAIM_SLICE_ROOTS`);其余 `REQUIRED_ROOTS` 在 **support-matrix.json 自己的** `ScopeRecord.excluded_roots` 逐条登记 deferred 理由,不得静默丢弃。检测侧只发现 slice 根中含平台 token 的行;覆盖、例外(`not_a_claim[]`)与 `claimed_status` 由人声明,checker 做 09 §17.3(PG-02 在途章节)A1/A2/A3 与「声明不高于真相源」。平台/渠道词表是有限集,冻结在 `scripts/truth-plane-vocab.json`(投影自 `@saydo/contracts` 常量;该文件 PG-02 在途,本分支尚未落盘);词表外自由文本不在本批判定面内。不存在公开文案 → 四态的映射表。
-
-### 8.7 本节不定义(`deferred_to_E0`)
-
-下列五项全部标 `deferred_to_E0`,本批只登记为 deferred,不实现:
-
-| 项 | 理由 |
-|---|---|
-| 升降级权归属 | 谁可以把 `supported` 降为 `conditional` 或退役,是治理权,不是本批 ledger 形状 |
-| 证据 TTL / 过期自动降级 | 本批证据绑定 git commit;过期是否自动降级需要独立生命周期合同 |
-| distribution / platform 变化的失效规则 | 商店、渠道或平台坐标变化如何使声明失效,属发布治理 |
-| 状态 schema migration | 七态升为 ledger 后的版本迁移与兼容读,属 E0 |
-| 生成投影失败是否阻断发布 | 本批 checker 只 fail-closed 阻断新 claim,不定义发布闸 |
-
-下列命名空间禁止混用(与 §7.1 并列,互不替代):
-
-- 09 任务状态(`queued` / `running` / `ready_for_review` / `task_done` 等);
-- 09 §4.1 `semanticSupport`(`supported` / `unsupported` / `unclear`,引证语义判断);
-- 11 §5.10 `VoiceTransport`(`cloud` / `system` / `unavailable`);
-- 首启 probe 的检测/`logged_in`/self-test 结果;
-- §7.1 公开声明四态(`supported` / `conditional` / `preview` / `unsupported`)。
+任务状态、收据、记忆语义支持、语音传输和首启 probe 各沿既有合同，不能互换。历史 RED 与未决平台/设备/provider 验收不因本次精简升级。

@@ -1,0 +1,261 @@
+{
+  "code_commit": "70619704702e61e3bab6ba7753116104bc923492",
+  "status": "20 原有文件被本轮覆盖；原始字节未恢复；保全当前字节不证明原轮截图/JSON",
+  "files": [
+    {
+      "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/b3-draft-barrier.png",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/ordinary-focused-02-unintended-output/b3-draft-barrier.png",
+      "bytes": 149658,
+      "sha256": "2ab26becba14612066e9c5fa2708b50636c5e31e21acf3468640a0b2756bf385",
+      "first_observed_mtime_utc": "2026-10-03T08:38:06.691603+00:00",
+      "last_observed_mtime_utc": "2026-10-03T08:38:06.691603+00:00",
+      "birthtime_utc": "2026-09-23T02:38:41.278734+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "unknown;未发现本轮备份覆盖此旧task路径，不按猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/b3-draft-posts.json",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/ordinary-focused-02-unintended-output/b3-draft-posts.json",
+      "bytes": 268,
+      "sha256": "7df1bba757419ce2cda9fa23147a99aaafda2dfbd3eb5dacb1f4b3fdc44a3deb",
+      "first_observed_mtime_utc": "2026-10-03T08:38:06.692873+00:00",
+      "last_observed_mtime_utc": "2026-10-03T08:38:06.692873+00:00",
+      "birthtime_utc": "2026-09-23T02:38:41.279068+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "unknown;未发现本轮备份覆盖此旧task路径，不按猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/board-lanes.png",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/ordinary-focused-02-unintended-output/demo/board-lanes.png",
+      "bytes": 262241,
+      "sha256": "587ab4f920a51f6021bbd4187a26ff5eb0dcac9562ff6760709d3226055f2da0",
+      "first_observed_mtime_utc": "2026-10-03T08:38:07.745653+00:00",
+      "last_observed_mtime_utc": "2026-10-03T08:38:07.745653+00:00",
+      "birthtime_utc": "2026-09-20T05:31:01.201693+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "unknown;未发现本轮备份覆盖此旧task路径，不按猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/board-list.png",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/ordinary-focused-02-unintended-output/demo/board-list.png",
+      "bytes": 171969,
+      "sha256": "24d4d4e290e33f012319b896b65a42d8b5b5d92e5489f191d3b39532e482a1bb",
+      "first_observed_mtime_utc": "2026-10-03T08:38:07.846485+00:00",
+      "last_observed_mtime_utc": "2026-10-03T08:38:07.846485+00:00",
+      "birthtime_utc": "2026-09-23T02:38:44.685625+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "unknown;未发现本轮备份覆盖此旧task路径，不按猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/board-kanban.png",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/ordinary-focused-02-unintended-output/demo/board-kanban.png",
+      "bytes": 305394,
+      "sha256": "c45d87ecf2b4de7074d2d7af5c643bd339b81b2505605da30ff0a6849482ea22",
+      "first_observed_mtime_utc": "2026-10-03T08:38:07.980976+00:00",
+      "last_observed_mtime_utc": "2026-10-03T08:38:07.980976+00:00",
+      "birthtime_utc": "2026-09-20T05:31:01.198228+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "unknown;未发现本轮备份覆盖此旧task路径，不按猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/arrangements.png",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/ordinary-focused-02-unintended-output/demo/arrangements.png",
+      "bytes": 149735,
+      "sha256": "a9eb2649985abc3d69bfa8e9a36d0e2988c58d289e609a5870e31f7e98a6f05d",
+      "first_observed_mtime_utc": "2026-10-03T08:38:08.077933+00:00",
+      "last_observed_mtime_utc": "2026-10-03T08:38:08.077933+00:00",
+      "birthtime_utc": "2026-09-23T02:38:44.883355+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "unknown;未发现本轮备份覆盖此旧task路径，不按猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/archive.png",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/ordinary-focused-02-unintended-output/demo/archive.png",
+      "bytes": 148042,
+      "sha256": "d4ef3f44cee2b416f37d0a8d2b734d342baa2195a4de0eae878e06dcbee92c56",
+      "first_observed_mtime_utc": "2026-10-03T08:38:08.197061+00:00",
+      "last_observed_mtime_utc": "2026-10-03T08:38:08.197061+00:00",
+      "birthtime_utc": "2026-09-23T02:38:44.970852+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "unknown;未发现本轮备份覆盖此旧task路径，不按猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/cost-identity.png",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/ordinary-focused-02-unintended-output/cost-identity.png",
+      "bytes": 93518,
+      "sha256": "3c168d7ff12089327b06063bf7bdf8d877371f8433d954829a5d1079b083da51",
+      "first_observed_mtime_utc": "2026-10-03T08:38:12.035119+00:00",
+      "last_observed_mtime_utc": "2026-10-03T08:38:12.035119+00:00",
+      "birthtime_utc": "2026-09-23T02:38:47.924078+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "unknown;未发现本轮备份覆盖此旧task路径，不按猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-obligation-modal-1440.png",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/real-entry-unintended-output/focus-obligation-modal-1440.png",
+      "bytes": 111975,
+      "sha256": "07dd49b018fa2b089e31eb8ba282fa20188d522760377b01dc024dfda4911cd6",
+      "first_observed_mtime_utc": "2026-10-03T09:26:31.614396+00:00",
+      "last_observed_mtime_utc": "2026-10-03T09:26:31.614396+00:00",
+      "birthtime_utc": "2026-09-12T17:28:08.461975+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "未找到本轮备份覆盖旧task路径；无法证明原值，不猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/expect-draft-chat.png",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/real-entry-unintended-output/expect-draft-chat.png",
+      "bytes": 158225,
+      "sha256": "07d692b596d3096e7f53b4ff7dd261d26ea43ee4305fe2e239aeb273027522e1",
+      "first_observed_mtime_utc": "2026-10-03T09:26:34.431623+00:00",
+      "last_observed_mtime_utc": "2026-10-03T09:26:34.431623+00:00",
+      "birthtime_utc": "2026-09-12T17:28:11.643218+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "未找到本轮备份覆盖旧task路径；无法证明原值，不猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/anchor-failed-keeps-draft.png",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/real-entry-unintended-output/anchor-failed-keeps-draft.png",
+      "bytes": 159758,
+      "sha256": "aa5f1b630d1d466bdb618358442522a23e1c2476c7ac1b651e3cb24b64188e2e",
+      "first_observed_mtime_utc": "2026-10-03T09:26:37.059694+00:00",
+      "last_observed_mtime_utc": "2026-10-03T09:26:37.059694+00:00",
+      "birthtime_utc": "2026-09-12T17:28:14.246535+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "未找到本轮备份覆盖旧task路径；无法证明原值，不猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/records-continue-main-lane.png",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/real-entry-unintended-output/records-continue-main-lane.png",
+      "bytes": 157168,
+      "sha256": "f674bc305fdcab4086ac92cea1cf9e9d1b9a64b1e84ab6790f970e0afc16d7f7",
+      "first_observed_mtime_utc": "2026-10-03T09:26:50.266966+00:00",
+      "last_observed_mtime_utc": "2026-10-03T09:26:50.266966+00:00",
+      "birthtime_utc": "2026-09-12T17:28:28.693833+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "未找到本轮备份覆盖旧task路径；无法证明原值，不猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/task-modal-running.png",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/real-entry-unintended-output/task-modal-running.png",
+      "bytes": 134554,
+      "sha256": "7d3ff3b9a057530a14f9549176f830143d9ec2ed4205fc9f66da2bc6ddf8f917",
+      "first_observed_mtime_utc": "2026-10-03T09:26:52.998955+00:00",
+      "last_observed_mtime_utc": "2026-10-03T09:26:52.998955+00:00",
+      "birthtime_utc": "2026-09-12T17:28:31.526523+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "未找到本轮备份覆盖旧task路径；无法证明原值，不猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-desktop-1440.png",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/real-entry-unintended-output/focus-desktop-1440.png",
+      "bytes": 99222,
+      "sha256": "458e0696500df1bb962074beff64f637acbeacbc9a8ebe1fb8a9a3ab93d8dee7",
+      "first_observed_mtime_utc": "2026-10-03T09:26:58.447562+00:00",
+      "last_observed_mtime_utc": "2026-10-03T09:26:58.447562+00:00",
+      "birthtime_utc": "2026-09-12T17:28:37.247500+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "未找到本轮备份覆盖旧task路径；无法证明原值，不猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-mobile-390.png",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/real-entry-unintended-output/focus-mobile-390.png",
+      "bytes": 45941,
+      "sha256": "32dad3e4f6500d73bfb80cbd910d2c5c4810578f64666e7761a060efc0437f5b",
+      "first_observed_mtime_utc": "2026-10-03T09:26:58.526207+00:00",
+      "last_observed_mtime_utc": "2026-10-03T09:26:58.526207+00:00",
+      "birthtime_utc": "2026-09-12T17:28:37.355667+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "未找到本轮备份覆盖旧task路径；无法证明原值，不猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-mobile-390-obligation.png",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/real-entry-unintended-output/focus-mobile-390-obligation.png",
+      "bytes": 35755,
+      "sha256": "2621b5eab8f3cdd47967f61e970a5f2fbafc1f68ef6a3ae2394e6d3ca3d1219d",
+      "first_observed_mtime_utc": "2026-10-03T09:26:58.583631+00:00",
+      "last_observed_mtime_utc": "2026-10-03T09:26:58.583631+00:00",
+      "birthtime_utc": "2026-09-12T17:28:37.405030+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "未找到本轮备份覆盖旧task路径；无法证明原值，不猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/pending-anchor-retry-ws-http.json",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/real-entry-unintended-output/pending-anchor-retry-ws-http.json",
+      "bytes": 2651,
+      "sha256": "1a9be2f02093acb00a989e9afd242f5e1ee4ade781e2ddabd0a9c06fc6e26f20",
+      "first_observed_mtime_utc": "2026-10-03T09:26:37.167045+00:00",
+      "last_observed_mtime_utc": "2026-10-03T09:26:37.167045+00:00",
+      "birthtime_utc": "2026-09-12T17:28:14.331973+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "未找到本轮备份覆盖旧task路径；无法证明原值，不猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/delay-focus-a-to-b-ws-http.json",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/real-entry-unintended-output/delay-focus-a-to-b-ws-http.json",
+      "bytes": 2651,
+      "sha256": "52b1b210f68f1dc76bcfaa2d2775f8d94e49eb45cf8439ea0b6eb6a432b374c9",
+      "first_observed_mtime_utc": "2026-10-03T09:26:47.540045+00:00",
+      "last_observed_mtime_utc": "2026-10-03T09:26:47.540045+00:00",
+      "birthtime_utc": "2026-09-12T17:28:25.620638+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "未找到本轮备份覆盖旧task路径；无法证明原值，不猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/records-continue-ws-http.json",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/real-entry-unintended-output/records-continue-ws-http.json",
+      "bytes": 1781,
+      "sha256": "e36f01536cb282de2881e683541c392875dc131e9c49848a9658871150044c8b",
+      "first_observed_mtime_utc": "2026-10-03T09:26:50.267432+00:00",
+      "last_observed_mtime_utc": "2026-10-03T09:26:50.267432+00:00",
+      "birthtime_utc": "2026-09-12T17:28:28.694209+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "未找到本轮备份覆盖旧task路径；无法证明原值，不猜测恢复"
+    },
+    {
+      "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/journey01-closed-loop.json",
+      "copy": "~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/daemon-journey-unintended-output/journey01-closed-loop.json",
+      "bytes": 944,
+      "sha256": "979f959c8fe504dcb4622b7d783c7489d5e0c5b3e529f45cf4c20d8a0174a5c2",
+      "first_observed_mtime_utc": "2026-10-03T09:22:42.830576+00:00",
+      "last_observed_mtime_utc": "2026-10-03T09:22:42.830576+00:00",
+      "birthtime_utc": "2026-09-20T05:26:42.275509+00:00",
+      "created_or_overwritten": "overwritten",
+      "original_value": "旧task未纳入来源worktree归档；当前文件不能证明原轮字节，不按猜测恢复"
+    }
+  ],
+  "raw_manifests": [
+    {
+      "file": "evidence/implementation/ordinary-focused-02-unintended-output.json",
+      "bytes": 6412,
+      "sha256": "961f4faa37ee497b185af5a62ac36f303cbdd34a691dae587a005fdd386cc217"
+    },
+    {
+      "file": "evidence/implementation/real-entry-unintended-output.json",
+      "bytes": 8678,
+      "sha256": "73a924b8d875578952581c4077b488c0eaeb5224bc2bf5579eabb5743563b94a"
+    },
+    {
+      "file": "evidence/implementation/daemon-journey-unintended-output.json",
+      "bytes": 1102,
+      "sha256": "0610e81a61eb79e4065eeb49e796a308fd0a6a4128c928be27a818fc2e89796a"
+    }
+  ],
+  "contract": "旧目录未删除，旧 RESULT/task.json 未改；不撤销历史确曾运行测试事实，但这20项当前字节不能当原轮证据",
+  "recovery_sources": [
+    {
+      "file": "evidence/audit/evidence-recovery-time-machine-check.json",
+      "bytes": 581,
+      "sha256": "1aebde8c8ec9246aa3c8a6fa075cb67c00c006b274e69b985c493e42f11de28b"
+    },
+    {
+      "file": "evidence/audit/evidence-recovery-reachable-git-images-check.json",
+      "bytes": 320,
+      "sha256": "ffdb4b35d4ad8fc5031c8801f4b51551a7984b6d885df2e069bc939aba21a037"
+    },
+    {
+      "file": "evidence/audit/historical-evidence-overwrite-current-byte-check.json",
+      "bytes": 13222,
+      "sha256": "34773e32a5516bf15c429f0d815de6ad3c565d794d51973ad9e3f35b2d7e8357"
+    }
+  ]
+}

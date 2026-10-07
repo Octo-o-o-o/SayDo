@@ -28,7 +28,10 @@ final class NativeSpeechController: ObservableObject {
     static let maximumCaptureDuration: TimeInterval = 60
 
     @Published private(set) var phase: CapturePhase = .idle
-    @Published private(set) var transcript = ""
+    @Published private var transcriptBuffer = NativeTranscriptBuffer()
+
+    var transcript: String { transcriptBuffer.text }
+    var hasRecoverableTranscript: Bool { phase == .idle && transcriptBuffer.hasText }
     @Published private(set) var probeSteps: [String] = []
     @Published private(set) var errorMessage: String?
     @Published private(set) var permissionSummary = "语音：未询问 · 麦克风：未询问"
@@ -65,10 +68,9 @@ final class NativeSpeechController: ObservableObject {
         allowServerRecognition: Bool,
         onMaximumDuration: @escaping () -> Void
     ) async {
-        guard phase == .idle else { return }
+        guard transcriptBuffer.permitsCapture(in: phase) else { return }
         let generation = machine.beginAuthorization()
         publishPhase()
-        transcript = ""
         probeSteps = []
         errorMessage = nil
         serverOptInRequired = false
@@ -131,22 +133,43 @@ final class NativeSpeechController: ObservableObject {
         stopRecognition(cancelTask: true)
         machine.invalidate()
         publishPhase()
-        transcript = ""
+        transcriptBuffer.replaceRecognition("")
         errorMessage = "已取消，不会发送。"
     }
 
     func completeSubmission(_ result: NativeSubmissionResult, captureId completedCaptureId: String) {
         let generation = machine.generation
         guard phase == .submitting, completedCaptureId == captureId else { return }
-        if result.status == .queuedToSocket || result.status == .drafted {
+        if result.transfersTranscriptOwnership {
             _ = machine.finishSubmitting(generation: generation)
             errorMessage = result.status == .queuedToSocket ? "已排进发送队列。" : "转写已放进输入框。"
         } else {
             machine.invalidate()
-            errorMessage = submissionErrorMessage(result.reason)
+            errorMessage = submissionErrorMessage(result.reason) + "原转写已保留。"
         }
         publishPhase()
-        transcript = ""
+        // 拒绝或桥接失败时，本地仍持有唯一转写，不因失败回执清稿。
+        transcriptBuffer.finishSubmission(result)
+    }
+
+    func handleBridgeLoss() {
+        guard phase != .idle else { return }
+        if phase == .submitting {
+            machine.invalidate()
+            publishPhase()
+            errorMessage = "页面连接变化，原转写已保留，不会自动重发。"
+        } else {
+            cancelCapture()
+        }
+    }
+
+    func editRecoveredTranscript(_ text: String) {
+        _ = transcriptBuffer.edit(text, in: phase)
+    }
+
+    func discardRecoveredTranscript() {
+        guard transcriptBuffer.discard(in: phase) else { return }
+        errorMessage = nil
     }
 
     func refreshPermissions() {
@@ -282,7 +305,7 @@ final class NativeSpeechController: ObservableObject {
     private func handleRecognition(result: SFSpeechRecognitionResult?, error: Error?, generation: Int) {
         guard machine.accepts(generation: generation) else { return }
         if let result {
-            transcript = result.bestTranscription.formattedString
+            transcriptBuffer.replaceRecognition(result.bestTranscription.formattedString)
             latestResultIsFinal = result.isFinal
             if result.isFinal, phase == .finalizing {
                 deliverTranscript(generation: generation)

@@ -26,7 +26,7 @@ import {
   type S3MergeReceipt
 } from "@saydo/contracts";
 import type { Db } from "../storage/db.js";
-import type { AuditSink } from "../obs/audit.js";
+import type { AuditEvent, AuditSink } from "../obs/audit.js";
 // DAILY-01:任务级前置依赖唤醒(合同 §15.2);S3 合并链裸 UPDATE 不经 transitionTask 漏斗
 import { applyTaskDependencyTransition } from "../focus/dependency.js";
 import { getApproval, insertApproval } from "../storage/dao/approvals.js";
@@ -46,13 +46,14 @@ import type { FrozenVerify } from "./verifyFreeze.js";
 /** 挑战短窗(09 §3.3:缺省 issuedAt + 120s;过期即废,重新发起);S3 收据同窗 */
 export const S3_CHALLENGE_TTL_MS = 120_000;
 
-function commitTaskDoneAndDeps(db: Db, taskId: string, nowIso: string): boolean {
+function commitTaskDoneAndDeps(db: Db, taskId: string, nowIso: string, audit: AuditSink, event: AuditEvent): boolean {
   return db.transaction(() => {
     const done = db
       .prepare("UPDATE tasks SET status='task_done', updated_at=? WHERE id=? AND status='merging'")
       .run(nowIso, taskId);
     if (done.changes !== 1) return false;
     applyTaskDependencyTransition(db, taskId, "task_done");
+    audit.record(event);
     return true;
   })();
 }
@@ -576,12 +577,10 @@ export function executeMergeSegment(deps: MergeSegmentDeps, taskId: string): { s
   try {
     // 幂等短路:主仓 HEAD tree 已是预期树(崩溃重放/重复调用)
     if (safeGit(repoPath, ["rev-parse", "HEAD^{tree}"]) === prospectiveTree) {
-      const committed = commitTaskDoneAndDeps(deps.db, taskId, nowIso);
-      if (committed) {
-        deps.audit.record({ actor: "daemon", action: "task.done", meta: { taskId, via: "s3_merge_replay", treeSha: prospectiveTree } });
-      } else {
-        applyTaskDependencyTransition(deps.db, taskId, "task_done");
-      }
+      const committed = commitTaskDoneAndDeps(deps.db, taskId, nowIso, deps.audit, {
+        actor: "daemon", action: "task.done", meta: { taskId, via: "s3_merge_replay", treeSha: prospectiveTree }
+      });
+      if (!committed) return failMerge("task_done 转移竞态(状态被并发改动)");
       return { state: "task_done" };
     }
 
@@ -642,13 +641,12 @@ export function executeMergeSegment(deps: MergeSegmentDeps, taskId: string): { s
     if (headTree !== prospectiveTree) {
       return failMerge(`合并后 HEAD tree 不符(${headTree.slice(0, 12)});需人工核查`);
     }
-    const committed = commitTaskDoneAndDeps(deps.db, taskId, nowIso);
-    if (!committed) return failMerge("task_done 转移竞态(状态被并发改动)");
-    deps.audit.record({
+    const committed = commitTaskDoneAndDeps(deps.db, taskId, nowIso, deps.audit, {
       actor: "daemon",
       action: "task.done",
       meta: { taskId, via: "s3_merge", mergeCommit, treeSha: prospectiveTree }
     });
+    if (!committed) return failMerge("task_done 转移竞态(状态被并发改动)");
     return { state: "task_done" };
   } catch (err) {
     return failMerge(`merge 执行异常:${String(err instanceof Error ? err.message : err).slice(0, 160)}`);

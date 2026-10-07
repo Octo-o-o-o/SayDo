@@ -58,6 +58,7 @@ export interface ToolDeps {
   detectEditor?: () => "cursor" | "vscode" | null;
   /** 深链打开器(编辑器 scheme 专用;缺省 darwin `open <url>`;测试注入 spy)。review URL 不经此(不改既有行为) */
   openUrl?: (url: string) => void;
+  elapsedActiveByRun?: () => ReadonlyMap<string, number>;
   now?: () => Date;
 }
 
@@ -138,7 +139,7 @@ export class BrainTools {
     return { taskDraftId: draft.id, recital };
   }
 
-  /** getStatus(§13):TaskView[] 最小字段(§7 用户语词表由投影层给,Phase 4 接真实投影;P0 从 tasks 表投影粗态) */
+  /** getStatus(§13):按真实 run 汇总任务计时,历史计时不完整时显式返回未知。 */
   getStatus(input: unknown): ToolResult<TaskView[]> {
     const parsed = getStatusInput.safeParse(input);
     if (!parsed.success) return { ok: false, code: "invalid_input", message: parsed.error.message, retryable: false };
@@ -147,16 +148,34 @@ export class BrainTools {
         ? this.deps.db.prepare("SELECT * FROM tasks WHERE id = ?").all(parsed.data.taskId)
         : this.deps.db.prepare("SELECT * FROM tasks ORDER BY updated_at DESC LIMIT 50").all()
     ) as Record<string, unknown>[];
+    const active = this.deps.elapsedActiveByRun?.() ?? new Map<string, number>();
+    const statusLabels: Record<string, string> = {
+      confirmed: "已确认", queued: "已接单", running: "执行中", paused_step_boundary: "等你确认下一步",
+      blocked: "需要你处理", ready_for_review: "等你验收", review_approved_waiting_merge: "已批准·待合并",
+      merging: "合并中", task_done: "已交付", failed: "执行失败", merge_failed: "合并失败",
+      cancel_requested: "正在取消", cancel_settled: "已取消", superseded: "已被新版本替代"
+    };
     const views = rows.map((row) => {
+      const runs = this.deps.db.prepare(
+        "SELECT id, attempt, state, restart_pending_at, budget_active_ms, budget_clock_complete FROM tier1_runs WHERE task_id=?"
+      ).all(row["id"]) as { id: string; attempt: number; state: string; restart_pending_at: string | null; budget_active_ms: number; budget_clock_complete: number }[];
+      const complete = runs.every((run) => run.budget_clock_complete === 1 && (
+        !["reserved", "running", "step_paused", "cancel_requested"].includes(run.state)
+        || active.has(run.id) || run.restart_pending_at !== null
+      ));
+      const elapsedActiveMs = complete
+        ? runs.reduce((sum, run) => sum + (active.get(run.id) ?? run.budget_active_ms), 0)
+        : null;
       const budget = JSON.parse(row["budget_json"] as string) as { maxCost: number };
       return taskViewSchema.parse({
         taskId: row["id"],
         title: row["title"],
-        status: String(row["status"]), // Phase 4 起经 §7 投影转用户语;P0 直出机器态
-        attempt: 1,
-        elapsedActiveMs: 0,
+        status: row["parked_deadline"] && ["blocked", "ready_for_review"].includes(String(row["status"]))
+          ? "已停靠" : statusLabels[String(row["status"])] ?? "状态未知",
+        attempt: Math.max(0, ...runs.map((run) => run.attempt)),
+        elapsedActiveMs,
         budget: { max: budget.maxCost },
-        lastEventOneLiner: "",
+        lastEventOneLiner: complete ? "" : "历史活跃计时不完整，累计耗时未知",
         asOf: this.now().toISOString()
       });
     });

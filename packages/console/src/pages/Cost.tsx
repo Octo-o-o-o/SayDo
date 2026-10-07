@@ -11,6 +11,7 @@ import {
   costWindowLabel,
   normalizeEntriesWindow
 } from "../lib/costWindow";
+import { costBillingText, parseCostBilling, projectCostRows } from "../lib/costDisplay";
 import { useAsync } from "../lib/useAsync";
 import { costTotalsText, EmptyState, ErrorCard, PaperCard, Mono, SectionTitle, CostText } from "../components/ui";
 
@@ -49,29 +50,29 @@ interface GroupAgg {
   key: string;
   title?: string;
   knownByCurrency: Record<string, number>;
-  unknownCount: number;
+  unknownCount: number | null;
   rows: Row[];
+  billingText: string;
+  legacyMoneyCount?: boolean;
 }
 
-function aggregate(entries: Row[], group: GroupKey, projectTitleById: Map<string, string>): GroupAgg[] {
-  const m = new Map<string, GroupAgg>();
-  for (const e of entries) {
-    const key = groupKeyOf(e, group);
-    const agg = m.get(key) ?? { key, knownByCurrency: {}, unknownCount: 0, rows: [] };
-    if (e["known"] === 1) {
-      const cur = String(e["currency"] ?? "");
-      const amt = Number(e["amount"] ?? 0);
-      if (cur) agg.knownByCurrency[cur] = (agg.knownByCurrency[cur] ?? 0) + amt;
-    } else {
-      agg.unknownCount += 1;
-    }
-    agg.rows.push(e);
-    m.set(key, agg);
+export function aggregateCostWindow(entries: Row[], group: GroupKey, projectTitleById: Map<string, string>): GroupAgg[] {
+  const m = new Map<string, Row[]>();
+  for (const row of entries) {
+    const key = groupKeyOf(row, group);
+    const rows = m.get(key) ?? [];
+    rows.push(row);
+    m.set(key, rows);
   }
-  return [...m.values()].map((g) => ({
-    ...g,
-    title: group === "project" && g.key !== "(无项目)" ? projectTitleById.get(g.key) ?? g.key : g.key
+  return [...m].map(([key, rows]) => ({
+    key, rows, ...projectCostRows(rows),
+    title: group === "project" && key !== "(无项目)" ? projectTitleById.get(key) ?? key : key
   }));
+}
+
+export function costGroupText(group: Pick<GroupAgg, "knownByCurrency" | "billingText" | "unknownCount">): string {
+  const known = Object.keys(group.knownByCurrency).length ? costTotalsText(group.knownByCurrency) : "";
+  return [known, group.billingText, group.unknownCount === null ? "未知金额笔数未提供" : group.unknownCount ? `${group.unknownCount} 笔还没有确切数字` : ""].filter(Boolean).join("；") || "还没有确切数字";
 }
 
 function exportCsv(
@@ -123,7 +124,8 @@ export function Cost() {
           projectId: (p["projectId"] as string | null) ?? null,
           projectTitle: (p["projectTitle"] as string | null) ?? null,
           knownByCurrency: (p["knownByCurrency"] as Record<string, number>) ?? {},
-          unknownCount: Number(p["unknownCount"] ?? 0)
+          unknownCount: p.unknownCount,
+          billing: p.billing
         }))
       ),
     [data]
@@ -135,18 +137,23 @@ export function Cost() {
   const groups = useMemo(() => {
     if (range === "all" && group === "project") {
       return (data?.byProject ?? []).map((p) => {
+        const totals = authoritativeAllTotals([p]);
+        const parsedBilling = parseCostBilling(totals.billing);
         const pid = p["projectId"] == null || p["projectId"] === "" ? null : String(p["projectId"]);
         return {
           key: pid ?? "(无项目)",
           title: String(p["projectTitle"] ?? pid ?? "(无项目)"),
-          knownByCurrency: (p["knownByCurrency"] as Record<string, number>) ?? {},
-          unknownCount: Number(p["unknownCount"] ?? 0),
+          knownByCurrency: totals.knownByCurrency,
+          unknownCount: parsedBilling ? parsedBilling.unknownMoneyEntries : totals.unknownCount,
+          billingText: costBillingText(totals.billing),
+          legacyMoneyCount: !parsedBilling,
           rows: filtered.filter((e) => String(e["project_id"] ?? "") === String(pid ?? ""))
         };
       });
     }
-    return aggregate(filtered, group, projectTitleById);
+    return aggregateCostWindow(filtered, group, projectTitleById);
   }, [data, filtered, group, projectTitleById, range]);
+  const wholeLedgerGroups = range === "all" && group === "project";
   const drillRows = useMemo(
     () => (drill === null ? [] : groups.find((g) => g.key === drill)?.rows ?? []),
     [groups, drill]
@@ -196,7 +203,8 @@ export function Cost() {
             {Object.keys(allTotals.knownByCurrency).length
               ? ` · ${costTotalsText(allTotals.knownByCurrency)}`
               : ""}
-            {allTotals.unknownCount ? ` · ${allTotals.unknownCount} 笔未知` : ""}
+            {allTotals.billing ? (allTotals.billing.unknownMoneyEntries === null ? " · 未知金额笔数未提供" : allTotals.billing.unknownMoneyEntries > 0 ? ` · ${allTotals.billing.unknownMoneyEntries} 笔还没有确切数字` : "") : allTotals.unknownCount === null ? " · 未提供金额笔数未知" : allTotals.unknownCount ? ` · ${allTotals.unknownCount} 笔未提供金额` : ""}
+            {costBillingText(allTotals.billing) ? ` · ${costBillingText(allTotals.billing)}` : ""}
           </span>
         ) : (
           <span> · 近 {range === "7d" ? "7" : "30"} 天筛选只作用于窗口明细,不是全账本期间合计</span>
@@ -210,7 +218,8 @@ export function Cost() {
               <div key={g.key} style={{ padding: "6px 0" }}>
                 <div style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)", marginBottom: 3 }}>
                   {g.title ?? g.key}
-                  {g.unknownCount ? <span style={{ color: "var(--text-faint)" }}> · {g.unknownCount} 笔未知</span> : null}
+                  {g.unknownCount === null ? <span style={{ color: "var(--text-faint)" }}> · 未知金额笔数未提供</span> : g.unknownCount ? <span style={{ color: "var(--text-faint)" }}> · {g.unknownCount} 笔{g.legacyMoneyCount ? "未提供金额" : "金额未知"}</span> : null}
+                  {g.billingText ? <span data-cost-billing> · {g.billingText}</span> : null}
                 </div>
                 {Object.entries(g.knownByCurrency).map(([cur, amt]) => (
                   <div key={cur} className="flex items-center gap-[8px]" style={{ marginBottom: 2 }}>
@@ -227,12 +236,12 @@ export function Cost() {
                   </div>
                 ))}
                 {Object.keys(g.knownByCurrency).length === 0 ? (
-                  <div style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>没有确切数字</div>
+                  <div style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>{g.billingText || "还没有确切数字"}</div>
                 ) : null}
               </div>
             ))}
             <div style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)", marginTop: 6 }}>
-              条长=组内已知金额占本页最大值;未知金额不进条、不写 0。
+              条长=组内 API 已知金额占本页最大值;订阅与上游计费声明单列，未知金额不进条、不写 0。
             </div>
           </div>
         </PaperCard>
@@ -246,15 +255,15 @@ export function Cost() {
             <thead>
               <tr style={{ textAlign: "left", color: "var(--text-muted)", fontSize: "var(--text-xs)" }}>
                 <th style={{ paddingBottom: 8 }}>{GROUP_LABEL[group].slice(1)}</th>
-                <th>已知花费</th>
-                <th>未知项</th>
-                <th>笔数</th>
+                <th>API 已知金额与计费声明</th>
+                <th>金额未知 / 未提供</th>
+                <th>窗口笔数</th>
                 <th />
               </tr>
             </thead>
             <tbody>
               {groups.map((g) => {
-                const totals = costTotalsText(g.knownByCurrency);
+                const totals = costGroupText(wholeLedgerGroups ? { ...g, unknownCount: 0 } : g);
                 return (
                   <tr key={g.key} style={{ height: 40, borderTop: "1px solid var(--line)" }} data-cost-group-row={g.key}>
                     <td>{g.title ?? g.key}</td>
@@ -265,7 +274,7 @@ export function Cost() {
                         <Mono>{totals}</Mono>
                       )}
                     </td>
-                    <td><Mono>{g.unknownCount} 笔</Mono></td>
+                    <td><Mono>{g.unknownCount === null ? (g.legacyMoneyCount ? "未提供金额笔数未知" : "未知金额笔数未提供") : `${g.unknownCount} 笔${g.legacyMoneyCount ? "未提供金额" : "金额未知"}`}</Mono></td>
                     <td><Mono>{g.rows.length}</Mono></td>
                     <td>
                       <button
@@ -292,7 +301,7 @@ export function Cost() {
               <div key={String(c["id"])} className="flex items-center justify-between" style={{ padding: "8px 0", borderTop: "1px solid var(--line)", fontSize: "var(--text-sm)" }}>
                 <Mono>{String(c["kind"])}</Mono>
                 <span className="flex items-center gap-[12px]">
-                  <CostText known={c["known"] === 1} amount={(c["amount"] as number) ?? null} source={String(c["source"] ?? "")} currency={(c["currency"] as string) ?? null} />
+                  <CostText known={c["known"] === 1} amount={(c["amount"] as number) ?? null} source={String(c["source"] ?? "")} currency={(c["currency"] as string) ?? null} metaJson={c["meta_json"]} />
                   <Mono>{String(c["ts"] ?? "").slice(5, 16)}</Mono>
                 </span>
               </div>
@@ -307,7 +316,7 @@ export function Cost() {
               <div key={String(c["id"])} className="flex items-center justify-between" style={{ padding: "8px 0", borderTop: "1px solid var(--line)", fontSize: "var(--text-sm)" }}>
                 <Mono>{String(c["kind"])}</Mono>
                 <span className="flex items-center gap-[12px]">
-                  <CostText known={c["known"] === 1} amount={(c["amount"] as number) ?? null} source={String(c["source"] ?? "")} currency={(c["currency"] as string) ?? null} />
+                  <CostText known={c["known"] === 1} amount={(c["amount"] as number) ?? null} source={String(c["source"] ?? "")} currency={(c["currency"] as string) ?? null} metaJson={c["meta_json"]} />
                   <Mono>{String(c["ts"] ?? "").slice(5, 16)}</Mono>
                 </span>
               </div>

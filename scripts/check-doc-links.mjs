@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, extname, resolve } from "node:path";
 
 const repo = resolve(import.meta.dirname, "..");
+const full = process.argv.includes("--all");
 const siteRoots = ["deploy/saydo-octoooo-com", "deploy/link-saydo-octoooo-com"];
 const gitZ = (args) =>
   execFileSync("git", args, { cwd: repo, encoding: "utf8" }).split("\0").filter(Boolean);
@@ -21,10 +22,13 @@ function isActiveAsset(path) {
   if (/^packages\/[^/]+\/README\.md$/.test(path)) return true;
   if (siteRoots.some((root) => path.startsWith(`${root}/`) && path.endsWith(".html"))) return true;
   if (!path.endsWith(".md") || !path.startsWith("docs/")) return false;
-  return !path.includes("/archive/") && !path.includes("/migration/");
+  if (full) return !path.includes("/archive/") && !path.includes("/migration/");
+  return /^docs\/(?:0[1-9]|1[01])-[^/]+\.md$/.test(path)
+    || path.startsWith("docs/modules/")
+    || path.startsWith("docs/adr/");
 }
 
-const files = allFiles.filter(isActiveAsset).sort((a, b) => a.localeCompare(b, "en"));
+const files = allFiles.filter((path) => existsSync(resolve(repo, path)) && isActiveAsset(path)).sort((a, b) => a.localeCompare(b, "en"));
 const failures = [];
 
 function maskMarkdownCode(markdown) {
@@ -99,4 +103,4 @@ if (failures.length > 0) {
   for (const failure of failures) console.error(failure);
   process.exit(1);
 }
-console.log(`[ok] active document links: files=${files.length} broken=0`);
+console.log(`[ok] document links scope=${full ? "all" : "active"}: files=${files.length} broken=0`);

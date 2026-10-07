@@ -392,6 +392,14 @@ describe("sendEmailSmtp(假 socket)", () => {
     expect(seen!.aborted).toBe(true);
   });
 
+  it("DATA 250 后即使对端不回应 QUIT，也释放本次连接", async () => {
+    const sock = new FakeSocket((cmd) => cmd === "QUIT" ? null : okServer()(cmd));
+    expect(await sendEmailSmtp({ ...target, mode: "tls" }, msg, {
+      dialer: dialerWith(sock, sock), timeoutMs: 20
+    })).toBe(true);
+    expect(sock.destroyed).toBe(true);
+  });
+
   it("DATA 250 已接收后迟到 error 不回退失败", async () => {
     const sock = new FakeSocket((cmd, s) => {
       if (cmd === "DATA_BODY") {

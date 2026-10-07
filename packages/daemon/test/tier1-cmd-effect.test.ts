@@ -1797,7 +1797,6 @@ describe("B3-P2 http 节收窄(rereview-3 R3-P2-01)", () => {
       "git config http.lowSpeedTime 60",
       "git config http.maxRequests 8",
       "git config http.version HTTP/2",
-      "git config http.delegation always",
       "git config http.https://x.example.postBuffer 1",
       "git config http.emptyAuth true"
     ]) {
@@ -1805,6 +1804,13 @@ describe("B3-P2 http 节收窄(rereview-3 R3-P2-01)", () => {
       expect(d.kind, command).toBe("write_worktree");
       expect(computeRisk(d, {}).level, command).toBe("S1");
     }
+  });
+
+  it("http.delegation 是凭据委派配置,写入按 S3 拒绝语音放行", () => {
+    const d = commandToEffect("git config http.delegation always");
+    expect(d.kind).toBe("delete_data");
+    expect(d.target).toBe("git-c-exec");
+    expect(computeRisk(d, {}).level).toBe("S3");
   });
 
   it("http 只读查询仍 read;rename 入 http 节仍拒放(节内可注入 proxy)", () => {

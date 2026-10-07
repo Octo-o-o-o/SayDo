@@ -253,6 +253,24 @@ if (hashAuthorityInputs(root, { overlay: simOverlay }) === baselineHash) {
 }
 process.stdout.write("[ok] mutation authority-sim-hash rejected A=1\n");
 
+// 单独改变退役判定模块必须改变 authority，并拒绝仍绑定旧摘要的派生文件。
+const availabilityRel = listAuthorityRelativePaths(root).find((item) => item.endsWith("/context-availability.mjs"));
+if (!availabilityRel) throw new Error("context-availability 缺少 authority 输入");
+const availabilityOverlay = new Map([[availabilityRel, `${readFileSync(join(resolve(root, "../.."), availabilityRel), "utf8")}\n// mutation\n`]]);
+const availabilityHash = hashAuthorityInputs(root, { overlay: availabilityOverlay });
+if (availabilityHash === baselineHash) throw new Error("退役判定模块改变未更新摘要");
+const availabilityModel = buildDryRun(root);
+const staleAvailability = collectDryRunIssues({
+  corpusRoot: root,
+  resultText: renderResult(availabilityModel),
+  solutionText: renderSolution(availabilityModel),
+  model: { ...availabilityModel, authoritySha256: availabilityHash }
+});
+if (!staleAvailability.errors.some((message) => message.includes("权威输入摘要与模型不一致"))) {
+  throw new Error("退役判定模块改变仍接受陈旧派生文件");
+}
+process.stdout.write("[ok] mutation authority-context-availability stale derivation rejected\n");
+
 const sourceAfter = hashCorpusSourceTree();
 if (sourceBefore !== sourceAfter) {
   process.stderr.write("[fail] mutation runner changed source tree\n");
@@ -272,3 +290,6 @@ if (oracle.status === 0) {
 
 process.stdout.write(`[ok] official tree unchanged sha256 ${sourceAfter}\n`);
 process.stdout.write("[ok] mutation self-test passed\n");
+
+expectRejected("retired-context-false-current-success", ({ resultText }) => ({ resultText: resultText.replaceAll("not_executable_retired_context", "EXECUTABLE") }));
+expectRejected("retired-context-false-denominator", ({ resultText }) => ({ resultText: resultText.replace(/不可执行 [1-9]\d*/u, "不可执行 0") }));

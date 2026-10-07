@@ -151,6 +151,9 @@
 - 修法(按类别收口于词法层):新增 `normalizeShellWord`——单引号全字面;双引号内仅 `\$` `` \` `` `\"` `\\` `\<换行>` 转义;引号外 `\` 转义下一字符;相邻片段拼接。tokenize 同步修反斜杠(转义空格不断词、双引号内 `\"` 不提前闭合)。命令头、git 全局旗标、子命令、config 长短旗标、配置键与段名、scope 参数、sed/awk 脚本体、`sh -c`/`eval` 脚本、路径参数全部改用归一化词面;`env/sudo` 等包裹命令递归重组仍 join 原始词,词界不变。
 - fail-closed:词内引号外或双引号内 `$`/`` ` ``、未闭合引号、词尾悬空反斜杠 ⇒ dynamic;引号外 `*`/`?`/`[` ⇒ glob。命令头 dynamic/glob ⇒ `head=""` 落 install_dependency 最严档(S2,不落 S0/S1);git 全局旗标位不可确定 ⇒ cExec;git 子命令不可确定 ⇒ `sub=""`;git config 任一词不可确定 ⇒ `git-c-exec` S3;push refspec 不可确定 ⇒ `push-unresolved-dest`;`$HOME`/`$DIR` 等路径 outside/unknown 语义经 pathClass 原样保留。
 - R3-P2-01:`http.` 整节前缀移除,改 `GIT_HTTP_EXEC_LEAVES` 末段白名单(proxy、sslCAInfo、sslCAPath、sslCert、sslKey、sslCertPasswordProtected、cookieFile、curloptResolve、extraHeader;`http.<url>.<同名键>` 同判);`http.delegation` 等普通键恢复 `write_worktree`,兜底后缀命中的 `sslVerify`/`userAgent` 等仍执行配置;`--rename-section foo http`/`--remove-section http` 仍 deny(节内可注入 proxy)。
+
+> 2026-10-03 普通整合勘误：上段保留 repair-5 历史原文；`http.delegation` 实际是 GSSAPI/Kerberos 凭据委派，不能作为普通传输键。当前 docs/04 §5.1 将该键及 URL 子节的写入/删除/临时覆盖归 S3，普通 `--get` 查询保留既有读语义；此次具名修复不重开 SC 原轮次或其余 `DF-TIER1-SHELL-01`。
+
 - R3-P2-02(SC-50):新增 `e2e/console/site-mobile-nav-focus.spec.ts` 2 用例进现役 `pnpm exec playwright test` 覆盖目录;真实 docs/index.html + site.css + theme.js 内联 setContent,390px 断言收起不可聚焦/展开恢复/Escape 回焦菜单钮,1280px 断言断点回桌面清 inert;该文件 2/2 通过,`e2e/screenshots` 已还原。
 - 回归:`tier1-cmd-effect.test.ts` 新增 B3 describe 4 项(拼接/包围/反斜杠反例 20 条、不可确定 fail-closed 14 条、decideCommand 整链 4 条 deny/零确认、合法引号正例 9 条锁修复前判定值)与 B3-P2 describe 3 项(http 执行键/普通键/查询与段操作);修复后 324/324 通过,daemon 全量 2706 pass / 6 skip。
 
@@ -302,3 +305,12 @@
 - 延期 P2(rereview-10,不阻塞,不在本批改动):`P2-SC56-REPRO-TEXT`(本文件 SC-56 行复现描述应以 prefix-check 为准:main 对 `%A`/`%a`/`abc%A` 已拒绝,差异只在原始组合符);`P2-SC48-55-MAP`(A2 节与处置表对 `test-prompt-scan-completion.mjs`、`test-gate-temp-cleanup.mjs` 的 SC 归属不一致);`P2-SC59-VERDICT`(SC-59 为测试强化,判定宜为 already_fixed_on_main + 测试补强);`P2-SWIFT-COMMENT`(`DesktopProfile.swift` 百分号截断注释与 `limitedBy` 返回 nil 的实际语义不符,代码正确)。
 - deferred:`DF-SC51-WIN-STDIO`、`DF-SC54-SPIKE-EVIDENCE`、`DF-TIER1-SHELL-01`。
 - not_run:Windows 原生 API、三端真机、官网部署、真实 SMTP/ntfy、发布动作;远端 CI 以推送后公开快照仓结果为准。
+
+## 2026-09-27 双向审计勘误（当前整合候选）
+
+保留上表与 09-26 收口时的原始判定；以下纠正其四项 P2，不改变历史评审或门禁结果。
+
+- **P2-SC56-REPRO-TEXT**：SC-56 的有效差异是原始 `a+U+0301` 输入被 main 吞掉组合符，候选拒绝。`%A`、`%a`、`abc%A` 在 main 已被拒绝，不是修复前独有反例。以本文件 A2 的 Swift 对照记录为准。
+- **P2-SC48-55-MAP**：SC-48 对应 `test-gate-temp-cleanup.mjs` 及 color/emoji/migration/privacy 自测的退出与临时目录清理；SC-55 对应 `pairing-url-fixtures.mjs` 的读取完成/关闭错误传播及 `test-prompt-scan-completion.mjs`，配对语料测试为同模块回归；SC-57 对应 daemon 的 `exact-test-roots`/`global-tmp-cleanup` worker 归属。不得把三组测试互换为缺陷证据。
+- **P2-SC59-VERDICT**：产品行为判定为 `already_fixed_on_main`，本批只是加强 `tier1-executor.test.ts` 对真实 `verify.json.stdoutTail` 的断言，不能把测试补强写成产品修复。
+- **P2-SWIFT-COMMENT**：已校准 `DesktopProfile.swift` 的说明：超过 end 返回 nil；恰好到 end 表示百分号后仍有两位，是否有效由十六进制检查决定。本次仅改注释，没有重跑原生设备。

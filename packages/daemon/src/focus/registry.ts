@@ -95,6 +95,7 @@ export function getFocusOrThrow(db: Db, focusId: string): Focus {
 /** lifecycle 合法边表(供测试/文档对账;运行时由 writeTx.assertLifecycleEdge 强制) */
 export const LIFECYCLE_EDGES: ReadonlyArray<readonly [FocusLifecycle, FocusLifecycle]> = [
   ["captured", "active"],
+  ["captured", "archived"],
   ["active", "dormant"],
   ["dormant", "active"],
   ["active", "closed"],
@@ -104,6 +105,5 @@ export const LIFECYCLE_EDGES: ReadonlyArray<readonly [FocusLifecycle, FocusLifec
   ["archived", "abandoned"],
   ["dormant", "closed"],
   ["dormant", "abandoned"],
-  ["closed", "dormant"],
   ["abandoned", "dormant"]
 ];

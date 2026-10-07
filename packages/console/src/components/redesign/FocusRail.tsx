@@ -47,7 +47,8 @@ export function FocusRail({ obligations, tasks, artifacts, projects, memories, o
   const agentWaiting = open.filter(o => o.owner === "agent" && o.status === "waiting");
   const external = open.filter(o => o.owner === "external" && ["waiting", "deferred"].includes(o.status));
   const doneCount = obligations.length - open.length;
-  const activeTasks = tasks.filter(t => ["running", "queued", "confirmed", "paused_step_boundary", "waiting_confirmation", "merging"].includes(t.viewStatus));
+  const unavailableTasks = tasks.filter(t => t.detailUnavailable);
+  const activeTasks = tasks.filter(t => !t.detailUnavailable && ["running", "queued", "confirmed", "paused_step_boundary", "waiting_confirmation", "merging"].includes(t.viewStatus));
 
   const obItem = (o: ObligationView) => (
     <RailItem
@@ -76,7 +77,16 @@ export function FocusRail({ obligations, tasks, artifacts, projects, memories, o
         点安排打开这条的详情。产物与项目只在对话里找得到对应位置时才会跳转。
       </div>
 
-      <RailSection title="安排" icon={Layers} count={human.length + agent.length + external.length + agentWaiting.length + activeTasks.length}>
+      <RailSection title="安排" icon={Layers} count={human.length + agent.length + external.length + agentWaiting.length + activeTasks.length + unavailableTasks.length}>
+        {unavailableTasks.length ? (
+          <>
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", padding: "6px 8px 2px" }}>绑定任务 · 详情未加载</div>
+            {unavailableTasks.map(t => (
+              <RailItem key={t.id} icon={Zap} onClick={onLocate ? () => onLocate({ kind: "task", id: t.id }) : undefined}
+                ariaLabel={`读取任务详情:${t.title}`} dataKind="task" dataId={t.id} title={t.title} sub={`任务状态：${t.lastEvent}`} />
+            ))}
+          </>
+        ) : null}
         {human.length ? (
           <>
             <div style={{ fontSize: "var(--text-xs)", color: "var(--color-warning)", padding: "6px 8px 2px", display: "flex", gap: 6, alignItems: "center" }}>
@@ -116,7 +126,7 @@ export function FocusRail({ obligations, tasks, artifacts, projects, memories, o
           </>
         ) : null}
         {doneCount ? <div style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)", padding: "6px 8px 2px" }}>已了结 {doneCount} 件</div> : null}
-        {!human.length && !agent.length && !external.length && !agentWaiting.length && !activeTasks.length ? (
+        {!human.length && !agent.length && !external.length && !agentWaiting.length && !activeTasks.length && !unavailableTasks.length ? (
           <div style={{ padding: 12, textAlign: "center", color: "var(--text-muted)", fontSize: "var(--text-sm)" }}>没有未结的安排</div>
         ) : null}
       </RailSection>

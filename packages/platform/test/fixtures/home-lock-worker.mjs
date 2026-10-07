@@ -14,7 +14,9 @@ try {
   if (role === "crash-hold") {
     await withHomeOwnerBoundary(home, async () => {
       writeFileSync(marker, "holding");
-      await new Promise(() => undefined);
+      // 直接Node进程需要真实保活句柄；未决Promise不阻止Node退出。
+      // 测试负责杀死并回收此worker，不依赖tsx CLI的IPC保活。
+      await new Promise(() => { setInterval(() => undefined, 60_000); });
     });
     process.exit(0);
   }

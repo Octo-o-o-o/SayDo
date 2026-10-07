@@ -1,5 +1,9 @@
 # CTX-08 · 增长活动
 
+- `active_status`: `retired_no_updated_source`
+- `retired_on`: `2026-09-30`
+- 当前不可用于执行或有效事实证明；原日期、来源与逐题合同仅供历史回放。owner 已授权无更新来源时退役。
+
 - `as_of`: `2026-08-24`
 - `valid_until`: `2026-09-21`
 - `claim_scope`: 品牌允许与禁用承诺用 `brand-guide.md`；漏斗观察值用 `funnel-metrics.md`；现有素材可用性用 `asset-inventory.md`。

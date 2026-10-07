@@ -23,6 +23,10 @@ Keychain，访问级别为 `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`。
 - 双授权、真实麦克风转写、系统语音朗读、手势手感和局域网端到端链路仍需验收人在真机裁决。
 - 这是开发签名 dogfood，不是 App Store 包，不得放入 GitHub Release。
 
+拒绝或桥接丢失后的转写可在本机编辑、复制或确认丢弃；未丢弃前不能开始新录音。
+空白编辑不会删除保留稿,恢复不会自动重发或跨 profile 提交。这仍是开发壳的本地保稿能力,
+不重开 daemon 远程业务入口。真机语音/交互当前未验。
+
 ## 生成与模拟器构建
 
 先安装 XcodeGen，然后在本目录执行：
@@ -57,9 +61,10 @@ xcodebuild \
 ./build-and-install.sh --build-only
 ```
 
-相机扫码与局域网连接需要真机验证。宿主本机 generic simulator build 为 `BUILD SUCCEEDED`；
+相机扫码与局域网连接需要真机验证。以下为历史 spike 验证记录,不是当前候选验收:
+宿主当时 generic simulator build 为 `BUILD SUCCEEDED`；
 available iPhone simulator 上 XCTest 为 `DesktopProfileTests` 13/13、`VoiceStateMachineTests`
-9/9，合计 22/22 `TEST SUCCEEDED`。GitHub `ios-shell` 已接线但尚未实际运行。这不是 App Store
+9/9，合计 22/22 `TEST SUCCEEDED`。此后已新增 ownership/保稿测试,当前结果以本次证据为准。GitHub `ios-shell` 已接线但尚未实际运行。这不是 App Store
 包，不得放入 GitHub Release。真机扫码与 LAN 待本轮真机复测。
 
 ## 真机构建与安装

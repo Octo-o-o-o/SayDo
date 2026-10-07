@@ -397,7 +397,32 @@ const scenarios = [
   }
 ];
 
+scenarios.push(
+  { name: "退役材料不得重新标 active", mutate(root) { replaceExactlyOnce(join(root, "contexts/CTX-05/manifest.md"), "retired_no_updated_source", "active"); }, expect: /CTX-05 active_status/u },
+  { name: "CTX-09 新退役不得复活", mutate(root) { replaceExactlyOnce(join(root, "contexts/CTX-09/manifest.md"), "retired_no_updated_source", "active"); }, expect: /CTX-09 active_status/u },
+  { name: "CTX-09 新退役日期不得冒旧日期", mutate(root) { replaceExactlyOnce(join(root, "contexts/CTX-09/manifest.md"), "2026-10-04", "2026-09-30"); }, expect: /CTX-09 缺真实退役日期/u },
+  { name: "CTX-12 新退役不得复活", mutate(root) { replaceExactlyOnce(join(root, "contexts/CTX-12/manifest.md"), "retired_no_updated_source", "active"); }, expect: /CTX-12 active_status/u },
+  { name: "CTX-12 新退役日期不得冒旧日期", mutate(root) { replaceExactlyOnce(join(root, "contexts/CTX-12/manifest.md"), "2026-10-04", "2026-09-30"); }, expect: /CTX-12 缺真实退役日期/u },
+  { name: "CTX-16 新退役不得复活", mutate(root) { replaceExactlyOnce(join(root, "contexts/CTX-16/manifest.md"), "retired_no_updated_source", "active"); }, expect: /CTX-16 active_status/u },
+  { name: "CTX-16 新退役日期不得冒旧日期", mutate(root) { replaceExactlyOnce(join(root, "contexts/CTX-16/manifest.md"), "2026-10-04", "2026-09-30"); }, expect: /CTX-16 缺真实退役日期/u },
+  { name: "不得退役其它材料", mutate(root) { const path = join(root, "contexts/CTX-01/manifest.md"); writeFileSync(path, readFileSync(path, "utf8") + '\n- `active_status`: `retired_no_updated_source`\n'); }, expect: /CTX-01 active_status/u },
+  { name: "其它 active 语料仍检查过期", mutate(root) { const path = join(root, "contexts/CTX-01/manifest.md"); writeFileSync(path, readFileSync(path, "utf8").replace(/- `valid_until`: `[^`]+`/u, '- `valid_until`: `2020-01-01`')); }, expect: /CTX-01 已过 valid_until/u }
+);
 const digestBefore = formalTreeDigest(corpusDir);
+// 实际 producer 的暂存验证必须携带 active 状态模块，且不得复活退役资料。
+const rebuildTemp = mkdtempSync(join(tmpdir(), "saydo-corpus-rebuild-"));
+try {
+  for (const path of ["questions", "contexts", "contracts", "04-live-source-contracts.md", "validate.mjs", "context-availability.mjs", "rebuild.mjs"]) {
+    cpSync(join(corpusDir, path), join(rebuildTemp, path), { recursive: true });
+  }
+  const result = spawnSync(process.execPath, [join(rebuildTemp, "rebuild.mjs")], { encoding: "utf8", maxBuffer: 10 * 1024 * 1024 });
+  if (result.status !== 0) throw new Error(`退役后真实 rebuild 正例失败: ${result.stderr || result.stdout}`);
+  if (formalTreeDigest(rebuildTemp) !== digestBefore) throw new Error("rebuild 改写了已冻结题目、来源、合同或退役状态");
+  console.log("[ok] 退役后真实 rebuild 暂存验证及字节幂等正例通过");
+} finally {
+  rmSync(rebuildTemp, { recursive: true, force: true });
+}
+
 for (const scenario of scenarios) {
   const tempRoot = mkdtempSync(join(tmpdir(), "saydo-corpus-mutation-"));
   const tempCorpus = join(tempRoot, "corpus");
@@ -407,6 +432,7 @@ for (const scenario of scenarios) {
     cpSync(join(corpusDir, "contracts"), join(tempCorpus, "contracts"), { recursive: true });
     cpSync(join(corpusDir, "04-live-source-contracts.md"), join(tempCorpus, "04-live-source-contracts.md"));
     cpSync(join(corpusDir, "validate.mjs"), join(tempCorpus, "validate.mjs"));
+    cpSync(join(corpusDir, "context-availability.mjs"), join(tempCorpus, "context-availability.mjs"));
     scenario.mutate(tempCorpus);
     const result = spawnSync(process.execPath, [join(tempCorpus, "validate.mjs")], {
       encoding: "utf8",

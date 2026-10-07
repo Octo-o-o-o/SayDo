@@ -18,12 +18,12 @@ interface ObligationRow {
   owner: "human" | "agent" | "external" | string;
   status: string;
   needs: string | null;
-  blocking: number;
+  blocking: boolean;
   waitingOn: string | null;
   waitingOnObligationId: string | null;
-  preObligationTitle: string | null;
+  waitingOnObligationTitle: string | null;
   waitingOnTaskId: string | null;
-  preTaskTitle: string | null;
+  waitingOnTaskTitle: string | null;
   waitingTaskCondition: string | null;
   deferReason: string | null;
   dueOrTrigger: string | null;
@@ -52,10 +52,10 @@ const STATUS_LABEL: Record<string, string> = {
 function waitingText(o: ObligationRow): string | null {
   if (o.waitingOnTaskId) {
     const cond = o.waitingTaskCondition === "delivered" ? "交付" : "验收通过";
-    return `等任务「${o.preTaskTitle ?? o.waitingOnTaskId}」${cond}`;
+    return `等任务「${o.waitingOnTaskTitle ?? o.waitingOnTaskId}」${cond}`;
   }
   if (o.waitingOnObligationId) {
-    return `等「${o.preObligationTitle ?? o.waitingOnObligationId}」`;
+    return `等「${o.waitingOnObligationTitle ?? o.waitingOnObligationId}」`;
   }
   return o.waitingOn ?? null;
 }

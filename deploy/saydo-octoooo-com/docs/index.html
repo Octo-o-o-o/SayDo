@@ -215,7 +215,7 @@
         <p>三条铁律贯穿全部设计:</p>
         <ol>
           <li><strong>Brain 的模型进程可丢弃、无直接执行权</strong>——语音会话或推理进程随时可以死掉重建,任务照跑;所有副作用发生在 daemon / 执行器。</li>
-          <li><strong>语音会话短命,任务长命</strong>——会话是事件驱动的窗口(空闲 45 秒或你说「先到这里 / 先这样 / 收工」就挂起,零成本);任务在后台持续执行,靠回叫把人拉回来。</li>
+          <li><strong>语音会话短命,任务长命</strong>——会话是事件驱动的窗口(空闲或明确收尾后挂起,不继续保持活跃推理);任务在后台持续执行,靠回叫把人拉回来。</li>
           <li><strong>每项状态只有一个 owner</strong>——对话域状态归 daemon,执行域状态归执行器/后端;跨边界用 durable 协议(幂等 key、事件游标、收据)连接,不共用数据库。</li>
         </ol>
         <p><strong>组件一览</strong>(核心组件跑在你自己的电脑上；你主动启用的第三方 AI、联网语音识别与推送例外按对应服务商条款处理):</p>
@@ -246,7 +246,7 @@
             <tr><td>3 决策包</td><td>端出成果预览、实施计划(每步标 AI 执行 / 需你配合)、范围内外、验收标准、风险,报预计花费与封顶;随包生成一份轻量小样(网页预览,与计划同源机械渲染)——控制台点「看小样」查看,本机对话时同轮发送小样提示，点击后查看</td><td>计划落盘为可编辑产物,批准版本固化为「合同」;小样随包固化(改包即重生成);决策包有效期 24 小时</td><td>看</td></tr>
             <tr><td>4 你拍板</td><td>说「就这样」/「开始」;执行模式当前按「逐步确认」(「一口气跑完」档的该模式延后实施且当前不可选择,§8.4)</td><td>两把钥匙:「证据够了」≠「有权的人批准了这个包+范围+预算+有效期」;派发收据 digest 绑定、单次消费;Gate 0 未关拒派发</td><td>拍板</td></tr>
             <tr><td>5 后台执行</td><td>在独立 git worktree 里跑,主工作区不被碰;每条 shell 命令过审批门;预算 / 活跃时长 / 回合三熔断;你可以走开,语音会话挂起</td><td>命令按效果分级 S0–S3;S0/S1 自动放行,S2 上浮要你确认(45 秒无应答即拒),S3 拒绝并要求屏幕强认证</td><td>可以走开</td></tr>
-            <tr><td>6 办完叫你</td><td>执行和检查都跑完、产物落盘确认 → 它主动叫你:「执行和检查都跑完了,等你验收」</td><td>settle 对账后才回叫(runner 退出不等于完成);优先级 blocked &gt; failed &gt; 待审批 &gt; 待验收 &gt; 进度(默认不叫);投递按升级链:你在控制台且语音就绪 ⇒ 在线语音开口叫你(第一句就是回叫原因,30 秒应答窗到期后在下次 sweep 升级)→ macOS 桌面通知 + ntfy 手机推送;免打扰窗口内只发一条低打扰推送、过后补叫(§11)</td><td>被叫回来</td></tr>
+            <tr><td>6 办完叫你</td><td>执行和检查都跑完、产物落盘确认 → 它主动叫你:「执行和检查都跑完了,等你验收」</td><td>settle 对账后才回叫(runner 退出不等于完成);优先级 blocked &gt; failed &gt; 待审批 &gt; 待验收 &gt; 进度(默认不叫);投递按升级链:你在控制台且语音就绪 ⇒ 在线语音开口叫你(第一句就是回叫原因,30 秒应答窗到期后在下次 sweep 升级)→ macOS 桌面通知 + ntfy 手机推送;免打扰窗口内按已配置通道发送低打扰通知、过后补叫(§11)</td><td>被叫回来</td></tr>
             <tr><td>7 验收沉淀</td><td>口播摘要(一句话 / 150 字走读 / 它自己做的决策清单)+ 证据视图(diff、测试、决策、未验证项);你点头 → 过强认证合并 → 「交付了」;知识与产物留存</td><td>合并 = 本机 WebAuthn 审批卡(例如 macOS Touch ID/设备密码、Windows Hello 或 Linux passkey/安全密钥)签单次收据,或你自己去终端合并(人工交接);会话末机械提名稳定结论为候选,你批准后进 M1</td><td>验收</td></tr>
           </tbody>
         </table>
@@ -290,7 +290,7 @@ irm https://saydo.octoooo.com/install.ps1 | iex
 
 # 然后在新终端
 saydo up</code></pre>
-        <div class="docs-note"><p>网络:脚本先从 GitHub Release 固定 URL 下载,连不上时自动改用官网镜像 <code>dl.saydo.octoooo.com</code>(与 Release 资产字节全等,同一个 SHA-256 校验);需要下载 Node 22 时同样先 nodejs.org、连不上改用 <code>npmmirror.com/mirrors/node</code>(仍按官方 SHASUMS256 校验);<code>SAYDO_INSTALL_MIRROR=1</code> 两者都直接用镜像;依赖走 npm registry,<code>SAYDO_INSTALL_NPM_REGISTRY</code> 可改(如 <code>https://registry.npmmirror.com</code>)。环境变量:<code>SAYDO_INSTALL_NO_MODIFY_PATH=1</code> 不改启动文件 / 用户 PATH;<code>SAYDO_INSTALL_RUN=1</code> 装完直接启动;<code>SAYDO_HOME</code>(Windows 为 <code>SAYDO_INSTALL_ROOT</code>)改安装根目录,必须在用户目录之下(确需其他位置须 <code>SAYDO_INSTALL_ALLOW_OUTSIDE_HOME=1</code>)。卸载:删除 <code>~/.saydo/toolchain</code> 与 <code>~/.saydo/bin</code>(Windows 为 <code>%LOCALAPPDATA%\SayDo</code>),并移除启动文件里带 <code># saydo</code> 标记的那一行(Windows 从用户 PATH 移除 bin 目录)。脚本源码与官网同源发布:公开仓 <code>deploy/saydo-octoooo-com/install.sh</code>、<code>install.ps1</code>(纯 ASCII 引导,负责把带 UTF-8 BOM 的 <code>install-core.ps1</code> 下载到临时文件并以 <code>-File</code> 运行——Windows PowerShell 5.1 的 <code>irm</code> 会把 BOM 留在字符串里导致 <code>iex</code> 解析失败,而无 BOM 的 UTF-8 文件用 <code>-File</code> 又会按 ANSI 读坏中文,拆成两层同时满足两种形态);脚本钉住的版本与 SHA-256 由仓内自测 <code>scripts/test-install-scripts.mjs</code> 绑定到该 Release 的可用性证据。</p></div>
+        <div class="docs-note"><p>网络:脚本先从 GitHub Release 固定 URL 下载,连不上时自动改用官网镜像 <code>dl.saydo.octoooo.com</code>(与 Release 资产字节全等,同一个 SHA-256 校验);需要下载 Node 22 时同样先 nodejs.org、连不上改用 <code>npmmirror.com/mirrors/node</code>(使用同一下载源的 SHASUMS256 校验下载完整性);<code>SAYDO_INSTALL_MIRROR=1</code> 两者都直接用镜像;依赖走 npm registry,<code>SAYDO_INSTALL_NPM_REGISTRY</code> 可改(如 <code>https://registry.npmmirror.com</code>)。环境变量:<code>SAYDO_INSTALL_NO_MODIFY_PATH=1</code> 不改启动文件 / 用户 PATH;<code>SAYDO_INSTALL_RUN=1</code> 装完直接启动;<code>SAYDO_HOME</code>(Windows 为 <code>SAYDO_INSTALL_ROOT</code>)改安装根目录,必须在用户目录之下(确需其他位置须 <code>SAYDO_INSTALL_ALLOW_OUTSIDE_HOME=1</code>)。卸载:删除 <code>~/.saydo/toolchain</code> 与 <code>~/.saydo/bin</code>(Windows 为 <code>%LOCALAPPDATA%\SayDo</code>),并移除启动文件里带 <code># saydo</code> 标记的那一行(Windows 从用户 PATH 移除 bin 目录)。脚本源码与官网同源发布:公开仓 <code>deploy/saydo-octoooo-com/install.sh</code>、<code>install.ps1</code>(纯 ASCII 引导,负责把带 UTF-8 BOM 的 <code>install-core.ps1</code> 下载到临时文件并以 <code>-File</code> 运行——Windows PowerShell 5.1 的 <code>irm</code> 会把 BOM 留在字符串里导致 <code>iex</code> 解析失败,而无 BOM 的 UTF-8 文件用 <code>-File</code> 又会按 ANSI 读坏中文,拆成两层同时满足两种形态);脚本钉住的版本与 SHA-256 由仓内自测 <code>scripts/test-install-scripts.mjs</code> 绑定到该 Release 的可用性证据。</p></div>
         <p><strong>推荐 · 不克隆源码:</strong>v0.1.0-rc.13 固定 URL 已由不可变 GitHub Release 与 macOS、Windows、Linux 的一次运行 / 全局安装六项 smoke 验证,可直接使用。尚未发布到 npm registry 或 Homebrew。</p>
         <pre><code># 一次运行:下载到 npm 缓存后直接启动
 npm exec --yes --package=https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.0-rc.13/saydo-cli-0.1.0-rc.13.tgz -- saydo up
@@ -774,7 +774,7 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
           <li><strong>ntfy</strong>:<code>.env</code> 填 <code>NTFY_TOPIC</code>(随机串,手机 ntfy App 订阅同名主题)与 <code>NTFY_SERVER</code>(缺省 <code>https://ntfy.sh</code>,可自托管);消息 JSON POST(中文标题走 body),优先级 blocked / failed = 4,待验收 = 3;<strong>当前通知不附远程业务深链，提示返回本机处理；不发送能力令牌</strong>;标题经与 TTS 同一套脱敏(公网 topic 明文可订阅)。这两个键当前不在向导白名单内,需手改 <code>.env</code>。</li>
           <li><strong>邮件通知</strong>:SMTP 通道已接入源码，使用同一 durable outbox 与冻结/应答规则，需自行配置。真实 SMTP 投递与收件端展示仍须另验。</li>
           <li><strong>PagerDuty 式状态机</strong>:pending → notified → acked → resolved;<strong>ack 只停止升级,不等于解决、更不等于授权任何动作</strong>;ack 后 30 分钟(<code>callback_resolution_timeout_min</code>)未解决重新升级。ack 的途径:「通知」页点「知道了」,或你直接开口回话(语音回叫后的开口即视为已应答);任务离开待验收 / blocked 被解决时自动销账。</li>
-          <li><strong>免打扰</strong> <code>[dnd].window</code>(缺省 <code>23:00-08:00</code>,支持跨午夜):窗口内不出声、不弹桌面,只发一条低优先级 ntfy(注明免打扰时段)并 snooze 到窗口末;窗口结束后按队列顺序补叫;设备不可达不算 DND,走短周期重试。</li>
+          <li><strong>免打扰</strong> <code>[dnd].window</code>(缺省 <code>23:00-08:00</code>,支持跨午夜):窗口内不出声、不弹桌面，已配置的 ntfy/邮件分别尝试一次低打扰通知；任一成功或未配置推送通道时 snooze 到窗口末，全通道失败保留待重试;窗口结束后按队列顺序补叫;设备不可达不算 DND,走短周期重试。</li>
           <li><strong>拦截不等于叫人</strong>:危险动作先把原因反馈给 agent 让它换路,同一意图被拦 ≥ 2 次才进回叫链。</li>
           <li>输出仲裁 <span class="badge badge-live">现在可用</span>:你这轮话还没说完时不插播语音,该条降级走桌面 + 推送;「会议软件占麦」检测暂无数据源,恒按未占处理(如实)。</li>
         </ul>
@@ -797,11 +797,11 @@ enabled_project_types  = ["coding"]  # 类型能力门;可开 ["coding","writing
         <h3>12.2 采集与轮次</h3>
         <ul>
           <li>桌面三种触发:<strong>点击 - 再点击</strong>(toggle)/ <strong>键盘长按</strong>(按住空格)/ <strong>免手 VAD</strong>(能量 RMS + hangover 状态机 + 语义「说完了没」词表 + 显式「<strong>说完了</strong>」按钮兜底;中英混说默认延长静音阈值 900ms);嘈杂环境走按住说话。</li>
-          <li>录完二选一:「<strong>发送</strong>」(语音气泡先进对话,转写异步补挂,AI 即刻开跑)/「<strong>转文字改一改</strong>」(转写只进输入框,改字后发送);「取消」彻底丢弃。转写在途必有显式「转写中」状态;空转写 / 超时给「没听清」。</li>
+          <li>录完二选一:「<strong>发送</strong>」(语音气泡先进对话,转写异步补挂,AI 即刻开跑)/「<strong>转文字改一改</strong>」(转写只进输入框,改字后发送);「取消」彻底丢弃。转写在途必有显式「转写中」状态;正常空转写给空反馈,识别失败或超时给「没听清 / 转写失败」。</li>
           <li><strong>打断</strong>:TTS 立停;未播完的文本标 <code>heard=false</code>、不进对话事实;被打断的授权类播报(S2 / 预授权清单)立即作废当前确认,随后的裸肯定「好 / 可以」不消费旧收据。</li>
           <li><strong>重听上一问</strong>:原文重放,不重新生成。</li>
-          <li><strong>误听纠错</strong>:说「不是 X,是 Y」 ⇒ 纠正进 M0 热词(<code>热词:X-&gt;Y</code>),下次识别带偏置;连续误听降级打字。</li>
-          <li>会话空闲 45 秒或你说「先到这里 / 先这样 / 收工」即挂起(零成本),收尾语必含状态:「任务在跑,到验收点我叫你」。</li>
+          <li><strong>误听纠错</strong>:说「不是 X,是 Y」 ⇒ 先提议 M0 热词(<code>热词:X-&gt;Y</code>)，经用户确认保存后，后续识别才可带偏置;连续误听降级打字。</li>
+          <li>会话空闲或明确收尾后挂起,不继续保持活跃推理;收尾语按实际任务状态说明后续,不承诺任务已在执行。</li>
         </ul>
         <h3>12.3 口播纪律</h3>
         <p>人格 = 幕僚长:简短、口语、中文、不念代码、先结论后细节;口播 ≤ 30 秒;清单 &gt; 3 项转屏幕;选项一次最多念 3 个。<strong>TTS 脱敏红线</strong>:token / 密钥 / 客户数据 / 完整本机路径永不进语音;PEM 块、<code>sha256:</code>、Bearer、<code>sk-</code>/<code>ghp_</code> 等前缀、云访问密钥、绝对路径、11–19 位数字串、≥20 位裸密钥串自动替换。</p>

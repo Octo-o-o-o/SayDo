@@ -312,7 +312,7 @@ describe("DDL v5 追赶迁移(A1)", () => {
     db.close();
   });
 
-  it("v30:v4 老库升级后 native_session_confirmed 缺省 0 且既有行不损", () => {
+  it("v30/v34:老库运行身份与计时完整性缺省未知，既有数值不损", () => {
     const nowIso = "2026-07-25T00:00:00.000Z";
     buildV4EraDb((raw) => {
       raw.prepare(
@@ -337,7 +337,20 @@ describe("DDL v5 追赶迁移(A1)", () => {
       ).run(nowIso, nowIso);
     });
     const db = openDb(dbPath);
-    const row = db
+    // 重建 v33 的真实表形状，已有 budget 数值不能升级成“计时完整”。
+    db.exec("ALTER TABLE tier1_runs DROP COLUMN budget_clock_complete");
+    db.prepare("DELETE FROM schema_migrations WHERE version=34").run();
+    db.prepare("UPDATE tier1_runs SET budget_active_ms=1250").run();
+    db.close();
+    const migrated = openDb(dbPath);
+    expect(migrated.prepare("SELECT budget_active_ms, budget_clock_complete FROM tier1_runs").get())
+      .toEqual({ budget_active_ms: 1250, budget_clock_complete: 0 });
+    migrated.prepare("UPDATE tier1_runs SET budget_clock_complete=1").run();
+    expect(() => migrated.prepare("UPDATE tier1_runs SET budget_clock_complete=2").run()).toThrow();
+    migrated.close();
+    const reopened = openDb(dbPath);
+    expect(reopened.prepare("SELECT budget_clock_complete FROM tier1_runs").get()).toEqual({ budget_clock_complete: 1 });
+    const row = reopened
       .prepare(
         `SELECT id, adapter, native_session_id AS sid, cwd, state, native_session_confirmed AS confirmed
          FROM tier1_runs WHERE id='run_01M1GRATEV30000000000000'`
@@ -359,9 +372,9 @@ describe("DDL v5 追赶迁移(A1)", () => {
       confirmed: 0
     });
     expect(() =>
-      db.prepare("UPDATE tier1_runs SET native_session_confirmed=2 WHERE id='run_01M1GRATEV30000000000000'").run()
+      reopened.prepare("UPDATE tier1_runs SET native_session_confirmed=2 WHERE id='run_01M1GRATEV30000000000000'").run()
     ).toThrow(/CHECK/i);
-    db.close();
+    reopened.close();
   });
 });
 

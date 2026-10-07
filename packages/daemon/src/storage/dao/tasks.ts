@@ -80,41 +80,43 @@ export function transitionTask(
   trigger: TaskTrigger,
   opts: { cancelReason?: "user_cancel" | "supersede" | "park_expired"; now: string; parkAgingHours?: number }
 ): void {
-  const row = db.prepare("SELECT status FROM tasks WHERE id = ?").get(id) as { status: TaskStatus } | undefined;
-  if (!row) throw new Error(`task not found: ${id}`);
-  if (!canTransitionTask(row.status, to, trigger)) {
-    throw new Error(`illegal task transition ${row.status} -> ${to} (trigger=${trigger})`);
-  }
-  const entersParked = PARKED_STATES.includes(to);
-  const leavesParked = PARKED_STATES.includes(row.status) && !entersParked;
-  const parkedClause = entersParked
-    ? ", parked_at = @parkedAt, parked_deadline = @parkedDeadline"
-    : leavesParked
-      ? ", parked_at = NULL, parked_deadline = NULL"
-      : "";
-  const res = db
-    .prepare(
-      `UPDATE tasks SET status = @to, cancel_reason = COALESCE(@cancelReason, cancel_reason), updated_at = @now${parkedClause}
-       WHERE id = @id AND status = @from`
-    )
-    .run({
-      id,
-      to,
-      from: row.status,
-      cancelReason: opts.cancelReason ?? null,
-      now: opts.now,
-      ...(entersParked
-        ? {
-            parkedAt: opts.now,
-            parkedDeadline: new Date(Date.parse(opts.now) + (opts.parkAgingHours ?? 72) * 3_600_000).toISOString()
-          }
-        : {})
-    });
-  if (res.changes === 0) {
-    throw new Error(`task transition race: ${id} left ${row.status} concurrently (CAS, 先提交者胜)`);
-  }
-  // DAILY-01:到达验收/交付态唤醒任务级依赖方;负向终态阻塞之(同事务,事件随状态写原子落账)
-  applyTaskDependencyTransition(db, id, to);
+  return db.transaction(() => {
+    const row = db.prepare("SELECT status FROM tasks WHERE id = ?").get(id) as { status: TaskStatus } | undefined;
+    if (!row) throw new Error(`task not found: ${id}`);
+    if (!canTransitionTask(row.status, to, trigger)) {
+      throw new Error(`illegal task transition ${row.status} -> ${to} (trigger=${trigger})`);
+    }
+    const entersParked = PARKED_STATES.includes(to);
+    const leavesParked = PARKED_STATES.includes(row.status) && !entersParked;
+    const parkedClause = entersParked
+      ? ", parked_at = @parkedAt, parked_deadline = @parkedDeadline"
+      : leavesParked
+        ? ", parked_at = NULL, parked_deadline = NULL"
+        : "";
+    const res = db
+      .prepare(
+        `UPDATE tasks SET status = @to, cancel_reason = COALESCE(@cancelReason, cancel_reason), updated_at = @now${parkedClause}
+         WHERE id = @id AND status = @from`
+      )
+      .run({
+        id,
+        to,
+        from: row.status,
+        cancelReason: opts.cancelReason ?? null,
+        now: opts.now,
+        ...(entersParked
+          ? {
+              parkedAt: opts.now,
+              parkedDeadline: new Date(Date.parse(opts.now) + (opts.parkAgingHours ?? 72) * 3_600_000).toISOString()
+            }
+          : {})
+      });
+    if (res.changes === 0) {
+      throw new Error(`task transition race: ${id} left ${row.status} concurrently (CAS, 先提交者胜)`);
+    }
+    // DAILY-01:到达验收/交付态唤醒任务级依赖方;负向终态阻塞之(同事务,事件随状态写原子落账)
+    applyTaskDependencyTransition(db, id, to);
+  })();
 }
 
 export interface Tier1RunRow {

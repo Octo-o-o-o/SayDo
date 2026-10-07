@@ -6,11 +6,17 @@
 # 钩子门 deny/放行/阻塞三测已由 spike 通过(research/spikes/cursor-cli-tier1),不重跑充数。
 # 前提:cursor-agent 已登录订阅态;jq 已装。产出:$BASE/ 下 hook-fired.log 等证据 + 本脚本 stdout 汇总。
 set -u
-BASE="${SMOKE_BASE:-/tmp/saydo-p00-smoke}"
+if [ -n "${SMOKE_BASE:-}" ]; then
+  BASE="$SMOKE_BASE"
+  # 显式输出也须新建；已有历史证据或他轮状态不能由本轮删除/覆盖。
+  mkdir "$BASE" || { echo "[fail] SMOKE_BASE 已存在或不可创建，未启动 CLI" >&2; exit 1; }
+else
+  BASE=$(mktemp -d "${TMPDIR:-/tmp}/saydo-p00-smoke.XXXXXXXX") || exit 1
+fi
 WT="$BASE/wt"
 REMOTE="$BASE/remote.git"
 MODEL="${SMOKE_MODEL:-claude-fable-5-max}"
-rm -rf "$BASE" && mkdir -p "$WT/.cursor/hooks"
+mkdir -p "$WT/.cursor/hooks" || exit 1
 
 git init -q --bare "$REMOTE"
 cd "$WT" && git init -q -b main

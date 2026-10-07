@@ -41,7 +41,7 @@
     "research/week-audit/2026-08-22-ledger.json": "a989895c421d23ad35966da0cfbd86ac74c1089bf152aa763c38302b7c2b216d",
     "research/week-audit/2026-08-22-semantic-review.json": "905b2806c237bcea81eb8b3f64f66cec3e81ff8d3f5d1d3889c82839073cd1e5",
     "research/week-audit/2026-08-22-ref-manifest.json": "46fc3c9b4b5ac02a9a862ace714d721c9434583fc055f8f5246b58bd7cf0f70d",
-    "research/week-audit/2026-08-23-publication-manifest.json": "0d7558dac1c3b02cd28711c7e22f86d7bc1dc1408a00687112c778c9734db027",
+    "research/week-audit/2026-08-23-publication-manifest.json": "44b4a6e715999fb929029c9eb689b5835b74a13e2bfeec7a1ff9aa401bbb8862",
     "research/week-audit/2026-08-23-review-finding-anchor.json": "03c6ef06fb8f3834e311b06874a869c4e232b4b8f3842f95ef54d6ce388ef378",
     "research/week-audit/2026-08-23-remediation-cross-links.json": "c1cdfebe08cac2adff5ebdd521e9f180210b6a40bac32498fa0cb8ca2022e02e",
     "research/week-audit/2026-08-23-remediation-ledger.json": "2ce58f8c0cea79751ee7968a58d46f7d6a2f4d788100be98b0abe0660f001d2a",
@@ -59,8 +59,8 @@
         ],
         "kind": "file",
         "mode": 420,
-        "bytes": 535289,
-        "sha256": "c64b6849524dd9039aa8286b5847044370c1926183e12b1286f8a2d28822e0c6"
+        "bytes": 837504,
+        "sha256": "01262f1c09bfc18425a200fb1c400197f8c4a040fd8a1e7204a4e05a1f4461f7"
       }
     ]
   }

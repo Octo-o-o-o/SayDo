@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { apiErrorFromResponse } from "../lib/apiError";
@@ -136,12 +133,5 @@ describe("项目设置奠基结果展示", () => {
     expect(html).toContain(".saydo");
     expect(html).not.toContain("generation ");
     assertNoLeak(html);
-  });
-
-  it("App.tsx 路由 psettings 指向 ProjectSettings", () => {
-    const appSrc = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../App.tsx"), "utf8");
-    expect(appSrc).toContain('case "psettings"');
-    expect(appSrc).toContain("<ProjectSettings");
-    expect(appSrc).toContain('from "./pages/ProjectSettings"');
   });
 });

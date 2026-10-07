@@ -4309,3 +4309,1915 @@ unit economics 决定扩张;持续承担账号/API、CI/设备、证据刷新、
 **产出**:I `f8405cf`;本 E 提交(证据、指针 revision 17→18 关批、批卡状态、HANDOFF 现役行、本条)。rereview-10 GREEN,4 条 P2 延期登记于证据文件收口节。
 
 **结论**:SC-RELAND-01 本地收口,LOCAL_GREEN_REMOTE_PENDING;推送私有归档与公开快照随后执行,远端 CI 以公开快照仓为准。PG-02 仍为 next,未开工。
+
+
+## R204 · 2026-09-29 · 模块化底座终稿与全量自主实施交接
+
+- 输入:owner要求调用1个subagent交叉review,生成最终方案及新会话完整实施、不在普通阶段确认的Prompt;前序双账号Pro研究及v2方案作为输入。
+- 行动:隔离worktree定向核源码/PG链/profile与v3计数规则,只派1名fresh subagent且未派后代;确认默认评审额度不足以覆盖正常PG链,按同轮修订建议预写新任务有限预算与检查点。保留主树他人dirty,未实施产品。
+- 产出:[融合终稿](../docs/review/2026-09-29-modular-foundation-consolidated-final.md)、[原始交叉评审](../docs/review/2026-09-29-modular-foundation-cross-review.md)、[新会话全量实施Prompt](../docs/plan/IMPL-PROMPT-2026-09-29-modular-foundation.md)及索引。完整交接校验与日志字节/SHA在仓外research目录的handoff-verification.json、handoff-manifest.json。
+- 结论:1项流程阻塞已据实际schema修订,架构方向保留。新Prompt覆盖全部RF与必要PG前置,普通阶段无需反复问继续;缺设备/真人/外部发布与硬预算保留真实边界。本轮只交付未提交文档候选,无产品GREEN,未commit/push/部署。最终文件由宿主核验,不冒称subagent读过最终字节。
+
+## R205 · 2026-09-29 · modular-foundation RF-00 合同检查点(implement-1)
+
+- 输入:owner 在新会话提交 `IMPL-PROMPT-2026-09-29-modular-foundation.md`(supervised-delivery;本调用只推进到预声明的第一个 required 合同检查点,不得跨点改生产行为)。
+- 行动:建机械扫描器 `scripts/rf00-inventory-scan.mjs`(路由五面分源/方法区归属/正则归一、WS 与 supervisor IPC 分面、console API 跨行成员、表写入者 stopwords 与 VIRTUAL TABLE、CI/ENV 符号模板归一)生成 `research/rf-00/`(inventory.json/.md、semantic-claims.json、pg02-fact-reconciliation.md、README.md);PG-02 旧现场只读对账(continuation 8/8、extension 3/3 已用 1/0、归档 tag 在场、RED/预算保留);docs/09 增 §17 目标合同(designed,8 子节)并在 03/07/08/e-crosscutting 加对齐指针;排产导入 RF-00+RF-01..11 链、schedule-pointer schema/checker/self-test(新增 RF-05 丢例)、PLAN-2 批卡、HANDOFF 投影;project-profile 加本任务具名 v3 例外(核 v2 缺失)。未改 daemon 业务行为。
+- 产出:上述文件集 + focused 门通过(schedule-pointer --check/--self-test、doc-links、emoji、rf00 --check、git diff --check);完整 just ci 与 Playwright 记 NOT_RUN。
+- 结论:到合同检查点停,等 fresh 只读合同评审;不宣称产品验收、不宣称全量 RF 交付;旧 RED 与预算保留。
+
+## R206 · 2026-09-29 · modular-foundation RF-00 合同回修(repair-1)
+
+- 输入:首轮合同独立评审 RED(`~/.codex/tasks/saydo-modular-foundation-20260929/review-1.md`,B1–B8 八项 P1);owner 授权独立实施会话在候选 worktree 回修到合同 checkpoint,不实现生产业务。
+- 行动:重写 docs/09 §17 目标合同——17.1 服务端复合幂等键 K=installationId+principal+scope+operation+requestId 与 digest 分离(原子占位/expectedRevision/attempt/operationId/持久状态/reconcile);17.2 TrustedContext 服务端权威身份+六类 effectClass 准入谓词(control.settle 不收新派发预算/收据/Gate0);17.3 daemonEpoch/authEpoch/recoveryEpoch 三 Id 分面+快照-游标原子边界+eventId 去重;17.5 恢复 8 步准入顺序+三重开谓词;17.4 唯一 owner 表/UnitOfWork/读投影无写权收回 canonical;17.7 bridge 帧形状+可信 origin+三端凭据存储映射;17.8 provenance 绑实际字节+安装闭包+exact-set 版本化扩展。`rf00-inventory-scan.mjs` 增逐扩展名写面词表(Swift/kt/ets/py/ts,补上漏项 TokenStore.kt)、`--check` 落盘清单稳定部分全等比对(volatile=branch/head/legacy_candidates 不参比)、`--mutation-test` 9 用例(删非哨兵项/改来源/篡改 md/截断 json/丢原生存储文件均非零)。三份交接文档(IMPL-PROMPT/consolidated-final/cross-review)按 home-macos 规则脱敏为 `~` 投影,文首登记仓外原件位置与原件 SHA-256,索引同步;inventory.md EOF 空行随重生成修复。
+- 产出:I/E 两提交(见 REPORT.md);focused 门全部实跑——schedule-pointer --check/--self-test、rf00 --check、rf00 --mutation-test、check-doc-links、check-emoji、check-public-tree-privacy --fs 与 --ref HEAD、check-active-claims、`git diff d023ffce --check`;命令退出码/日志字节与 SHA-256 见仓外 repair-1-artifacts/REPORT.md。
+- 结论:B1–B8 已在 canonical 与机械门禁层回修,等第二轮 fresh 合同评审;不自称独立 GREEN;just ci/Playwright/真机/发布记 NOT_RUN;旧 RED、PG 预算与完整 RF 链不变,指针仍 active=RF-00/next=PG-02。
+
+## R207 · 2026-09-29 · modular-foundation RF-00 二次回修(repair-2)与独立准备
+
+- 输入:第二轮合同独立评审 RED(`~/.codex/tasks/saydo-modular-foundation-20260929/review-2.md`,三项 P1:§17.1 expired 墓碑可再占位、§17.2 `request-manual-merge` 误按命名归 write.effect、rf00 扫描漏 `up` 默认命令+异步 `appendFile`);owner 授权最后一次回修,不自动第三轮合同评审,同时完成所有不跨合同门的独立准备(文档/fixture/验收工具)。
+- 行动:① §17.1 重写「K 一次占位、墓碑不灭」——TTL/清理只可裁剪应答载荷域,`K+status+operationId+updatedAt` 为最低保留集,`idempotencyTombstoneRetention` 缺省 180 天独立参数;终态集显式化,`unknown` 定为查询判定非入库终态,恢复缺记录不得自动重发;新 requestId 不回溯证明旧副作用。② §17.2 现役命令逐项效果表(`action-effect-audit.md` 为证据底稿):`request-manual-merge` 按真实 `operations.ts:728` 效果(读状态+审计+返回 handoffUrl,不执行合并)归 `control.settle` 交接收口;`verify-merge`=git 只读对账+条件 CAS 收口;`approve-merge` 维持 `write.irreversible`;`retry` 分重派发/应答注入两子路径;review 三 verdict 分类;decide accept/edit/reject、memory approve/reject、S3 四端点逐项入表。③ `rf00-inventory-scan.mjs` 三面对账:options.ts `CliOptions.command` union(声明)∩ parseCliOptions `!==`/`===` 受理面(含 --help/-h 别名)∩ cli.ts 显式分支+`runOwned` 默认路径;`checkCliReconcile` 对声明空集/声明不受理/受理无声明/声明无执行/非 up 落默认分支判漏项;`file_writers` 扩至 node:fs 同步/异步写族、fs 命名空间与具名/别名导入限定通名、open 族 flag 写模式判定(变量 flag 不猜);原生词表补 KeyStore `generateKey/setEntry/deleteEntry`、HUKS `*KeyItem` 族、py os/shutil/临时文件族;变异钩子 `RF00_MUTATE_DROP_LINES`/`RF00_MUTATE_REMOVE` + 非 sentinel 反例(logger.ts appendFile、options.ts 声明空、cli.ts 删 open 分支、删 `"open" | ` 字面量、stored 删 up)。④ 证据缺口定档:§17.3 `durableEventRetention` 缺省 P30D/下限 P7D/`maxEventsPerStream=10000`+订阅过滤 `{scope,streamId?,types?}`+summary 标量白名单;§17.7 `BridgeHello/BridgeEvent/BridgeBye` 完整帧 schema+`BRIDGE_MAX_FRAME_BYTES=65536`/`BRIDGE_MAX_PENDING_REQUESTS=64`/`BRIDGE_REQUEST_TIMEOUT_MS=30000`/`BRIDGE_RATE_PER_CAPABILITY=60/min`+兼容窗口=当前代+前一代;§17.8 `compat.v={minSupportedMajor,currentMajor}`+SDK `supportsGen` 当前/前代规则,0.x 不自动享窗口。⑤ 独立准备:`fixtures/` 五份语料(bridge 14 案例/conformance 13/媒体 24 场景/设备矩阵/安装闭包)+`check-offline-fixtures.mjs` 校验器与变异自测;`module-cards.md`、`rf06-fixture-demo-plan.md`、`acceptance-matrix.md`、根 `CONTRIBUTING.md`/`GOVERNANCE.md`/`CODE_OF_CONDUCT.md`(草案)+ `governance/maintainer-handover.md` + `CODEOWNERS.draft`;`semantic-claims.json` 加 `item_dispositions`(cli_commands/task_actions/ipc_frames 全处置,http_routes 命令面 10 项)并接入分母。
+- 产出:I/E 两提交(SHA 见 `repair-2-artifacts/REPORT.md`);focused 门实跑——schedule-pointer --check/--self-test、rf00 --check/--mutation-test(14 用例)、check-offline-fixtures + --mutation-test(7 用例)、check-doc-links、check-emoji、check-public-tree-privacy --fs 与 --ref HEAD、check-active-claims、`git diff d023ffce --check`;逐条退出码/字节/SHA-256 见仓外 REPORT.md 与 logs/。
+- 结论:三项 P1 在 canonical 与机械门禁层回修,独立准备材料就位;两轮合同评审预算用尽,不自动第三轮——候选如实保存未验;不自称独立 GREEN;just ci/Playwright/provider/真机/发布 NOT_RUN;fixture pass ≠ 生产验收;指针仍 active=RF-00/next=PG-02。
+
+## R208 · 2026-09-29 · RF-00 repair-3 逐项语义处置与验收准备(证据补齐)
+
+- 输入:owner 授权仅补 RF-00 逐项源码盘点与验收准备缺口(非第三轮合同回修;不改 canonical/生产/扫描器/幂等合同);repair-2 仅 25 项语义处置,不得冒全量。
+- 行动:读真实实现完成全 15 类 725 项逐项语义处置——http_routes 86 按 index/recoveryOnlyServer/s3Routes/mobileLan/console 五面分源(逐项处理器行号与权限断言);ws_messages 35 对 pipeline.ts schema 与 hub/pipeline/console 生产消费面;ipc_frames 5(supervisor `{v:1,t}`);brain_tools 32 对 liveTools 注册→operations/DAO 效果(提案/效果/presentation/S3 拒口语);console_api_members 42 消费面→路由;tables 57 + table_writers 116(14 项 fixture 注入面 excluded、15 项迁移/归档 migration_only、4 项双写缺口 dual_write_gap 具名登记不修);file_writers 225 调用点级(原子写/移动三端凭据/备份/ownership/审计);module_dependencies 5;external_dependencies 55 一律 declared_only(未下载未审计);artifacts 9 声明/模板/跟踪清单面;support_facts 30 声明面+仅 macos-15 标 observed_fact;legacy_candidates 18 只读枚举+处置(不恢复/不合并)。本机只读盘点:node22/pnpm/python3.12/just/uv/git/xcodebuild/adb/hdc/gh 在位,adb/hdc 无目标,Android emulator 二进制缺失,iOS 27.0+watchOS 27.0 runtime 在场,4 个有效 codesigning identity。`acceptance-matrix.md` 重写为批卡原文 focused gate(PG-02..06 含 `[new]` 标记),修正上轮"每阶段 owner 验收"过度门(收口条件=第三次独立合同评审)。
+- 产出:`semantic-claims.json` `item_dispositions` 725/725(verified_semantics 658/declared_only 55/excluded_nonproductive 14/migration_only 15/dual_write_gap 4/observed_fact 1);`repair-3-evidence.md`;README 分母口径更新;acceptance-matrix D 节本机盘点。门实跑:rf00 --check、check-offline-fixtures、schedule-pointer --check、check-doc-links、check-emoji、check-public-tree-privacy --fs 与 --ref d023ffce、check-active-claims、git diff --check、程序化 exact-set 比对 725/725 全绿;命令日志与 sha 见仓外 repair-3-artifacts。
+- 结论:逐项语义处置齐备,**逐项处置≠产品验收**:just ci/Playwright/provider/真机/发布 NOT_RUN;双写缺口 4 项为登记 finding;RF-00 仍待第三轮独立合同评审,本批为实施者证据补齐非评审;指针 active=RF-00/next=PG-02。
+
+## R209 · 2026-09-29 · RF-00 repair-4(追加修复第 1 轮)
+
+- 输入:当前源码复现 review-3 两项 RED:两个生产 POST /gate 未入 HTTP 分母;Brain approveAction 的 reject 被整体归 write.effect。旧 RED 保留,宿主独占任务账本,本实施者未派 reviewer/agent。
+- 行动:扫描全部 834 个 tracked TS/TSX/Python/Swift/Kotlin/ArkTS 源,626 个注册候选逐项精确处置(85 文件);HTTP 输入从处置反向导出,87 个路由含两平台 gate 来源。语料摘要、注册点和语义处置 exact-set 一起检查,新增无词表命中的源也不能靠 --write 放行。32 个 Brain 工具与五个任务动作、五个 CLI 命令结构化分面,同用例 HTTP 对账;docs/09 §17.2 追加效果/派发关系的机器投影,不修改生产行为。
+- 产出:16 类 1352 项处置;新增真实临时 Git index 漏项反例及决策分支反例,原生写点 225、表写 116、WS 35、IPC 5 基线保留;§17.1 K/墓碑逐字未改。命令 argv/cwd/exit/候选和原始日志字节/SHA-256 见仓外 repair-4-artifacts/commands.jsonl 与 REPORT.md。原始 log 不入 Git。
+- 结论:这是实施者静态自检,不是独立 GREEN 或产品验收。schedule 自测原候选被 common dir 沙箱权限阻止,相同脚本/PLAN/HANDOFF 在临时 clone 实测通过八个反例。明确 pathspec git add 同样被 index.lock 权限阻止;未生成 I/E 提交,无 I SHA 可供 E 引用,保留 dirty 与补丁/指纹交宿主冻结。宿主冻结并加入证据后仍须重生成清单、复跑最终 HEAD 门和派独立合同 review;不进入 PG 生产。just ci/Playwright/provider/设备/发布 NOT_RUN。
+
+R209 宿主冻结补记:实施沙箱无法写 Git common dir,由宿主以明确 pathspec 冻结代码/合同候选 `02955a1c1dd43fecba51ae8e7810e44ecb5db123`;本条随独立 E 提交登记,不代表 contract review 已通过。
+
+
+## R210 · 2026-09-29 · RF-00 repair-5(追加修复第 2/6 轮)
+
+- 输入:固定候选 `6f652f64b469dd0653e65911d98ad80ab335c0e9` 与 review-4 的 P1/P2-1;根因保持 `contract_effect_admission_conflation`,旧 RED 保留。本调用仅实施,不派 agent/reviewer,不改 task.json。
+- 行动:源码复现 proposeStart 起草模型→proposed 包先于派发收据的依赖;docs/09 §17.2 分离效果/provider 用量/业务派发,全部登记分面以 canonical 三元投影为权威。providerAdmission 保留 route、归属、预算、计费权威及审计;9 个模型请求与 2 个 adapter 实现点逐点映射,取消/拒绝不套新派发,confirmAndDispatch/retry/claimDispatch/run 门保留。模型准备各字段删除、错误纯读/派发、新调用点反例以及既有反例实跑。验收矩阵新增 transport_registrations 并对全类分母机械生成/比较。只改合同/映射/checker/证据,生产代码未改;§17.3–17.8 逐字保持。
+- 产出:16 类 1352 项、834 个源、2456 个 tracked 文件;72 个入口分面、58 个 canonical 操作分面、11 个模型调用/实现点。精确 I/E patch、文件 SHA、逐命令 argv/cwd/exit/候选与日志见仓外 `repair-5-artifacts/REPORT.md`、`candidate-files.json`、`log-manifest.json`。日志 `inventory-mutations-final.log`=3372 bytes/SHA-256 `2c3fb66707f99e6ce43e81310276980c163fd698c3db3aa44617952f177f56bb`;`schedule-self-test-isolated-2.log`=1477 bytes/SHA-256 `bf39b073754650d7a2ea182fae4cbb199f849fedf6e457a941c15303b1490dc6`。首次过宽分支比较与缺 main 参照的临时 clone 自测失败日志保留,修正后重验。
+- 结论:focused 自检已跑,不是独立 GREEN/生产验收。排产 self-test 在临时 clone 用同字节脚本/PLAN/HANDOFF 与真实 main ref 跑过八反例,临时目录已清理;原候选自测未运行以免写 common dir。未尝试 add/commit,未编新 I SHA;保留 dirty 由宿主明确 pathspec 冻结 I/E,E 应引用宿主实际 I。宿主在最终 HEAD 重生成清单并复跑,独立 contract review 未过前不进入 PG 生产。just ci/Playwright/provider/设备/发布 NOT_RUN。
+
+### R210 宿主冻结补记
+
+输入:追加第 2/6 轮实施候选及全量文件摘要。行动:逐文件校验字节和 SHA-256,按八个明确路径冻结代码提交。产出:代码提交 `d653224e298565cc61df01bf63b819aab5125df3`;本证据提交引用该代码提交。结论:focused 自检等待宿主固定候选复跑与独立合同复审,未声称生产或全量验收。
+
+
+## R211 · 2026-09-29 · PG-02 repair-6(追加修复第 3/6 轮,在途未关闭)
+
+- 输入:固定 HEAD `d3ef2f25ebcca728bb089d4250840dd479d2d39a`;owner 确认合同检查点独立通过并授权恢复 PG-02。旧 product-review-2 的八类 RED、旧 8 修 8 评及 20260927 窗口原 1 修 0 评保留;本卡计该窗口第 2 次修复。不改任何旧账或 task.json,不派 agent/reviewer。
+- 行动:33 个 truth-plane 独立路径逐项恢复,不搬旧产品 WIP;docs/09 原 §17 字节保留,PG 合同迁 §18。101 条 action 当前坐标/效果对账,6 条真实路径改记;schema/三 checker/各 mutation 及具名链测试接线,完整 source blob 与读取预算、引用键反查、孤立 support 例外补验;十份 AI 草案只作 designed 库存。中英文 preview 文案绑定,正式支持平台不减。矩阵 B 改用 A 节单源;新增源摘要等待宿主 stage 后生成 RF00 分母。schedule 工具推进 PG-02 在途。追加三个 runner 回调槽的有限来源绑定,真实进入 preSpawnGate 审计,相应六反例通过;不把回调当原生无写边界。
+- 产出:当前本地候选仍 RED;两个讲解动作各有 24 个未证明成员,不得删除/标 none 求绿。capability/support 剩余仅提交前 Git mismatch,不是已验收。证据 `e2e/evidence/project-gap-pg-02.md` 是待 I 绑定稿;完整日志、源码恢复清单、八根因映射、文件 SHA/pathspec/I-E patch 在仓外 repair-6-artifacts。`final-action-after-runner.log`=6226 bytes/SHA-256 `a26a4f18aaef77071f1b92b2cc07120671ef2ebe61391bff905715e7ea3ef0d7`;`python-tests.log`=260 bytes/SHA-256 `99e64c13e096ff0901a378f1e56c871d10dea0aec46a92b797b0f93332cc4a44`。
+- 结论:未关闭 G-A3,未独立验收,不进入 PG-03。23 项 schema 与 contracts typecheck 通过,Python 145 项+ruff 通过;just ci、Playwright、PG01A 过期/摘要与 PG01B 子进程/监听限制均如实保留。当前 pointer --check 通过,最新隔离 self-test 因 HEAD 尚无本批新增证据而基线失败,须冻结后重跑。未改运行产品、未提交、未发布。详细 NOT_RUN/阻塞和继续施工坐标见 REPORT;本条不把修复进度冒充完成或免费 continue。
+
+### R211 宿主恢复点
+
+输入:追加第 3/6 轮实施产物。行动:逐文件校验字节与 SHA,显式暂存并重生成 RF00 清单。产出:代码提交 `7de2877038b58b400d33807092d8d7b8fd2f5973`。结论:PG02仍RED,两条讲解入口来源证明未闭合,此为恢复点,不作验收通过;后续修复保留旧账。
+
+## R212 · 2026-09-29 · PG-02 repair-7(追加第 4/6 轮,本地候选未独立验收)
+
+- 输入:真实 HEAD `4b9d0f39a9319650bce7687acfba01552099c053`,repair-6 已知 RED 恢复点 I `7de2877038b58b400d33807092d8d7b8fd2f5973`。旧 8 修 8 评和 20260927 窗口原 1 修 0 评保留;本卡计窗口第 3 次修复,不是免费 continue。宿主提供真实依赖/daemon/platform/Playwright复核,五日志字节/SHA再核一致;未改旧树/账本/task.json,未派 agent/reviewer。
+- 行动:两讲解入口共享订阅回调、family、API审计与 platform child 来源证明落地;实际 import、实参、条件对象覆盖、改写、遮蔽和逃逸有限核验。真实 cost_entries INSERT 与 observed_model_rejected 审计加入手工 ledger。补39个来源反例、2个缺调用、2个伪审计receiver与2个现役正例;原七组及完整 action mutation 全部保留。性能失败后优化完整字节 AST/不可变 OID 解析缓存,不提高30秒门限;dirty字节、原位源变更和HEAD移动仍拒绝。未改产品行为/计费/授权/正式支持范围,未新增平台。
+- 产出:全101 action真实checker、capability/support及各自完整mutation通过。`final-focused.log`=3212 bytes/SHA-256 `e770270114e2b654672944244ffdb1cca82d6177ab4592ee4bc88def212d791d`;`final-action.log`=23 bytes/SHA-256 `7c54075752724cb808395bd5ca97bcf9b90b6e71945eca59edba4bee651882fe`。RF00旧2489/实际2490失败保留并--write;dry-run按真实源重建派生authority摘要,不改主语料/旧Q0身份。schedule同字节临时clone自测八反例通过且清理;`schedule-isolated.log`=1753 bytes/SHA-256 `5f6088b5139c5f2a5b11bab0877759f52c86f2af06267de81f1cfe23a9b7d2a2`。
+- 结论:PG02仍INCOMPLETE,未关闭G-A3、不进入PG03。required corpus仍有五份旧时间窗过期,缺新权威source;不推日期、不改门限、不运行Q0 --write。完整门/图像/独立验收由宿主固定候选后运行,本卡不复撞已知沙箱监听/ps/browser限制。证据稿 `e2e/evidence/project-gap-pg-02.md` 待新I绑定;精确pathspec、文件hash、I/E patch、全命令日志与NOT_RUN见仓外 repair-7-artifacts/REPORT.md。未提交、未发布。
+
+### R212 宿主固定候选核验
+
+输入:追加第4/6轮候选。行动:全量字节校验、明确pathspec冻结I后运行34门。产出:代码提交 `aded272c06d2f7cc6f9606ab612b5f2275ddc297`;33门通过,5份过期语料使1门RED,详细日志摘要见本批证据。结论:未验收,待独立审查及语料权威输入;保留旧失败和额度。
+
+
+## R213 · 2026-09-30 · PG-02 repair-8(当前追加第 5/6 轮,RED 保留)
+
+- 输入:固定 `6affca9f13c078104b9ff6697571f61eb7c941b6`,review-6 P1。只读发现与证据,没有执行 reviewer 命令。沿用 R-LEDGER / R-EVIDENCE / R-GATES,旧 PG02 8修8评及旧窗口用量不变。
+- 行动:先保存真实 101 项 / 原 22 none 的漏检复现,再补有限 const/factory/委托来源与逐调用拒绝。恢复完整 setup 路由,新增实参上下文与缓存失效反例。六个已确认有业务写入的 none 回填唯一 ledger;源绑定使用真实 HEAD/树/blob,未伪造新 I。
+- 产出:原 ID 全量诊断、局部审批及 setup 写点证据、新旧 mutation、自检日志与未提交 I/E patch 位于本轮仓外 artifacts。所有原始 log 不入 Git;文件名/字节/SHA 在 `REPORT.md` 与日志清单逐项记录。未修改 daemon/console、旧 worktree、全局配置或任务账本;未派 agent/reviewer。
+- 结论:INCOMPLETE。审批链局部正例可表达;provider/setup 等完整闭包仍有可修拒绝/图预算问题,不能以 corpus 外部 RED 掩盖。required 门未全绿,G-A3 不关闭,不进入 PG03。宿主固定候选后的完整门和独立验收仍未运行;本轮未 commit、push、合并或发布。
+
+R213 补充验证:36 项预检 29 过/7 失败;修正同 cohort 绑定和 dry-run 派生摘要后 support 与 dry-run 复核通过。最终 action checker 8584 failures,全部 101 action 诊断 7360 条闭包拒绝;primitive 形参来源反例通过,完整 mutation 仍 RED(25.95 秒,未放宽 30 秒)。schedule-pointer 在仅属于本轮的临时 clone 中补齐真实 main 只读基准后 self-test 通过;RF00 check/mutation、lint/typecheck/contracts、54 console tests、145 Python tests 通过,daemon focused 为 59 过/1 logger 子进程断言失败。没有把当前失败归零或记为独立 GREEN。
+
+repair-8 宿主恢复点:代码提交 `526d41f135aea9d173b7b900736776a604d65c6b`,仍为RED。原始23文件摘要全量核验;有限调用闭包合法正例未闭合,不能启动PG03。
+
+## R214 · 2026-09-30 · PG-02 repair-9（追加第 6/6 轮，RED 保留）
+
+- 输入：真实 HEAD `8933fc7e7af7fd983a8fbe259f419d3f2a87ded5`；owner 最后一轮实施授权与五份过期 CTX 无更新可退役的范围调整。旧 8 修 8 评、旧窗口及已用额度不变；未修改 task.json/全局/旧 WIP，没有派 agent 或 reviewer。
+- 行动：先读取 repair-8 全量诊断与 review-6 发现；有限来源图与写点条件重放分开，补具名 timer/peer/setup scope/完整订阅计费链来源，保持 unknown 拒绝和原硬上限。唯一 ledger 更新 17 个核实动作，未闭合链不自动回填。仅 CTX-05/06/08/13/15 退役，600 题仍在，57 个不可执行 ID 显式列出，真实 producer 重建派生报告；修复 rebuild 暂存缺 active 模块并通过真实幂等正例。
+- 产出：全 101 ID/原22none 对账、全部拒绝与实际调用/条件/via 在仓外 repair-9-artifacts。`audit-close.log`=1521716 bytes/SHA-256 `a85abd2a592d7e56a2acb8decacb9d89cc58bbbe276315231b243637bc97a18b`；`corpus-rebuild-mutations.log`=4343 bytes/SHA-256 `4ae09b5150d0b26412b7d95baa6859fb36d794ac5c1e996c3019b21b1cb0c459`。完整日志逐项摘要在 REPORT/COMMANDS/logs.sha256.json，raw log 不入 Git。docs09 §17 和产品源码字节未变；待绑定证据沿用 `e2e/evidence/project-gap-pg-02.md`。
+- 结论：INCOMPLETE，39/101 动作扫描无拒绝，action checker/mutation 仍 RED，剩余 runtime/provider 扩张与合法正例失败未解决；不能归因于外部资料或宿主门禁。五份材料退役不降低其它 RF/PG 验收。G-A3 未关闭，PG03 未进入，未 commit/push/合并/发布；没有额外续修授权。
+
+repair-9 宿主冻结:代码提交 `0184a64c6dbf5d7521938c6ff80da10814e63575`,当前追加6/6已使用。全部30文件摘要核对,显式stage新增模块后重生成RF00,四台账绑定真实I。PG02调用闭包仍RED,未声称通过;语料退役为owner明确授权,原历史与失败保留。固定候选门和独立审查另行登记。
+
+## R215 · 2026-09-30 · PG-02 repair-10（新增窗口第 1/6 轮，RED）
+
+- 输入：真实固定 HEAD `8f2f42066858c6e9901f9607aec545e8eb0ff866`、review-7 两 P1 和 P2-1；owner 追加最多六轮。本轮计新增窗口 1/6，旧 9 repair、6 rereview 及旧 PG02 历史保留，不改根因名。
+- 行动：先聚合全部拒绝为值来源、调用环境、分支重放机制，分离返回值证明与函数体 effects；加入真实 fallback/schema/集合/原生 process 来源、环境隔离和互斥条件。唯一 ledger 人工修改22记录，完整101/原22none机械对账，不自动复制宽闭包。context-availability 纳入 dry-run authority，并用现有 producer 原日期重建派生，模块独改陈旧报告反例通过。未改已审§17或daemon/console生产行为。
+- 产出：repair-10-artifacts 保存全量诊断、I/E patch、每文件和每日志字节/SHA与argv/cwd/exit/候选。`action-check-close.log`=831297 bytes/SHA-256 `8474d921346a5b7b0c5f6e3a161b5e1f188a798f12ef165ef2c2a3d83eda2d18`；`action-mutations-close.log`=6120 bytes/SHA-256 `5a77a44d5a8baf6073bc4f6025b188d8a8b3f5dd053d1f270d7b01cc10c2f8ed`。raw log 不入Git。
+- 结论：RED。101动作54无来源拒绝，正式checker仍7822拒绝；完整mutation仍失败且触及原30秒门限。reprobe撤销none并登记已核写点，但P1完整闭合未达成，不能以局部正例/P2通过求绿。固定候选完整门及独立验收留宿主；G-A3未关闭、PG03未进入。未stage/commit/push/发布，未派agent/reviewer，证据待真实I绑定。
+
+## R216 · 2026-09-30 · PG-02 repair-11（新增窗口第 2/6 轮，RED）
+
+- 输入：HEAD `8f2f42066858c6e9901f9607aec545e8eb0ff866` 及 repair-10 的19文件授权dirty；全量input patch/hash保存，未reset或覆盖。旧9repair、6rereview与旧PG02历史不变；本轮仅实施，无agent/reviewer或Git写入。
+- 行动：修图中实际receiver身份、callback调用位置、同一Focus方法重复展开及同环境条件重放；有限值证明与callee effects分开，加入原生子进程/异步文件/nullable/数组元素/实际SQLite来源正负例。完整源码与实际实参约束Focus preEvent截断，前置effects保留；完整mutation验证新增写入/错误来源/缓存失效。唯一ledger人工修8条，没有复制过宽闭包；完整101及原22none逐项机械对账。人工复核truthPlane.ts与truth-plane.test.ts无新增transport，更新RF00 semantic-claims实际SHA后生成/check/mutation通过。
+- 产出：全量分组、前轮差异、实际ref/result/conditions/via、精确I/E pathspec/patch和逐文件/逐命令摘要在仓外repair-11-artifacts/REPORT.md、ACTION-AUDIT.md、commands.json。`action-check-last.log`=801197 bytes/SHA-256 `c3c52b98ba7acb16bc12d90bfc8da3f15cb7b02dffe4aa87e34f35cf955fe6b0`；`action-mutation-close.log`=107349 bytes/SHA-256 `867d4c636bb594ba7008384343f5e4d19d36ea107e6479b15dec2ce661bc2374`。raw log未入Git；原19文件成果保留，当前23文件修改且无新增文件。
+- 结论：RED。正式checker 7469拒绝，57/101无来源拒绝不等于通过；完整mutation exit1/27.776秒，原30秒未放宽，services真实闭包仍失败。全部101人工语义闭合未达到，两个P1尚未关闭。dirty canonical blob mismatch单列，不能冒充callee/ledger失败原因。§17原字节、五CTX退役、原分母及Q0只读保持。G-A3未关闭，不进入PG03；未stage/commit/push/发布。固定I后完整门与fresh review留宿主，已知RED不请求review；本条不是独立GREEN。
+
+## R217 · 2026-09-30 · PG-02 repair-12（新增窗口第 3/6 轮，RED）
+
+- 输入：HEAD `8f2f42066858c6e9901f9607aec545e8eb0ff866` 与 repair-11 的23文件授权dirty，指纹5fc3335c4d0d6b9e9f6d77869be426c1096814a3cbd94bf920e4b0597c382ca9。repair-11由runner在7200秒终止，按timeout保留；本轮hard10800/idle1200，旧9repair/6rereview与旧PG02历史不清零。未reset、未派agent/reviewer、未写原common dir。
+- 行动：核图 key/词法捕获/解构来源/WS入口重复与最短实际见证，有限计算体共享且未知深层上下文不压平；构造器、字段初始化、stream callback、实际工厂bind/this、nullable/数组/rest/原生文件描述符来源分别核验，返回值不代替callee effects。只人工补S3 verify与openOnScreen两条；ledger仅等值缩进压缩以保持原1MiB。RF00两源再次人工复核无新增transport，write/check/mutation通过；dry-run现有producer原日期重建，五CTX/旧分母/Q0保持。
+- 产出：repair-12-artifacts保存REPORT、101/原22none逐ID机械对账、热点全量引用、commands、I/E累计patch及repair-12-only增量、真实Git状态和全部hash。`action-check-final3.log`=896798 bytes/SHA-256 `670387b88334448f41b26eb54e054c08bf4cc028349e2a21bfee88d50c12c800`；`action-mutation-final3.log`=12687 bytes/SHA-256 `8ce8d830f555b57595c26aaa8cb0abc14c58343569d1fe099d1ee64bccc06902`。 raw log不入Git；本轮未改产品daemon/console/platform行为。
+- 结论：RED。正式checker8469拒绝，60/101无来源拒绝且精确对齐；剩余41未闭合。完整mutation exit1/35.848秒，触原30秒；services实际setup cost_entries写点正例仍失败。图预算/重放未收敛，101人工语义闭合未达成，两个P1未关闭。dirty docs09绑定问题单列，不冒充callee/ledger根因。§17字节不变，无新I，无commit/push/发布，不请求已知RED review，PG03未进入；宿主最终固定候选门和freshreview仍NOT_RUN。
+
+## R218 · 2026-09-30 · PG-02 repair-13（新增窗口第 4/6 轮，RED）
+
+- 输入：HEAD `8f2f42066858c6e9901f9607aec545e8eb0ff866`、24份授权dirty、输入指纹 `2f1dc66dd96b9ebe61390ee8cc2e1a58f6254c1258c0e54e9be27befb3afb1c1`。旧轮次和失败保留；本轮仅实施，无agent/reviewer、task.json或Git提交写入。
+- 行动：先重读真实 setup/订阅账本与图算法并做最小反例；修正条件实参中的函数定义被提前执行、显式 undefined 默认参数、布尔字段、原生 callback 同名形参借用外层环境，以及计费摘要末端 db 槽误绑定。计算叶子区分创建/调用阶段，复用既有只读源码证明；语法索引与成功/失败缓存按源码和环境失效，未添加原生方法白名单。发现 sendTtsSay 实际含成本回调，移除纯传输豁免并保留同一 receiver 的事件接线；逐跳核实后只给 S3 注册补一条六跳 TTS cost_entries SQL，未将宽闭包复制进台账。
+- 产出：repair-13-artifacts 保存完整101/原22none对账、真实调用图/环境、最小反例、剩余根因、精确argv/cwd/exit/日志摘要、I/E累计与本轮增量patch及恢复核验。`action-check-last.log`=879386 bytes/SHA-256 `c3df203fb393a3e804556ebce36327fd4e89f3ca9759467472a5664c8c1ae07c`；`action-mutation-last.log`=110104 bytes/SHA-256 `b3e6201a9ddb688119ccc4d8a61c17d86fe13f9df4ddcebeb335e5cee6099163`。raw log全部仓外。§17、原预算、五CTX退役及600/57/72/13/986 LIVE不变，Q0只读，RF00两源SHA未变并实际复核。
+- 结论：RED。60/101来源无拒绝且ledger精确，41仍未闭合；正式checker8276拒绝，完整mutation exit1/28.841秒，未触原30秒但真实正例仍失败。setup仍在256节点前未得到成本SQL；真实CLI retry见证有13跳，12跳候选又混入API专属分支，未删除真实边或抬门限。本轮没有关闭两个P1/G-A3，不进入PG03，不声称独立GREEN。dirty docs09绑定问题另列；宿主完整门/冻结/fresh review仍未跑，已知RED不请求review。未stage/commit/push/合并/发布；完整RF00..11及PG前置范围未缩减。
+
+## R219 · 2026-09-30 · PG-02 repair-14（新增窗口第 5/6 轮，RED）
+
+- 输入：HEAD `8f2f42066858c6e9901f9607aec545e8eb0ff866`、24份授权dirty及指纹 `02b99ca018e86d04e7a06c652c775d6ba4f7a619ad0fff7f2175bdc587471948` 均实核；旧轮次和失败保留，未reset/stash。单一实施者，无agent/reviewer、task.json或common-dir写入。
+- 行动：沿实际receiver、创建请求的分支、调用参数和回调捕获修复setup API/CLI交叉扩入；分离表达式精确值与真值，修复unknown逻辑表达式漏写；按真实词法声明拒绝同名receiver借条件，按已核只读字段共享对象环境，修复分组Map的兄弟块同名数组来源。原native/源码边界表未扩展，产品行为未改。setup invoke由51个环境收窄到8个真实初次调用环境，但256节点仍超界。逐跳证明真实CLI成本路径13跳与原12跳/摘要保留原坐标合同冲突，未删边或偷换API见证；继续核查工厂opts捕获缺口与memory来源，不将unknown改none。
+- 产出：repair-14-artifacts保存全101/原22none机械对账、实际图/环境、12/13跳最小反例与逐跳源码SHA、剩余根因、精确argv/cwd/exit/候选/日志摘要及累计I/E与本轮增量恢复包。`action-check-last.log`=868306 bytes/SHA-256 `0163ba98e4f78882484036d8000ad175b1dc998073b47181cf3a4a073380d505`；`action-mutation-final2.log`=110394 bytes/SHA-256 `45db661aa0215b6211c2a33fbc6a065d0f39c61268fb435b5256e740518e00cd`。raw log仓外，S3注册六跳onTtsChars成本写点保持；本轮未改任何ledger记录。
+- 结论：RED。60/101来源无拒绝且精确，41未闭合；checker8178拒绝，完整mutation exit1/20.452秒，旧36.559秒超时保留且不称稳定。全部101人工语义闭合未达成，两个P1/G-A3未关闭；capability dirty docs09绑定失败单列。§17、原12/256/512/1MiB/8MiB/30s、五CTX与600/57/72/13/986LIVE、Q0只读保持，RF00实际源人工复核且SHA未变。全RF00..11/PG前置范围不缩减，PG03未进入；宿主完整门/冻结/freshreview未运行，未stage/commit/push/发布，不自判GREEN。
+
+## R220 · 2026-09-30 · PG-02 repair-15（新增窗口最后第 6/6 轮，RED）
+
+- 输入：HEAD `8f2f42066858c6e9901f9607aec545e8eb0ff866`、24份授权dirty及指纹 `93a583f2350e145eea2bead0cce5ad79c157406830b3fe743cacd93a4de29b06` 实核；承接全部旧轮次/预算/失败，无reset/stash、agent/reviewer、task.json或common-dir写入。
+- 行动：真实provider工厂调用传递每次opts与chat实参/返回条件，修复fallback污染模块初始化环境及同次const反复创建环境；实际默认limiter导出、队列旧输入、Promise resolver与await release来源有限核验。fetch按真实未遮蔽来源和完整参数核验，替换callback藏写不豁免，模板/拼接未知隐式转换仍拒绝。多个真实返回对象共有字段逐臂证明，未用TS返回类型或方法白名单吞写；§18与正负测试同步，产品和原门限未改。
+- 产出：全101/原22none、60项入口/主要effects人工复读与台账机械精确核对，未闭合41项全量机制/诊断、真实setup图/opts环境、13跳冲突与owner建议草案、精确命令日志及累计I/E和本轮增量恢复包落仓外repair-15-artifacts。本轮ledger零改动；S3真实onTtsChars六跳成本保持。`action-check-final.log`=1143375 bytes/SHA-256 `dd502d8c9d6a15edeed70a773bdf70aa7aeab1505cfdca9260bc99d5c9eb73c3`；`action-mutation-final.log`=111666 bytes/SHA-256 `b94f381246378c12b08194fd7b784bd6af8391e4e338b2e7ff9cc80601e56daa`；`effects-final.log`=10774 bytes/SHA-256 `8ad51ef5362d734a709e47f59ea623da56039e38210324f91ab20e8c41163d7f`；`boundary-final.log`=328 bytes/SHA-256 `ed347aa296e8b6ffba85b8f36e8c08b6fc6ddb2a49c4420da4bf749ffa12b4d0`。raw log仓外。
+- 结论：RED / INCOMPLETE。60机械精确、41未闭合，checker10758拒绝，完整mutation exit1/23.822秒；30既定门自检通过、3失败、4宿主待跑。没有收敛全部独立缺口，也没有全101人工语义闭合，不能把其余失败归因13跳冲突。原§17/12/256/512/1MiB/8MiB/30s、五CTX/600/57/72/13/986LIVE与Q0只读保持；RF00两源人工复核且SHA不变。PG02两个P1/G-A3未关、PG03未进入；全RF00..11/PG02..06范围不缩减，真实I绑定/宿主门/独立review未做。未stage/commit/push/发布，不自判GREEN，不追加轮次预算。
+
+## R221 · 2026-09-30 · PG-02 repair-16（新增2次窗口第1次，C13合同候选）
+
+- 输入：owner 采纳 NEXT-BOUNDED-WORK 并授权“按此预算执行”；旧15次修复、同因R-ACTIVE-POSITIVES与旧RED不清零。HEAD与24文件继承指纹核对一致；输入全文件快照保存在repair-16-artifacts。
+- 行动：当前实施者重新核验13跳源码/AST/创建接线与计费摘要，统一docs09 §18的via、非回边和缓存重放13跳上限，14拒绝；不改schema/checker/test产品实现或ledger。只读复现setup/memory/recovery三入口及直接链/摘要重放边界。
+- 产出：既有PG02 evidence追加阶段差异；仓外REPORT、IMPLEMENTATION-MAP、全引用/源码/诊断/日志bytes与SHA、累计I/E和本轮增量patch供宿主冻结。schema仍12、合同候选13；全101/原22none身份和ledger字节保持，不冒称完整语义重验。见e2e/evidence/project-gap-pg-02.md本轮段落所列日志摘要。
+- 结论：13跳静态见证成立，但setup仍494拒绝且256节点，memory仍8、recovery仍4拒绝，R15-N1..N7未关闭。仅提交C13-contract待独立检查点；无agent/reviewer、无Git写入、无PG02全量/监听/浏览器/just ci，不自判GREEN、不启动第二次修复。旧失败保留；本地合同自检与文档门结果以repair-16-artifacts/REPORT.md为准。
+
+## R222 · 2026-09-30 · PG-02 repair-17（新增2次窗口最后第2次，RED）
+
+- 输入：C13-contract review-8已通过；HEAD/24dirty指纹核对一致，继承旧15次与repair-16，最后一次修复不自追加。唯一原施工树，主树/全局/task.json只读。
+- 行动：同步schema/扩展/叶子预算/摘要重放13跳；直接、缓存、剩余预算正负例及真实CLI13见证复核。按真实slot/receiver/CLI集合/覆盖关系收窄dialog/evaluator provider来源，保留thinking/cheap fallback、所有创建效果及未知拒绝。RF00重读两个TS源语义登记后更新SHA；Q0不write。
+- 产出：全101/原22逐ID差集和人工范围、原门逐条结果、原始argv/cwd/exit/bytesSHA、完整I/E与增量恢复包保存repair-17-artifacts。schema/类型/lint/effects等通过；正式checker9359拒绝，完整mutation exit1/28.733s。关键日志如下，完整逐日志摘要在仓外LOGS.json。
+- 结论：RED / INCOMPLETE。C13数值冲突消除，但setup仍256节点/581拒绝且无成本SQL；memory8/recovery4拒绝，60机械精确/41未闭合，全101人工闭包未完成。R15-N1仅部分收窄，N2..N7未闭合，不能用“13跳冲突”概括剩余RED。保留unknown拒绝、ledger原字节、§17和其它预算；无stage/commit/common-dir写、无agent/reviewer，无PG03，不自判GREEN。真实冻结/绑定、宿主监听/justci/浏览器等及本窗口最后独立审查留宿主。
+
+`action-check-final.log`：1009110 bytes，SHA-256 `0174e618697ae95165e2e9afdea379b98f3b8462226202fdab7ac1af234397f6`，exit 1，37.975s。
+
+`action-mutation-final.log`：111753 bytes，SHA-256 `d2c23b0b93071effa1e2ff1630e69432413ea3c0c140f621ad1f5df852aefc9c`，exit 1，28.733s。
+
+`effects-final.log`：10861 bytes，SHA-256 `f9493a9ca5fbf82057be43d6f86dc40bea20995b4d408cc452d5fb0887f1573d`，exit 0，3.312s。
+
+`setup-final.log`：4518 bytes，SHA-256 `4b359a146cf7423337f1e51d79e9e69e17216cdd25a006eab6b0086bf241a36a`，exit 0，3.067s。
+
+`memory-final.log`：4352 bytes，SHA-256 `f2b776f3b32069eeca70607ebe6a99aeea978f4990ce90824489af53a221bce2`，exit 0，1.645s。
+
+`recovery-final.log`：1255 bytes，SHA-256 `fccd4b92b603ebb973e4fa7852236511c3529d92cc2e0921040e36b0b185b964`，exit 0，0.921s。
+
+收尾：dry-run 两份既有派生报告因 C13 合同输入摘要变化而失配，使用既有 renderer 重建，主语料摘要仍为 `ffca34aab5455a37f1812ef0a0420d387205187b9dc3f654ff97c6c89137fcf5`；原失败日志保留，复验见 repair-17-artifacts/dry-run-final.json。
+
+## R223 · 2026-09-30 · PG-02 repair-18（owner-decision-5 第1次修复调用，RED）
+
+- 输入：继承 HEAD `8f2f42066858c6e9901f9607aec545e8eb0ff866`、24份 dirty 和指纹 `19c8139dd4c8e70cda269359c7f44f86ba25e88afa96cd6f7a32ae21bdd02aa3`，真实核对并保存输入快照；旧 RED、计数及主树工作保留。
+- 行动：先用独立编写的顺序短→长14跳 fixture 复现 B1，再由原生产入口复现 B2 的256节点/581拒绝/零成本路径及 B3 的37条声明缺成本SQL。分离路径预算验证与最短效果见证去重，检查共享尾链和计算叶子深度；保留非回边、实际receiver及条件语义。按实际四槽循环/返回臂与CLI覆盖证明收窄来源，修复计费摘要被泛化工厂解析遮蔽，并核验实际订阅回调绑定。产品、合同、台账记录与各预算未改。
+- 产出：仓外 repair-18-artifacts 保存修前/修后日志、全101/原22none逐ID数据、门禁精确argv和累计I/E/本轮增量恢复包；最终结果以该目录 REPORT.md 为准。B1 12/13通过、14拒绝的顺序/条件/共享尾链/纯叶子/receiver回归 exit0；setup 定向诊断仍256节点/511拒绝/零成本路径。
+- 结论：RED / 待独立审查。B1已有实现及正反例证据；B2仅部分收窄，真实完整入口仍不闭合，不能把局部计费解析成功当完整13跳效果发现。按指定先后关系未补写B3，未闭合来源不复制进台账。全量语义验收未达到；PG03未进入；无stage/commit/push、全局配置、task.json或主树写入，无agent/reviewer，不自判GREEN。
+
+`b1-before.log`：3779 bytes，SHA-256 `4d49a638f2c78978d1665be8d94f9fc3d41b2174a13d8df64e6adef77880522f`，exit 0。
+
+`b2-before.log`：4518 bytes，SHA-256 `4b359a146cf7423337f1e51d79e9e69e17216cdd25a006eab6b0086bf241a36a`，exit 0。
+
+`b3-before.log`：50515 bytes，SHA-256 `0f5d75fcea9ec0d53c14f7fc3234883e23e4eaa9f7c702a2f1bea7d30b0ae08d`，exit 0。
+
+`b1-budget-regression.log`：10952 bytes，SHA-256 `4ff024f4ca93432ae6a27d6d63e88b16e3af1488885608fdeaf509b4f9d18d27`，exit 0。
+
+`setup-final.log`：6532 bytes，SHA-256 `1d5f3c2f97435ab50b7acb88c043977953775ea5f5ee86937c6faf89be3154d6`，exit 0。
+
+
+## 2026-10-02 · repair-25
+
+输入:repair-25.card与现有固定HEAD/dirty候选;原RED和累计账本保留,宿主管理本次额度。
+行动:先复现正式checker,提前拒绝不可满足的C14完整性前提;修B4正式CLI关闭投影;修audit shorthand具名参数来源,登记anchor_prepare真实效果并补真实WS/SQLite测试;同步RF00机械清单和测试面处置。
+产出:仓外repair-25-artifacts保存全部focused日志/退出码/耗时/bytes/SHA与候选前后指纹、全101和原22none对账、REPORT与原子终态。3条JSON记录紧凑排版以维持原1MiB边界,未删任何字段。
+结论:B4完整checker/CLI fixture正负例与RF00 check/mutation通过;真实产品仍11267拒绝并超过30秒,B2/B3/HEAD绑定及expired CTX仍RED。无commit/merge/push,无full/Linux/browser或review派发,不宣称产品或独立验收通过。
+
+### 2026-10-02 repair-26 最后有限复修(产品仍 RED)
+
+输入:review-15 的 writing approve outbox 路径漏登与 voice.anchor_prepare transition 错绑;本次仅隔离候选,账本由宿主管理。
+
+行动:两个 approve 记录按真实扫描登记28个效果,含 operations.ts:427→661→60→outbox.ts:115 的 writing outbox UPDATE及 callback.freeze 条件审计;全101 effectKey/conditions/via与跨函数绑定逐项机器对账,anchor_prepare 改为已证 effect/via 支撑的 shared_bound。未改业务与合同。
+
+产出:仓外 repair-26-artifacts/all-actions-final.json、all-101-differences.json、original-22-none.json 与 ACTION-AUDIT.md;真实Git旧22none和101原ID全等保留。两个approve和anchor已扫描效果登记精确相等,但其未知/超界仍阻断。其余37动作仍有3078漏登、415多登或条件/via不匹配;setup:postTier1SetupTest跨函数来源未证明仍拒绝。全量扫描效果3781个,全部登记的压缩ledger约3.54MiB超原1MiB,未扩大限额;当前完整ledger916049bytes。
+
+性能:重复条件校验改为同完整源码AST语法索引,不复用来源判定;13hop深度先检查后去重。新增错误branch/同Map源码变更/跨函数误绑/approve双路径漏登与错via mutation。正式checker实测56.400→39.503秒,仍超30秒,不得称性能通过。
+
+结论:[fail] PG-02仍RED;CAP09 dirty合同与HEAD不一致、CTX09/12/16过期前提未获改变授权,未伪续期或commit。focused与具体日志见仓外REPORT/COMMANDS;full/Linux/browser/freshreview由宿主执行,本实施者NOT_RUN。无commit/merge/push/发布/生产服务或新agent。
+
+
+### 2026-10-02 repair-27：恢复调用的模型通道失败
+
+输入:owner采纳周收口交接S0～S6、D1～D5及新增有界窗口;旧RED、累计预算和全部候选保留。
+行动:宿主按最后有效gpt-6.1-sol/medium启动外部Codex实施;模型通道在读取候选前返回HTTP400不支持,不静默更换模型。
+产出:外部runner exit1、launcher exit4;原日志1208bytes,SHA-256 ab818e70829d84c17180ad8ce3a45f535c2d7924f7ec3e0ba80105d8163a4c5d;无产品改动。
+结论:[fail] 保留失败并计本窗口同因第1/3,不伪造launch_error豁免。随后owner授权改用原生零上下文sub-agent,模型/effort/累计预算不变。
+
+### 2026-10-02 repair-28：原生有限替代与全量对账
+
+输入:原任务和37项已有候选改动,主树7项WIP只读;沿用原生gpt-6.1-sol/medium。
+行动:全177审计路径语义对账;全101动作/3781effects无损分片、完整schema与四账本cohort、source/OID共享及有限env/SID/SQL与anchor原型真实运行/mutation。
+产出:最新严格运行19.488883s,当前产品仍60unknown/7755阻断;focused四项exit0,507证据产物hash核验通过。REPORT.md SHA-256 f71d1a363c78f29a398932df90e7961a9a80038c88024c6889f4e9abd4f9a1a8。
+结论:[fail] 原生调用实际返回INCOMPLETE;产品和canonical未改。全量必要合同未闭,这是原D1内尚需实施,不声称所有有限方案不可能;连续派最后同因第3/3。
+
+### 2026-10-02 repair-29：最后同因窗口收口
+
+输入:repair-28真实包与原冻结V3账本;全局V4安装变化仅经兼容包恢复原54a95f50运行身份,原任务不迁移或重算。
+行动:实际source/init/caller约束和具名原生文件/SQLite/loopbackWS/Git原型;逐7754诊断occurrence执行有限准入;所有effects/conditions/via完整保留;真实关闭TSX cache避免产品派生制品读取,不自动豁免。
+产出:45个去重诊断/206occurrence得到原型处置;仍792非bounds/4451occurrence拒绝,924bounds/3097occurrence的B1～B4运行覆盖NOT_RUN。现役60unknown/7755阻断未变;最新27.779765s,已知proof/data+Gitstdout+展开8388184bytes,余424bytes;native/async/mmap/workerloader总量UNKNOWN。physical-io-cache-off日志101514bytes,SHA-256 720f3091e53b40debd46751db94ea987ec52b318aa0423445eb4668cb0eea5fd。REPORT.md SHA-256 62e044cd318694171dbe87539619e9dbfb1b63398475b7c0ab5d533ad0ac7de5;宿主核验1305新产物及507旧产物hash一致。
+结论:[fail] 真实原生返回INCOMPLETE,按已采纳交接§6.2同因窗口3/3、累计19/19停止;全repair29/38、rereview15/35、procedure3/5。43required本窗口NOT_RUN;未派fresh D1 review、未接产品/修改canonical、未形成新代码I/证据E、未commit/merge/push/发布。Windows实际ACL仅两setup受影响条件,最小操作包保留。S0吸收、PG-02～06、RF-00～11与默认关闭B1后继目标未取消。
+
+### 2026-10-02 repair-30：owner14 有界续修第一槽
+
+输入:owner采纳同因新增3次、累计上限22;总repair38与原模型gpt-6.1-sol/medium、资源和证明合同不变。原任务/所有RED/候选/累计用量保留。
+行动:完整writing artifact caller、env来源与真实SQLite/file/tree桥;源broker/loader同epoch快照、Git442表达式真实batch及派生回执,不伪逐命令执行。
+产出:有限原型45/206增至63/287;余774/4370非bounds未绑定、924/3097 bounds运行未验。完整原口径26.601107s/8404672bytes超16064,仍RED;frame方案旧cap失败/全量超时未采纳。1238产物宿主逐bytes/hash核验,实际native返回INCOMPLETE。
+结论:[fail] 产品/canonical未改,全量D1尚不可审;有结构进展,连续使用第二槽。
+
+### 2026-10-02 repair-31：模块共享来源机制第二槽
+
+输入:repair30实际包及不变原候选;native fresh模型/effort继续。
+行动:完整private SQLite/audit/outbox、Safety模块所有caller与native child、HotwordStore完整class及3caller;ToolRegistry身份不外推handler效果,source AST只读复用不混C14 mutable program。
+产出:新增17/147有限准入,累计80/434;余757/4223未绑定。最终完整恢复合同费用8425765bytes超37157,27.413509s/真实exit1。writing26/26、hotword8/8局部产品测试另列,fake agent/Touch ID不外推。1345产物宿主核验通过。一次runner短重叠及终态/清理旁证保留;宿主同名回执覆盖已从旧字节精确恢复,新回执另名,原manifest不改。
+结论:[fail] 完整D1仍不可审;使用最后第三槽,旧失败/较窄费用不覆盖最终恢复收费。
+
+### 2026-10-02 repair-32：完整子进程工厂与最终有界停点
+
+输入:原全101action/3781effects/7754诊断和旧22none逐ID保留;owner14最后3/3,同因累计22/22。
+行动:独立AST核完整runner/state/production origin/binary identity,18实际cases与32mutation;native Node fixture不冒真实provider。同步同epoch共享源hook核actual preload及完整worker/registered loader收到视图,恢复合同/manifest/native正文继续收费。物理observer负例真实证明async/worker/mmap漏计,未知仍未知。
+产出:最终独占runner94174/child94206,27.141629875s/真实exit1/无timeout;完整已计58009953bytes,超8MiB49621345bytes。较窄8758201bytes及早期数字为中间口径;已知read/stdout/末对象8696136bytes单列,完整物理总量UNKNOWN。最终日志174857bytes,SHA-256 6d5affd9001e744eeea1ed5c91d9bff422e76f4837218c641eaea8df923f4dd3。1655产物宿主逐bytes/hash核验,旧1305/1238/1345保全,精确PID与私有owner记录核空。有限准入80/434无新增,余757/4223、924/3097未闭,现役60unknown/7755阻断仍RED。
+结论:[fail] 原生真实返回INCOMPLETE,按交接§6.2和owner14新增3/3、同因22/22停。全repair32/38、rereview15/35、procedure3/5,不重置、不改根因名、不申请逐轮+1。43required本轮doclinks/emoji两项PASS,其余41 NOT_RUN;无fresh D1 review、新I/E提交、产品/canonical改动、合并/push/发布。S0吸收/PG02-06/RF00-11/B1/S6后继授权未取消。Windows两setup ACL真实条件单列,不豁免本地其余路径。本宿主仅追加journal,旧内容逐字前缀保留。
+
+repair-30 REPORT.md:9010bytes,SHA-256 e98174ed74d40ccca614903b62dc5c922f3febf1a699b60d89e6c279d05e2f2e。
+
+repair-31 REPORT.md:10371bytes,SHA-256 0d3fbbcaacb87fd0a40166484d2c2e40fa81f5415a881b767dca085a89a71534。
+
+repair-32 REPORT.md:11514bytes,SHA-256 65a9edd2e6e0a4bbef30e8a8dc1598c45c71e691dbf6748f1508310128ec3f4f。
+
+
+## 2026-10-03 监督接续 repair-33（owner15 第1/9）
+
+- 输入：原累计repair32、同因22，owner15明确最多新增9次；原S0-S6/D1-D5、RED与全部候选保留。
+- 行动：原生零上下文gpt-6.1-sol/medium，单owner源码/只读AST复用与负向memo；完整原始动作判定不裁剪。
+- 产出：完整101动作/3781效应/7754诊断一致；一次26.896s，重复30.0537s超时；显式8767471B超378863。5987产物732315597B宿主全hash一致，83登记PID退出/8homes无owner。
+- 结论：INCOMPLETE/RED，结构性传输改善不冒稳定时间或完整费用通过；43required仅2PASS/41NOT_RUN，无产品接线、commit/push。私有日志与bytes/SHA见仓外repair-33 manifest，旧报告保持。
+
+## 2026-10-03 监督接续 repair-34（owner15 第2/9）
+
+- 输入：冻结repair33；保留原资源与全部机制缺口。
+- 行动：实际private source/packet对象和字节/epoch/candidate绑定分片复用，核默认源码初始化分母与全部mutation。
+- 产出：三次同源cold24.7578/24.7874/24.9241s，原始结果一致；最低显式8784138B超395530。1805产物276218742B宿主全hash一致，26PID退出/8homes无owner。
+- 结论：INCOMPLETE/RED；实际fixture初始化不能按文件名排除；失真的global小回执保留且不用作正向数字依据。尚有已授权无损共享图路线，不构唯一资源取舍阻塞。日志bytes/SHA见仓外repair-34 manifest。
+
+## 2026-10-03 监督接续 repair-35（owner15 第3/9）
+
+- 输入：冻结repair34，D1已授权无损effect/condition/path/via共享，原101/旧22none与累计预算继续。
+- 行动：独立不可变DAG直接consumer、完整source/字段/occurrence核验、完整还原另实跑、解析前文件与owned byte限制及反例。
+- 产出：图788656B/13339表示节点，与每动作256调用图节点分离；原101/3781/7754完整还原hash/deepEqual一致。graph与兼容各3cold无超时；graph已知子集6166479B/首parse另计6955135B，不称完整费用PASS；兼容实际17490912B。5139产物824124141B宿主全hash一致，55homes恢复/67PID退出。
+- 结论：INCOMPLETE/RED；757nonbounds/4223occ与924bounds/3097occ及B1-B4未闭合，required2PASS/41NOT_RUN。下一已授权高收益runner/registry机制施工，不把未实现上浮owner选择。全部中间失败/native断言未知与日志bytes/SHA见仓外repair-35 manifest；无canonical/产品改变或提交发布。
+
+
+## 2026-10-03 监督接续 repair-36（owner15 第4/9）
+
+- 输入：原生零上下文gpt-6.1-sol/medium；前槽冻结证据、旧RED与全部候选、原资源上限保持。
+- 行动：新增12具名算法与真实receipt/registry/runner链，机制3cold4.42-4.55s；完整集成2次30s timeout，第3NOT_RUN。
+- 产出：5536产物2083284768B全核；58登记PIDgone，20homes回收3、保留2invalid fixture records/groupgone。 私有日志文件名/bytes/SHA见仓外repair-36 manifest及owner15-evidence-index.json。
+- 结论：INCOMPLETE/RED；完整101/3781/7754与旧22none保留，finite80/434未升，757nonbounds/4223、924bounds/3097 B1-B4未闭合，43required2PASS41NOT_RUN。未canonical/产品接线、commit/push/自审GREEN。
+
+
+## 2026-10-03 监督接续 repair-37（owner15 第5/9）
+
+- 输入：原生零上下文gpt-6.1-sol/medium；前槽冻结证据、旧RED与全部候选、原资源上限保持。
+- 行动：同owner AST/cache/harness结构修复，完整cold3 28.348/27.434/27.221s；14guard/29runtime/33negative有限增量、准入0。
+- 产出：4373产物433000764B全核；56PIDgone/14homes无待回收；错误启动3入口失败保留。 私有日志文件名/bytes/SHA见仓外repair-37 manifest及owner15-evidence-index.json。
+- 结论：INCOMPLETE/RED；完整101/3781/7754与旧22none保留，finite80/434未升，757nonbounds/4223、924bounds/3097 B1-B4未闭合，43required2PASS41NOT_RUN。未canonical/产品接线、commit/push/自审GREEN。
+
+
+## 2026-10-03 监督接续 repair-38（owner15 第6/9）
+
+- 输入：原生零上下文gpt-6.1-sol/medium；前槽冻结证据、旧RED与全部候选、原资源上限保持。
+- 行动：setup/boot九坐标实际参数初始化链、10cases/17negative/12source变异；完整cold3 27.642/27.480/27.566s，准入0。
+- 产出：12336产物1064839132B全核；98PIDgone/6homesreaped0；实际addonraw1980736B、单file超932160，历史不豁免。 私有日志文件名/bytes/SHA见仓外repair-38 manifest及owner15-evidence-index.json。
+- 结论：INCOMPLETE/RED；完整101/3781/7754与旧22none保留，finite80/434未升，757nonbounds/4223、924bounds/3097 B1-B4未闭合，43required2PASS41NOT_RUN。未canonical/产品接线、commit/push/自审GREEN。
+
+
+## 2026-10-03 监督接续 repair-39（owner15 第7/9）
+
+- 输入：原生零上下文gpt-6.1-sol/medium；前槽冻结证据、旧RED与全部候选、原资源上限保持。
+- 行动：具名SQL/driver源49352B、2positive25negative/8source变异；同call source共享39次307739B；cold3 27.58-27.77s，准入0。
+- 产出：9123产物921671838B全核；72PIDgone/7homesreaped0；physical586/fee8098379B、native build UNKNOWN。 私有日志文件名/bytes/SHA见仓外repair-39 manifest及owner15-evidence-index.json。
+- 结论：INCOMPLETE/RED；完整101/3781/7754与旧22none保留，finite80/434未升，757nonbounds/4223、924bounds/3097 B1-B4未闭合，43required2PASS41NOT_RUN。未canonical/产品接线、commit/push/自审GREEN。
+
+
+## 2026-10-03 监督接续 repair-40（owner15 第8/9）
+
+- 输入：原生零上下文gpt-6.1-sol/medium；前槽冻结证据、旧RED与全部候选、原资源上限保持。
+- 行动：15真实fixture代际隔离，13拒绝+1child回收，20source敏感；physical586降550，cold3 27.71-27.91s，准入0。
+- 产出：9149产物1344408362B全核；163PIDgone/28homes无childrecords；必要named覆盖声明的继承问题见41更正，不把旧结果当本轮执行。 私有日志文件名/bytes/SHA见仓外repair-40 manifest及owner15-evidence-index.json。
+- 结论：INCOMPLETE/RED；完整101/3781/7754与旧22none保留，finite80/434未升，757nonbounds/4223、924bounds/3097 B1-B4未闭合，43required2PASS41NOT_RUN。未canonical/产品接线、commit/push/自审GREEN。
+
+
+## 2026-10-03 监督接续 repair-41（owner15 第9/9）
+
+- 输入：原生零上下文gpt-6.1-sol/medium；前槽冻结证据、旧RED与全部候选、原资源上限保持。
+- 行动：真正delete六SQL named key、69native/runtime负例、5AST变异/8private owner拒绝、20source敏感；physical550降539仍超27。最终cold3 28.136/28.338/28.093s exit1/no timeout。
+- 产出：8668产物818917853B全核；148PIDgone/25homesreaped0；旧两份继承packet/shard反例独立补测8897767B超509159，断言exit0不冒资源PASS。 私有日志文件名/bytes/SHA见仓外repair-41 manifest及owner15-evidence-index.json。
+- 结论：INCOMPLETE/RED；完整101/3781/7754与旧22none保留，finite80/434未升，757nonbounds/4223、924bounds/3097 B1-B4未闭合，43required2PASS41NOT_RUN。未canonical/产品接线、commit/push/自审GREEN。
+
+
+## 2026-10-03 owner15 九轮收口与覆盖更正
+
+- 输入：owner原话“授权你增加最多9轮，继续实施”，baseline32/samecause22，累计max41/31；旧review15/procedure3与所有预算保留。
+- 行动：实际native33-41全部收到completed回调；作者均INCOMPLETE，宿主逐manifest bytes/hash核验全部零差额，9/9用尽，active_call清空，不自开42。
+- 产出：共享图无损/真实源码与具名算法/SQL/receipt/caller/init有限机制/同owner复用有结构增量；完整生产可靠闭合0，原状态RED。当前文件539仍超27，native/source-binary可信与底层费用UNKNOWN、required41NOT_RUN，S2-S6未推进产品。
+- 更正：40旧覆盖21/99包含两份packet/shard继承结果，不能作为该cold重新执行；41实际cold22文件34数组每次、3次102数组，另独立2文件4数组仅一次，114映射不称114次实跑。原40/所有历史产物保持不改，见COVERAGE-ERRATUM41.md。
+- 结论：按已采纳交接§6.2预算耗尽停止，保留精确恢复与具名有限合同差额，未证明所有架构不可能；不申请逐轮+1或自行改trust root/费用范式。全部日志与报告坐标见仓外OWNER15-CLOSEOUT-REPORT.md及owner15-evidence-index.json。
+
+
+## 2026-10-03 owner16 有限证明合同提案定稿与两轮独立审查
+
+输入：owner采纳提案定稿与独立审查建议，保留原repair41/41、同因31/31及旧RED；非canonical文档阶段，不是repair42。
+
+行动：native零上下文 gpt-6.1-sol/medium 作者在独立worktree定稿；gpt-6-astra/medium fresh review-17发现3处合同冲突，一次文档回修后由另一名fresh review-18只读审查。所有旧报告和输入保留。
+
+产出：提案首版23f71d5a710db029c69478ea4ec6dc904c2434c5、修订版3e4a2bcd361a3accaf9cb3dff84db707d6b193db；两文档与29件冻结输入逐SHA核验。review-18=ACCEPTABLE_FOR_OWNER_DECISION，仅提案四维与规则核查；全D1可实施性NOT_ESTABLISHED，产品INCOMPLETE/RED。原task/contract-phase16保存输入、报告、回执与时钟。文档门日志：diff.log: bytes=0, SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855, exit=0；emoji.log: bytes=23, SHA-256=e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3, exit=0；doclinks.log: bytes=47, SHA-256=0946365cb535baf2b58f3c3806b788c15a8e30dd258b0ca1a7a41423b7f56919, exit=0。
+
+结论：累计rereview17/35、procedure3/5，产品repair41/41与同因31/31不变；无产品/canonical改动、构建安装、push/merge/public/release。原生review实际completed与冻结V3不接纳host_session的machine disposition分开，不伪造native进程退出码。具名原生信任/有限资源包/整块实施窗口待owner采纳，未进入S2。宿主仅追加此journal，不改正文；保留旧指纹与transition。
+
+
+## 2026-10-03 监督接续 repair-42（owner17 第1/9）
+
+- 输入：原HEAD8f2f42066858c6e9901f9607aec545e8eb0ff866、fingerprint fc7e9e0e5db50fb97613e27a9036e85b52c96c3eed9aac6d61cdb4d2a8e7acf8、37件dirty；owner17采纳提案3e4a2bc有限域/真实计费和最多新增9修，同因R-ACTIVE-POSITIVES原31本轮32。旧RED、所有候选、S0–S6/D1–D5及43required保留。
+- 行动：只导入两份固定提案文档；09新增18.11合同、明确新资源优先级与完整费用；PLAN2当前卡同步。未改checker/schema/ledger或产品。原生只读小recipe/loader21,616B及源/ABI/toolchain/制品stat，未native加载、build、安装或联网。
+- 产出：仓外repair-42 REPORT/RESULT/RESTORE、有限离线执行预检包和canonical source束；真实precheck exit2/NOT_READY。better-sqlite3源集stat下界60件10,406,329B、node-addon-api18件417,282B、Node headers1,118,985B；不是完整构建资源。libnode41,509,280B大于16MiB24,732,064B，实际mmap UNKNOWN，不当fullread或断言不可能。node-gyp缺包可按既有D2局部授权后补；正式具名独立信任和准备预算未定。
+- 检查：作者机械转置/旧dirty保护41项最终0失败；曾有错误源路径和标题转置预检失败，原日志保留，不当产品失败或独立GREEN。日志：docs-diff-check.log: bytes=0, SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855, exit=0；emoji.log: bytes=23, SHA-256=e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3, exit=0；doclinks.log: bytes=47, SHA-256=0946365cb535baf2b58f3c3806b788c15a8e30dd258b0ca1a7a41423b7f56919, exit=0；contract-mapping-final.log: bytes=4102, SHA-256=8a67e2efd6236a767c896ac384ce0786445b3294adf6d84cef1a743de4e4bf93, exit=0。
+- 结论：执行和检查都跑完了，等宿主fresh canonical验收；fullD1未通过/可实施性未证，产品INCOMPLETE/RED，生产admission0。完整产品required、全部101/旧22实际重验、原生认证与S2–S6仍NOT_RUN。未commit/stage/merge/push/发布，不自行启动43、不改task预算或冻结V3runtime；本轮使用1修。
+
+
+## owner17-repair43 · S0 审计全量归属对账（2026-10-03）
+
+**输入**：原审计 156 tracked + 21 untracked；owner17 的有限修复窗口，本轮同根因 rf00_per_item_semantic_dispositions_incomplete 第二次。
+
+**行动**：只核原 177 路径的 audit/current/原 main base 来源字节、差额与下一步，恢复原 123 pending_absorb 集；原 33 tracked 分歧逐件语义登记，生成物留来源待最终源码重录。CI-FIX 七文件只核吸收关系，Anyvia 两原件与 B1 manifest 只读保全。没有产品、canonical、checker、ledger 或 schema 修改。
+
+**产出**：私有 handoff evidence/20261003T022904Z/repair-43 下 REPORT/RESULT/RESTORE、dispositions-177 JSON/CSV、来源与保全清单。处置为已等价 9、被后继替代 4、明确延期 164；吸收 0、经证伪不采用 0。延期按 D4 在 S1 完整 D1 闭合后进入 S2 逐项复现/融合，不永久出 scope。
+
+**结论**：本轮 S0 归属对账具备 exact-set 与可操作下一步，等待独立核查；不能称 S2 修复或完整 D1/resource/required 通过。PG-02 仍未关闭，单源 active=PG-02、next=PG-03、last_closed=RF-00 保持。旧 39 dirty 保全，journal 只追加；不启动 repair44、不 stage/commit/push/cleanup。
+
+
+## owner17-repair44 · 原生源冻结与集中有限操作包（2026-10-03）
+
+- 输入：原HEAD8f2f42066858c6e9901f9607aec545e8eb0ff866、fingerprint563b03902e3b3928c2af5bfb9c014ad81162f96f4d18bc126ffc2c8f37522b9a、39 dirty；owner17第3/最多9，R-ACTIVE-POSITIVES窗口第2/最多3、累计33。旧RED、S0–S6/D1–D5与全部required保留，canonical review19 PASS不等fullD1/S1。
+- 行动：只直接读取当前安装源并在仓外冻结better-sqlite3 13.0.3（排除prebuild）60件、node-addon-api8.9.0共18件、Node22.23.2 headers107件、npm自带node-gyp11.5.0源126件，逐件路径/bytes/SHA/mode/aliases/读回入账。SQLite9,516,284B全文读取只绑定源身份。递归93包metadata/124依赖边真实定位，没有缺失本地依赖路径；其余92包666文件仍stat-only，未安装或构建。
+- 产出：仓外repair-44 native-operation-package-v2、source-manifest、直接read账、metadata来源、操作预检和唯一owner-decision-card。311冻结源14,535,203B，collector直接读取29,569,918B/715物理origins；独立源身份预检作者实跑exit0仅字节身份。错hash/漏file/oversize/未知preparation预算/engine单file超界五负例均实际exit2。
+- 差额：整package具名源至少977origins，768差209；不能和本轮715含副本实际读origins混同。libnode41,509,280B超过16MiB24,732,064B，未hash/fullread，真实mmap UNKNOWN。本机Xcode实际clang124,676,976B只stat，prepare64MiB差57,568,112B。集中建议验收2048origins/64MiBfile/128MiB累计/60s；独立prepare试验4096origins/256MiBfile/1GiB累计/1200s/2GiB新磁盘与树RSS/0网络/128累计children并发8，均待owner选择，非测得充分预算。
+- 结论：执行和检查都跑完了，等宿主fresh验收。preflightReady=false，native源算法/build/ABI/actualartifact/domain/正式信任与工具内部OS输入UNKNOWN；生产admission0、fullD1/S1未通过。仅普通文档门可启动Node检查且单列其内部engine IO UNKNOWN；没有native验证加载、重建、下载、安装、产品或canonical/checker/ledger/schema修改、stage/commit/push/cleanup，不启动repair45。证据与日志逐bytes/hash在本轮REPORT/RESULT；38非journal和旧journalprefix逐字节保全。
+
+
+### 2026-10-03 owner17：review20独立决策材料审查收口
+
+- 输入：固定评审快照64d48794e95150541f32104977f81434e9e02ade，产品候选HEAD8f2f42066858c6e9901f9607aec545e8eb0ff866，repair44指纹d5e0c719ba9166f8cb596128fc2da504a1a1569e7434e9037fc23a9cb0c4103c。
+- 行动：fresh零上下文只读review20核四维来源/清单、native源绑定、direct下界账及失败关闭操作包；作者命令未用于独立证明。
+- 产出：ACCEPTABLE_FOR_OWNER_DECISION；547冻结件、177原路径及旧123、311源身份绑定已核；复杂产品语义抽样，164延期未称修复。CI-FIX两条专用自测删除差额留给S2核覆盖。报告在原任务review-20.md/result.json，报告emoji exit0。
+- 结论：fullD1 NOT_ESTABLISHED、S1 NOT_PASSED、native build/load/正式认证与产品required NOT_RUN。当前libnode单file超16MiB24,732,064B；完整package977为保守集合非最小实际读取证明；prepare预算与OS全通道未知。按交接文第6.1项交回集中有限资源选择，未越界构建。
+- 累计：repair44/50，本窗口3/9；R-ACTIVE-POSITIVES33/34、本窗口2/3；S0根因累计2、本窗口1/3；复审19/37；程序3/5。旧RED/候选保全，active_call=null。V3 native review kind admission实际exit5，与native completed/范围审查结果分列，不作checkpoint通过。
+
+
+## owner17-repair45 · owner18集中资源准备试验（2026-10-03）
+
+- 输入：owner-decision-18采纳review20集中卡；原HEAD8f2f420/39dirty、fingerprint1d31bc272e71b8215f83a2987f0b8fc8daa9a680b3f46b4e6c595552b854b0d2；owner17第4/9、R-ACTIVE-POSITIVES窗口3/3累计34/34最后槽，旧RED/43required与全部阶段保留。
+- 行动：只同步09§18.11和PLAN的2048/64MiB/128MiB/60s验收及独立4096/256MiB/1GiB/1200s/2GiB disk与树RSS/network0/128children并发8/jobs1准备授权。一次原时钟有界collector实际冻结另92包666文件、93包真实root接线和Node include/node；原源共977文件17,715,731B，第三方原byte/mode不改。整读/hash libnode41,509,280B、实际clang124,676,976B，仅身份非语义认证。
+- 产出：仓外~/.octoworkflow/local/handoffs/saydo/2026-10-02-week-closeout/evidence/20261003T065155Z/repair-45下v3、REPORT/RESULT/RESTORE、source/dependency/binary/probe/read/child/fullmanifest与固定canonical-review-input。vmmap0仅快照、fs_usage1/dtrace1权限拒绝；ownUDP connect-only23/EPERM无send/remote，单case不证全树deny。三失败段exit2与同trial恢复保留，零bytes origin漏计4已erratum更正；初失败脚本执行版本认证UNKNOWN。源身份更正版0仅身份，oversize/drift/missing/unknowngate各2真实拒绝；文档gate0但engineIOUNKNOWN。
+- 结论：执行和检查都跑完了，等宿主fresh验收；PREPARATION-READINESS=UNKNOWN、INCOMPLETE/RED、admission0，完整资源/全D1/S1未通过，native build/load/正式独立source/build/ABI/artifact/domain和产品required仍NOT_RUN。direct为下界，未观测解释器/OS/child/RSS/network不免费；不凭作者probe或plan true启动build，不stage/commit或改产品/checker/ledger/schema/task/ownerledger，不开46。CI两专用自测留S2，S2等fullS1。日志bytes/SHA/即时exit见上述REPORT与file-manifest；journal旧prefix完整。
+
+
+### 2026-10-03 owner18：repair45和review21受阻收口
+
+- 输入：owner采纳集中资源包，原9修与每根因新增3不扩；repair45原生作者，review21固定快照27f33743a7b4347bb3d891152cb1d4c4493503b8零上下文只读。
+- 行动：同步09/PLAN新有限资源，冻结977源、93包124边/134解析实例，libnode与实际clang整件哈希；受控probe和真实拒绝日志保留，未build/load。
+- 产出：fresh review21 RED_SCOPE；canonical PASS_SCOPE_ONLY，来源/绑定/账可复算，R21-F1/P2阻塞prep读取护栏：漂移read(1)会先过单件cap，finalizer read_bytes增长风险与漂移漏记。静态反例，动态复现NOT_RUN。
+- 结论：同因34/34及window3/3已尽，不开46；原总窗口4/9余5，不挪同因。原trial823.305s、direct527585311B/3592origin只是下界，全IO/树RSS/网络未知，fs_usage/dtrace权限拒绝，UDP EPERM单例。fullD1/S1未通过，43required旧2PASS41NOT_RUN。
+- 宿主事件：manifest校验误认UNKNOWN摘要标记，整读268435457B oversize负例超单件1B，实际FAIL原样保留；corrected核验不抵销失败，procedure累计4/5。跨lane已知重复读下界单列，不冒充完整resourcePASS。
+- 停止：交接第6第2项同因预算尽及第4项真实外部观测前提；正式认证与native kind V3 checkpoint仍未过。父active_call=null，旧候选/RED/WIP/全部范围保全。review21报告及host事故日志在原任务目录，未自审通过/合并/推送/发布。
+
+## R204 · SayDo × Anyvia 跨仓对接方案定稿(2026-09-29)
+
+### 输入
+owner 说明近一个月在 Anyvia(原 Octoooo)仓完成多款设备实施,要求重估 2026-08-26 capture 方案与两仓关系;随后裁决四项(重开 Q5 且 Anyvia 不依赖固定 agent、方向 B 做、远程确认要做、Passport 语音做在 Anyvia 固件侧),并要求经 `/pro-research` 交叉评审后给出最终方案与新会话实施 prompt。
+
+### 行动
+1. 通读 Anyvia 的定位、决策表、两份语音方案、Passport 固件手册、connector-api 与网关路由;核实 Passport 已在 Anyvia 生态实机验收而语音未适配,capture 方案未实施。
+2. 经 Oracle 通道向两个 Pro 账号同题提交(brief 加 9 份附件),再由账号 a 做合并复核;三次取回的模型、Pro 档、附件回执均通过核验,达到 3 次上限。
+3. 宿主补充核实:Anyvia `/v1/events` 为全局静态令牌、来源写死、无幂等;SayDo `CONFIRM_KINDS` 真实枚举 12 项;两份 prompt 引用的文件与脚本存在性。
+
+### 产出
+- `docs/plan/2026-09-29-saydo-anyvia-integration.fable.md`;
+- `docs/plan/IMPL-PROMPT-2026-09-29-anyvia-b1-provider.md`、`docs/plan/IMPL-PROMPT-2026-09-29-saydo-b1-consumer.md`;
+- capture 方案头注补后继指针;
+- 研究目录 `~/.octoworkflow/local/research/2026-09-29-saydo-anyvia-integration/`(不入仓),含三份答复与 `decision.md`。
+
+### 结论与边界
+- 不合并仓;三个独立合同、四个阶段;第一阶段只做回叫上屏,采用资源式 PUT/GET 加逐来源凭据,不引入签名信封。
+- 宿主早先三条捷径(回环即本机、配对即可批 S2、已读即已听)被评估推翻,已在方案第 3 节如实记录。
+- 两份 prompt 与方案整合稿经宿主修改后未再送 Pro 复核。
+- 未改产品代码,未运行构建、测试或真机;未 commit、未 push;PLAN-2 指针未动,实施须 owner 具名。
+
+## R205 · SayDo × Anyvia 对接方案的 Codex 只读评审与回修(2026-09-29)
+
+### 输入
+owner 要求再用 Codex `gpt-6-astra`/`medium` 交叉评审,更新方案,并说明两仓如何执行 prompt。
+
+### 行动
+派发前记录三份候选文件 SHA-256 与仓库指纹;经 runner 启动只读、隔离会话的 Codex 评审(prompt `prompts/2026-09-29-saydo-anyvia-integration-codex-review.md`,固定核验清单 12 项、判断维度 4 个)。评审前后候选哈希一致。宿主对其 A 级与关键 B 级依据逐条打开源码核实后回修。
+
+### 产出
+- 报告 `research/codex-findings/2026-09-29-saydo-anyvia-integration-review.md`:YELLOW,A 级 4、B 级 6、C 级 1;
+- 日志 `logs/codex-2026-09-29-saydo-anyvia-review.events.jsonl`,600943 字节,SHA-256 `4653685284a397d9808bf9bf2488ead97a04899cfeeb82ff61fba0f7415a449e`;
+- 方案升为 v2(新增 4.6 节实施约束、第 14 节两仓执行步骤,更正自动接受倒计时的事实陈述);两份 prompt 同步修订。
+
+### 结论与边界
+- 最大风险已写入消费方 prompt:Anyvia 交接须独立调度,不能依附旧 L1 sweep。
+- 首批触发收窄为三类;`approval_request` 无生产入队点,不接线。
+- 修订后的文本未再送外部评审;评审对象为未提交工作树文件,非冻结提交。
+- 未改产品代码,未运行构建或测试;未 commit、未 push;PLAN-2 指针未动。
+
+## PG-02 续接候选历史记录（2026-09-27 整合，原编号另加 PG02-legacy 前缀）
+
+以下是旧候选原始事实，不表示当前 GREEN；旧次数、RED 与日志绑定保留。
+
+## PG02-legacy-R191 · PG-02 续接合同候选(2026-09-23)
+
+**输入**:owner 确认保留旧账、迁移当前配置,追加最多 3 次修复和 3 次复审。本次是追加修复 1/3,只做合同迁移。基线 `7a90e614a220e088d342d9d748c2a778bf936df5`。旧 clone 与任务目录只读。contract-recovery-2 的 review-1 曾 GREEN;impl-recovery-2 的 review-1 仍是 RED,两条误绿是同一 HTTP 路由变体互用证据,以及裸函数名全 daemon 回退。不得把旧 cycle 的空 blocker 写成产品 GREEN。
+
+**行动**:在新 clone 写入 06 §8、09 §17、11 §12.1,更新 PG-02 执行卡、PLAN-2 revision 17(`active=PG-02`,`next=PG-03`,`last_closed=CODEX-AS-SPIKE-01`)并 render HANDOFF。profile 只追加续接附录。没有写 truthPlane、ledger、checker,没有改公开页面、PG-03 或旧 policy。静态检索只形成快照,不闭合分母。
+
+**产出**:未提交候选。报告 `CURRENT-PG02-CONTRACT.md`。日志在 `/tmp/saydo-pg02-resumption-20260923/contract-1/`。`schedule-render.txt` 47 字节,`71563fa2e1ebc818a9331e291fe5e8ffca20228f39cd634da7b4e6bf017bedb0`,exit 0。`schedule-check.txt` 101 字节,`43b8c3ba22084e0d0097ff6e44d84ce7c63ea53dcadde294d1a373f5d2e88bc6`,exit 0。`schedule-self-test.txt` 405 字节,`375d24f7160dd460ef92f53ef416e93241d9203db12b135b0ca27631dddf7472`,exit 0。`emoji.txt` 30 字节,`396c8020e80afd6414df1a0170507c876e01677d1e738a401f09bf8c2e5e2a64`,exit 0。`doc-links.txt` 54 字节,`d673940d205c7e8adc5e4338fadef65f12f139b1ad5f1cc59bb65390f875d6af`,162 文件 0 坏链,exit 0。`diff-check.txt` 7 字节,`194ff5bca66278888f0f00be5c7ca523d15098ece958b14952533811089f6106`,exit 0。`source-scan-3.txt` 2412 字节,`97cd7e022178b2dfb724510a9ddfca11535504bc2169f66e41d53ae0cc1f35a7`。
+
+**结论**:这是合同候选,未 GREEN。canonical 双评审未做,实现未开始。`just ci`、Playwright、checker 与付费探针 not_run。未 commit、未 push。本节写入后的复跑见同目录 `final-*.txt`,哈希不回写本条。
+
+## PG02-legacy-R192 · PG-02 追加修复 2,仍只改合同(2026-09-23)
+
+**输入**:任务目录 `contract-review-1.md` 与 `contract-review-2.md` 都是合同 RED,候选指纹与基线 `7a90e614a220e088d342d9d748c2a778bf936df5` 一致。五条 P1 是共享 UI 调用点基数、单 transition 证据区域、变体专属证据与有界共享证据、setup 端点/helper/组合导出、产品源 Git 身份。禁止先写 checker。不改程序、ledger、公开页、旧 clone 或配置。不派 agent,不 commit。剩余复审只有 1 次。
+
+**行动**:先按两份复审点名的路径核对 Approvals、`api.ts`、`approvalFlow.ts`、`index.ts`、`recoveryOnlyServer.ts`、`setup.ts`、`actions.ts`、`operations.ts`、`setupApi.ts`。再改 09 §17,并同步 06 §8、11 §12.1 与执行卡。共享调用点按可证明判别值计数。`variant=null` 使用动作体加路由续行。`shared_bound` 只接受唯一调用,加上臂、参数、续行、汇合或向下目标。setup 的检测点是带字面路径和写方法的端点调用,`setupFetch` 体内的 `fetch` 不按多主人写点计数。`source_binding` 绑定已经存在的产品 revision、两棵产品树和 cited blob;ledger 不记录自身提交 SHA。同路由 approve 改指 `request_changes`,以及 config 按裸名借 secret,都仍是负例。
+
+**产出**:未提交候选。报告 `CONTRACT-REPAIR-2.md`。日志在 `/tmp/saydo-pg02-resumption-20260923/contract-2/`。下列哈希覆盖当时已经落盘的合同正文,不含本节和报告。`schedule-render.txt` 40 字节,`051f80474799db163e17f7ea9631d949c909ebc60268f583da2c6ca43d05d6e8`,exit 0。`schedule-check.txt` 94 字节,`7b123755f5f7d29e0770fbef48f77719902d8f1c870fe8b569ef78fb500e154c`,exit 0。`schedule-self-test.txt` 398 字节,`90a58bdf2d8e346d4f7152dfe006f83365c49b8f37cffb199d4ef5d4cf0cbfff`,exit 0。`emoji.txt` 23 字节,`e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3`,exit 0。`doc-links.txt` 47 字节,`69a7fb8aaca3483f3c9449b762876924af700ee0de100bf2535e32733587b2c1`,162 文件 0 坏链,exit 0。`diff-check.txt` 0 字节,`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,exit 0。`ancestor-self.txt` 0 字节,`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`;`git merge-base --is-ancestor HEAD HEAD` exit 0。
+
+**结论**:这是合同候选,未 GREEN。两份已完成的合同复审仍是 RED,本次修改还没有被复审吸收。schema、ledger、checker 未写,实现未开始。`just ci`、Playwright、checker 与付费探针 not_run。未 commit、未 push。本节与报告写入后的复跑见同目录 `final-*.txt`,哈希不回写本条。
+
+## PG02-legacy-R193 · PG-02 追加修复 3,仍只改合同(2026-09-23)
+
+**输入**:任务目录 `contract-review-3.md` 是合同 RED,候选指纹与基线 `7a90e614a220e088d342d9d748c2a778bf936df5` 一致。唯一 P1 是 `CONTRACT-SHARED-BINDING-CONTRADICTION`:reject 的三元假臂不能满足旧臂绑定,`retryTask` 用 `to` 写入的共享行又不能满足逐行 token。追加复审 3/3 已用完。只改合同,不实现 checker,不派 agent,不 commit。
+
+**行动**:核对 `approvalFlow.ts` 的 `decision: "accept" | "reject"` 与 262、279 行假臂,以及 `operations.ts` 792 行守卫、809 行赋值和 818 行 `.run(to, ...)`。09 §17.4 增加有限判别域和参数关联:假臂只在域有限且排除后只剩一个值时绑定;参数证据必须同时声明赋值坐标、写入坐标和同符号可达。A1 仍是单物理行锚点。未知域、更大域、兄弟臂对调、遮蔽、再赋值和未知绑定仍红。06 §8 只加指针。11 §12.1 未改。执行卡、HANDOFF、PLAN-2 只更正预算句。
+
+**产出**:未提交候选。报告 `CONTRACT-REPAIR-3.md`。日志在 `/tmp/saydo-pg02-resumption-20260923/contract-3/`。下列哈希覆盖当时已经落盘的合同正文,不含本节和报告。`schedule-render.txt` 40 字节,`051f80474799db163e17f7ea9631d949c909ebc60268f583da2c6ca43d05d6e8`,exit 0。`schedule-check.txt` 94 字节,`7b123755f5f7d29e0770fbef48f77719902d8f1c870fe8b569ef78fb500e154c`,exit 0。`schedule-self-test.txt` 398 字节,`90a58bdf2d8e346d4f7152dfe006f83365c49b8f37cffb199d4ef5d4cf0cbfff`,exit 0。`emoji.txt` 23 字节,`e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3`,exit 0。`doc-links.txt` 47 字节,`69a7fb8aaca3483f3c9449b762876924af700ee0de100bf2535e32733587b2c1`,162 文件 0 坏链,exit 0。`diff-check.txt` 0 字节,`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,exit 0。`rule-check.txt` 281 字节,`c9f388c8607097b38b965c149bff6bacbaecfc9b262144c45cf996d5fd34b0ff`,exit 0。
+
+**结论**:这是合同候选,未 GREEN,待复审。三份合同复审仍是 RED,追加复审额度已经用完,本次修改还没有被复审吸收。schema、ledger、checker 未写,实现未开始。`just ci`、Playwright、checker 与付费探针 not_run。未 commit、未 push。本节与报告写入后的复跑见同目录 `final-*.txt`,哈希不回写本条。
+
+## PG02-legacy-R194 · PG-02 新窗口第 2 次,仍只改合同(2026-09-23)
+
+**输入**:任务目录 `contract-review-4.md` 是合同 RED,head 与基线 `7a90e614a220e088d342d9d748c2a778bf936df5` 一致。唯一 P1 是 `CONTRACT-STATUS-PARAMETER-BINDING`。旧追加 3 次修复和 3 次复审的 RED 不清零。新窗口合计最多 5 次实施或复审,本次是第 2 次。只改合同,不实现 checker,不派 agent,不调用其它模型,不 commit。
+
+**行动**:核对 `api.retryTask`、`handleTaskAction` 的 retry 分支和 `operations.ts` 的 `retryTask`。现役 `.prepare("UPDATE tasks SET status=?, updated_at=?, ... WHERE id=? AND status=?").run(to, nowIso, taskId, task.status)` 是同一条调用链,`to` 对上第 1 个占位符 `SET status=?`。复审反例 `.run(task.status, to, taskId, task.status)` 把 `to` 放到 `updated_at`。09 §17.4 改为必须证明这个位置;对不上、调用链拆开、动态 SQL 或让出的状态链都是 `shared_binding_unresolved`,不能退回只登记赋值行。有限域、成对锚点和同符号作用域不放宽。§17.5 加上对应 mutation。06 §8 只加指针。11 本轮未改。执行卡、HANDOFF、PLAN-2 和 profile 附录只更新新窗口预算,旧 3/3 账保留。
+
+**产出**:未提交候选。报告 `CONTRACT-REPAIR-4.md`。日志在 `/tmp/saydo-pg02-resumption-20260923/contract-4/`。下列哈希覆盖当时已经落盘的合同正文,不含本节和报告。`schedule-render.txt` 40 字节,`051f80474799db163e17f7ea9631d949c909ebc60268f583da2c6ca43d05d6e8`,exit 0。`schedule-check.txt` 94 字节,`7b123755f5f7d29e0770fbef48f77719902d8f1c870fe8b569ef78fb500e154c`,exit 0。`schedule-self-test.txt` 398 字节,`90a58bdf2d8e346d4f7152dfe006f83365c49b8f37cffb199d4ef5d4cf0cbfff`,exit 0。`emoji.txt` 23 字节,`e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3`,exit 0。`doc-links.txt` 47 字节,`69a7fb8aaca3483f3c9449b762876924af700ee0de100bf2535e32733587b2c1`,162 文件 0 坏链,exit 0。`diff-check.txt` 0 字节,`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,exit 0。`binding-check.txt` 880 字节,`5420574fe4d975aed5fdba70a04a4ce7d03ab775af389848653c9e22b191d7f5`,exit 0。
+
+**结论**:这是合同候选,未 GREEN,待复审。旧三次合同复审和 `contract-review-4` 仍是 RED,本次修改还没有被复审吸收。新窗口已用 2 次,还剩 3 次。schema、ledger、checker 未写,实现未开始。`just ci`、Playwright、checker 与付费探针 not_run。未 commit、未 push。本节与报告写入后的复跑见同目录 `final-*.txt`,哈希不回写本条。
+
+## PG02-legacy-R195 · PG-02 新窗口第 4 次,仍只改合同(2026-09-23)
+
+**输入**:任务目录 `contract-review-5.md` 是合同 RED,head 与基线 `7a90e614a220e088d342d9d748c2a778bf936df5` 一致。唯一 P1 是 `CONTRACT-UNKNOWN-WRITE-ZERO-FALLBACK`。旧追加 3 次修复和 3 次复审的 RED 不清零。新窗口已用 review4、修复 4 和 review5,本次是第 4 次,合计最多 5 次。余 1 次独立复审。只改合同,不实现 checker,不派 agent,不调用其它模型,不 commit。
+
+**行动**:核对 `retryTask` 的 `const to`、双引号常量 `.prepare(...).run(to, nowIso, taskId, task.status)`,以及 `approvalFlow.ts` 的两条行内三元。全仓 daemon 源里只有这一处把 `queued` / `running` 赋给条件表达式,并且它已经有已证实写入。复审反例把 `.prepare` 改成同文本模板字符串,同时把 `.run` 的 `to` 改成 `task.status`,三项计数都是零,旧句允许只登记赋值行。09 §17.4 改为这种赋值的 transition 证据必须有恰好一次已证实写入;三项为零也不退回赋值行,不新增 SQL 语法。共享三元的审计和 result,以及 `retryTask` 返回 attempt,保持原登记。§17.5 加上对应 mutation。06、11 和 profile 附录不改。执行卡、HANDOFF、PLAN-2 只更新预算到第 4/5,待最后一次复审。
+
+**产出**:未提交候选。报告 `CONTRACT-REPAIR-5.md`。日志在 `/tmp/saydo-pg02-resumption-20260923/contract-5/`。下列哈希覆盖当时已经落盘的合同正文,不含本节和报告。`schedule-render.txt` 40 字节,`051f80474799db163e17f7ea9631d949c909ebc60268f583da2c6ca43d05d6e8`,exit 0。`schedule-check.txt` 94 字节,`7b123755f5f7d29e0770fbef48f77719902d8f1c870fe8b569ef78fb500e154c`,exit 0。`schedule-self-test.txt` 398 字节,`90a58bdf2d8e346d4f7152dfe006f83365c49b8f37cffb199d4ef5d4cf0cbfff`,exit 0。`emoji.txt` 23 字节,`e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3`,exit 0。`doc-links.txt` 47 字节,`69a7fb8aaca3483f3c9449b762876924af700ee0de100bf2535e32733587b2c1`,162 文件 0 坏链,exit 0。`diff-check.txt` 0 字节,`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,exit 0。`scope-check.txt` 327 字节,`1105dcbadfc6c4dfe93babbf0a5d9756743ae543bad239d349394440aa27d840`,exit 0。
+
+**结论**:这是合同候选,未 GREEN,待最后一次独立复审。旧三次合同复审、`contract-review-4` 和 `contract-review-5` 仍是 RED,本次修改还没有被复审吸收。新窗口已用 4 次,还剩 1 次。schema、ledger、checker 未写,实现未开始。`just ci`、Playwright、checker 与付费探针 not_run。未 commit、未 push。本节与报告写入后的复跑见同目录 `final-*.txt`,哈希不回写本条。
+
+## PG02-legacy-R196 · PG-02 产品实施 1/5(2026-09-24)
+
+**输入**:`contract-review-6` 对 HEAD `7a90e614a220e088d342d9d748c2a778bf936df5` + git-diff-v1 `680997c5596ec5e17d2c2ce77d167b8fdbd3dced163429e8204305330226dc22` 独立合同 GREEN。2026-09-24 新窗口最多 5 次,本次是产品实施 1/5。续接修复累计 6,独立 review 累计 6。旧 RED 不清零。不派 agent,不改两棵产品 src,不 commit。
+
+**行动**:按 09 §17 写入 capability/action/scope schema、四份 ledger、三个 checker 和 mutation。重扫当前 UI、Brain、WS、setup 分母。retry 按服务端 failed/blocked 拆成 queued/running 两条参数关联;decide 的 accept/reject 绑到有限域两臂。review reject、explain 的 `action.level`、decide edit 以及五条多 token 路由保持可定位 RED。capability 对未提交的 09/11 保持 `product_source_mismatch`。
+
+**产出**:未提交候选。报告 `PRODUCT-IMPLEMENT-1.md`。日志在 `/tmp/saydo-pg02-resumption-20260924/product-1/`。命令退出码、字节和 sha256 以该目录的 `.meta` 与报告为准。本节不宣告产品 GREEN。
+
+**结论**:产品实施候选已写下,未独立验收,未 commit。action checker 9 条 RED。capability HEAD 绑定 4 条 RED,要等一次不改产品树的提交后再验。support checker 通过,公开态仍是 unsupported。`just ci` 与 Playwright 在本环境失败,原因见报告。不启动 PG-03。
+
+## PG02-legacy-R197 · PG-02 产品修复 2(2026-09-24)
+
+**输入**:本窗口第 3/5 次,角色 grok-4.7/xhigh。读 product-review-1。修 R-EVIDENCE、R-STATE、R-DENOMINATOR、R-LEDGER、R-SUPPORT、R-SCHEMA-BINDING、R-GATES。不改 09 语义,不改 daemon/console,不改公开页。R-ACTIVE-POSITIVES 先核对再保留。禁止 git add/commit/merge/push,禁止其他模型。
+
+**行动**:动作体解析失败改为 `callee_unresolved`。SQL 成对写入限制在同一函数和未遮蔽的箭头里,有限联合不再截掉 `string`。组合导出按所达端点展开,未知 setup 写调用失败。能表达的 ledger 改到服务端 token 和返回。support 按公开句子登记,上限读 version-matrix §1,重复键合并。checker 执行 `@saydo/contracts` schema,产品树只 `rev-parse`。自测改为隔离 fixture,不再写 Git。
+
+**产出**:未提交候选。报告 `PRODUCT-REPAIR-2.md`。日志在 `/tmp/saydo-pg02-resumption-20260924/product-2/`。action 19 条 RED,support 9 条超额 A3,capability 仍是 09/11 的 4 条 `product_source_mismatch`。三个自测、contracts tsc、truth-plane 与 schemas vitest 退出码 0。
+
+**结论**:漏检保护已补,候选仍 RED,未独立验收,未 commit。合同表达不了的 explain 属性、review 直落、edit 双 token、waiting-on 非字符串判别、cancel 双调用,以及非 `SET status=?` 的 INSERT/UPDATE,留在报告里给 owner。不启动 PG-03。
+
+## PG02-legacy-R198 · PG-02 产品修复 3,本窗口第 5/5(2026-09-24)
+
+**输入**:追加窗口最后一次,角色 grok-4.7/xhigh。读 product-review-2。修不需要改合同的实现缺陷,优先 R-EVIDENCE、R-STATE、R-DENOMINATOR、R-SCHEMA-BINDING、R-GATES。旧 RED 保留。修完无独立复审额度。不改 09 语义、公开页、daemon/console。不派 agent,不 git add/commit/merge/push。
+
+**行动**:证据改到 if/switch/合法三元区域和成功续行,锚点本身必须含 token。Brain 与 HTTP 一样先枚举函数内全部 `.run` 再分类。守卫必须在判别之前。普通 if 恢复为 approve/request_changes 的正例。分母补上 `apiPost` 别名、catalog 一跳,并排除本地同名。capability evidence 与 registry `source_ref` 校验行号和符号,读取计入预算。能按合同写的 ledger 改成真实 transition/result。support 自测改为隔离公开文本,不再把真实 ledger 降成 unsupported。
+
+**产出**:未提交候选。报告 `PRODUCT-REPAIR-3.md`。日志在 `/tmp/saydo-pg02-resumption-20260924/product-3/`。action checker 28 条失败,support 9 条超额 A3,capability 仍是 09/11 的 4 条 `product_source_mismatch`。三个自测、contracts tsc、truth-plane vitest、emoji、doc-links、`git diff --check` 退出码 0。
+
+**结论**:候选仍 RED,未复审,未 commit。不能称 GREEN。explain 属性访问、reject 直落、waiting-on、取消链双写入、`deps.brainTools` 未解析成员,以及公开页超额声明,留给 owner。不启动 PG-03。
+
+
+## PG02-legacy-R204 · 两周双向审计与 PG-02 追加修复 1,候选未验收(2026-09-27)
+
+**输入**:owner 授权整合本地候选、对照最近两周文档与提交、直接修复可判断的问题,最后单 subagent 复审与 GitHub 收口。PG-02 旧账修复 8/复审 8 保留,新增上限 3/3,本次修复 1/3、复审 0/3。已确认任务累计耗时、两条具名 WS/Focus 有限链;SC-51 的独立旧预算与额外服务/DAO 链仍待 owner 决定。主线基准 `d023ffcebfad38563bc988977192e77654d7e2a1`;PG-02 原样候选已保留为 `6404824a21c37670f274e8516681f061e53b542f`。
+
+**行动**:仅在独立 worktree 施工。盘点 2026-09-13 起 34 个主线提交、112 份文本类文档与 500 个路径;文档本期差异已对照,32 个提交登记局部核查结论,JOURNEY-01 与 SC-RELAND-01 两个大型提交继续逐路径核验。补累计 attempt 时钟完整性、Focus 生命周期、任务依赖/合并结算与审计事务、HF 终态文本回收、TTS 取消令牌、验收失败投影和引用解析、人工裁决 attempt 绑定、首次话术及最近转写/记忆入口、SMTP 自有连接释放、Windows ACE 解码边界等定向修复。同步 canonical 与站点源码的现役边界;未部署。PG-02 补未知调用/ops 逃逸的拒绝反例,未把缺证明当作无持久写入。
+
+**产出**:未提交候选。完整过程清单、命令终态及原始日志保存在本机任务目录 `saydo-fortnight-audit-20260927`。主要日志如下,全部属于当时工作区候选,不是冻结 release HEAD 或独立验收:
+
+| 日志 | 字节 | SHA-256 | 真实结果 |
+|---|---:|---|---|
+| `audit-ci-1.log` | 127129 | `d4762234e79a205979436b72842adfe89035535e14fc6e9977905119952b2ce7` | exit 0,当时的 just ci;之后仍有修改 |
+| `daemon-atomic-2.log` | 62448 | `f67f037462dc122b5c039a1dafdb8ba73e492f10d58f19e1e0827513ae9c14de` | exit 0,2740 passed/6 skipped |
+| `browser-full-1.log` | 8033 | `ee7b0c81604150a13836194b1cdddc4fec929eb3cb489411f9bbb714bb0cbb8f` | exit 0,62 passed;之后验收引用与人工裁决有修改 |
+| `acceptance-browser-3.log` | 1291 | `833ac1bcb8a5e962c4a56716b7833428c6aa795258240d1e1f753a87762531db` | exit 0,失败任务/unknown 条目真实页面回归 |
+| `review-browser-1.log` | 443 | `72f209c25838c819f3280fc1cce79044b7f9efa35c303591147172af216600ae` | exit 0,缺回执与新 attempt 两项回归 |
+| `action-repair1-2.log` | 116564 | `cf31f3357f0fe6269ab04f7b9aeded72dacd2c49210196c8b43480c3191ea002` | exit 1,1113 failures |
+
+**结论**:PG-02 真实 checker 仍 RED,未独立复审,无 GREEN。覆盖计数不是全源码逐行验收、真实模型/外发邮件/Windows 或手机真机验收。未新 commit、未 main 合并、未 push、未清理原工作区;旧失败、dirty clone、stash 与归档保留。继续修复与核查,最终门禁和 owner 待决项未关闭前不得称交付。
+
+**同轮续记**:34/34提交、112/112文档均已登记本期差异/提交级影响核查结论,见[双向审计逐条记录](../docs/review/2026-09-27-fortnight-docs-commit-audit.md);仍不声称500路径逐行或全平台验收。修正86处未改变代码行的证据坐标及2处归档事务坐标。没有更新source_binding来绕过未冻结状态。旧action测试夹具补合法路由与明确写点清单,正例及语义mutation已走完,整个脚本仍因真实绑定RED退出1。其余8条变异脚本分别退出0。
+
+| 新检查点日志 | 字节 | SHA-256 | 退出码 |
+|---|---:|---|---:|
+| `audit-ci-2.log` | 121622 | `baf4773d5aec1961cd666a73b2a34a027dabf06fdcb603f8012a78ca10a40c10` | 0 |
+| `browser-full-2.log` | 8259 | `5f0824c7dc91a48b2a8b8ebd7ff28b7d20d556743e2dbe4e01322154b55f7efb` | 0 |
+| `precommit-3.log` | 377 | `774776511b0a6a10644c2bc2f9d8da7993bba09c1e94887e03b997334414cb67` | 0 |
+| `test-action-reachability-checkpoint-2.log` | 1798 | `443cbeeff25306252e583f945c0b1b55b98db2672aec165f0371506e3770d278` | 1 |
+| `check-action-reachability-checkpoint-1.log` | 102340 | `68f569b40f72256a6caf92000ec0073df6e0d4a5e648684a1254c62e33d66659` | 1 |
+| `check-capability-ledger-checkpoint-1.log` | 694 | `8eb32b661fd41ed635bc6cdf56a88cad02c147902e52bba508b2f1d13eaee693` | 1 |
+| `check-support-matrix-checkpoint-1.log` | 546 | `c58216f0e4376fe29eab69979bd55ce73774f5042df0171ab1a8dc252a7cf174` | 1 |
+
+`audit-ci-2` 覆盖Node/Python基线,Python 151项;`browser-full-2` 为64项控制台Playwright;`precommit-3` 文档链接168份无断链、公开树隐私2344份无命中、排产revision19。以上均为未冻结候选自检,不是独立GREEN。PG-02真实checker依次951/8/6项失败。两项owner待决仍为SC-51另加一次修复预算、PG-02现役动作具名服务/DAO链证明范围。追加修复1/3、复审0/3;没有活reviewer,没有新commit/main合并/push/cleanup。
+
+
+R204续记(owner已同意SC-51追加一次修复及PG-02具名服务/DAO范围;旧账不清零):
+
+输入:旧SC-51两次RED与PG-02检查点951/8/6;行动:保留在途I/O所有权,补有限服务调用来源与反例;产出:SC-51两侧typecheck及29+2本地模拟native/消费者回归通过,PG-02检查点3为830/8/6 RED,action变异真实绑定仍失败。结论:未独立验收、未Windows真机验收、未提交/推送,继续同一repair1。之后的工厂/liveTools扩展仍需对应复验。
+
+- `sc51-focused-1-0.log`: exit 0; 132字节; SHA-256 `b01b16b777778da6747667d81351d4b7495811103884daa445cea8fd1606f9a2`。
+- `sc51-focused-1-1.log`: exit 0; 128字节; SHA-256 `1b03dd0160f59399e83fa9f6b955ed53d031a6fc41708eaaece9db1b3a77aaa8`。
+- `sc51-focused-1-2.log`: exit 0; 396字节; SHA-256 `a6f8acb50c70ac25db442020d0c4fdb854cf2a99e277aad4c24266964df6c435`。
+- `sc51-focused-1-3.log`: exit 0; 336字节; SHA-256 `507f2827f3d0e03a9015d3832eb5880aada4e62bfce70a5ff62ada62c9660311`。
+- `check-action-reachability-checkpoint-3.log`: exit 1; 89094字节; SHA-256 `948a81378d5ef53acefb6e6a74b9d7c656b31476affe15da341dea70c85cdcdc`。
+- `check-capability-ledger-checkpoint-3.log`: exit 1; 694字节; SHA-256 `8eb32b661fd41ed635bc6cdf56a88cad02c147902e52bba508b2f1d13eaee693`。
+- `check-support-matrix-checkpoint-3.log`: exit 1; 546字节; SHA-256 `c58216f0e4376fe29eab69979bd55ce73774f5042df0171ab1a8dc252a7cf174`。
+- `test-action-reachability-checkpoint-3.log`: exit 1; 1798字节; SHA-256 `443cbeeff25306252e583f945c0b1b55b98db2672aec165f0371506e3770d278`。
+- `test-capability-ledger-checkpoint-3.log`: exit 0; 24字节; SHA-256 `39a4213f5f6c793ae104e1709eb5a20ef438aefe6987a3dd5711636506d2259d`。
+- `test-support-matrix-checkpoint-3.log`: exit 0; 21字节; SHA-256 `5ee014a32aad1a0d1112ea37f75bea272b65eca50b0730a8849dd272a20125c8`。
+- `test-truth-plane-di-checkpoint-3.log`: exit 0; 44字节; SHA-256 `650a4eec36c666e7482ea592e8ec55e90f5a65527fe9d7fa3c5b216e9bb24afd`。
+- `test-truth-plane-effects-checkpoint-3.log`: exit 0; 335字节; SHA-256 `9bae85c99693869ad607b62888387e2e70b7036be4c5b2b4b971ad2fed5230f1`。
+- `test-truth-plane-finite-checkpoint-3.log`: exit 0; 39字节; SHA-256 `6c3a69375ceb31b8294abf19e0cbdba702428e089b37928ffd030cb427732975`。
+- `test-truth-plane-focus-checkpoint-3.log`: exit 0; 43字节; SHA-256 `a48abcf1e7c2e3e3d8f1397efe792d1f04a01957533888ea3cd3953c6eea17a5`。
+- `test-truth-plane-routes-checkpoint-3.log`: exit 0; 44字节; SHA-256 `1f697edde057b042930a3db866727b88b087dbe2de34f3a0e1b55f94a59cb33c`。
+- `test-truth-plane-services-checkpoint-3.log`: exit 0; 85字节; SHA-256 `7ca710cb3093c9d178cddbe2346a5f3665bc8dd2b7cc26100c0b39e5732abbb1`。
+- `test-truth-plane-ws-checkpoint-3.log`: exit 0; 361字节; SHA-256 `ac1289b9c94e4063ddcbddba37be483f9a2424dd2d60748cd13de39a8d910c74`。
+
+
+R204同轮续记(追加repair 1/3、review 0/3;旧8/8与SC-51旧2次RED均保留):
+
+输入:真实action检查点8为684失败;行动:修正task case边界并保留S3前置拒绝审计、memory approve/reject分支隔离,补LiveDialog派发/项目服务实参证明,将WS结果改绑定服务端处理节点。逐项核对后登记542条条件写入,修正30条错误none声明;后续展开新链发现的8条缺写点尚未补齐。产出:检查点12为161失败,检查点13为144失败(74 callee/50 source binding/8 region/8缺写点/2shared/1anchor/1none)。结论:PG-02仍RED,源码绑定未改;3个真实checker和action真实绑定mutation均exit1,其余9个mutation脚本exit0。此后私有错误投影预算/Set来源补充仅定向测试通过,不覆盖完整checker。未冻结、未独立review、未commit/main合并/push/cleanup。
+
+- `check-action-reachability-checkpoint-13.log`: exit 1; 15781字节; SHA-256 `a024e1aaa35ca2a55ab71b9a31401cb60285fa6f3c72f970809deb97912ce78c`。
+- `check-capability-ledger-checkpoint-13.log`: exit 1; 694字节; SHA-256 `8eb32b661fd41ed635bc6cdf56a88cad02c147902e52bba508b2f1d13eaee693`。
+- `check-support-matrix-checkpoint-13.log`: exit 1; 546字节; SHA-256 `c58216f0e4376fe29eab69979bd55ce73774f5042df0171ab1a8dc252a7cf174`。
+- `test-action-reachability-checkpoint-13.log`: exit 1; 1798字节; SHA-256 `443cbeeff25306252e583f945c0b1b55b98db2672aec165f0371506e3770d278`。
+- `test-capability-ledger-checkpoint-13.log`: exit 0; 24字节; SHA-256 `39a4213f5f6c793ae104e1709eb5a20ef438aefe6987a3dd5711636506d2259d`。
+- `test-support-matrix-checkpoint-13.log`: exit 0; 21字节; SHA-256 `5ee014a32aad1a0d1112ea37f75bea272b65eca50b0730a8849dd272a20125c8`。
+- `test-truth-plane-di-checkpoint-13.log`: exit 0; 44字节; SHA-256 `650a4eec36c666e7482ea592e8ec55e90f5a65527fe9d7fa3c5b216e9bb24afd`。
+- `test-truth-plane-effects-checkpoint-13.log`: exit 0; 591字节; SHA-256 `5dddd97b1a395f2872fed378424a11777f362c1e1ede43d1319686aeaa9a5d07`。
+- `test-truth-plane-finite-checkpoint-13.log`: exit 0; 39字节; SHA-256 `6c3a69375ceb31b8294abf19e0cbdba702428e089b37928ffd030cb427732975`。
+- `test-truth-plane-focus-checkpoint-13.log`: exit 0; 43字节; SHA-256 `a48abcf1e7c2e3e3d8f1397efe792d1f04a01957533888ea3cd3953c6eea17a5`。
+- `test-truth-plane-routes-checkpoint-13.log`: exit 0; 125字节; SHA-256 `c9e4c196f8d8409f3bffb1f65e11a6242ce4fea3d6356ceaba2dfae108703988`。
+- `test-truth-plane-services-checkpoint-13.log`: exit 0; 600字节; SHA-256 `95040e9682351ce3200ee3ba051f4e94f13da10036505bb9325e9d4f4928e504`。
+- `test-truth-plane-ws-checkpoint-13.log`: exit 0; 407字节; SHA-256 `9622ab3292f6df4087f7a22fe44bf89317d0519267f64302de27efe7c0df9669`。
+
+### PG02-legacy-R204补记:检查点16至18及新增真实写点
+
+输入:owner维持追加3次修复/3次同一reviewer复审授权;旧8/8不清零。当前仍追加修复1、复审0。
+行动:修正真实LiveDialog入口、S3请求实参来源、readiness回调/时钟、recovery成功路由、事务中prepare/run、cheap/dialog工厂返回来源;保留失败的中间测试与真实门禁结论。
+产出:检查点16 action70失败、17 action63失败、18 action119失败;18新覆盖provider运行期后为56调用证明缺口(27种)、10写点遗漏和53源码绑定差异,不是回归绿。capability/support各8/6失败。action夹具与语义变异通过但整条脚本因真实绑定exit1;其余9变异脚本exit0。
+结论:仍RED。追加平台原生边界会触及现有daemon/console树外的packages/platform/src;具体有限延伸/cited_blobs方案已写本次审计报告,待owner范围裁决。未新建reviewer、未commit/merge/push、未清理。
+
+检查点16逐命令日志(完整日志不入Git):
+- `check-action-reachability-checkpoint-16.log`:exit 1;6651 bytes;SHA-256 `db845d716075baf0fd83cdb8646cea0f96ba49bbb17ebf0519dee57206a99b98`。
+- `check-capability-ledger-checkpoint-16.log`:exit 1;694 bytes;SHA-256 `8eb32b661fd41ed635bc6cdf56a88cad02c147902e52bba508b2f1d13eaee693`。
+- `check-support-matrix-checkpoint-16.log`:exit 1;546 bytes;SHA-256 `c58216f0e4376fe29eab69979bd55ce73774f5042df0171ab1a8dc252a7cf174`。
+- `test-action-reachability-checkpoint-16.log`:exit 1;1798 bytes;SHA-256 `443cbeeff25306252e583f945c0b1b55b98db2672aec165f0371506e3770d278`。
+- `test-capability-ledger-checkpoint-16.log`:exit 0;24 bytes;SHA-256 `39a4213f5f6c793ae104e1709eb5a20ef438aefe6987a3dd5711636506d2259d`。
+- `test-support-matrix-checkpoint-16.log`:exit 0;21 bytes;SHA-256 `5ee014a32aad1a0d1112ea37f75bea272b65eca50b0730a8849dd272a20125c8`。
+- `test-truth-plane-di-checkpoint-16.log`:exit 0;44 bytes;SHA-256 `650a4eec36c666e7482ea592e8ec55e90f5a65527fe9d7fa3c5b216e9bb24afd`。
+- `test-truth-plane-effects-checkpoint-16.log`:exit 0;591 bytes;SHA-256 `5dddd97b1a395f2872fed378424a11777f362c1e1ede43d1319686aeaa9a5d07`。
+- `test-truth-plane-finite-checkpoint-16.log`:exit 0;94 bytes;SHA-256 `71db61dc9cc6b746b025a64b2245b37ef12a33d36d9fa819d056af2f749f9862`。
+- `test-truth-plane-focus-checkpoint-16.log`:exit 0;43 bytes;SHA-256 `a48abcf1e7c2e3e3d8f1397efe792d1f04a01957533888ea3cd3953c6eea17a5`。
+- `test-truth-plane-routes-checkpoint-16.log`:exit 0;268 bytes;SHA-256 `e5bc51c4eb1037726158b0840a1fa5311384cdfc0c1545205caebd916e709218`。
+- `test-truth-plane-services-checkpoint-16.log`:exit 0;931 bytes;SHA-256 `ae31a8a6b5e08b3491d29c5240ff89803ebde3f1f41524c06a5bc051f1fa869f`。
+- `test-truth-plane-ws-checkpoint-16.log`:exit 0;407 bytes;SHA-256 `9622ab3292f6df4087f7a22fe44bf89317d0519267f64302de27efe7c0df9669`。
+检查点17逐命令日志(完整日志不入Git):
+- `check-action-reachability-checkpoint-17.log`:exit 1;5810 bytes;SHA-256 `5d89e22d7fb42a18c374e450afb55a52a93dc27a1124d821954670511e4e4b05`。
+- `check-capability-ledger-checkpoint-17.log`:exit 1;694 bytes;SHA-256 `8eb32b661fd41ed635bc6cdf56a88cad02c147902e52bba508b2f1d13eaee693`。
+- `check-support-matrix-checkpoint-17.log`:exit 1;546 bytes;SHA-256 `c58216f0e4376fe29eab69979bd55ce73774f5042df0171ab1a8dc252a7cf174`。
+- `test-action-reachability-checkpoint-17.log`:exit 1;1798 bytes;SHA-256 `443cbeeff25306252e583f945c0b1b55b98db2672aec165f0371506e3770d278`。
+- `test-capability-ledger-checkpoint-17.log`:exit 0;24 bytes;SHA-256 `39a4213f5f6c793ae104e1709eb5a20ef438aefe6987a3dd5711636506d2259d`。
+- `test-support-matrix-checkpoint-17.log`:exit 0;21 bytes;SHA-256 `5ee014a32aad1a0d1112ea37f75bea272b65eca50b0730a8849dd272a20125c8`。
+- `test-truth-plane-di-checkpoint-17.log`:exit 0;44 bytes;SHA-256 `650a4eec36c666e7482ea592e8ec55e90f5a65527fe9d7fa3c5b216e9bb24afd`。
+- `test-truth-plane-effects-checkpoint-17.log`:exit 0;591 bytes;SHA-256 `5dddd97b1a395f2872fed378424a11777f362c1e1ede43d1319686aeaa9a5d07`。
+- `test-truth-plane-finite-checkpoint-17.log`:exit 0;94 bytes;SHA-256 `71db61dc9cc6b746b025a64b2245b37ef12a33d36d9fa819d056af2f749f9862`。
+- `test-truth-plane-focus-checkpoint-17.log`:exit 0;43 bytes;SHA-256 `a48abcf1e7c2e3e3d8f1397efe792d1f04a01957533888ea3cd3953c6eea17a5`。
+- `test-truth-plane-routes-checkpoint-17.log`:exit 0;315 bytes;SHA-256 `790aff2dc9ed8cc9f9dff740c714464d63640a630573df16cf686dfba2b9035e`。
+- `test-truth-plane-services-checkpoint-17.log`:exit 0;978 bytes;SHA-256 `3790c340cd0765c59a30cad3078c35fc2ce6d992f5f80b7e3271a8fb5c705514`。
+- `test-truth-plane-ws-checkpoint-17.log`:exit 0;407 bytes;SHA-256 `9622ab3292f6df4087f7a22fe44bf89317d0519267f64302de27efe7c0df9669`。
+检查点18逐命令日志(完整日志不入Git):
+- `check-action-reachability-checkpoint-18.log`:exit 1;12894 bytes;SHA-256 `90497fd98eafdcd24611f5374cf383a4afcdab0343da4b85cccf7f81e96748bc`。
+- `check-capability-ledger-checkpoint-18.log`:exit 1;694 bytes;SHA-256 `8eb32b661fd41ed635bc6cdf56a88cad02c147902e52bba508b2f1d13eaee693`。
+- `check-support-matrix-checkpoint-18.log`:exit 1;546 bytes;SHA-256 `c58216f0e4376fe29eab69979bd55ce73774f5042df0171ab1a8dc252a7cf174`。
+- `test-action-reachability-checkpoint-18.log`:exit 1;1798 bytes;SHA-256 `443cbeeff25306252e583f945c0b1b55b98db2672aec165f0371506e3770d278`。
+- `test-capability-ledger-checkpoint-18.log`:exit 0;24 bytes;SHA-256 `39a4213f5f6c793ae104e1709eb5a20ef438aefe6987a3dd5711636506d2259d`。
+- `test-support-matrix-checkpoint-18.log`:exit 0;21 bytes;SHA-256 `5ee014a32aad1a0d1112ea37f75bea272b65eca50b0730a8849dd272a20125c8`。
+- `test-truth-plane-di-checkpoint-18.log`:exit 0;44 bytes;SHA-256 `650a4eec36c666e7482ea592e8ec55e90f5a65527fe9d7fa3c5b216e9bb24afd`。
+- `test-truth-plane-effects-checkpoint-18.log`:exit 0;646 bytes;SHA-256 `885f6e61e1b9758c690c3aaaa4a339f5ee5ef342815c92092212fc75dd716595`。
+- `test-truth-plane-finite-checkpoint-18.log`:exit 0;141 bytes;SHA-256 `4f54030e80141fed78209b632088337e4ee1393ddd22fee94e07dbf70b5f2dcf`。
+- `test-truth-plane-focus-checkpoint-18.log`:exit 0;43 bytes;SHA-256 `a48abcf1e7c2e3e3d8f1397efe792d1f04a01957533888ea3cd3953c6eea17a5`。
+- `test-truth-plane-routes-checkpoint-18.log`:exit 0;315 bytes;SHA-256 `790aff2dc9ed8cc9f9dff740c714464d63640a630573df16cf686dfba2b9035e`。
+- `test-truth-plane-services-checkpoint-18.log`:exit 0;1191 bytes;SHA-256 `02417d98719393c55667b04064efc1c902cb9942be7466045c752e683fd769f3`。
+- `test-truth-plane-ws-checkpoint-18.log`:exit 0;407 bytes;SHA-256 `9622ab3292f6df4087f7a22fe44bf89317d0519267f64302de27efe7c0df9669`。
+
+诊断propose-effects不是checker:101记录/571物理写点/56未解析/0未解析动作体。与旧账本561写点逐项对比无删除/无既有写点修改;逐条核对新增10项后补账:三类BYOA审计在UI/Brain各3项,setup清除审计+DELETE共2项,readiness两动作各1项workspace_dev重挂载登记刷新。其余未知调用继续RED。
+`proposal-18.log`:65 bytes;SHA-256 `db9e863bd1b41455c4815e1bda2e0b33be7a99f7807216f1794282d2b9165fd7`;诊断exit0不表示产品通过。
+
+### PG02-legacy-R204补记:检查点19(补账后)
+
+action 110失败=56调用证明缺口+54源码版本绑定差异;capability 8/support 6均为源码绑定。无A2缺写点不等于完整性已验收,未解析运行期仍可能暴露写点。readiness时钟另外补未知spread、Date遮蔽、input.now改写反例并通过。追加修复仍1/3、复审0/3,旧8/8保留。新增平台范围裁决仍待owner,没有使用计时替代同意。
+- `check-action-reachability-checkpoint-19.log`:exit 1;11772 bytes;SHA-256 `cb120f94e9f6380ece076ac9b4f9221b2dfaa198f612326996a296db282c3b94`。
+- `check-capability-ledger-checkpoint-19.log`:exit 1;694 bytes;SHA-256 `8eb32b661fd41ed635bc6cdf56a88cad02c147902e52bba508b2f1d13eaee693`。
+- `check-support-matrix-checkpoint-19.log`:exit 1;546 bytes;SHA-256 `c58216f0e4376fe29eab69979bd55ce73774f5042df0171ab1a8dc252a7cf174`。
+- `test-action-reachability-checkpoint-19.log`:exit 1;1798 bytes;SHA-256 `443cbeeff25306252e583f945c0b1b55b98db2672aec165f0371506e3770d278`。
+- `test-capability-ledger-checkpoint-19.log`:exit 0;24 bytes;SHA-256 `39a4213f5f6c793ae104e1709eb5a20ef438aefe6987a3dd5711636506d2259d`。
+- `test-support-matrix-checkpoint-19.log`:exit 0;21 bytes;SHA-256 `5ee014a32aad1a0d1112ea37f75bea272b65eca50b0730a8849dd272a20125c8`。
+- `test-truth-plane-di-checkpoint-19.log`:exit 0;44 bytes;SHA-256 `650a4eec36c666e7482ea592e8ec55e90f5a65527fe9d7fa3c5b216e9bb24afd`。
+- `test-truth-plane-effects-checkpoint-19.log`:exit 0;646 bytes;SHA-256 `885f6e61e1b9758c690c3aaaa4a339f5ee5ef342815c92092212fc75dd716595`。
+- `test-truth-plane-finite-checkpoint-19.log`:exit 0;141 bytes;SHA-256 `4f54030e80141fed78209b632088337e4ee1393ddd22fee94e07dbf70b5f2dcf`。
+- `test-truth-plane-focus-checkpoint-19.log`:exit 0;43 bytes;SHA-256 `a48abcf1e7c2e3e3d8f1397efe792d1f04a01957533888ea3cd3953c6eea17a5`。
+- `test-truth-plane-routes-checkpoint-19.log`:exit 0;315 bytes;SHA-256 `790aff2dc9ed8cc9f9dff740c714464d63640a630573df16cf686dfba2b9035e`。
+- `test-truth-plane-services-checkpoint-19.log`:exit 0;1241 bytes;SHA-256 `92f25d62e047a47bd3cd450350253f8756b4d0c7f94ed26c6cc41818a40002cc`。
+- `test-truth-plane-ws-checkpoint-19.log`:exit 0;407 bytes;SHA-256 `9622ab3292f6df4087f7a22fe44bf89317d0519267f64302de27efe7c0df9669`。
+
+## 2026-10-03 · 本地整合旧候选冲突裁决
+
+### 输入
+
+当前整合侧 `f7103c7cf7ac123cf92ddc4ccd3f5696689c56dd` 与旧两周审计快照 `076c8b850acf59de69aefa5865fe358b62a886e8`；原快照与工作区均已有可恢复备份。授权为整合及逐项审计，不把原 PG-02 RED 或 D1 未验收变成通过。
+
+### 行动
+
+逐文件、逐冲突 hunk 核对：RF §17、PG-02 §18、C13/C14/D1及较新检查器/台账保留；旧侧非冲突运行修订由正常三向合并保留；独有 SC-51 Windows stdio 所有权合同追加。project-profile 旧预算显式标为历史，journal 双边独有正文保全；旧两周审计 R204 加 PG02-legacy 前缀。未重新开旧修复窗口，未修改门限或重绑来源。
+
+### 产出
+
+逐项裁决清单在 `~/.codex/tasks/saydo-unify-audit-20261003/evidence/implementation/merge-conflict-decisions.json`。当前 `e2e/evidence/project-gap-pg-02.md` 保留合并前最新原字节；旧证据在 [2026-09-27 历史证据](../e2e/evidence/project-gap-pg-02-2026-09-27-history.md)。
+
+### 结论与边界
+
+本次只解除内容冲突并固定整合候选，不代产品验收；PG-02、D1及其 source binding 仍须保留实际 RED/UNKNOWN。合并基础核验由同任务外部证据记录，完整基线与两名 fresh 只读交叉核验尚待主持安排。
+
+## R224 · 2026-10-03 · 整合审计普通修复与测试隔离
+
+### 输入
+
+main 已整合到53be7405；实际修复输入为4e80100b，原PG-02/D1 RED、额度与来源ref保留。首轮44项真实门禁29 PASS/15 FAIL，不将旧43条required的4个名称冒充完整argv；源码、fixture与远端信号分开。
+
+### 行动
+
+修正win32 stream为const；测试临时路径过长的daemon两例改用本轮登记且回收的短系统临时区，未修改logger产品语义或删除测试。Playwright全局装配记录实际HOME，确认负向fixture只用该HOME；两daemon启动日志落盘，spawn后finally关闭父端fd；journey默认证据落当前workspace artifacts，宿主显式env路由本轮证据与截图。RF00逐项读新注册/消费/写点，核31项完整局部上下文与旧Git blob相等，再更新机械source census，四个dual_write_gap保持。provider同源行坐标112→113，原stash处置保留为历史并指同对象不可变归档tag。文档补治理可见性/已启用公开tag保护、canonical全范围、RF现实多写面、pipeline现役底座、历史现势索引与旧636计数。CTX09/12/16仅记录到期，原五项退役exact-set与全部600题保留；使用现役renderer重新生成合法派生摘要，不伪造新会话。
+
+### 产出
+
+本轮e2e证据入口为fortnight-audit-2026-10-03.md，RF来源明细与到期观察分别在research/rf-00/source-refresh-2026-10-03.md、research/customer-question-corpus/expiry-observation-2026-10-03.md。完整argv、即时exit、日志字节/SHA在本轮外部implementation目录；首轮失败不覆盖。ordinary-focused-02因遗漏旧journey证据env，覆盖旧repair4-evidence的8个自动产物；当前字节已保全、逐项mtime/birthtime/bytes/SHA已记，已知原图在13份tar与可见同名PNG均未找到精确原SHA，旧值不能推测恢复，这8项不再作为原轮次可靠证据。旧账本未写。
+
+### 结论
+
+lint与daemon66例focused已通过，Playwright确认负向focused通过；RF00完整check/mutation、离线fixture及现役dry-run结构门通过。完整最终普通基线将在实际代码I冻结后运行，尚不称产品GREEN或独立验收通过。PG02来源绑定/算法/observer/native与三项CTX到期RED保持，不重开预算、不降门限、不修ledger指纹漂绿；两名fresh只读交叉评审由主持安排。
+
+## R225 · 2026-10-03 · 独立初审普通回修冻结
+
+### 输入
+
+初两位固定 I2 的独立审读均 FAIL；canonical 等待权限/audit delta 经 `a97b9dfd` 双视角限定一致性核验。PG02/D1 原有 RED/预算与三份 CTX 到期退出授权未变。
+
+### 行动
+
+修等待 clear/set 的同锁 authority/可选 epoch 围栏，包括 no-op；同 SQLite audit 与状态/event 事务一致，其他 sink 前置拒绝，不造新事件。默认浏览器/单测输出 owned 唯一 run，端口拒占与身份 ready，父端 fd 关闭，两个历史 harness 只修隔离装配。stdio pending/throw 不放 consumer lease/owner 与 production handle，仅 TS fake/unit。RF volatile 三面绑定同一落盘快照，真实新增/减少 WT 反例与快照缺失/A 篡改/处置孤儿拒绝。稳定 source/effect 门不放宽；原两条已退出 win32 机械坐标处置保存外部。
+
+### 产出
+
+代码 I `70619704702e61e3bab6ba7753116104bc923492`，总报告 `e2e/evidence/fortnight-audit-2026-10-03.md` 及 gate/20 项覆盖明细索引。focused-13 九门 PASS、focused-17 七门 PASS；首次 clone 前提失败、首次 no-op 三 FAIL、旧 full 的失败均保留。继 R224 已记录8项覆盖后，另外发现 real-entry 11 与单测 journey 1；合计20旧原文件当前字节已保全但原值未恢复，原 RESULT/task.json 未改。这20项不再作原轮 PNG/JSON 字节证明，不撤销旧日志所证曾运行测试事实。433 code 文件的输出普查分类在外部 evidence，非全 AST/运行证明。
+
+### 结论
+
+本次有界调用在 focused-17终态后冻结 I/E、交接停止，不启动新完整基线。new just ci双矩阵/PW/precommit/required 全门与新 fresh独立验收均 NOT_RUN/待派发；初轮FAIL不自动变绿。模型采样入口未知，原生派发时钟可证，子runner有限时长不冒作整体调用满足上限，PG/SC旧账不重置。
+
+## R226 · 2026-10-03 · 有界完整普通验证与证据投影
+
+### 输入
+
+主持第6个保守派发授权窗口11:16:37Z至12:01:37Z，保留先前调用与旧PG/SC/CTX账。代码I70619704、证据f32d64ef，前置clean与fp核相符；原准备manifest保全后校准ref/privacy/PW新output及真正rg PATH。
+
+### 行动
+
+完整41条ordinary runner，整段限2100秒、各门独立限额，11:56:37Z前停止新增执行并预留收尾。实际11:19:44Z开始、11:32:54Z终态，全41条exit0，justci Node/Python真实运行，PW64例，不重跑原8个PG/CTX首次FAIL、旧native/provider/付费正式路径。门禁前后HEAD/fp/clean及113 tracked图像一致。
+
+### 产出
+
+代码I未变。证据追加原件160文档/46提交完整递归脱敏矩阵，保留初轮固定2ff的actual extent/FAIL/WARN/unverified与后继pending；原raw1469150B/SHA5b3de26a…f59f92未改。逐门argv/exit/日志文件名bytes/SHA索引追加新完整结果，原I2 39/41与工作稿focused边界不改。主持确认20已知旧覆盖路径本次full未再次覆盖，原旧字节仍未恢复，不扩大为全ignored路径不变。新增tracked证据后只更新真实RF派生census与窄证据门，产品full绑定f32不自指后继E。
+
+### 结论
+
+ordinary41/41 PASS，Node3622PASS/21SKIP与Python151PASS、PW64PASS。作者验证非独立验收，初两reviewer固定I2仍FAIL；新证据ref待主持派新fresh双视角。模型实际连续活跃时长仍unknown，授权窗口与runner起止分别记录，不清零旧预算。
+
+## R227 · 2026-10-03 · 六 API 同库审计原子回修
+
+### 输入
+
+固定546的两fresh独立确认状态先提交、audit失败半写；E3与09既有同步fail-closed合同覆盖，无body/schema/enum新形状。主持第9保守原生派发截止12:45Z、12:40停止新增执行，旧PG/SC/CTX账不动；模型入口unknown。
+
+### 行动
+
+6文件20写入口统一同连接 immediate审计事务，abandon逐active activation关闭+生命周期/衍生义务/事件/audit整体提交，不吞关闭异常。只读/redo preview与directionIgnored保留。作者固定546自主故障前17FAIL/2PASS/71SKIP，修后173PASS/type/lint0；10WS fixture坐标、5表写锁窗、14机械corpus更新，4旧dual gap不动。
+
+### 产出
+
+产品I `b2ffc36487930ea85d933a981f6bca5ce58cec58`；实际全门 `2026-10-03T12:25:05.800035+00:00` 至 `2026-10-03T12:37:22.774345+00:00`，41exit0，Node3728PASS/21SKIP、Python151PASS、PW64PASS。逐门原argv/exit/logbytesSHA保全，总报告/原160文档46提交完整初轮矩阵保留actual extent/FAIL/WARN/unverified，新回修独立标pending。前后113图与20旧覆盖路径当前值一致，原20字节未恢复，不称所有外部无变化。
+
+### 结论
+
+作者ordinary验证通过，后继完整ref待新fresh双视角；初I2 FAIL、546 P1、8旧PG/CTX红门保留；未push/合main/清理/部署/原生或付费路径。证据E不自指，旧有界资源不重置。
+
+## R228 2026-10-03 当前run验收引用普通回修
+
+### 输入
+
+固定721普通新发现，已有09/11同task同run合同；旧PG/SC/CTX不续额，本次13:55停止新执行、14:00终态。
+
+### 行动
+
+作者SQLite原始复现与生产函数链核读；新审计明确runId，legacy writing完整合取恢复，最新proof身份与unknown投影、scope不回退。保留原病例与前失败，不执行reviewer命令。
+
+### 产出
+
+产品I `b6685686bca4393dfaff81e9c870f799015ee83f`；75focused测试/type/lint通过，完整普通门41/41exit0；精确日志与时钟见fortnight总报告及run-binding JSON。113+20具名保护范围一致=True，原20字节未恢复。
+
+### 结论
+
+作者验证，固定新ref待fresh只读验收；旧失败/NOT_RUN/预算与初矩阵extent保留，不自审、不合main/push/清理。
+
+## R229 2026-10-03 当前task/run终态一致性普通回修
+
+### 输入
+
+固定0d6新反例，已有09§6.3/15.2.3与11§5.5合同；本次14:50停新执行、15:00终态，不扩旧PG/SC/CTX。
+
+### 行动
+
+作者运行前保存SQLite/UI before源码字节，保留夹具失败；独立复现12个SQLite与9个UI反例，统一terminal helper及事务内重读，修两批准UI与最新scope。
+
+### 产出
+
+产品I `6fb614d6fe5dbe523b563b47c0a9b046e2f8dcef`；67SQLite/61console/type/lint通过；完整41普通门41/41exit0。各原argv/clock/log bytes/SHA和源增量见fortnight终态修复JSON及总报告。113+20具名保护一致=True，旧原字节未恢复。
+
+### 结论
+
+作者验证，新固定ref待fresh只读验收；旧失败、NOT_RUN、预算及160/46初矩阵actual extent保留，不自审、不合main/push/清理。
+
+## R230 2026-10-03 语音持久化、归属与日志普通回修
+
+### 输入
+
+固定aaf原始补核与同轮具名SUP01–10；既有09/11/E3足够，16:50停新增/17:00终态，旧PG/SC/D1/CTX资源不续额。
+
+### 行动
+
+作者保留before与夹具失败，修草稿持久写失败前置阻断、串行结算、旧队列未知拒覆盖、日志digest、回执容量、HF闭合项、录音及接收peer归属；ADR区分当次private/public信号。07 orphan作者夹具缺holdForConfirm前提，不能声称其独立实测闭合。
+
+### 产出
+
+代码I7b `d0af3030347c3eaa5e4f7bb2c327b1c7eb5ae2c8`；实际41普通门23exit0/1FAIL/17NOT_RUN，详情见fortnight voice-storage JSON。I7 ruff失败、pytestNOT_RUN、SIGSTOP/INT/130事实保留，13旧源与113+20当前字节不变，原20字节未恢复。
+
+### 结论
+
+作者验证，等待固定新ref fresh只读验收；旧8红门、14diff实际未读范围/160+46初审限制及新11未施工保留，未push/合main/清理，不自审。
+
+## R231 2026-10-03 Focus 绑定任务详情局部失败普通回修
+
+### 输入
+
+固定dd746291的SUP11，09§15.2.3和11§5.9现有合同；16:54:20首工具、17:30停新增/17:40终态，旧PG/SC/CTX资源不扩。
+
+### 行动
+
+作者保全before源及fetch500反例，任务成员按绑定读口，详情按id补齐；缺详情保留真实标题/status与只读/重读入口，Route未知详情拒其他TaskAction。7源机械语料刷新、稳定注册exact-set与4dual gaps不改。
+
+### 产出
+
+代码I8 `45e4598890e4853a1380cb628e76b649df4ae934`；35局部测试/type/lint通过，41普通门41PASS/0FAIL/0NOT_RUN。日志与实际scope见fortnight focus-partial JSON。13旧源/113图/20旧当前字节同前，旧原字节未恢复。
+
+### 结论
+
+作者验证，新固定ref待两fresh只读验收。旧I7b失败/17未跑/晚36秒、8旧红门、160/46初审及14diff阅读限制与SUP07无效前提保留；不自审、不合main/push/清理。
+
+## R232 2026-10-03 风险与包状态诚实投影及离线自测/M0错误口径回修
+
+### 输入
+
+固定d17f的具名普通P2与既有09/11合同；风险文案先a383双视角核一致。18:11:16首工具、19:15停新增/19:25终态，旧PG/SC/D1/CTX及原8RED资源不续额。
+
+### 行动
+
+风险合法来源外显示未知；离线mutation验baseline及具体目标错误；同id/revision强包状态与五态仅proposed批准；非共享M0 generic异常未知，不改shared真实rollback。EOF恰1LF与排产注释校准。无效fixture/原失败留存，12源仅具名owning块/census更新。
+
+### 产出
+
+代码I9b `8e796be6a5eb8c68c017b25906376c318c1777ba`，仅类型导入delta与具名focused；完整41仍I9 `229037b16e549ea814086c2bf7271b71d9051215`，I9b全门NOT_RUN。I9本轮41门41PASS/0FAIL/0NOT_RUN，Node3822/21SKIP、Python160、PW64。实际argv/logbytesSHA与输入绑定见fortnight risk-offline JSON。13旧源/113图/20旧当前字节不变，20原字节UNRECOVERED。
+
+### 结论
+
+作者验证，待新固定ref fresh只读验收；旧失败/未跑/逾时/预算/160+46实际阅读限制保留，未合main/push/清理，不自审。
+
+R232补记：I9b权威RiskLevel类型复用另冻8e796be6，无运行逻辑改变；三门type/lint/console实际74PASS，口述75纠正。I9b full NOT_RUN，原I9 full41不继承；证据工作稿七门实际0，固定E结果外部另记。
+
+## R233 2026-10-03 决策包canonical模式与临时receipt证据回修
+
+### 输入
+
+固定E9 direct模式P2；09§2既有拒绝，11§5.10先1cd95e31两fresh文本一致后代码。19:42:41首工具、20:25停新增/20:35终态，native观察27非formal V4，旧预算不扩。
+
+### 行动
+
+mapper保留canonical模式、同revision补齐保全、Card优先合法mode而非UI兼容选择，旧direct按钮/回调拒绝。独立SQLite/DAO/GET函数/SSR和observer控制；不执行reviewer命令。原新RF准备错误保留。E9临时receipt203→255因finally清理更新，旧历史摘要不改、不宣称271全部当前同一；新索引排除活跃envelope。
+
+### 产出
+
+代码I10 `538357b3b547ad8e91399e5a76ce89b6ae90d15a`；局部53PASS/真实SQLite四对照/type/lint通过，新ci/PW两门2PASS/0FAIL/0NOT_RUN，完整41 NOT_RUN；Node3829/21SKIP、Python160、PW64。日志与实际scope见fortnight package-mode JSON；13/113/20 current不变，20原bytes未恢复。
+
+### 结论
+
+作者验证待新固定E真正fresh只读验收；旧8RED/失败/未跑/迟时/160+46实际未读范围/旧资源保持，未合main/push/cleanup，不自审。
+
+## R234 2026-10-03 PTT测试装配补核
+
+输入是原测试忽略edit/hold拒绝。仅测试hold=true及forward/公开pending控制；原before和本人错误广播断言FAIL保留。最终I10b `9eb01747104d77b8eeef46ca2dda4d9b29c83562` 四例/type/lint/RF通过，产品barrier未改，新ci/PW/41 NOT_RUN，I10两门仅历史。不继承旧coverage，待fresh，旧资源/8RED/20UNRECOVERED保持。
+
+R234证据工作稿七小门实际exit0，fixed-ref小门任务外随后读回；不继承I10 full2为I10b，不自审。
+
+## R235 2026-10-03 测试根清单登记回修
+
+### 输入
+
+固定E10登记吞读/JSON/shape错误；本次普通native观察30，20:27:35首工具、stop21:15/hard21:25，modelUNKNOWN/旧预算不扩。
+
+### 行动
+
+lstat确缺失才新建，严格共用解析，坏文件读/形状/当前run不符写前拒；合法legacy/旧集合保留，原stale/归属/先assert后扫保持。独立before16例9/7及真函数两假绿，不执行host/reviewer命令。
+
+### 产出
+
+I11 `74792ae4464216866772e9b09203aefb961958f3`；focused20PASS/三函数/type/lint/RF实际0。full ci1201、ci122-9均原因UNKNOWN/原PythonNOT_RUN；ci123实际0，Node3838/21SKIP/Python160，同ref PW12064PASS；full41NOT_RUN。来源与argv/logbytesSHA见exact-roots JSON，13/113/20current不变、20原bytes未恢复，旧203→255/失败/逾时保留。
+
+### 结论
+
+作者验证待新固定E真正fresh，原8RED/600/资源/未读矩阵不变；21:05收口目标未达但原stop/hard不延。#31未施工，未合main/push/cleanup/真实provider/native/paidCLI。
+
+I11证据工作稿125七门RF write/check、links、emoji、privacy fs、全期间diff、precommit均有实际exit0回执。原write124超过准备截止未启动，124b实际执行0，两项分别保留。恢复后实钟21:15:21Z，超过stop-new 21秒；仅作证据冻结/终态收口，固定E七门全部NOT_RUN_stop_new_deadline，不把工作稿0追认为固定E通过。模型entry/active UNKNOWN，旧8RED及20原bytes未恢复仍保持。
+
+## R236 2026-10-03 凭据委派与原生稿归属及主线展示
+
+### 输入
+
+固定E11发现HTTP delegation分类与native提交提前回执丢稿；本轮普通dispatch观察31、modelUNKNOWN，stop22:15/hard22:25。root追加已独立证实主线展示缺项，先11小delta固定核对，不改09形状。
+
+### 行动
+
+canonical038初query承诺过宽由before反证，db148af收窄并复核；critical delegation S3，native先可靠owner再await并保并发/新稿/失败；Swift有限consumer不清拒稿。主线仅展示并列，旧S1测试移独立S3控制。
+
+### 产出
+
+最终I `f8d74a121037b5bc5482f927b62f93771cab059e`；最新I `f8d74a121037b5bc5482f927b62f93771cab059e`：just ci退出0、PW退出0；Node3865PASS/21SKIP、Python160、PW64。原135 CI失败保留；完整41及E工作稿/固定E七门NOT_RUN，不继承旧ref通过。 独立before CSS装配/真实反例/无效flag/路径错误保留。40浏览器断言只合成端口、I14十SSR控制、type/lint0；Swift/device/provider/付费CLI全NOT_RUN。13/113/20current保持，原20未恢复；argv/logbytesSHA见gates.json本轮字段。
+
+### 结论
+
+作者验证待真正fresh，原160/46阅读范围和FAIL/WARN/旧8RED/600/预算不变；目标22:05未达但截止不延。E只证据/journal，不合main/push/cleanup，不冒本地或旧ref为整体GREEN。
+
+本轮closing141首个计数regex未匹配pnpm前缀，Node0为空匹配无效值；据五条原始矩阵行更正3865PASS/21SKIP，原receipt及无效counts外部保留，未重跑。停止时钟读回22:15:07迟7秒保留，此后仅既有结果与证据落盘，未新增门禁。#32/#33为original补读非finalfresh；13原snapshot的11/13为main祖先、另两review输入仅归档。root自有I14 after三SQLite/受控fetch/SSR控制另见gates字段，未归作者或native/browser认证。
+
+
+## R237 2026-10-04 最后两名交叉评审读回
+
+### 输入
+
+用户要求最后两名新的subagent交叉review；固定E b51c277f036d87cd2f92be2786365efdb0cb2dba、代码I f8d74a121037b5bc5482f927b62f93771cab059e。旧RED/预算/600与20未恢复原件均保留。
+
+### 行动
+
+零上下文代码#34与文档#35只读各自固定worktree；root真正读两份report，以自产library消费manifest、逐hash核原件；补固定E七个只读收口门。新P2只有release-profile注释，由原作者#36在独立候选仅修rc.13注释，231合同自测和卫生门0。原reviewer命令未执行、原raw报告未改。
+
+### 产出
+
+两份完整报告/coverage/manifest脱敏投影落research/codex-findings，代码50文件的74diff块/必要caller与独立控制、文档各自全文/选段/NOT_READ清楚登记。root固定E门terminal6394B/SHA841ba865a2bba943b12b5a8b5a43dec35d504247a030d2c059a29d80d6c86a96，原日志名/bytes/SHA索引在gates.json；注释ref ffe40594b8611c9e82c7bf2aa2374690366407b8，其terminal12138B/SHAb643f33fa3c35f880cf6cf5b038f5f4b003ab03554f20c32c752f3a3da0ab09b。日志不进Git；原160/46行未改，旧prepared NOT_READ不机械升级。
+
+### 结论
+
+current已读修复范围PASS_SCOPED，whole RED/INCOMPLETE，两个manifest有效且stop_for_owner。#34 summary迟210秒与最后owned-check23:04:51分开；原23:05/23:13停止边界未延。#35/#36终态、native观察36不冒model采样/active，旧资源不清零。13来源11祖先+2private输入归档；main仍53be、remote仍d023，本轮未push/cleanup/发布。PG额度/范围、CTX到期退役或有效续期选择及20旧原件其它备份信息均未获回复，停止受影响交付，保留可恢复工作区与完整报告，不宣称完整交付。
+
+最终报告落盘后的首次库存check退出1：2544→2550跟踪文件数与files_scanned漂移，日志141B/SHA c650e6c831cd0f8dd71dd652d407dc25a41b83a68d6c84ddb492e6bc045ec2c7。随后已有派生write实际退出0；root过严地把volatile legacy列也要求全等导致比较脚本退出1，原失败保留，未再启动write。独立比较证实15稳定类及865源语料全等，legacy仅新增两个具名fresh worktree，原42条完整不变；派生库存/MD/A同步只校准机械层，不改semantic-claims/旧RED/预算或600题。最新证据卫生复验另有回执，不回填首次失败为通过。
+
+最终证据工作稿复验七门全部exit0，前后ffe HEAD与13 staged工作稿fingerprint相同。原terminal 7991B/SHA ec2a1ea047a65c536b7fd4f20902173cf16d0cdc14c064ed6c9dab1614914360；逐argv/log文件名/bytes/SHA完整投影见gates.json host_final_crossreview.final_working_evidence_gates。本结果索引随后才追加，不把工作稿门冒为新固定提交完整产品验收；固定提交隐私与卫生另核。
+
+
+## owner19-repair46 · 直接读护栏与CTX追加退役（2026-10-04）
+
+- 输入：原repair45/review21 R21-F1；保留旧账与首失败，追加窗口第1/3修复，原repair46/root35预约槽。起点5e15ef3 clean，主树只读，模型请求gpt-6.1-sol/medium，sampling UNKNOWN。
+- 行动：先09§18.9最小owner exact-set，再CTX09/12/16状态日期及动态validator/86 mutation/三派生投影。新直接读API与四无副作用角色，共享显式Budget，逐块读前guard/实际账/FD版本复核/无extra byte；origin满额保守拒绝新open。旧完整helper不resume，不声称已接入准备编排。
+- 产出：代码I `147b151c74b86c8c57a26f4d612ee9d3dda5bb5d`；证据 `research/codex-findings/2026-10-04-owner19-repair46-evidence.md` 与任务外repair46 REPORT/RESULT/真实runner/log身份/guard/source-binding。四旧真实函数8B→9B反例与中间origin2>cap1前后控制保留；最终10 unittest含64四wrapper子例PASS。独立600/82/518/新增25与原字节保全。CI3865PASS/21skip+Python160；PW初缺browser失败保留、恢复原已装路径一次64PASS。
+- 结论：[warn] INCOMPLETE/RED；执行和检查都跑完了，等主持fresh验收。8required=2PASS/6FAIL、其余35NOT_RUN；历史2PASS/41NOT_RUN与43exact-set/旧实耗samecause34（本次35、现役cap37）/20UNRECOVERED全部保留，不改task。native build/load/正式信任/全通道/完整准备编排NOT_RUN或UNKNOWN，准入0。原13/113/20与4helperSHA未变，日志名/bytes/SHA见上述证据；本轮未merge/push/cleanup。
+
+
+## owner19-repair47 · checker直接读取实际账（2026-10-04）
+
+- 输入：repair46 E保留；owner19 window第2/3修，repair47/root36，现役cap37，旧账不清零。
+- 行动：七直接读取模块共享读前file/total/origin/wall与FD版本guard，实际复读收费/immutable string同调用复用；恢复预算、异常got及close失败保留账/FD。自引用禁集与契约投影同步，不改分析算法/限额/绑定/准入。
+- 产出：代码I `df5c127bb5ab2b94f08eab1db93e837c86304451`；research/codex-findings/2026-10-04-owner19-repair47-evidence.md记录真实日志原名/bytes/SHA，仓外REPORT/RESULT/43required与guard。21边界PASS，Python160PASS；最近完整CI在b0dfa63c实际FAIL；当时I47 df5c127b完整CI NOT_RUN（offline分发ENOTCACHED），PW64仅原输入精确复用；首失败保留。
+- 结论：[warn] INCOMPLETE/RED、workflow FAILED；43状态{'PASS': 32, 'FAIL': 10, 'REUSED_PASS': 1}，等待主持fresh独立验收；13/113/20/600与四旧helper字节保全。旧完整准备编排禁止resume，Git child/OS/native/mmap/heap全通道UNKNOWN，20原字节UNRECOVERED；未merge/push/cleanup。
+
+
+## owner19-repair48 · 快照归属与异常资源持有（2026-10-04）
+
+- 输入：E47 clean、review22/review23真实RED；原48修/22复审/同根37/procedure4及旧失败保留；window3/3修2/2 fresh已用尽，首UTC03:14:04，target03:49/stop03:59/hard04:09。
+- 行动：精确repoRoot/绝对capture私有收据；首fstat失败保留UNKNOWN_OPEN；Python显式manager/stream强引用和cleanup UNKNOWN/原读异常/实际账，恢复只确认对象关闭不关裸FD。RF八源全文职责审读与一测试入口正常分类，统计算法/分析/绑定/限额/准入不动。
+- 产出：I `b2af1f7c1ac304f0b1ec36d41c9e86859de83f08`；research/codex-findings/2026-10-04-owner19-repair48-evidence.md及仓外REPORT/RESULT/43required/guards保存真实原名bytesSHA。JS24/Python13边界、RF17变异、Python160 PASS；RF648/648只为具名处置含test，旧647历史保留。单次clean I完整CI实际FAIL(home-lock waiter1，原精确原因UNKNOWN)，独立40 offline分发FAIL；PW64仅936对象同源限定复用。旧47 journal按真实b0 CI与最终I NOT_RUN校正文案，不擦旧fail。
+- 结论：[warn] INCOMPLETE/RED、workflow FAILED；当前34 PASS/8 FAIL/1 REUSED_PASS。最终独立候选验收NOT_RUN，无剩余fresh；原V3 host_session_not_for_review不转绿。native全前提/20UNRECOVERED及旧PG失败保留；162锚不改，未merge/push/cleanup。
+
+## owner20-repair49 · home-lock装配与两周第一块审读（2026-10-04）
+
+- 输入：clean E48，owner明确最多6轮；本轮1/6，总49修/22复审/同根38/procedure4，旧失败不清零。首UTC04:38:54，target05:22:28/stop05:32:28/hard05:37:28，sampled UNKNOWN。
+- 行动：测试worker直接Node持有、有界8192B诊断，default/长TMPDIR真实前后控制，lock安全/期限语义不动。官方缓存来源只核metadata，缺锁定官方tarball不降fresh-install或联网。第一块26文档全文、09仅3513–3848与4完整commit补丁，3snapshot和006分层hunk，未读精确结转。
+- 产出：I `edfb52494db22378bab9bfc8a48c8ab94442ffb3`，research/codex-findings/2026-10-04-owner20-repair49-evidence.md及仓外audit-coverage/required-current/guards/terminals。clean I完整CI exit1：Node3866PASS21SKIP、offline分发ENOTCACHED停止，CI Python未触达；独立Python160/JS24/Py13 PASS。43门34PASS8FAIL1历史限定REUSED_PASS，另precommit PASS；48原home-lock首因UNKNOWN，49长TMPDIR反例不追认旧根因。
+- 结论：[warn] INCOMPLETE/RED、workflow FAILED；第一块PARTIAL_COVERAGE，09余1–3512/006前段与ledger/snapshot余hunk待补；最终独立候选验收NOT_RUN。正式native信任PENDING、全通道UNKNOWN、admission0、20原件UNRECOVERED，162锚保持。无下载/重跑完整CI/procedure新增/merge/push/cleanup，不称whole GREEN。
+
+## owner20-repair50 · 现役源绑定与第二块审读（2026-10-04）
+
+- 输入：clean E49，owner20第2/6轮，总50修/23复审/同根39/procedure5，旧消耗和失败保留；first05:36:34Z、target06:20:37/stop06:30:37/hard06:35:37，sampled UNKNOWN。
+- 行动：A7 sync失败诊断补齐既有8KiB尾部；四ledger仅binding重绑真实E49产品src/cited blobs，101数据不变；38三个合同源锚与Set eviction实际行为对齐、完整闭包负例，Windows剩余闭包不刷绿。09全合同补读，27–53逐delta/current对照，旧巨档/ledger余段精确carry。
+- 产出：I `ce23f0b18fe95a1c573adde414fa4aa43f2961b1`；clean完整CI exit1：Node3866PASS21SKIP，offline分发ENOTCACHED停止、CI Python未触达；独立Python160/ruff PASS。04/08实际PASS，06/07/37 FAIL；I26/27审读锚陈旧FAIL保留，E具名测试全文SHA更新后仅对应E输入另验；38 final I NOT_RUN，dirty两FAIL保留。36仅原46的936对象同源64PASS限定复用，35/40真正原log pointer。
+- 结论：[warn] INCOMPLETE/RED、workflow FAILED；独立最终验收NOT_RUN，160/46 PARTIAL_COVERAGE、Windows/native/20UNRECOVERED仍缺前提。E only证据/派生不改业务源，完整CI不重跑；162锚/600/4helper保全，无下载/merge/push/cleanup。真实日志原名bytesSHA见research/codex-findings/2026-10-04-owner20-repair50-evidence.md与私有REPORT，E固定门单独绑定，不追认I26/27通过。
+
+
+## owner20-repair51 · 本地模块闭包与有限测试hook（2026-10-04）
+
+- 输入：E50 `1cbe1929ba8ef1ef235430641ccc534b0e02fc0d`；原V3/旧失败/20原件UNRECOVERED/600问题/162锚保留。首工具06:40:45.400425Z，原stop-new07:30:31.821129Z与hard07:35:31.821129Z不顺延。
+- 行动：真实contracts本地import/re-export闭包35项，补truthPlane完整源码身份并逐项missing/drift负例；新增依赖没有callable授信。测试hook有限证明独立于Windows未闭合路径，production引用/非空初始化负例保持拒绝。101动作仅源坐标最小raw变化，S3与11项唯一WS分支重定位；歧义done请求不猜测，业务字段及source_binding不变。
+- 产出：代码I `e1a858d754d694e476c22c8340aa3fce69936988`。完整clean-I CI一次实际exit1，Node3866PASS/21SKIP后offline分发ENOTCACHED，PythonCI未触达；单独Python160PASS。43required=36PASS/6FAIL/1限定复用PW64（936 owning对象与46相同），FAIL=06/07/35/37/38/40。38由NOT_RUN变真实clean-I FAIL，旧dirty失败不改。hook原首因已关闭，37后续processGroupLifecycle native/intrinsic仍拒；38 Windows owned.waitForExit仍拒；06余done_speaking与服务闭包失败保留。
+- 审读：54–80最近delta全文读，56与77–79补足；当前历史全文/全部owning引用未全读，按具名HUNK/FULL边界记录，16–23仅17/21/23完整补丁，其余HUNK/METADATA。160/46范围不缩，006/008/012大型账本与snapshot未读hunks继续carry。done_speaking分支683与listen_again687语义线索待下一轮核合同与resolver；durable none未闭合，不凭行号改绿。
+- 结论：[warn] INCOMPLETE/RED、workflow FAILED。独立最终候选验收NOT_RUN，等待主持fresh；native正式信任/全通道UNKNOWN，原V3准入拒绝、admission0、C14 A unavailable、13hop/256nodes/depth12不改。四旧完整helper禁止resume；无下载、native build/load、merge/push/cleanup。私有repair51 REPORT/RESULT/audit-coverage/required-current/FINAL-BINDINGS记录真实refs、全部日志原名bytes/SHA与owned终态；E仅此journal证据，不改变产品、RF证据输入或canonical。
+
+日志字节锚：
+- `ci-I51.log`：140920B，SHA-256 `c77c980d94b6c89f3aaa3413c097d8da36435369f2165b93835860f0aaefd6ef`。
+- `commit-I51.log`：169B，SHA-256 `1c3a1a114bca8ebda891063618d9629878187d8824a71b941e9b2c75397b0baa`。
+- `focused-dirty.log`：30755B，SHA-256 `9d8f3ef02da2d319d0aa8281d1b7bad60252dd1535665f7cf315d4a2ec0a073f`。
+- `python-I51.log`：415B，SHA-256 `2fdede6a634d2fc4743b12903859766f1d0dbb99f4b615dff6f9f09e1adbc4cc`。
+- `required-00.log`：328B，SHA-256 `ac8efa8bcfeac0ea1b51613bb1f2508904c11ad91c272c99a7acd71b77827f04`。
+- `required-01.log`：327B，SHA-256 `ab8bdf8e25dedb9bab814c21c91070a56a7f59505345fab07a92d631398172ec`。
+- `required-02.log`：526B，SHA-256 `628b084d8403813faa0e78ccf00ce0fbcc3ac9034f7799e0fedbc90b88cb640f`。
+- `required-03.log`：129B，SHA-256 `186e5fdf31e61e4da9d89dd82b82bfa2e77ba1c91cee748d5a0c58077b901621`。
+- `required-04.log`：21B，SHA-256 `7814839f17399c70af7adc88a420262bda9e1c53d02e45ce5b4fef97abefac1a`。
+- `required-05.log`：24B，SHA-256 `39a4213f5f6c793ae104e1709eb5a20ef438aefe6987a3dd5711636506d2259d`。
+- `required-06.log`：24986B，SHA-256 `41f765cc3c0dea4b0aa3b47980dc9fe0ad09bce344822795067b34014249a0aa`。
+- `required-07.log`：3239604B，SHA-256 `aacc137c34ec9d6b0e705338cf5c2b15a0f5cc1f88c401ce2e16a22a396eb9a1`。
+- `required-08.log`：18B，SHA-256 `75e047bc2efcef1de3f3ef2c4f030d2a394102cb7b8019bb86e6d33b02cdf638`。
+- `required-09.log`：21B，SHA-256 `5ee014a32aad1a0d1112ea37f75bea272b65eca50b0730a8849dd272a20125c8`。
+- `required-10.log`：18814B，SHA-256 `4f52033471e9d64a9ec890b497b838d25357384720b44cf822440c06dc62b28d`。
+- `required-11.log`：4691B，SHA-256 `85d607d26283d3c177e0b7045c49f7c5df895d5941dd35fe2297470df8d50c36`。
+- `required-12.log`：2021B，SHA-256 `e6f59226a37aab2bc3b2b7acb6a32cfac91478a8d3477478038d6ca7d31b6cab`。
+- `required-13.log`：531B，SHA-256 `5171873129c13c7a0cd25cf52f1c12631fc51139ab878b8a8230b357cdb76048`。
+- `required-14.log`：656B，SHA-256 `adc478407cea7bfad48b1ac1fb657fe19da463a039658d2eafa74e91733364c0`。
+- `required-15.log`：1899B，SHA-256 `7517ace03217a12acefdf2e71479dab3ca5052a455206608f2456f3b5789c8d0`。
+- `required-16.log`：832B，SHA-256 `a24e86aa1d4e81347d3200f867a8176c8280e8a1608096a872e42236750b7d8b`。
+- `required-17.log`：28B，SHA-256 `fcf9d9b005e7c8ce7b76fb3bda5028373c684533cec26d35e41c6176db8c3886`。
+- `required-18.log`：1931B，SHA-256 `d9c369cc6531ee1f3f7e9401aaf38a99409a3b4ab72528a9664c79cbdda7f770`。
+- `required-19.log`：27B，SHA-256 `8b46650b1c52525eafa2b67b3cbfc74b9d7af3bf9e6a74d7f0edec511c91800c`。
+- `required-20.log`：1156B，SHA-256 `917d56956c12b7674c2e638f9282e0f5b7a62883e660dd7039eb0536c96c8fda`。
+- `required-21.log`：597B，SHA-256 `940755d8322cf6f1946ef9a7dc779f02a29923d03f81ad4882c2a5c6779dee84`。
+- `required-22.log`：1250B，SHA-256 `ab3f1ad84e4c53aac7d3a12a14671886aa8e3189b6c89f862ed1b6f41b7a4058`。
+- `required-23.log`：12272B，SHA-256 `62eb38ac0a5589337716b4c05271434f9e876e56f1df88bc6b49c8fc660b6ae4`。
+- `required-24.log`：71B，SHA-256 `7c413e5e18145636179f2e0bda6352a2b47903ce4b37b201fe3b7fb982688bcd`。
+- `required-25.log`：512B，SHA-256 `6cb54e37c13b5eac36b23ef07aedcdc66c762b45493ebbe11704786b3295ca83`。
+- `required-26.log`：368B，SHA-256 `580e6f1f03e39a2a41adf0bbcf468acb2a16fb6cbd2ca81f69db4ae786d907e7`。
+- `required-27.log`：3583B，SHA-256 `31cf099c98f86d478a195f150e9bf4fc9dd0b10f812183814865ee58386d31ea`。
+- `required-28.log`：82B，SHA-256 `d360e836a6cc111c570c1c604162160bd7d8017185d5b77904a50445af4a2c20`。
+- `required-29.log`：47B，SHA-256 `fd572c00a95bcd71926a73eac61d8a3912d8b530d25e42d102ad5608e1ea2060`。
+- `required-30.log`：23B，SHA-256 `e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3`。
+- `required-31.log`：67B，SHA-256 `9f60f8461bd29f924976ea9fecbc1eb7666670ef2953115c7bcce07c7fb4a136`。
+- `required-32.log`：67B，SHA-256 `9f60f8461bd29f924976ea9fecbc1eb7666670ef2953115c7bcce07c7fb4a136`。
+- `required-33.log`：0B，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。
+- `required-34.log`：448B，SHA-256 `8394e399fc1db6433060ab605e25d3087af7e2fc3b75eb52abe171bf4bdc4be0`。
+- `required-37.log`：15989B，SHA-256 `90d06af6f2df0fa2791061519f0042e58bc33c5655b6aa06f86cbf3272415a49`。
+- `required-38.log`：13111B，SHA-256 `0324f4437067cebb56fb5b08faf78497ff7829fbe2bcd97e2af1488d6d6a6d05`。
+- `required-39.log`：11473B，SHA-256 `de5437a6e1aa19e007a5795c233d41c55c42b37786b6bd63a3b9bf58f14069e9`。
+- `required-41.log`：3515B，SHA-256 `575e108f3bd2614a31432a08e0ba66182232763e8114bb15cd46e2d833e0ef29`。
+- `required-42.log`：104B，SHA-256 `b30cc3e1cd52c763c116d5554c49a5a423fad9a9939e9c64f600fc2344946be8`。
+- `required-group.log`：0B，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。
+
+E工作稿doclinks/privacy-fs/schedule/emoji/diff/precommit均实际exit0；其后只追加本组日志锚，不冒工作稿门为固定E全验。required07现役101/closureReady=false、21966诊断行、22条scan_failures=0，后者不是旧22 none语义证明。
+- `evidence-diff.log`：0B，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`，exit 0。
+- `evidence-doclinks.log`：47B，SHA-256 `fd572c00a95bcd71926a73eac61d8a3912d8b530d25e42d102ad5608e1ea2060`，exit 0。
+- `evidence-emoji.log`：23B，SHA-256 `e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3`，exit 0。
+- `evidence-group.log`：7400B，SHA-256 `982c9694793e3b5d6433aeb519db14eb7bd6705a9f68e0a5cfa7d2e154ac2e99`，exit 0。
+- `evidence-precommit.log`：370B，SHA-256 `616c834c023616b319e4ba06cbdf6c216c3bd1691595a9746425a8dffe888484`，exit 0。
+- `evidence-privacy-fs.log`：67B，SHA-256 `9f60f8461bd29f924976ea9fecbc1eb7666670ef2953115c7bcce07c7fb4a136`，exit 0。
+- `evidence-schedule.log`：82B，SHA-256 `d360e836a6cc111c570c1c604162160bd7d8017185d5b77904a50445af4a2c20`，exit 0。
+
+
+## repair52 · owner20 第四轮（作者回修，独立验收待定）
+
+输入：clean E51 97201cb475bcf00031a2f9ca0d669c457a0a5605；固定 I52 813a10c2383af1c0024ede60a0f19d5526fa5190。实际首工具07:40:48Z，截止不平移。
+
+行动：亲读09有限句法、自引用与source-binding条款及真实WS owning分支。新resolver只在精确msg.t判别、终止break、无判别写入/遮蔽条件下划分done_speaking与listen_again；record61从错671到真实683，其他动作及durable none未闭合判断不变。正例、兄弟分支、错坐标、判别污染、陈旧body拒绝控制保留。旧before把683/687都误接受，新负例已到达后续stale VOICE_TRANSPORT_SOURCE失败；未全文核hub全部callee，所以不刷该hash。
+
+09仅truthPlane完整性角色的条款作为显式合同候选冻结，互补双视角一致性未验收；现役self-role代码暂缓。35完整性guard与34 callable保留，真entry/evidence/source自引用继续拒绝。
+
+产出：clean I52实际完整PW 64 PASS，运行前后HEAD/status/fingerprint实采，3个detached服务PGID回收。完整CI只执行一次：Node3866 PASS/21 SKIP，offline分发ENOTCACHED后exit1，PythonCI未触达；独立Python160 PASS。I52的43门36 PASS/7 FAIL，FAIL=06/07/14/35/37/38/40。required07实际约41.6s后拒绝30s wall预算，不称及时hard-stop；101/closureReady=false、21958 failures与21959诊断行保留，22 scan_failures=0不是22 none。
+
+required14在I因canonical元数据摘要变化真实FAIL。亲读renderer/validator全文及model authority入口后，以真实rebuild重投影两份dry-run派生文档；程序断言只authority digest文本变化、600题/82blocked/518与判断不变。E将包含journal加这两份派生对象，不称whole inputs等同；E清洁14/15结果另存本轮任务外真实terminal，绝不反写I14失败。
+
+审读：81–107/24–31实际FULL/HUNK/METADATA及字节SHA、具名carry在repair52/audit-coverage.json；160/46范围未覆盖完，不称全量。旧006/008/012及snapshot未读段结转。
+
+结论：INCOMPLETE/RED，workflow FAILED。独立最终候选验收NOT_RUN，原V3准入仍拒绝，正式native授信/全通道UNKNOWN。原20字节UNRECOVERED；162锚、600题与旧4完整helper保全，禁止resume。未下载、native build/load、全局安装、merge/push/cleanup，未自行开始53。
+
+私有日志目录：owner20-six-rounds/repair52；下列真实日志不入Git：
+- `ci-I52.log`：140983B，SHA-256 `b887bd48509c070b301cd848191d6a9f12d9fd54eaec17883ba54d4adc828b27`。
+- `commit-I52.log`：170B，SHA-256 `dba2837cfe831c40cad6ffc06dd5b0196a79e73304063245a6187bf06a317949`。
+- `evidence-dry-rebuild.log`：626B，SHA-256 `de2d6af9843437c9211fcd63e94e262786ef5926382ae35de0b50b3103d185db`。
+- `pw-I52.log`：8263B，SHA-256 `41c8b1193d0e4d6715a5d56ab133936149ba04dcb3af4da28fdc77c4a0d5ea45`。
+- `python-I52.log`：415B，SHA-256 `8ebd52f9e10d199e6d49bcce9add61bc340fd95fd15b123f4242f97c06519cc7`。
+- `required-00.log`：327B，SHA-256 `c69d9c2854b274cd9184701a9514a45c38085620d7e2038e4edc09b742dfbffb`。
+- `required-01.log`：325B，SHA-256 `fee85950e0dc3328c38aefc8a2a2bcbdd8a8925d11112b047113603b2e29b9ac`。
+- `required-02.log`：526B，SHA-256 `628b084d8403813faa0e78ccf00ce0fbcc3ac9034f7799e0fedbc90b88cb640f`。
+- `required-03.log`：129B，SHA-256 `186e5fdf31e61e4da9d89dd82b82bfa2e77ba1c91cee748d5a0c58077b901621`。
+- `required-04.log`：21B，SHA-256 `7814839f17399c70af7adc88a420262bda9e1c53d02e45ce5b4fef97abefac1a`。
+- `required-05.log`：24B，SHA-256 `39a4213f5f6c793ae104e1709eb5a20ef438aefe6987a3dd5711636506d2259d`。
+- `required-06.log`：25487B，SHA-256 `7103f5f89cdec1228482b3d1cd868ea986bcf50fa33481e724d89c2b781ae670`。
+- `required-07.log`：3238921B，SHA-256 `1d2b71f18ae26605cc155a6612c69660f3e56b243a78d450f90a146c13b7b3de`。
+- `required-08.log`：18B，SHA-256 `75e047bc2efcef1de3f3ef2c4f030d2a394102cb7b8019bb86e6d33b02cdf638`。
+- `required-09.log`：21B，SHA-256 `5ee014a32aad1a0d1112ea37f75bea272b65eca50b0730a8849dd272a20125c8`。
+- `required-10.log`：18814B，SHA-256 `4f52033471e9d64a9ec890b497b838d25357384720b44cf822440c06dc62b28d`。
+- `required-11.log`：4691B，SHA-256 `85d607d26283d3c177e0b7045c49f7c5df895d5941dd35fe2297470df8d50c36`。
+- `required-12.log`：2021B，SHA-256 `e6f59226a37aab2bc3b2b7acb6a32cfac91478a8d3477478038d6ca7d31b6cab`。
+- `required-13.log`：531B，SHA-256 `5171873129c13c7a0cd25cf52f1c12631fc51139ab878b8a8230b357cdb76048`。
+- `required-14.log`：482B，SHA-256 `755a327781059d800f3be7437ea6b8cde3b36b9f87f16ce37225828699aded25`。
+- `required-15.log`：1899B，SHA-256 `7517ace03217a12acefdf2e71479dab3ca5052a455206608f2456f3b5789c8d0`。
+- `required-16.log`：832B，SHA-256 `a24e86aa1d4e81347d3200f867a8176c8280e8a1608096a872e42236750b7d8b`。
+- `required-17.log`：28B，SHA-256 `fcf9d9b005e7c8ce7b76fb3bda5028373c684533cec26d35e41c6176db8c3886`。
+- `required-18.log`：1931B，SHA-256 `d9c369cc6531ee1f3f7e9401aaf38a99409a3b4ab72528a9664c79cbdda7f770`。
+- `required-19.log`：27B，SHA-256 `8b46650b1c52525eafa2b67b3cbfc74b9d7af3bf9e6a74d7f0edec511c91800c`。
+- `required-20.log`：1156B，SHA-256 `917d56956c12b7674c2e638f9282e0f5b7a62883e660dd7039eb0536c96c8fda`。
+- `required-21.log`：596B，SHA-256 `c7fee8f5814bb6ca3eaff547b330548549d5b4b9fb88e830411ce4dee2ee165c`。
+- `required-22.log`：1029B，SHA-256 `9ce5cd46849f1e487fe20f0ae81fb3340173d79bf764b53a58941fa8c8b47ea8`。
+- `required-23.log`：12272B，SHA-256 `62eb38ac0a5589337716b4c05271434f9e876e56f1df88bc6b49c8fc660b6ae4`。
+- `required-24.log`：71B，SHA-256 `7c413e5e18145636179f2e0bda6352a2b47903ce4b37b201fe3b7fb982688bcd`。
+- `required-25.log`：512B，SHA-256 `6cb54e37c13b5eac36b23ef07aedcdc66c762b45493ebbe11704786b3295ca83`。
+- `required-26.log`：368B，SHA-256 `580e6f1f03e39a2a41adf0bbcf468acb2a16fb6cbd2ca81f69db4ae786d907e7`。
+- `required-27.log`：3583B，SHA-256 `31cf099c98f86d478a195f150e9bf4fc9dd0b10f812183814865ee58386d31ea`。
+- `required-28.log`：82B，SHA-256 `d360e836a6cc111c570c1c604162160bd7d8017185d5b77904a50445af4a2c20`。
+- `required-29.log`：47B，SHA-256 `fd572c00a95bcd71926a73eac61d8a3912d8b530d25e42d102ad5608e1ea2060`。
+- `required-30.log`：23B，SHA-256 `e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3`。
+- `required-31.log`：67B，SHA-256 `9f60f8461bd29f924976ea9fecbc1eb7666670ef2953115c7bcce07c7fb4a136`。
+- `required-32.log`：67B，SHA-256 `9f60f8461bd29f924976ea9fecbc1eb7666670ef2953115c7bcce07c7fb4a136`。
+- `required-33.log`：0B，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。
+- `required-34.log`：448B，SHA-256 `8394e399fc1db6433060ab605e25d3087af7e2fc3b75eb52abe171bf4bdc4be0`。
+- `required-37.log`：15989B，SHA-256 `90d06af6f2df0fa2791061519f0042e58bc33c5655b6aa06f86cbf3272415a49`。
+- `required-38.log`：13099B，SHA-256 `eff8914230a18ae24334f139b2419b15d06782a0158511570d4de9af47bf9bb1`。
+- `required-39.log`：11481B，SHA-256 `29fa87a18eb77084a7657f0964aafc9455c88d86a0fd5bdf3d4553d243588414`。
+- `required-41.log`：3515B，SHA-256 `d7cac2612aee55f0ccaf87992f603eb29ad0ce4987ec912f45316acb0a787703`。
+- `required-42.log`：104B，SHA-256 `b30cc3e1cd52c763c116d5554c49a5a423fad9a9939e9c64f600fc2344946be8`。
+- `required-group.log`：0B，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。
+- `ws-after-dirty.log`：1748B，SHA-256 `4da36ea9c9df5ba703f85a3f5e37c386061b60d16fd49624ea0d11dbdbd7618e`。
+- `ws-before.log`：82B，SHA-256 `fe3e9dfbd74e2122ba2c69c34ee5ffa1481a50cbbbdce00df7c20019d84f6d16`。
+
+E工作稿doclinks/privacy-fs/schedule/emoji/diff/precommit真实exit0；其后追加本组日志锚，不冒工作稿为固定E全验。
+- `evidence-diff.log`：0B，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`，exit 0。
+- `evidence-doclinks.log`：47B，SHA-256 `fd572c00a95bcd71926a73eac61d8a3912d8b530d25e42d102ad5608e1ea2060`，exit 0。
+- `evidence-dry-rebuild.log`：626B，SHA-256 `de2d6af9843437c9211fcd63e94e262786ef5926382ae35de0b50b3103d185db`，exit 0。
+- `evidence-emoji.log`：23B，SHA-256 `e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3`，exit 0。
+- `evidence-precommit.log`：370B，SHA-256 `616c834c023616b319e4ba06cbdf6c216c3bd1691595a9746425a8dffe888484`，exit 0。
+- `evidence-privacy-fs.log`：67B，SHA-256 `9f60f8461bd29f924976ea9fecbc1eb7666670ef2953115c7bcce07c7fb4a136`，exit 0。
+- `evidence-schedule.log`：82B，SHA-256 `d360e836a6cc111c570c1c604162160bd7d8017185d5b77904a50445af4a2c20`，exit 0。
+
+
+## repair53 · owner20 第五轮（作者回修，独立验收待定）
+
+输入：clean E52 ecea00b9f9f8bd2cc30c1a811ccdaac6fddb5a8f；I53 dc69462ab7e4e01c726521d69118df9f91d4ea79。实际首工具08:32:59Z，固定截止不平移。
+
+行动：同一次30秒预算增加读取/阶段、AST访问与图重放协作检查，不提高限额、不重置内部trial时钟；超时保持closureReady=false和已知101分母，保留已扫描/未完成部分，不把剩余当none/zero-effect。显式测试时钟下共享两阶段、真实AST访问打断与101未扫描负例通过；完整effects测试仍因旧processGroupLifecycle边界FAIL。直接FS reader24 PASS，原cross-root/UNKNOWN_OPEN/FD ownership等边界不改。
+
+真实clean I53 required07 elapsed=30002.125333ms，denominator101/actionResults75，26项尚未完成。CLI原stdout未打印scanComplete/stopReason/unscanned IDs，26由ledger与实际结果精确差集推导并仅记录私有证据，不倒填stdout。默认无ledger且入口超时返回raw denominator0/IDs空应解释UNKNOWN，不是零真实分母；显式注入外部budget可以改started重置，留给54核，不冒默认CLI已发生绕限。单次同步parse/Git/OS硬抢占仍未证，30.002秒协作拒绝不宣称严格hard-stop。
+
+产出：clean I53唯一完整CI FAIL：Node3866 PASS/21 SKIP，离线distribution ENOTCACHED阻断，PythonCI未触达；单独Python160 PASS。40直接required36 PASS/4 FAIL=06/07/37/38；35/40沿真实CI失败，36仅限复用52实际clean完整PW64 PASS和936 owning Git对象精确同一，因此43状态36 PASS/6 FAIL/1 REUSED_PASS，不称本轮新PW或whole green。
+
+VOICE hub1266行当前全文已读，peer/session/send生命周期有具名锚，但barrier及外部predicate等依赖未全文闭合，保留陈旧VOICE_TRANSPORT_SOURCE失败，不刷hash。新完整性角色canonical仍待互补一致性，self-role业务代码未实施，35guard/34callable不减。
+
+审读：108–134/32–39逐项FULL/HUNK/METADATA/NOT_READ、当前与有效diff及双向映射见repair53/audit-coverage.json；160/46未覆盖完，006/008/012与snapshot/前轮carry不清零。历史档案不是生产合入/授信。E仅journal及corpus README当前导航按既有8退役事实修正；10-03观察原文保留为历史，600题/82blocked/518、源内容/required claims不动。E10/11/14/15另存真实清洁输入终态，I原结果不覆盖；wholeInputs不相等。
+
+结论：INCOMPLETE/RED，workflow FAILED，独立最终验收NOT_RUN。原V3准入仍拒绝；正式native授信/全通道UNKNOWN，下载例外无答复仍network0。原20字节UNRECOVERED，162锚及旧4完整helper保全禁止resume，未merge/push/cleanup，不自行54。
+
+私有目录owner20-six-rounds/repair53，日志不入Git，当前真实原名bytes与SHA：
+- `boundary-probe.log`：330B，SHA-256 `7bbd13b2f8be54bc2cb6d5f4445e09257a9448dd4dc28f2a594d7cea3e60a266`。
+- `ci-I53.log`：144302B，SHA-256 `aedb158048974b15a831aa2ab04909534c1297c212f0c5b38ec39f0e9750ba59`。
+- `commit-I53.log`：154B，SHA-256 `3e71fe934bce5a294bc5ca0f7c1503fb17896c1b3bc8576587dcec9b2253e220`。
+- `focused-deadline.log`：16087B，SHA-256 `0080e7e2f4cce5afd0e79f7ab03f97155dd37b1522a70c43b2679a111a02343b`。
+- `focused-reader.log`：1375B，SHA-256 `a265145a32ecef3c32fe07c0441a9a367c9b4bce546b84d8cfc8809018d0d300`。
+- `python-I53.log`：415B，SHA-256 `8ebd52f9e10d199e6d49bcce9add61bc340fd95fd15b123f4242f97c06519cc7`。
+- `required-00.log`：328B，SHA-256 `886a570fa6e766f1f531d64a07a0d8d92db07de3511a000f3a3033900f8e02c8`。
+- `required-01.log`：327B，SHA-256 `e84f53445bf5f6927a0a8215bdd6de64c3e31b20f9dec9d4e13aa11c85f48922`。
+- `required-02.log`：526B，SHA-256 `743d496d4bf61254f017c4353090b2c3053f35a53e17870a02cfb43098f8678a`。
+- `required-03.log`：129B，SHA-256 `186e5fdf31e61e4da9d89dd82b82bfa2e77ba1c91cee748d5a0c58077b901621`。
+- `required-04.log`：21B，SHA-256 `7814839f17399c70af7adc88a420262bda9e1c53d02e45ce5b4fef97abefac1a`。
+- `required-05.log`：24B，SHA-256 `39a4213f5f6c793ae104e1709eb5a20ef438aefe6987a3dd5711636506d2259d`。
+- `required-06.log`：25575B，SHA-256 `bcb578cab04ab891648b6cd9208853993357d38da025e9ef0e3408ee170fac88`。
+- `required-07.log`：2383624B，SHA-256 `ea6320bca7c1392b50e67b1235908daa77487b18d46d6855cd9fbf58e1013baf`。
+- `required-08.log`：18B，SHA-256 `75e047bc2efcef1de3f3ef2c4f030d2a394102cb7b8019bb86e6d33b02cdf638`。
+- `required-09.log`：21B，SHA-256 `5ee014a32aad1a0d1112ea37f75bea272b65eca50b0730a8849dd272a20125c8`。
+- `required-10.log`：18814B，SHA-256 `4f52033471e9d64a9ec890b497b838d25357384720b44cf822440c06dc62b28d`。
+- `required-11.log`：4691B，SHA-256 `85d607d26283d3c177e0b7045c49f7c5df895d5941dd35fe2297470df8d50c36`。
+- `required-12.log`：2021B，SHA-256 `e6f59226a37aab2bc3b2b7acb6a32cfac91478a8d3477478038d6ca7d31b6cab`。
+- `required-13.log`：531B，SHA-256 `5171873129c13c7a0cd25cf52f1c12631fc51139ab878b8a8230b357cdb76048`。
+- `required-14.log`：656B，SHA-256 `e944ed78d118845ab131175a9d28668b3898a17534cc323f0af95ed61ef502d6`。
+- `required-15.log`：1899B，SHA-256 `7517ace03217a12acefdf2e71479dab3ca5052a455206608f2456f3b5789c8d0`。
+- `required-16.log`：832B，SHA-256 `a24e86aa1d4e81347d3200f867a8176c8280e8a1608096a872e42236750b7d8b`。
+- `required-17.log`：28B，SHA-256 `fcf9d9b005e7c8ce7b76fb3bda5028373c684533cec26d35e41c6176db8c3886`。
+- `required-18.log`：1931B，SHA-256 `d9c369cc6531ee1f3f7e9401aaf38a99409a3b4ab72528a9664c79cbdda7f770`。
+- `required-19.log`：27B，SHA-256 `8b46650b1c52525eafa2b67b3cbfc74b9d7af3bf9e6a74d7f0edec511c91800c`。
+- `required-20.log`：1156B，SHA-256 `917d56956c12b7674c2e638f9282e0f5b7a62883e660dd7039eb0536c96c8fda`。
+- `required-21.log`：596B，SHA-256 `46c3a4352d49e98fbe4f60df7cdcb0a3482ce751a398747dca85a1b54080766a`。
+- `required-22.log`：1031B，SHA-256 `95bff6f0aa9305ee7da3c30382261252c8e5de96ff58c9a0cd2ea0edb079389d`。
+- `required-23.log`：12272B，SHA-256 `62eb38ac0a5589337716b4c05271434f9e876e56f1df88bc6b49c8fc660b6ae4`。
+- `required-24.log`：71B，SHA-256 `7c413e5e18145636179f2e0bda6352a2b47903ce4b37b201fe3b7fb982688bcd`。
+- `required-25.log`：512B，SHA-256 `6cb54e37c13b5eac36b23ef07aedcdc66c762b45493ebbe11704786b3295ca83`。
+- `required-26.log`：368B，SHA-256 `580e6f1f03e39a2a41adf0bbcf468acb2a16fb6cbd2ca81f69db4ae786d907e7`。
+- `required-27.log`：3583B，SHA-256 `31cf099c98f86d478a195f150e9bf4fc9dd0b10f812183814865ee58386d31ea`。
+- `required-28.log`：82B，SHA-256 `d360e836a6cc111c570c1c604162160bd7d8017185d5b77904a50445af4a2c20`。
+- `required-29.log`：47B，SHA-256 `fd572c00a95bcd71926a73eac61d8a3912d8b530d25e42d102ad5608e1ea2060`。
+- `required-30.log`：23B，SHA-256 `e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3`。
+- `required-31.log`：67B，SHA-256 `9f60f8461bd29f924976ea9fecbc1eb7666670ef2953115c7bcce07c7fb4a136`。
+- `required-32.log`：67B，SHA-256 `9f60f8461bd29f924976ea9fecbc1eb7666670ef2953115c7bcce07c7fb4a136`。
+- `required-33.log`：0B，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。
+- `required-34.log`：448B，SHA-256 `8394e399fc1db6433060ab605e25d3087af7e2fc3b75eb52abe171bf4bdc4be0`。
+- `required-37.log`：16087B，SHA-256 `0080e7e2f4cce5afd0e79f7ab03f97155dd37b1522a70c43b2679a111a02343b`。
+- `required-38.log`：13106B，SHA-256 `1c6a0d0a7826d155e2f26c2089935cee8ae4638e3b1c03cef86e516a4d4a4235`。
+- `required-39.log`：11483B，SHA-256 `f5d3e21a5fb468f33d1011088277633ade0b02681ca8e13c66bef15b7568e2ff`。
+- `required-41.log`：3515B，SHA-256 `41a5e4cfca27c8023d70c1a52a35a1383dbe0749e76ca18c044cd8f12a691725`。
+- `required-42.log`：104B，SHA-256 `b30cc3e1cd52c763c116d5554c49a5a423fad9a9939e9c64f600fc2344946be8`。
+- `required-group.log`：0B，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。
+
+工作稿doclinks/FSprivacy/schedule/emoji/precommit/diff门均exit0；后续clean E门禁单独记录，不反写I。真实工作稿日志：
+- `draft-diff.log`：0B，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。
+- `draft-doclinks.log`：47B，SHA-256 `fd572c00a95bcd71926a73eac61d8a3912d8b530d25e42d102ad5608e1ea2060`。
+- `draft-emoji.log`：23B，SHA-256 `e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3`。
+- `draft-fsprivacy.log`：67B，SHA-256 `9f60f8461bd29f924976ea9fecbc1eb7666670ef2953115c7bcce07c7fb4a136`。
+- `draft-precommit.log`：370B，SHA-256 `616c834c023616b319e4ba06cbdf6c216c3bd1691595a9746425a8dffe888484`。
+- `draft-schedule.log`：82B，SHA-256 `d360e836a6cc111c570c1c604162160bd7d8017185d5b77904a50445af4a2c20`。
+
+## R54 · owner20 第六轮局部诊断与预算完整性回修（2026-10-04）
+
+**输入**：clean E53 `6d1daf3a08ac0ebdae9898ae049ec209f6c23c27`；当前owner20第六/最后作者调用。原53的required07部分扫描FAIL、early未知分母与外部budget篡改负例原样保留。首tool 09:22:39Z，实际起点采样见私有ENTRY，不倒填；角色请求gpt-6.1-sol/medium，采样UNKNOWN。
+
+**行动**：按09现役诊断边界，CLI输出denominatorKnown/scanComplete/stopReason/unscannedActionIds；ledger未读时分母null/IDs null，已加载空records才知零。预算同holder私有WeakMap保存原started和真实bytes/files/origins/event引用；foreign恢复拒绝，起点/费用篡改恢复既记账后拒绝。显式readSync注入篡改时有效got仍实际计账，旧拒绝费用不回滚。不改09/zod/30秒上限/闭包授信。
+
+**产出**：I54 `f1ac25f16bed508f294293926a9585811bf57104`，clean I唯一CI实际FAIL，Node3866 PASS/21 SKIP；离线distribution ENOTCACHED停止，CI Python未触达。原独立Python错误argv指不存在uv，FileNotFoundError在Popen返回前，无owned PID；保留装配异常，主持确认一次procedure修正后独立just ci-python实际160 PASS，不能称完整CI通过。clean reader30 PASS。43项真实36 PASS/6 FAIL/1限定PW复用，FAIL06/07/35/37/38/40；最终38真实clean FAIL。07 stdout101/knowntrue、scanCompletefalse、stopReason预算拒绝、26未完成ID、files446/bytes5662202/elapsed30008.646ms，closureReady=false，不将未扫当none，不宣称同步parser/Git/OS严格硬抢占。
+
+52实际完整PW64 PASS的真实起止ref/status/fingerprint/argv/环境与回收receipt保留；936 owning Git对象I52→I54逐件相同，54未新PW。E仅journal证据，不冒wholeInputs同一或E新CI。正文阅读及有效delta/当前owning覆盖按audit-coverage逐项分账：第六块135–159/40–45仍PARTIAL，历史160/46分母和全部carry不缩。FULL正文不等实现全语义验收。
+
+**结论**：INCOMPLETE/RED，workflow FAILED，独立最终候选验收NOT_RUN，等待主持最后两fresh；不自行55。self-role canonical待互补一致性，产品新条款未实施；native/下载委任无真人回复，network0，正式native全通道UNKNOWN、准入0、C14 conservative unavailable不变。162保全/600题82blocked518/8退役/旧4禁resume与旧20原字节UNRECOVERED保留。本轮procedure修正1，窗口既有1后为2；原预算原task由主持管理。
+
+显式memory fixture窄核：预填memorySources可造零费fixture token，但默认physical snapshot拒绝；只有明确allowMemoryFixture=true可取fixture，无默认CLI/FS绕过结论。seen/memorySources成员及event内部数据未私有封印；此测试入口不能冒FS/native来源证明。
+
+私有产物：`~/.codex/tasks/saydo-unify-audit-20261003/owner20-six-rounds/repair54/`。日志不入Git；当前已产生原名bytes/SHA：
+
+| 日志 | bytes | SHA-256 |
+|---|---:|---|
+| ci-I54.log | 136080 | c079d9c712379ccdab38bb46966e239501ddd470afa8118e54d9386206d17dba |
+| commit-I54.log | 161 | 1ac32d11adee25ddbbd145c0e0c6bcbde8ce0f31a854b540dee51b4baf64085d |
+| draft-diff.log | 0 | e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 |
+| focused-effects.log | 16087 | 0080e7e2f4cce5afd0e79f7ab03f97155dd37b1522a70c43b2679a111a02343b |
+| focused-reader-final.log | 2354 | 138f04641a984f77482c209d276822fbe2eaf537fde7ec35f119b7cfbb85ef8a |
+| focused-reader-status.log | 2285 | 7b9e14927ac8101eea03e9692c866e55eca1a0db0bca293c27389b8abc5a3677 |
+| focused-reader.log | 1576 | de167630ce81d208c8d31e1fc0a89853f5f0e9bddc331d97cafb8cba21eeeceb |
+| memory-fixture-boundary.log | 688 | 70896f75870318ac1c3d05cae840067e609ab0acb7d35dbad73ce9b6864fe278 |
+| python-I54-actual.log | 415 | b649d36a3266a9da6b65dfbef3dae9958dac86f2f50e7faea8526b11d76512cd |
+| python-I54.log | 0 | e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 |
+| reader-I54.log | 2356 | 393036f358b9b8c0f73757a873800b18cd77dfbc840276188d21432ce76ff252 |
+| required-00.log | 327 | 1a6a62f326c4620cd044b26ade597bc46b3896e566312c8bab9dbb3056182d72 |
+| required-01.log | 325 | ec3833b7675cafaeadd38a63efcdacaf7edb4ab5ec23a85bac4314794170b7e9 |
+| required-02.log | 526 | 628b084d8403813faa0e78ccf00ce0fbcc3ac9034f7799e0fedbc90b88cb640f |
+| required-03.log | 129 | 186e5fdf31e61e4da9d89dd82b82bfa2e77ba1c91cee748d5a0c58077b901621 |
+| required-04.log | 21 | 7814839f17399c70af7adc88a420262bda9e1c53d02e45ce5b4fef97abefac1a |
+| required-05.log | 24 | 39a4213f5f6c793ae104e1709eb5a20ef438aefe6987a3dd5711636506d2259d |
+| required-06.log | 25574 | 0098b1b8ded155d55b38161ccf3e474eb24cd7404bafdd4e3a263b3c93ac77b9 |
+| required-07.log | 2384365 | a90338712260f82cd4fad33bc3c96ce662e775ed9e52503fec33bf6f8be72164 |
+| required-08.log | 18 | 75e047bc2efcef1de3f3ef2c4f030d2a394102cb7b8019bb86e6d33b02cdf638 |
+| required-09.log | 21 | 5ee014a32aad1a0d1112ea37f75bea272b65eca50b0730a8849dd272a20125c8 |
+| required-10.log | 18814 | 4f52033471e9d64a9ec890b497b838d25357384720b44cf822440c06dc62b28d |
+| required-11.log | 4691 | 85d607d26283d3c177e0b7045c49f7c5df895d5941dd35fe2297470df8d50c36 |
+| required-12.log | 2021 | e6f59226a37aab2bc3b2b7acb6a32cfac91478a8d3477478038d6ca7d31b6cab |
+| required-13.log | 531 | 5171873129c13c7a0cd25cf52f1c12631fc51139ab878b8a8230b357cdb76048 |
+| required-14.log | 656 | e944ed78d118845ab131175a9d28668b3898a17534cc323f0af95ed61ef502d6 |
+| required-15.log | 1899 | 7517ace03217a12acefdf2e71479dab3ca5052a455206608f2456f3b5789c8d0 |
+| required-16.log | 832 | a24e86aa1d4e81347d3200f867a8176c8280e8a1608096a872e42236750b7d8b |
+| required-17.log | 28 | fcf9d9b005e7c8ce7b76fb3bda5028373c684533cec26d35e41c6176db8c3886 |
+| required-18.log | 1931 | d9c369cc6531ee1f3f7e9401aaf38a99409a3b4ab72528a9664c79cbdda7f770 |
+| required-19.log | 27 | 8b46650b1c52525eafa2b67b3cbfc74b9d7af3bf9e6a74d7f0edec511c91800c |
+| required-20.log | 1156 | 917d56956c12b7674c2e638f9282e0f5b7a62883e660dd7039eb0536c96c8fda |
+| required-21.log | 596 | 06bb031f8692e844f593769c5f14865ca5b7c8eb6044ae32f6d30b6b8e8b6056 |
+| required-22.log | 1030 | ecacd657b2f4e2006ed6519f39be221e44dbb8ea4ced1d585cd09276ab6e79c0 |
+| required-23.log | 12272 | 62eb38ac0a5589337716b4c05271434f9e876e56f1df88bc6b49c8fc660b6ae4 |
+| required-24.log | 71 | 7c413e5e18145636179f2e0bda6352a2b47903ce4b37b201fe3b7fb982688bcd |
+| required-25.log | 512 | 6cb54e37c13b5eac36b23ef07aedcdc66c762b45493ebbe11704786b3295ca83 |
+| required-26.log | 368 | 580e6f1f03e39a2a41adf0bbcf468acb2a16fb6cbd2ca81f69db4ae786d907e7 |
+| required-27.log | 3583 | 31cf099c98f86d478a195f150e9bf4fc9dd0b10f812183814865ee58386d31ea |
+| required-28.log | 82 | d360e836a6cc111c570c1c604162160bd7d8017185d5b77904a50445af4a2c20 |
+| required-29.log | 47 | fd572c00a95bcd71926a73eac61d8a3912d8b530d25e42d102ad5608e1ea2060 |
+| required-30.log | 23 | e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3 |
+| required-31.log | 67 | 9f60f8461bd29f924976ea9fecbc1eb7666670ef2953115c7bcce07c7fb4a136 |
+| required-32.log | 67 | 9f60f8461bd29f924976ea9fecbc1eb7666670ef2953115c7bcce07c7fb4a136 |
+| required-33.log | 0 | e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 |
+| required-34.log | 448 | 8394e399fc1db6433060ab605e25d3087af7e2fc3b75eb52abe171bf4bdc4be0 |
+| required-37.log | 16087 | 0080e7e2f4cce5afd0e79f7ab03f97155dd37b1522a70c43b2679a111a02343b |
+| required-38.log | 13087 | ce1e20670e548b14a81363f77b138ab6f77f100645c3a8d79a3eee2bf8ba5e19 |
+| required-39.log | 11456 | dacc37e0de1feb6ce47531859ecfb1e16e17c444869f4b31eb2c48410e4cea9b |
+| required-41.log | 3515 | 22e444cee9e40174409cfc19f12c8639bfe109d529b5ce5a89c79ebe1f1fa7dd |
+| required-42.log | 104 | b30cc3e1cd52c763c116d5554c49a5a423fad9a9939e9c64f600fc2344946be8 |
+
+## 2026-10-04 repair55：Error own-data descriptor 有限来源修复与真实 RED 收口
+
+- 输入：原 V3 E54 `bcea014aeb336047a259820314f294a10f1c68e4`；owner21 九轮窗口本轮1/9。保持累计旧54修/29评/同根因43/程序6；作者不改任务账本、不自行56或review。
+- 行动：按现役09 §18.6 Error/data descriptor规则归一 defineProperty/defineProperties；未知receiver、getter/setter、flags、spread、方法替换和别名逃逸拒绝；value右值真实SQL藏写仍扫描。没有刷新VOICE_TRANSPORT_SOURCE、放行isNativeError/getPrototypeOf、改self-role、加native授信或提高cap。
+- 产出：代码 I55 `4eeb50d98be10938f2b8b374dddfefc19a89c14a`。仅 scripts/truth-plane-services.mjs、scripts/test-truth-plane-error-descriptors.mjs 与 action自测接线三个文件；产品daemon/console/pipeline源码、canonical未改。初始I `f9e2b2f4fd3fd40260a8f63386ef6b4e7dbeda13`、中间缓存I `5c55acfbe233bb02e2931618f06830a31974c7c5` 的真实回执和原日志保留；I作者内amend后冻结最终范围，没有复审冒通过。
+- 真实验证：新增2正例、17来源/getter/替换/逃逸负例、藏写1与未知字段1，以及同AST不同receiver/局部遮蔽/失败复用/源码漂移、同callee两组参数、显式AST getter改写场景通过；在清洁最终I的06真实执行。原37 Error图diagnostic从30降16（14条defineProperties消失），仍有isNativeError4/snapshot.slice4/getPrototypeOf8；37/38为06实际嵌套模块失败，无独立伪PID。
+- 结论：INCOMPLETE/RED，workflow FAILED。最终06 exit1，最终07 exit1；07全分母101，已扫72、未扫29，446files/5,662,202B/30,000.978ms，closureReady=false。旧75、首个31与缓存69各自实测保留，不外推全量或宣称性能通过。新增跨环境AST完整性缓存因节点可变性前提未封印而撤回；源码字符串绑定不是全AST证明。
+- 成本归因：一次私有loader instrumented诊断（不作required门）记录9模块2335次createSourceFile/3450.110ms、descriptor完整性6622次/2439.091ms；新descriptor自身无第二parse。可实施后继为owning scan私有解析/坐标handle、显式memory/IO fixture隔离、同预算收费与全输入绑定失效；并不自动获SOURCE_FINITE/native/全通道认证。
+- CI/PW/完整43项本轮NOT_RUN；旧just ci离线ENOTCACHED与35/40 FAIL、前轮限定PW复用和RF矩阵PENDING保留。实际cache盘点18metadata齐、当前平台4精确tarball缺：better-sqlite3@13.0.3/koffi@3.1.6/node-addon-api@8.9.0/@koromix/koffi-darwin-arm64@3.1.6。官方+lock integrity具体方案待owner，未下载/安装；没有重复撞完整CI。
+- 私有报告/预算/输入范围/缓存提案/原日志均在 `$CODEX_HOME/tasks/saydo-unify-audit-20261003/owner21-nine-rounds/repair55`；原162保全锚按原登记全核，未恢复旧20原字节；guard/hash/进程回收只证明完整性与终态，不能代独立验收。
+- 收口检查：首次privacy调用缺参数exit2；随后--fs发现journal本机路径exit1，已改为环境根路径表示，原失败日志保留。
+- 独立评审NOT_RUN；旧未读160doc/46commit范围和main/GitHub/发布/设备/provider/签名/正式native/独立委任未验项均保留。未merge/push/cleanup、未改主树或全局配置。
+
+本轮journal冻结前真实日志（不入Git）：
+
+| 文件 | bytes | SHA-256 |
+|---|---:|---|
+| commit-I55-accepted-scope.log | 262 | d9d73567b1998b47aec14b12b8c6efae189fd9ab50edcacc17ddd788fcffdee2 |
+| commit-I55-final.log | 261 | bbb2ccc8a423c6130cffaa45b60b8292c453a6867d1c3f45d4ccb3219021a0b2 |
+| commit-I55.log | 224 | 7585ad0d44ddab5d1a81274592b28f9c7477c1cc215d611cd68cb3dbbe2daddd |
+| descriptor-cache-draft.log | 88 | a6b66693998383f6f17a1d0980ed20219100e90b52a7476128f50e36363901fe |
+| descriptor-draft.log | 737 | b0010891902f874eeb5773b61077921977d95e5f43e08d407a05882171ec4078 |
+| descriptor-draft2.log | 88 | 0ff42ab30c8fcfecf41397e1e0f61ae131c51e8ffb9c0ffe56f63f30d6e17b35 |
+| descriptor-draft3.log | 88 | a6b66693998383f6f17a1d0980ed20219100e90b52a7476128f50e36363901fe |
+| descriptor-no-cache-final-draft.log | 258 | 0697e7ad7603ec44aa7a7d18f60d43c7fa6503a611b7625b75519b2fcd3e04fe |
+| draft-emoji.log | 23 | e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3 |
+| draft-syntax.log | 0 | e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 |
+| effects-draft.log | 11411 | cb30d6dac3b0033ef479ba5707e5f1b7f5c6a25ed52bf4391fd66c2ed24a0293 |
+| perf-diagnostic-I55.log | 2244372 | 148df9c94c739d12ebe3da89c7cf0932cf9b8dcefbf0f0ecdf7b5100fe1c1480 |
+| required06-I55-scope.log | 23454 | c3bbdb06484d45c346c12fbebf1174089dfe8dc7e1222e591f8390d6b8063c7e |
+| required06-I55.log | 23274 | f399a8eadfd820eab133cbbb60ba1c5b78d98eb8700bb111896863a67d41c35b |
+| required07-I55-final.log | 2185185 | bac284387891f1578d90cc3d5f385a62e0fb2c20c8df6dcb35d75bb798a8711e |
+| required07-I55-scope.log | 2326907 | 2148be68a0d6ad0638d4874b3e441c3b35f68e09c1e2856cb42f4cd412a96eca |
+| required07-I55.log | 1580704 | d4cd2f7c95d42d94d753a5760ccca0935f54ef31efc3079f0179ff1e18755483 |
+
+
+### 2026-10-04 owner21 第56轮：周差异审读与权威活跃耗时投影（INCOMPLETE）
+
+- 输入：固定 E55 `924f3e2a3d2558f809f4c23eb1e5ed662a1854ea`；原 E54 分母114文档路径/95refs（94本地+1remote-only）维持，55 delta另列；旧失败与20原字节UNRECOVERED保持。
+- 行动：现役合同耗时照共享 taskViewSchema.elapsedActiveMs 校验，仅安全非负整数可显示，缺失/null/非法显示未知；不从 created/updated 或 runs 推已跑/0。实际getTaskDetail未给该字段，诚实呈现未知。本轮未改变读口或计时权威。
+- 产出：代码 I56 `4797f1adda223edbc5c243e67e241a42a1c3ac8a`，五路径：mappers.ts、redesign/types.ts、TaskCard.tsx、ReviewPanel.tsx、taskElapsedDisplay.test.tsx。最终控制台71文件593测试、类型检查与相关lint真实PASS；初稿1测试失败已修复，原日志保留。
+- 审读：78份FULL净hunk与1份现役AGENTS FULL_SOURCE；docs09 192361B与docs11 18184B全部净hunk逐节读，不称长文件全文。15提交FULL净hunk、4部分，1空恢复快照、1五文件root恢复快照通过本轮已读内容加完整脱敏差异重建。35文档与74未读提交/4部分提交仍在逐项矩阵，整周INCOMPLETE。
+- 结论：generic局部512/1MiB/8MiB/30秒合法；owner18完整验收2048/64MiB/128MiB/60秒已经具名批准且有canonical维度PASS，但完整task opt-in/all-channel接口未落地，与formal native UNKNOWN分别登记。本轮不升cap。RF inventory真实FAILED，来源绑定/新增测试需后继逐写点语义核后更新，不刷hash。成本provenance/第三态与混币种具体路径登记后继，未改新view语义。
+- 私有矩阵、范围memo、日志、进程回收与完整性证据：`$CODEX_HOME/tasks/saydo-unify-audit-20261003/owner21-nine-rounds/repair56`。全部日志不入Git；独立评审NOT_RUN、完整CI因既知offline缺包未重跑、43门/native/PW未跑，不以本轮scoped PASS替整任务GREEN。未merge/push/cleanup，主树只读。
+
+本轮journal冻结前真实日志（后续收口日志另在私有manifest）：
+
+| 文件 | bytes | SHA-256 |
+|---|---:|---|
+| commit-I56-final.log | 272 | a5f1cb9a8fba112e8d5c8ef678d5dcff071fe643aa682b3f8552fb81dacbc978 |
+| commit-I56.log | 235 | b2631c1c057754bd7a8b9519e94e01d607bdad4a760545fec4037c8f27bf5e3a |
+| console-suite.log | 4523 | f01064307e61b95abfabdf06968fc33fa9409b09ea804585554afc3ae0634311 |
+| console-typecheck-final.log | 135 | c5fdcaf0371d27382957039e4e193af0e26217852adbddfea308a8fc44a8a771 |
+| console-typecheck.log | 135 | c5fdcaf0371d27382957039e4e193af0e26217852adbddfea308a8fc44a8a771 |
+| elapsed-final-3.log | 4521 | 6440b5814d8a6a8256318fb1f6754c032d8abca8424d3b65b22e7a272cadc8ff |
+| elapsed-focused-2.log | 619 | 07b8a3d181090b2af6b5503cc8d73387088427cf8e3f527af346e421df868e2a |
+| elapsed-focused-draft.log | 3422 | 151fcb3ba921c10f12c9f917f563617098900fa4ccdaa44f92a13d0a002241ef |
+| elapsed-lint-final.log | 0 | e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 |
+| elapsed-lint.log | 0 | e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 |
+| rf-inventory-I56.log | 683 | b9107a3e4c9e0d212ee5cc8ab5bdb57e9807a272452b237c32dcaae39c1f0e23 |
+| rf-inventory-final-I56.log | 792 | 2f8b9144f0d181b068be789d4715dbec4422eba6e8646b2549c37fed8ba2b653 |
+
+
+## repair57 · owner21 第三轮成本明细与周审读批次
+
+- 输入：clean E56 `62c3c606d159f8319ac076c61e31a063c4b960c2`，原E54 114有效docs/95refs/94非空净diff分母不变；追加窗口第3/9，本轮不派fresh review/58或改原task账本，主树只读。
+- 行动：照抄09§11仅provenance=subscription允许订阅文案、现有Money与11诚实数字纪律。Cost/TaskDetail三明细真实入口传JSON meta，任务mapper分币种已知小计/未知/第三态，ReviewPanel/TaskCard/HpTaskModal复用；legacy/invalid JSON或requests不编0，API合法零/未知分开，write/HTTP/DDL不变。§0短注省略provenance以§11解释，仅登记澄清点不改canonical。
+- 产出：代码I57 `f15d3e1295dc4e2178055f12545b65da3621e848`，10paths；最终同一产品字节console72files/622tests、typecheck、10path lint实际PASS（含29专项生产mapper/SSR反例）。初稿fixture11失败与两次fixture类型失败原日志保留，未当业务问题修复数。57新增9doc完整净hunk、15私有文本全文、13首父全文及2首父空diff；累计doc87FULL_HUNK/16FULL_SOURCE/11NOT_READ，commit28FULL首父/4PARTIAL/3EMPTY/1ROOT/59NOT_READ。56同作者真实相同Git对象读取显式复用，私有全文不是native认证，取得diff不等语义读取；apps/ios五源与justfile后继单列。
+- 结论：INCOMPLETE/RED，workflow FAILED；成本明细与任务专项执行和检查已跑，等主持fresh验收，不称Cost全页汇总已修。新增getCosts knownTotal>0抹去API合法零、Cost分组/图表不辨provenance线索按精确source对象/数据反例留后继；不重分类source或修改write。RF final-I实际FAIL(2565→2569/8stale/3未分类)，未只刷hash；required06/07/37/38旧失败保留。完整CI/43门/PW/fresh review/native/iOS/device本轮NOT_RUN，formalNative/allChannels UNKNOWN、20UNRECOVERED，162原锚实际全等。owner18资源已批准与generic局部/完整接口未落地分开，本轮cap不变；cache PENDING、network0、不下载/install/native重开/merge/push/cleanup。
+
+任务外产物：`saydo-unify-audit-20261003/owner21-nine-rounds/repair57/{REPORT.md,RESULT.json,DOCUMENT-MATRIX.json,COMMIT-MATRIX.json,COST-AGGREGATE-FOLLOWUP.json,DECISION-MEMO.md,PRODUCTION-SOURCE-BINDINGS.json,REMAINING-BATCHES.json,SOURCE-FROZEN.json,I-E-bindings.json,guard-final.json,LOG-SHA256.json,OWNED-PROCESS-READBACK.json,file-manifest.json}`。E仅本journal，记录I不自指，固定E卫生/完整NUL树对照与真实终态见私有回执。
+
+本轮原日志（均不入Git）：
+- `commit-I57.log`：282B，SHA-256 `719cdd80b262fdb0c006033fec0a614b47b9d493eab435f04c85dbf7d3199759`，exit 0。
+- `cost-console-final2.log`：4575B，SHA-256 `08f07c2f47c3dc366085f7198daf260f89284758de125c8b5b24dd11bfa2e8c2`，exit 0。
+- `cost-console-final3.log`：4576B，SHA-256 `a1904a2e2af4e5f42fa350340ff31f799f4f4efa561c3a3ead8a8f8430464bce`，exit 0。
+- `cost-console-suite.log`：4575B，SHA-256 `750cefc0d40a3fefc3f6805c81f9040e91398a7a2b70d37e77ee2a69a8c86567`，exit 0。
+- `cost-final4.log`：4712B，SHA-256 `4741507586342e7c84ceb09dbe85042168025e76ac349dc69aa87717029ccbaf`，exit 0。
+- `cost-focused-1.log`：8318B，SHA-256 `ee9bb04565b9015f9377289286d87bbfee1a6356ae867a15e8dd924ff4fbe276`，exit 1。
+- `cost-focused-2.log`：509B，SHA-256 `eb0a3af9e2995a3a0ce6bdf7fd5188d8676faf10186f392faa34263f7ff51e12`，exit 0。
+- `cost-lint-final.log`：0B，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`，exit 0。
+- `cost-lint-final2.log`：0B，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`，exit 0。
+- `cost-lint-final3.log`：0B，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`，exit 0。
+- `cost-typecheck-draft.log`：135B，SHA-256 `c5fdcaf0371d27382957039e4e193af0e26217852adbddfea308a8fc44a8a771`，exit 0。
+- `cost-typecheck-final.log`：1084B，SHA-256 `01bc456a804a7026ee77e8476a739cbae2c45d52f25dfbb3632f0c61ba43a9ff`，exit 2。
+- `cost-typecheck-final2.log`：135B，SHA-256 `c5fdcaf0371d27382957039e4e193af0e26217852adbddfea308a8fc44a8a771`，exit 0。
+- `cost-typecheck-final3.log`：679B，SHA-256 `931d4cd3be0141a515d992211049e0856641fe8d786a76b2d56b117ecb02c49f`，exit 2。
+- `rf-inventory-I57.log`：1269B，SHA-256 `0304b6f45e2efd05e59a6c70fa0d0a2523ca405da51730a6787977d2653c31ee`，exit 1。
+
+E工作稿doclinks/schedule/emoji/privacy-fs/diff真实exit0，`close-gates-I57.log` 219B/SHA-256 `20aac07b0f97f09346dfcb4e708f1c22024d987efe55dc1d0988041527406aa2`；其后仅追加本句日志锚，不冒为固定E全产品验收。
+
+
+## 2026-10-04 原V3 repair58：成本汇总与周审读续批
+
+输入：E57 `aea685afd1bc4d9491b3e5b20270769232cba388`，本轮 owner21 第4/9具名修复；原54修/29评历史不清零，author未独立自审。
+
+行动：按09 Money/订阅provenance第三态与11诚实数字纪律，getCosts内部knownCount保留API合法0；Cost实际group/chart/window复用生产投影，分币种/未知/上游/订阅分别保留，聚合溢出拒部分总数。完整账本来源/N缺口明确未汇总，不借300窗口，不变HTTP/write/DDL/canonical/cap。
+
+产出：I58 `88bb5b9abfc47ed97c65557772cdb14fc3b88889` 七代码/测试路径；最终console73文件634测试、真实API→console4例、两包typecheck/七路径lint PASS_SCOPE_ONLY；daemon初轮173PASS/2skip文件2944PASS/6skip测试。初稿chart fixture7失败与跨包rootDir类型失败原日志保留，修后相应验证通过。
+
+审读：原114docs中89FULL_HUNK/17FULL_SOURCE/8NOT_READ；原95commit中29FULL首父/12PARTIAL/50NOT_READ/3EMPTY/1ROOT。38/92/109本轮实际全读，24首父16路径+hunk/iOS4具名现役全文；59/65及62/63/66/67/68/72只同完整小hunk/owning读取，大snapshot继续PARTIAL，55–58delta另列。
+
+结论：整体INCOMPLETE/RED，旧required06/07/37/38、PG/RF/native/allChannel未知和20UNRECOVERED保持；原162锚未改。full资源已经owner18批准但完整task接口未落地，generic合法且本轮不升cap。原RF00–11链已授权，不能跨PGrequired/checkpoint。缓存PENDING/network0，不撞knowncache完整CI。无review/59、main改动、merge/push/cleanup。
+
+证据私有目录：`~/.codex/tasks/saydo-unify-audit-20261003/owner21-nine-rounds/repair58/`；REPORT/RESULT、逐path/commit语义矩阵、REMAINING-BATCHES、来源/验证/I-E绑定、guard-final/manifest、owned回收及原日志均在此。journal为E唯一改动；原日志不入Git。
+
+本轮已发生原日志：
+
+- `close-gates-I58.log`：219 bytes；SHA-256 `d7495c96799a8bd4c6de7e9597e3cb274695eb7f878b28528c8e3d96e589973b`；exit=0；PID/PGID=45429/45429；owned leader 已回收、groupGone=True。
+- `commit-I58.log`：301 bytes；SHA-256 `ec96fe2927e89f6e2e5d7f8c69aff6b567e79edff9d2f1f1d796b6b3a0728152`；exit=0；PID/PGID=40380/40380；owned leader 已回收、groupGone=True。
+- `costs-final-check.log`：5443 bytes；SHA-256 `fefdfe8378031f9dc3f85dd33f1301faeda08c43324dc32326b16a6f38b0bcdf`；exit=2；PID/PGID=20833/20833；owned leader 已回收、groupGone=True。
+- `costs-focused.log`：74124 bytes；SHA-256 `26cadaabbc2acdbf6b658d40b298f34fba887c5956480e0f424f5575b12133b9`；exit=1；PID/PGID=67619/67619；owned leader 已回收、groupGone=True。
+- `costs-stable.log`：5463 bytes；SHA-256 `e4a8439a765ea835edfa5dfb6b9bea362a2269208a0680a99bcb8c334d459a69`；exit=0；PID/PGID=38696/38696；owned leader 已回收、groupGone=True。
+- `costs-type-focused.log`：845 bytes；SHA-256 `31ef1829312b289778b1ad15ad460f4e6ff42601fdc11b9c6aff3eac2db8ff70`；exit=0；PID/PGID=37395/37395；owned leader 已回收、groupGone=True。
+
+
+### 2026-10-04 修复第59轮：语音集合归属与来源库存
+
+输入：E58 `c51040376857de094d30e8b4dc8397970ff15464`，owner21第5/9原V3已预约。主树只读，原114文档/95提交分母与旧FAILED/native UNKNOWN/20lost UNRECOVERED保留。
+
+行动：完整实读VoiceHub/processGroupLifecycle及17个RF变化语料、具名Windows与strictRuntimeChildProof范围；真实WS反例证明predicate可保存/篡改原peer.sessionIds。按既有观察元数据合同复制集合，隔离授权绑定；没有native名字白名单、AST缓存或cap变化。维护四份RF库存，准确登记新测试固定new URL fixture；每actual registration/handler/conditions-via/write核完才刷新来源，不机械洗06。继续周审读，主持贡献单列reader，未冒作者全文或fresh独立评审。
+
+产出：I59 `c8e41c4a37e986110f938be47065aaa9085653be`，两个产品/测试路径及四个research/rf-00维护路径。私有产物落点 `saydo-unify-audit-20261003/owner21-nine-rounds/repair59`（宿主私有tasks根，绝对路径仅私有REPORT记录）：REPORT.md、RESULT.json、DECISION-MEMO.md、逐path/commit矩阵、SOURCE-FROZEN、完整dirty/staged载荷到I对象绑定、日志SHA、manifest、原162锚与每owned回收。日志不入Git。
+
+结论：整体INCOMPLETE/RED/FAILED，局部scope PASS only。原产品三个真实WS反例失败；修复后57专项通过、daemon完整2947通过/6跳过（173文件通过/2跳过），typecheck通过/source lint0错误（test忽略警告不称lint通过）。RF机械649check通过。required06/07本轮真实exit1；它们名称虽含I59，真实HEAD E58 dirty六路径fingerprint `c92a6fb02ed34261a42de4aaade53d12493598d2c1d0745509acac181fe1831d`，完整载荷与最终I六对象重建绑定，不称clean I门。07实际14829failures；16processGroup来源/Windows新stdioowner/formalnative/allchannels仍未闭合，四ledger旧cohort未刷新。
+
+周审读111/114文档（92净hunk全文/19来源全文；余49/84/101），41完整首父hunk/38未读/12部分/3空/1root。59新增5文档与12commit真实全文范围，主持贡献明确列reader root host；旧时点PASS不继承今轮。具体all-ledger billing只读兼容字段、非法N/overflow/JSON规则提案待canonical一致性，不先改形状；Cost窗口笔数/PW early cleanup静态线索待后继实际故障反例，不在本轮扩施工。generic30s与已批准owner18完整60s opt-in尚未接线区分，nativeUNKNOWN是独立前提。cache PENDING/network0，完整CI/43门/RF-PG-B1/设备/browser/三fresh NOT_RUN，不重撞known-cache。没有60/review/merge/push/cleanup/task账本更改。
+
+本轮日志原始终态（journal首次privacy home路径失败保留，已改私有相对定位；不删失败）：
+
+- `close-gates-I59.log`：219 bytes；SHA-256 `d7495c96799a8bd4c6de7e9597e3cb274695eb7f878b28528c8e3d96e589973b`；exit=0；PID/PGID=30818/30818；leaderReaped=True；groupGone=True。
+
+- `commit-I59.log`：161 bytes；SHA-256 `c177048fbe1809503a71ecbe2aa394e95607f1424b85ef72c0d6326ea4b81279`；exit=0；PID/PGID=29405/29405；leaderReaped=True；groupGone=True。
+
+- `daemon-final-I59.log`：74126 bytes；SHA-256 `72fc17cfcffac553a8d1a557fd3a7800c6411365b16f0cef4711289f7279336a`；exit=0；PID/PGID=42287/42287；leaderReaped=True；groupGone=True。
+
+- `journal-gates.log`：214 bytes；SHA-256 `f87f3863fcee55e019749575f7f06ca3ae5eca1852bf727b6d1298ba819b4f69`；exit=1；PID/PGID=54489/54489；leaderReaped=True；groupGone=True。
+
+- `peer-snapshot-after.log`：749 bytes；SHA-256 `09bc4dcb8c6dcf6df0e46507823f4c73705e482cc3e3be9bff25e8add693c3f2`；exit=0；PID/PGID=4114/4114；leaderReaped=True；groupGone=True。
+
+- `peer-snapshot-before.log`：10058 bytes；SHA-256 `35574d95b7a06599062be5c89dbd01399438c084597cb6fcd97248b2a73605a9`；exit=1；PID/PGID=3112/3112；leaderReaped=True；groupGone=True。
+
+- `required06-I59.log`：21609 bytes；SHA-256 `90335bbf23238bc4091e51845e24f26aa2ed205fa84d81ddfb69d5ffb8ef780d`；exit=1；PID/PGID=25972/25972；leaderReaped=True；groupGone=True。
+
+- `required07-I59.log`：2259873 bytes；SHA-256 `5415709e3bdfd65cbbb12027ef2efa505d222ca0234001c01c84801aed195547`；exit=1；PID/PGID=26015/26015；leaderReaped=True；groupGone=True。
+
+- `rf-final-check.log`：368 bytes；SHA-256 `c42f56e85ef8f464b0ead5de9de18868ccfcf43e9fb4e0db398fd797f6cd9c77`；exit=0；PID/PGID=26040/26040；leaderReaped=True；groupGone=True。
+
+- `rf-maintained-check.log`：156 bytes；SHA-256 `4e674e3eeb93633872a3e83d3728808f4b50785f8fd20f3775f985e90bfddcbd`；exit=1；PID/PGID=23758/23758；leaderReaped=True；groupGone=True。
+
+- `rf-write-after-semantic.log`：69 bytes；SHA-256 `7504082de1d6f837978c38fbfd796c767ed369d4ef9a49c793f6eca72e666a9a`；exit=0；PID/PGID=25324/25324；leaderReaped=True；groupGone=True。
+
+
+## 2026-10-04 repair60：测试owned早期回收与成本窗口笔数
+
+输入：E59 `e3bf96a69405258a0f89ae1ed26fd1d768974781`，原V3第60修/owner21第6修；原失败、20丢字节UNRECOVERED与缓存授权PENDING保留。
+
+行动：helper/globalSetup早期创建纳入精确owned回收，清理失败同时可见；Cost项目表明确窗口笔数且真实300行/整账本413反例；HF实际WS精确归属fence；offline变异初始化移入既有try。产出：I60 `680c9f783b0ee3475dd2f42981ee4e244e107dd2`，七代码/测试路径；私有本轮证据owner21-nine-rounds/repair60中REPORT/RESULT/矩阵/原日志/全payload/I-E/guard。
+
+结论：专项11PASS、Cost13PASS、console635PASS、daemon2954PASS/6SKIP、typecheckPASS；fresh完整PW64PASS。运行实为E59 dirty对应I60源码载荷，暂存另核，不冒clean I运行。原before6FAIL/1PASS、Cost1FAIL、daemon旧HF1FAIL均保留，三个eslint忽略warning不冒已lint。周113/114文档与50/95首父完整审读，余49及36NOT_READ/5PARTIAL，未授native/全验收。162原锚160现役不变+2授权源原Git字节保全，不称全disk不变。required/RF/PG/B1/native/allchannels未决，整体INCOMPLETE/RED/FAILED；无独立自评、网络、merge/push。
+
+本轮真实日志（私有目录，不入Git）：
+
+- `affected-final-causal.log`：68343 B，SHA-256 `bf9d2dfdfd99b5577696487010443589b5ed87ba643c9bc3bc61d1a6cbb0efe5`。
+- `affected-final.log`：71550 B，SHA-256 `01939135292493e577710316fd23db36bf0cc801c456be902f36625ed6519b4e`。
+- `close-clean-I60-corrected.log`：172 B，SHA-256 `444ac42fad397f7351e42d66795adf963a66eae072270c72005147382e4a86da`。
+- `close-clean-I60.log`：778 B，SHA-256 `9dcf6240482862927ccc59092e283d3e9f9837859ca7a43f3ea85e14541ee42a`。
+- `commit-I60.log`：244 B，SHA-256 `c8e7a63a4859a75a9fd8de4ee8952fc621aab8ce160d5fa5a39d814436c500b5`。
+- `cost-window-before.log`：4470 B，SHA-256 `1123c75bfcd85d12e77e625bcbdcc4a6028f969a64d77945743934e234ac6cae`。
+- `daemon-final-exact-fence.log`：66166 B，SHA-256 `d921b8ff99c7a83195f6af9a9a28ae40cf40c135615b41d141bcf134abbf4f9e`。
+- `offline-mutation-after.log`：156 B，SHA-256 `d3ea83b305a497befabc7a8160bb078bab9988edf6530f59a199d0b841be7460`。
+- `pw-I60.log`：8263 B，SHA-256 `4066d83c662f63c338cc0b1929b05171cdd732dd920e78ed0ad06c89ae977d18`。
+- `pw-cleanup-after.log`：1144 B，SHA-256 `6bd829293c847f88886ee793c5146912ed03813ef784c92b41341b86ab73f645`。
+- `pw-cleanup-before.log`：5258 B，SHA-256 `4d5bfe0c31d6517c966e23d188aa072c43e89008f026870a64ab615bdba9a161`。
+- `journal-gates.log`：90 B，SHA-256 `2e532d25d434976a0a19e2042b37332b9b43b7216f98fcd2d46addcb2c3e3221`。
+
+
+## repair61 · owner21 第七轮全账本计费合同候选（2026-10-04）
+
+输入：clean E60 `2fc0fa69f2c824791189e046410acf87b01cdba2`；本次追加第7/9轮，原required、全RF/PG/B1范围、预算、20UNRECOVERED保持。target15:56:11/stopNew16:06:11/hard16:11:11 UTC不延。
+
+行动：亲读Money/cost projection/ledger与实际getCosts读口，先冻结09/11同形状全账本billing四字段、同快照、API合法0/币种、provenance三态、overflow真实贡献计数及跨项目null、完整订阅N与旧server/client兼容候选。原执行proof段落不纳计费小节。daemon/src、console/src、contracts实现/DDL/写口不改；先待fresh一致性检查点。四ledger完整conditions/via未补足不刷hash，来源绑定机制与finite拒绝各记。
+
+产出：I61 `af36e51f6439cac83bd46635a20318b3590ff757`仅两canonical文档。最终dirty文档链接/排产/emoji PASS并完整两载荷字节到I绑定；cleanI对应门PASS。privacy首argv HEAD不合法真实exit2保留，40位固定I另PASS。114文档94完整净hunk+20来源全文、95commit57完整首父/29未读/5partial/3空/1root；host7贡献准确回执复用不冒作者阅读，doc49全部历史hunk亲读，旧PASS不继承现势验收。余34提交精确carry。私有repair61 REPORT/RESULT/矩阵/LEDGER-READBACK/guards/manifest另落盘，不以待读571191B称实测费用。
+
+结论：INCOMPLETE/RED、workflow FAILED；canonical独立review31待主持，作者不自评PASS_SCOPE_ONLY；新billing生产反例/完整CI与43required/native/provider本轮NOT_RUN。旧06/07/37/38、finite16/Windows/VOICE/RF/PG/B1未闭合保持，正式native/allChannels UNKNOWN，network0/四payload授权PENDING，原20丢字节未恢复。不自行62/review/main/merge/push/cleanup。162旧锚160现役disk+2既有私有Git字节保全，本轮canonical不属于原锚，不追改60sealed。E只journal，不冒wholeInputs同一。
+
+日志不入Git，实际原名/bytes/SHA：
+- `canonical-draft-gates.log`：152B，SHA-256 `d02b83ded16e998bd5896a21b0bb7be5c99436c6cd459a84f87a1c473d3c8bed`。
+- `canonical-final-draft-gates.log`：152B，SHA-256 `d02b83ded16e998bd5896a21b0bb7be5c99436c6cd459a84f87a1c473d3c8bed`。
+- `close-clean-I61.log`：184B，SHA-256 `703b804967f16833b114fc4e1841c5b2187a67afba955153551d1d691889dbe5`。
+- `commit-I61.log`：153B，SHA-256 `5a62a17104216d326331e7d276e09644306642a020361dcc03f54de176fb0c57`。
+- `fixed-I61-privacy.log`：67B，SHA-256 `5c73c030693d9b52d99bbb18327c0fdf3422f46e861e30a3fd2cff74db4e27f9`。
+
+
+## repair62 — 已通过合同检查点后的全账本成本来源接线
+
+- 输入：E61 `301e74f531e4f07697499bf8d935e1e6136883f6`；review31仅新增billing合同两互补视角PASS_SCOPE_ONLY，整体required/独立实施验收未通过。
+- 行动：复用contracts严格四字段与Money，getCosts同SQLite只读snapshot全账本汇总/窗口/总量；真实overflow、未知N、旧server、混币种、隐藏>300行与WAL并发反例；Cost及任务共享投影。未改write/DDL/cap，network0。
+- 产出：I62 `673c2732abee88dd2f7c75127ada663652fdc0de`，13路径；最终dirty与staged完整payload真实绑定。09/11只同步review31已批准规则的实施阶段。
+- 结论：本轮局部测试通过，整任务INCOMPLETE/RED。早期全套contracts167/console645/daemon2958PASS+6SKIP为dirty实际字节；最后console标签/测试清理分别完整console645与daemon8专项及type/lint复验，不冒最终clean I全套。三次初稿FAIL原FP/log保留；完整justci四payload授权PENDING、native/allChannels UNKNOWN、原required/RF/PG/B1及20丢失UNRECOVERED保持。162保全锚160现役disk+2沿用60私有E59 Git锚，本轮无新delta。
+- 周审：原114文档/95提交分母保持；61FULL/25NOTREAD/5PARTIAL+3EMPTY1ROOT，余30精确ID在私有REMAINING-BATCHES。host80/92/90/47实际完整hunk按reader=root记录，非本作者亲读/非fresh。
+- 证据：私有owner21-nine-rounds/repair62；full-affected-held.log 71210B SHA-256 78531d75b3980703c3c96fb6de113f56eef80242da59eb95d47bd40ed5351cf8；canonical-sync-contract-gates.log 1312B 80d4d9349358270ea0c152f0420012c18b2c91aa05f51622d1078077ab0896a6；console-label-final.log 4824B 88e47c87e1d2c6c8a937f5ceb60ff6227b4162451d0c32814835af2323e62717；snapshot-dispose-final.log 712B 0536c6a3ff9a65ec4e9f121ed838adf9d33ef970546b8b216a09f51c9189c1b5。所有实际PID/PGID与终态、其余失败日志字节SHA、guard与manifest见REPORT/RESULT/OWNED-PROCESS-READBACK。
+
+
+## repair63 — 最后作者轮具名Focus成本、ASR语料与owned初始化回修
+
+- 输入：E62 `e64bf121933ab0ce49fb52d90fa6ef2dc6055a24`；review32确认P2-32-01/02，无owner取舍，额外具名stagedStored故注授权；追加第9/9。
+- 行动：真实Focus成功详情costs传共享投影，旧/失败/非法未知；ASR partial只临时UI保稿且事实需final，语料与14正负判定控制；stagedStored登记前初始化失败只回收owned root，cleanup失败保两异常。canonical/HTTP/DDL/write/cap未改，network0。
+- 产出：I63 `1c5a553ec2b19da6ba8441b3b662dc94b4e4ac3c`，10路径；actualE62 dirty与staged完整载荷/全部源码快照到I逐byte绑定。affected-full-final真实root type/lint、contracts167、console662、owned7、fixture14及相关短门PASS；fresh PW63真实66PASS（含2个Focus成本浏览器反例），3装配PG与runner均回收，不借旧I60。
+- 结论：本轮局部PASS，整体INCOMPLETE/RED，最后fresh33待主持。原before-focus12FAIL/5PASS、before-staging6FAIL/1PASS、首次affected-full TS exit2保留。完整justci四payloadPENDING、required/RF/PG/B1/16finite/Windows/Voice/native/allChannels未闭，20lost UNRECOVERED。162锚159现役disk+2旧E59私有+1新E62 scanner旧Git保全，不恢复旧丢字节。
+- 周审：原114/95分母保留，61FULL/24NOTREAD/6PARTIAL+3EMPTY1ROOT；commit41九路径完整首父18142B只PARTIAL，30未完原ID保留。
+- 证据：owner21-nine-rounds/repair63私有REPORT/RESULT/完整payload/source/logSHA/manifest/PG；pw-I63.log 8444B SHA-256 514f4c468f2bd89b09da76a8e148a92f6c757d4c06b815afa9cff5eb16b322cc。新截图/运行证据复制核byte/SHA；默认test-results旧未枚举scratch保全UNKNOWN，不扩称全部旧制品保全。其余失败与PASS日志精确bytes/SHA见LOG-SHA256。
+
+
+## repair64 — 追加授权后的具名必要修复与实际全门收敛
+
+- 输入：E63 `a1313a926029f133a732cbec5654a025c75ea631` 与 review33 三项P2；owner-decision-22追加最多6修复/2fresh，本轮为第1修复，不清零原累计。原RF/PG/B1范围保持。
+- 行动：POSIX受管PW组按signal-0确认整体消失，TERM限时升级KILL，异常留owned state和失败清单；Windows保持原child语义不冒组证明。现役Win32 stdio具名AST核owner/pending/disposed/in-flight/contamination；ASR四具名语料以结构化策略派生受限验收正文，拒同义矛盾，产品partial拒绝入口未改。canonical正确合同无需倒改。
+- 产出：I64 `e748eaf94fcc5676f777d1db402e29666fc9e108`，9路径。真实macOS忽略TERM后代+邻居隔离故注PASS；Win32模拟26及静态现役/12反例/注释正例PASS（非Windows真机）；ASR18变异+基线自测PASS。完整just ci PASS，含uv受管Python160；PW第一次默认浏览器缺失64FAIL/2PASS，复用原私有Chromium后66PASS且3个owned PGID均消失。两次原日志都保留。
+- 身份：just ci/PW实际为E63+dirty，非clean I64重跑；到I64仅两fixture等价排版和offline checker固定provider ID补校验，所有packages/锁/装配配置字节一致。ASR、emoji、公开树隐私等已clean I64重验，完整差额和9文件原始快照在私有SOURCE-BINDING。
+- 结论：required43为31条clean I64实际PASS、3条经绑定复用、9FAIL（04/06/07/08/14/26/27/37/38）。action原30秒限额扫73/101，28未扫仍保留，15882诊断不当作已证实产品bug；原RF聚合器实际exit1、later_RF NOT_RUN。整体INCOMPLETE，未独立验收、未合main、未push、未清理来源。
+- 制品：45个新运行文件逐bytes/SHA保全（22截图+11真实入口+11journey+1daemon），不是恢复旧20丢失字节，旧scratch保全仍UNKNOWN。主持继续ledger/周审与范围判断，本轮不刷hash、不扩scanner预算。
+- 证据：私有continuation-from-E63/repair64/REPORT.md、各commands/required43/RF回执、SOURCE-BINDING、I64-files、new-artifacts、LOG-SHA256。
+- `focused-03.log`：720B，SHA-256 `071de0aacb56927e55bd448b3c60717dc83a104e84e7eb11e909b38f4e8a7896`。
+- `required-extra-0.log`：755B，SHA-256 `6d77209f7d691914e5962392877e4395b5d30099e841ed5adaf5b14cf3f45ce6`。
+- `full-00.log`：136272B，SHA-256 `b17f29be223e8f948685fa296b92e2248eac39eb1b8f4b261dd24359c06323f6`。
+- `full-01.log`：113564B，SHA-256 `62b37ce2cd0267f7493b6fc69df8d35dc57b6f6fe29b307c769f48edff8923a1`。
+- `pw-00.log`：8441B，SHA-256 `84bd36ab5f0225c637772c421549be4f643af0d58a3d52cc600705f7c902598f`。
+- `required-07.log`：2361311B，SHA-256 `5a898dd5feed8a4f513e5b4fc4ec53ef1c07c16aa00553ae4eabbd37383d26cf`。
+- `rf-aggregate.log`：159B，SHA-256 `4c3a22ac182e19ab902ed27990e53c451d5a13b816bef4789cb046eb229dede6`。
+
+
+## repair65 — R34-F1具名Win32控制流与句柄来源回修
+
+- 输入：E64 `c860c24101816c550dfaeef47fdca4a48f0b5623`，review34唯一R34-F1；owner22追加授权第2/6修复，累计原repair65，不重置预算。
+- 行动：独立复现read/write各dead-retain、dead callback、错IO handle共6个错误授信源；以现役两完整stream声明及两转发声明的有限AST模板约束参数/handle/执行顺序，保留注释与排版等价，不改产品、canonical、ledger或扫描额度。
+- 产出：I65 `db1261ebc10d39a19cb3ef79b9faa01a56de89f1`，仅2个checker/具名测试文件。clean I65具名35项PASS、Win32 pipe模拟26PASS、runtime103PASS/1既有skip，语法与emoji/links/pointer/privacy/diff通过；services/effects仍在旧合同来源断言失败，原日志保留。
+- 结论：R34-F1已回修待fresh独立验收，整体INCOMPLETE。原43统计仅属于I64历史证据，不冒I65全门终态；产品/配置/锁Git对象相同仅支持相关旧运行与review34 POSIX/ASR有限结论复用，未重跑just ci/PW/distribution。原RF/PG/B1与required失败保持。
+- 供应勘误：repair64 scratch npm install确发生；full 01:14:09–01:18:14 UTC启动offline未记录，01:19:58晚加设置不能反推。四payload未用于安装，metadata/payload来源、网络、headers/prebuild均UNKNOWN；旧未安装的过宽表述更正。本轮未执行安装下载或cache seed，未改旧证据。
+- 证据：私有continuation-from-E63/repair65的REPORT、commands、SOURCE-BINDING、LOG-SHA256与每次源码快照；作者未派review、未合并push、未清理来源。
+- `before.log`：1223B，SHA-256 `499a7cf4e8fabcacb79952f8e7e421f1c7e20901060c2d424a9b99aff6e17ac7`。
+- `proof-I65.log`：2004B，SHA-256 `dcf486701cb6594ac9e7248dbdc8f866bbb60a8ed7d6bb6e7e541517b821dabb`。
+- `pipe-mock-I65.log`：337B，SHA-256 `d12bc12b40383499cadd61fb5dfef12648b03d4706015bbf66490145a114fe1f`。
+- `runtime-mock-I65.log`：540B，SHA-256 `881fdf6b0c76f47017d218fbb665d2490e613110b10e6d914d39dafe85021804`。
+- `services-I65.log`：12089B，SHA-256 `0cea318a11b5744206e9ea81c0d61e8e4181445215cc467bf968fbb357520356`。
+- `effects-I65.log`：2064B，SHA-256 `27c35dc4dc1401a1aa7698998db1801290a85663bc49b522bd1da572d76f5336`。
+
+
+## 2026-10-05 repair66：PG02前置初始化闭包与具名坐标
+
+输入：E65 `13949051638cb09d3a8220079885ce7347ec4c50`，主持按owner批准分期预占本窗口1/9；原scope及旧失败保留。
+行动：独立复现contracts/config两个正例拒绝，核新增costBilling全文及实际36模块import/export闭包；只补初始化完整性、排除新增7导出callable授信，原schema语义不改。核Notify ack真实调用/SQL/via/conditions后仅将一条entry_ref校正到AST成员211行，100条其他记录与旧source_binding不改。
+产出：I66 `3b04276c87fcc5eeefb611b52ef43679a2650f44`；三checker/ledger文件，无产品/canonical变化；新增完整闭包拒绝反例。clean I66正式13命令9 exit0/4 exit1，contracts成本11PASS，具名probe通过；逐命令日志、源码身份与SHA留在任务私有repair66证据目录，日志不入Git。
+结论：INCOMPLETE，acceptance_complete=false，待fresh只读验收。services/effects后续TTS/原型来源仍拒绝；action selftest保留14blob+2tree漂移；单次action分母101/扫描73/未扫28/30秒预算拒绝，无刷hash、扩预算或重扫。旧repair64供应来源UNKNOWN，未执行安装/下载/完整CI/main/push/清理。
+
+- probe-I66.log：239 bytes，SHA-256 `d8d387b85cec685cb77b22d618f3e28b5fcecda31e1f3868ee5102c51e861b25`。
+- services-I66.log：18741 bytes，SHA-256 `8495c565ed8f1c2102875c402b99a1d413c6944952b7cd757b6de00c8bfc827d`。
+- effects-I66.log：11411 bytes，SHA-256 `cb30d6dac3b0033ef479ba5707e5f1b7f5c6a25ed52bf4391fd66c2ed24a0293`。
+- action-selftest-I66.log：22184 bytes，SHA-256 `451f9f8fa17d589004a74b022c044b9979a7035aed8d21818df210ff1c2507f4`。
+- action-full-I66.log：2408649 bytes，SHA-256 `565f1b5cd30ae520a23253b670084f7d58f192168f4e9581691deb8205f47164`。
+- contracts-cost-I66.log：331 bytes，SHA-256 `9eae49bebd61cdff7e5e58d4419d135129533f6670c4784912c147d9aa9f920b`。
+
+
+## 2026-10-05 repair67：peer原生叶子与五条动作入口
+
+输入：E66 `8d8dbdcd0ac24c0595f2207b265cf12520cfdc42`；主持按owner批准分期预占本窗口2/9；旧scope及失败保留。
+行动：核旧VOICE pin真正历史源与现役hub差异，只为peer原生ws/Set叶子设独立pin，原整段输送/事件表/root pin不改。独立读14文件源差异，核11条动作真实API/界面/HTTP/body与effect/conditions/via，仅5条全比较通过者的8个入口坐标更新；其余6条不匹配保留拒绝，96记录及全source_binding不变。
+产出：I67 `7c3eb60480df09c18d7869afa78aeccadb57cbc6`；四个checker/test/ledger文件，无产品/canonical变化。clean I67作者两项定向检查通过：13叶子正例、9种突变逐处拒绝；5条坐标/效果核验通过。草稿两次错误整段正例期待失败完整保留，已收窄，不改root pin。
+- ledger-subset-I67.log：3940 bytes，SHA-256 `73ed9cdfe479ffb9bbbe5df5fc62f5953a641d1cfab051be4e76bd5f6d1f40f6`。
+- peer-proof-I67.log：142 bytes，SHA-256 `3c27138d114d9e253e2f98cd97264f2d01dd19ed85549a0659541c9157cb85b9`。
+宿主检查：同一clean I67普通基线组合34 PASS/9 FAIL/0 NOT_RUN；初次43为30/13，环境程序修正后只复测35/36/40/41，再单测35。Node3983 PASS/21 skip、Python160 PASS、Playwright66 PASS、owned-reap5 PASS；真实distribution正常安装/重启恢复且tracked10退出。9项required失败保留，action101分母/70扫描/31未扫/30秒预算。
+供应：宿主仅npm及生命周期受OS网络隔离，native产品运行不套该sandbox；本次4个批准payload真实使用，历史I64供应UNKNOWN不回改。procedure7/8由宿主累计8/10；作者未修改task、未扩额。
+结论：INCOMPLETE，acceptance_complete=false，待fresh只读验收；未main/push/清理。证据位于任务私有phased-from-E65/repair67及full43-I67/rerun4-I67/ci-I67-final，逐命令argv/环境/源码身份/日志大小SHA完整保留，失败不覆盖。
+- 宿主ci-I67-final/35.log：133168 bytes，SHA-256 `de3daa7d5d1718f3388d4019bc064043202b90810f35939e3c06f11604fe6a35`。
+
+
+## 2026-10-05 repair68：补核五条记录全部页面入口
+
+输入：E67 `ceef24d34833669b13a68d3152cc923a54aaec8d`，review37 R37-F1/P2；主持预占owner23第3/9轮。
+行动：独立复现ReviewPageRoute旧入口拒绝，真实AST核五ID六处坐标后修正；不改现役checker。新增具名测试逐项覆盖全部14入口anchor、精确request/symbol/line及API/页面判别分支，35个旧坐标/错邻行/错request/漏入口/错merge-register/case反例全部拒绝；私有完整subset同时核selected body effect/conditions/via。
+产出：I68 `7215e9462730b9240af36838b872dbac62fcd414`；仅ledger与具名回归测试，96其他记录、source_binding、effects和101分母不变。clean I68六项短门exit0；完整43/justci/PW/distribution/action全扫未重跑，I67历史基线不冒充I68新跑。
+更正：repair67私有探针静默跳过ReviewPageRoute，故旧REPORT/日志/journal“五条已全部核验”结论撤回；八处已修坐标、服务端selected body与运行来源事实保留。旧材料原样留存，R37-F1已回修待fresh验收。
+结论：INCOMPLETE，acceptance_complete=false；九个required失败及RF/PG/B1/真实Windows/provider/周审未闭。未安装下载、修改task、main/push或清理；证据在任务私有phased-from-E65/repair68，含逐命令源码身份与日志SHA。
+- five-entry-I68.log：83 bytes，SHA-256 `5d82e8f042539ea8759b14a258353359648e5612d88a3856a1ffad6f93800f7f`。
+- subset-I68.log：96 bytes，SHA-256 `28c5776894cec76efc83eb983d140517e3c07ec3dfdd6a07a2286fa56b828676`。
+
+
+## 2026-10-05 repair69：RF现役来源盘点
+
+输入：E68 `0b725e953aaeac102a58ff91818e34a4b0bf1c72`，主持预占owner23第4/9轮；原required26真实复现FAIL。
+行动：按semantic旧SHA逐个找回15源真实Git字节，另读5新语料全文；审完整增量/具名装配及边界后只更新20源绑定。12新坐标中4旧登记按同file/text/digest/kinds一对一映射，8个为具名测试新命中；无未解释删除。costBilling数值域不授provider/任意callable信任。
+产出：I69 `c13c6d9f8d38d7f8ce49ec658d845523819b2977`，仅四个授权RF文件；transport649→657，语料873→878，tracked2571→2581，32API成员仅line+1及2模块依赖来源机械更新。4 dual_write_gap、11provider来源与claims/effect支持边界原样保留。
+历史快照：生成器当下legacy51，保留原44历史库存/处置/分母；8新review树与1旧树差异另存LegacySnapshotDelta，不称最终文件与当前生成器全结构完全一致；现役26/27均认可该stored-legacy策略，未修改scanner/checker。
+验证：clean I69原required26/27与结构/五入口/peer/emoji/doclinks/schedule/diff共9项exit0；mutation实际78具名结果含17落盘用例通过，9份源码manifest与结束逐文件身份全同。未full43/CI/PW/distribution/action全扫，I67组合34/9仅前基线。
+结论：INCOMPLETE，acceptance_complete=false，RF来源清单回修待fresh验收；RF/PG/B1/真实Windows/provider/周审整体未闭。未产品/canonical/其它ledger施工、未安装下载、改task、main/push或历史源清理。证据私有phased-from-E65/repair69：SourceAudit、RegistrationDelta、全结构diff、commands及源码/日志SHA。
+- required26-I69.log：368 bytes，SHA-256 `dbc1b7a934b1c6b1d4537e055b15a4815c861c98860041360f222c087842745b`。
+- required27-I69.log：3583 bytes，SHA-256 `31cf099c98f86d478a195f150e9bf4fc9dd0b10f812183814865ee58386d31ea`。
+
+
+## 2026-10-05 repair70：dry-run权威来源有限恢复
+
+输入：E69 `d421adf68f120aa9c5112dce9f2305716007e96e`，主持预占owner23第5/9轮；原required14 clean复现FAIL，旧材料保留。
+行动：恢复两报告最近真实生成ref ecea00b9的49个权威输入blob，逐项hash并重算旧aggregate吻合原报告；48件不变，仅docs09计费合同完整diff审读。模型只将docs09计入摘要，不读取其新增billing规则改变题目判断，未扩授权。
+产出：I70 `32711adde411f99a2b7f201229e796dcb906deda`，未改generator重建两Markdown，只3处authority摘要变化；以旧hash重render逐字复现原报告，再与新预览整份比较，600题/逐题judgments/constraints、risk/source/action授权、CTX状态与所有非hash字节不变，GENERATED_AT仍2026-08-26。
+验证：clean I70原required14/15和emoji/doclinks/schedule/diff六项exit0；2581个tracked源完整manifest在六次起止一致。未full43/CI/PW/distribution/action全扫，I67原九FAIL与I69 RF两门、I70 dry-run两门分别保留，不拼写未经重跑的七FAIL矩阵。
+诊断：只读定位4/6/7/8/37/38；37错误图文件pin本身相同，平台index新导出使依赖拒绝；38redactor pin本身相同，cmdEffect的delegation→S3及Legacy空白漂移使十源摘要拒绝，onTtsChars另需具名events来源证明且必须保留cost INSERT。两个短入口当前拒绝如实保留，不补checker/其它ledger。预算未扫31条不得当产品缺失或通过。
+结论：INCOMPLETE，acceptance_complete=false；本轮两报告来源回修待fresh验收，原范围RF/PG/B1/真实Windows/provider/周审整体未闭。无产品/canonical修改、安装下载、task/main/push或历史清理。证据私有phased-from-E65/repair70含AUTHORITY-AUDIT、全报告差集、有限诊断和逐命令源码/日志SHA。
+- required14-I70.log：656 bytes，SHA-256 `a163fd4902d80fd070ca4e356a2558c0678542f859b2a41c6ee864c1689f52f7`。
+- required15-I70.log：1899 bytes，SHA-256 `7517ace03217a12acefdf2e71479dab3ca5052a455206608f2456f3b5789c8d0`。
+
+
+## 2026-10-05 repair71：有限read-only来源恢复
+
+输入：E70 `82615b4395f4bec88a6e79ec150dbfb653804fab`，主持预占owner23第6/9轮；限三处来源恢复。
+行动：恢复平台旧真实Git字节并审十二文件初始化闭包与四源完整diff，只恢复原16错误投影helper；redactor只拆出三具名出口，十源AND其余九模块旧阻断保留；events独立pin保留旧whole-body/root拒绝与真实cost INSERT。
+产出：I71 `d2f41080d748e4c9ffc8f49d1d3eab2c7754057b`，四个proof/测试文件，137行新增正负例；loader新增五个闭包文件仍计原预算，未改产品/canonical/ledger/RF与断言。
+验证：clean I71十一命令8 exit0/3 exit1；原37过latch后停voiceBarrier1109 some，原38过TTS/S3扫描后停13条S3 ledger A1/A2/A3；一次FIFO短入口仍有reg.has/set和sidRecords.values未解析。只记录，不扩算法。
+边界：peer/error/Windows proof通过非真实Windows；delegation定向1通过/341跳过。未full43/justci/PW/distribution/action全扫，不重算101/31历史分母。
+结论：INCOMPLETE，acceptance_complete=false；候选待fresh验收，RF/PG/B1/真实Windows/provider/周审未闭。未安装下载、联网、改task/main/push或清理来源；完整审查与命令证据私有phased-from-E65/repair71。
+- required37-I71.log：6677 bytes，SHA-256 `b4b0c50fdc72970d5176c8b102fd2252a461cac96a45ae51f1261248c5168d65`。
+- required38-I71.log：17416 bytes，SHA-256 `f27ae0236ff4805d00507d160ee8dfb941fdbce89fd3756cc56e14eb7e3b837c`。
+
+
+## 2026-10-05 repair72：拒绝redactor解构遮蔽误授信
+
+输入：E71 `ba3eb3acec6e07a15c638b854136b6a271540ab5`，review41 R41-F1/P1；主持预占owner23第7/9轮。
+行动：独立复现直接proof误授信；仅补解构guard后真实scan仍经target误绿的失败同样留存。两路径共用既有bindingNames/changed保守拒绝，只收紧原十源import，不增通用算法或callback授信。
+产出：I72 `6b4fb502d8d375a3c0e1deb99571bb60c81787ea`，四个proof/测试文件；77行具名测试覆盖三出口、alias、object/rename/nesting/array/rest/default与形参/局部/catch，12阳性/120阴性及真实callback运行检查通过。
+验证：clean I72十一命令9 exit0/2 exit1；37原voiceBarrier1109 some、38原13条S3 ledger A1/A2/A3仍FAIL，不扩修S3/round/FIFO。原audited/peer/error/Windows proof与短门通过，非真实Windows验收。
+边界：未full43/justci/PW/distribution/action全扫；review41平台调用时完整增量独立接受NOT_RUN保留，未改产品/canonical/ledger/预算与101/31历史事实。
+结论：INCOMPLETE，acceptance_complete=false；R41-F1回修待fresh验收，不自评PASS_SCOPE。无安装网络、改task/main/push或清理；私有phased-from-E65/repair72保存源码/命令/日志SHA。
+- bindings-I72.log：101 bytes，SHA-256 `957baf5f37e2cf7d027ed9dc4f247e98a25868416b7d677ba15b456cbd006fb8`。
+- required37-I72.log：6677 bytes，SHA-256 `b4b0c50fdc72970d5176c8b102fd2252a461cac96a45ae51f1261248c5168d65`。
+- required38-I72.log：17558 bytes，SHA-256 `b4e60b48b99ad980f9f8c5346ddb695ec81e1dfa551466e1bb27577c1c44cc42`。
+
+
+## 2026-10-05 repair73：有限round来源与S3单条坐标
+
+输入：E72 `6544bd41ebe5b1ba194067208297918170e35792`，review42 PASS_SCOPE仅R41-F1；主持预占owner23第8/9轮。
+行动：恢复voiceBarrier旧真实ref7fb4ad614，完整3958字节diff及hfRounds/segments全部来源/写入/读取/逃逸审读；9个相关member逐字相同，只换round pin，sid Map旧pin不动。S3实际五写链手工核对后只改一record八映射10坐标。
+产出：I73 `ba26397774c0f474ca07b024019d8c05681a178a`，四文件；新70行具名测试，round7变异拒绝/2隐藏写保留、S3五effect与六跳成本及8旧坐标/删成本拒绝。其它100records和source_binding字节不变，未改产品/canonical/预算。
+验证：clean I73十三门11 exit0/2 exit1，另AST审计exit0；37越过round后停Focus boundBranchExcludes(test1323)，38越过S3后停obligations.waitingBody.safeParse(test783)。不把检测器拒绝当产品漏洞，不扩修。
+完整门禁：主持追加最终验证后，在同clean I73一次执行原43项，32 PASS/11 FAIL/0 NOT_RUN，43起止源码一致；PW66通过、distribution通过，just ci在ci-node隐私门失败，Python阶段未到达。action实际70已扫/31未扫，101分母、14773诊断、30秒预算终止，不记全量通过。
+边界：新增可见RF tracked2581→2584和privacy示例路径失败原样保留，未扩修；四已准本地payload临时供给、npm/lifecycle外网OS拒绝，产品测试不宣称全网络隔离。平台旧52k独立接受仍NOT_RUN，Windows静态proof非真机。
+结论：INCOMPLETE，acceptance_complete=false；有限候选待fresh验收，RF/PG/B1/真实Windows/provider/周审未闭。证据私有phased-from-E65/repair73含SOURCE-AUDIT、真实旧diff、source/commands/logSHA；无额外下载/全局安装、task/main/push或清理。
+- round-s3-I73.log：125 bytes，SHA-256 `6db8c988bb7f69074287d9d37e7b8503faf044da85dd2132abaa1d30769ac770`。
+- required37-I73.log：7190 bytes，SHA-256 `ed0820eb2908aa6b6519605cc8048d13dc1b15b601d9b7eece16ac178ee7b516`。
+- required38-I73.log：14179 bytes，SHA-256 `a3849a04e9517993ec1463c71dd59e9cee63b222d3587bf08e24472caa0fccfc`。
+- full43-I73/35.log：132226 bytes，SHA-256 `da4e6d776b8089468620bf91267207b65cb86e64a8cf5a0ece9e1ce5034e0851`。
+- full43-I73/36.log：8441 bytes，SHA-256 `059b806c9f6ae4b3c37f47f3d2ffc8b9ec00c301930f35d8f79ef612221aa6e2`。
+
+### repair74：测试模拟路径与 RF 机械分母收口（owner23 9/9）
+
+- 输入：E73 `fce3e567e813845290b405201f3c18c47655d5e7`；仅授权最后一轮 fixture/RF 机械调整，37/38和来源绑定不得续修。
+- 行动：两条模拟home路径改短tmp路径；原RF生成器核验三新增测试文件，更新tracked2584/mjs153及生成basis，legacy44/semantic/acceptance字节保留。
+- 产出：I74 `31f744ab4eab7691cb7e3994b6fbde6cb269df30`，仅三文件；5具名短回归exit0，clean I74一次完整43为37 PASS/6 FAIL/0 NOT_RUN，86起止源码清单一致。
+- 完整验证：just ci Node+uv Python双矩阵PASS，Python160；Playwright66；RF/隐私门PASS；distribution与owned-reap PASS。
+- 保留失败：4 capability来源、6 action self-test、7 action全扫预算、8 support来源、37 Focus1323、38 waitingBody783。action分母101，实际72已扫/29未扫，15345诊断，30秒终止。
+- 结论：INCOMPLETE，wholeAcceptance=false；本轮最后9/9无自动续修，待fresh44。旧52k平台完整语义、Windows/provider/device仍未验；本地基线非托管CI/交付。
+- 边界：四批准本地payload供给，npm/lifecycle外网OS拒绝；产品进程不宣称全网络隔离。无额外下载、全局安装、task/main/push/merge/部署/来源清理。
+- 证据目录：`saydo-unify-audit-20261003/continuation-from-E63/phased-from-E65/repair74`；完整43/具名回归与before/harness失败均保留，LOG-MANIFEST记录全部日志字节和SHA。
+- `full43-I74/04.log`：620 bytes，SHA-256 `d7b7f21c0783247140cbe141be02382afe0cb7d7fad880611cdd34090ac1fc9e`。
+- `full43-I74/06.log`：24005 bytes，SHA-256 `1f4fcef3867d367a15504c5ccce5bf37596d8da87e3c488296cb6122c638bed2`。
+- `full43-I74/07.log`：2236379 bytes，SHA-256 `28c1e4d29036d959f1c9b29b4fad795c2aedb9f9354e6e6931e2b00848e1c561`。
+- `full43-I74/08.log`：205 bytes，SHA-256 `27061e6bc077a45ddb34a17ff1c63677b469076285d88327e1c434adda69ce98`。
+- `full43-I74/35.log`：132150 bytes，SHA-256 `9114bd941e168eb44050c4e5da50aa588b67720179215b6b8b0acb8c89b65afc`。
+- `full43-I74/36.log`：8441 bytes，SHA-256 `995a3999dce74af4b229d84e702cc03b40c7e8ff75e4a74a15fbed234d7eb39b`。
+- `full43-I74/37.log`：7190 bytes，SHA-256 `ed0820eb2908aa6b6519605cc8048d13dc1b15b601d9b7eece16ac178ee7b516`。
+- `full43-I74/38.log`：14171 bytes，SHA-256 `39abad47deed9b19a2f7b4a641cf606f16158e6435775d35c91fd30a52baa782`。
+
+### repair75：具名来源、事务回调与隐私修复（owner 当前授权六轮中的第1轮）
+
+- 输入：clean E74 `70af1c9a062b761f7ba167d3a3f207b6357a7841`；主树只读，本轮唯一作者在既有隔离候选实施。
+- 行动：历史journal个人home证据路径改稳定相对任务定位；完整核Focus与setup根新旧差异后维护具名摘要；waitingBody按既有明确undefined互斥实现证明；SQLite transaction注册与实际invoke分开，实际回调实参展开、同库审计guard严格验证，未知/改写/spread继续拒绝；family仅实际string/可选缺席实参获具名只读证明；S3登记三写点补实际transaction调用via278。
+- 来源：作者自行逐段核四cohort旧基线至E74的21路径完整净差异，再共同维护来源绑定；成本/elapsed只读投影与peer集合复制未提升能力或平台支持，action效果逐项证据不由来源更新授信。未改产品、canonical合同、required集合、扫描预算或通过口径。
+- 产出：I75 `c13036b53cfadd11a076db5de32b8ff807f4a013`；代码与隐私更正冻结后clean。新增反例覆盖Focus权限guard、waiting互斥、setup根藏写、transaction注册不执行/实际实参/未知回调/改写/spread、sharesSqlite藏写与family未知对象。
+- 验证：capability/support checker与self-test、effects全自测、S3绑定、gate-list-parity均exit0。services保留最终9断言失败/4动作；action-selftest保留services与WS helper失败。误调不存在的gate-registry测试exit1单列为harness错误，改用真实gate-list-parity入口exit0，未抹掉旧失败。
+- 完整action实际30秒预算exit1：分母101，68已扫/33未扫，14290诊断；scanComplete=false，不将未扫部分或来源修复宣称通过。full43本轮NOT_RUN，待最终候选统一全门。
+- 后继：explain.ts149结果string来源、setup.ts1556失败message来源与1364toolCalls/find来源；runtimeChild生命周期闭合和voiceBarrier Map来源仍未证明。不得以mutation拒绝抵销真实正例失败。
+- 结论：INCOMPLETE，wholeAcceptance=false；本地focused不是独立验收、托管CI、设备/provider/platform完整验证。无push/merge/部署/来源清理/额外下载/全局安装。
+- 私有证据定位：`saydo-reconcile-20261005/repair75`；REPORT、RESULT、LOG-MANIFEST保存逐argv/cwd/exit与全部日志字节/SHA；E后privacy fs/ref、emoji、diff另在私有结果记录实际终态。
+- `capability.log`：21 bytes，SHA-256 `7814839f17399c70af7adc88a420262bda9e1c53d02e45ce5b4fef97abefac1a`。
+- `support.log`：18 bytes，SHA-256 `75e047bc2efcef1de3f3ef2c4f030d2a394102cb7b8019bb86e6d33b02cdf638`。
+- `effects-final.log`：11580 bytes，SHA-256 `7e64772486438aae1ad36c25856cd524a4c6a839443aaac804d5fb8aa95d54e0`。
+- `services-final.log`：199697 bytes，SHA-256 `603311b8d6c3e62df5f85cff1eccd9e0ee33bf0fb3fd6dc7f5bd5c00cd7a0021`。
+- `action-selftest.log`：126716 bytes，SHA-256 `1e77c2c7534ef0be009d9353b1b65672f29e350c62afb67a75f9027b01fb5039`。
+- `action-scan.log`：2084237 bytes，SHA-256 `6aa863a634cfd0ae940ae0bf00c992003e38ff91eedeb7e02a37e70889da2840`。
+- `gate-parity.log`：104 bytes，SHA-256 `b30cc3e1cd52c763c116d5554c49a5a423fad9a9939e9c64f600fc2344946be8`。
+
+### repair76：原生内联事务与实际入口坐标（owner 当前授权六轮中的第2轮）
+
+- 输入：clean E75 `f778f7ed71445b6612c19559719efa2c816a4487`；主树只读，既有隔离候选唯一作者。
+- 行动：完整核旧新VoiceBarrier来源与所有Map写入/返回，更新sidRecords/sidRegistry具名Map证明；已绑定DB直接零参内联事务按docs/09既有原词法body口径扫描全部写点与循环，其他回调保留实际目标/实参展开；未知DB、参数、改写、注册不执行均保持拒绝或无效果。
+- 入口：25个API成员逐项唯一AST声明、request与旧新完整body一致核验，仅修19个entry坐标；失配部分在旧基线已经存在，不全部归因近期成本改动。其他坐标、effects与conditions未盲刷。
+- 产出：I76 `d0fab5c6cbd2fb1769cd67b262a42e0a34565414`，6文件64+/21-；产品/canonical、13跳/256节点/30秒、required集合与通过口径均未改变。
+- 验证：最终effects全自测exit0，WS全自测exit0（含Map未知来源/重绑/藏写反例），S3绑定exit0（含25API真实catalog坐标）。初次effects新增测试自身TypeError已修，原失败日志保留。
+- 保留失败：services仍9个真实正例断言/4ID；action-selftest最终实际33.25秒exit1，超过原30秒；完整action一次实际30秒exit1，67/101已扫、34未扫、14000诊断，scanComplete=false。67/68预算窗口波动不作进退结论。
+- 后继：explain.ts149的r.text与setup.ts1556的result.message、1364的first.toolCalls仍需真实provider多分支producer来源证明。成本图在已绑定256节点终止；脑解释hook已进入，setup-test尚未进入，不能简单归因14跳或遗漏hook。私有instrumented副本仅诊断，非required结果。
+- 结论：INCOMPLETE，wholeAcceptance=false；full43/just ci本轮NOT_RUN，两名fresh及平台/device/provider验收NOT_RUN。无push/merge/部署/下载/全局安装/来源清理。
+- 证据目录：`saydo-reconcile-20261005/repair76`；REPORT、RESULT、LOG-MANIFEST保留逐argv/cwd/exit与全部日志字节/SHA；E后两privacy、emoji/diff在私有结果记录实际终态。
+- `effects.log`：7660 bytes，SHA-256 `2be699e8d8ca2847b79a4e1c74044658951bbf2f417f25ebbf03f92cb8c6ff23`。
+- `effects-final.log`：11580 bytes，SHA-256 `7e64772486438aae1ad36c25856cd524a4c6a839443aaac804d5fb8aa95d54e0`。
+- `ws.log`：538 bytes，SHA-256 `2f4515f63b739d57e66c85d91621bc4bfc8c188916355701202b11863de92761`。
+- `s3-bindings.log`：125 bytes，SHA-256 `b5cce82eecba6695dacd1ebd8a44bb8f5f5b29ca5e64fdc435814384fffd06d2`。
+- `services.log`：199696 bytes，SHA-256 `e0af8a5440f4fad941d3fa4bf71593211f7345da758cd902041719043a0e5b6d`。
+- `action-selftest-final.log`：27726 bytes，SHA-256 `9daed2e46d12cafad2b7b606e1476afc1b246cbfbc4952f7f76a7a97648004d1`。
+- `action-scan.log`：2045664 bytes，SHA-256 `3f71fd591da0f042deced45422bdbd053aa6a8a7f0b8349b313fdf31c96c4052`。
+
+### repair77：实际动作引用与固定AST kind复用（owner 当前授权六轮中的第3轮）
+
+- 输入：clean E76 `99b1c63be926a342e8e69a214442f86202d5d352`；主树只读，既有候选唯一作者。
+- 行动：55个console entry逐项按实际AST call、request/variant、完整旧新statement/JSX或同源位置校准；82个transition/result/forbidden按实际动作体/分支或具名caller校准。137项改动程序化核验，其余ledger字段、source_binding、durable_effects/conditions原样。6项非局部引用留待独立证明，不全表刷新。
+- 性能：仅缓存TypeScript固定kind selector，同只读AST按原序返回新数组；任意闭包predicate实时求值。88处先kind索引再原完整predicate，AST核原查询根、同参数正向短路和predicate字节不变，114处未改。反例覆盖捕获变量改变、新AST、返回数组pop/sort/splice及既有不同环境/variant来源反例。
+- 产出：I77 `61ba00cb32e978eb81f5abaa80b6d53321ab456b`；产品/canonical、13跳/256调用节点、现役30秒实现预算与顺序均未改。完整18.11资源合同已有owner18采纳60秒等上限，但全通道准入/观测尚未完整接线，本轮不刷常量假完整。
+- 验证：effects最终、WS、S3绑定（含135 console entry）exit0。真实index.ts三轮1000次变化name查询结果相同50200节点，baseline408–421ms/indexed130–132ms；仅局部收益，services20.60秒无可见整体改善。
+- 保留失败：services9断言/4ID；action-selftest34.18秒exit1，超过30秒；完整action一次69/101已扫、32未扫、14163诊断，30秒终止，scanComplete=false。预算窗口覆盖波动不作通过/提速结论。
+- 后继：5个Focus transition仍跨proposal/confirmation与实际写事务图，reprobe mkdir仍跨实际native runtimeChild链；结果字段与256节点问题留后轮。未将实际定位等同调用绑定或未覆盖等同通过。
+- 结论：INCOMPLETE，wholeAcceptance=false；full43/just ci本轮NOT_RUN，两名fresh独立及native/device/provider验收NOT_RUN。无task/runtime/计数改动、主树写入、push/merge/来源清理/下载/全局安装。
+- 证据：`saydo-reconcile-20261005/repair77` 的REPORT/RESULT/COMMANDS/LOG-MANIFEST与逐项AST/ledger验证；E后privacy fs/ref、emoji/diff私有结果记录实际终态。
+- `benchmark.log`：553 bytes，SHA-256 `8fc5a2384c5a08fc33ed085cb753b8c96986b0dd6af5ab54af9aa085ee69bdbf`。
+- `effects-final.log`：11686 bytes，SHA-256 `7761be87b07827534658f8d27a764144afccd531a830f9aa6d4aa2415e2e32ff`。
+- `ws.log`：538 bytes，SHA-256 `2f4515f63b739d57e66c85d91621bc4bfc8c188916355701202b11863de92761`。
+- `s3-bindings.log`：125 bytes，SHA-256 `b5cce82eecba6695dacd1ebd8a44bb8f5f5b29ca5e64fdc435814384fffd06d2`。
+- `services.log`：199694 bytes，SHA-256 `ef4458a12f0a817e6815e8a7e1cb2e7d8ba3adf4448438d6e25c60b220a3cd5c`。
+- `action-selftest.log`：27827 bytes，SHA-256 `868d9349ee6243b91dacf359e1170e72370744d50dcee90f7a9f29e0a120d144`。
+- `action-scan.log`：2078869 bytes，SHA-256 `d006219b3b0b418ddb6c14e3bfc8e2cb3e6f93e628b9dea28cde740f9553c06b`。
+
+## repair78：Focus当前写引用与媒体治理草案校准
+
+- 输入：clean E77 `aff02d40d9d348c044988b4c533144d42a60fbbd`；主树只读。
+- 行动：五项Focus真实当前调用图校准19个scalar；三writer全文/AST与旧基线相同，其他ledger字段不动。revision/lane的当前activation自愈写与未来确认payload分开，正例及旧坐标/未调用回调反例留证。reprobe native未闭合引用保留。
+- 文档：m17规则校准release只结束采集/final一次/取消迟到拒绝；CODEOWNERS草案校准单pattern/最后匹配/多owner任一批准，仍未启用未指派。无产品/canonical修改。
+- 产出：I78 `f7e7d2cbe27316ca24bd296d0b1bb5b29bca2793`。不改变扫描预算/状态维度，未泛化provider/primitive或删正例。
+- 验证：effects/WS/S3、文档程序核验、离线fixture及mutation exit0；services仍9断言/4ID失败，action70/101已扫31未扫14643诊断，30秒预算失败，selftest失败。256节点各图68/93/70body、255/255/247 body+environment，完整状态均256；flag后继等价未证，不合并。
+- 结论：INCOMPLETE，wholeAcceptance=false；full43/just ci与fresh/native/device/provider本轮NOT_RUN。证据相对目录 `saydo-reconcile-20261005/repair78`；E后privacy fs/ref、emoji/diff与指纹实际结果私有封存。
+- `effects.log`：11686 bytes，SHA-256 `7761be87b07827534658f8d27a764144afccd531a830f9aa6d4aa2415e2e32ff`。
+- `ws.log`：538 bytes，SHA-256 `2f4515f63b739d57e66c85d91621bc4bfc8c188916355701202b11863de92761`。
+- `s3-bindings.log`：254 bytes，SHA-256 `5a90215cefd4d8b7771b419751aef3cf03a1074e197ad86a0b3a6a1e03ed9e5f`。
+- `services.log`：199824 bytes，SHA-256 `4e22da8510021e75a8743ff6a0cbb846e5daaa7d56342ee1c0f7d2b9226d4160`。
+- `action-scan.log`：2131060 bytes，SHA-256 `1fa9b2853189dd7b797d9323c8f684dda3052225b8d3d6537e7567a41456fccf`。
+- `action-selftest.log`：27964 bytes，SHA-256 `da7d15dd68c7d6400af04134d6b392501c3d03784f1ef9d4bcb9f74e32ad5a7d`。
+- `document-check.log`：77 bytes，SHA-256 `2185a191d967a82b066d1eee12c777aa7669c94a84441f51660268a93df52bef`。
+- `offline-fixtures.log`：80 bytes，SHA-256 `fed7b01dbc8b95ad6bff42adf4eba1393c7be69b0d0b86b494d248550bd876b6`。
+- `offline-fixture-mutations.log`：156 bytes，SHA-256 `1a24ec04977810086addf9c1baddb972f75d59fa37251cc1a45210e427ca1875`。
+
+## repair79：iOS 本地保稿交互修复
+
+- 输入：clean E78 `8e4555a8c3ab77d4a6d5947f577532270a4145a3`；主树只读，开发壳远程业务仍关闭。
+- 行动：按D3/11 §5.10现役可编辑转写/显式失败/保稿禁自动重发，错误与稿分开；本机编辑/复制/确认丢弃，空白编辑不清原稿；UI/controller双守卫阻止新录音静默覆盖。无profile仍可恢复，未加跨profile/desktop提交。旧capture/generation/回执守卫保留。README22/22标历史。
+- 产出：I79 `edbf2b01d541849354dd3e40dae04f4662cdb8ab`；六文件必要变更，四cohort原字节保留且无iOS引用，不刷新pin、不变canonical。
+- 验证：最终generic simulator build exit0；隔离新建iPhone simulator XCTest26/26（DesktopProfile14/VoiceStateMachine12）exit0。新增保稿/空白拒绝/活动phase拒改/显式ownership测试。前两次私有验证目录/相对plist失败原日志保留，最终补齐同hash输入后真跑。测试设备shutdown149因已Shutdown，delete0，最终无本轮测试设备。
+- 限制：UI截图/复制/确认取消实际交互、真机语音/手势/profile业务本轮NOT_RUN，不升格Native支持。6/7/38本轮NOT_RUN且继承失败，wholeAcceptance=false；full43/just ci/fresh仍NOT_RUN。保留未用80，后继固定候选全门与独立核验，不重复无新变化长scan。
+- 历史纠正：78 RESULT索引7/38误标，真实argv/失败未变；现役6=test-action-reachability，7=check-action-reachability，38=test-truth-plane-services。
+- 证据：相对目录 `saydo-reconcile-20261005/repair79` 的REPORT/RESULT/COMMANDS/LOG-MANIFEST及xcresult。E后privacy fs/ref、emoji/diff和指纹实际结果私有封存。
+- `xcodegen.log`：831 bytes，SHA-256 `e2e4b5ff99ace19a779c0a9a2dba29ab3a01a35862ee1e9c424835f322e35640`。
+- `ios-build.log`：48936 bytes，SHA-256 `8ba6abb886e921177e46159960733965804cbb1832a34ab37a1ccd70383757ec`。
+- `ios-test.log`：27800 bytes，SHA-256 `f64c53291547c506ce4c7f146713e705341576f0d6097c577b2e848f7596a0e4`。
+- `ios-final-build.log`：112042 bytes，SHA-256 `3608e9efa380b750d0334ef4a8fb772ae084396a0fc87a185a3d9e10caefc7bd`。
+- `ios-final-test.log`：73263 bytes，SHA-256 `0e1e0acd1d6356f2ddd11cf4a8b38291b97d0a52d2e09b8f79fb39254a1502bc`。
+- `shutdown-final-test-device.log`：154 bytes，SHA-256 `94b882e1de39fc6d74beaad1a9251bbf28b2c7b00bc2c93783fb933e3a2b1353`。
+- `delete-final-test-device.log`：0 bytes，SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`。
+
+## repair80：E79全门发现的iOS来源库存回归
+
+- 输入：clean E79 `0bbb832da48f3b8993b0c7b44869231f2f173c32`；原完整43门38PASS/5FAIL，26/27新失败与旧6/7/38保留。
+- 行动：完整核I79五Swift本地保稿来源，buffer/pasteboard非新remote业务；三dedup调用旧55/56/57→87/88/89所属完整方法/receiver/参数/摘要原字节相同，仍test。只维护五corpus与三当前处置键/evidence/机械坐标，历史migration不动。
+- 产出：I80 `9d4092eb459f8c1d2aa1fe31ae822f1993d630ad`；四文件必要diff。878六语言source exact-set/657transport不变，其他14稳定类、44legacy快照/basis原样；selected恢复657后矩阵无需改分母。无产品/canonical/checker词表/四cohort pin修改。
+- 验证：26 --check、27 --mutation-test、registration/effects、doc-links、offline fixture及mutation均exit0；旧E79原失败不冒通过。初版私有key拼接错误在diff审查后纠正，最终非目标字段/key/value全保全断言与门禁真跑留证。
+- 结论：INCOMPLETE，wholeAcceptance=false；旧6/7/38本轮NOT_RUN且继承FAIL，full43/just ci/PW/fresh/native/device/provider本轮NOT_RUN。本轮6/6授权尽，不开后轮；主持固定E80重验全门与两fresh。
+- 证据：相对目录 `saydo-reconcile-20261005/repair80` 的REPORT/RESULT/COMMANDS/LOG-MANIFEST与MAINTENANCE-VERIFICATION。E后privacy fs/ref、emoji/diff、clean/fingerprint真终态私有封存。
+- `rf00-check.log`：368 bytes，SHA-256 `dbc1b7a934b1c6b1d4537e055b15a4815c861c98860041360f222c087842745b`。
+- `rf00-mutations.log`：3583 bytes，SHA-256 `31cf099c98f86d478a195f150e9bf4fc9dd0b10f812183814865ee58386d31ea`。
+- `rf00-registration.log`：28 bytes，SHA-256 `d6644d0c264175a518d8dce33d2502ffa8aa4c0d505e695e227e7da6b64d1cfa`。
+- `rf00-effects.log`：28 bytes，SHA-256 `5a729a0f0a947c4454ee7643ddc507b57362f7210a7b56c2fdb0f9e1c74dc4e3`。
+- `doc-links.log`：47 bytes，SHA-256 `fd572c00a95bcd71926a73eac61d8a3912d8b530d25e42d102ad5608e1ea2060`。
+- `offline-fixtures.log`：80 bytes，SHA-256 `fed7b01dbc8b95ad6bff42adf4eba1393c7be69b0d0b86b494d248550bd876b6`。
+- `offline-fixture-mutations.log`：156 bytes，SHA-256 `1a24ec04977810086addf9c1baddb972f75d59fa37251cc1a45210e427ca1875`。
+
+## repair81：本地整合验收重构与事务注册语义修复
+
+- 输入：owner-decision-25，宿主直接实施；09 §18.12合同经review47/48双视角通过。旧累计修复及FAIL保留。
+- 行动：修复transaction注册/调用与别名effects/failures不一致；新增完整支持域回归、真实SQLite控制、101动作完整报告、防篡改、NUL及多父双向周审。原6/7/38默认证明与30秒条件保持。
+- 产出：I81 `d8909f046efcc8f5ce49a6bf958c0441c4011b81`；本地报告时钟300秒与证明时钟分开，源码读取仍512files/1MiB单文件/8MiB合计；源绑定漂移与不完整报告拒绝。RF登记新增工具，旧消失处置保留历史；静态语料仅更新三处权威摘要。
+- 验证：I81原43门40PASS/3FAIL（6/7/38）；just ci双矩阵PASS、Python160、Playwright66；新增四项PASS。完整报告101/101、19635诊断、455files/6651467bytes，productAcceptance=false。首预检39PASS/4FAIL及报告预算探索失败完整保留。
+- 对账：81来源/89唯一对象具名处置；25dirty来源保全与未清理原因单列。固定周窗150commit/144doc、585combined/677首父关联，双向索引无缺漏；历史覆盖不等于全产品语义验收。
+- 结论：INCOMPLETE，等待两名fresh最终验收；未合并/推送/清理，PG02/RF/B1/原生平台/provider仍未关闭。
+- 证据：相对目录 `saydo-reconcile-20261005/acceptance-restructure-20261006` 的REPORT/RESULT/LOG-MANIFEST；日志文件名、bytes与SHA-256完整登记在REPORT与LOG-MANIFEST，原始log不入库。
+
+## repair82：最终评审发现的分母与来源事实回修
+
+- 输入：review49/50对E81均RED，分别发现41条来源标签不实与删真实动作后报告误判100/100完整。使用owner25第2/3实施回修；最终fresh额度2/2已用完，旧发现与RED不改写。
+- 行动：保留101基线身份，源码入口/variant与登记的正反向覆盖单列完整性；新增入口可扩分母。补实际干净Git夹具的删登记/新增入口CLI反例，并修正macOS临时路径别名导致CLI静默跳过；原产品证明语义不放宽。
+- 产出：I82 `7b7edc74d7549ee5e1a65e32dd0dfa907ab62429`；三个脚本变更。来源表重算固定当前blob/祖先对象/具名非祖先归档，3214行、41处纠正、0漂移/0未决；旧E更正已获review50独立核验，新I事实另绑定。
+- 验证：I82完整43门40PASS/3FAIL（6/7/38保持）；just ci双矩阵PASS、Python160、Playwright66；新增四项PASS，正常报告101/101与19635诊断保留，漏登记/漏入口两真实CLI均exit1。来源事实真实Git6断言PASS。默认临时路径首轮失败保留。
+- 结论：INCOMPLETE，authorLocalChecksPassed=true但localMergeAcceptance=false/productAcceptance=false。新源码候选尚未独立验收，需owner追加fresh额度；未合并、推送或清理，不发布/不推进PG02。
+- 证据：相对目录 `saydo-reconcile-20261005/acceptance-restructure-20261006/repair82` 的REPORT/RESULT、full43/RESULT、local-verified、来源更正表及LOG-MANIFEST；REPORT逐log登记bytes/SHA-256。原始log不入库。79份旧来源含ignored目录快照只保全未删除，恢复性/活动复核是后续清理前提。
+
+## repair83：源码变体反向覆盖的最终集中回修
+
+- 输入：review51/52固定E82均RED，真实新增虚构variant误判完整；owner25第3/3实施回修，owner26最多5次fresh中已用2次。旧累计记录保留。
+- 行动：入口variant失败进入inventory；源码值集合约束反向归属，通用API坐标不能支撑自造variant。新增五个真实洁净CLI夹具，原证明诊断和读取/单报告时钟不放宽。
+- 产出：I83 `5110882ebbb0242f7847626391b8d134948a97a4`；两个脚本变化；正常101/101与19635诊断，虚构variant及仅通用入口虚构variant均exit1，真实新增源码并登记102/102 exit0。
+- 验证：固定I83原43门40PASS/3FAIL（6/7/38），just ci双矩阵、Python160、Playwright66；新增四入口PASS。21条件skip仍未验。首次正例夹具锚点长度错误保留，修后完整集合重跑通过。来源3214行重新绑定I83，0漂移/0未决。
+- 结论：INCOMPLETE，等待已授权新双fresh；localMergeAcceptance=false/productAcceptance=false，未合并、推送、清理或发布。旧产品证明失败与native/provider边界不变。
+- 证据：相对目录 `saydo-reconcile-20261005/acceptance-restructure-20261006/repair83` 的REPORT/RESULT、full43/RESULT、local-frozen及来源更正表；LOG-MANIFEST逐项记录原始log文件名、bytes、SHA-256，log不入Git。
+
+## repair84：完整字段与值的源码身份回修
+
+- 输入：review53固定E83发现field-only身份漏洞，review54旧GREEN不继承；owner27追加1次集中回修及1次fresh，与原余1次组成新候选双评审。
+- 行动：源码入口、转移、登记正反向覆盖均保留field/value二元组；只沿唯一真实callee调用的对象实参槽映射包装属性，保留局部状态根、拒绝不确定映射。报告未知变体不扫描整函数，默认证明保留原写入诊断。
+- 产出：I84 `ffde38ccff11fd6d46a9bccb00ec97f001529e51`；四脚本改动，六个真实洁净CLI场景包含7族18条field-only篡改均拒绝、真实新增102通过。原正例夹具无效字符串实参改为verdict对象，原断言不删。
+- 验证：原43门实际40PASS/3FAIL（6/7/38），just ci双矩阵、Python160、Playwright66通过；新增四项PASS，六CLI完整集合250.07秒在300秒内。正常报告101/101、19635原诊断保留。来源3214行绑定I84、58旧标签更正、0漂移/0未决。首两次工具失败保留，修后全部重跑。
+- 结论：INCOMPLETE，等待两名fresh；localMergeAcceptance=false/productAcceptance=false。未合并、推送、清理或发布，原产品证明与平台/provider边界不变。
+- 证据：相对目录 `saydo-reconcile-20261005/acceptance-restructure-20261006/repair84` 的REPORT/RESULT、full43、local-second及来源更正表；LOG-MANIFEST逐log登记文件名、字节与SHA-256，原始log不入库。
+
+## repair85：按真实参数与接收对象传播判别事实
+
+- 输入：review55/56固定E84均RED；owner28授权1次集中回修及2fresh，条件追加组尚未启用。
+- 行动：入口判别来源绑定物理参数、const别名和当前调用实参；不同对象、局部同名字段不继承入口值。未知或可变对象保留可能写入并报诊断，三元token与分支共用同一来源判断。
+- 产出：I85 `b9fce1f4d11a78fd756ed355ab19bdbbf20dd70b`；五脚本变更。SQL/file/audit正反例、真实HTTP和brain六分支漏写反例均通过，源码绑定重新生成；旧无效夹具改为真实参数链，原断言保留。
+- 验证：原43实际40PASS/3FAIL（6/7/38），新增四项PASS；六CLI完整集合170.28秒，正常报告53.61秒、101/101、22004诊断，来源3214行绑定I85、58更正、0漂移/0未决。初次失败保留，修后完整重跑，预算不扩。
+- 结论：INCOMPLETE，等待两名fresh；localMergeAcceptance/productAcceptance=false。未合并、推送、清理或发布，原产品证明及平台/provider边界不变。
+- 证据：相对目录 `saydo-reconcile-20261005/acceptance-restructure-20261006/repair85` 的REPORT/RESULT、full43、local-frozen及来源更正表；LOG-MANIFEST记录每条原始log文件名、字节数、SHA-256，log不入库。
+
+## repair86：容器别名改写与过期判别事实回修
+
+- 输入：review57/58固定E85均RED；按owner28已授权条件启用唯一追加组，本次1回修及后续2fresh。
+- 行动：显式object/array槽与二级alias改写恢复真实对象身份，未知槽合并可能来源；赋入/解构/返回引用保守失效。无variant和异字段名也不能沿旧可裁剪值漏写；原WS/Focus正例保持，AST缓存不存动作结论。
+- 产出：I86 `9fb049ae404e22ebf69c8e1fd531fa403fecc979`；三个脚本。对象/数组/alias改写及无改写对照、SQL/file/audit与none拒绝、五个真实SQLite/file执行控制；真实HTTP/brain六分支CLI保留wrapper写入和失败诊断。
+- 验证：原43实际40PASS/3FAIL（6/7/38），新增四项PASS；六CLI230.87秒，正常报告69.74秒、101/101、22020诊断；来源3214条固定I86，0漂移/0未决。早期正例回归失败和300秒超时原件保留，优化后完整重跑，不扩预算。
+- 结论：INCOMPLETE，待最后两名fresh；localMergeAcceptance/productAcceptance=false。未合并、推送、清理、发布，产品门和平台/provider边界不变。
+- 证据：相对目录 `saydo-reconcile-20261005/acceptance-restructure-20261006/repair86` 的REPORT/RESULT、full43、local-frozen、来源表；LOG-MANIFEST逐log记录文件名、bytes、SHA-256，log不入库。
+
+### owner29 repair87：来源失效与调用时点统一回修
+
+- 输入：review59/60三项漏报；owner授权1集中回修＋2fresh，旧产品失败与累计资源保留。
+- 行动：统一改写/逃逸位置与跨调用引用时点，区分标量快照与缺席实参；逐表达式约束旧分支证明，闭包与循环回边保守失效。
+- 产出：代码I87 `1fcf11979ccb253625531833dcc3d2a821831103`；45运行对照、六CLI新增求值顺序反例；四新增门PASS，原43真实40PASS/3FAIL(6/7/38)。
+- 证据：repair87/REPORT.md、RESULT.json、LOG-MANIFEST.json、full43及local-frozen保留；日志按文件名、字节数与SHA-256在清单登记，cli-first超时明确未完成。
+- 结论：作者本地执行和检查已跑完，待两名fresh；localMergeAcceptance/productAcceptance/wholeAcceptance=false。未合并、推送或清理。
+
+### owner30 第1轮 repair88：表达式引用身份回修
+
+- 输入：review61/62逗号引用漏报；owner追加最多5轮，本轮1集中回修及2fresh。
+- 行动：统一结果引用子表达式与容器逃逸，补方括号receiver，优化纯语法缓存和逐项成本核对。
+- 产出：I88 `ae33d0346316f6340aabd3877928cb9b14e8912c`；72扫描真实运行对照、六CLI新增逗号实参回归；四新增门PASS，原43门40PASS/3FAIL(6/7/38)。
+- 证据：repair88/REPORT.md、RESULT.json、LOG-MANIFEST.json、full43及local-frozen；日志名称/字节/SHA保留。procedure9记录门禁前短SHA参数拒绝及纠正。
+- 结论：作者检查已跑完，待两名fresh；localMergeAcceptance/productAcceptance/wholeAcceptance=false；未合并推送清理。
+
+### owner30 第2轮 repair89：隐式引用交接回修
+
+- 输入：review63/64默认参数、迭代、异常和模板标签真实漏报及完整CLI反例。
+- 行动：隐式交接保守失效；tag显式拒绝未闭合来源；解构声明不吞默认值外部引用。
+- 产出：I89 `00609c3dd010c3f4f7402ee53ac58f52ff8e0064`；108运行扫描与六CLI默认参数反例，四新增门PASS，原43门40PASS/3FAIL(6/7/38)。
+- 证据：repair89/REPORT.md、RESULT.json、LOG-MANIFEST.json、full43及local-frozen；日志名称/字节/SHA保留，首次解构漏报失败未删。
+- 结论：待两名fresh；localMergeAcceptance/productAcceptance/wholeAcceptance=false；未合并推送清理。
+
+### owner30 第3轮 repair90：词法作用域与调用接收者回修
+
+- 输入：review65 catch遮蔽与review66括号receiver真实漏写。
+- 行动：完善词法作用域/var归属，未知局部绑定否决旧fallback；统一receiver解包，eval保守失效。
+- 产出：I90 `34935f54fd90dc3be5eb44bf8994c6f13f5879b0`；141运行扫描、六CLI catch反例，四新增门PASS，原43门40PASS/3FAIL(6/7/38)。
+- 证据：repair90/REPORT.md、RESULT.json、LOG-MANIFEST.json、full43及local-frozen；所有失败日志名称/字节/SHA保留。
+- 结论：待两名fresh；localMergeAcceptance/productAcceptance/wholeAcceptance=false；未合并推送清理。
+
+### owner30 第4轮 repair91：TypeScript值声明回修
+
+- 输入：review67本地GREEN、review68合法enum遮蔽漏三写；仍RED未合并。
+- 行动：enum/module/import-equals运行时值声明阻断外层同名来源，moduleblock/enum自名词法边界补齐。
+- 产出：I91 `1c96cb38ca2bca1abe2e6f3b1ea8799ce4a5c821`；147运行扫描和strict/noEmit enum检查、六CLI enum反例；四新增门PASS，原43门40PASS/3FAIL(6/7/38)。
+- 证据：repair91/REPORT.md、RESULT.json、LOG-MANIFEST.json、full43及local-frozen；日志名称/字节/SHA保留。
+- 结论：待两名fresh；localMergeAcceptance/productAcceptance/wholeAcceptance=false；未合并推送清理。
+
+### owner30 第5轮 repair92：枚举成员绑定回修
+
+- 输入：review69本地GREEN，review70字符串enum成员漏SQL/audit；仍RED未合并。
+- 行动：字符串/计算字面量成员及同作用域分段enum收集近层名字，未知保持UNKNOWN，不借外层常量。
+- 产出：I92 `f07ef12ae50073ccef8227b479ef60c5d3927a73`；新增10个严格TS实际运行场景、30次扫描，旧147扫描保留；四新增门PASS，原43门40PASS/3FAIL(6/7/38)。
+- 证据：repair92/REPORT.md、RESULT.json、LOG-MANIFEST.json、full43及local-frozen；首轮类型适配失败与后续通过日志名称/字节/SHA均保留。
+- 结论：待两名fresh；localMergeAcceptance/productAcceptance/wholeAcceptance=false；本轮为5/5，未合并推送清理。
+
+### owner31 第1轮 repair93：无体调用与跨case枚举回修
+
+- 输入：review71无体声明崩溃无报告、review72跨case枚举漏写，旧双RED保留。
+- 行动：无body不构造函数目标，保留未知callee；共享CaseBlock收分段枚举成员，不借外层常量。
+- 产出：I93 `7675ba9357c505459f757929298885fc2a2c2233`；无体12扫描、枚举42扫描与旧147保留；四新增门PASS，原43门40PASS/3FAIL(6/7/38)。
+- 证据：repair93/REPORT.md、RESULT.json、LOG-MANIFEST.json、full43及local-final；首CLI新断言字段错误的失败原稿local-frozen保持。
+- 结论：待两名fresh，三项acceptance均false；旧累计不清零，未合并推送清理。
+
+### 2026-10-07 owner32 / repair94：托管 CI HOME 锁夹具
+
+- 输入：E93本地已交付；原43门40 PASS/3 FAIL保持。私有run 37579380123仅Node HOME锁测试失败，其余7作业通过。
+- 行动：固定PID9改为本测试已退出子进程；持锁worker显式保活，回收worker启动/错误可观测，持锁不删与释放后删除断言保留。生产源码和09 §18.12不变。
+- 产出：代码I=323f5ceaad866f95a1ca679a2a3659c9f621a417；CLI回收23通过/1条件跳过，固定I just ci Node/Python通过（Python160）。日志just-ci-supply/command.log，131835 bytes，SHA-256 5a25a9976355bc0f3dafa10cc68d248a76e8d2ecd19cc5ef868b5f58b9c91e8b；完整原稿在当前任务repair94。
+- 结论：作者检查通过，双fresh待验，新候选托管CI待跑；产品仍未通过。旧43未在I94重跑，保持I93历史边界。owner32在原剩余额度继续，不增上限、不清零旧失败。
+
+### 2026-10-07 repair94 冻结前同轮补齐
+
+- 输入/行动：显式保活夹具在Windows需回收整个Job；关闭具名Job后从清理集合移除，生产实现不改。
+- 产出：最终代码I=5c6d6e8efb64efd58b3054db03dbb4bf24caa697；完整just ci再次通过。final-ci-supply/command.log，132501 bytes，SHA-256 ac02025034b17978aab77a46960dc58849558ffe3b01f4d60acf9730e1cec2ed。中间323f5cea及证据5dddc9b8保留。
+- 结论：同一集中修复尚未派review；Windows实跑NOT_RUN，最终托管CI仍待验，产品失败状态保留。
+
+### 2026-10-07 owner32 / repair95：CI 派生 bundle 同步
+
+- 输入：review75 对 E94 测试夹具作用域 GREEN，绕锁/提前退出反例均检出；完整 CI 仍被旧 bundle 的 journal 快照漂移阻塞。E94 未合并，预留第二评审尚未派发，原记录保留。
+- 行动：执行原 week-audit --write 同步派生 publication manifest 与 integrity，检查器、历史时间窗、ref 分母、人工 finding/语义裁决均不改；本条 journal 随后纳入最终重生成，避免证据自漂移。
+- 产出：首次重建成功，--check-bundle 通过（115提交/219文档为原历史口径）；historyDigest/counts/generatedFrom 逐字段相同。bundle-write-initial.log，87 bytes，SHA-256 0f3bddd16a7c68343ffee3454551eee5cb30fe664984dbec5ee9b254ad566c28。原快照保留在 E94。
+- 结论：这是当前文件内容与派生清单同步，不扩大历史审计覆盖、不授予产品通过；最终冻结后以 repair95 原始回执和两名 fresh 结论裁决，托管 CI 待新候选触发。旧3失败及累计用量保留。
+
+### 2026-10-07 门禁精简第一阶段（本任务第 1 轮）
+
+- 输入：owner 当前授权先激进精简，经两个 subagent 对抗 review，提交后再评估补足；基线 `9686d7f91be9620ce1a219d324fc9e79c44a127f`。旧修复/评审失败及未验项保留，不沿用静态证明链为当前门禁。
+- 行动：按双评审边界退役 truth-plane、RF 库存、历史迁移/排产/宣传句门和自测的自测；删除纯源码形状及手写话术自证。canonical 回修将 SC-51 原生所有权合同逐字迁回运行时章节；双人复核后统一 ci:node，工具与发布测试分为显式入口，原生/分发专项改手动工作流。发布周审真实调用和事务闭包保留。
+- 产出：71 个文件删除；研究夹具和历史原文保留；说明见 `research/codex-findings/2026-10-07-gates-phase1.md`。实施者 lint、活跃链接与 diff 卫生通过；全门由主控冻结候选后执行，本条不预写代码提交 SHA。
+- 结论：本地候选待主控完整验证和提交。退役门不等于旧缺陷修复，不授予真实平台/provider/托管 CI 通过；没有 push、发布或新增补足测试。
+
+### 2026-10-07 门禁精简第一阶段验证收口
+
+输入：固定候选双人源码核验与完整本地日志。行动：修复误删共享导入，删除移动发布旧CI形状断言，为浏览器验证准备任务独立Chromium。产出：代码 `23fb170d66877d7637e7774f339f8a07750a7e12`；完整证据见 `research/codex-findings/2026-10-07-gates-phase1.md`。结论：本地日常/工具/发布专项与66项浏览器回归通过，21项平台相关单测skip单列；未验平台、设备、provider、远端、打包安装不冒充通过。已授权的第二阶段在本阶段证据提交后开始。
+
+### 2026-10-07 门禁精简第二阶段（本任务第 2 轮）
+
+- 输入：第一阶段代码 `23fb170d`、证据 `af4bb892` 已提交；owner 要求只补真正有价值的缺口，两名 fresh reviewer 独立审查后互相 challenge，无残余方案分歧。
+- 行动：两 scanner 默认工作区扫描排除先采集的 Git 已知未暂存删除，保留错误拒绝/ref 语义；既有自测增加真实临时 Git 删除与实际违规分类断言。新增一个按相关路径触发的 Linux tools/release 专项工作流；五个真实测试包移除 passWithNoTests，根 if-present 不变。
+- 产出：说明见 `research/codex-findings/2026-10-07-gates-phase2.md`。Focused emoji 13 pass、privacy 31 pass、diff 卫生通过；两份候选外日志名称、bytes/SHA 在报告中。没有静态门、测试数量清单、共享扫描抽象或产品改动。
+- 结论：本地候选待主控固定后完整验证与提交；第一阶段历史报告不重写。远端 workflow/原生/真机/provider 未验，不以文件落盘授予通过，未 push 或发布。
+
+### 2026-10-07 门禁精简第二阶段验证收口
+
+输入：第一阶段已提交基线、两个fresh reviewer交叉结论、实际固定候选。行动：只补未stage删除语义与真实回归、按路径专项CI、已有测试包零测试拒绝；运行真实基线和两专项及空测试负向探针。产出：代码 `a4aca55d79091ad3ecb14016d3289b209aa56bb6`，证据 `research/codex-findings/2026-10-07-gates-phase2.md`。结论：本轮本地检查通过，两个reviewer无阻塞；浏览器沿用未变更源的第一阶段66pass，平台/真机/provider/托管执行未验，不授予历史项目整体通过。
+
+### 2026-10-07 第二轮精简第一阶段（本任务第 3 轮）
+
+- 输入：owner 要求再次完整执行先精简/提交、后评估补足/提交，并授权本地旧副本清理、GitHub同步与main合并；基线35d0c6a1。
+- 行动：结构盘点与两名独立reviewer对抗评审后，退役移动历史门和专属prompt扫描、源码锁/重复库存、legacy大快照及过时runtime预检；保留真实行为和发布恢复。canonical先同步，实施后双人核对冻结diff。
+- 产出：代码2f62851623a48420c1c2a4a07a28b385febffebc，净删3340行；证据见research/codex-findings/2026-10-07-gates-round2-phase1.md，原始日志名称/bytes/SHA列于该报告。
+- 结论：just ci、tools、release、precommit均exit0，Node3954pass/21skip、Python159pass；双reviewer无阻塞。首次专项遗留mutation失败与修复后成功分开保留。尚未push；提交后才开始补足评估，不授予原生/真机/provider/实际部署通过。
+
+### 2026-10-07 第二轮精简第二阶段（本任务第 4 轮）
+
+- 输入：第一阶段2f628516/d93cb42f完整提交后，两名新的只读reviewer对最小补足提案独立评估并交叉challenge。
+- 行动：仅增强原shell安装harness，真实坏digest拒绝、npm零调用与唯一固定tgz及下载/校验/消费内容绑定；已有独立风险期望充分，不重复加legacy表。外置两个实际脚本突变均被新增断言抓住。
+- 产出：代码c6e621c45aabe5642796546a4c2080ea1584bc9f，单测试文件净增94行；双实施核验无阻塞且各自安装专项通过。完整记录research/codex-findings/2026-10-07-gates-round2-phase2.md，外部日志bytes/SHA同列。
+- 结论：最终release/precommit通过，未变产品沿用第一阶段本地基线，不冒称重跑。另归档后移除101旧副本与3条已合并分支，恢复包留仓外；待本证据提交后执行已授权main合并、私有与过滤公开GitHub同步。未授予真实设备/provider/部署通过。

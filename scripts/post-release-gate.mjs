@@ -803,7 +803,7 @@ function verifyPublicCi(publicMain) {
   invariant(run.status === "completed" && run.conclusion === "success", `public/main CI 未全绿:${run.status}/${run.conclusion}`);
   const runView = ghJson(["run", "view", String(run.databaseId), "--repo", repository, "--json", "jobs"]);
   const nodeJob = runView.jobs.find((job) => job.name === "node");
-  invariant(nodeJob?.conclusion === "success", "public/main 的 audit bundle 所在 node job 未成功");
+  invariant(nodeJob?.conclusion === "success", "public/main 的 Node 质量检查 job 未成功");
   return { workflowRunId: run.databaseId, workflowUrl: run.url, headSha: publicMain, nodeJob: nodeJob.name };
 }
 

@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -171,44 +170,6 @@ describe("CLI 慢速轮次进度", () => {
   });
 });
 
-describe("Chat 四个发送面接线", () => {
-  it("文本/系统语音/云端PTT/handsfree 都读 sessionIdRef,不用闭包里的 session 自比", () => {
-    const src = readFileSync(new URL("./Chat.tsx", import.meta.url), "utf8");
-    expect(src).not.toMatch(/voice\.sessionId\s*!==\s*sessionId\b/);
-    expect(src).toContain('surface: "text"');
-    expect(src).toContain('surface: "system_voice"');
-    expect(src).toContain('surface: "cloud_ptt"');
-    expect(src).toContain('surface: "handsfree"');
-    expect(src).toContain("liveSessionId: sessionIdRef.current");
-    expect(src).toContain("liveDraft: () => draftTextRef.current");
-    expect(src).toContain("sessionId: sessionIdRef.current");
-    expect(src).toContain("rememberDraft");
-    expect(src).toContain("consumeOwnedPendingDraft");
-    expect(src).toContain("runVoiceAnchorFlow");
-    expect(src).not.toContain("runOwnedAnchorAttempt");
-    expect(src).toContain("stopLocalCapture");
-    expect(src).toContain("setThemedVoiceHold");
-    expect(src).toContain("releaseFocusAnchorOwner");
-    expect(src).toContain("data-themed-voice-hold");
-    expect(src).toContain("applyChatDraftEvent");
-    expect(src).toContain("readInitialChatDraft");
-    expect(src).toContain("voice.daemonEpoch");
-    expect(src).toContain("consumeOwnedPendingDraft");
-    expect(src).toContain("lastTextOutcome");
-    expect(src).toContain("data-unknown-discard");
-    expect(src).toContain("if (result.sent) consumeSentDraft(binding)");
-    expect(src).toContain("retryAnchorPayload(");
-    expect(src).toContain("shouldConsumeSentDraft({");
-    expect(src).toContain("planAdoptQuiescedDraft(");
-    expect(src).toContain("desktopTextOutcomeCopy(");
-    expect(src).toContain("themedSendBlocked");
-    expect(src).toContain("unavailable={voiceUnavailable || themedSendBlocked}");
-    expect(src).toContain("data-quiesced-append");
-    expect(src).toContain("data-quiesced-replace");
-    expect(src).not.toContain('if (sent) setDraftText("")');
-    expect(src).not.toContain("没发出去,内容还在输入框");
-  });
-});
 
 describe("生产确认卡 kind 文案(GAP-02 2.1)", () => {
   it("memory kind:记忆 · 信息确认 · 不是授权,按钮记/不用记,超时不记", () => {

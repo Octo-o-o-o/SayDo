@@ -1,0 +1,50 @@
+{
+  "verdict": "RED",
+  "review_ordinal": 1,
+  "candidate_head": "b51c277f036d87cd2f92be2786365efdb0cb2dba",
+  "diff_fingerprint": "e42dd19ca752c0ee2dca966fb0e915cbc9fce9375efcd3d45a53f060692f9727",
+  "review_scope": "workflow-final",
+  "blockers": [
+    {
+      "id": "B35-WHOLE-SEMANTICS",
+      "severity": "P1",
+      "summary": "160 文档和 46 commit 仅完成逐项登记；本轮未建立全部历史 diff、合同、实现、证据及后继的语义闭包。",
+      "evidence": "e2e/evidence/fortnight-audit-2026-10-03.md:15",
+      "in_scope": false,
+      "needs_owner_decision": true,
+      "acceptance_item": "A35-WHOLE-SEMANTICS"
+    },
+    {
+      "id": "B35-RETAINED-RED",
+      "severity": "P1",
+      "summary": "既有 8 个 required RED、过期 CTX owner 选择、4 个 dual_write_gap 和 20 个不可恢复原字节仍未关闭。",
+      "evidence": "e2e/evidence/fortnight-audit-2026-10-03.md:63-73",
+      "in_scope": false,
+      "needs_owner_decision": true,
+      "acceptance_item": "A35-RETAINED-RED"
+    },
+    {
+      "id": "B35-DELIVERY-ENDPOINT",
+      "severity": "P1",
+      "summary": "latest I complete41、fixed E 七门、Swift 与真实设备/provider 验收未运行，全部实施验收及 push-cleanup 前提未达到。",
+      "evidence": "e2e/evidence/fortnight-audit-2026-10-03.md:175-179",
+      "in_scope": false,
+      "needs_owner_decision": true,
+      "acceptance_item": "A35-DELIVERY-ENDPOINT"
+    }
+  ],
+  "p2_ledger_delta": [
+    {
+      "id": "P2-REL-PROFILE-RC12-COMMENT",
+      "first_seen_candidate": "b51c277f036d87cd2f92be2786365efdb0cb2dba",
+      "location": "docs/release/release-profile.yaml:12",
+      "evidence": "version_sot comment says rc.12 while version-matrix and packages/cli/package.json say rc.13",
+      "impact": "stale maintenance comment can misstate the current historical release boundary",
+      "status": "deferred",
+      "last_validated_candidate": "b51c277f036d87cd2f92be2786365efdb0cb2dba",
+      "resolution": "update the comment in a later ordinary documentation maintenance unit"
+    }
+  ],
+  "focused_gates": [],
+  "stop_reason": "whole acceptance remains blocked by retained RED, missing semantic coverage, unrecoverable originals, unrun gates, and pending owner choices"
+}

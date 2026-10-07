@@ -1,0 +1,93 @@
+name: platform checks
+
+# 安装分发与原生壳专项，按改动范围显式触发；普通 CI 不代表它们已验证。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  distribution:
+    name: distribution (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          # Major pin only; patch is whatever this pinned setup-node SHA resolves for 22.
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @saydo/cli verify:distribution
+
+  # HarmonyOS: no standard GitHub-hosted DevEco / signing Profile runner.
+  # Do not add a fake-green job. Local gate only; see docs/release/version-matrix.md.
+
+  android-shell:
+    name: android shell
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
+        with:
+          # 动作缺省装 "tools platform-tools";Google 仓库已下架 tools 包,缺省值会 fail("Failed to find package 'tools'")。
+          packages: platform-tools
+      - name: Install Android API 36
+        run: sdkmanager --install "platforms;android-36"
+      - name: Unit test, lint, assembleDebug
+        working-directory: apps/android
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+
+  ios-shell:
+    name: ios shell
+    # macos-15 is a GitHub versioned image alias, not a pinned Xcode/xcodegen snapshot.
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install XcodeGen
+        # Homebrew formula is not content-addressed; record the resolved version in logs.
+        run: |
+          brew install xcodegen
+          xcodegen --version
+      - name: Generate Xcode project and unsigned simulator build
+        working-directory: apps/ios
+        run: |
+          xcodegen generate
+          xcodebuild \
+            -project SayDo.xcodeproj \
+            -scheme SayDo \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath .build-simulator \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+      - name: XCTest on an available iPhone simulator
+        working-directory: apps/ios
+        run: |
+          DEST="$(node ../../scripts/select-ios-simulator.mjs)"
+          xcodebuild \
+            -project SayDo.xcodeproj \
+            -scheme SayDo \
+            -destination "$DEST" \
+            -derivedDataPath .build-simulator \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=YES \
+            test

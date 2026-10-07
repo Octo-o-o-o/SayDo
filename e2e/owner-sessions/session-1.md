@@ -1,5 +1,7 @@
 # 场次① 现场清单 · 真人语音体感(Phase 1 出口挂账)
 
+> 2026-10-07 入口更新：旧 `scripts/runtime-preflight.sh` 已退役。按实际部署模式使用 `saydo doctor`、`saydo status` 与 health/readyz 诊断，并人工核对目标 SHA、磁盘 clean、runtime 路径、daemon/pipeline loaded SHA、stateRootDigest 和健康新鲜度。诊断不等价于旧预检；真人语音场次仍须实际 voice ready。旧 release-config digest 是历史验收格式，不得伪造或从 doctor 输出冒取；新场次需记录实际有效配置核对证据，配置变化仍使既有场次结果失效。
+
 > 目的:戴耳机与 Brain 采访式对话——打断正确、挂起重建无缝、术语识别可用。
 > 工程侧全部就绪(音频注入级测试绿);本场次验的是**真麦/真耳朵的主观体感**,AI 无法代跑。
 > 时长预估:15-20 分钟。
@@ -22,7 +24,7 @@
 
 | 检查 | 命令/动作 | 期望 |
 |---|---|---|
-| runtime 服务 | `scripts/runtime-preflight.sh <开场前记录的40位-runtime-SHA>` | 单条 fail-fast 同时断言磁盘与两进程 loaded SHA、clean、runtime 路径及 fresh readyz；console 用 47100 生产入口，禁止另起 `just dev` 验到开发树 |
+| runtime 服务 | `saydo doctor`、`saydo status`，按实际部署地址读取 health/readyz 并人工核对 | 目标 SHA、磁盘 clean、runtime 路径、双方 loaded SHA、stateRootDigest 与健康新鲜度正确；真人语音必须 voice ready，禁止另起 `just dev` 验到开发树 |
 | key 可用 | `bash e2e/spikes/asr-1.0/check-asr-auth.sh` | 流式 sauc + 录音 auc 双资源全通 |
 | 耳机 | 系统输入/输出设备选耳机 | 绕开外放 AEC(05 §P0 口径) |
 

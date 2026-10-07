@@ -1,5 +1,7 @@
 # CTX-16 · 供应商采购
 
+- `active_status`: `retired_no_updated_source`
+- `retired_on`: `2026-10-04`
 - `as_of`: `2026-08-24`
 - `valid_until`: `2026-09-30`；价格、产品功能和厂商状态必须通过 `LIVE` 复核。
 - `claim_scope`: 评审权重与硬门用 `evaluation-rules.md`；需求和验收用 `rfp-summary.md`；能力与价格相关陈述只按 `vendor-responses.md` 的厂商自报处理。

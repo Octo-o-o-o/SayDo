@@ -1224,5 +1224,3 @@ function commandToEffectInner(segments: string[]): EffectDescriptor {
   const out = top as EffectDescriptor;
   return touches ? { ...out, touchesSensitiveData: true } : out;
 }
-
-

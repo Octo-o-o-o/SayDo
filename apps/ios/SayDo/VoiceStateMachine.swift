@@ -67,6 +67,38 @@ struct CaptureStateMachine: Equatable {
     }
 }
 
+// 只保存本机转写;恢复编辑不会触发桥接提交。
+struct NativeTranscriptBuffer: Equatable {
+    private(set) var text = ""
+
+    var hasText: Bool { !text.isEmpty }
+
+    func permitsCapture(in phase: CapturePhase) -> Bool {
+        phase == .idle && !hasText
+    }
+
+    mutating func replaceRecognition(_ text: String) {
+        self.text = text
+    }
+
+    mutating func finishSubmission(_ result: NativeSubmissionResult) {
+        if result.transfersTranscriptOwnership { text = "" }
+    }
+
+    mutating func edit(_ text: String, in phase: CapturePhase) -> Bool {
+        guard phase == .idle, hasText,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        self.text = text
+        return true
+    }
+
+    mutating func discard(in phase: CapturePhase) -> Bool {
+        guard phase == .idle else { return false }
+        text = ""
+        return true
+    }
+}
+
 enum TTSPhase: String, Equatable {
     case silent
     case queued

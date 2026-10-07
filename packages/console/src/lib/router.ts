@@ -54,6 +54,7 @@ export function parseHash(hash: string): Route {
   if (h === "/notify") return { page: "notify" };
   if (h === "/cost") return { page: "cost" };
   if (h === "/settings") return { page: "settings" };
+  if (h === "/memory") return { page: "memory" };
   if (h === "/focuses") return { page: "focuses" };
   // DAILY-01:归档清单 / 跨 Focus 安排
   if (h === "/archive") return { page: "archive" };

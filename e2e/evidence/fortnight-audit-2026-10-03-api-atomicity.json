@@ -1,0 +1,1426 @@
+{
+  "schema_version": 1,
+  "product_code_commit": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+  "source_frozen_before": "54650f5d8fafcb609b4c69757bcea3804bfd4b4b",
+  "status": "作者修复/验证，待两名新 fresh 对固定后继 ref 只读验收",
+  "canonical_basis": [
+    "docs/09-data-contracts.md:20 全部状态转换审计",
+    "docs/modules/e-crosscutting.md E3 同步审计失败 fail-closed；既有 shapes 未改"
+  ],
+  "native_dispatch": "主持保守累计第9次原生工具派发；不是 formal V4 机器回执",
+  "clock": {
+    "first_author_observed_utc": "2026-10-03T12:01:29Z",
+    "model_sampling_entry": "unknown",
+    "new_execution_stop_utc": "2026-10-03T12:40:00Z",
+    "terminal_deadline_utc": "2026-10-03T12:45:00Z",
+    "author_evidence_update_utc": "2026-10-03T12:38:40.981450+00:00"
+  },
+  "changes": [
+    "20个写 API（含既有 waiting）统一同连接 SQLite 外层 immediate 事务；内层 FocusWriteTx 为 savepoint，audit abort/throw 整体回滚。",
+    "unknown/file/同文件第二连接 sink 均在任何状态写入前拒绝，错误码 audit_transaction_unavailable；既有 body/schema/enum 和状态无新增。",
+    "abandon 将全部 active activation 关闭、生命周期、衍生义务/事件与审计纳入同一锁窗；不再吞 closeActivation 失败。锁内 active 查询与关闭无外部竞态窗口。",
+    "只读 list 与 redo preview 不要求写事务能力；可选 direction 失败仍保留 directionIgnored 合法语义；旧成功 fixtures 改真实 SQLite sink，旧case未删。"
+  ],
+  "entry_coverage": [
+    {
+      "path": "packages/daemon/src/api/obligations.ts",
+      "function": "resolveObligationApi",
+      "line": 46,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/obligations.ts",
+      "function": "setWaitingOnApi",
+      "line": 138,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "既有 focus-dependency-fence clear/obligation/task 实际 audit INSERT ABORT +权限/合法清除/文件sink",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/obligations.ts",
+      "function": "deferObligationApi",
+      "line": 195,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/focuses.ts",
+      "function": "createFocusApi",
+      "line": 40,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/focuses.ts",
+      "function": "archiveFocusApi",
+      "line": 133,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/focuses.ts",
+      "function": "abandonFocusApi",
+      "line": 206,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/focuses.ts",
+      "function": "forkFocusApi",
+      "line": 274,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/focuses.ts",
+      "function": "reopenFocusApi",
+      "line": 345,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/artifacts.ts",
+      "function": "createFocusArtifact",
+      "line": 83,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/artifacts.ts",
+      "function": "realizeArtifactApi",
+      "line": 162,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/spaces.ts",
+      "function": "createSpace",
+      "line": 49,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/spaces.ts",
+      "function": "renameSpace",
+      "line": 71,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/spaces.ts",
+      "function": "deleteSpace",
+      "line": 101,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/spaces.ts",
+      "function": "assignFocusSpace",
+      "line": 132,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/expectations.ts",
+      "function": "adjustExpectationApi",
+      "line": 37,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/expectations.ts",
+      "function": "withdrawExpectationApi",
+      "line": 128,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/lanes.ts",
+      "function": "createLaneApi",
+      "line": 53,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/lanes.ts",
+      "function": "retireLaneApi",
+      "line": 20,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/lanes.ts",
+      "function": "unretireLaneApi",
+      "line": 85,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    },
+    {
+      "path": "packages/daemon/src/api/lanes.ts",
+      "function": "redoFromLaneApi",
+      "line": 116,
+      "candidate": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "runtime_level": "作者真实同连接 SQLite 回归；不是 HTTP server/network 或 PG 证明",
+      "negative_positive_scope": "新回归 audit INSERT ABORT、同步 sink throw、合法状态+audit1、unknown/file sink拒写、同文件第二连接拒写",
+      "independent_acceptance": "pending_new_fresh_review"
+    }
+  ],
+  "source_bindings": [
+    {
+      "path": "packages/daemon/src/api/obligations.ts",
+      "bytes": 8597,
+      "sha256": "84319cf9ee1d35be6d8994025dd1aa5d20d1ba5821c55b578e0390eba5a937bb"
+    },
+    {
+      "path": "packages/daemon/src/api/focuses.ts",
+      "bytes": 12770,
+      "sha256": "18b0d3fdc65096e91116a247045fd9a0ce64c730d85b9e57407807aa3a42b7e4"
+    },
+    {
+      "path": "packages/daemon/src/api/artifacts.ts",
+      "bytes": 8073,
+      "sha256": "81032db71cdee427de030ca5e22eeb7f008ce57f04d93bea2b38fc1817cf7998"
+    },
+    {
+      "path": "packages/daemon/src/api/spaces.ts",
+      "bytes": 6335,
+      "sha256": "85eaa746559c928cb690b13e408f9380f27a6139e74cf4c9886c3c4750f4fa2c"
+    },
+    {
+      "path": "packages/daemon/src/api/expectations.ts",
+      "bytes": 6117,
+      "sha256": "5cd43cb4530ceba4940dceb7c424b19ae7d95c7c045327eba3e7a4c221e55a8f"
+    },
+    {
+      "path": "packages/daemon/src/api/lanes.ts",
+      "bytes": 6511,
+      "sha256": "71687bec5abf1a3c77687ce8f96f3ab1f1f50f523f8f4e3c6a32b05214459b80"
+    },
+    {
+      "path": "packages/daemon/src/api/sqliteAuditTransaction.ts",
+      "bytes": 637,
+      "sha256": "76d4fbeb7776cd56ddebe96a748600ac4c362111cb493a2d6c4443a7021b42c2"
+    },
+    {
+      "path": "packages/daemon/test/focus-api-audit-atomic.test.ts",
+      "bytes": 10699,
+      "sha256": "715bfba09d113d22df2e4f19ce3874ca7d87a1d55b847e5d7bb17c853279c847"
+    },
+    {
+      "path": "packages/daemon/test/focus-obligation-audit-atomic.test.ts",
+      "bytes": 6436,
+      "sha256": "8ce6d31d615ae93ca5cd3d1236e60584f5c5ac7400bbf1bc76efbafd90460d5c"
+    },
+    {
+      "path": "packages/daemon/test/focus-dependency-fence.test.ts",
+      "bytes": 7831,
+      "sha256": "d56204693b0d0dfde5cb8bc20f46fd7d4d1041c03f65a5e342e7b6cd678fd9f1"
+    }
+  ],
+  "author_before": {
+    "resolve_defer": "2 FAIL/14 SKIP，真实 SQLite audit ABORT 后状态与事件已变。",
+    "other_entries": "17 FAIL/2 PASS/71 SKIP：17个 API audit ABORT +archive/abandon activation故障共19实际；archive两项负控原本正确回滚；其余失败显示整库半写或吞错。",
+    "boundary": "函数/API返回值与真实SQLite，不冒称作者HTTP网络或原生验收"
+  },
+  "author_after_focused": {
+    "new_tests": 106,
+    "all_selected_tests": 173,
+    "passed": 173,
+    "skipped": 0,
+    "daemon_type_exit": 0,
+    "lint_exit": 0,
+    "extra_cases": [
+      "archive/abandon activation UPDATE ABORT 全库回滚",
+      "readonly/preview 零审计",
+      "create/fork direction失败忽略且audit1"
+    ]
+  },
+  "author_phases": [
+    {
+      "phase": "obligation-audit-before-22",
+      "receipt_bytes": 3308,
+      "receipt_sha256": "e2528a0356cfcd1217c449744a63aa0ec8ec33a494b965b3ed09c75f5089641c",
+      "results": [
+        {
+          "name": "sqlite-abort-before",
+          "argv": [
+            "~/.local/bin/pnpm",
+            "--filter",
+            "@saydo/daemon",
+            "exec",
+            "vitest",
+            "run",
+            "test/focus-obligation-audit-atomic.test.ts",
+            "--testNamePattern",
+            "真实 SQLite audit INSERT ABORT"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "54650f5d8fafcb609b4c69757bcea3804bfd4b4b",
+            "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-61pexga6",
+            "SAYDO_HOME": "$TASK/evidence/implementation/runtime/obligation-audit-before-22/sqlite-abort-before/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/outputs/obligation-audit-before-22/sqlite-abort-before/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/outputs/obligation-audit-before-22/sqlite-abort-before/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/outputs/obligation-audit-before-22/sqlite-abort-before/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/outputs/obligation-audit-before-22/sqlite-abort-before/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 8,
+          "duration_seconds": 2.012,
+          "error_type": null,
+          "executable": "pnpm",
+          "exit_code": 1,
+          "finished_at": "2026-10-03T12:05:00.177496+00:00",
+          "idle_seconds_at_exit": 1.005,
+          "interruption_signal": null,
+          "log_bytes": 5850,
+          "log_path": "$TASK/evidence/implementation/obligation-audit-before-22-sqlite-abort-before.log",
+          "log_sha256": "f5f01369c43801227d782f4f92a98dc383bf376f59efa0ac20aa598ae3588ea2",
+          "reason": "exit",
+          "started_at": "2026-10-03T12:04:58.165769+00:00",
+          "status": "failed",
+          "summary_path": "$TASK/evidence/implementation/obligation-audit-before-22-sqlite-abort-before.runner.json",
+          "runner_exit_code": 1
+        }
+      ]
+    },
+    {
+      "phase": "focus-api-atomic-23",
+      "receipt_bytes": 8918,
+      "receipt_sha256": "8a9bd2ab4c8a4914015068cfede25bac868fa3b2a91d6167dcd7b64801914595",
+      "results": [
+        {
+          "name": "sqlite-all-writes",
+          "argv": [
+            "~/.local/bin/pnpm",
+            "--filter",
+            "@saydo/daemon",
+            "exec",
+            "vitest",
+            "run",
+            "test/focus-api-audit-atomic.test.ts",
+            "test/focus-obligation-audit-atomic.test.ts",
+            "test/focus-daily01.test.ts",
+            "test/focus-expectations-v04d.test.ts",
+            "test/focus-v04e-screen-a7-a6.test.ts",
+            "test/console-api.test.ts",
+            "test/console-actions.test.ts"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "54650f5d8fafcb609b4c69757bcea3804bfd4b4b",
+            "git_diff_sha256": "781e9da6dcfaa0813a71ac08758dc9a3e489d6c8d0e158daa095f0b963507410"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-daswk6ml",
+            "SAYDO_HOME": "$TASK/evidence/implementation/runtime/focus-api-atomic-23/sqlite-all-writes/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-atomic-23/sqlite-all-writes/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/outputs/focus-api-atomic-23/sqlite-all-writes/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/outputs/focus-api-atomic-23/sqlite-all-writes/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-atomic-23/sqlite-all-writes/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 12,
+          "duration_seconds": 4.022,
+          "error_type": null,
+          "executable": "pnpm",
+          "exit_code": 1,
+          "finished_at": "2026-10-03T12:16:15.430384+00:00",
+          "idle_seconds_at_exit": 2.011,
+          "interruption_signal": null,
+          "log_bytes": 12684,
+          "log_path": "$TASK/evidence/implementation/focus-api-atomic-23-sqlite-all-writes.log",
+          "log_sha256": "e5b938218fb59f2c7c927f397af48deac418624064f361ba5da68e331b411d47",
+          "reason": "exit",
+          "started_at": "2026-10-03T12:16:11.408594+00:00",
+          "status": "failed",
+          "summary_path": "$TASK/evidence/implementation/focus-api-atomic-23-sqlite-all-writes.runner.json",
+          "runner_exit_code": 1
+        },
+        {
+          "name": "daemon-type",
+          "argv": [
+            "~/.local/bin/pnpm",
+            "--filter",
+            "@saydo/daemon",
+            "typecheck"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "54650f5d8fafcb609b4c69757bcea3804bfd4b4b",
+            "git_diff_sha256": "781e9da6dcfaa0813a71ac08758dc9a3e489d6c8d0e158daa095f0b963507410"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-9kn4e6oz",
+            "SAYDO_HOME": "$TASK/evidence/implementation/runtime/focus-api-atomic-23/daemon-type/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-atomic-23/daemon-type/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/outputs/focus-api-atomic-23/daemon-type/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/outputs/focus-api-atomic-23/daemon-type/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-atomic-23/daemon-type/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 3,
+          "duration_seconds": 4.016,
+          "error_type": null,
+          "executable": "pnpm",
+          "exit_code": 2,
+          "finished_at": "2026-10-03T12:16:19.502075+00:00",
+          "idle_seconds_at_exit": 3.012,
+          "interruption_signal": null,
+          "log_bytes": 408,
+          "log_path": "$TASK/evidence/implementation/focus-api-atomic-23-daemon-type.log",
+          "log_sha256": "8b8d3e11f22d4ab708c3075d2505ef9692bdc9967318098ccd81df34c0051e8e",
+          "reason": "exit",
+          "started_at": "2026-10-03T12:16:15.485799+00:00",
+          "status": "failed",
+          "summary_path": "$TASK/evidence/implementation/focus-api-atomic-23-daemon-type.runner.json",
+          "runner_exit_code": 2
+        },
+        {
+          "name": "lint",
+          "argv": [
+            "~/.local/bin/pnpm",
+            "lint"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "54650f5d8fafcb609b4c69757bcea3804bfd4b4b",
+            "git_diff_sha256": "781e9da6dcfaa0813a71ac08758dc9a3e489d6c8d0e158daa095f0b963507410"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-k1635z8e",
+            "SAYDO_HOME": "$TASK/evidence/implementation/runtime/focus-api-atomic-23/lint/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-atomic-23/lint/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/outputs/focus-api-atomic-23/lint/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/outputs/focus-api-atomic-23/lint/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-atomic-23/lint/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 1,
+          "duration_seconds": 4.017,
+          "error_type": null,
+          "executable": "pnpm",
+          "exit_code": 0,
+          "finished_at": "2026-10-03T12:16:23.586860+00:00",
+          "idle_seconds_at_exit": 3.01,
+          "interruption_signal": null,
+          "log_bytes": 129,
+          "log_path": "$TASK/evidence/implementation/focus-api-atomic-23-lint.log",
+          "log_sha256": "186e5fdf31e61e4da9d89dd82b82bfa2e77ba1c91cee748d5a0c58077b901621",
+          "reason": "exit",
+          "started_at": "2026-10-03T12:16:19.569533+00:00",
+          "status": "completed",
+          "summary_path": "$TASK/evidence/implementation/focus-api-atomic-23-lint.runner.json",
+          "runner_exit_code": 0
+        }
+      ]
+    },
+    {
+      "phase": "focus-api-before-24",
+      "receipt_bytes": 3350,
+      "receipt_sha256": "85e81116a30c54e2438b674728b7c087cbd038880e89a5bedfa6860b00ca5775",
+      "results": [
+        {
+          "name": "all-entry-sqlite-abort-before",
+          "argv": [
+            "~/.local/bin/pnpm",
+            "--filter",
+            "@saydo/daemon",
+            "exec",
+            "vitest",
+            "run",
+            "test/focus-api-audit-atomic.test.ts",
+            "--testNamePattern",
+            "真实 SQLite audit INSERT ABORT|activation 写入故障"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "54650f5d8fafcb609b4c69757bcea3804bfd4b4b",
+            "git_diff_sha256": "3e86d8e5e54f1b1d447e895ca6a042054306583233ce74a1c05e8decd553960b"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-0haiqr8_",
+            "SAYDO_HOME": "$TASK/evidence/implementation/runtime/focus-api-before-24/all-entry-sqlite-abort-before/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-before-24/all-entry-sqlite-abort-before/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/outputs/focus-api-before-24/all-entry-sqlite-abort-before/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/outputs/focus-api-before-24/all-entry-sqlite-abort-before/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-before-24/all-entry-sqlite-abort-before/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 8,
+          "duration_seconds": 2.007,
+          "error_type": null,
+          "executable": "pnpm",
+          "exit_code": 1,
+          "finished_at": "2026-10-03T12:18:05.927997+00:00",
+          "idle_seconds_at_exit": 1.005,
+          "interruption_signal": null,
+          "log_bytes": 19779,
+          "log_path": "$TASK/evidence/implementation/focus-api-before-24-all-entry-sqlite-abort-before.log",
+          "log_sha256": "387363cc0de8d701bcae0295e1475099832f71436f54b7732408c097caa517b2",
+          "reason": "exit",
+          "started_at": "2026-10-03T12:18:03.920514+00:00",
+          "status": "failed",
+          "summary_path": "$TASK/evidence/implementation/focus-api-before-24-all-entry-sqlite-abort-before.runner.json",
+          "runner_exit_code": 1
+        }
+      ]
+    },
+    {
+      "phase": "focus-api-atomic-25",
+      "receipt_bytes": 8923,
+      "receipt_sha256": "7871279d0e401de0fff3aa976f4ae052767b1320cc8ba0d7da282a6894b78885",
+      "results": [
+        {
+          "name": "sqlite-all-writes",
+          "argv": [
+            "~/.local/bin/pnpm",
+            "--filter",
+            "@saydo/daemon",
+            "exec",
+            "vitest",
+            "run",
+            "test/focus-api-audit-atomic.test.ts",
+            "test/focus-obligation-audit-atomic.test.ts",
+            "test/focus-daily01.test.ts",
+            "test/focus-expectations-v04d.test.ts",
+            "test/focus-v04e-screen-a7-a6.test.ts",
+            "test/console-api.test.ts",
+            "test/console-actions.test.ts"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "54650f5d8fafcb609b4c69757bcea3804bfd4b4b",
+            "git_diff_sha256": "03e65084ac6bd793caba485664bbf49ef90ea16dc06926be4e173f84d4dee009"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-ohngwjfd",
+            "SAYDO_HOME": "$TASK/evidence/implementation/runtime/focus-api-atomic-25/sqlite-all-writes/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-atomic-25/sqlite-all-writes/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/outputs/focus-api-atomic-25/sqlite-all-writes/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/outputs/focus-api-atomic-25/sqlite-all-writes/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-atomic-25/sqlite-all-writes/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 12,
+          "duration_seconds": 4.015,
+          "error_type": null,
+          "executable": "pnpm",
+          "exit_code": 0,
+          "finished_at": "2026-10-03T12:19:36.704760+00:00",
+          "idle_seconds_at_exit": 1.002,
+          "interruption_signal": null,
+          "log_bytes": 676,
+          "log_path": "$TASK/evidence/implementation/focus-api-atomic-25-sqlite-all-writes.log",
+          "log_sha256": "f88fb8c3fff1192ac17c4f52fd25020b9f582feb3a24a4dbcd1c46bbf356e6e0",
+          "reason": "exit",
+          "started_at": "2026-10-03T12:19:32.689796+00:00",
+          "status": "completed",
+          "summary_path": "$TASK/evidence/implementation/focus-api-atomic-25-sqlite-all-writes.runner.json",
+          "runner_exit_code": 0
+        },
+        {
+          "name": "daemon-type",
+          "argv": [
+            "~/.local/bin/pnpm",
+            "--filter",
+            "@saydo/daemon",
+            "typecheck"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "54650f5d8fafcb609b4c69757bcea3804bfd4b4b",
+            "git_diff_sha256": "03e65084ac6bd793caba485664bbf49ef90ea16dc06926be4e173f84d4dee009"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-gstn_z_r",
+            "SAYDO_HOME": "$TASK/evidence/implementation/runtime/focus-api-atomic-25/daemon-type/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-atomic-25/daemon-type/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/outputs/focus-api-atomic-25/daemon-type/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/outputs/focus-api-atomic-25/daemon-type/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-atomic-25/daemon-type/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 3,
+          "duration_seconds": 4.012,
+          "error_type": null,
+          "executable": "pnpm",
+          "exit_code": 0,
+          "finished_at": "2026-10-03T12:19:40.778368+00:00",
+          "idle_seconds_at_exit": 3.004,
+          "interruption_signal": null,
+          "log_bytes": 133,
+          "log_path": "$TASK/evidence/implementation/focus-api-atomic-25-daemon-type.log",
+          "log_sha256": "5fd3475c85f4ecb7d11c98c48a35890ce44bebd41d9b2593d8b7bbbc67d04c89",
+          "reason": "exit",
+          "started_at": "2026-10-03T12:19:36.766442+00:00",
+          "status": "completed",
+          "summary_path": "$TASK/evidence/implementation/focus-api-atomic-25-daemon-type.runner.json",
+          "runner_exit_code": 0
+        },
+        {
+          "name": "lint",
+          "argv": [
+            "~/.local/bin/pnpm",
+            "lint"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "54650f5d8fafcb609b4c69757bcea3804bfd4b4b",
+            "git_diff_sha256": "03e65084ac6bd793caba485664bbf49ef90ea16dc06926be4e173f84d4dee009"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-7nf_ikwa",
+            "SAYDO_HOME": "$TASK/evidence/implementation/runtime/focus-api-atomic-25/lint/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-atomic-25/lint/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/outputs/focus-api-atomic-25/lint/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/outputs/focus-api-atomic-25/lint/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-atomic-25/lint/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 1,
+          "duration_seconds": 4.019,
+          "error_type": null,
+          "executable": "pnpm",
+          "exit_code": 0,
+          "finished_at": "2026-10-03T12:19:44.858611+00:00",
+          "idle_seconds_at_exit": 3.012,
+          "interruption_signal": null,
+          "log_bytes": 129,
+          "log_path": "$TASK/evidence/implementation/focus-api-atomic-25-lint.log",
+          "log_sha256": "186e5fdf31e61e4da9d89dd82b82bfa2e77ba1c91cee748d5a0c58077b901621",
+          "reason": "exit",
+          "started_at": "2026-10-03T12:19:40.839363+00:00",
+          "status": "completed",
+          "summary_path": "$TASK/evidence/implementation/focus-api-atomic-25-lint.runner.json",
+          "runner_exit_code": 0
+        }
+      ]
+    },
+    {
+      "phase": "focus-api-rf-26",
+      "receipt_bytes": 11043,
+      "receipt_sha256": "38e9692b8b9b5aeb83693185112962610af25a1f9f5f0eb37e213098e6ebc8be",
+      "results": [
+        {
+          "name": "rf-write",
+          "argv": [
+            "/opt/homebrew/opt/node@22/bin/node",
+            "scripts/rf00-inventory-scan.mjs",
+            "--write"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "54650f5d8fafcb609b4c69757bcea3804bfd4b4b",
+            "git_diff_sha256": "b0d65e2f7ae057593b1a9a5ad9e5a7bae77bfc7dac8f7a7bf29c55fb863feb05"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-so91xjd3",
+            "SAYDO_HOME": "$TASK/evidence/implementation/runtime/focus-api-rf-26/rf-write/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-rf-26/rf-write/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/outputs/focus-api-rf-26/rf-write/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/outputs/focus-api-rf-26/rf-write/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-rf-26/rf-write/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 2,
+          "duration_seconds": 1.007,
+          "error_type": null,
+          "executable": "node",
+          "exit_code": 0,
+          "finished_at": "2026-10-03T12:22:46.243500+00:00",
+          "idle_seconds_at_exit": 1.007,
+          "interruption_signal": null,
+          "log_bytes": 69,
+          "log_path": "$TASK/evidence/implementation/focus-api-rf-26-rf-write.log",
+          "log_sha256": "7504082de1d6f837978c38fbfd796c767ed369d4ef9a49c793f6eca72e666a9a",
+          "reason": "exit",
+          "started_at": "2026-10-03T12:22:45.236330+00:00",
+          "status": "completed",
+          "summary_path": "$TASK/evidence/implementation/focus-api-rf-26-rf-write.runner.json",
+          "runner_exit_code": 0
+        },
+        {
+          "name": "rf-check",
+          "argv": [
+            "/opt/homebrew/opt/node@22/bin/node",
+            "scripts/rf00-inventory-scan.mjs",
+            "--check"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "54650f5d8fafcb609b4c69757bcea3804bfd4b4b",
+            "git_diff_sha256": "b0d65e2f7ae057593b1a9a5ad9e5a7bae77bfc7dac8f7a7bf29c55fb863feb05"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-ct23b2qi",
+            "SAYDO_HOME": "$TASK/evidence/implementation/runtime/focus-api-rf-26/rf-check/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-rf-26/rf-check/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/outputs/focus-api-rf-26/rf-check/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/outputs/focus-api-rf-26/rf-check/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-rf-26/rf-check/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 2,
+          "duration_seconds": 7.031,
+          "error_type": null,
+          "executable": "node",
+          "exit_code": 0,
+          "finished_at": "2026-10-03T12:22:53.323792+00:00",
+          "idle_seconds_at_exit": 7.031,
+          "interruption_signal": null,
+          "log_bytes": 368,
+          "log_path": "$TASK/evidence/implementation/focus-api-rf-26-rf-check.log",
+          "log_sha256": "6c178aff5dcff6552c3065ba84b1edd4b9899fe4d1679144d70aaae2d33a30bc",
+          "reason": "exit",
+          "started_at": "2026-10-03T12:22:46.292232+00:00",
+          "status": "completed",
+          "summary_path": "$TASK/evidence/implementation/focus-api-rf-26-rf-check.runner.json",
+          "runner_exit_code": 0
+        },
+        {
+          "name": "diff",
+          "argv": [
+            "git",
+            "diff",
+            "--check"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "54650f5d8fafcb609b4c69757bcea3804bfd4b4b",
+            "git_diff_sha256": "b0d65e2f7ae057593b1a9a5ad9e5a7bae77bfc7dac8f7a7bf29c55fb863feb05"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-3w1z4qku",
+            "SAYDO_HOME": "$TASK/evidence/implementation/runtime/focus-api-rf-26/diff/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-rf-26/diff/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/outputs/focus-api-rf-26/diff/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/outputs/focus-api-rf-26/diff/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-rf-26/diff/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 2,
+          "duration_seconds": 1.002,
+          "error_type": null,
+          "executable": "git",
+          "exit_code": 0,
+          "finished_at": "2026-10-03T12:22:54.382783+00:00",
+          "idle_seconds_at_exit": 1.002,
+          "interruption_signal": null,
+          "log_bytes": 0,
+          "log_path": "$TASK/evidence/implementation/focus-api-rf-26-diff.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reason": "exit",
+          "started_at": "2026-10-03T12:22:53.380145+00:00",
+          "status": "completed",
+          "summary_path": "$TASK/evidence/implementation/focus-api-rf-26-diff.runner.json",
+          "runner_exit_code": 0
+        },
+        {
+          "name": "emoji",
+          "argv": [
+            "bash",
+            "scripts/check-emoji.sh"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "54650f5d8fafcb609b4c69757bcea3804bfd4b4b",
+            "git_diff_sha256": "b0d65e2f7ae057593b1a9a5ad9e5a7bae77bfc7dac8f7a7bf29c55fb863feb05"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-jj4qy5lc",
+            "SAYDO_HOME": "$TASK/evidence/implementation/runtime/focus-api-rf-26/emoji/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-rf-26/emoji/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/outputs/focus-api-rf-26/emoji/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/outputs/focus-api-rf-26/emoji/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/outputs/focus-api-rf-26/emoji/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 1,
+          "duration_seconds": 1.004,
+          "error_type": null,
+          "executable": "bash",
+          "exit_code": 0,
+          "finished_at": "2026-10-03T12:22:55.442708+00:00",
+          "idle_seconds_at_exit": 1.004,
+          "interruption_signal": null,
+          "log_bytes": 23,
+          "log_path": "$TASK/evidence/implementation/focus-api-rf-26-emoji.log",
+          "log_sha256": "e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3",
+          "reason": "exit",
+          "started_at": "2026-10-03T12:22:54.438556+00:00",
+          "status": "completed",
+          "summary_path": "$TASK/evidence/implementation/focus-api-rf-26-emoji.runner.json",
+          "runner_exit_code": 0
+        }
+      ]
+    }
+  ],
+  "rf_refresh": {
+    "decisions_file": "$TASK/evidence/implementation/rf00-refresh-api-26.json",
+    "source_corpus_updates": 14,
+    "test_coordinate_moves": 10,
+    "unchanged_test_comment_registration": 1,
+    "changed_writer_scopes": 5,
+    "new_registrations": 0,
+    "four_dual_write_gap": "unchanged",
+    "boundary": "逐项具名source/handler核对与测试范围之外，仅机械source摘要绑定，不据hash称全部语义已验"
+  },
+  "limits": [
+    "初两review固定2ff FAIL不改，546 fresh 新P1作为发现输入，不能算新I已独立接受。",
+    "保留I2 39/41普通失败与前次f32 41/41实际通过，各绑实际ref。",
+    "20旧证据原字节未恢复，历史原任务/结论/log未改。",
+    "8旧PG/CTX首次FAIL不重跑，PG source-proof/算法/ledger/CTX exact-set 与旧SC原生预算不重置。",
+    "真Windows/native/provider/设备/付费CLI/旧正式journey/部署/公开发布 NOT_RUN；未合main、push、清理来源。"
+  ],
+  "full_baseline": {
+    "ref": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+    "ordinary_gates": 41,
+    "exit_zero": 41,
+    "node_pass": 3728,
+    "node_skip": 21,
+    "python_pass": 151,
+    "playwright_pass": 64,
+    "started_at": "2026-10-03T12:25:05.800035+00:00",
+    "finished_at": "2026-10-03T12:37:22.774345+00:00",
+    "pre_post_head_fp": "same clean I",
+    "guard": {
+      "observed_at": "2026-10-03T12:38:40.973296+00:00",
+      "head": "b2ffc36487930ea85d933a981f6bca5ce58cec58",
+      "fingerprint": {
+        "algorithm": "git-diff-v1",
+        "fingerprint": "e42dd19ca752c0ee2dca966fb0e915cbc9fce9375efcd3d45a53f060692f9727",
+        "head": "b2ffc36487930ea85d933a981f6bca5ce58cec58"
+      },
+      "tracked_images_count": 113,
+      "tracked_images": [
+        {
+          "path": "apps/android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+          "match": true
+        },
+        {
+          "path": "apps/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png",
+          "match": true
+        },
+        {
+          "path": "apps/android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+          "match": true
+        },
+        {
+          "path": "apps/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png",
+          "match": true
+        },
+        {
+          "path": "apps/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+          "match": true
+        },
+        {
+          "path": "apps/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png",
+          "match": true
+        },
+        {
+          "path": "apps/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+          "match": true
+        },
+        {
+          "path": "apps/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png",
+          "match": true
+        },
+        {
+          "path": "apps/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+          "match": true
+        },
+        {
+          "path": "apps/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png",
+          "match": true
+        },
+        {
+          "path": "apps/harmonyos/AppScope/resources/base/media/background.png",
+          "match": true
+        },
+        {
+          "path": "apps/harmonyos/AppScope/resources/base/media/foreground.png",
+          "match": true
+        },
+        {
+          "path": "apps/harmonyos/AppScope/resources/base/media/start_icon.png",
+          "match": true
+        },
+        {
+          "path": "apps/ios/SayDo/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png",
+          "match": true
+        },
+        {
+          "path": "artifacts/release/copyright/shots/demo-console.png",
+          "match": true
+        },
+        {
+          "path": "artifacts/release/copyright/shots/site-docs.png",
+          "match": true
+        },
+        {
+          "path": "artifacts/release/copyright/shots/site-home.png",
+          "match": true
+        },
+        {
+          "path": "artifacts/release/store-assets/agc-icon-216.png",
+          "match": true
+        },
+        {
+          "path": "artifacts/release/store-assets/app-icon-1024.png",
+          "match": true
+        },
+        {
+          "path": "artifacts/release/store-assets/app-icon-flat-1024.png",
+          "match": true
+        },
+        {
+          "path": "artifacts/release/store-assets/play-icon-512.png",
+          "match": true
+        },
+        {
+          "path": "assets/brand/monogram-exploration/saydo-sd-direction-01-figure-ground.png",
+          "match": true
+        },
+        {
+          "path": "assets/brand/monogram-exploration/saydo-sd-direction-02-interlock.png",
+          "match": true
+        },
+        {
+          "path": "assets/brand/monogram-exploration/saydo-sd-direction-03-optical.png",
+          "match": true
+        },
+        {
+          "path": "assets/brand/monogram-exploration/saydo-sd-direction-04-modular.png",
+          "match": true
+        },
+        {
+          "path": "assets/brand/monogram-exploration/saydo-sd-direction-05-organic.png",
+          "match": true
+        },
+        {
+          "path": "assets/brand/saydo-app-icon-v1.png",
+          "match": true
+        },
+        {
+          "path": "assets/brand/saydo-hero-v1.png",
+          "match": true
+        },
+        {
+          "path": "assets/brand/saydo-icon-flat-1024.png",
+          "match": true
+        },
+        {
+          "path": "assets/brand/saydo-icon-heavy-1024.png",
+          "match": true
+        },
+        {
+          "path": "assets/brand/saydo-icon-tex-1024.png",
+          "match": true
+        },
+        {
+          "path": "assets/brand/saydo-lockup-v1.png",
+          "match": true
+        },
+        {
+          "path": "assets/brand/saydo-mark-v1-transparent.png",
+          "match": true
+        },
+        {
+          "path": "assets/brand/saydo-mark-v1.png",
+          "match": true
+        },
+        {
+          "path": "assets/brand/saydo-social-cover-v1.png",
+          "match": true
+        },
+        {
+          "path": "assets/brand/saydo-vertical-poster-v1.png",
+          "match": true
+        },
+        {
+          "path": "demo/white-edition-previews/SayDo_White_Edition_Desktop.png",
+          "match": true
+        },
+        {
+          "path": "demo/white-edition-previews/SayDo_White_Edition_English.png",
+          "match": true
+        },
+        {
+          "path": "demo/white-edition-previews/SayDo_White_Edition_Mobile.png",
+          "match": true
+        },
+        {
+          "path": "demo/white-edition-previews/SayDo_White_Edition_Review.png",
+          "match": true
+        },
+        {
+          "path": "demo/white-edition-previews/SayDo_White_Edition_Tablet.png",
+          "match": true
+        },
+        {
+          "path": "deploy/saydo-octoooo-com/apple-touch-icon.png",
+          "match": true
+        },
+        {
+          "path": "deploy/saydo-octoooo-com/favicon.png",
+          "match": true
+        },
+        {
+          "path": "deploy/saydo-octoooo-com/icon-1024.png",
+          "match": true
+        },
+        {
+          "path": "deploy/saydo-octoooo-com/icon-192.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/shots/saydo-docs-install-candidate-en.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/shots/saydo-home-install-candidate.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/.shots/d11-1280-full.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/.shots/d11-375-full.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/.shots/d11-768-full.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/.shots/d11-v2-1280-full.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/.shots/d11-v2-375-full.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/.shots/d11-v3-1280-full.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/.shots/d11-v3-1280-hero.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/.shots/d11-v3-375-full.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/.shots/d11-v3-375-hero.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/shots/01-dialogue.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/shots/02-vertical-classic.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/shots/03-poster.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/shots/04-metro-map.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/shots/05-night-terminal.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/shots/06-one-day.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/shots/07-magazine.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/shots/08-blueprint.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/shots/09-app-console.png",
+          "match": true
+        },
+        {
+          "path": "docs/site/style-demos/shots/10-ink-brush.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/01-D1_20260816-175009_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/02-D2_20260816-175011_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/03-D3_20260816-175011_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/04-D4_20260816-175011_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/05-D5_20260816-175011_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/06-D6_20260816-175011_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/07-D7_20260816-175011_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/08-D8_20260816-175011_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/09-D9_20260816-175011_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/10-D10_20260816-175012_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/11-D11_20260816-175012_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/12-D12_20260816-175012_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/13-D13_20260816-175012_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/14-D14_20260816-175012_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/15-D15_20260816-175012_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/15-D15_20260816-175800_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/16-F1_20260816-175012_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/17-L1_20260816-175012_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/18-L2_20260816-175012_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/evidence/2026-08-16-full-acceptance/screenshots/19-L3_20260816-175012_PASS.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/dark/approvals.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/dark/artifacts.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/dark/chat.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/dark/cost.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/dark/dashboard.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/dark/memory.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/dark/notify.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/dark/psettings.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/dark/settings.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/dark/task-detail.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/dark/tasks.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/light/approvals.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/light/artifacts.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/light/chat.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/light/cost.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/light/dashboard.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/light/memory.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/light/notify.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/light/psettings.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/light/settings.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/light/task-detail.png",
+          "match": true
+        },
+        {
+          "path": "e2e/screenshots/light/tasks.png",
+          "match": true
+        },
+        {
+          "path": "packages/console/public/apple-touch-icon.png",
+          "match": true
+        },
+        {
+          "path": "packages/console/public/favicon-16.png",
+          "match": true
+        },
+        {
+          "path": "packages/console/public/favicon-32.png",
+          "match": true
+        },
+        {
+          "path": "packages/console/public/icon-512.png",
+          "match": true
+        },
+        {
+          "path": "packages/console/src/assets/saydo-mark.png",
+          "match": true
+        }
+      ],
+      "old_current_path_count": 20,
+      "old_current_paths": [
+        {
+          "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/b3-draft-barrier.png",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/b3-draft-posts.json",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/board-lanes.png",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/board-list.png",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/board-kanban.png",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/arrangements.png",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/archive.png",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/cost-identity.png",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-obligation-modal-1440.png",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/expect-draft-chat.png",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/anchor-failed-keeps-draft.png",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/records-continue-main-lane.png",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/task-modal-running.png",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-desktop-1440.png",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-mobile-390.png",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-mobile-390-obligation.png",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/pending-anchor-retry-ws-http.json",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/delay-focus-a-to-b-ws-http.json",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/records-continue-ws-http.json",
+          "match": true
+        },
+        {
+          "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/journey01-closed-loop.json",
+          "match": true
+        }
+      ],
+      "scope": "Only113 tracked images and20 known overwritten historical paths; originals still unrecovered; not all ignored/external"
+    },
+    "independent_acceptance": "pending new fresh review"
+  }
+}

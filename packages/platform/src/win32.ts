@@ -22,6 +22,53 @@ type WinIoFn = {
   ) => void;
 };
 
+/** 注入 stdio overlapped 读/写/关/取消边界。不是真机 kernel32。 */
+export type Win32PipeIoNative = {
+  ReadFile: (handle: unknown, buf: Buffer, n: number, written: number[], overlapped: unknown) => number;
+  WriteFile: (handle: unknown, buf: Buffer, n: number, written: number[], overlapped: unknown) => number;
+  CreateEventW: (sa: unknown, manualReset: number, initialState: number, name: unknown) => unknown;
+  CloseHandle: (h: unknown) => number;
+  GetLastError: () => number;
+  SetLastError: (code: number) => void;
+  CancelIoEx: (handle: unknown, overlapped: unknown) => number;
+  GetOverlappedResult: (
+    handle: unknown,
+    overlapped: unknown,
+    transferred: number[],
+    wait: number
+  ) => number;
+  WaitForSingleObject: (handle: unknown, ms: number) => number;
+};
+
+export type Win32PipeHandleOwner = {
+  readonly handle: unknown;
+  readonly label: string;
+  released(): boolean;
+  lastCloseError(): Error | undefined;
+  lastFailure(): Error | undefined;
+  inFlight(): boolean;
+  retainInFlight(token: object): void;
+  releaseInFlight(token: object): void;
+  noteFailure(err: Error): void;
+  close(): void;
+};
+
+export type Win32PipeIoResult = { kind: "data"; bytes: number } | { kind: "eof" };
+
+export type Win32PipeIoSession = {
+  readonly buffer: Buffer;
+  readonly overlapped: unknown;
+  readonly event: unknown;
+  readonly promise: Promise<Win32PipeIoResult>;
+  readonly failure: Promise<Error>;
+  requestCancel(): Error | undefined;
+};
+
+export type Win32HandleStreamOptions = {
+  owner?: Win32PipeHandleOwner;
+  cancelWaitMs?: number;
+};
+
 const require = createRequire(import.meta.url);
 
 const platformNativeErrors = new WeakSet<object>();
@@ -244,6 +291,14 @@ interface Native {
   ) => number;
   DeleteProcThreadAttributeList: (list: Buffer) => void;
   WaitForSingleObject: (handle: unknown, ms: number) => number;
+  CreateEventW: (sa: unknown, manualReset: number, initialState: number, name: unknown) => unknown;
+  CancelIoEx: (handle: unknown, overlapped: unknown) => number;
+  GetOverlappedResult: (
+    handle: unknown,
+    overlapped: unknown,
+    transferred: number[],
+    wait: number
+  ) => number;
   CreateFileW: (
     path: string,
     access: number,
@@ -311,6 +366,14 @@ const PIPE_ACCESS_INBOUND = 0x00000001;
 const PIPE_ACCESS_OUTBOUND = 0x00000002;
 const PIPE_NOWAIT = 0x00000001;
 const FILE_FLAG_FIRST_PIPE_INSTANCE = 0x00080000;
+export const WIN32_FILE_FLAG_OVERLAPPED = 0x40000000;
+const STDIO_CANCEL_WAIT_MS = 250;
+export const WIN32_ERROR_HANDLE_EOF = 38;
+export const WIN32_ERROR_BROKEN_PIPE = 109;
+export const WIN32_ERROR_OPERATION_ABORTED = 995;
+export const WIN32_ERROR_IO_INCOMPLETE = 996;
+export const WIN32_ERROR_IO_PENDING = 997;
+export const WIN32_ERROR_PIPE_NOT_CONNECTED = 233;
 const STDIO_PIPE_BUFFER = 65_536;
 const GENERATION_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const ERROR_PIPE_CONNECTED = 535;
@@ -551,6 +614,15 @@ function bindNow(): Native {
     WaitForSingleObject: kernel32.func(
       "uint32 __stdcall WaitForSingleObject(void *, uint32)"
     ) as Native["WaitForSingleObject"],
+    CreateEventW: kernel32.func(
+      "void * __stdcall CreateEventW(void *, int32, int32, void *)"
+    ) as Native["CreateEventW"],
+    CancelIoEx: kernel32.func(
+      "int32 __stdcall CancelIoEx(void *, void *)"
+    ) as Native["CancelIoEx"],
+    GetOverlappedResult: kernel32.func(
+      "int32 __stdcall GetOverlappedResult(void *, void *, _Out_ uint32 *, int32)"
+    ) as Native["GetOverlappedResult"],
     CreateFileW: kernel32.func(
       "void * __stdcall CreateFileW(str16, uint32, uint32, _In_ SECURITY_ATTRIBUTES *, uint32, uint32, void *)"
     ) as Native["CreateFileW"],
@@ -839,12 +911,22 @@ export function verifyRestrictOwnerOnlyReadback(
   }
 }
 
-function aceTrusteeSidFromAllowedAce(n: Native, ace: unknown, currentSid: string): string {
-  const aceSize = n.koffi.decode(ace, 2, "uint16") as number;
-  const subCount = n.koffi.decode(ace, ACE_SID_OFFSET + 1, "uint8") as number;
+/** 按顺序校验 ACE 头与 SID 长度；未知布局不得先按 allow 布局读内存。 */
+export function decodeWin32AllowedAce(read: (offset: number, type: "uint8" | "uint16" | "uint32") => number): {
+  aceType: number;
+  aceFlags: number;
+  mask: number;
+  sidBuf: Buffer;
+} {
+  const aceType = read(0, "uint8");
+  if (aceType !== ACCESS_ALLOWED_ACE_TYPE) {
+    throw new PlatformNativeError(`ACL readback ACE type not allow:${String(aceType)}`);
+  }
+  const aceSize = read(2, "uint16");
   if (!Number.isInteger(aceSize) || aceSize < ACE_SID_OFFSET + 8) {
     throw new PlatformNativeError("ACL ACE size invalid");
   }
+  const subCount = read(ACE_SID_OFFSET + 1, "uint8");
   if (!Number.isInteger(subCount) || subCount < 0 || subCount > 15) {
     throw new PlatformNativeError("ACL ACE SID subauthority invalid");
   }
@@ -853,9 +935,11 @@ function aceTrusteeSidFromAllowedAce(n: Native, ace: unknown, currentSid: string
     throw new PlatformNativeError("ACL ACE SID truncated");
   }
   const sidBuf = Buffer.alloc(sidLen);
-  for (let i = 0; i < sidLen; i += 1) {
-    sidBuf[i] = n.koffi.decode(ace, ACE_SID_OFFSET + i, "uint8") as number;
-  }
+  for (let i = 0; i < sidLen; i += 1) sidBuf[i] = read(ACE_SID_OFFSET + i, "uint8");
+  return { aceType, aceFlags: read(1, "uint8"), mask: read(4, "uint32"), sidBuf };
+}
+
+function aceTrusteeSidFromAllowedAce(n: Native, sidBuf: Buffer, currentSid: string): string {
   const currentPtr: unknown[] = [null];
   if (n.ConvertStringSidToSidW(currentSid, currentPtr) && currentPtr[0] != null) {
     try {
@@ -910,11 +994,12 @@ function readOwnerOnlyAclViewNative(n: Native, absPath: string, currentSid: stri
       if (!n.GetAce(verifyDacl[0], i, ace) || ace[0] == null) {
         throw new PlatformNativeError(`GetAce failed:${String(i)}`);
       }
+      const decoded = decodeWin32AllowedAce((offset, type) => n.koffi.decode(ace[0], offset, type) as number);
       aces.push({
-        aceType: n.koffi.decode(ace[0], 0, "uint8") as number,
-        aceFlags: n.koffi.decode(ace[0], 1, "uint8") as number,
-        mask: n.koffi.decode(ace[0], 4, "uint32") as number,
-        trusteeSid: aceTrusteeSidFromAllowedAce(n, ace[0], currentSid)
+        aceType: decoded.aceType,
+        aceFlags: decoded.aceFlags,
+        mask: decoded.mask,
+        trusteeSid: aceTrusteeSidFromAllowedAce(n, decoded.sidBuf, currentSid)
       });
     }
     return { ownerSid, control: control[0] ?? 0, aces };
@@ -1027,7 +1112,7 @@ function isNullHandle(h: unknown): boolean {
   return h == null || h === 0 || h === 0n;
 }
 
-function closeHandleChecked(n: Native, handle: unknown, label: string): void {
+function closeHandleChecked(n: Pick<Native, "CloseHandle" | "GetLastError">, handle: unknown, label: string): void {
   if (isNullHandle(handle)) return;
   if (!n.CloseHandle(handle)) {
     throw new PlatformNativeError(`CloseHandle failed:${label}:err=${String(n.GetLastError())}`);
@@ -1497,7 +1582,7 @@ export interface OwnedWindowsProcessWin32 {
   extra: Writable;
   resume: () => void;
   terminateFromHandle: () => void;
-  disposeStdio: () => void;
+  disposeStdio: () => "disposed" | "pending";
   closeProcessHandle: () => void;
   waitForExit: (timeoutMs: number) => "signaled" | "timeout" | "unknown";
   readExitCode: () => number | "live" | "unknown";
@@ -1579,6 +1664,20 @@ function stdioPipeName(generation: string, stream: "stdin" | "stdout" | "stderr"
   return `\\\\.\\pipe\\saydo-stdio-${generation}-${stream}`;
 }
 
+/** 父端 named pipe：overlapped，可 CancelIoEx。 */
+export function win32StdioServerOpenMode(parentWrites: boolean): number {
+  return (
+    (parentWrites ? PIPE_ACCESS_OUTBOUND : PIPE_ACCESS_INBOUND) |
+    FILE_FLAG_FIRST_PIPE_INSTANCE |
+    WIN32_FILE_FLAG_OVERLAPPED
+  );
+}
+
+/** 子端同步兼容：不带 FILE_FLAG_OVERLAPPED。 */
+export function win32StdioClientOpenFlags(): number {
+  return FILE_ATTRIBUTE_NORMAL;
+}
+
 /**
  * 父进程 server HANDLE + 可继承 client HANDLE。CreateNamedPipeW 后立即 CreateFileW：
  * 内核完成连接，不经过 net.Server 的 IOCP accept，因此可在同步 spawn 里用。
@@ -1592,7 +1691,7 @@ function createNamedStdioPair(
   hitSpawnFault("create-pipe");
   const server = n.CreateNamedPipeW(
     name,
-    (parentWrites ? PIPE_ACCESS_OUTBOUND : PIPE_ACCESS_INBOUND) | FILE_FLAG_FIRST_PIPE_INSTANCE,
+    win32StdioServerOpenMode(parentWrites),
     0,
     1,
     STDIO_PIPE_BUFFER,
@@ -1609,7 +1708,7 @@ function createNamedStdioPair(
     0,
     securityAttributes(n, 1),
     OPEN_EXISTING,
-    FILE_ATTRIBUTE_NORMAL,
+    win32StdioClientOpenFlags(),
     null
   );
   if (isNullHandle(client) || isInvalidHandle(n, client)) {
@@ -1624,127 +1723,598 @@ function createNamedStdioPair(
   return { server, client };
 }
 
-function closeHandleQuiet(n: Native, handle: unknown, label: string): void {
-  try {
-    closeHandleChecked(n, handle, label);
-  } catch {
-    // 已关或 rollback 中
-  }
-}
-
-function pipeErrno(code: "EOF" | "EPIPE", message: string): NodeJS.ErrnoException {
+function pipeErrno(code: "EOF" | "EPIPE" | "EIO", message: string): NodeJS.ErrnoException {
   const err = new PlatformNativeError(message) as PlatformNativeError & NodeJS.ErrnoException;
   err.code = code;
   return err;
 }
 
-function readHandleAsync(n: Native, handle: unknown, buf: Buffer): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const got = [0];
-    n.ReadFile.async(handle, buf, buf.length, got, null, (err, ok) => {
-      if (err) {
-        reject(pipeErrno("EOF", "named pipe read failed"));
-        return;
-      }
-      if (!ok) {
-        resolve(0);
-        return;
-      }
-      resolve(got[0] ?? 0);
-    });
-  });
+function win32IoFailure(code: "EPIPE" | "EIO", message: string, win32: number): NodeJS.ErrnoException {
+  return pipeErrno(code, `${message}:win32=${String(win32)}`);
 }
 
-function writeHandleAsync(n: Native, handle: unknown, data: Buffer): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const written = [0];
-    n.WriteFile.async(handle, data, data.length, written, null, (err, ok) => {
-      if (err) {
-        reject(pipeErrno("EPIPE", "named pipe write failed"));
-        return;
-      }
-      if (!ok || (written[0] ?? 0) !== data.length) {
-        reject(pipeErrno("EPIPE", "named pipe write short"));
-        return;
-      }
-      resolve();
-    });
-  });
+function projectIoFailure(err: unknown, fallback: "EIO" | "EPIPE", message: string): Error {
+  if (isPlatformNativeError(err)) return err;
+  return pipeErrno(fallback, message);
 }
 
-function handleReadable(n: Native, handle: unknown, label: string): Readable {
-  let closed = false;
-  let reading = false;
-  const release = (): void => {
-    if (closed) return;
-    closed = true;
-    closeHandleQuiet(n, handle, label);
+function isReadEofWin32(err: number): boolean {
+  return err === WIN32_ERROR_BROKEN_PIPE || err === WIN32_ERROR_HANDLE_EOF;
+}
+
+function isWritePipeGoneWin32(err: number): boolean {
+  return err === WIN32_ERROR_BROKEN_PIPE || err === WIN32_ERROR_PIPE_NOT_CONNECTED;
+}
+
+/**
+ * overlapped ReadFile/WriteFile 在调用线程立即返回；GetLastError 必须同线程紧跟。
+ * 不走 koffi func.async（worker 上的 LastError 不能回主线程）。
+ * 完成前 OVERLAPPED/buffer/event/handle 保持强引用。
+ */
+function settleWin32Overlapped(
+  ok: number,
+  win32: number,
+  bytes: number,
+  maxBytes: number,
+  kind: "read" | "write"
+): Win32PipeIoResult | { kind: "fail"; error: Error } {
+  if (!Number.isInteger(bytes) || bytes < 0) {
+    return { kind: "fail", error: pipeErrno("EIO", kind === "read" ? "named pipe read size invalid" : "named pipe write size invalid") };
+  }
+  if (ok) {
+    if (bytes > maxBytes) {
+      return {
+        kind: "fail",
+        error: pipeErrno("EIO", kind === "read" ? "named pipe read overflow" : "named pipe write overflow")
+      };
+    }
+    if (kind === "read") {
+      if (bytes <= 0) {
+        return { kind: "fail", error: pipeErrno("EIO", "named pipe read empty success") };
+      }
+      return { kind: "data", bytes };
+    }
+    if (bytes !== maxBytes) {
+      return { kind: "fail", error: pipeErrno("EIO", "named pipe write short") };
+    }
+    return { kind: "data", bytes };
+  }
+  if (kind === "read" && isReadEofWin32(win32)) {
+    return { kind: "eof" };
+  }
+  if (kind === "write" && isWritePipeGoneWin32(win32)) {
+    return { kind: "fail", error: win32IoFailure("EPIPE", "named pipe write failed", win32) };
+  }
+  if (win32 === WIN32_ERROR_IO_PENDING || win32 === WIN32_ERROR_IO_INCOMPLETE) {
+    return {
+      kind: "fail",
+      error: win32IoFailure("EIO", kind === "read" ? "named pipe read pending" : "named pipe write pending", win32)
+    };
+  }
+  return {
+    kind: "fail",
+    error: win32IoFailure("EIO", kind === "read" ? "named pipe read failed" : "named pipe write failed", win32)
   };
+}
+
+function makeOverlapped(n: Win32PipeIoNative, event: unknown): unknown {
+  const withLayout = n as Win32PipeIoNative & Partial<Pick<Native, "koffi" | "OVERLAPPED">>;
+  if (withLayout.koffi && withLayout.OVERLAPPED) {
+    const size = withLayout.koffi.sizeof(withLayout.OVERLAPPED);
+    const offset = withLayout.koffi.offsetof(withLayout.OVERLAPPED, "hEvent");
+    if (size !== 32 || offset !== 24) throw pipeErrno("EIO", "unsupported OVERLAPPED layout");
+    const address = BigInt(withLayout.koffi.address(event));
+    if (address <= 0n) throw pipeErrno("EIO", "invalid OVERLAPPED event");
+    const buf = Buffer.alloc(size);
+    buf.writeBigUInt64LE(address, offset);
+    return buf;
+  }
+  return { Internal: 0, InternalHigh: 0, Offset: 0, OffsetHigh: 0, hEvent: event };
+}
+
+function pipeApisUnavailable(n: Win32PipeIoNative, kind: "read" | "write"): Error | undefined {
+  if (typeof n.ReadFile !== "function" || typeof n.WriteFile !== "function") {
+    return pipeErrno("EIO", kind === "read" ? "named pipe read unavailable" : "named pipe write unavailable");
+  }
+  if (
+    typeof n.CreateEventW !== "function" ||
+    typeof n.GetOverlappedResult !== "function" ||
+    typeof n.WaitForSingleObject !== "function" ||
+    typeof n.SetLastError !== "function" ||
+    typeof n.GetLastError !== "function"
+  ) {
+    return pipeErrno("EIO", kind === "read" ? "named pipe read overlapped unavailable" : "named pipe write overlapped unavailable");
+  }
+  return undefined;
+}
+
+const heldPipeSessions = new Set<object>();
+
+function startWin32HandleIo(
+  n: Win32PipeIoNative,
+  handle: unknown,
+  buf: Buffer,
+  kind: "read" | "write"
+): Win32PipeIoSession {
+  let reportFailure!: (error: Error) => void;
+  const failure = new Promise<Error>((resolve) => { reportFailure = resolve; });
+  const unavailable = pipeApisUnavailable(n, kind);
+  const rejected = (error: Error): Win32PipeIoSession => ({
+    buffer: buf, overlapped: null, event: null, failure,
+    promise: Promise.reject(error), requestCancel: () => error
+  });
+  if (unavailable) return rejected(unavailable);
+  let event: unknown;
+  try {
+    event = n.CreateEventW(null, 1, 0, null);
+  } catch {
+    return rejected(pipeErrno("EIO", "CreateEventW failed"));
+  }
+  if (isNullHandle(event)) return rejected(win32IoFailure("EIO", "CreateEventW failed", n.GetLastError()));
+  let overlapped: unknown;
+  let layoutError: Error | undefined;
+  try { overlapped = makeOverlapped(n, event); }
+  catch { layoutError = pipeErrno("EIO", "OVERLAPPED layout failed"); }
+  let settled = false;
+  let completed = false;
+  let cancelRequested = false;
+  let lastCancelErr: Error | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const token = { buffer: buf, overlapped, event, handle };
+  heldPipeSessions.add(token);
+  const later = (work: () => void): void => {
+    timer = setTimeout(work, 5);
+    // 故障保留所有权,但不能让永不完成的内核请求阻挡宿主退出。
+    if (cancelRequested) timer.unref();
+  };
+  const requestCancel = (): Error | undefined => {
+    if (settled || completed) return undefined;
+    if (cancelRequested) return lastCancelErr;
+    cancelRequested = true;
+    timer?.unref();
+    try {
+      if (!n.CancelIoEx(handle, overlapped)) {
+        const error = n.GetLastError();
+        if (error !== ERROR_NOT_FOUND) lastCancelErr = win32IoFailure("EIO", "CancelIoEx failed", error);
+      }
+    } catch { lastCancelErr = pipeErrno("EIO", "CancelIoEx failed"); }
+    return lastCancelErr;
+  };
+  const fault = (error: Error): void => {
+    reportFailure(error);
+    requestCancel();
+  };
+  const promise = new Promise<Win32PipeIoResult>((resolve, reject) => {
+    const finish = (result: Win32PipeIoResult | { kind: "fail"; error: Error }): void => {
+      if (settled) return;
+      completed = true;
+      try { closeHandleChecked(n, event, "stdio-overlapped-event"); }
+      catch (error) {
+        reportFailure(projectIoFailure(error, "EIO", "event close failed"));
+        // I/O 已终结,但事件关闭仍由本 session 持有;成功前不兑现释放 promise。
+        later(() => finish(result));
+        timer?.unref();
+        return;
+      }
+      settled = true;
+      heldPipeSessions.delete(token);
+      if (result.kind === "fail") reject(result.error);
+      else resolve(result);
+    };
+    const afterComplete = (): void => {
+      const transferred = [0];
+      let ok: number;
+      let error: number;
+      try {
+        ok = n.GetOverlappedResult(handle, overlapped, transferred, 0);
+        error = ok ? 0 : n.GetLastError();
+      } catch {
+        fault(pipeErrno("EIO", "named pipe result query failed"));
+        later(afterComplete);
+        return;
+      }
+      if (!ok && (error === WIN32_ERROR_IO_INCOMPLETE || error === WIN32_ERROR_IO_PENDING)) {
+        later(poll);
+        return;
+      }
+      // 无效句柄/参数只说明查询失效,不能证明内核已放弃缓冲区。
+      if (!ok && (error === 6 || error === 87)) {
+        fault(win32IoFailure("EIO", "named pipe completion unproved", error));
+        later(afterComplete);
+        return;
+      }
+      finish(settleWin32Overlapped(ok, error, transferred[0] ?? 0, buf.length, kind));
+    };
+    const poll = (): void => {
+      if (settled) return;
+      let wait: number;
+      try { wait = n.WaitForSingleObject(event, 0); }
+      catch {
+        fault(pipeErrno("EIO", "named pipe wait failed"));
+        afterComplete();
+        return;
+      }
+      if (wait === WAIT_TIMEOUT) { later(poll); return; }
+      if (wait !== WAIT_OBJECT_0) fault(pipeErrno("EIO", `named pipe wait failed:wait=${String(wait)}`));
+      // WAIT_FAILED 不释放;仍须查询同一 OVERLAPPED 的真实终态。
+      afterComplete();
+    };
+    if (layoutError) { finish({ kind: "fail", error: layoutError }); return; }
+    const written = [0];
+    let started: number;
+    let error: number;
+    try {
+      started = kind === "read" ? n.ReadFile(handle, buf, buf.length, written, overlapped)
+        : n.WriteFile(handle, buf, buf.length, written, overlapped);
+      error = started ? 0 : n.GetLastError();
+    } catch {
+      fault(pipeErrno("EIO", "named pipe invocation failed; completion unknown"));
+      later(afterComplete);
+      return;
+    }
+    if (started) { afterComplete(); return; }
+    if (error === WIN32_ERROR_IO_PENDING) { later(poll); return; }
+    finish(settleWin32Overlapped(0, error, 0, buf.length, kind));
+  });
+  return { buffer: buf, overlapped, event, promise, failure, requestCancel };
+}
+
+export function startWin32HandleRead(n: Win32PipeIoNative, handle: unknown, buf: Buffer): Win32PipeIoSession {
+  return startWin32HandleIo(n, handle, buf, "read");
+}
+
+export function startWin32HandleWrite(n: Win32PipeIoNative, handle: unknown, data: Buffer): Win32PipeIoSession {
+  return startWin32HandleIo(n, handle, data, "write");
+}
+
+export function readWin32HandleAsync(n: Win32PipeIoNative, handle: unknown, buf: Buffer): Promise<number> {
+  const session = startWin32HandleRead(n, handle, buf);
+  return Promise.race([session.promise, session.failure.then((error) => { throw error; })]).then((result) => (result.kind === "eof" ? 0 : result.bytes));
+}
+
+export function writeWin32HandleAsync(n: Win32PipeIoNative, handle: unknown, data: Buffer): Promise<void> {
+  const session = startWin32HandleWrite(n, handle, data);
+  return Promise.race([session.promise, session.failure.then((error) => { throw error; })]).then(() => undefined);
+}
+
+export function createWin32PipeHandleOwner(
+  n: Pick<Win32PipeIoNative, "CloseHandle" | "GetLastError">,
+  handle: unknown,
+  label: string
+): Win32PipeHandleOwner {
+  let released = false;
+  let lastCloseError: Error | undefined;
+  let lastFailure: Error | undefined;
+  const inflight = new Set<object>();
+  return {
+    handle,
+    label,
+    released: () => released,
+    lastCloseError: () => lastCloseError,
+    lastFailure: () => lastFailure,
+    noteFailure(err) {
+      lastFailure = err;
+    },
+    inFlight: () => inflight.size > 0,
+    retainInFlight(token) {
+      inflight.add(token);
+    },
+    releaseInFlight(token) {
+      inflight.delete(token);
+    },
+    close() {
+      if (released) return;
+      if (inflight.size > 0) {
+        throw new PlatformNativeError(`CloseHandle deferred:${label}:io pending`);
+      }
+      try {
+        closeHandleChecked(n, handle, label);
+        released = true;
+        lastCloseError = undefined;
+      } catch (err) {
+        lastCloseError = isPlatformNativeError(err)
+          ? err
+          : new PlatformNativeError(`CloseHandle failed:${label}`);
+        throw lastCloseError;
+      }
+    }
+  };
+}
+
+function tryClosePipeOwner(owner: Win32PipeHandleOwner): Error | undefined {
+  if (owner.released()) return undefined;
+  try {
+    owner.close();
+    return undefined;
+  } catch (err) {
+    return isPlatformNativeError(err) ? err : new PlatformNativeError(`CloseHandle failed:${owner.label}`);
+  }
+}
+
+function combineIoAndClose(ioErr: Error | undefined, closeErr: Error | undefined): Error | undefined {
+  if (ioErr && closeErr) {
+    return pipeErrno("EIO", `${ioErr.message}; close:${closeErr.message}`);
+  }
+  return ioErr ?? closeErr;
+}
+
+export function getWin32PipeOwner(stream: object): Win32PipeHandleOwner | undefined {
+  if (typeof stream !== "object" || stream === null) return undefined;
+  const owner = (stream as { win32PipeOwner?: unknown }).win32PipeOwner;
+  if (!owner || typeof owner !== "object") return undefined;
+  const candidate = owner as Win32PipeHandleOwner;
+  if (typeof candidate.released !== "function" || typeof candidate.close !== "function") return undefined;
+  return candidate;
+}
+
+export function disposeOwnedWin32ParentStdio(input: {
+  streams: Array<Readable | Writable | null | undefined>;
+  owners: Win32PipeHandleOwner[];
+}): "disposed" | "pending" {
+  let pending = false;
+  let closeErr: Error | undefined;
+  for (const stream of input.streams) {
+    if (!stream) continue;
+    try {
+      stream.destroy();
+    } catch {
+      // 已关
+    }
+  }
+  for (const owner of input.owners) {
+    if (owner.released()) continue;
+    if (owner.inFlight()) {
+      pending = true;
+      continue;
+    }
+    try {
+      owner.close();
+    } catch (err) {
+      closeErr ??= isPlatformNativeError(err) ? err : new PlatformNativeError("stdio close failed");
+    }
+  }
+  if (closeErr) throw closeErr;
+  return pending ? "pending" : "disposed";
+}
+
+function attachPipeOwner(stream: Readable | Writable, owner: Win32PipeHandleOwner): void {
+  Object.defineProperty(stream, "win32PipeOwner", {
+    value: owner,
+    enumerable: true,
+    configurable: false,
+    writable: false
+  });
+}
+
+export function createWin32HandleReadable(
+  n: Win32PipeIoNative,
+  handle: unknown,
+  label: string,
+  options?: Win32HandleStreamOptions
+): Readable {
+  const owner = options?.owner ?? createWin32PipeHandleOwner(n, handle, label);
+  const cancelWaitMs = options?.cancelWaitMs ?? STDIO_CANCEL_WAIT_MS;
+  let session: Win32PipeIoSession | null = null;
+  let destroyCb: ((err: Error | null) => void) | null = null;
+  let destroyErr: Error | undefined;
+  let cancelTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const clearCancelTimer = (): void => {
+    if (cancelTimer) {
+      clearTimeout(cancelTimer);
+      cancelTimer = null;
+    }
+  };
+
+  const finishDestroy = (extra?: Error): void => {
+    clearCancelTimer();
+    const closeErr = tryClosePipeOwner(owner);
+    const combined = combineIoAndClose(combineIoAndClose(destroyErr, extra), closeErr);
+    const cb = destroyCb;
+    destroyCb = null;
+    if (cb) {
+      cb(combined ?? null);
+      return;
+    }
+    if (combined && !stream.destroyed) stream.destroy(combined);
+  };
+
+  const deliverReadChunk = (chunk: Buffer): void => {
+    if (stream.destroyed) {
+      stream.emit("data", chunk);
+      return;
+    }
+    stream.push(chunk);
+  };
+
   const stream = new Readable({
     highWaterMark: STDIO_PIPE_BUFFER,
+    autoDestroy: true,
     read() {
-      if (reading || closed) return;
-      reading = true;
+      if (session || owner.released()) return;
       const buf = Buffer.alloc(STDIO_PIPE_BUFFER);
-      void readHandleAsync(n, handle, buf).then(
-        (nread) => {
-          reading = false;
-          if (closed) return;
-          if (nread <= 0) {
-            release();
+      const started = startWin32HandleRead(n, handle, buf);
+      session = started;
+      owner.retainInFlight(started);
+      void started.failure.then((error) => {
+        owner.noteFailure(error);
+        if (!stream.destroyed) stream.destroy(error);
+        else stream.emit("error", error);
+      });
+      void started.promise.then(
+        (result) => {
+          owner.releaseInFlight(started);
+          session = null;
+          if (destroyCb) {
+            if (result.kind === "data") {
+              deliverReadChunk(Buffer.from(started.buffer.subarray(0, result.bytes)));
+            }
+            finishDestroy();
+            return;
+          }
+          if (stream.destroyed) {
+            tryClosePipeOwner(owner);
+            return;
+          }
+          if (owner.released()) return;
+          if (result.kind === "eof") {
             stream.push(null);
             return;
           }
-          stream.push(Buffer.from(buf.subarray(0, nread)));
+          stream.push(Buffer.from(started.buffer.subarray(0, result.bytes)));
         },
         (err: unknown) => {
-          reading = false;
-          if (closed) return;
-          release();
-          stream.destroy(err instanceof Error ? err : pipeErrno("EOF", "named pipe read failed"));
+          owner.releaseInFlight(started);
+          session = null;
+          const ioErr = projectIoFailure(err, "EIO", "named pipe read failed");
+          if (destroyCb) {
+            finishDestroy(ioErr);
+            return;
+          }
+          if (stream.destroyed) {
+            tryClosePipeOwner(owner);
+            return;
+          }
+          stream.destroy(ioErr);
         }
       );
     },
     destroy(err, cb) {
-      release();
-      cb(err);
+      destroyErr = err ?? undefined;
+      destroyCb = cb;
+      if (session) {
+        const cancelErr = session.requestCancel();
+        cancelTimer = setTimeout(() => {
+          cancelTimer = null;
+          const timeoutErr = pipeErrno("EIO", `named pipe read cancel wait timeout:${label}`);
+          const combined = combineIoAndClose(combineIoAndClose(destroyErr, cancelErr), timeoutErr) ?? timeoutErr;
+          owner.noteFailure(combined);
+          try {
+            stream.emit("error", combined);
+          } catch {
+            // 无监听者：失败留在 owner.lastFailure，不得假闭
+          }
+        }, cancelWaitMs);
+        return;
+      }
+      finishDestroy();
     }
   });
+  attachPipeOwner(stream, owner);
   return stream;
 }
 
-function handleWritable(n: Native, handle: unknown, label: string): Writable {
-  let closed = false;
-  const release = (): void => {
-    if (closed) return;
-    closed = true;
-    closeHandleQuiet(n, handle, label);
+export function createWin32HandleWritable(
+  n: Win32PipeIoNative,
+  handle: unknown,
+  label: string,
+  options?: Win32HandleStreamOptions
+): Writable {
+  const owner = options?.owner ?? createWin32PipeHandleOwner(n, handle, label);
+  const cancelWaitMs = options?.cancelWaitMs ?? STDIO_CANCEL_WAIT_MS;
+  let session: Win32PipeIoSession | null = null;
+  let finishCb: ((err?: Error | null) => void) | null = null;
+  let destroyCb: ((err: Error | null) => void) | null = null;
+  let destroyErr: Error | undefined;
+  let cancelTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const clearCancelTimer = (): void => {
+    if (cancelTimer) {
+      clearTimeout(cancelTimer);
+      cancelTimer = null;
+    }
   };
-  return new Writable({
+
+  const finishDestroy = (extra?: Error): void => {
+    clearCancelTimer();
+    const closeErr = tryClosePipeOwner(owner);
+    const combined = combineIoAndClose(combineIoAndClose(destroyErr, extra), closeErr);
+    const dcb = destroyCb;
+    destroyCb = null;
+    if (dcb) dcb(combined ?? null);
+    if (finishCb) {
+      const cb = finishCb;
+      finishCb = null;
+      cb(combined ?? null);
+    }
+  };
+
+  const stream = new Writable({
     highWaterMark: STDIO_PIPE_BUFFER,
+    autoDestroy: true,
     write(chunk, encoding, cb) {
-      if (closed) {
+      if (owner.released()) {
         cb(pipeErrno("EPIPE", "named pipe write after close"));
         return;
       }
       const data = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as string, encoding);
-      void writeHandleAsync(n, handle, data).then(
-        () => cb(),
+      const started = startWin32HandleWrite(n, handle, data);
+      session = started;
+      owner.retainInFlight(started);
+      void started.failure.then((error) => {
+        owner.noteFailure(error);
+        if (!stream.destroyed) stream.destroy(error);
+        else stream.emit("error", error);
+      });
+      void started.promise.then(
+        () => {
+          owner.releaseInFlight(started);
+          session = null;
+          cb();
+          if (destroyCb || finishCb) {
+            finishDestroy();
+            return;
+          }
+          if (stream.destroyed) tryClosePipeOwner(owner);
+        },
         (err: unknown) => {
-          release();
-          cb(err instanceof Error ? err : pipeErrno("EPIPE", "named pipe write failed"));
+          owner.releaseInFlight(started);
+          session = null;
+          const ioErr = projectIoFailure(err, "EIO", "named pipe write failed");
+          if (destroyCb || finishCb) {
+            cb(ioErr);
+            finishDestroy(ioErr);
+            return;
+          }
+          const closeErr = tryClosePipeOwner(owner);
+          if (stream.destroyed) {
+            tryClosePipeOwner(owner);
+            return;
+          }
+          cb(combineIoAndClose(ioErr, closeErr) ?? ioErr);
         }
       );
     },
     final(cb) {
-      release();
-      cb();
+      if (session) {
+        finishCb = cb;
+        return;
+      }
+      cb(tryClosePipeOwner(owner) ?? null);
     },
     destroy(err, cb) {
-      release();
-      cb(err);
+      destroyErr = err ?? undefined;
+      destroyCb = cb;
+      if (session) {
+        const cancelErr = session.requestCancel();
+        cancelTimer = setTimeout(() => {
+          cancelTimer = null;
+          const timeoutErr = pipeErrno("EIO", `named pipe write cancel wait timeout:${label}`);
+          const combined = combineIoAndClose(combineIoAndClose(destroyErr, cancelErr), timeoutErr) ?? timeoutErr;
+          owner.noteFailure(combined);
+          try {
+            stream.emit("error", combined);
+          } catch {
+            // 无监听者：失败留在 owner.lastFailure，不得假闭
+          }
+        }, cancelWaitMs);
+        return;
+      }
+      finishDestroy();
     }
   });
+  attachPipeOwner(stream, owner);
+  return stream;
 }
 
 /**
@@ -2167,11 +2737,14 @@ export function createSuspendedOwnedProcessWin32(input: {
       if (found && found.kind === "handle") found.owner = "closed";
     }
     hitSpawnFault("wrap-stdio");
-    const stdinStream = handleWritable(n, stdin.server, "stdin-server");
+    const stdinOwner = createWin32PipeHandleOwner(n, stdin.server, "stdin-server");
+    const stdoutOwner = createWin32PipeHandleOwner(n, stdout.server, "stdout-server");
+    const stderrOwner = createWin32PipeHandleOwner(n, stderr.server, "stderr-server");
+    const stdinStream = createWin32HandleWritable(n, stdin.server, "stdin-server", { owner: stdinOwner });
     transferHandleToStream(resources, stdin.server);
-    const stdoutStream = handleReadable(n, stdout.server, "stdout-server");
+    const stdoutStream = createWin32HandleReadable(n, stdout.server, "stdout-server", { owner: stdoutOwner });
     transferHandleToStream(resources, stdout.server);
-    const stderrStream = handleReadable(n, stderr.server, "stderr-server");
+    const stderrStream = createWin32HandleReadable(n, stderr.server, "stderr-server", { owner: stderrOwner });
     transferHandleToStream(resources, stderr.server);
     const extraStream = new PassThrough();
     const attr = resources.find((item) => item.kind === "attr");
@@ -2187,16 +2760,14 @@ export function createSuspendedOwnedProcessWin32(input: {
     let stdioDisposed = false;
     const threadRes = resources.find((item) => item.kind === "handle" && item.label === "spawn-thread");
     const procRes = resources.find((item) => item.kind === "handle" && item.label === "spawn-process");
-    const disposeParentStdio = (): void => {
-      if (stdioDisposed) return;
-      stdioDisposed = true;
-      for (const stream of [stdinStream, stdoutStream, stderrStream, extraStream]) {
-        try {
-          stream.destroy();
-        } catch {
-          // 已关
-        }
-      }
+    const disposeParentStdio = (): "disposed" | "pending" => {
+      if (stdioDisposed) return "disposed";
+      const state = disposeOwnedWin32ParentStdio({
+        streams: [stdinStream, stdoutStream, stderrStream, extraStream],
+        owners: [stdinOwner, stdoutOwner, stderrOwner]
+      });
+      if (state === "disposed") stdioDisposed = true;
+      return state;
     };
     return {
       pid: pi.dwProcessId,
@@ -2242,7 +2813,9 @@ export function createSuspendedOwnedProcessWin32(input: {
       closeProcessHandle() {
         hitSpawnFault("close-handle");
         if (processClosed) throw new PlatformNativeError("process handle closed twice");
-        disposeParentStdio();
+        if (disposeParentStdio() !== "disposed") {
+          throw new PlatformNativeError("process handle retained:stdio pending");
+        }
         if (!threadClosed) {
           closeHandleChecked(n, pi.hThread, "spawn-thread");
           threadClosed = true;

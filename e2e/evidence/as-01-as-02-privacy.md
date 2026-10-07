@@ -56,7 +56,7 @@ c1 账本原样保留(cycle.json SHA-256 `995b28b98a53c4b535323f00aadb839d4fd90c
 
 唯一 Deferred P2 ledger(contract 目录)items=[];整个 AS 任务的最终 P2 sweep 已在本 finalize 后执行一次,结果 no_items,final_sweep_count=1。
 
-not_run:Windows 真机(MAX_PATH/盘符/无 O_NOFOLLOW 平台)、uid=0 下的 0o555 反例、真实 provider/live 会话、常驻 runtime、真实 `.saydo` 数据、tailnet、托管 CI、发行物。未 commit/push/merge/install/deploy;主树未施工;候选仍为施工 clone 的 dirty 工作树。
+not_run:Windows 真机(MAX_PATH/盘符/无 O_NOFOLLOW 平台)、uid=0 下的 0o555 反例、真实 provider/live 会话、常驻 runtime、真实 `.saydo` 数据、tailnet、托管 CI、发行物。下列状态是冻结提交前的阶段快照：未 commit/push/merge/install/deploy;主树未施工;候选仍为施工 clone 的 dirty 工作树。后续 I=`7ab7ab39` 入库与干净 I 复跑见本文开头，不将此前未提交状态当当前状态；原 not_run 边界保持。
 
 ## 评审报告归档(bytes 与原文件全等)
 

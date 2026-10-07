@@ -1,7 +1,9 @@
+import { sessionStoragePort } from "../lib/sessionStoragePort";
 // 对话页(#/p/:id/chat;11 §5.6 转写流):用户轮右对齐 ink-wash,AI 轮左对齐 glass;
 // partial faint 渐显,final 转 primary;被打断句 faint 删除线(unheard 不进事实的视觉对应)。
 // 右栏(>=1280 双栏):「这次聊出来的东西」(批 4 实体卡流)+ 任务卡草稿 + 就绪自省。
 
+import { RecentConversation } from "../components/RecentConversation";
 import { FileQuestion, Mic, Square, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { EmptyState, PaperCard, SectionTitle } from "../components/ui";
@@ -229,13 +231,13 @@ export function Chat({
   const [inputState, setInputState] = useState<"idle" | "recording" | "transcribing" | "confirm">("idle");
   // L6/L5:续推锚定条;pendingAnchor 成功前不删、失败可重试,带主题内容等当前会话接上才发
   const [anchoredBanner, setAnchoredBanner] = useState<string | null>(() =>
-    typeof sessionStorage !== "undefined" && readPendingAnchor(sessionStorage) ? "正在接上主题…" : null
+    typeof sessionStoragePort !== "undefined" && readPendingAnchor(sessionStoragePort) ? "正在接上主题…" : null
   );
   const [pendingAnchor, setPendingAnchor] = useState<PendingAnchorPayload | null>(() =>
-    typeof sessionStorage === "undefined" ? null : readPendingAnchor(sessionStorage)
+    typeof sessionStoragePort === "undefined" ? null : readPendingAnchor(sessionStoragePort)
   );
   const [anchorPhase, setAnchorPhase] = useState<AnchorPhase>(() =>
-    typeof sessionStorage !== "undefined" && readPendingAnchor(sessionStorage) ? "pending" : "idle"
+    typeof sessionStoragePort !== "undefined" && readPendingAnchor(sessionStoragePort) ? "pending" : "idle"
   );
   const [anchoredSessionId, setAnchoredSessionId] = useState<string | null>(null);
   const [anchorError, setAnchorError] = useState<string | null>(null);
@@ -245,7 +247,7 @@ export function Chat({
   const shownUnknownEpochs =
     unknownEpochs.length > 0 ? unknownEpochs : (voice.lastAnchorStatus?.unknownEpochs ?? []);
   const [draftText, setDraftText] = useState(() =>
-    readInitialChatDraft(typeof sessionStorage === "undefined" ? undefined : sessionStorage)
+    readInitialChatDraft(typeof sessionStoragePort === "undefined" ? undefined : sessionStoragePort)
   );
   const pendingRef = useRef<PendingAnchorPayload | null>(null);
   const phaseRef = useRef<AnchorPhase>("idle");
@@ -265,11 +267,18 @@ export function Chat({
 
   const persistLiveDraft = useCallback((base?: PendingAnchorPayload | null) => {
     const current = base ?? pendingRef.current;
-    if (!current) return;
+    if (!current) return true;
     const next = { ...current, draft: draftTextRef.current };
     pendingRef.current = next;
     setPendingAnchor(next);
-    writePendingAnchor(sessionStorage, next);
+    const saved = writePendingAnchor(sessionStoragePort, next);
+    if (!saved) {
+      setAnchorPhase("failed");
+      setAnchoredSessionId(null);
+      setAnchorError("草稿保存失败,当前稿还在,请重试后再发");
+      setAnchoredBanner("草稿保存失败,当前稿还在");
+    }
+    return saved;
   }, []);
 
   const runFocusAnchor = useCallback(async (payload: PendingAnchorPayload, sessionId: string) => {
@@ -279,10 +288,10 @@ export function Chat({
     setAnchorPhase("pending");
     setAnchorError(null);
     setAnchoredBanner("正在接上主题…");
-    const persist = (next: PendingAnchorPayload): void => {
+    const persist = (next: PendingAnchorPayload): boolean => {
       pendingRef.current = next;
       setPendingAnchor(next);
-      writePendingAnchor(sessionStorage, next);
+      return writePendingAnchor(sessionStoragePort, next);
     };
     const live = voiceRef.current;
     live.beginInterviewAnchor({ sessionId, focusId: payload.focusId, requestId: payload.requestId });
@@ -333,12 +342,20 @@ export function Chat({
       setAnchoredBanner(result.reason);
       return;
     }
-    persist(
+    const saved = persist(
       buildAnchorSuccessPayload(payload, pendingRef.current, draftTextRef.current, {
         requestId: result.requestId,
         daemonEpoch: epoch
       })
     );
+    if (!saved) {
+      voiceRef.current.failInterviewAnchor({ sessionId, focusId: payload.focusId, requestId: result.requestId });
+      setAnchorPhase("failed");
+      setAnchoredSessionId(null);
+      setAnchorError("草稿保存失败,当前稿还在,可重试");
+      setAnchoredBanner("草稿保存失败,当前稿还在,可重试");
+      return;
+    }
     setLastAnchorCode(undefined);
     setUnknownEpochs([]);
     setAnchorPhase("ready");
@@ -352,7 +369,7 @@ export function Chat({
   }, []);
 
   useEffect(() => {
-    const p = pendingRef.current ?? readPendingAnchor(sessionStorage);
+    const p = pendingRef.current ?? readPendingAnchor(sessionStoragePort);
     if (!p || !sessionIdRef.current) return;
     if (phaseRef.current === "ready" && anchoredSessionRef.current === sessionIdRef.current) return;
     if (!voice.connected || !voice.daemonEpoch || !voice.peerId) {
@@ -404,7 +421,7 @@ export function Chat({
     }
     draftTextRef.current = "";
     setDraftText("");
-    consumeOwnedPendingDraft(binding.owner, sessionStorage, isCurrentFocusAnchorOwner, {
+    consumeOwnedPendingDraft(binding.owner, sessionStoragePort, isCurrentFocusAnchorOwner, {
       requestId: binding.requestId,
       draft: binding.text
     });
@@ -441,7 +458,7 @@ export function Chat({
   useEffect(() => {
     setThemedVoiceHold(themedSendBlocked);
     return () => {
-      const still = typeof sessionStorage === "undefined" ? null : readPendingAnchor(sessionStorage);
+      const still = typeof sessionStoragePort === "undefined" ? null : readPendingAnchor(sessionStoragePort);
       if (!still) setThemedVoiceHold(false);
     };
   }, [themedSendBlocked]);
@@ -459,7 +476,7 @@ export function Chat({
       .then((result) => {
         if (!alive) return;
         const turn = firstRunAssistantTurn(result);
-        if (turn) setFirstRunTurn(turn);
+        setFirstRunTurn(turn);
       })
       .catch(() => {
         // 首跑探询失败不挡正常对话;setup/recovery 门禁另行呈现。
@@ -840,7 +857,7 @@ export function Chat({
                       discardUnknownEpochs: shownUnknownEpochs,
                       draft: draftTextRef.current
                     };
-                    persistLiveDraft(next);
+                    if (!persistLiveDraft(next)) return;
                     void runFocusAnchor(next, sessionIdRef.current);
                   }}
                   style={{
@@ -865,7 +882,7 @@ export function Chat({
                 disabled={anchorPhase === "pending"}
                 onClick={() => {
                   const next = retryAnchorPayload(pendingAnchor, draftTextRef.current, lastAnchorCode);
-                  persistLiveDraft(next);
+                  if (!persistLiveDraft(next)) return;
                   void runFocusAnchor(next, sessionIdRef.current);
                 }}
                 style={{
@@ -999,6 +1016,7 @@ export function Chat({
             ))}
           </div>
         ) : null}
+        <RecentConversation />
         <div className="flex min-h-[220px] flex-col gap-[var(--space-2)]" data-transcript>
           {turns.length === 0 ? (
             <div>
@@ -1181,7 +1199,7 @@ export function Chat({
                 value={draftText}
                 onChange={(e) => rememberDraft(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && draftText.trim() !== "" && !themedSendBlocked) {
+                  if (e.key === "Enter" && !e.nativeEvent.isComposing && e.nativeEvent.keyCode !== 229 && draftText.trim() !== "" && !themedSendBlocked) {
                     const plan = planChatSend({
                       surface: "text",
                       pending: pendingRef.current,

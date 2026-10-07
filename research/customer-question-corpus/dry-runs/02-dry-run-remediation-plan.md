@@ -4,8 +4,8 @@
 
 <!-- corpus:dry-run-meta
 generated_at: 2026-08-26
-source_tree_sha256: 0c2a1f6569db7c05088ab6d624eeecbcf3bc9260008780c42f3bf01db9db2da6
-authority_sha256: e62d2115beee835ee882061be4b62512ef6ab6507c907a7e597fb92e8405ab98
+source_tree_sha256: 0228b16aa0002043794b8af871e5b43155b5a7e34f8957fd707878d61f5b1379
+authority_sha256: c02b77a644a7d876d9648e46c5174c5ca570bd60dbefc6392411fdc6e79369c7
 total: 600
 live: 465
 live_objects: 986
@@ -13,6 +13,97 @@ f1: 46
 simulations: 72
 ctx: 172
 -->
+
+## 当前上下文可用性（2026-09-30 原退役与 2026-10-04 追加退役投影）
+
+历史分母 600；因退役上下文不可执行 82；未被本次退役阻断 518（不代表执行通过）。未退役上下文 8/16（不代表当前有效，当前有效性见 expiry-observation-2026-10-03.md）。
+历史回放与理论状态保留；下列题目当前为 not_executable_retired_context，不得以历史 EXECUTABLE 或 REPLAY_PASS 宣称当前成功。
+
+| ID | 退役依赖 | 当前状态 |
+|---|---|---|
+| ENG-062 | CTX-15 | not_executable_retired_context |
+| PRJ-019 | CTX-06 | not_executable_retired_context |
+| PRJ-027 | CTX-06 | not_executable_retired_context |
+| PRJ-038 | CTX-08 | not_executable_retired_context |
+| PRJ-040 | CTX-16 | not_executable_retired_context |
+| PRJ-055 | CTX-08 | not_executable_retired_context |
+| PRJ-021 | CTX-05 | not_executable_retired_context |
+| PRJ-032 | CTX-08 | not_executable_retired_context |
+| PRJ-034 | CTX-16 | not_executable_retired_context |
+| PRJ-048 | CTX-05 | not_executable_retired_context |
+| PRJ-057 | CTX-05 | not_executable_retired_context |
+| PRJ-064 | CTX-06 | not_executable_retired_context |
+| WRT-002 | CTX-06 | not_executable_retired_context |
+| WRT-022 | CTX-05 | not_executable_retired_context |
+| WRT-028 | CTX-09 | not_executable_retired_context |
+| WRT-050 | CTX-16 | not_executable_retired_context |
+| WRT-008 | CTX-16 | not_executable_retired_context |
+| WRT-011 | CTX-06 | not_executable_retired_context |
+| WRT-018 | CTX-09 | not_executable_retired_context |
+| WRT-043 | CTX-06 | not_executable_retired_context |
+| WRT-047 | CTX-06 | not_executable_retired_context |
+| RES-001 | CTX-05 | not_executable_retired_context |
+| RES-002 | CTX-16 | not_executable_retired_context |
+| RES-007 | CTX-08 | not_executable_retired_context |
+| RES-020 | CTX-09 | not_executable_retired_context |
+| RES-016 | CTX-05 | not_executable_retired_context |
+| RES-030 | CTX-06 | not_executable_retired_context |
+| RES-035 | CTX-06 | not_executable_retired_context |
+| RES-036 | CTX-15 | not_executable_retired_context |
+| OPS-003 | CTX-06 | not_executable_retired_context |
+| OPS-005 | CTX-09 | not_executable_retired_context |
+| OPS-009 | CTX-06 | not_executable_retired_context |
+| OPS-024 | CTX-06 | not_executable_retired_context |
+| OPS-044 | CTX-06 | not_executable_retired_context |
+| OPS-048 | CTX-13 | not_executable_retired_context |
+| OPS-013 | CTX-12 | not_executable_retired_context |
+| OPS-021 | CTX-09 | not_executable_retired_context |
+| OPS-026 | CTX-06 | not_executable_retired_context |
+| OPS-029 | CTX-16 | not_executable_retired_context |
+| SAL-014 | CTX-16 | not_executable_retired_context |
+| SAL-015 | CTX-16 | not_executable_retired_context |
+| SAL-022 | CTX-16 | not_executable_retired_context |
+| SAL-029 | CTX-16 | not_executable_retired_context |
+| SAL-042 | CTX-16 | not_executable_retired_context |
+| SAL-035 | CTX-16 | not_executable_retired_context |
+| SAL-044 | CTX-16 | not_executable_retired_context |
+| MKT-002 | CTX-08 | not_executable_retired_context |
+| MKT-003 | CTX-08 | not_executable_retired_context |
+| MKT-006 | CTX-08 | not_executable_retired_context |
+| MKT-007 | CTX-08 | not_executable_retired_context |
+| MKT-012 | CTX-05 | not_executable_retired_context |
+| MKT-013 | CTX-08 | not_executable_retired_context |
+| MKT-015 | CTX-08 | not_executable_retired_context |
+| MKT-016 | CTX-05 | not_executable_retired_context |
+| MKT-017 | CTX-08 | not_executable_retired_context |
+| MKT-029 | CTX-08 | not_executable_retired_context |
+| MKT-001 | CTX-08 | not_executable_retired_context |
+| MKT-014 | CTX-08 | not_executable_retired_context |
+| MKT-018 | CTX-05 | not_executable_retired_context |
+| MKT-021 | CTX-05 | not_executable_retired_context |
+| DAT-002 | CTX-15 | not_executable_retired_context |
+| DAT-003 | CTX-15 | not_executable_retired_context |
+| DAT-004 | CTX-09 | not_executable_retired_context |
+| DAT-008 | CTX-15 | not_executable_retired_context |
+| DAT-009 | CTX-09 | not_executable_retired_context |
+| DAT-014 | CTX-15 | not_executable_retired_context |
+| DAT-016 | CTX-09 | not_executable_retired_context |
+| DAT-006 | CTX-15 | not_executable_retired_context |
+| DAT-013 | CTX-08 | not_executable_retired_context |
+| DAT-015 | CTX-15 | not_executable_retired_context |
+| DAT-028 | CTX-15 | not_executable_retired_context |
+| DAT-017 | CTX-15 | not_executable_retired_context |
+| LRN-015 | CTX-06 | not_executable_retired_context |
+| LRN-018 | CTX-15 | not_executable_retired_context |
+| LIF-005 | CTX-13 | not_executable_retired_context |
+| LIF-013 | CTX-12 | not_executable_retired_context |
+| LIF-008 | CTX-12 | not_executable_retired_context |
+| LIF-019 | CTX-13 | not_executable_retired_context |
+| FAM-003 | CTX-13 | not_executable_retired_context |
+| FAM-009 | CTX-12 | not_executable_retired_context |
+| FAM-011 | CTX-13 | not_executable_retired_context |
+| FAM-017 | CTX-13 | not_executable_retired_context |
+
 
 ## 1. 通用模板与逐题必填的分界
 

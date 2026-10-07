@@ -14,13 +14,20 @@ try {
   if (role === "hold") {
     const { withHomeOwnerBoundary } = await import(lockUrl);
     await withHomeOwnerBoundary(home, async () => {
-      writeFileSync(marker, "holding");
-      await new Promise(() => undefined);
+      // pending Promise 本身不保持事件循环存活，持锁生命周期必须由测试明确拥有。
+      const keepAlive = setInterval(() => undefined, 1_000);
+      try {
+        writeFileSync(marker, "holding");
+        await new Promise(() => undefined);
+      } finally {
+        clearInterval(keepAlive);
+      }
     });
     process.exit(0);
   }
   if (role === "cli-reap") {
     const { reapOwnedAgentGroups } = await import(reaperUrl);
+    writeFileSync(`${marker}.started`, "cli-reap");
     const n = await reapOwnedAgentGroups(home);
     writeFileSync(marker, `reaped:${String(n)}`);
     process.exit(0);

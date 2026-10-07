@@ -43,6 +43,8 @@
 
 **所有权矩阵(防 split-brain,来自 Codex 红队审查的硬要求)**:task status / approval / budget / retry / notification 每项状态**只能有一个 owner**(现役 Tier1 执行域与对话域均由 daemon 内各自模块持有;Hopper 桥的执行域才归独立 Hopper);跨边界用 durable 协议连接(DispatchEnvelope + 事件 cursor + 幂等 key),不共用数据库、不直接改对方内部状态。
 
+> 目标级唯一 owner / 窄 ports 形状见 [09 §17.4](09-data-contracts.md)(designed,未实现);现状机械写面见 `research/rf-00/inventory.json` 的 `table_writers`。
+
 ## 2. 组件职责
 
 | 组件 | 职责 | 关键点 |

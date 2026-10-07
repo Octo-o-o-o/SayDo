@@ -11,7 +11,7 @@
 - [00-能力边界.md](00-%E8%83%BD%E5%8A%9B%E8%BE%B9%E7%95%8C.md)：从 canonical 与当前交接状态提炼的能力边界。
 - [01-设计与分布.md](01-%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%88%86%E5%B8%83.md)：采样方法、标签定义、领域配额和验收口径。
 - [questions/](questions/)：12 组问题，共 600 条。
-- [contexts/](contexts/)：16 组合成上下文包，供需要 RAG、冲突消解或来源核验的条目复用。
+- [contexts/](contexts/)：16 组历史合成上下文包，按 2026-09-30 授权集合为 11 组未退役、5 组退役；2026-10-03 又有三组未退役材料到期，未退役不表示有效。2026-10-04 的现役集合及历史到期观察见文末当前可用性。
 - [contracts/](contracts/)：465 条 `LIVE` 逐对象来源登记与 46 条最终 `F1` 能力合同的显式生成源。
 - [04-live-source-contracts.md](04-live-source-contracts.md)：由构建器生成的人可读 LIVE/F1 合同交付，共登记 986 个 source 对象。现役 986 个 LIVE source 对象是 unresolved requirement，不是 connector readiness。
 - [02-覆盖索引.md](02-%E8%A6%86%E7%9B%96%E7%B4%A2%E5%BC%95.md)：组织规模、角色、生命周期、生活生产力和渠道盲区的可复核索引。
@@ -58,3 +58,17 @@ rg --files -0 research/customer-question-corpus | xargs -0 bash scripts/check-em
 ```
 
 构建器先在同级临时目录生成全部问题、manifest 和 `04-live-source-contracts.md`，并在那里运行完整验证；验证通过后才依次晋升 `questions/`、`contexts/` 与 04 交付。可捕获的晋升失败会恢复旧产物，故障注入会验证这一点；它不是断电或进程强杀场景下的文件系统事务。验证器会检查固定文件集、总数、领域与频率配额、ID 唯一性、所有表格候选行、字段完整性、各档覆盖、工具唯一性与深度、上下文模式、50 个来源文件、172 条逐题 required claims、有效期、频率反耦合、自然度、全量 179700 对近重复和一组已知语义反例。全部 465 条 `LIVE` 必须与来源合同严格一一对应，986 个登记对象按 `source_kind` 做形状核对（reader、locator、字段、新鲜度和授权范围），形状核对不等于 valid，也不是 connector readiness；`CTX+LIVE` 还要与 manifest supplemental 对称。最终 46 条 `F1` 逐题锁定缺省 coding/workspace 基线、工具、允许 effect、验证证据与排除范围，另登记两条经复核降为 `F2` 的记录。三份 v7 终审输入出现的 99 个 ID、16 个 manifest 与两类注册表都有精确摘要基线。`rag`、`document`、`pdf`、`automation` 和 `notification` 不能冒充任意现势 reader。临时条件必须归因于题面或 `USER`，不能写成 fixture 事实。`test-mutations.mjs` 会在临时副本破坏这些类别并要求 validator 非零退出。验证器仍不替代逐题语义评审，也不能证明任意 claim 与来源之间的任意语义蕴含、真实授权有效性或市场概率；真实频率、自然度和能力边界仍需访谈、遥测及独立人工审查。
+
+## 历史观察：2026-09-30 五份退役与 2026-10-03 到期
+
+2026-09-30 owner 授权无可验证更新来源时退役 CTX-05/06/08/13/15。
+这五份 manifest 的 active_status 为 retired_no_updated_source；原日期、源文件、
+600 题与历史 RED 保留。题目引用不删除，表示历史依赖，不再表示当前材料有效。
+validate 输出 currentAvailability 的完整排除 ID；simulation/dry-run 的当前可用性节
+优先于历史静态状态。未被退役阻断也不代表可执行通过。Q0 的全部 LIVE 未决需求仍保留。
+
+2026-10-03 实测 CTX-09/12/16 的原 valid_until=2026-09-30 已过期，validator 返回失败。09 §18.9 仍只授权上述五份退役，本轮不扩集合、不续日期、不删除题目。三份到期材料的完整依赖见 [本轮到期观察](expiry-observation-2026-10-03.md)；11 组未退役不能再表述为 11 组当前有效。派生模拟的结构通过不代表这些材料仍有效。
+
+## 当前可用性：2026-10-04 八份退役
+
+09 §18.9 现役集合为 CTX-05/06/08/09/12/13/15/16。原五份 retired_on=2026-09-30；新增 CTX-09/12/16 的 retired_on=2026-10-04。上述 2026-10-03 五份授权与三份到期文字是历史观察，不是当前授权集合。16 组保留为 8 组退役、8 组未退役；未退役不代表材料仍有效或可执行。600 题原行不删除、不续期，当前投影 82 题因退役依赖阻断、518 题未被该类依赖阻断，后者不等于通过执行。原日期、as_of、valid_until、source、supported_questions 与 required claims 保留；Q0 全部 LIVE 未决需求不变。

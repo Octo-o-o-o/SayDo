@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-// 写死色值 CI 门禁(docs/11-ui-spec.md §2.7)。优先 spawn rg;无 rg 时 Node 扫。
-import { spawnSync } from "node:child_process";
+// 写死色值按需检查(docs/11-ui-spec.md §2.7)。使用 Node 扫描。
 import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -50,25 +49,6 @@ function collectFiles(argv) {
   return walkSource(SCAN_DIR).sort();
 }
 
-function rgHits(pattern, files) {
-  if (files.length === 0) return { hits: [], failed: false, missing: false };
-  const hits = [];
-  const chunkSize = 80;
-  for (let i = 0; i < files.length; i += chunkSize) {
-    const chunk = files.slice(i, i + chunkSize);
-    const r = spawnSync("rg", ["-nP", pattern, "--no-heading", "--with-filename", "--", ...chunk], {
-      encoding: "utf8",
-      maxBuffer: 32 * 1024 * 1024,
-      cwd: ROOT
-    });
-    if (r.error && r.error.code === "ENOENT") return { hits: [], failed: false, missing: true };
-    if (r.status === 0 && r.stdout) hits.push(...r.stdout.trimEnd().split("\n").filter(Boolean));
-    else if (r.status === 1) continue;
-    else if (r.status > 1) return { hits: [], failed: true, missing: false };
-  }
-  return { hits, failed: false, missing: false };
-}
-
 function nodeHits(re, files) {
   const hits = [];
   for (const file of files) {
@@ -84,24 +64,18 @@ function nodeHits(re, files) {
 const files = collectFiles(process.argv.slice(2));
 const output = [];
 
-function scan(pattern, re, cssOnly) {
+function scan(re, cssOnly) {
   const targets = files.filter((file) => {
     if (ALLOW_RE.test(file.replaceAll("\\", "/"))) return false;
     if (cssOnly && !file.endsWith(".css")) return false;
     return true;
   });
-  const rg = rgHits(pattern, targets);
-  if (rg.failed || rg.missing) output.push(...nodeHits(re, targets));
-  else output.push(...rg.hits);
+  output.push(...nodeHits(re, targets));
 }
 
-scan("#[0-9a-fA-F]{3,8}(?![0-9a-zA-Z_-])", HEX_RE, false);
-scan("(?<![\\-\\w])(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb|color)\\s*\\(", FUNC_RE, false);
-scan(
-  `(?:^|[;{])\\s*(?:-webkit-)?(?:color|background|background-color|border|border-color|border-top|border-right|border-bottom|border-left|border-top-color|border-right-color|border-bottom-color|border-left-color|outline|outline-color|fill|stroke|box-shadow|text-shadow|caret-color|accent-color|text-decoration-color)\\s*:[^;{}]*(?<![-\\w#])(?:${NAMED})(?![-\\w])`,
-  NAMED_RE,
-  true
-);
+scan(HEX_RE, false);
+scan(FUNC_RE, false);
+scan(NAMED_RE, true);
 
 if (output.length > 0) {
   process.stdout.write("[fail] color gate: found hardcoded colors (use tokens from styles/tokens.css):\n");

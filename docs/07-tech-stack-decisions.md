@@ -23,12 +23,12 @@
 | D5 | TTS | **火山豆包 seed-tts-2.0 大模型 · v3 双向流式 WebSocket**(定档)+ 本地兜底按 OS(macOS:Kokoro MLX/`say`;Windows P0:无本地则 ntfy,P1:SAPI/piper) | 定稿(2026-07-23;Windows 投影 2026-08-21 设计 ADR-004) |
 | D6 | S2S 引擎 | OpenAI Realtime,仅对话呈现层 | 分期(P2) |
 | D7 | 执行后端 | 现役 daemon Tier 1；Hopper 为后续集成方向 | 选型定稿，Hopper 未接入 |
-| D8 | agent 接入 | Claude=**CLI `-p` + PreToolUse hooks**(Tier 1,产品目标缺省;原"Agent SDK"传输 2026-08-21 supersede,生产主流程已接线、live conformance 收口中);**Cursor=CLI hooks(Tier 1,当前稳定/dev 缺省;SDK=P1)**;Codex=经 Hopper exec(Tier 2)→ 评估 app-server | 定稿(传输形态 2026-08-21 修订) |
-| D9 | 记忆存储与检索 | Markdown 真相 + append-only 账本 + SQLite FTS5 | 待 spike(中文分词) |
+| D8 | agent 接入 | Claude=**CLI `-p` + PreToolUse hooks**(Tier 1,产品目标缺省;原"Agent SDK"传输 2026-08-21 supersede,生产主流程已接线、live conformance 收口中);**Cursor=CLI hooks(Tier 1,当前稳定/dev 缺省;SDK=P1)**;Codex 生产执行未接入，Hopper 路径延期；App Server 仅有隔离协议原型 | 定稿(传输形态 2026-08-21 修订) |
+| D9 | 记忆存储与检索 | append-only 记忆账本 + Markdown 投影 + SQLite FTS5(trigram) | 已入源码；真实语料召回质量另验 |
 | D10 | 审批持久化 | 自建 SQLite 表,抄 LangGraph interrupt 语义 | 定稿 |
 | D11 | 通知/推送 | P0 ntfy + 桌面通知 → P1 APNs/FCM 直连 + PushKit/CallKit | 定稿 |
 | D12 | 移动外壳 | Capacitor + 自写薄原生模块(音频/推送) | 分期(P1) |
-| D13 | 移动连接 | Tailscale(T2)/ 自建 WS 密文中继(T3),不用 WebRTC P2P | 定稿 |
+| D13 | 移动连接 | Tailscale(T2)/ 自建 WS 密文中继(T3),不用 WebRTC P2P | 设计定稿；当前远程业务入口关闭 |
 | D14 | 控制台前端 | Vite + React 单页,daemon 静态托管,不用 Electron | 定稿 |
 | D15 | 成本与观测 | 现役 Tier 1 usage + daemon 会话账本；Hopper usage 为后续集成方向 | 定稿，集成边界见 D15 |
 | D16 | 存储 | SQLite(better-sqlite3)+ JSONL 事件流 | 定稿 |
@@ -64,6 +64,8 @@ P0 `voiced` / `saydo up` 手动启动(开发迭代快);macOS P1 launchd 常驻 +
 localhost 控制台,不适合作为默认桌面入口；原生 `.dmg/.msi/.deb` 则等菜单栏/常驻服务和代码签名
 一起设计。当前预发布包只含 daemon + Web 控制台,Windows/Linux 前台运行；语音 pipeline 与系统常驻
 不在该包内。
+
+**官网安装引导（2026-09-27 审计校准）**：Node 下载按所选源的 SHASUMS256 检查完整性，镜像模式的校验文件也来自同一镜像，不宣称独立官方验签。Windows ASCII 引导以子进程运行 BOM 核心脚本；核心非零退出须抛出失败，不得只打印提示后返回成功，也不得用顶层 `exit` 关闭用户的交互 PowerShell。
 
 ## 3. 语音链路
 
@@ -138,13 +140,13 @@ localhost 控制台,不适合作为默认桌面入口；原生 `.dmg/.msi/.deb` 
 
 ## 6. 记忆与检索
 
-### D9 Markdown 真相 + 账本 + FTS5(待 spike)
+### D9 记忆账本真相 + Markdown 投影 + FTS5
 
 - **存储**:M1/M2 记忆域以 **append-only 记忆事件账本**为真相源,Markdown 文件(人可读可编辑)与索引都是派生投影(可重放、可审计,04 §1.3);知识库目录 git 版本化(抄 Letta MemFS:commit message + `/doctor` 审计 + 后台整理)。
 - **检索**:SQLite **FTS5(BM25)起步**,零运维;语义召回 P2 再叠 sqlite-vec + RRF。**代码事实永远 agentic grep 现读、不进知识库**(无陈旧税)。
 - **奠基**:抄 OpenWiki——git diff 增量刷新 + AGENTS.md 幂等指针块 + 反向吸收既有约定文件。
 - **刻意不用**:Mem0/Zep/Cognee 等服务型记忆平台(P0 本地优先,引入 Postgres/图谱违反轻量原则;Graphiti 的 bi-temporal 只抄"失效标记不删除"概念)。
-- **spike**:FTS5 默认 tokenizer 对中文不分词——验证 trigram tokenizer vs simple/jieba 分词扩展 vs 入库前预分词,用真实 M1/M2 语料测召回。
+- **实施边界(2026-09-27 核对)**:现役 DDL 已建 `memory_fts` 并使用 trigram，`memory/retrieval.ts` 与编译器版本一致；少于 3 字符的词由 rg 侧补充。原 tokenizer 比选是早期实验计划，不再把现役检索写成未实施；真实 M1/M2 语料召回质量与其它 tokenizer 对比仍须各自证据。
 
 ## 7. 审批、通知与移动
 
@@ -155,7 +157,7 @@ localhost 控制台,不适合作为默认桌面入口；原生 `.dmg/.msi/.deb` 
 ### D11 通知/推送:ntfy 起步,直连收尾(定稿)
 
 - P0:**ntfy**(自托管,32k stars,自带 `X-Call` 电话 TTS)+ OS 桌面通知(macOS=`osascript`;Windows=toast,失败同构降 ntfy;工程 ADR-003)——一天接通。
-- 已入源码(EMAIL-A 阶段 A,2026-09-09 决策单第 12 节授权合入;真实 SMTP 与收件端线程展示未验):**标准邮件(SMTP submission 出站)**作 L1 与 ntfy 并列的可选通道(任一配置即启用),不自建 IMAP/SMTP 服务、不替代 outbox/升级链/审批内核;客户端只用 Node 内置 `net`/`tls`,不新增依赖;阶段 B(入站文字轮次)后议,Web Push / CalDAV 不另开。**当前边界(PG-01B 远程业务关闭后)**:L1 ntfy/邮件的任务入口只给本机受信地址(loopback),不把 tailnet/远程任务 URL 当作可点入口;正文须写明回到运行 SayDo 的电脑打开或处理,不得声称手机可处理远程业务 API。不因此重开远程业务面,也不改 outbox 升级/投递/线程/ACK 状态机。
+- 已入源码(EMAIL-A 阶段 A,2026-09-09 决策单第 12 节授权合入;真实 SMTP 与收件端线程展示未验):**标准邮件(SMTP submission 出站)**作 L1 与 ntfy 并列的可选通道(任一配置即启用),不自建 IMAP/SMTP 服务、不替代 outbox/升级链/审批内核;客户端只用 Node 内置 `net`/`tls`,不新增依赖;连接与握手共用总截止时间，DATA 250 后保留成功结果并释放本次连接，不等待对端无限关闭;阶段 B(入站文字轮次)后议,Web Push / CalDAV 不另开。**当前边界(PG-01B 远程业务关闭后)**:L1 ntfy/邮件的任务入口只给本机受信地址(loopback),不把 tailnet/远程任务 URL 当作可点入口;正文须写明回到运行 SayDo 的电脑打开或处理,不得声称手机可处理远程业务 API。不因此重开远程业务面,也不改 outbox 升级/投递/线程/ACK 状态机。
 - P1(随移动端):**自建 APNs(JWT ES256 HTTP/2)/ FCM(OAuth)直连**,抄 OctoDesk 推送隐私契约(payload 只带 opaque id + meta 白名单、token 只存 digest);PushKit/CallKit 承载"来电式汇报"。
 - P2:电话回叫用 Realtime SIP **呼入**模型(外呼要 Twilio + 自建媒体桥,成本运维高,进阶可选)。
 
@@ -270,6 +272,8 @@ daemon 静态托管的单页应用(麦克风采集、任务看板、决策包/De
 **刻意不做**:CLI 不进入语音实时环或完整多轮工具环;不自建订阅额度预测;acp 常驻供给与 resume 暂不做(cursor_cli 无头一发一收不是 acp)。
 
 ## 10. P0 第一周 spike 清单(按风险排序)
+
+> 媒体 watermark 语义与 P50/P90 延迟硬门的目标合同见 [09 §17.6](09-data-contracts.md)(designed,未实现);三端 bridge 版本化形状见 [09 §17.7](09-data-contracts.md)。本清单与目标合同分账:条目是历史 spike 记录,不证明目标合同已实现。
 
 1. **Pipecat 打断 watermark**:工程 ADR-001 的实验已通过，留任结论有效但运行时未接入；后续接入需按现役链路重验，原去留实验不作为已接入证明；
 2. **Claude Agent SDK 实测**:streaming input + canUseTool 阻塞审批 + steer 全链路(Tier 1 成立的前提)——**状态注(2026-08-21)**:已改道 CLI 路径结项,`-p` + PreToolUse hooks 的 S1-S3 裁决/同步等待/超时语义均经 W5.4 方案 §1.2 十七项 spike 实证(2.1.220);streaming input 仅可行性 spike(B-6),live steer 不实现;

@@ -173,13 +173,14 @@ describe("verify 路径与审计裁决", () => {
     db.prepare("INSERT INTO audit_log(id, ts, actor, action, meta_json) VALUES (?, ?, 'owner', 'task.review_approve', ?)").run(
       bare,
       "2026-09-22T00:00:00.000Z",
-      JSON.stringify({ taskId, token: "Bearer SUPERSECRETTOKEN" })
+      JSON.stringify({ taskId, runId, token: "Bearer SUPERSECRETTOKEN" })
     );
     db.prepare("INSERT INTO audit_log(id, ts, actor, action, meta_json) VALUES (?, ?, 'owner', 'task.review_approve', ?)").run(
       rich,
       "2026-09-22T00:00:01.000Z",
       JSON.stringify({
         taskId,
+        runId,
         kind: "writing",
         evidenceDigest: `sha256:${"a".repeat(64)}`,
         attempt: 1,
@@ -202,7 +203,7 @@ describe("verify 路径与审计裁决", () => {
 });
 
 describe("verify 失败投影", () => {
-  it("全绿 verify 不投影 fail;非零退出把每条标 fail 且指向该文件 digest", () => {
+  it("全绿 verify 不投影;非零退出保留未绑定条目 unknown 并指向真实诊断", () => {
     const green = JSON.stringify([{ templateRef: "check-readme", exitCode: 0, stdoutTail: "[ok] npm install retained\n" }]);
     expect(acceptanceChecksForFailedVerify(["现有 npm 说明保留"], green)).toBeNull();
     const red = JSON.stringify(
@@ -212,7 +213,7 @@ describe("verify 失败投影", () => {
     );
     const checks = acceptanceChecksForFailedVerify(["安装一节出现 pnpm install 示例", "现有 npm 说明保留"], red);
     expect(checks).toHaveLength(2);
-    expect(checks?.every((check) => check.status === "fail" && check.source === "verify")).toBe(true);
+    expect(checks?.every((check) => check.status === "unknown" && check.source === "manual")).toBe(true);
     expect(new Set(checks?.map((check) => check.evidenceRef)).size).toBe(1);
     expect(checks?.[0]?.evidenceRef).toBe(`verify:${textDigest(red)}`);
   });
@@ -242,7 +243,7 @@ describe("verify 失败投影", () => {
 
     const detail = getTaskDetail(db, taskId, { runsDir: home });
     const checks = detail?.["acceptanceChecks"] as { criterion: string; status: string; evidenceRef?: string }[];
-    expect(checks.map((check) => check.status)).toEqual(["fail", "fail"]);
+    expect(checks.map((check) => check.status)).toEqual(["unknown", "unknown"]);
     expect(checks.some((check) => check.status === "pass")).toBe(false);
     const evidence = detail?.["acceptanceEvidence"] as { ok: boolean; body?: string; evidenceRef: string }[];
     expect(evidence).toHaveLength(1);

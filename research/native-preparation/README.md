@@ -1,0 +1,13 @@
+# native 准备直接读工具
+
+09§18.11.3 的读前护栏实现；仅直接FS通道下界，不提供native认证、完整准备编排、build或load能力。四具名角色共用一个显式 Budget；模块import没有文件读取，恢复不得重置原deadline/已用bytes/origins/events。恢复manifest也必须从同一预算读取，不能先无界bootstrap再补账。
+
+旧repair45四完整helper有无界bootstrap/硬编码旧trial与R21-F1缺陷，已在任务外保全，禁止resume。新precheck/check-and-record返回bytes，collector支持sink并返回bytes/event，finalizer返回bytes/event。调用实际已读chunk在失败前登记；达到stat大小后只fstat和路径复核，不read(1)。
+
+元数据绑定不证明任意恶意kernel或不可观察写后恢复。解释器/OS/child/native/mmap/heap仍UNKNOWN，不授予build准入。测试仅小cap等效fixture与真实wrapper边界，不代表生产完整资源包PASS。
+
+physical origin 按实际打开FD计数。路径stat无法排除open前替换，因此每次新open都须保守预留一个origin名额；计数已满时连已见路径的重复open也拒绝。稳定别名仍按dev/inode去重，但空余名额不可因为stat别名而免除。未提供持有FD缓存或复用能力。
+
+首次fstat失败或opener异常保留独立UNKNOWN_OPEN来源槽；只有真实FD身份已确认才合并dev/inode。未知槽不可在异常后清零，连续失败不能免费重复open。
+
+关闭使用仍持有的manager/stream；close失败的事件保持REFUSED_CLEANUP_UNKNOWN/fdClosed UNKNOWN及实际bytes，Budget.owned_handles与异常.ownedStream/ownedManager/ownershipToken提供强引用恢复能力，originalReadError保留读错误。不盲重关裸FD。调用者核实际对象状态后可关闭该对象，再调用release_closed仅确认并清除持有；该方法不执行close。关闭失败后即使发现对象已经关闭，原UNKNOWN事件仍保留，另记fdClosedAtRecovery。注入opener是明确测试通道，不是任意外部FileIO实现已获正式认证。

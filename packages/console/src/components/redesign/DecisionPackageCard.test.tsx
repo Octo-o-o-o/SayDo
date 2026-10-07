@@ -131,3 +131,23 @@ describe("PackageDemoPreview 请求归属(生产消费 applyOwnedDemoFetch)", ()
     });
   });
 });
+
+
+describe("DecisionPackageCard 五个合法包态", () => {
+  it.each([
+    ["draft", "草稿"], ["approved", "已批准"], ["expired", "已作废"], ["superseded", "已被新版本替代"]
+  ] as const)("%s 诚实显示且没有批准入口", (status, label) => {
+    const html = renderToStaticMarkup(<DecisionPackageCard pkg={{ ...BASE, status }} />);
+    expect(html).toContain(label);
+    expect(html).not.toContain("待拍板");
+    expect(html).not.toContain("拍板,开始");
+  });
+  it("只有 proposed 显示可批准，旧 direct 仍禁用", () => {
+    const html = renderToStaticMarkup(<DecisionPackageCard pkg={{ ...BASE, status: "proposed" }} />);
+    expect(html).toContain("待拍板");
+    expect(html).toContain("拍板,开始");
+    expect(html).not.toContain("disabled");
+    const old = renderToStaticMarkup(<DecisionPackageCard pkg={{ ...BASE, status: "proposed", selectedMode: "direct_to_review" }} />);
+    expect(old).toContain("disabled");
+  });
+});

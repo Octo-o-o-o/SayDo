@@ -143,3 +143,29 @@ def test_no_open_round_empty_tail_acks_without_final() -> None:
         assert ack.get("emptyRound") == "unusable"
 
     run(scenario())
+
+
+def test_terminal_and_dropped_rounds_release_transcript_buffers() -> None:
+    """终态、退役与放弃都释放旧转写;迟到结果不得重新留下正文。"""
+    from itertools import count
+
+    from saydo_pipeline.hf_round import HfRoundMachine
+
+    ids = count()
+    machine = HfRoundMachine(lambda: f"evt_{next(ids)}")
+    for mode in ("finish", "retire", "drop"):
+        sid = f"session-{mode}"
+        slot = machine.open_speech(sid, 0)
+        assert slot is not None
+        machine.close_speech(sid)
+        machine.note_result(sid, slot, "先保留这段,然后", "ok", 0)
+        if mode == "finish":
+            assert machine.settle(sid, force=True) is not None
+        elif mode == "retire":
+            machine.retire(sid, 0)
+        else:
+            machine.drop_open(sid)
+        assert not machine._rounds, "终态不应长期保留含正文的轮次"
+        assert not machine._results
+        assert machine.note_result(sid, slot, "迟到正文", "ok", 0) is None
+        assert not machine._rounds and not machine._results

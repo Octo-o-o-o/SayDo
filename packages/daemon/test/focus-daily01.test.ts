@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import { focusEventTypeSchema, newId } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
 import { createFocus } from "../src/focus/registry.js";
+import { startActivation } from "../src/focus/activation.js";
 import { upsertObligation } from "../src/focus/obligations.js";
 import { FocusWriteError } from "../src/focus/writeTx.js";
 import { createLane, retireLane, unretireLane } from "../src/focus/lanes.js";
@@ -19,10 +20,11 @@ import {
   taskSatisfiesCondition
 } from "../src/focus/dependency.js";
 import { archiveFocusApi, forkFocusApi } from "../src/api/focuses.js";
-import { deferObligationApi } from "../src/api/obligations.js";
+import { deferObligationApi, setWaitingOnApi } from "../src/api/obligations.js";
 import { transitionTask } from "../src/storage/dao/tasks.js";
 import { getObligationList } from "../src/api/console.js";
 import type { AuditSink } from "../src/obs/audit.js";
+import { createSqliteAuditSink } from "../src/storage/dao/misc.js";
 
 const nullAudit: AuditSink = { record: () => ({ id: "aud_x" }) };
 
@@ -229,6 +231,27 @@ describe("任务级依赖", () => {
     expect(lastEvents(db, focusId, "dependency_task_blocked")[0]!["preStatus"]).toBe("failed");
   });
 
+  it("任务依赖事件写失败时回滚任务状态，重试后只追加一次事件", () => {
+    const db = openFresh();
+    const prj = seedProject(db);
+    const { focusId } = createFocus(db, { title: "f", actorKind: "user" });
+    const ob = seedObligation(db, focusId);
+    const task = seedTask(db, prj, "running");
+    bindTask(db, focusId, task, newId("fev"));
+    setObligationWaitingOnTask(db, { obligationId: ob, taskId: task, condition: "accepted" });
+    db.exec(`CREATE TRIGGER fail_dependency_event BEFORE INSERT ON focus_events
+      WHEN NEW.type = 'dependency_task_blocked'
+      BEGIN SELECT RAISE(ABORT, 'dependency event failed'); END`);
+    expect(() => transitionTask(db, task, "failed", "L", { now: NOW })).toThrow("dependency event failed");
+    expect(db.prepare("SELECT status FROM tasks WHERE id=?").get(task)).toEqual({ status: "running" });
+    expect(obRow(db, ob).status).toBe("waiting");
+    expect(lastEvents(db, focusId, "dependency_task_blocked")).toHaveLength(0);
+    db.exec("DROP TRIGGER fail_dependency_event");
+    transitionTask(db, task, "failed", "L", { now: NOW });
+    expect(obRow(db, ob).status).toBe("blocked");
+    expect(lastEvents(db, focusId, "dependency_task_blocked")).toHaveLength(1);
+  });
+
   it("清除等待(preId=null)同清任务列,waiting→open", () => {
     const db = openFresh();
     const prj = seedProject(db);
@@ -304,7 +327,7 @@ describe("fork / defer / archive 守卫", () => {
   it("fork 产新 Focus:forked_from + focus_forked 事件;源不动", () => {
     const db = openFresh();
     const { focusId } = createFocus(db, { title: "原事", actorKind: "user" });
-    const r = forkFocusApi(db, nullAudit, focusId, { direction: "探索另一条路" });
+    const r = forkFocusApi(db, createSqliteAuditSink(db), focusId, { direction: "探索另一条路" });
     expect(r.status).toBe(200);
     const p = r.payload as { id: string; forkedFrom: string };
     expect(p.forkedFrom).toBe(focusId);
@@ -322,9 +345,9 @@ describe("fork / defer / archive 守卫", () => {
     const db = openFresh();
     const { focusId } = createFocus(db, { title: "f", actorKind: "user" });
     const ob = seedObligation(db, focusId);
-    const bad = deferObligationApi(db, nullAudit, ob, { reason: "  " });
+    const bad = deferObligationApi(db, createSqliteAuditSink(db), ob, { reason: "  " });
     expect(bad.status).toBe(400);
-    const r = deferObligationApi(db, nullAudit, ob, { reason: "等外部排期", dueOrTrigger: "下周" });
+    const r = deferObligationApi(db, createSqliteAuditSink(db), ob, { reason: "等外部排期", dueOrTrigger: "下周" });
     expect(r.status).toBe(200);
     const row = obRow(db, ob);
     expect(row.status).toBe("deferred");
@@ -339,12 +362,12 @@ describe("fork / defer / archive 守卫", () => {
     const task = seedTask(db, prj, "running");
     bindTask(db, focusId, task, newId("fev"));
 
-    const blocked = archiveFocusApi(db, nullAudit, focusId, { reason: "收起" });
+    const blocked = archiveFocusApi(db, createSqliteAuditSink(db), focusId, { reason: "收起" });
     expect(blocked.status).toBe(409);
     expect((blocked.payload as { code: string }).code).toBe("focus_has_running_work");
 
     db.prepare(`UPDATE tasks SET status='task_done' WHERE id=?`).run(task);
-    const ok = archiveFocusApi(db, nullAudit, focusId, { reason: "收起" });
+    const ok = archiveFocusApi(db, createSqliteAuditSink(db), focusId, { reason: "收起" });
     expect(ok.status).toBe(200);
   });
 });
@@ -416,4 +439,47 @@ describe("终态义务不得设依赖复活 + 崩溃恢复", () => {
     expect(obRow(db, ob).waiting_on_task_id).toBeNull();
     expect(lastEvents(db, focusId, "dependency_task_woken").length).toBe(1);
   });
+});
+
+
+describe("waiting-on 请求互斥", () => {
+  it("preId:null 与 taskId 同传也拒绝,保持原等待和事件不变", () => {
+    const db = openFresh();
+    const prj = seedProject(db);
+    const { focusId } = createFocus(db, { title: "f", actorKind: "user" });
+    const ob = seedObligation(db, focusId);
+    const task = seedTask(db, prj, "running");
+    bindTask(db, focusId, task, newId("fev"));
+    setObligationWaitingOnTask(db, { obligationId: ob, taskId: task, condition: "accepted" });
+    const before = obRow(db, ob);
+    const events = db.prepare("SELECT COUNT(*) AS n FROM focus_events").get();
+    for (const preId of [null, newId("fob")]) {
+      expect(setWaitingOnApi(db, nullAudit, ob, { preId, taskId: task }).status).toBe(400);
+      expect(obRow(db, ob)).toEqual(before);
+      expect(db.prepare("SELECT COUNT(*) AS n FROM focus_events").get()).toEqual(events);
+    }
+    expect(setWaitingOnApi(db, createSqliteAuditSink(db), ob, { preId: null }).status).toBe(200);
+    expect(obRow(db, ob).waiting_on_task_id).toBeNull();
+    db.close();
+  });
+});
+
+
+it.each(["activation_closed", "lifecycle_changed", "audit"])("归档在 %s 失败时保留全部会话段与原生命周期", (failure) => {
+  const db = openFresh();
+  const projectId = seedProject(db);
+  const { focusId } = createFocus(db, { title: "事务归档", actorKind: "user" });
+  const sessionId = newId("ses");
+  db.prepare("INSERT INTO sessions(id, project_id, state, engine, transcript_path, started_at) VALUES (?, ?, 'talking', 'live', '/tmp/archive-test.jsonl', ?)").run(sessionId, projectId, NOW);
+  const { activationId } = startActivation(db, { focusId, sessionId, trigger: "user_explicit" });
+  const before = db.prepare("SELECT lifecycle, current_revision FROM focuses WHERE id=?").get(focusId);
+  const count = db.prepare("SELECT COUNT(*) AS n FROM focus_events WHERE focus_id=?").get(focusId);
+  if (failure !== "audit") db.exec(`CREATE TRIGGER reject_archive_event BEFORE INSERT ON focus_events WHEN NEW.type = '${failure}' BEGIN SELECT RAISE(ABORT, 'archive test failure'); END`);
+  const base = createSqliteAuditSink(db);
+  const audit: AuditSink = failure === "audit" ? { sharesSqlite: (candidate) => base.sharesSqlite!(candidate), record: () => { throw new Error("archive audit failure"); } } : base;
+  const result = archiveFocusApi(db, audit, focusId, { reason: "临时收起" });
+  expect(result.status).toBe(409);
+  expect(db.prepare("SELECT lifecycle, current_revision FROM focuses WHERE id=?").get(focusId)).toEqual(before);
+  expect(db.prepare("SELECT status FROM focus_activations WHERE id=?").get(activationId)).toEqual({ status: "active" });
+  expect(db.prepare("SELECT COUNT(*) AS n FROM focus_events WHERE focus_id=?").get(focusId)).toEqual(count);
 });

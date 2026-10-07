@@ -558,8 +558,7 @@ export function Layout({
             href={pid ? `/p/${pid}/memory` : "/memory"}
             icon={Database}
             label="记忆库"
-            active={inProject("memory")}
-            disabled={!pid}
+            active={route.page === "memory"}
           />
           <NavItem
             href={pid ? `/p/${pid}/artifacts` : "/artifacts"}

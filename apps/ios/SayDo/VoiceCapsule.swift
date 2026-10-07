@@ -16,6 +16,7 @@ struct VoiceCapsule: View {
         bridge.pageReady
             && bridge.daemonStatus == .online
             && speech.phase == .idle
+            && !speech.hasRecoverableTranscript
             && speech.permissionsAllowCapture
     }
 
@@ -28,12 +29,15 @@ struct VoiceCapsule: View {
                         .font(.footnote.weight(.medium))
                         .foregroundStyle(.primary)
                         .multilineTextAlignment(.center)
-                        .lineLimit(3)
+                        .lineLimit(speech.errorMessage == nil ? 3 : nil)
                         .padding(.horizontal, 13)
                         .padding(.vertical, 8)
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
                         .frame(maxWidth: min(proxy.size.width - 28, 380))
                         .allowsHitTesting(false)
+                }
+                if speech.hasRecoverableTranscript {
+                    NativeTranscriptRecoveryView(speech: speech)
                 }
                 if trayOpen {
                     focusTray
@@ -197,7 +201,8 @@ struct VoiceCapsule: View {
     private var capsuleLabel: String {
         switch speech.phase {
         case .idle:
-            if !speech.permissionsAllowCapture { "语音权限未开启" }
+            if speech.hasRecoverableTranscript { "先处理保留转写" }
+            else if !speech.permissionsAllowCapture { "语音权限未开启" }
             else { canStart ? "按住说话" : "等待桌面连接" }
         case .authorizing: "正在检查授权"
         case .listening: trayOpen ? "上滑选择归属" : "松开发送 · 上滑选事"
@@ -211,15 +216,57 @@ struct VoiceCapsule: View {
     }
 
     private var statusText: String? {
-        if !speech.transcript.isEmpty {
-            return speech.transcript
-        }
         if let error = speech.errorMessage {
             return error
+        }
+        if !speech.hasRecoverableTranscript, !speech.transcript.isEmpty {
+            return speech.transcript
         }
         if let recovery = speech.permissionRecoveryMessage {
             return recovery
         }
         return speech.probeSteps.last
+    }
+}
+
+// 恢复动作只编辑/复制本机稿件,不调用 submit 或重新生成 captureId。
+struct NativeTranscriptRecoveryView: View {
+    @ObservedObject var speech: NativeSpeechController
+    @State private var editedText = ""
+    @State private var confirmsDiscard = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("保留的转写")
+                .font(.headline)
+            TextEditor(text: $editedText)
+                .font(.body)
+                .frame(height: 140)
+                .accessibilityLabel("编辑保留的转写")
+            HStack {
+                Button("保留修改") {
+                    speech.editRecoveredTranscript(editedText)
+                }
+                .disabled(editedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button("复制") {
+                    UIPasteboard.general.string = editedText
+                }
+                .disabled(editedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Spacer()
+                Button("丢弃", role: .destructive) { confirmsDiscard = true }
+            }
+            Text("仅保留在本机，不会自动重发。丢弃后才能开始新录音。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .frame(maxWidth: 380)
+        .onAppear { editedText = speech.transcript }
+        .onChange(of: speech.transcript) { _, text in editedText = text }
+        .confirmationDialog("丢弃保留的转写？", isPresented: $confirmsDiscard, titleVisibility: .visible) {
+            Button("丢弃转写", role: .destructive) { speech.discardRecoveredTranscript() }
+            Button("继续保留", role: .cancel) { }
+        }
     }
 }

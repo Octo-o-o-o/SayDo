@@ -76,6 +76,7 @@ class HfRoundMachine:
             rnd.terminal = True
             rnd.dropped = True
             self._open.pop(sid, None)
+            self._release_round(sid, rnd)
         slot = self._speaking.get(sid)
         if slot is not None and slot.speech_gen == generation:
             self._speaking.pop(sid, None)
@@ -169,8 +170,15 @@ class HfRoundMachine:
         if rnd is not None:
             rnd.terminal = True
             rnd.dropped = True
+            self._release_round(sid, rnd)
         self._open.pop(sid, None)
         self._speaking.pop(sid, None)
+
+    def _release_round(self, sid: str, rnd: _Round) -> None:
+        self._rounds.pop((sid, rnd.hf_round_id), None)
+        for segment in rnd.segments:
+            self._results.pop((sid, segment.record_seq), None)
+        rnd.committed.clear()
 
     def _alloc(self, sid: str) -> int | None:
         nxt = self._next.get(sid, 1)
@@ -203,6 +211,7 @@ class HfRoundMachine:
         rnd.terminal = True
         if self._open.get(sid) == rnd.hf_round_id:
             self._open.pop(sid, None)
+        self._release_round(sid, rnd)
         return FinalSpec(
             hf_round_id=rnd.hf_round_id,
             hf_segment_ids=[seg.hf_segment_id for seg in ordered],

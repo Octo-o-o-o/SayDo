@@ -2679,6 +2679,7 @@ try {
   writeFileSync(join(stagingRoot, "04-live-source-contracts.md"), generatedContractDocument, "utf8");
   cpSync(join(root, "contracts"), join(stagingRoot, "contracts"), { recursive: true });
   copyFileSync(join(root, "validate.mjs"), join(stagingRoot, "validate.mjs"));
+  copyFileSync(join(root, "context-availability.mjs"), join(stagingRoot, "context-availability.mjs"));
   const stagedValidation = spawnSync(process.execPath, [join(stagingRoot, "validate.mjs")], {
     cwd: root,
     encoding: "utf8",

@@ -234,8 +234,9 @@ export function confirmMemoryProposal(deps: MemoryConfirmDeps, input: MemoryConf
       throw err;
     }
     throw new MemoryConfirmWriteError(
-      added ? "memory confirm audit failed after write" : "memory confirm write failed",
-      added ? "unknown" : "none",
+      added ? "memory confirm audit failed after write" : "memory confirm write result unknown",
+      // 非共享 sink 无法确认 ledger.add 抛错前是否已 insert；不能冒称没有落账。
+      "unknown",
       err
     );
   }

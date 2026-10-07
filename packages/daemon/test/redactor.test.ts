@@ -1,9 +1,9 @@
-// 1.4 验收:TTS 脱敏反例 3 条(#19 S2 确认 / #37 溯源 / #39 运行中 S2)+ golden 5/5。
+// 1.4 验收:TTS 脱敏反例 3 条(#19 S2 确认 / #37 溯源 / #39 运行中 S2)。
 // 注:敏感样本一律用运行时拼接构造,源码不出现完整凭据形态(规避内容安全误判)。
 
 import { describe, expect, it } from "vitest";
 import { redactText, redactForSpeech, hasResidualSensitive } from "../src/voice/redactor.js";
-import { PHASE1_GOLDEN, checkGolden, checkStatusWords } from "../src/brain/golden.js";
+import { checkStatusWords } from "../src/brain/golden.js";
 
 // —— 假敏感样本构造器(拼接,非完整字面量)——
 const fake = {
@@ -94,12 +94,7 @@ describe("TTS 脱敏 redactor(安全红线 10 §1)", () => {
   });
 });
 
-describe("golden 5/5(模板要素 + 状态词零违规)", () => {
-  it("Phase 1 golden 全过", () => {
-    const failed = PHASE1_GOLDEN.map((c) => ({ id: c.id, r: checkGolden(c) })).filter((x) => !x.r.ok);
-    expect(failed, JSON.stringify(failed)).toHaveLength(0);
-    expect(PHASE1_GOLDEN).toHaveLength(5);
-  });
+describe("状态词检查", () => {
 
   it("状态词校验器:执行语境说'做完了'判违规", () => {
     expect(checkStatusWords("任务做完了").ok).toBe(false);

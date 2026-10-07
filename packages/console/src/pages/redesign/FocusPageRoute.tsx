@@ -1,3 +1,4 @@
+import { sessionStoragePort } from "../../lib/sessionStoragePort";
 // Focus 对话页接线容器:hook → FocusPage + onNavigate/onAction + composerSlot。
 // 语音 composer:P0 降级为「在这件事里开口」入口按钮(VoiceContext 无 primary_focus 可读,
 // 完整 composer 挂载需 live 锚定检测——见文件尾 TODO)。
@@ -90,10 +91,10 @@ export function FocusPageRoute({ focusId, initialTab }: { focusId: string; initi
 
   const enterChatWithFocus = useCallback(
     (draft?: string) => {
-      writePendingAnchor(
-        sessionStorage,
+      if (!writePendingAnchor(
+        sessionStoragePort,
         buildPendingAnchor({ focusId, title: view?.focus.title, draft })
-      );
+      )) { setToast("草稿保存失败，请重试后接上主题"); return; }
       navigate("/chat-new");
     },
     [focusId, view?.focus.title]
@@ -119,6 +120,12 @@ export function FocusPageRoute({ focusId, initialTab }: { focusId: string; initi
               );
             });
           };
+          if (a.type === "reload_detail") { reload(); return; }
+          if (a.type === "open_detail") { openTaskDetail(); return; }
+          if (tv?.detailUnavailable) {
+            setToast("任务详情未加载，请先重读详情；不会在缺数据时写入");
+            return;
+          }
           if (a.type === "review" || a.type === "s3_merge") {
             navigate(`/review/${encodeURIComponent(tid)}`);
             return;
@@ -383,6 +390,6 @@ export async function ackAttention(id: string): Promise<void> {
  * - [ ] locate 闪烁高亮(仅当 data-locate 节点真实存在)
  * 已接:GET focus tasks + task detail + pending 包灌 lookups/工作面;
  * 批准须同 session/pkg/revision/receipt/digest;采访核对 focus/锚定代次/原 turn 后才 sendText;
- * fork REST、dep_add/dep_undo、pkg 非批准动作 → 锚定草稿,
+ * fork REST、dep_add/dep_undo → 各自写口;pkg 非批准动作 → 锚定草稿,
  * retry → /api/tasks/:id/retry,冲突/解释 → 任务详情,验收/合并 → /review/:tid。
  */

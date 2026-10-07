@@ -4,29 +4,19 @@
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test, type Page, type Route } from "@playwright/test";
 
 const ROOT = join(import.meta.dirname, "..", "..");
 const FOC = "foc_01F1XT0RE0F0CVS00000000001";
 
-const EVIDENCE =
-  process.env["SAYDO_REPAIR4_EVIDENCE"] && process.env["SAYDO_REPAIR4_EVIDENCE"].trim() !== ""
-    ? process.env["SAYDO_REPAIR4_EVIDENCE"]
-    : process.env["SAYDO_REPAIR3_EVIDENCE"] && process.env["SAYDO_REPAIR3_EVIDENCE"].trim() !== ""
-      ? process.env["SAYDO_REPAIR3_EVIDENCE"]
-      : join(
-          process.env.HOME ?? tmpdir(),
-          ".codex",
-          "tasks",
-          "saydo-journey01-acceptance-20260920",
-          "repair4-evidence"
-        );
-
 const runtime = JSON.parse(readFileSync(join(ROOT, "e2e", "console", ".runtime.json"), "utf8")) as {
+  home: string;
   token: string;
+  evidenceRoot: string;
 };
+const EVIDENCE = process.env["SAYDO_REPAIR4_EVIDENCE"]?.trim() ||
+  process.env["SAYDO_REPAIR3_EVIDENCE"]?.trim() || join(runtime.evidenceRoot, "journey-01-seven-step");
 const token = runtime.token;
 
 test.beforeAll(() => {
@@ -105,13 +95,9 @@ test("B3 草稿:route 拦截真实 fetch,A 等待→B→释放→ready→离页�
 });
 
 function playwrightDbPath(): string {
-  const candidates = [
-    "/private/tmp/saydo-playwright-home-47188/saydo.db",
-    "/tmp/saydo-playwright-home-47188/saydo.db"
-  ];
-  const hit = candidates.find((p) => existsSync(p));
-  if (!hit) throw new Error("playwright saydo.db 不存在,不能种确认负向包");
-  return hit;
+  const dbPath = join(runtime.home, "saydo.db");
+  if (!existsSync(dbPath)) throw new Error("playwright saydo.db 不存在,不能种确认负向包");
+  return dbPath;
 }
 
 function seedConfirmNegativeSurface(focusId: string): { packageId: string; revision: number; taskId: string } {

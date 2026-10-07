@@ -27,6 +27,17 @@ const attention: AttentionItemRow[] = [
 ];
 
 describe("assembleBoardView", () => {
+  it("三态 loader 保留所有球权与收尾义务,不在数据层仅留下 human", () => {
+    const obligations: FocusDetailPayload["obligations"] = [
+      { id: "human", title: "等确认", owner: "human", status: "deferred" },
+      { id: "agent", title: "在做", owner: "agent", status: "in_progress" },
+      { id: "external", title: "等外部", owner: "external", status: "waiting" },
+      { id: "settled", title: "已收尾", owner: "human", status: "resolved" }
+    ];
+    const view = assembleBoardView(rows, [], [{ id: "foc_ok", detail: { ...okDetail, obligations }, error: null }]);
+    expect(view.groups[0]!.obligationsByLane["__main__"]?.map((ob) => ob.id)).toEqual(["human", "agent", "external", "settled"]);
+  });
+
   it("detail 失败的 Focus 保留在看板并带占位错误,visibleFocuses 不减", () => {
     const view = assembleBoardView(rows, attention, [
       { id: "foc_ok", detail: okDetail, error: null },

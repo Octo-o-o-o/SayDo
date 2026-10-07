@@ -2,6 +2,45 @@ import XCTest
 @testable import SayDo
 
 final class VoiceStateMachineTests: XCTestCase {
+    func testSubmissionOwnershipRequiresExplicitTransfer() {
+        XCTAssertTrue(NativeSubmissionResult(status: .queuedToSocket, reason: nil).transfersTranscriptOwnership)
+        XCTAssertTrue(NativeSubmissionResult(status: .drafted, reason: nil).transfersTranscriptOwnership)
+        XCTAssertFalse(NativeSubmissionResult(status: .rejected, reason: "bridge_call_failed").transfersTranscriptOwnership)
+        XCTAssertFalse(NativeSubmissionResult(status: .rejected, reason: "unknown").transfersTranscriptOwnership)
+    }
+
+    func testRejectedTranscriptBlocksCaptureUntilExplicitDiscard() {
+        var buffer = NativeTranscriptBuffer()
+        buffer.replaceRecognition("原转写")
+        buffer.finishSubmission(NativeSubmissionResult(status: .rejected, reason: "unknown"))
+        XCTAssertEqual(buffer.text, "原转写")
+        XCTAssertFalse(buffer.permitsCapture(in: .idle))
+        XCTAssertTrue(buffer.edit("修改后的稿", in: .idle))
+        XCTAssertEqual(buffer.text, "修改后的稿")
+        XCTAssertFalse(buffer.edit(" \n", in: .idle))
+        XCTAssertEqual(buffer.text, "修改后的稿")
+        XCTAssertFalse(buffer.permitsCapture(in: .idle))
+        XCTAssertTrue(buffer.discard(in: .idle))
+        XCTAssertTrue(buffer.permitsCapture(in: .idle))
+    }
+
+    func testRecoveryCannotMutateActiveCaptureAndExplicitTransferClears() {
+        var buffer = NativeTranscriptBuffer()
+        buffer.replaceRecognition("当前转写")
+        for phase in [CapturePhase.authorizing, .listening, .finalizing, .submitting] {
+            XCTAssertFalse(buffer.edit("替换", in: phase))
+            XCTAssertFalse(buffer.discard(in: phase))
+            XCTAssertFalse(buffer.permitsCapture(in: phase))
+            XCTAssertEqual(buffer.text, "当前转写")
+        }
+        for status in [NativeSubmissionStatus.queuedToSocket, .drafted] {
+            buffer.replaceRecognition("已移交")
+            buffer.finishSubmission(NativeSubmissionResult(status: status, reason: nil))
+            XCTAssertFalse(buffer.hasText)
+            XCTAssertTrue(buffer.permitsCapture(in: .idle))
+        }
+    }
+
     func testCaptureHappyPathUsesFrozenOrder() {
         var machine = CaptureStateMachine()
         let generation = machine.beginAuthorization()

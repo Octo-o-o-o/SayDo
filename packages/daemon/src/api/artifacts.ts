@@ -1,6 +1,7 @@
 // Focus 产物最小 API(合同 §4.2):list/create/realize;role=expected 时 ref_json 允许 {}。
 
 import { z } from "zod";
+import { withSqliteAuditTransaction } from "./sqliteAuditTransaction.js";
 import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
 import { projectArtifactExpectationOnOps } from "../focus/expectations.js";
@@ -51,16 +52,16 @@ export function listFocusArtifacts(db: Db, focusId: string): ApiResponse {
        FROM focus_artifacts WHERE focus_id = ? ORDER BY created_at, id`
     )
     .all(focusId) as Array<{
-    id: string;
-    focus_id: string;
-    kind: string;
-    role: string;
-    title: string;
-    ref_json: string;
-    copied_from_artifact_id: string | null;
-    created_from_event: number | null;
-    created_at: string;
-  }>;
+      id: string;
+      focus_id: string;
+      kind: string;
+      role: string;
+      title: string;
+      ref_json: string;
+      copied_from_artifact_id: string | null;
+      created_from_event: number | null;
+      created_at: string;
+    }>;
   return {
     status: 200,
     payload: {
@@ -101,24 +102,43 @@ export function createFocusArtifact(
     if (!ev) return err(400, "invalid_event", `createdFromEvent ${parsed.data.createdFromEvent} not on focus`);
   }
   // ④d:产物行 + artifact_linked 同事务;role=expected 时顺手投影 artifact 期待行
-  let id: string;
   try {
-    const linked = withFocusWriteTx(db, {}, (ops) => {
-      const r = ops.linkArtifact(focusId, {
-        kind: parsed.data.kind,
-        role: parsed.data.role,
-        title: parsed.data.title,
-        refJson: JSON.stringify(parsed.data.ref),
-        createdFromEvent: parsed.data.createdFromEvent,
-        actorKind: "user"
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const linked = withFocusWriteTx(db, {}, (ops) => {
+        const r = ops.linkArtifact(focusId, {
+          kind: parsed.data.kind,
+          role: parsed.data.role,
+          title: parsed.data.title,
+          refJson: JSON.stringify(parsed.data.ref),
+          createdFromEvent: parsed.data.createdFromEvent,
+          actorKind: "user"
+        });
+        if (parsed.data.role === "expected") {
+          // 动态 import 避免 writeTx↔expectations 环;此处同包静态 import 即可
+          projectArtifactExpectationOnOps(ops, focusId, r.artifactId, parsed.data.title, r.eventSeq);
+        }
+        return r;
       });
-      if (parsed.data.role === "expected") {
-        // 动态 import 避免 writeTx↔expectations 环;此处同包静态 import 即可
-        projectArtifactExpectationOnOps(ops, focusId, r.artifactId, parsed.data.title, r.eventSeq);
-      }
-      return r;
+      const id = linked.artifactId;
+
+      audit.record({
+        actor: "owner",
+        action: "artifact.linked",
+        meta: { artifactId: id, focusId, kind: parsed.data.kind, role: parsed.data.role }
+      });
+
+      return {
+        status: 200,
+        payload: {
+          ok: true,
+          id,
+          focusId,
+          kind: parsed.data.kind,
+          role: parsed.data.role,
+          title: parsed.data.title
+        }
+      };
     });
-    id = linked.artifactId;
   } catch (e) {
     if (e instanceof FocusWriteError) {
       if (e.code === "not_found") return err(404, "not_found", e.message);
@@ -129,23 +149,6 @@ export function createFocusArtifact(
     }
     return err(409, "create_failed", e instanceof Error ? e.message : String(e));
   }
-  audit.record({
-    actor: "owner",
-    action: "artifact.linked",
-    meta: { artifactId: id, focusId, kind: parsed.data.kind, role: parsed.data.role }
-  });
-
-  return {
-    status: 200,
-    payload: {
-      ok: true,
-      id,
-      focusId,
-      kind: parsed.data.kind,
-      role: parsed.data.role,
-      title: parsed.data.title
-    }
-  };
 }
 
 const realizeBody = z.object({
@@ -188,44 +191,46 @@ export function realizeArtifactApi(
   }
 
   try {
-    const eventId = withFocusWriteTx(db, {}, (ops) => {
-      const cas = db
-        .prepare(
-          `UPDATE focus_artifacts SET role = 'deliverable', ref_json = ?
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const eventId = withFocusWriteTx(db, {}, (ops) => {
+        const cas = db
+          .prepare(
+            `UPDATE focus_artifacts SET role = 'deliverable', ref_json = ?
            WHERE id = ? AND role = 'expected'`
-        )
-        .run(newRefJson, artifactId) as { changes: number };
-      if (cas.changes !== 1) {
-        throw new FocusWriteError("realize_cas_failed", "artifact role changed concurrently");
-      }
-      const ev = ops.appendEvent(row.focus_id, {
-        type: "artifact_realized",
-        payload: {
-          artifactId,
-          title: row.title,
-          fromRole: "expected",
-          toRole: "deliverable",
-          oldRefJson: oldRef,
-          newRefJson: parsed.data.refJson as Record<string, unknown>
-        },
-        actorKind: "user"
+          )
+          .run(newRefJson, artifactId) as { changes: number };
+        if (cas.changes !== 1) {
+          throw new FocusWriteError("realize_cas_failed", "artifact role changed concurrently");
+        }
+        const ev = ops.appendEvent(row.focus_id, {
+          type: "artifact_realized",
+          payload: {
+            artifactId,
+            title: row.title,
+            fromRole: "expected",
+            toRole: "deliverable",
+            oldRefJson: oldRef,
+            newRefJson: parsed.data.refJson as Record<string, unknown>
+          },
+          actorKind: "user"
+        });
+        return ev.id;
       });
-      return ev.id;
+      audit.record({
+        actor: "owner",
+        action: "artifact.realized",
+        meta: { artifactId, focusId: row.focus_id, eventId }
+      });
+      return {
+        status: 200,
+        payload: {
+          ok: true,
+          id: artifactId,
+          role: "deliverable",
+          eventId
+        }
+      };
     });
-    audit.record({
-      actor: "owner",
-      action: "artifact.realized",
-      meta: { artifactId, focusId: row.focus_id, eventId }
-    });
-    return {
-      status: 200,
-      payload: {
-        ok: true,
-        id: artifactId,
-        role: "deliverable",
-        eventId
-      }
-    };
   } catch (e) {
     if (e instanceof FocusWriteError) {
       return err(409, e.code, e.message);

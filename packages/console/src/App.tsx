@@ -64,7 +64,7 @@ function Page({ route, overview }: { route: ReturnType<typeof useHashRoute>; ove
     case "task":
       return <TaskDetail taskId={route.taskId as string} />;
     case "memory":
-      return <Memory projectId={route.projectId as string} />;
+      return <Memory key={route.projectId ?? "recent"} {...(route.projectId ? { projectId: route.projectId } : {})} />;
     case "artifacts":
       return <Artifacts projectId={route.projectId as string} />;
     case "psettings":
@@ -85,7 +85,7 @@ function Page({ route, overview }: { route: ReturnType<typeof useHashRoute>; ove
     case "legacy-focus":
       return <FocusDetail focusId={route.focusId as string} />;
     case "review":
-      return <ReviewPageRoute taskId={route.taskId as string} />;
+      return <ReviewPageRoute key={route.taskId} taskId={route.taskId as string} />;
     case "records":
       return <RecordsPageRoute focusId={route.focusId as string} />;
     case "archive":

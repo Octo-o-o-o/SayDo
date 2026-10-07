@@ -1,6 +1,6 @@
 // useBoardPageData:全景看板 hook。
 // 数据源:focuses 列表 + 各 focus detail(lanes/obligations) + attention(组头徽章橙+蓝计数,单源)。
-// 任务:P0 从 attention 的 task 项投影到对应 focus 泳道(无 focus 任务列表 API)。
+// 任务以 focus detail.tasks 为真账,attention 只补缺并标待核实。
 // VIEW-01:detail 单条失败保留该事(占位错误 + 重试);失效来源=本页动作 reload + 主 WS 事件 +
 // 回前台 + 有界兜底;同刻单在途、卸载 abort、晚到响应丢弃——由 pageSession 承载。
 // GAP-02 残项 2.2:占位「重试」= retryDetail(focusId) 只重拉该 Focus 的 detail(不重拉列表/attention),
@@ -109,9 +109,7 @@ export function assembleBoardView(
     const obligationsByLane: Record<string, ObligationView[]> = {};
     for (const lane of lanes) obligationsByLane[lane.id] = [];
     for (const ob of obligations) {
-      // 看板「需要你」列主要展示 human 开放义务
-      if (ob.owner !== "human") continue;
-      if (!["open", "blocked", "waiting", "in_progress"].includes(ob.status)) continue;
+      // 保留完整义务供三态投影,各列在呈现层筛选。
       const lid = ob.laneId && obligationsByLane[ob.laneId] !== undefined ? ob.laneId : defaultLane;
       (obligationsByLane[lid] ??= []).push(ob);
     }

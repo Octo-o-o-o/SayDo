@@ -1,5 +1,7 @@
 # CTX-09 · 季度预算
 
+- `active_status`: `retired_no_updated_source`
+- `retired_on`: `2026-10-04`
 - `as_of`: `2026-08-24`
 - `valid_until`: `2026-09-30`；关账后实际数必须刷新。
 - `claim_scope`: 2026 年第三季度批准预算与聚合实际用 `budget-summary.md`；审批规则用 `expense-policy.md`；差异原因只用 `variance-notes.md` 的待确认假设。

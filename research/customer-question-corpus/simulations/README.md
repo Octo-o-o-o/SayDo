@@ -22,7 +22,7 @@
 
 1. 在 [02-coverage.md](02-coverage.md) 选一个 `SIM-*-NN`。
 2. 打开对应 `sessions/*.md`，先读源标签、选样理由和回放前状态。
-3. 若上下文含 `CTX-xx`，先读 `../contexts/CTX-xx/manifest.md`，只使用白名单与 required claims 内的事实。
+3. 若上下文含 `CTX-xx`，先读 `../contexts/CTX-xx/manifest.md` 的 active_status。退役材料只可用于历史回放；对应当前不可执行 ID 见 `02-coverage.md`，不得计为当前通过。有效材料只使用白名单与 required claims 内的事实。
 4. 按轮次读用户原话和“期望系统动作”。动作规定行为，不规定逐字答案。
 5. 用 `fixtures/*.md` 中的 `sim://SIM-ID/event-name` 事件提供 mock 工具或 RAG 结果；`no_tool` 表示 K0 不调用外部工具。
 6. 用 oracle 判定必须做到、不得做和可接受差异；再看失败/扰动变体是否 fail-closed。

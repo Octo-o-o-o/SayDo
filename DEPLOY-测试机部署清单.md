@@ -1,5 +1,7 @@
 # SayDo 测试机部署清单(Mac mini / 新机器通用,2026-08-12 更新)
 
+> **2026-10-03 历史部署边界**：下文保留 2026-08/09 的源码部署、本机调试实况和命令。现役 PG-01B 与 [09 §11、§15.1](docs/09-data-contracts.md) 已关闭 tailnet/mobile_lan 的业务 HTTP/WS；`packages/daemon/src/net/remoteSurface.ts` 对远程 `/api/`、`/dev/`、`/ws/` 返回 403，只保留健康/就绪与静态壳。旧手机 LAN/二维码步骤不能证明当前手机业务流程可用，`SAYDO_MOBILE_LAN=1` 不重开业务 allowlist。本轮审计见 [2026-10-03 记录](e2e/evidence/fortnight-audit-2026-10-03.md)。
+
 > **2026-09-02 注(月度对账)**:本清单是 2026-08-12 的**源码部署**路径(clone + pnpm build + 直起 daemon),供测试机/开发者使用;普通用户请走根 `README.md`「快速运行」——一条安装命令或 Release 包,无需克隆源码。`SAYDO_MOBILE_LAN=1` 仅限内网手机测试,与 HANDOFF §2-17 的常驻升级禁令无关。清单其余内容遇与实况不符处以实况为准。
 
 

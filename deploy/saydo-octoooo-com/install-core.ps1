@@ -21,7 +21,7 @@ $SaydoTgzMirrorUrl = "https://dl.saydo.octoooo.com/releases/v$SaydoVersion/saydo
 $BetterSqlite3Mirror = "https://npmmirror.com/mirrors/better-sqlite3"
 $NodeMajor = 22
 $NodeDist = "https://nodejs.org/dist"
-# Node 官方源连不上时的镜像(目录结构与 nodejs.org/dist 相同;仍按官方 SHASUMS256 校验)。SAYDO_INSTALL_MIRROR=1 直接用镜像。
+# Node 官方源连不上时的镜像(目录结构与 nodejs.org/dist 相同;使用同一下载源的 SHASUMS256 校验下载完整性)。SAYDO_INSTALL_MIRROR=1 直接用镜像。
 $NodeDistMirror = "https://npmmirror.com/mirrors/node"
 
 function Write-Ok([string]$m) { Write-Host "[ok] $m" }

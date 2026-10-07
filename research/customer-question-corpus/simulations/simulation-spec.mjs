@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { contextAvailability, renderAvailability } from "../context-availability.mjs";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
@@ -4545,7 +4546,7 @@ export function renderFixtures(domain, specs) {
   ].join("\n");
 }
 
-export function renderCoverage(specs) {
+function renderHistoricalCoverage(specs) {
   const hml = { H: 0, M: 0, L: 0 };
   const perDomain = {};
   const tagSets = { C: new Set(), D: new Set(), H: new Set(), R: new Set(), K: new Set(), S: new Set(), F: new Set() };
@@ -4643,4 +4644,8 @@ export function renderGenerated(specs) {
     fixtures[meta.file] = renderFixtures(domain, list);
   }
   return { sessions, fixtures, coverage: renderCoverage(specs) };
+}
+
+export function renderCoverage(specs) {
+  return renderHistoricalCoverage(specs) + "\n" + renderAvailability(contextAvailability(corpusRoot()), specs.map(spec => spec.corpusId));
 }

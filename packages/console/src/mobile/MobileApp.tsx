@@ -50,6 +50,26 @@ export function planNativeTranscriptSubmission(
   return { result: { ...base, status: "queued_to_socket" }, text };
 }
 
+/** 原生提交先移交稿件归属，发送结果结算后才返回桥接回执。 */
+export async function executeNativeTranscriptSubmission(
+  request: NativeTranscriptRequest,
+  plan: ReturnType<typeof planNativeTranscriptSubmission>,
+  adoptDraft: (text: string) => void,
+  send: (text: string) => Promise<boolean>
+): Promise<NativeTranscriptResult> {
+  if (plan.result.status === "rejected") return plan.result;
+  const text = plan.text;
+  if (text === undefined) return { status: "rejected", requestId: request.requestId, captureId: request.captureId, reason: "invalid_request" };
+  adoptDraft(text);
+  if (plan.result.status === "drafted") return plan.result;
+  try {
+    if (await send(text)) return plan.result;
+  } catch {
+    // 无明确接收回执时保留稿件，不自动重发。
+  }
+  return { status: "rejected", requestId: request.requestId, captureId: request.captureId, reason: "unknown" };
+}
+
 /** 发送成功后若不在 M-Chat 则导航过去（hash 已在则不动）。 */
 /** 发送成功后若不在 M-Chat 则应导航；返回规范化 hash（含 #）。 */
 export function ensureMobileChatRoute(hash: string = ""): string {
@@ -66,6 +86,11 @@ export function MobileApp({ route }: { route: MobileRoute }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [toast, setToast] = useState("");
+  const [queueing, setQueueing] = useState(false);
+  const queueingRef = useRef(false);
+  const draftRef = useRef(draft);
+  const draftVersionRef = useRef(0);
+  const nativeAttemptRef = useRef<{ key: string; promise: Promise<NativeTranscriptResult> } | null>(null);
   /** 与 useVoiceChannel 乐观 transcript 对账：pending 期间气泡灰显，入账后实心。 */
   const [pendingSend, setPendingSend] = useState<{ text: string; afterSeq: number } | null>(null);
   const [suppressFirstRun, setSuppressFirstRun] = useState(false);
@@ -95,66 +120,71 @@ export function MobileApp({ route }: { route: MobileRoute }) {
     setPendingSend(null);
   }, [pendingSend, status, voice.transcript]);
 
-  const queueText = (textInput: string): boolean => {
+  const updateDraft = (text: string) => {
+    draftRef.current = text;
+    draftVersionRef.current += 1;
+    setDraft(text);
+  };
+
+  const queueText = async (textInput: string): Promise<boolean> => {
     const text = textInput.trim();
-    if (status !== "online" || text === "" || pendingSend) return false;
+    if (status !== "online" || text === "" || pendingSend || queueingRef.current) return false;
     const afterSeq = voice.transcript.reduce((max, turn) => Math.max(max, turn.seq), 0);
     if (!voice.connected) {
       setToast(sendFailedToast("offline"));
       return false;
     }
-    void voice.sendText(text).then((sent) => {
-      if (!sent) {
-        setToast(sendFailedToast("offline"));
-        return;
+    const draftVersion = draftVersionRef.current;
+    queueingRef.current = true;
+    setQueueing(true);
+    try {
+      if (!await voice.sendText(text)) {
+        setToast(sendFailedToast("unknown"));
+        return false;
       }
       setPendingSend({ text, afterSeq });
       setSuppressFirstRun(true);
-      setDraft((current) => (current.trim() === text ? "" : current));
-      if (ensureMobileChatRoute(location.hash) !== location.hash) {
-        location.hash = "/m/chat";
-      }
+      // 后来编辑的稿件即使正文相同，也不属于这次异步发送。
+      if (draftVersionRef.current === draftVersion && draftRef.current.trim() === text) updateDraft("");
+      if (ensureMobileChatRoute(location.hash) !== location.hash) location.hash = "/m/chat";
       setToast(sentToast(text));
-    }).catch(() => {
+      return true;
+    } catch {
       setToast(sendFailedToast("unknown"));
-    });
-    return true;
+      return false;
+    } finally {
+      queueingRef.current = false;
+      setQueueing(false);
+    }
   };
 
-  const send = () => {
-    void queueText(draft);
-  };
+  const send = () => { void queueText(draftRef.current); };
 
-  const nativeSubmitRef = useRef<(request: NativeTranscriptRequest) => NativeTranscriptResult>(() => ({
-    status: "rejected",
-    requestId: "",
-    captureId: "",
-    reason: "bridge_inactive"
+  const nativeSubmitRef = useRef<(request: NativeTranscriptRequest) => Promise<NativeTranscriptResult>>(async () => ({
+    status: "rejected", requestId: "", captureId: "", reason: "bridge_inactive"
   }));
   nativeSubmitRef.current = (request) => {
-    const plan = planNativeTranscriptSubmission(request, recentFocuses, draft, status, pendingSend !== null);
+    const key = JSON.stringify({ sessionId: voice.sessionId, request });
+    // 当前原生请求的重复桥接调用复用同一结算，不能再派一条 turn.text。
+    if (nativeAttemptRef.current?.key === key) return nativeAttemptRef.current.promise;
+    const plan = planNativeTranscriptSubmission(request, recentFocuses, draftRef.current, status, pendingSend !== null || queueingRef.current);
     if (plan.result.status === "rejected") {
       const messages: Record<typeof plan.result.reason, string> = {
         invalid_request: "原生转写请求无效，请再试一次。",
         bridge_inactive: "页面桥接已失效，请刷新后重试。",
         focus_mismatch: "选中的事已变化，请重新上滑选择。",
         draft_conflict: "输入框里还有文字，请先发送或清空；原草稿已保留。",
-        offline: sendFailedToast("offline"),
-        busy: sendFailedToast("busy")
+        offline: sendFailedToast("offline"), busy: sendFailedToast("busy"), unknown: sendFailedToast("unknown")
       };
       setToast(messages[plan.result.reason]);
-      return plan.result;
+      return Promise.resolve(plan.result);
     }
-    const nativeText = plan.text as string;
-    if (plan.result.status === "drafted") {
-      setDraft(nativeText);
-      location.hash = "/m/chat";
-      return plan.result;
-    }
-    if (!queueText(nativeText)) {
-      return { status: "rejected", requestId: request.requestId, captureId: request.captureId, reason: "offline" };
-    }
-    return plan.result;
+    const promise = executeNativeTranscriptSubmission(request, plan, (text) => {
+      updateDraft(text);
+      if (plan.result.status === "drafted") location.hash = "/m/chat";
+    }, queueText);
+    nativeAttemptRef.current = { key, promise };
+    return promise;
   };
 
   useEffect(() => {
@@ -186,9 +216,9 @@ export function MobileApp({ route }: { route: MobileRoute }) {
       menuOpen={menuOpen}
       setMenuOpen={setMenuOpen}
       draft={draft}
-      setDraft={setDraft}
+      setDraft={updateDraft}
       onSend={send}
-      sending={pendingSend !== null}
+      sending={pendingSend !== null || queueing}
       nativeMode={nativeMode}
       onReconnect={requestMobileReconnect}
     >
@@ -199,7 +229,7 @@ export function MobileApp({ route }: { route: MobileRoute }) {
         attentionError={attention.error}
         focuses={focuses.data}
         focusesError={focuses.error}
-        onDraft={setDraft}
+        onDraft={updateDraft}
         suppressFirstRun={suppressFirstRun || voice.transcript.length > 0}
         pendingUserText={pendingSend?.text ?? null}
         onConfirmSettled={(message) => publishMobileSettlement(message, setToast, attention.reload)}

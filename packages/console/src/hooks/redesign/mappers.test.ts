@@ -195,7 +195,8 @@ describe("mapReviewContext 验收证据", () => {
         { criterion: "缺证据", status: "pass", source: "verify" },
         { criterion: "重复项", status: "pass", source: "verify", evidenceRef: "verify:a" },
         { criterion: "重复项", status: "fail", source: "manual", evidenceRef: "audit:b" }
-      ]
+      ],
+      acceptanceEvidence: [{ evidenceRef: "verify:1", ok: true, kind: "log", body: "启动验证通过" }]
     });
     expect(mapped.acceptance.map((item) => ({ criterion: item.criterion, status: item.status, source: item.source }))).toEqual([
       { criterion: "可启动", status: "pass", source: "verify" },
@@ -203,7 +204,8 @@ describe("mapReviewContext 验收证据", () => {
       { criterion: "缺证据", status: "unknown", source: "verify" },
       { criterion: "重复项", status: "unknown", source: "verify" }
     ]);
-    expect(mapped.acceptance.every((item) => item.evidence === undefined)).toBe(true);
+    expect(mapped.acceptance[0]?.evidence?.body).toBe("启动验证通过");
+    expect(mapped.acceptance.slice(1).every((item) => item.evidence === undefined)).toBe(true);
   });
 
   it("缺 evidenceRef 或未解析到正文时不把 run/tree 元数据冒充 log", () => {
@@ -282,7 +284,7 @@ describe("mapReviewContext 验收证据", () => {
       acceptanceChecks: [{ criterion: "可启动", status: "pass", source: "verify", evidenceRef: "verify:" + "e".repeat(64) }],
       acceptanceEvidence: [{ evidenceRef: "verify:" + "e".repeat(64), ok: false, reason: "digest_mismatch" }]
     });
-    expect(mapped.acceptance[0]?.status).toBe("fail");
+    expect(mapped.acceptance[0]?.status).toBe("unknown");
     expect(mapped.acceptance[0]?.evidence).toBeUndefined();
   });
 
@@ -300,7 +302,7 @@ describe("mapReviewContext 验收证据", () => {
         ],
         acceptanceEvidence: [{ evidenceRef: ref, ok: false, reason }]
       });
-      expect(mapped.acceptance[0]?.status).toBe("fail");
+      expect(mapped.acceptance[0]?.status).toBe("unknown");
       expect(mapped.acceptance[0]?.evidenceBlock).toBe("bound_invalid");
       expect(mapped.acceptance[1]?.status).toBe("unknown");
       expect(mapped.acceptance[1]?.evidenceBlock).toBe("bound_invalid");

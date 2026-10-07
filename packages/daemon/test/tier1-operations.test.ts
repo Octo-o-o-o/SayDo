@@ -645,6 +645,17 @@ describe("人工合并 MergeProof(对账基准=批准时落库值,评审 A1)", (
     expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(TASK) as { status: string }).status).toBe("task_done");
   });
 
+  it("合并确认审计失败不留下 task_done，可重试完成本地结算", () => {
+    seedTask("ready_for_review");
+    seedRun(1, "settled_review", "tree-good");
+    reviewTask(db, nullAudit, { taskId: TASK, verdict: "approve", expectedAttempt: 1 }, NOW);
+    const proof: MergeProof = { taskId: TASK, mergeCommit: "c1", treeSha: "tree-good", approvedProspectiveTreeSha: "tree-good" };
+    const failing: AuditSink = { record: () => { throw new Error("merge audit failed"); } };
+    expect(() => verifyAndCompleteMerge(db, failing, proof, NOW)).toThrow("merge audit failed");
+    expect(db.prepare("SELECT status FROM tasks WHERE id=?").get(TASK)).toEqual({ status: "review_approved_waiting_merge" });
+    expect(verifyAndCompleteMerge(db, nullAudit, proof, NOW).done).toBe(true);
+  });
+
   it("批准未落树基准(直接置态绕过 approve)⇒ 拒推进(fail-closed)", () => {
     seedTask("review_approved_waiting_merge"); // 未经 approve,approved_tree_sha 为空
     const p: MergeProof = { taskId: TASK, mergeCommit: "c1", treeSha: "t", approvedProspectiveTreeSha: "t" };

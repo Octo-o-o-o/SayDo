@@ -78,6 +78,8 @@ Codex 报告或 journal 记录日志文件名、字节数与 SHA-256，历史日
 
 ## 质量门
 
+- 2026-10-07 起日常入口统一为根 package.json 的 `ci:node`，just 与 CI 调用同一命令。工具自测、发布安装回归分别为 `pnpm test:tools`、`pnpm test:release`；原生平台与分发专项显式触发。退役静态 truth-plane、RF 库存、迁移冻结、排产指针及固定宣传句门，不要求旧批卡重新通过；历史失败与未决产品验证如实保留。发布事务的周审接口保留，但不再每个开发提交重生成。
+
 - 每个 Phase:lint + typecheck + 单测 + 契约测试绿，`just ci` 双矩阵(node + python)作为本地基线，不宣称托管 CI 等效。
 - owner 明确授权提交时使用两提交法:先 `feat(phase-N): ...` 代码提交，再
   `chore(evidence): phase-N` 证据提交;证据记录代码提交 SHA，不自指。
@@ -86,7 +88,7 @@ Codex 报告或 journal 记录日志文件名、字节数与 SHA-256，历史日
 ## 常用命令
 
 - `just dev` — 起 daemon + pipeline + console
-- `just ci` — 本地 Node/Python 基线(node/python 双矩阵 + emoji 门禁与自测;不是托管 CI 等效)
+- `just ci` — 本地 Node/Python 基线(node/python 双矩阵 + emoji 与工作区隐私扫描;不是托管 CI 等效)
 - `just backup` — SQLite/JSONL/knowledge 快照备份
 
 ## 语言与身份

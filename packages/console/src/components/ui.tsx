@@ -1,5 +1,7 @@
 // 共享 UI 原语(11 §3 卡片即单位/§5.9 空态;禁写死色值,全走 token)。
 
+import { costEntryText } from "../lib/costDisplay";
+
 import type { LucideIcon } from "lucide-react";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
@@ -90,21 +92,12 @@ export function Mono({ children }: { children: ReactNode }) {
 }
 
 /** 成本显示纪律(11 §2.6):unknown 显示"还没有确切数字",禁 0/禁空;币种如实(CNY=元,USD 原样,不折算) */
-export function CostText({ known, amount, source, currency }: { known: boolean; amount: number | null; source?: string; currency?: string | null }) {
-  if (source === "subscription") return <span style={{ color: "var(--text-secondary)" }}>订阅额度内</span>;
-  if (!known || amount === null) return <span style={{ color: "var(--text-muted)" }}>还没有确切数字</span>;
-  // impl-readback C1:币种通用式(与 costTotalsText 同源规则)——CNY/缺省显示"元",其余原样显示币种码,不折算不编数
-  const unit = currency == null || currency === "CNY" ? " 元" : ` ${currency}`;
-  return (
-    <Mono>
-      {amount.toFixed(2)}
-      {unit}
-    </Mono>
-  );
+export function CostText({ known, amount, source, currency, metaJson }: { known: boolean; amount: number | null; source?: string; currency?: string | null; metaJson?: unknown }) {
+  return <span>{costEntryText({ known, amount, source, currency, meta_json: metaJson })}</span>;
 }
 
 /** 分币种合计显示(空 = 还没有确切数字) */
 export function costTotalsText(knownByCurrency: Record<string, number>): string {
-  const parts = Object.entries(knownByCurrency).map(([c, v]) => `${v.toFixed(2)} ${c === "CNY" ? "元" : c}`);
+  const parts = Object.entries(knownByCurrency).map(([c, v]) => costEntryText({ source: "api", known: true, amount: v, currency: c }));
   return parts.length === 0 ? "还没有确切数字" : parts.join(" + ");
 }

@@ -1,0 +1,53 @@
+{
+  "fixture": "device-capability-matrix",
+  "version": 1,
+  "binds": {
+    "contract": "docs/09-data-contracts.md §17.7 maturity ladder 与凭据映射",
+    "rf": "RF-09",
+    "rationale": "三端(iOS/Android/HarmonyOS)能力矩阵:每格给 maturity_now(机械清单可证)与 maturity_target + 所需证据。任何人不得把 inventory_only/designed 格升级为 implemented_hidden 及以上,除非附真机/模拟器证据。壳存在 ≠ 远端业务开放。"
+  },
+  "status_note": "fixture_pass != production_pass;矩阵当前列全部为 inventory_only/designed——文件树可证存在,运行行为未验证。",
+  "maturity_ladder": ["inventory_only", "designed", "contracted", "implemented_hidden", "conditional", "supported", "deprecated"],
+  "platforms": {
+    "ios": {
+      "tracked_files": 23,
+      "shell_evidence": ["apps/ios/SayDo/NativeBridge.swift", "apps/ios/SayDo/VoiceStateMachine.swift", "apps/ios/SayDo/ConnectionStore.swift", "apps/ios/SayDo/ScannerView.swift"],
+      "capabilities": {
+        "bridge": { "maturity_now": "inventory_only", "maturity_target": "implemented_hidden", "evidence_required": "模拟器 WebView↔原生双向 hello/request/response/event/bye golden 回放", "notes": "NativeBridge.swift 文件存在,协议为 §17.7 目标形状" },
+        "secure_storage": { "maturity_now": "designed", "maturity_target": "implemented_hidden", "evidence_required": "KeychainTokenStore 写/读/删真机往返 + 删除后会话失效证据", "notes": "ConnectionStore.swift SecItemAdd/Update/Delete 已在 file_writers 类" },
+        "pairing_scan": { "maturity_now": "inventory_only", "maturity_target": "designed", "evidence_required": "扫码→pairing URL 解析 golden(见 pairing-url corpus)", "notes": "ScannerView.swift 存在" },
+        "voice_capture": { "maturity_now": "inventory_only", "maturity_target": "designed", "evidence_required": "AVAudioSession 采集链路与权限矩阵", "notes": "NativeSpeechController.swift/VoiceStateMachine.swift 存在;锁屏/蓝牙路由场景见 media-corpus" },
+        "tts_playout": { "maturity_now": "inventory_only", "maturity_target": "designed", "evidence_required": "watermark 截断语义实测(barge-in 案例 m07/m08)", "notes": "NativeTTSController.swift 存在" },
+        "background_audio": { "maturity_now": "inventory_only", "maturity_target": "designed", "evidence_required": "锁屏/后台音频会话延续实测", "notes": "media-corpus m13/m14" }
+      }
+    },
+    "android": {
+      "tracked_files": 37,
+      "shell_evidence": ["apps/android/app/src/main/java/com/octoooo/saydo/MainActivity.kt", "apps/android/app/src/main/java/com/octoooo/saydo/WebPanel.kt", "apps/android/app/src/main/java/com/octoooo/saydo/TokenStore.kt"],
+      "capabilities": {
+        "bridge": { "maturity_now": "inventory_only", "maturity_target": "implemented_hidden", "evidence_required": "Android WebView 桥 golden 回放 + WebMessagePort 生命周期证据", "notes": "WebPanel.kt 存在,未发现独立 NativeBridge 文件" },
+        "secure_storage": { "maturity_now": "designed", "maturity_target": "implemented_hidden", "evidence_required": "AndroidKeyStore AES/GCM 包装写读删真机往返", "notes": "TokenStore.kt:SharedPreferences + generateKey/setEntry/deleteEntry 已入 file_writers" },
+        "pairing_scan": { "maturity_now": "inventory_only", "maturity_target": "designed", "evidence_required": "扫码→pairing URL 解析 golden", "notes": "ConnectionStore.kt/DesktopProfile.kt 存在" },
+        "voice_capture": { "maturity_now": "inventory_only", "maturity_target": "designed", "evidence_required": "AudioRecord 采集链路与权限矩阵", "notes": "未见独立音频采集类文件——如实标 inventory_only" },
+        "tts_playout": { "maturity_now": "inventory_only", "maturity_target": "designed", "evidence_required": "watermark 语义实测", "notes": "同上" },
+        "background_audio": { "maturity_now": "inventory_only", "maturity_target": "designed", "evidence_required": "锁屏/来电打断实测", "notes": "media-corpus m11-m14" }
+      }
+    },
+    "harmonyos": {
+      "tracked_files": 33,
+      "shell_evidence": ["apps/harmonyos/entry/src/main/ets/entryability/EntryAbility.ets", "apps/harmonyos/entry/src/main/ets/security/SecureStore.ets", "apps/harmonyos/entry/src/main/ets/scan/ScanPlugin.ets"],
+      "capabilities": {
+        "bridge": { "maturity_now": "inventory_only", "maturity_target": "implemented_hidden", "evidence_required": "ArkTS Web 组件桥 golden 回放", "notes": "RuntimeRegistry.ets 存在" },
+        "secure_storage": { "maturity_now": "designed", "maturity_target": "implemented_hidden", "evidence_required": "HUKS generateKeyItem/deleteKeyItem 写读删真机往返", "notes": "SecureStore.ets huks.*KeyItem 族已入 file_writers" },
+        "pairing_scan": { "maturity_now": "inventory_only", "maturity_target": "designed", "evidence_required": "ScanPlugin→pairing URL 解析 golden", "notes": "ScanPlugin.ets + pairingUrl.ets 存在" },
+        "voice_capture": { "maturity_now": "inventory_only", "maturity_target": "designed", "evidence_required": "ohos.audio 采集链路与权限矩阵", "notes": "未见独立音频采集文件" },
+        "tts_playout": { "maturity_now": "inventory_only", "maturity_target": "designed", "evidence_required": "watermark 语义实测", "notes": "同上" },
+        "background_audio": { "maturity_now": "inventory_only", "maturity_target": "designed", "evidence_required": "锁屏/后台实测", "notes": "同上" }
+      }
+    }
+  },
+  "device_vs_simulator": {
+    "rule": "模拟器证据只能支撑 implemented_hidden;真机证据才可升 conditional/supported;签名/发布通道证据单列,不由模拟器替代。",
+    "signing_notes": "iOS=开发者签名+TestFlight 链;Android=签名 APK;AAB 与签名分离;HarmonyOS=AGC 签名链——三者均未启用远端发布,远端开放仍需 owner 明示授权。"
+  }
+}

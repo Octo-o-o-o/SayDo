@@ -27,14 +27,14 @@ const candBtn = (danger: boolean): React.CSSProperties => ({
   cursor: "pointer"
 });
 
-export function Memory({ projectId }: { projectId: string }) {
+export function Memory({ projectId }: { projectId?: string }) {
   const [bump, setBump] = useState(0);
   const [actionError, setActionError] = useState<string | null>(null);
-  const { data, error } = useAsync(() => api.memory(projectId), [projectId, bump]);
+  const { data, error } = useAsync(() => projectId ? api.memory(projectId) : api.recentMemory(), [projectId, bump]);
   if (error) return <ErrorCard message="记忆加载失败" detail={error} />;
   const facts = data ?? [];
-  const candidates = facts.filter((f) => String(f["trust"]) === "candidate");
-  const settled = facts.filter((f) => String(f["trust"]) !== "candidate");
+  const candidates = projectId ? facts.filter((f) => String(f["trust"]) === "candidate") : [];
+  const settled = projectId ? facts.filter((f) => String(f["trust"]) !== "candidate") : facts;
   const act = (id: string, action: "approve" | "reject") => {
     void (action === "approve" ? api.approveMemory(id) : api.rejectMemory(id))
       .then(() => {
@@ -92,10 +92,13 @@ export function Memory({ projectId }: { projectId: string }) {
           <div style={{ height: 16 }} />
         </>
       ) : null}
-      <SectionTitle>记忆库(M1-M3)</SectionTitle>
+      <SectionTitle>{projectId ? "记忆库(M1-M3)" : "最近记忆"}</SectionTitle>
+      <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", marginBottom: 12 }}>
+        {projectId ? <a href="#/memory">查看最近记忆(含未关联项目)</a> : "跨项目与未关联项目的最近30条活跃记忆 · 只读；M0在全局设置管理"}
+      </p>
       <PaperCard>
         {settled.length === 0 ? (
-          <EmptyState icon={Database} text="还没有项目记忆;对话与执行会沉淀到这里" />
+          <EmptyState icon={Database} text={projectId ? "还没有项目记忆;对话与执行会沉淀到这里" : "还没有最近记忆"} />
         ) : (
           <div className="flex flex-col" data-memory-list>
             {settled.map((f) => row(f, false))}

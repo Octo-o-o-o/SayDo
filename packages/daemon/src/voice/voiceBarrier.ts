@@ -49,6 +49,8 @@ export interface VoiceBarrierSink {
   isPeerOpen(peerId: string): boolean;
   peerVia(peerId: string): IdentityVia | undefined;
   registerSession(peerId: string, sessionId: string): void;
+  /** ACK 只认已认证且原已登记 sid 的接收者；缺失能力时拒绝。 */
+  isRegisteredReceiver?(peerId: string, sessionId: string): boolean;
   closeCaptureGate(): void;
   openCaptureGate(): void;
   prewriteLastVoiceModePtt(sessionId: string): void;
@@ -1006,10 +1008,11 @@ export class VoiceBarrier {
         };
       }
       const hf = this.takeOldestClosedLegacyHf(msg.sessionId, "ok");
-      if (hf.matched) this.legacyConsumedTurns.add(turnKey);
+      if (!hf.matched) return { broadcast: false, brain: false, settleSpeech: false };
+      this.legacyConsumedTurns.add(turnKey);
       const matched = !gated && hf.matched;
       const text = msg.text.trim();
-      if (preparing && text && msg.recognitionOutcome === "ok") {
+      if (preparing && hf.matched && text && msg.recognitionOutcome === "ok") {
         this.queueHandover(preparing, {
           captureMode: "hands_free",
           turnId: msg.turnId,
@@ -1316,7 +1319,8 @@ export class VoiceBarrier {
   }
 
   ackHandover(msg: Extract<PipelineMsg, { t: "voice.quiesced_transcript_ack" }>, peerId: string): void {
-    if (this.sink.peerVia(peerId) === "mobile_lan") return;
+    if (this.sink.peerVia(peerId) !== "local" || !this.sink.isPeerOpen(peerId) ||
+        this.sink.isRegisteredReceiver?.(peerId, msg.sessionId) !== true) return;
     const key = handoverKey(msg.sessionId, msg.requestId, msg.turnId);
     if (this.handover.has(key)) this.handover.delete(key);
   }
@@ -1471,7 +1475,8 @@ export class VoiceBarrier {
         code: "voice_anchor_pending",
         retryable: true
       };
-      this.storeSettled(key, result, digest, epoch);
+      // 关门协议反馈优先；无法安全缓存时仍返回拒绝，但不扩大缓存或淘汰 pending。
+      if (this.ensureReceiptCapacity(msg.sessionId, key)) this.storeSettled(key, result, digest, epoch);
       return { kind: "result", result };
     }
     if (!this.ensureReceiptCapacity(msg.sessionId, key)) {
@@ -1559,6 +1564,7 @@ export class VoiceBarrier {
   }
 
   private storeSettled(key: string, result: TurnTextResult, textDigest: string, daemonEpoch: string): void {
+    if (!this.receipts.has(key)) this.receiptOrder.push(key);
     this.receipts.set(key, {
       status: "settled",
       result,
@@ -1571,17 +1577,16 @@ export class VoiceBarrier {
 
   private ensureReceiptCapacity(sessionId: string, incomingKey: string): boolean {
     this.pruneReceipts();
-    const sidCount = [...this.receipts.keys()].filter((k) => k.startsWith(`${sessionId}:`)).length;
-    if (sidCount < TURN_RECEIPT_PER_SID && this.receipts.size < TURN_RECEIPT_GLOBAL) return true;
-    for (const key of this.receiptOrder) {
-      if (key === incomingKey) continue;
-      const entry = this.receipts.get(key);
-      if (entry?.status === "settled") {
-        this.receipts.delete(key);
-        return true;
-      }
+    const countSid = () => [...this.receipts.keys()].filter((key) => key.startsWith(`${sessionId}:`)).length;
+    while (countSid() >= TURN_RECEIPT_PER_SID || this.receipts.size >= TURN_RECEIPT_GLOBAL) {
+      const sidFull = countSid() >= TURN_RECEIPT_PER_SID;
+      const victim = this.receiptOrder.find((key) => key !== incomingKey &&
+        (!sidFull || key.startsWith(`${sessionId}:`)) && this.receipts.get(key)?.status === "settled");
+      if (!victim) return false;
+      this.receipts.delete(victim);
+      this.pruneReceipts();
     }
-    return false;
+    return true;
   }
 
   private pruneReceipts(): void {

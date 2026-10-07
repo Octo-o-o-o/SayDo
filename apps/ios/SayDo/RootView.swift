@@ -59,6 +59,15 @@ struct RootView: View {
                 }
             }
         }
+        .safeAreaInset(edge: .bottom) {
+            if store.currentProfile == nil, speech.hasRecoverableTranscript {
+                VStack(spacing: 8) {
+                    if let error = speech.errorMessage { Text(error).font(.footnote) }
+                    NativeTranscriptRecoveryView(speech: speech)
+                }
+                .padding()
+            }
+        }
         .sheet(isPresented: $showsPairing) {
             PairingView(store: store)
         }
@@ -81,7 +90,7 @@ struct RootView: View {
         }
         .onChange(of: bridge.pageReady) { _, ready in
             if !ready {
-                speech.cancelCapture()
+                speech.handleBridgeLoss()
                 tts.stopForCapture()
             }
         }

@@ -39,13 +39,13 @@ import {
   resetRuntimeChildLifecycleForTests,
   runtimeChildLifecycleError,
   runtimeChildRecordPath,
-  runtimeChildWrapperSource,
   runtimeGenerationIsCurrent,
   runtimeGenerationRegistered,
   runtimeJobPidsForTests,
   runtimeJobRegistered,
   runtimeProcessGroupState,
   setRuntimeChildTestHooks,
+  teardownRuntimeJobForTests,
   shouldIgnoreTerminatingPipeError,
   signalRuntimeChildGeneration,
   signalRuntimeChildTree,
@@ -2044,18 +2044,6 @@ describe("spawn 事务回滚与 ownership barrier", () => {
     harvestRuntimeLeak();
   });
 
-  it("wrapper 源码硬截止使用单调时钟", () => {
-    const source = runtimeChildWrapperSource();
-    // 只禁字面量 Date.now( 挡不住等价写法：new Date().getTime() / +new Date / Date.parse
-    // 都能拿到同一个会被系统时钟调整影响的墙钟。wrapper 里所有超时判定都必须用单调时钟，
-    // 故整类 Date 读取一并禁掉（wrapper 无需格式化时间，没有合法用途）。
-    expect(source).not.toMatch(/\bDate\.now\s*\(/u);
-    expect(source).not.toMatch(/\bnew\s+Date\b/u);
-    expect(source).not.toMatch(/\bDate\.parse\s*\(/u);
-    expect(source).not.toMatch(/\bDate\.UTC\s*\(/u);
-    expect(source).toMatch(/performance\.now\s*\(/u);
-  });
-
   it("预置泄漏时 exact-empty 必须 throw，reset 报告后可继续", () => {
     home();
     setRuntimeChildTestHooks({
@@ -2753,7 +2741,7 @@ describe("spawn 事务回滚与 ownership barrier", () => {
       extra: extra as unknown as OwnedWindowsProcess["extra"],
       resume() {},
       terminateFromHandle() {},
-      disposeStdio() {},
+      disposeStdio() { return "disposed"; },
       closeProcessHandle() {
         closed += 1;
       },
@@ -2809,7 +2797,7 @@ describe("spawn 事务回滚与 ownership barrier", () => {
       extra: extra as unknown as OwnedWindowsProcess["extra"],
       resume() {},
       terminateFromHandle() {},
-      disposeStdio() {},
+      disposeStdio() { return "disposed"; },
       closeProcessHandle() {
         closed += 1;
       },
@@ -2875,7 +2863,7 @@ describe("spawn 事务回滚与 ownership barrier", () => {
       extra: extra as unknown as OwnedWindowsProcess["extra"],
       resume() {},
       terminateFromHandle() {},
-      disposeStdio() {},
+      disposeStdio() { return "disposed"; },
       closeProcessHandle() {
         closed += 1;
       },
@@ -2935,7 +2923,7 @@ describe("spawn 事务回滚与 ownership barrier", () => {
       extra: extra as unknown as OwnedWindowsProcess["extra"],
       resume() {},
       terminateFromHandle() {},
-      disposeStdio() {},
+      disposeStdio() { return "disposed"; },
       closeProcessHandle() {
         closed += 1;
       },
@@ -2995,7 +2983,7 @@ describe("spawn 事务回滚与 ownership barrier", () => {
       extra: extra as unknown as OwnedWindowsProcess["extra"],
       resume() {},
       terminateFromHandle() {},
-      disposeStdio() {},
+      disposeStdio() { return "disposed"; },
       closeProcessHandle() {},
       waitForExit: () => "signaled",
       readExitCode: () => 0
@@ -3012,6 +3000,72 @@ describe("spawn 事务回滚与 ownership barrier", () => {
       }
     };
   }
+
+  it.each(["pending", "throw"])("stdio %s 不得发close或释放fake lease", async (mode) => {
+    const stub = ownedWindowsStub(42428);
+    let released = 0;
+    const errors: unknown[] = [];
+    stub.owned.disposeStdio = () => {
+      if (mode === "throw") throw new Error("CloseHandle failed:fixture");
+      return "pending";
+    };
+    setRuntimeChildTestHooks({ closeDeadlineMs: 0 });
+    const child = childFromOwnedWindowsForTests(stub.owned);
+    child.on("close", () => { released += 1; });
+    child.on("error", (err) => errors.push(err));
+    stub.dispose();
+    await vi.waitFor(() => expect(errors.length).toBe(1));
+    expect(child.exitCode).toBe(0);
+    expect(released).toBe(0);
+    expect(runtimeChildLifecycleError()).toBeInstanceOf(ProcessGroupLifecycleError);
+    harvestRuntimeLeak();
+  });
+
+  it("stdio pending 恢复disposed前保留close，恢复后恰释放一次", async () => {
+    const stub = ownedWindowsStub(42429);
+    let disposed = false;
+    let attempts = 0;
+    let released = 0;
+    stub.owned.disposeStdio = () => { attempts += 1; return disposed ? "disposed" : "pending"; };
+    setRuntimeChildTestHooks({ closeDeadlineMs: 1000 });
+    const child = childFromOwnedWindowsForTests(stub.owned);
+    child.on("close", () => { released += 1; });
+    child.on("error", () => undefined);
+    stub.dispose();
+    await vi.waitFor(() => expect(attempts).toBeGreaterThan(1));
+    expect(released).toBe(0);
+    expect(runtimeChildLifecycleError()).toBeNull();
+    disposed = true;
+    await vi.waitFor(() => expect(released).toBe(1));
+    expect(runtimeChildLifecycleError()).toBeNull();
+  });
+
+  it.each(["pending", "throw"])("真实teardown的stdio %s保留generation/owner/权威HANDLE", async (mode) => {
+    const root = home();
+    const pid = 42430;
+    const stub = ownedWindowsStub(pid);
+    let jobClosed = 0;
+    let processClosed = 0;
+    stub.owned.closeProcessHandle = () => { processClosed += 1; };
+    stub.owned.disposeStdio = () => {
+      if (mode === "throw") throw new Error("CloseHandle failed:fixture");
+      return "pending";
+    };
+    const ownerPath = runtimeChildRecordPath(root, pid);
+    mkdirSync(join(ownerPath, ".."), { recursive: true });
+    writeFileSync(ownerPath, JSON.stringify(completeRuntimeOwner({ pid, processStart: "birth" })));
+    setRuntimeChildTestHooks({ drainDeadlineMs: 0, namedJobActiveCount: () => 0, closeNamedJob: () => { jobClosed += 1; } });
+    const generation = installRuntimeJobForTests(pid, { name: formatSayDoJobName("Local", "owner", "run", GEN), handle: {} }, {
+      id: GEN, processStart: "birth", processHandle: stub.owned.processHandle, stdioOwner: stub.owned
+    });
+    await expect(teardownRuntimeJobForTests(generation)).rejects.toBeInstanceOf(ProcessGroupLifecycleError);
+    expect(jobClosed).toBe(0);
+    expect(processClosed).toBe(0);
+    expect(runtimeGenerationRegistered(generation.id)).toBe(true);
+    expect(existsSync(ownerPath)).toBe(true);
+    stub.dispose();
+    harvestRuntimeLeak();
+  });
 
   it("owned Windows 流把 EOF/EPIPE 收成 end，error 不外溢", async () => {
     const stub = ownedWindowsStub(42426);

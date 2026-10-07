@@ -25,12 +25,14 @@ export function notePlayout(
   seen: Set<string>,
   sentenceId: string,
   atMs: number,
-  record: (turnId: string, atMs: number) => LatencyTrace | null,
-  max = PLAYOUT_SEEN_MAX
+  record: (turnId: string, atMs: number) => LatencyTrace | null
 ): LatencyTrace | null {
   const turnId = turnIdOfSentence(sentenceId);
   if (!turnId || seen.has(turnId)) return null;
   seen.add(turnId);
-  if (seen.size > max) seen.clear();
+  while (seen.size > PLAYOUT_SEEN_MAX) {
+    const oldest = seen.values().next().value;
+    if (oldest !== undefined) seen.delete(oldest);
+  }
   return record(turnId, atMs);
 }

@@ -332,8 +332,8 @@ enum PairingPercentCoding {
         while index < end {
             let scalar = scalars[index]
             if scalar == "%" {
-                // `limitedBy:` 落在 limit 上时返回 limit 本身;hexEnd==end 意味 % 后不足两字符,
-                // 必须先证 index+3 <= end 再取 scalars[hex1]/scalars[hex2](%A/abc%A 反例)。
+                // index+3 超过 end 时 limitedBy 返回 nil，拒绝不完整的百分号编码；
+                // hexEnd==end 则恰好还有两位，仍须校验两位都是十六进制字符。
                 guard let hexEnd = scalars.index(index, offsetBy: 3, limitedBy: end) else {
                     throw PairingURLValidationError.invalidFormat
                 }

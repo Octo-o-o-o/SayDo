@@ -1550,6 +1550,11 @@ export class Tier1Executor {
     return run.budgetActiveMs + Date.now() - run.startedMs - run.approvalWaitMs - waiting;
   }
 
+  private persistRunClock(run: ActiveRun): void {
+    this.d.db.prepare("UPDATE tier1_runs SET budget_active_ms=? WHERE id=?")
+      .run(Math.max(0, Math.round(run.restartPending ? run.budgetActiveMs : this.activeBudgetMs(run))), run.runId);
+  }
+
   private checkpointBudget(run: ActiveRun): void {
     run.budgetActiveMs = Math.max(0, Math.round(this.activeBudgetMs(run)));
     run.startedMs = Date.now();
@@ -1706,6 +1711,7 @@ export class Tier1Executor {
         createdAt: nowIso,
         updatedAt: nowIso
       });
+      this.d.db.prepare("UPDATE tier1_runs SET budget_clock_complete=1 WHERE id=?").run(runId);
       this.d.db
         .prepare("UPDATE tasks SET adapter=?, cwd=?, updated_at=? WHERE id=?")
         .run(this.d.cfg.adapter, worktree, nowIso, row.id); // Tier1 恢复钥匙(09 §6.1 adapter/cwd)
@@ -2234,7 +2240,7 @@ export class Tier1Executor {
 
   /**
    * 09 §11 claude_code 承载段:身份登记「启动与**每次 spawn 前**核验」。
-   * digest 重算走 checkBinaryIdentity 的 mtime/size 缓存(D12 取舍),常态零额外哈希。
+   * verifyClaudeIdentity 强制重算实际入口和绑定文件的 digest，不以 mtime/size 缓存代替核验。
    * 不符 ⇒ 抛 Tier1BinaryIdentityError,由认领链结算成 blocked `binary_identity_mismatch`,不起进程。
    */
   /** spawn 前身份核验失败的统一结算:不起进程、blocked 叫人(09 §11「不符 ⇒ 不认领」) */
@@ -3153,6 +3159,7 @@ export class Tier1Executor {
           ...this.observedModelAuditMeta(run)
         }
       });
+      this.persistRunClock(run);
       this.recordRunCost(run);
       const cleared = d.db
         .prepare(
@@ -3455,6 +3462,7 @@ export class Tier1Executor {
           }
         });
         // 没有任何持久化事件的 pre-start 失败不冒充一次订阅调用；其余终态与记账同事务。
+        this.persistRunClock(run);
         if (run.eventLine > 0) this.recordRunCost(run);
         const cleared = d.db
           .prepare("UPDATE tier1_runs SET finalize_pending_json=NULL, updated_at=? WHERE id=? AND finalize_pending_json IS NOT NULL")
@@ -3539,6 +3547,7 @@ export class Tier1Executor {
     try {
       const tx = this.d.db.transaction(() => {
         settleCancel(this.d.db, this.d.audit, proof, nowIso);
+        this.persistRunClock(run);
         if (run.eventLine > 0) this.recordRunCost(run);
       });
       tx();
@@ -3598,6 +3607,7 @@ export class Tier1Executor {
           action: "tier1.steer_resume_settled",
           meta: { taskId: run.taskId, runId: run.runId, attempt: run.attempt, lastEventId: proof.lastEventId }
         });
+        this.persistRunClock(run);
         if (run.eventLine > 0) this.recordRunCost(run);
       });
       tx();
@@ -3698,6 +3708,10 @@ export class Tier1Executor {
     const preflight: RecoverPreflight[] = [];
     for (const raw of rows) {
       const runId = raw["id"] as string;
+      if (!raw["restart_pending_at"]) {
+        // 非优雅重启存在无法还原的计时间隙,不能沿用完整性声明。
+        this.d.db.prepare("UPDATE tier1_runs SET budget_clock_complete=0 WHERE id=?").run(runId);
+      }
       const taskId = raw["task_id"] as string;
       const state = raw["state"] as string;
       const task = this.d.db
@@ -4891,6 +4905,14 @@ export class Tier1Executor {
   /** 旧调用兼容；正常退出必须走 prepareShutdown。 */
   shutdown(): void {
     void this.emergencyShutdown().catch(() => undefined);
+  }
+
+  /** 只读活跃计时,替换同 run 的持久快照;不推进状态或重置审批停表。 */
+  activeRunElapsedMs(): ReadonlyMap<string, number> {
+    return new Map([...this.active.values()].map((run) => [
+      run.runId,
+      Math.max(0, Math.round(run.restartPending ? run.budgetActiveMs : this.activeBudgetMs(run)))
+    ]));
   }
 
   /** 观测(测试/console 用) */

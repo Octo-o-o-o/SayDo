@@ -74,3 +74,24 @@ describe("旧稿队列与 turn.text 缓存", () => {
     });
   });
 });
+
+
+it.each(["read", "parse", "shape"])("已有旧稿 %s 故障不覆写且不可 ACK", (fault) => {
+  const old = JSON.stringify([{ sessionId: "ses_1", requestId: "evt_old", turnId: "ses_old", text: "旧稿", captureMode: "hands_free" }]);
+  let stored = old; let writes = 0;
+  const storage = { getItem: () => { if (fault === "read") throw new Error("synthetic getter"); return fault === "parse" ? "{" : "{}"; },
+    setItem: (_key: string, value: string) => { writes++; stored = value; } };
+  expect(upsertQuiescedTranscript(storage, { sessionId: "ses_1", requestId: "evt_new", turnId: "ses_new", text: "新稿", captureMode: "ptt" })).toBe(false);
+  expect(removeQuiescedTranscript(storage, "ses_1", "evt_old", "ses_old")).toBe(false);
+  expect(stored).toBe(old); expect(writes).toBe(0);
+});
+
+it("合法空队列与旧新合并、去重均保留各自文本", () => {
+  const storage = memoryStorage();
+  const first = { sessionId: "ses_1", requestId: "evt_old", turnId: "ses_old", text: "旧稿", captureMode: "hands_free" as const };
+  const second = { ...first, requestId: "evt_new", turnId: "ses_new", text: "新稿" };
+  expect(upsertQuiescedTranscript(storage, first)).toBe(true);
+  expect(upsertQuiescedTranscript(storage, second)).toBe(true);
+  expect(upsertQuiescedTranscript(storage, second)).toBe(true);
+  expect(readQuiescedTranscripts(storage, "ses_1").map((x) => x.text)).toEqual(["旧稿", "新稿"]);
+});

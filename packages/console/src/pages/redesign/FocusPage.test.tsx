@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { FocusPage } from "./FocusPage";
 import { focusPageActive } from "./FocusPage.fixture";
-import { makeTask } from "../../components/redesign/fixtureBase";
+import { makeTask, makeObligation } from "../../components/redesign/fixtureBase";
 
 describe("FocusPage 安排可达性", () => {
   it("桌面上下文页签安排带打开标签与真实 id", () => {
@@ -77,4 +77,36 @@ describe("FocusPage 安排可达性", () => {
     const second = renderToStaticMarkup(<FocusPage view={focusPageActive} initialTab="context" />);
     expect(second).toContain('data-focus-tab-btn="context"');
   });
+});
+
+
+describe("FocusPage 主线与支线的只读完整性", () => {
+  const cases = [
+    { name: "仅主线", lanes: [], main: true, branch: false },
+    { name: "主支混合", lanes: [{ id: "lan_branch", title: "具名支线" }], main: true, branch: true },
+    { name: "仅支线", lanes: [{ id: "lan_branch", title: "具名支线" }], main: false, branch: true },
+    { name: "真实空", lanes: [], main: false, branch: false },
+    { name: "已收支线与主线并存", lanes: [{ id: "lan_branch", title: "具名支线", retired: true }], main: true, branch: true }
+  ];
+  for (const c of cases) {
+    it(c.name + "不丢未归支线的任务与义务", () => {
+      const obligations = [
+        ...(c.main ? [makeObligation({ id: "ob_main", title: "主线真实义务", laneId: undefined })] : []),
+        ...(c.branch ? [makeObligation({ id: "ob_branch", title: "支线真实义务", laneId: "lan_branch" })] : [])
+      ];
+      const focusTasks = [
+        ...(c.main ? [{ id: "tsk_main", title: "主线真实任务", status: "queued", laneId: null }] : []),
+        ...(c.branch ? [{ id: "tsk_branch", title: "支线真实任务", status: "queued", laneId: "lan_branch" }] : [])
+      ];
+      const view = { ...focusPageActive, lanes: c.lanes, focusTasks, rail: { ...focusPageActive.rail, obligations } };
+      const html = renderToStaticMarkup(<FocusPage view={view} initialTab="lanes" />);
+      expect(html).toContain('data-focus-lane="__main__"');
+      expect(html.includes('data-focus-lane-ob="ob_main"')).toBe(c.main);
+      expect(html.includes('data-focus-lane-task="tsk_main"')).toBe(c.main);
+      expect(html.includes('data-focus-lane-ob="ob_branch"')).toBe(c.branch);
+      expect(html.includes('data-focus-lane-task="tsk_branch"')).toBe(c.branch);
+      if (c.lanes.some((lane) => "retired" in lane)) expect(html).toContain("具名支线(已收)");
+      if (!c.main && !c.branch) expect(html).toContain("这条线还没有挂任务或义务");
+    });
+  }
 });

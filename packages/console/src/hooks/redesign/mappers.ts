@@ -1,6 +1,10 @@
 // redesign 四页数据映射纯函数(可单测;无 React 依赖)。
 // 合同:packages/console/src/pages/redesign/README.md + components/redesign/types.ts。
 
+import { taskCostsText } from "../../lib/costDisplay";
+
+import { taskViewSchema } from "@saydo/contracts";
+
 import type {
   ArtifactRole,
   ArtifactView,
@@ -462,15 +466,18 @@ export interface TaskDetailPayload {
   }>;
 }
 
-function elapsedMinFrom(updatedAt: unknown, createdAt: unknown): number {
-  const raw = (typeof updatedAt === "string" && updatedAt) || (typeof createdAt === "string" && createdAt) || null;
-  if (!raw) return 0;
-  const t = Date.parse(raw);
-  if (Number.isNaN(t)) return 0;
-  return Math.max(0, Math.round((Date.now() - t) / 60_000));
+/** 只读权威活跃时长；更新时间和创建时间不证明执行计时。 */
+function elapsedMinFromActive(raw: unknown): number | null {
+  const parsed = taskViewSchema.shape.elapsedActiveMs.safeParse(raw);
+  return parsed.success && parsed.data !== null ? Math.round(parsed.data / 60_000) : null;
 }
 
-export function mapTaskViewFromDetail(task: Record<string, unknown>, focusId: string): TaskView {
+/** 只接受读口明确给出的合法等级，不把缺数据映射成低风险。 */
+function knownRiskLevel(raw: unknown): RiskLevel | null {
+  return typeof raw === "string" && ["S0", "S1", "S2", "S3"].includes(raw) ? raw as RiskLevel : null;
+}
+
+export function mapTaskViewFromDetail(task: Record<string, unknown>, focusId: string, costs?: unknown): TaskView {
   const budgetRaw = task["budget_json"] ?? task["budget"];
   let budget = { walltimeActiveMin: 0, maxTurns: 0, maxCost: 0 };
   if (budgetRaw && typeof budgetRaw === "object") {
@@ -493,8 +500,7 @@ export function mapTaskViewFromDetail(task: Record<string, unknown>, focusId: st
     }
   }
   const route = String(task["route"] ?? "tier1") === "hopper" ? "hopper" : "tier1";
-  const riskRaw = String(task["risk"] ?? task["riskLevel"] ?? "S1");
-  const riskLevel = (["S0", "S1", "S2", "S3"].includes(riskRaw) ? riskRaw : "S1") as RiskLevel;
+  const riskLevel = knownRiskLevel(task["risk"] ?? task["riskLevel"]);
   return {
     id: String(task["id"] ?? ""),
     focusId,
@@ -504,9 +510,12 @@ export function mapTaskViewFromDetail(task: Record<string, unknown>, focusId: st
     viewStatus: asViewStatus(String(task["viewStatus"] ?? task["status"] ?? "queued")),
     attempt: Number(task["attempt"] ?? 0),
     riskLevel,
-    elapsedMin: elapsedMinFrom(task["updated_at"] ?? task["updatedAt"], task["created_at"] ?? task["createdAt"]),
+    elapsedMin: elapsedMinFromActive(task["elapsedActiveMs"]),
     budget,
     spent: { known: false },
+    // 详情costs来自JSON读口；非法行仍计未知，不过滤成免费空账本。
+    ...(Array.isArray(costs) ? { spentText: taskCostsText(costs.map(row =>
+      row !== null && typeof row === "object" && !Array.isArray(row) ? row as Record<string, unknown> : {})) } : {}),
     lastEvent: String(task["status"] ?? ""),
     projectId:
       typeof task["projectId"] === "string"
@@ -556,6 +565,7 @@ export function mapDecisionPackageView(pkg: Record<string, unknown>, fallback?: 
     id: String(pkg["id"] ?? ""),
     revision: Number(pkg["revision"] ?? 1),
     status,
+    ...(pkg["mode"] === "step_confirm" || pkg["mode"] === "direct_to_review" ? { mode: pkg["mode"] } : {}),
     outcomePreview: String(pkg["outcomePreview"] ?? fallback?.outcomePreview ?? ""),
     inScope: Array.isArray(pkg["inScope"]) ? pkg["inScope"].map(String) : [],
     outOfScope: Array.isArray(pkg["outOfScope"]) ? pkg["outOfScope"].map(String) : [],
@@ -629,7 +639,7 @@ export function pickLatestSettledRun(runs: ReviewRunRow[] | undefined): {
 } | undefined {
   if (!runs?.length) return undefined;
   const ranked = [...runs].sort((a, b) => Number(b.attempt ?? 0) - Number(a.attempt ?? 0));
-  for (const row of ranked) {
+  for (const row of ranked.slice(0, 1)) {
     if (row.evidence_conflict === true) continue;
     const treeSha = String(row.tree_sha ?? row.treeSha ?? "");
     const runId = String(row.id ?? "");
@@ -638,7 +648,7 @@ export function pickLatestSettledRun(runs: ReviewRunRow[] | undefined): {
     if (state !== "settled_review" && state !== "settled_failed") continue;
     const proof = parseSettleProof(row.settle_proof_json ?? row.settleProofJson);
     if (!proof?.treeSha || proof.treeSha !== treeSha) continue;
-    if (!proof.runId || proof.runId !== runId) continue;
+    if (!proof.runId || proof.runId !== runId || proof.attempt !== Number(row.attempt ?? 0)) continue;
     return { runId, attempt: Number(row.attempt ?? 0), state, treeSha };
   }
   return undefined;
@@ -750,24 +760,13 @@ export function mapReviewContext(data: TaskDetailPayload, focusId = ""): ReviewT
 
   const runs = (data.runs ?? []).map((r) => ({
     attempt: Number((r as Record<string, unknown>)["attempt"] ?? 0),
-    result: String((r as Record<string, unknown>)["state"] ?? "")
+    result: String((r as Record<string, unknown>)["state"] ?? ""),
+    evidence_conflict: (r as Record<string, unknown>)["evidence_conflict"] === true
   }));
 
-  // costs → spent
-  const costs = data.costs ?? [];
-  let spentKnown = false;
-  let spentValue = 0;
-  for (const c of costs) {
-    const row = c as Record<string, unknown>;
-    if (row["known"] === 1 || row["known"] === true) {
-      spentKnown = true;
-      spentValue += Number(row["amount"] ?? 0);
-    }
-  }
-  const tv = mapTaskViewFromDetail(task, focusId);
+  const tv = mapTaskViewFromDetail(task, focusId, data.costs);
   const latestRunAttempt = runs.reduce((max, r) => (r.attempt > max ? r.attempt : max), 0);
   if (latestRunAttempt > 0) tv.attempt = latestRunAttempt;
-  if (spentKnown) tv.spent = { known: true, value: spentValue };
 
   // package digest 末 12 作 packageRefText
   const digest = String(task["package_digest"] ?? pkg?.["digest"] ?? "");
@@ -775,6 +774,7 @@ export function mapReviewContext(data: TaskDetailPayload, focusId = ""): ReviewT
 
   return {
     task: tv,
+    taskStatus: String(task["status"] ?? ""),
     packageRefText,
     acceptance,
     decisions,
@@ -797,6 +797,9 @@ export function mapTaskRowToView(
     parkedDeadline?: string | null;
     projectId?: string;
     projectTitle?: string;
+    risk?: unknown;
+    riskLevel?: unknown;
+    elapsedActiveMs?: unknown;
   },
   focusId: string
 ): TaskView {
@@ -808,8 +811,8 @@ export function mapTaskRowToView(
     route: row.route === "hopper" ? "hopper" : "tier1",
     viewStatus: asViewStatus(String(row.viewStatus ?? row.status ?? "queued")),
     attempt: row.attempt ?? 0,
-    riskLevel: "S1",
-    elapsedMin: 0,
+    riskLevel: knownRiskLevel(row.risk ?? row.riskLevel),
+    elapsedMin: elapsedMinFromActive(row.elapsedActiveMs),
     budget,
     spent: { known: false },
     lastEvent: String(row.viewStatus ?? row.status ?? ""),

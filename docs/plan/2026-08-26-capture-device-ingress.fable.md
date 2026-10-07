@@ -1,5 +1,6 @@
 # 口袋采集设备接入方案(capture ingress)v2
 
+> **2026-09-29 状态注记**:本方案未实施(仅当时附带发现的现网缺陷已修,`7f6562e`)。设备侧现实已变:AI Passport 板已到货并以独立固件接入 Anyvia(原 Octoooo)网关生态(配对/token/事项/用量/回复实机验收,语音未适配;见 `~/WorkSpace/Octoooo/firmware/ai-passport/README.md`)。本方案的**设备直连传输层(§3 双令牌配对、§4 设备 WS 合同、PR2 LAN、PR4 手机 bridge)不再按原样派工**,待 Anyvia Q5 跨仓 ADR 重裁;**权限层(§2.6/§2.7 origin provenance、确认拦截、工具三档)与并发互斥层(§2.5)仍是 SayDo 接收任何外部来源轮次的有效资产**。评审结论(§1 对前案证伪、§8.3 owner-token bridge 否定)仍然成立。后继方案见 `2026-09-29-saydo-anyvia-integration.fable.md`:本文的工具三档已被该方案第 5 节的来源权限六类取代,§2.6 的"仅在当前轮抑制自动接受"已被"持久标记到确认卡"取代。
 > 日期:2026-08-26(v2,同日 Codex 对抗评审回修版;v1 见本文件 git 前一版本)。状态:方案定稿候选,待 owner 批准。
 > 对象硬件:FoloToy AI Passport 一类口袋开源硬件(ESP32-C3 / 8MB Flash / 无 PSRAM / ES8311 I2S 全双工 / Wi-Fi / 三键 + 240x320 屏),约一个月后到货;本方案只做 daemon 侧可行性与最小落地,不写设备固件。
 > supersede 关系:本文修订并取代 2026-08-26 Cursor 会话产出的同题方案(该方案未落仓,原文见会话记录);v2 按 `research/codex-findings/100-capture-device-ingress-adversarial-review.md` 回修,结构性变化见 §10 评审记录。

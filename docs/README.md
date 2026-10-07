@@ -18,7 +18,9 @@
 | [modules](modules/a-dialogue.md) | 分域详设:A 对话 / [B 记忆](modules/b-memory.md) / [C 控制面桥](modules/c-control-bridge.md) / [D 呈现](modules/d-presentation.md) / [E 横切](modules/e-crosscutting.md) |
 | [adr](adr/README.md) | 两套独立编号:设计序列 `adr/design/`、工程序列 `adr/` 根目录;引用必须带「设计」或「工程」 |
 | [plan](plan/README.md) | 排产与交接;唯一排产源是 [`plan/IMPLEMENTATION-PLAN-2.md`](plan/IMPLEMENTATION-PLAN-2.md) |
-| [review](review/2026-09-02-monthly-docs-commit-crosscheck.md) | 对账与 readback 报告;当前[2026-09-13整合对账](review/2026-09-13-consolidation-crosscheck.md)进行中;2026-09-12 附件吸收见 [handoff-attachment-absorption](review/2026-09-12-handoff-attachment-absorption.md) |
+| [review](../e2e/evidence/fortnight-audit-2026-10-03.md) | 本轮 2026-10-03 整合与双向审计记录；[2026-09-27](review/2026-09-27-fortnight-docs-commit-audit.md) 为历史候选，已由本轮整合吸收，PG-02 RED 保留; [2026-09-02月度报告](review/2026-09-02-monthly-docs-commit-crosscheck.md)为历史;[2026-09-13整合对账](review/2026-09-13-consolidation-crosscheck.md)为历史报告，当前阶段以唯一排产源为准;2026-09-12 附件吸收见 [handoff-attachment-absorption](review/2026-09-12-handoff-attachment-absorption.md) |
 | [release](release/README.md) | 上架、备案与版本坐标(非合同 canonical) |
 | [site](site/README.md) | 官网内容与结构文稿 |
 | [store](store/00-上架与备案总览.md) | 商店/备案草稿存档(已冻结) |
+
+本轮模块化方案与新会话交接见[融合终稿](review/2026-09-29-modular-foundation-consolidated-final.md)与[完整实施Prompt](plan/IMPL-PROMPT-2026-09-29-modular-foundation.md)。它们不是合同canonical或第二排产源。

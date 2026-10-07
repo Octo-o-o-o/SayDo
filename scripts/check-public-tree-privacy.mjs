@@ -195,11 +195,13 @@ function scanBuffer(buffer, path, privateProbes) {
 }
 
 function listFsPaths(repo) {
+  // 仅排除采集时 Git 已知的工作区删除，不改变 ref 或后续读取失败语义。
+  const deleted = new Set(git(["ls-files", "--deleted", "-z"], repo).toString("utf8").split("\0").filter(Boolean));
   const listed = git(["ls-files", "-z", "--cached", "--others", "--exclude-standard"], repo);
   return listed
     .toString("utf8")
     .split("\0")
-    .filter(Boolean);
+    .filter((path) => path && !deleted.has(path));
 }
 
 function listRefBlobs(repo, ref) {

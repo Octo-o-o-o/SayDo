@@ -19,8 +19,8 @@ export const taskViewSchema = z.strictObject({
   taskId: idSchema,
   title: z.string(),
   status: z.string(), // §7 用户语词表(呈现层);机器态见 TaskCard.status
-  attempt: z.number().int().positive(),
-  elapsedActiveMs: z.number().int().nonnegative(), // 活跃墙钟,停靠停表
+  attempt: z.number().int().nonnegative(),
+  elapsedActiveMs: z.number().int().nonnegative().nullable(), // 全任务累计;历史计时不完整为 null
   currentStep: z.strictObject({ seq: z.number().int().positive(), name: z.string() }).optional(),
   budget: z.strictObject({
     spentKnown: z.number().nonnegative().optional(),

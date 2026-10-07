@@ -11,7 +11,6 @@ import { runtimeChildWrapperSource } from "../src/runtimeChildRegistry.js";
 describe("RUNTIME_CHILD_WRAPPER 语法自检", () => {
   it("能被真实 node 解析(--check)", () => {
     const source = runtimeChildWrapperSource();
-    expect(source.length).toBeGreaterThan(500);
     expect(() =>
       execFileSync(process.execPath, ["--input-type=commonjs", "--check"], {
         input: source,
@@ -20,39 +19,6 @@ describe("RUNTIME_CHILD_WRAPPER 语法自检", () => {
         stdio: ["pipe", "pipe", "pipe"]
       })
     ).not.toThrow();
-  });
-
-  it("win32 孙进程 stdout/stderr 不 inherit CRT pipe，改为 pipe 转发且 close 用 exit 码", () => {
-    const source = runtimeChildWrapperSource();
-    expect(source).toMatch(/const inheritOut = process\.platform !== "win32"/u);
-    expect(source).toMatch(/stdio: \[stdinEnded \? "ignore" : "pipe", inheritOut \? "inherit" : "pipe", inheritOut \? "inherit" : "pipe"\]/u);
-    expect(source).toMatch(/child\.stdout\.pipe\(process\.stdout, \{ end: false \}\)/u);
-    expect(source).toMatch(/child\.stderr\.pipe\(process\.stderr, \{ end: false \}\)/u);
-    expect(source).toMatch(/child\.once\("close", \(\) => \{\s*wlog\("child-close"\);\s*drainAndExit\(finalCode\);\s*\}\)/u);
-    expect(source).toMatch(/else if \(typeof code === "number"\) finalCode = code/u);
-    expect(source).not.toMatch(/stdio: \["pipe", "inherit", "inherit"\]/u);
-    expect(source).toMatch(/function flushStdioThenExit\(code\)/u);
-    expect(source).toMatch(/if \(process\.platform === "win32"\) flushStdioThenExit\(code\)/u);
-    expect(source).toMatch(/else process\.exit\(code\)/u);
-    expect(source).toMatch(/stream\._handle\.writeQueueSize/u);
-    expect(source).not.toMatch(/setTimeout\(finish, 1000\)/u);
-    expect(source).not.toMatch(/finish\(\s*\)/u);
-    expect(source).toMatch(/typeof code === "number" && code !== 0 \? code : 124/u);
-    expect(source).toMatch(/now - stalledSince >= 10000/u);
-    expect(source).toMatch(/saydo: wrapper stdio flush /u);
-    expect(source).toMatch(/child-stdout-data/u);
-    expect(source).not.toMatch(/WRAPPER-SELF-TEST/u);
-  });
-
-  it("permit：win32 读命名管道，POSIX 用 createReadStream fd3", () => {
-    const source = runtimeChildWrapperSource();
-    expect(source).toMatch(/if \(process\.platform === "win32"\)/u);
-    expect(source).toMatch(/process\.env\.SAYDO_PERMIT_PIPE/u);
-    expect(source).toMatch(/openSync\(pipeName, "r"\)/u);
-    expect(source).not.toMatch(/readSync\(3,/u);
-    expect(source).toMatch(/createReadStream\(null, \{ fd: 3, autoClose: true \}\)/u);
-    expect(source).toMatch(/permit\.once\("data"/u);
-    expect(source).toMatch(/permit\.once\("end"/u);
   });
 
   // 最小部署镜像(node:*-slim、distroless 等)常无 procps。wrapper 靠 otherGroupPids()

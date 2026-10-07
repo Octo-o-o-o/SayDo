@@ -135,7 +135,7 @@
 ## 3. 轮次与打断规则
 
 1. 轮次三层:VAD → 语义 EOU(~~P1~~ **已提前**,05 §4 提前批 #6)→ 显式按钮兜底;中英混说默认延长静音阈值。
-2. 打断:TTS 立停;watermark 后未播文本 `heard=false`,不进对话事实;**被打断的授权类播报(S2/预授权清单)立即使当前 presentation/nonce 作废**——随后任何裸肯定("好/可以")不得消费旧 pending 收据,必须完整重播或转屏后签发新 presentation(A8);模式问句被打断则择机重述。
+2. 打断:TTS 立停;watermark 后未播文本 `heard=false`,不进对话事实;**被打断的授权类播报(S2/预授权清单)立即使当前 presentation/nonce 作废**——随后任何裸肯定("好/可以")不得消费旧 pending 收据,必须完整重播或转屏后签发新 presentation(A8);模式问句被打断则择机重述。合成侧须使被打断输出永久失效：同会话新句不能恢复旧合成的发送资格，断线后的旧任务不得写向新连接；合成返回、重试返回及每次异步发送前重核输出代际。这不等同于已在网络中的旧帧过滤或真实设备停音验收。
 3. 重听:"重听上一问" = 原文重放,不重新生成。
 4. 挂起:空闲 45s(实验参数)或用户示意 ⇒ 收尾语必含状态:"任务在跑,**到验收点**我叫你。"
 5. 回叫接通第一句必须是回叫原因(§2.4),不寒暄。
@@ -143,6 +143,8 @@
 7. **桌面采集交互(R-A 2026-07-26 场次①;双动作改版 2026-07-28 owner dogfood 拍板)**:桌面端手动采集提供两种触发(参考微信桌面端语音),与免手档并列共三种:① **点击-再点击**(toggle:点麦克风开始录)② **键盘长按**(按住空格录)③ **免手 VAD**(§3-1 三层,静音自动断轮)。①②统称手动档,contracts 层 `voice.mode` 仍二值(`ptt` 涵盖 toggle/hold / `hands_free`),UI 变体不进 09。**录制中必须有反馈**(实时电平 + 计时 + 可取消区,防"卡住"感)。**录完双动作二选一(owner 拍板)**:「**直接发送**」= 主路径——语音气泡先行进对话(转写异步补挂,AI 即刻开跑;松开空格同义);「**转文字改一改**」= 纠错通道——转写只进输入框(AI 看不到),改字发送才进对话;「取消」= 彻底丢弃零痕迹(hold 语义,不进对话事实)。**异步反馈纪律:转写在途必须有显式"转写中"状态(气泡占位或输入框提示),禁止任何静默等待**;正常空转写给空反馈,识别失败与超时给"没听清/转写失败"且不得当成功旧稿。取消仍零原文。免手档 = 天然直发。**免手显式「说完了」(09 §10,2026-09-20)**:发送 `turn.done_speaking{sessionId,captureMode:"hands_free"}`,禁止带 PTT `captureId`/`captureIntent`/`holdForConfirm`;daemon 按已分类 HF 收尾记账,不得写入 legacy 未分类。已拥有逻辑轮的空终态(分类 HF final,`ok` 且 text 空)之后允许同会话继续主题 `prepare`;无开轮的有效空/短 leftover 只给 `emptyRound` 空轮反馈,不造 final。HF 识别失败须发分类 `failed` 空 final(2026-09-22):屏幕说「没听清/转写失败」,unknown 账本,不进 Brain,后续 quiesce 须带失败汇总与 discard,不得当成功旧稿。新线身份分层见 09 §10.1.13:`hfSegmentId` 是一次 VAD 开口,`hfRoundId` 是一次 EOU 逻辑用户轮(已拥有轮可含多个句段且恰好一条终态 final;无开轮不签发),识别结果按录音序提交而非 ASR 返回序。话术与 UI 不得把乱序对上说成已证明,不得只报后半句或把旧轮非空 final 当成新开口已听清。`failed` 说「没听清/转写失败」,unknown 账本,无显式放弃则不得报接上成功。缺全部新身份的旧客户只准 FIFO,且不得借旧兼容打穿新所有权。主题屏障准备路径仍是 HF 停采不补 done。UI 见 11 §5.10;轮次守恒与 `recognitionOutcome` 见 09 §10 / §10.1。
 8. **文本慢速/无语音降级(T18b;三态修订 `40a607f` 08-13)**:`dialog_cli_oneshot` 只承诺文本能力,不伪装实时语音环;轮次等待由 UI 定时状态承担,不是 Brain 回复。语音传输三态 `cloud|system|unavailable`:VOLC 未配但浏览器支持时走 SpeechRecognition/speechSynthesis 系统语音回退(话筒保持可用,话术=systemVoice.ts `VOICE_SYSTEM_NOTE` 系常量,修改话术须回写本篇);仅 `unavailable` 态麦克风按钮才在动作前禁用并给人话“语音未配置(可选)——用键盘上的话筒,或直接打字;配好豆包 key 后这里可以开口即说”;键盘系统听写与文本发送始终保留,不得静默失败。
 9. **主题续接语音屏障(09 §10.1;本候选已接线处理链,完整语音硬件/云 ASR 未验)**:进入准备即同步停采并禁止开麦/切免手/说完。普通无 pending 文本不受影响。禁止用固定毫秒、补发空 `done_speaking`、跨连接 HTTP、或新 pipeline ACK 冒充旧音频已保存。新 console 为一次续接签发并持久 `requestId`+`daemonEpoch`;同 WS 先处理在录 PTT(未 finalize 则一次 `done_speaking{captureIntent:edit,holdForConfirm:true}`;空闲/HF 不补 done)再 `voice.anchor_prepare`,等 `voice.anchor_status prepared` 后才 POST focus-anchor;200 后仅当前 owner 发 `voice.mode(ptt, quiesceRequestId)`,等匹配 `rearmed` 才放开新语音/文本。禁止普通 `voice.mode` 抢已关 gate。无当前 pipeline、未知集为空、未确认项均已 confirmed/discarded、无 pending CaptureRegistry/legacy 时立即 `prepared`(曾收音频不单独阻止),仍走 HTTP+rearm,不得跳过。显式放弃必须同时结算所列 epoch 的 pending registry tombstone,禁止只标音频 discarded。新分类 PTT 以 `recognitionOutcome` 区分,failed 不得当成功旧稿,也不得只凭最后 HF tail 报接上成功。屏障 `failed` 且旧 owner 已关后,重连须新 `requestId` 的默认 prepare 才能看到 `unknownEpochs`;旧 failed ID 只得 `voice_request_dead`,普通 `voice.mode` 仍不得开门。`voice_audio_unknown` 必须可观察:呈现「上次语音未确认保存,可返回处理,或放弃这段未确认语音后继续」;动作只在屏幕可点,不自动预选、不用语音或文本隐式授权,不自动重试识别。放弃后新 `requestId` 带 `discardUnknownEpochs`,不得凭放弃直接开门。`emptyRound:"empty"` 只表示**没有开口**的有效空识别 ACK,给明确空轮反馈,不是已拥有逻辑轮的终态身份;已拥有轮的空识别走一条 `ok`+空 text final,ACK 不带 `emptyRound`。`emptyRound:"unusable"` 与识别失败给「没听清/无可用转写」,不得宣称已保存转写;识别失败与空轮分开说。PTT 新协议按 `captureId` 认发送/编辑/取消,取消零原文;旧稿只经 `voice.quiesced_transcript` 分列,用户明确采用才进输入区。文本/系统语音以 `turn.text.result.accepted` 为真正接收(`receiptAction`+`daemonEpoch` 必带),`ws.send` 不是成功;rejected/unknown 保稿,跨 `daemonEpoch` 禁止自动重发;`prepared`/HTTP 200/`rearmed` 不清当前草稿。等待/失败必须可观察可重试。同会话导航不断,不换 sid。超时失败不得假装已接上主题。形状与失败码只以 09 §10.1 为准。
+
+**原生转写提交保稿（2026-10-03 普通整合勘误，承接 §3-9）**:原生桥接在发送前先给当前转写建立可靠保稿归属，再等待实际发送结果；异步 `sendText` 尚未结算不得回报 `queued_to_socket`。该桥接状态只表示排入发送队列，不等于 daemon 已接收或已提交；真正接收仍只认匹配当前身份的 `turn.text.result.accepted`。发送拒绝、异常、桥接失败或接收未知时保留唯一原稿并显示失败，不自动重发，不清覆盖后来编辑的新草稿；并发与重复提交不得越过 busy/身份边界。iOS 消费者只有明确稿件已归属输入框或发送队列时才可转移本地稿件，拒绝/桥接失败不得清除唯一转写。跨 `daemonEpoch` 仍禁止自动重发，既有 capture/request 绑定与取消语义不变；本段不新增 09 业务类型、远程写权限或语音识别能力。
 
 ## 4. Brain instructions 骨架(P0;落地时所有文档编号引用必须展开为自包含文本)
 
@@ -184,6 +186,13 @@ push_branch         → "推到 {branchPattern} 分支{downstreamTriggers=ci_pre
 
 ## 6. golden 对话集(验收用,两档)
 
+2026-10-07 验证边界：手写 utterance 与同一对象 mustContain 自比的测试及数量/场景名库存断言已移除；它们未向 Brain 注入输入，不算下述文本注入级验收。保留真实产品输出的状态词、确认词、上下文编译与行为测试。下述场景是验证目标，缺少真实运行证据时保持未验证，不以手写样例补齐数量。
+
+
 - **P0 · 文本注入级 ≥20 条**:mock ASR 输出直入 Brain,断言 = 命中 §2 模板要素 + 状态词零违规 + 槽位来自契约字段;覆盖 §2 全部 P0 场景(含逆风:Gate 0 拒绝/预算不足/merge 失败/撤回/不置可否);**反例专项 `s1-b2`(R-A 2026-07-26,§4-1 硬规则的 golden 承载)**:零任务上下文注入诱导性问题("进展如何"),断言回复无任何结果类句式——本条即 §4-1 所引"golden 反例 s1-b2"的登记载体。
 - **P0 · 音频级烟测 5 条**:真管线 + barge-in,断言 unheard 不入事实、关键确认重述;其余音频级 P1。
 - ASR 中英混说 300–500 条 golden 归 07 D4,不重复建设。
+
+### 首次开场白的承诺边界(2026-09-27)
+
+首次开场白逐字使用 09 的 first-run/query 固定话术。输入三件事不等于自动立卡；先澄清、再由用户确认是否立起来持续关注，不承诺固定屏幕方位。该约束与普通对话空态一致。

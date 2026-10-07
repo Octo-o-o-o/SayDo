@@ -172,9 +172,24 @@ function main() {
     writeFileSync(join(repo, "docs/space name.txt"), `${mac}\n`);
     const spaceHit = scan(repo, ["--fs", "--allow-missing-probes"]);
     const spaceOut = outputOf(spaceHit);
-    assert("space filename hit", spaceHit.status === 1 && spaceOut.includes("path=docs/space name.txt"));
+    assert("space filename hit", spaceHit.status === 1 && spaceOut.includes("path=docs/space name.txt category=home-macos"));
     assertNoLeak("space filename", spaceOut, secrets);
     writeFileSync(join(repo, "docs/space name.txt"), "clean\n");
+
+    rmSync(join(repo, "keep/mac.txt"));
+    const deleted = scan(repo, ["--fs", "--probes-file", probesFile]);
+    assert("unstaged deletion scans clean worktree", deleted.status === 0 && outputOf(deleted).includes("hits=0"));
+    const deletedRef = scan(repo, ["--ref", sha, "--probes-file", probesFile]);
+    const deletedRefOut = outputOf(deletedRef);
+    assert("old ref retains deleted file privacy violation", deletedRef.status === 1 && deletedRefOut.includes("path=keep/mac.txt category=home-macos"));
+    assertNoLeak("deleted file old ref", deletedRefOut, secrets);
+
+    writeFileSync(join(repo, "new private file.md"), `${mac}\n`);
+    const untracked = scan(repo, ["--fs", "--probes-file", probesFile]);
+    const untrackedOut = outputOf(untracked);
+    assert("untracked file privacy violation", untracked.status === 1 && untrackedOut.includes("path=new private file.md category=home-macos"));
+    assertNoLeak("untracked file", untrackedOut, secrets);
+    rmSync(join(repo, "new private file.md"));
 
     const badRef = scan(repo, ["--ref", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "--allow-missing-probes"]);
     assert("git failure non-zero", badRef.status !== 0);

@@ -90,7 +90,7 @@ describe("DDL v32→v33 真实旧行 + backup 恢复", () => {
     expect(row.title).toBe(OB_TITLE);
     expect(row.waiting_on_task_id).toBeNull();
     expect(row.waiting_task_condition).toBeNull();
-    expect((upgraded.prepare("SELECT MAX(version) AS v FROM schema_migrations").get() as { v: number }).v).toBe(33);
+    expect((upgraded.prepare("SELECT MAX(version) AS v FROM schema_migrations").get() as { v: number }).v).toBe(Math.max(...MIGRATIONS.map((m) => m.version)));
     const v33 = upgraded.prepare("SELECT COUNT(*) AS c FROM schema_migrations WHERE version=33").get() as { c: number };
     expect(v33.c).toBe(1);
     upgraded.close();

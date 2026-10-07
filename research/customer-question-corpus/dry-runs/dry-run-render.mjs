@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { renderAvailability } from "../context-availability.mjs";
 import {
   DOMAIN_FILES,
   DR1_STATES,
@@ -77,6 +78,8 @@ export function renderResult(model) {
     "> 边界：本文件是静态判定，不是真实执行记录。本轮未调用真实模型、connector、外部账号、浏览器、Web 搜索或业务写工具，也未生成任何真实外部 effect。`PASS` 只表示现有静态合同足以支持对应 dry-run 判断。不得把静态判定叙述成真实执行结果。",
     "",
     metaComment(model),
+    "",
+    renderAvailability(model.availability),
     "",
     "## 1. 源摘要",
     "",
@@ -406,6 +409,8 @@ export function renderSolution(model) {
     "> 边界：本文件给出静态补充物、模板和验收门，供后续真实运行前补合同。本轮未调用真实模型、connector 或业务写工具，也不得在本会话执行分批真实运行。禁止用一个 generic fallback 冒充 600 条已闭合。不得把静态判定叙述成真实执行结果。",
     "",
     metaComment(model),
+    "",
+    renderAvailability(model.availability),
     "",
     "## 1. 通用模板与逐题必填的分界",
     "",

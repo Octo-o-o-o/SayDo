@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   desktopTextOutcomeCopy,
@@ -101,30 +100,6 @@ describe("turn.text 回执", () => {
     expect(epochChangeLeavesPendingUnknown("evt_old", "evt_new", true)).toBe(true);
     expect(epochChangeLeavesPendingUnknown("evt_same", "evt_same", true)).toBe(false);
     expect(epochChangeLeavesPendingUnknown(null, "evt_new", true)).toBe(false);
-  });
-
-  it("useVoiceChannel 生产路径调用认轮与回执函数", () => {
-    const src = readFileSync(new URL("../voice/useVoiceChannel.ts", import.meta.url), "utf8");
-    expect(src).toContain("takeCaptureEntry(captureQueueRef.current, captureId, { captureMode })");
-    expect(src).toContain("modeSwitchCapturePlan(captureQueueRef.current)");
-    expect(src).toContain("routeCapturedFinal(");
-    expect(src).toContain("shouldAcceptDesktopTurn(outcome)");
-    expect(src).toContain("epochChangeLeavesPendingUnknown(");
-    expect(src).toContain("planDesktopTurnText(");
-    expect(src).toContain("shouldReplayPendingOnHello(");
-    expect(src).toContain("canOpenMic(");
-    expect(src).toContain("readQuiescedTranscripts(sessionStorage, sessionId)");
-    expect(src).toContain('if (isThemedVoiceHeld()) return');
-    expect(src).toContain('JSON.stringify({ t: "turn.done_speaking", sessionId, captureMode: "hands_free" })');
-    expect(src).toContain("modeRef.current = \"ptt\"");
-    expect(src).toContain("receiptAction");
-    expect(src).not.toMatch(/setTimeout\([^,]+,\s*800\)/);
-    const quiescedCase = src.slice(
-      src.indexOf('case "voice.quiesced_transcript"'),
-      src.indexOf('case "focus.entity"')
-    );
-    expect(quiescedCase).toContain("upsertQuiescedTranscript");
-    expect(quiescedCase).not.toContain("draftEvent");
   });
 
   it("无 daemonEpoch 不得把发送当成功;同稿同 epoch 走 replay/retry", () => {

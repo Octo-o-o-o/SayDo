@@ -20,7 +20,7 @@ SAYDO_TGZ_MIRROR_URL="https://dl.saydo.octoooo.com/releases/v${SAYDO_VERSION}/sa
 BETTER_SQLITE3_MIRROR="https://npmmirror.com/mirrors/better-sqlite3"
 NODE_MAJOR="22"
 NODE_DIST="https://nodejs.org/dist"
-# Node 官方源连不上时的镜像(目录结构与 nodejs.org/dist 相同;仍按官方 SHASUMS256 校验)。SAYDO_INSTALL_MIRROR=1 直接用镜像。
+# Node 官方源连不上时的镜像(目录结构与 nodejs.org/dist 相同;使用同一下载源的 SHASUMS256 校验下载完整性)。SAYDO_INSTALL_MIRROR=1 直接用镜像。
 NODE_DIST_MIRROR="https://npmmirror.com/mirrors/node"
 
 ok() { printf '[ok] %s\n' "$*"; }

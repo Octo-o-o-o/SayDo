@@ -2,6 +2,7 @@
 // steerTask / cancelTask(取消全链)/ reviewTask(三态)/ requestManualMerge + MergeProof / retryTask。
 // 全部经 task/tier1_run 状态机(canTransitionTask),非法转换拒;attempt 规则:返工/retry = 新 attempt。
 
+import { assertTier1TerminalConsistent } from "./terminalEvidence.js";
 import type { AdapterKind } from "./adapter.js";
 import {
   acceptanceExactSetViolations,
@@ -417,6 +418,7 @@ export function reviewTask(
     if (run.state !== "settled_review") {
       throw new Error(`approve requires run state settled_review, got ${run.state}(settled_failed/中间态不可批)`);
     }
+    assertTier1TerminalConsistent(db, input.taskId, run.id, run.state);
     if (!run.tree_sha) throw new Error("approve requires run.tree_sha (prospectiveTree 缺失,无可批准的树)");
     if (!run.settle_proof_json) {
       throw new Error("approve requires settle proof (evidenceDigest 库内自取,无证据不批——fail-closed)");
@@ -461,6 +463,9 @@ export function reviewTask(
       if (!currentRun || currentRun.state !== "settled_review" || !currentRun.tree_sha || !currentRun.settle_proof_json) {
         throw new Error("coding approve race:当前 run/proof 不再可批准");
       }
+      const latest = db.prepare("SELECT MAX(attempt) AS a FROM tier1_runs WHERE task_id=?").get(input.taskId) as {a:number};
+      if (latest.a !== currentAttempt) throw new Error("coding approve race:当前 attempt 已变化");
+      assertTier1TerminalConsistent(db, input.taskId, currentRun.id, currentRun.state);
       const currentProof = tier1SettleProofSchema.parse(JSON.parse(currentRun.settle_proof_json) as unknown);
       const currentBody = packageBodyForReview(db, input.taskId);
       if (
@@ -489,7 +494,7 @@ export function reviewTask(
       audit.record({
         actor: "owner",
         action: "task.review_approve",
-        meta: { taskId: input.taskId, evidenceDigest, prospectiveTreeSha: run.tree_sha, attempt: currentAttempt }
+        meta: { taskId: input.taskId, runId: currentRun.id, evidenceDigest, prospectiveTreeSha: run.tree_sha, attempt: currentAttempt }
       });
     });
     tx();
@@ -597,6 +602,9 @@ function approveWritingTask(
     if (!currentRun || currentRun.state !== "settled_review" || !currentRun.tree_sha || !currentRun.settle_proof_json) {
       throw new Error("writing approve race:当前 run/proof 不再可批准");
     }
+    const latest = db.prepare("SELECT MAX(attempt) AS a FROM tier1_runs WHERE task_id=?").get(i.taskId) as {a:number};
+    if (latest.a !== i.currentAttempt) throw new Error("writing approve race:当前 attempt 已变化");
+    assertTier1TerminalConsistent(db, i.taskId, currentRun.id, currentRun.state);
     const proof = writingSettleProofSchema.parse(JSON.parse(currentRun.settle_proof_json) as unknown);
     if (
       proof.taskId !== i.taskId ||
@@ -633,6 +641,7 @@ function approveWritingTask(
       meta: {
         taskId: i.taskId,
         kind: "writing",
+        runId: currentRun.id,
         evidenceDigest,
         prospectiveTreeSha: proof.treeSha,
         attempt: i.currentAttempt,
@@ -741,31 +750,33 @@ export function requestManualMerge(db: Db, audit: AuditSink, taskId: string): Ma
  * 观察到外部合并 + treeSha 与库值匹配 ⇒ task_done;不匹配/库值缺失 ⇒ 拒推进(防已回滚显示完成)。
  */
 export function verifyAndCompleteMerge(db: Db, audit: AuditSink, proof: MergeProof, nowIso: string): { done: boolean; reason?: string } {
-  const task = db.prepare("SELECT status, approved_tree_sha FROM tasks WHERE id=?").get(proof.taskId) as
-    | { status: string; approved_tree_sha: string | null }
-    | undefined;
-  if (!task) throw new Error(`task not found: ${proof.taskId}`);
-  if (task.status !== "review_approved_waiting_merge") {
-    return { done: false, reason: `task not awaiting merge (status=${task.status})` };
-  }
-  if (!task.approved_tree_sha) {
-    return { done: false, reason: "no approved_tree_sha on record (批准未落树基准,fail-closed)" };
-  }
-  if (proof.treeSha !== task.approved_tree_sha || proof.approvedProspectiveTreeSha !== task.approved_tree_sha) {
-    audit.record({
-      actor: "daemon",
-      action: "task.merge_proof_mismatch",
-      meta: { taskId: proof.taskId, treeSha: proof.treeSha, proofClaims: proof.approvedProspectiveTreeSha, recorded: task.approved_tree_sha }
-    });
-    return { done: false, reason: "treeSha != 批准时落库的 prospectiveTree (拒推进,防已回滚显示完成)" };
-  }
-  const upd = db
-    .prepare("UPDATE tasks SET status='task_done', updated_at=? WHERE id=? AND status='review_approved_waiting_merge'")
-    .run(nowIso, proof.taskId);
-  if (upd.changes === 0) return { done: false, reason: "merge race: status changed concurrently" };
-  applyTaskDependencyTransition(db, proof.taskId, "task_done");
-  audit.record({ actor: "daemon", action: "task.done", meta: { taskId: proof.taskId, mergeCommit: proof.mergeCommit } });
-  return { done: true };
+  return db.transaction(() => {
+    const task = db.prepare("SELECT status, approved_tree_sha FROM tasks WHERE id=?").get(proof.taskId) as
+      | { status: string; approved_tree_sha: string | null }
+      | undefined;
+    if (!task) throw new Error(`task not found: ${proof.taskId}`);
+    if (task.status !== "review_approved_waiting_merge") {
+      return { done: false, reason: `task not awaiting merge (status=${task.status})` };
+    }
+    if (!task.approved_tree_sha) {
+      return { done: false, reason: "no approved_tree_sha on record (批准未落树基准,fail-closed)" };
+    }
+    if (proof.treeSha !== task.approved_tree_sha || proof.approvedProspectiveTreeSha !== task.approved_tree_sha) {
+      audit.record({
+        actor: "daemon",
+        action: "task.merge_proof_mismatch",
+        meta: { taskId: proof.taskId, treeSha: proof.treeSha, proofClaims: proof.approvedProspectiveTreeSha, recorded: task.approved_tree_sha }
+      });
+      return { done: false, reason: "treeSha != 批准时落库的 prospectiveTree (拒推进,防已回滚显示完成)" };
+    }
+    const upd = db
+      .prepare("UPDATE tasks SET status='task_done', updated_at=? WHERE id=? AND status='review_approved_waiting_merge'")
+      .run(nowIso, proof.taskId);
+    if (upd.changes === 0) return { done: false, reason: "merge race: status changed concurrently" };
+    applyTaskDependencyTransition(db, proof.taskId, "task_done");
+    audit.record({ actor: "daemon", action: "task.done", meta: { taskId: proof.taskId, mergeCommit: proof.mergeCommit } });
+    return { done: true };
+  })();
 }
 
 // ---------- retryTask(重派发语义,owner 2026-07-25 拍板;09 §6.1 failed→queued (U) 边 + §13 语义注)----------

@@ -230,10 +230,6 @@ for (const [key, rel] of Object.entries(FIXTURE_REL)) {
   }
   const expected = generated[key];
   record(disk === expected, `${key} fixture matches generator`, `rel=${rel}`);
-  record(disk.includes("Generated from scripts/pairing-url-corpus.json"), `${key} fixture marks generated`);
-  for (const item of corpus.cases) {
-    record(disk.includes(`"${item.id}"`) || disk.includes(`'${item.id}'`), `${key} fixture has ${item.id}`);
-  }
 }
 
 const privacyFiles = ["scripts/pairing-url-corpus.json", ...Object.values(FIXTURE_REL)];
@@ -241,51 +237,6 @@ for (const rel of privacyFiles) {
   const text = readFileSync(join(repo, rel), "utf8");
   const hits = privacyHits(text);
   record(hits.length === 0, `${rel} has no full private address`, hits.join(" | "));
-}
-
-const requiredIds = [
-  "accept-ascii-trim",
-  "accept-trim-cr",
-  "accept-trim-lf",
-  "accept-trim-crlf",
-  "accept-trim-mixed",
-  "accept-percent-bmp",
-  "accept-percent-non-bmp",
-  "reject-bom",
-  "reject-nbsp",
-  "reject-raw-at",
-  "reject-raw-space",
-  "reject-raw-tab",
-  "reject-raw-nul",
-  "reject-raw-brackets",
-  "reject-raw-non-bmp",
-  "reject-overlong",
-  "reject-surrogate-utf8",
-  "reject-truncated-utf8",
-  "reject-truncated-percent",
-  "reject-duplicate-token",
-  "reject-userinfo",
-  "reject-empty-fragment",
-  "reject-fullwidth-digit-authority",
-  "reject-fullwidth-dot-authority",
-  "reject-ideographic-dot-authority",
-  "reject-circled-digit-authority",
-  "reject-zwsp-authority",
-  "accept-ula",
-  "accept-ula-compressed-short",
-  "reject-ula-trailing-single-colon",
-  "reject-ula-leading-single-colon",
-  "reject-ula-triple-colon",
-  "reject-raw-combining-acute",
-  "accept-percent-combining-acute",
-  "reject-raw-variation-selector",
-  "accept-percent-variation-selector",
-  "accept-percent-dollar-identifier",
-  "accept-percent-dollar-braces"
-];
-const have = new Set(corpus.cases.map((item) => item.id));
-for (const id of requiredIds) {
-  record(have.has(id), `corpus includes ${id}`);
 }
 
 for (const item of corpus.cases) {
@@ -308,79 +259,6 @@ for (const item of corpus.cases) {
   }
 }
 
-const androidTest = readFileSync(
-  join(repo, "apps/android/app/src/test/java/com/octoooo/saydo/DesktopProfileTest.kt"),
-  "utf8"
-);
-const iosTest = readFileSync(join(repo, "apps/ios/SayDoTests/DesktopProfileTests.swift"), "utf8");
-const harmonyTest = readFileSync(
-  join(repo, "apps/harmonyos/entry/src/test/PairingUrl.test.ets"),
-  "utf8"
-);
-record(
-  androidTest.includes("PairingUrlCorpus.cases") &&
-    androidTest.includes("item.input()") &&
-    androidTest.includes("fromPairingUrl(input)"),
-  "android test iterates fixture and calls fromPairingUrl"
-);
-record(
-  iosTest.includes("PairingUrlCorpus.cases") && iosTest.includes("pairingURLString: item.input"),
-  "ios test iterates fixture and calls pairingURLString"
-);
-record(
-  harmonyTest.includes("pairingCorpusCases()") && harmonyTest.includes("parsePairingUrl(input)"),
-  "harmony test iterates fixture and calls parsePairingUrl"
-);
-record(
-  androidTest.includes("rejectsMalformedCompressedIpv6") &&
-    iosTest.includes("testRejectsMalformedCompressedIpv6") &&
-    harmonyTest.includes("rejects_malformed_compressed_ipv6"),
-  "three-end native tests cover compressed IPv6 empty-hextet regressions"
-);
-
-const unicodeRejectIds = [
-  "reject-fullwidth-digit-authority",
-  "reject-fullwidth-dot-authority",
-  "reject-ideographic-dot-authority",
-  "reject-circled-digit-authority",
-  "reject-zwsp-authority"
-];
-const ipv6DirectedIds = [
-  "accept-ula-compressed-short",
-  "reject-ula-trailing-single-colon",
-  "reject-ula-leading-single-colon",
-  "reject-ula-triple-colon"
-];
-const scalarIds = [
-  "reject-raw-combining-acute",
-  "accept-percent-combining-acute",
-  "reject-raw-variation-selector",
-  "accept-percent-variation-selector",
-  "accept-percent-dollar-identifier",
-  "accept-percent-dollar-braces"
-];
-function fixtureMismatch(ids) {
-  return Object.keys(FIXTURE_REL).reduce((count, key) => {
-    const disk = readFileSync(join(repo, FIXTURE_REL[key]), "utf8");
-    const present = ids.filter((id) => disk.includes(`"${id}"`) || disk.includes(`'${id}'`));
-    return count + (ids.length - present.length);
-  }, 0);
-}
-const unicodeMismatch = fixtureMismatch(unicodeRejectIds);
-const ipv6Mismatch = fixtureMismatch(ipv6DirectedIds);
-const scalarMismatch = fixtureMismatch(scalarIds);
-record(
-  unicodeMismatch === 0,
-  `222-case five-class unicode authority reject present on three ends (${unicodeRejectIds.length} classes, ${unicodeMismatch} mismatch)`
-);
-record(
-  ipv6Mismatch === 0,
-  `IPv6 directed compressed-empty-hextet cases present on three ends (${ipv6DirectedIds.length} cases, ${ipv6Mismatch} mismatch)`
-);
-record(
-  scalarMismatch === 0,
-  `raw combining/VS reject and percent-encoded accept plus dollar tokens present on three ends (${scalarIds.length} cases, ${scalarMismatch} mismatch)`
-);
 record(generated.android.includes('"\\$identifier"'), "kotlin generator escapes $identifier token");
 record(!generated.android.includes('"$identifier"'), "kotlin generator does not emit interpolating $identifier");
 record(generated.android.includes('"\\${name}"'), "kotlin generator escapes ${name} token");

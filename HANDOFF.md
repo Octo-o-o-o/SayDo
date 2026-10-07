@@ -1,10 +1,12 @@
 # SayDo 首发 · 会话交接文档(HANDOFF)
 
+> **2026-10-07 门禁精简现役规则**：按 owner 当前授权，静态 truth-plane、RF-00 库存/离线自证、迁移冻结、排产指针、gate parity、固定宣传句门退役；下文历史批卡引用这些工具的 required/focused gate 不再生效，历史结论不重写。日常用 `just ci`，工具变更用 `pnpm test:tools`，发布安装变更用 `pnpm test:release`，浏览器用 `pnpm exec playwright test`；平台专项通过 workflow_dispatch 执行。PG-02 静态证明链不再作为进入产品工作的前置。现有发布事务周审接口保留，但不要求每次开发提交重生成。当前任务是先精简并提交，再审查有价值缺口、实施并提交；未开展平台/设备/provider 验收不称通过。
+
 > 重写 2026-07-25(收口会话):旧版 §3"后续待办"、§4.1"ASR 阻塞"、§6"切锁待做"、§5"Codex 攒批待做"
 > 均为中途旧段,与 §1 自相矛盾——已按 git log + 运行时配置 + 独立对账裁决清理(裁决记录:
 > `e2e/evidence/closeout-verification.md` §3.1)。本版为**单一真相**:所有状态均经收口会话独立核实。
 >
-> **开工先读**:本文件 → 本仓 `AGENTS.md` → `docs/plan/IMPLEMENTATION-PLAN-2.md`(**唯一排产源**;2026-08-29 PG-00 导入、2026-09-06 插入 AS-01-AS-02、2026-09-09 插入 GAP-02-consolidation、同日晚插入 EMAIL-A-outbound、2026-09-15 插入 JOURNEY-01、2026-09-19 插入 DAILY-01-workbench-restore、2026-09-23 插入 VOICE-MEASURE-01 与 CODEX-AS-SPIKE-01、2026-09-25 插入 SC-RELAND-01 后当前唯一串行链 = `PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → EMAIL-A-outbound → DAILY-01-workbench-restore → JOURNEY-01 → VOICE-MEASURE-01 → CODEX-AS-SPIKE-01 → SC-RELAND-01 → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop`，历史 W1–W9 + 合同轮原文保留) → `docs/plan/2026-08-28-project-gap-closure-program.md` → `docs/plan/2026-08-28-project-gap-d17-import-spec.md` → `docs/plan/2026-08-28-project-gap-owner-decisions.md` → `docs/plan/IMPLEMENTATION-PLAN.md`(首发计划,已收口,仅作出处索引)→ `docs/09`(数据契约,照抄源)/`docs/10`(话术)/`docs/11`(UI)/`docs/modules/a-e`(分域导航)。
+> **开工先读**:本文件 → 本仓 `AGENTS.md` → `docs/plan/IMPLEMENTATION-PLAN-2.md`(**唯一排产源**;当前批次只读 PLAN-2 顶部现役规则，串行链与 RF 分期只读 PLAN-2；不再在此手写第二套链) → `docs/plan/2026-08-28-project-gap-closure-program.md` → `docs/plan/2026-08-28-project-gap-d17-import-spec.md` → `docs/plan/2026-08-28-project-gap-owner-decisions.md` → `docs/plan/IMPLEMENTATION-PLAN.md`(首发计划,已收口,仅作出处索引)→ `docs/09`(数据契约,照抄源)/`docs/10`(话术)/`docs/11`(UI)/`docs/modules/a-e`(分域导航)。
 > 此前开工先读链（PLAN-2 后直接到首发计划、未列入缺口治理三文件）由本行 supersede。
 > 唯一活动仓 = `~/WorkSpace/SayDo`(远端两个,2026-08-20 起:origin = 私有归档 `github.com/Octo-o-o-o/SayDo-archive`(全史,日常 push);public = 公开快照仓 `github.com/Octo-o-o-o/SayDo`,经 `scripts/publish-public-snapshot.sh` 更新,推前跑隐私探针);设计、实现、证据与过程档案均在本仓。旧路径 `voice-coding` 是指向 SayDo 的兼容链接，冻结冷档是 `voice-coding.archive-20260729`，映射见 `docs/plan/MIGRATION.md`。
 
@@ -14,11 +16,11 @@
 
 1. **绝不在源码/测试写完整凭据形态字面量**(完整 AWS key / PEM 私钥块 / `sk-`+长串 / 手机号卡号 / `PRIVATE KEY` 连续词)——会触发平台实时网络内容防护,导致整个对话请求被阻断。敏感样本一律**运行时拼接构造**(见 `packages/daemon/src/voice/redactor.ts` 与其测试的写法)。
 2. **每次 Write/Shell/提交后,用独立 Shell 命令核实真实落盘/真实 SHA**,不要基于"我以为写了"继续。首发实施会话曾多次臆想工具结果(HANDOFF、2.2 的 compiler/retrieval、多个提交 SHA 都曾是幻觉);收口对账另抓到 Gate 0 两行证据虚报(closeout-verification §3.2)——自报不可信,证据必须可复跑。
-3. **每条工作线收尾的最后一个 commit 之后,必须跑 `node scripts/week-audit.mjs --write` 重生成账本并以 `chore(evidence)` 提交**——publication manifest 冻结的是 tracked 全树指纹,任何未随账本重生成的提交都会让 `--check`/`--check-bundle` 门转红(2026-08-27 月度审计实证:最后一次重生成 `c383bc0` 之后,`9a3e180` 起十余个提交断了此纪律,当日本地实测两门均 exit 1;公开仓 CI 因 node job 更早的 pnpm test 失败 fail-fast,该门未走到——但只要走到必红)。
+3. 发布时仍由原发布事务维护 publication manifest；普通开发收尾不再重生成固定历史周审。
 
 ---
 
-## 1. 状态:RC 链已收口于 rc.12(available),当前坐标见 §1.1 快照行
+## 1. 状态:分发版本以版本矩阵为准，工程坐标见 §1.1
 
 > **2026-08-23 时点快照（历史保留,不再承担当前坐标——当前坐标唯一以 §1.1 的最新快照行为准）:**最近一周 115 个主线提交、
 > 219 份文档及已记录 ref 宇宙的双向账本已完成；F29–F105 回修、`57d3e10` 实施边界、
@@ -46,17 +48,15 @@
 
 ### 1.1 历史批次与现场记录
 
+**2026-10-03 本地整合事实**：本地 main 已整合到 `53be7405954bbb7e2cad299cd59f5aa3ee2dad02`，旧候选与 CI clone 的有效内容已吸收。以下早期“当前/未合 main/未提交”只指各自日期快照；内容入 main 不代表 PG-02、D1、未来 RF 或产品独立验收通过，PG-02 RED 保留。CI-FIX-01 尚未推公开快照；当前远端 CI 信号见 §2 #5，本次本地审计与门禁另记。
+
 - **当前批次指针:**
-<!-- schedule-pointer:begin -->
-schema_version=1
-revision=18
-active=none
-next=PG-02
-last_closed=SC-RELAND-01
-evidence_ref=e2e/evidence/sc-reland-01.md
-updated_at=2026-09-26
-<!-- schedule-pointer:end -->
-**2026-09-26 SC-RELAND-01 本地收口(当前状态)**:consolidation 残余缺陷逐项复现后重落地,I `f8405cf`,独立复审 rereview-10 GREEN,同候选 just ci / just precommit / playwright 56 passed。tier1 命令分类器以 HEAD 分类器为单调下限;HEAD 同样存在的 shell 绕过转 `DF-TIER1-SHELL-01`。证据 `e2e/evidence/sc-reland-01.md`。PG-02 仍为 next,未开工。
+当前排产以本文件顶部 2026-10-07 规则及 owner 当前任务为准；旧指针记录见 Git 历史。
+**2026-10-01 CI-FIX-01 受控吸收**:固定 7 文件差额已增量吸收到本 PG-02 候选,本地 S2 可移交但公开 CI pending/未正式关闭;完整 RF 链及原 PG-02 指针保留。整合候选门禁与独立验收待重新核定。
+**2026-09-29 PG-02 修复在途**:owner 本卡确认 RF-00 合同检查点独立通过,准入 PG-02。本卡为追加第 3/6 轮、旧 20260927 窗口第 2 次修复;旧 8 修 8 评与最后产品 RED 保留。PG-02 只恢复检查器/类型/台账,未独立验收,不进入 PG-03 生产。当前证据见 `e2e/evidence/project-gap-pg-02.md`(待宿主 I 绑定)。下条为历史快照。
+
+**2026-09-29 RF-00 合同检查点在途(contract checkpoint,未收口)**:implement-1 候选(I `fa106bd`+E `3991e80`)首轮独立合同评审 **RED**(B1–B8 八项 P1);repair-1(I `0cac47c`+E `0e372bd`)重写 docs/09 §17、扫描器落盘比对与原生存储写面词表;第二轮评审(review-2)仍 **RED**(三项 P1:幂等墓碑再占位/request-manual-merge 误分类/扫描漏 `up`+异步写面);repair-2 在候选 worktree 回修——§17.1 墓碑不灭语义、§17.2 逐项效果表(`research/rf-00/action-effect-audit.md`)、cli 声明-受理-执行三面对账与写面扩展(`appendFile`/别名/open 写模式/KeyStore/HUKS)、§17.3 保留窗口与 §17.7 帧 schema+安全参数、§17.8 SDK 代际规则定档,并新增 `fixtures/` 五份语料+`check-offline-fixtures.mjs`、`module-cards.md`、`rf06-fixture-demo-plan.md`、`acceptance-matrix.md`、治理草案三件与维护者交接草案。两轮合同评审预算用尽,不自动第三轮;评审报告 `~/.codex/tasks/saydo-modular-foundation-20260929/review-2.md`,回修证据 `repair-2-artifacts/REPORT.md`。指针不改:`active=RF-00`、`next=PG-02`,候选未验保存,等 owner 决策。
+**2026-09-26 SC-RELAND-01 本地收口(2026-09-26 历史状态)**:consolidation 残余缺陷逐项复现后重落地,I `f8405cf`,独立复审 rereview-10 GREEN,同候选 just ci / just precommit / playwright 56 passed。tier1 命令分类器以 HEAD 分类器为单调下限;HEAD 同样存在的 shell 绕过转 `DF-TIER1-SHELL-01`。证据 `e2e/evidence/sc-reland-01.md`。PG-02 仍为 next,未开工。
 **2026-09-25 SC-RELAND-01 开批**:owner 授权把 2026-09-13 暂停的 consolidation 候选中仍有效的缺陷修复按标准流程重落地(决策单第 14 节)。来源为本地 tag `archive/wip-consolidation-20260913`;逐项在当前 main 复现后才搬,PG-02 账本与已由 JOURNEY-01 吸收的语音修复不搬。执行卡 `docs/plan/IMPL-PROMPT-SC-RELAND-01.md`,证据 `e2e/evidence/sc-reland-01.md`。本行 supersede 下方「CODEX-AS-SPIKE-01 本地收口(当前状态)」中的下一批描述;PG-02 仍为 next。
 **2026-09-23 CODEX-AS-SPIKE-01 本地收口**:owner授权本地提交、合并与收口。独立review-5 GREEN与五项本地门禁通过,证据`e2e/evidence/codex-as-spike-01.md`。真实Agent及生产接线未验,PG-07仍deferred。下一批PG-02尚未开工,指针以生成块为准。
 **2026-09-23 VOICE-MEASURE-01 本地收口**:EOU/TTS候选已通过独立复审与本地完整门禁。证据`e2e/evidence/voice-measure-01.md`。HF五段L5仍延期,真实设备与远端未验。
@@ -102,8 +102,8 @@ updated_at=2026-09-26
 | 2 | ~~真人音频底板 5 条~~ **已到位并烟测(owner 录 5 条 m4a;2026-07-26 凌晨由计划会话代跑,W1.7 回填)** | 结果 **3/5(两次复跑稳定,非抖动)**:a01/a02/a04 ok;a13 "settle barrier"→"strawberry"、a20 "Gate 0"→"get 0" 稳定误听——已入 golden 回归集(`e2e/golden/asr-regression.mjs` r001/r002)+ 热词调优五组变体实验无改善(W1.2,evidence `w1-batch.md`),拉回走用户纠错链(10 #8/#9),场次①步骤 5 现场验;**不重录凑线**(底板要真实条件)。复跑:`pipeline/.venv/bin/python e2e/smoke/audio-smoke-5.py --profile owner`(3/5 known-miss 口径,W1.1 收编) |
 | 3 | ~~dogfood 首个真实项目指定~~ **已指定(owner 2026-07-26 凌晨,双项目双类型;W1.7 回填)** | `~/WorkSpace/OctoDesk` = coding 类型(场次②起日用;W2-C 的 M1 奠基对象,执行前知会 owner)、`~/WorkSpace/OctoBlog` = writing 类型(随 writing 窄版就绪后接入,此前不奠基不派单)。**命名澄清**:`~/WorkSpace/saydo-dogfood`(commit `f8e36af`)是执行器批的 **e2e 独立测试沙箱**,不是 dogfood 真仓(纪律:e2e 绝不碰 dogfood 真仓;建议后续改名 `saydo-e2e-sandbox` 消歧义) |
 | 4 | ~~工程 ADR-002 复核批复~~ **已批复(owner 2026-07-25:收窄改写；T18 后状态已更新)** | 条款收窄已回写 09 §11 规则 2:封闭枚举 + 豁免生效前提=可执行文件身份核验(预登记绝对路径+digest)+ 生效必落 `observed_model_exempted` 审计标记。BYOA 的 `verified_binary_default` 身份核验链与条件豁免已随 T18 落地,仅 `{codex_cli,claude_cli}` 且流内无 model 时可按合同触发；Tier1 `claude_code` 不使用该豁免。工程 ADR-002 的历史「休眠」状态陈述已随 w54b-canonical-preface 回写校正(2026-08-21,ADR-002 文末「状态更正」节;owner 确认挂 W5.4-b 批验收)。 |
-| 5 | **GitHub Actions** | **2026-09-02 注:私有归档 `SayDo-archive` 的 CI 自 08-27 起全部 job「not started」,annotation 为账户付款失败/spending limit,需 owner 处理 Billing;公开仓 CI 不受影响。**公开仓既有 node+python 门可用；本轮 `ci.yml` 已增加 Ubuntu/macOS/Windows 三平台 `@saydo/cli` 分发矩阵，`release.yml` 另设公开快照 tag 绑定门、发布前三平台分发与发布后固定 URL smoke。rc.3 首次 run 已失败；只有新的 rc.4 首次 Actions 可以决定新候选是否通过。 |
-| 5b | **Windows / Linux 桌面执行面** | Windows 10.0.26200 的既有 P0 真机证据与 Linux Ubuntu CI 证据继续有效；本轮新增无源码前台启动分发候选。常驻安装（Linux systemd、Windows Scheduled Task）、Windows 系统通知与 SAPI TTS 仍未实现。跨平台认证文案及 console/Brain 实现已统一为“本机认证”，不再把 Touch ID 泛化到 Windows/Linux；rc.4 发布后仍须分别读取 Windows 与 Ubuntu 的真实分发 job 结论。 |
+| 5 | **GitHub Actions(2026-10-03 核验)** | 私有归档 [run 36232389634](https://github.com/Octo-o-o-o/SayDo-archive/actions/runs/36232389634)(`d023ffce`) 为 failure，但 8 个 job 均未启动、steps 为空；annotation 明确账户付款失败/spending limit，须 owner 处理 Billing。公开快照 [run 36232419283](https://github.com/Octo-o-o-o/SayDo/actions/runs/36232419283)(`88aa2d5c`) 实际运行后 failure：Node `pnpm test` 与 Ubuntu/macOS/Windows distribution verify 失败，Python/Android/iOS/fresh-origin E2E 成功。2026-09-15 rc.13 的成功与 Release 按当时记录保留，不当作当前 main CI 绿。CI-FIX-01 仅已本地吸收，尚未推公开仓；本次本地基线与远端信号分别记录。rc.3/rc.4 首次 Actions 规则属于历史候选，不再作为当前下一步；现役分发版本见 `docs/release/version-matrix.md`。 |
+| 5b | **Windows / Linux 桌面执行面** | 2026-08-23 rc.4 的 Windows 10.0.26200 P0 真机、Linux Ubuntu CI 与无源码前台分发门为历史快照；当前分发版本为 rc.13，制品与真机边界见 `docs/release/version-matrix.md`，不得把旧证据外推本次源码。Windows/Linux 的常驻安装、系统通知与 SAPI TTS 原未实现项按各自阶段保留；跨平台认证文案为“本机认证”。本次当前公开三平台 distribution job 均失败(见 #5)，本地重验成功也不替代该远端终态。 |
 | 6 | **Claude**(CLI 已登录 Max;**W5.4-b 已于 2026-08-27 收口**,收口 SHA `9417b6d`) | CLI **2.1.220**(2026-08-22 实测 `claude --version`,与 fixture 基准一致)，已用 Claude.ai 登录，Max 订阅，零 API key。订阅只经 `claude` CLI 登录态消费；C1–C3 已补齐严格 init/result、身份登记、进程树回收、console 与话术，并经四轮零上下文独立复审 + 三轮返工收敛至自身 A 级 0(账见 `e2e/evidence/w54b-batch.md` §15–§18)。但 W5.4-c 的真实 hooks/live conformance 仍未执行，不能由 fake 与分发测试替代。 |
 | 7 | (可选)OpenAI key / OpenRouter 放行 | 解锁 ASR 第二家对比与 dialog 档缺省 gemini(现 dev 用 deepseek 异族合法) |
 | 8 | ~~Codex 14 登记上浮三件~~ **全部完成(①③随接线批;② W1.3 清账 2026-07-26)** | ① 停靠老化调度接线 + transitionTask CAS(接线批);② 项目层配置生产加载 **已落**(`config/project.ts` 独立 project schema + 执行器认领/恢复链白名单拒收留痕 + [git].protected 并集消费;§12-9 反例 `config-project.test.ts` 6 例 + 执行链集成锚,代码 `6bc48dc`,evidence `w1-batch.md`);③ retryTask 重派发(接线批) |

@@ -31,13 +31,13 @@ import {
 import type { ChatMessage } from "../src/providers/types.js";
 import type { Logger } from "../src/obs/logger.js";
 
-const EVIDENCE = join(
-  process.env.HOME ?? "",
-  ".codex",
-  "tasks",
-  "saydo-journey01-acceptance-20260920",
-  "repair4-evidence"
-);
+const evidenceParent = join(import.meta.dirname, "..", "..", "..", "..", "e2e", "artifacts", "journey01-closed-loop");
+function evidenceDirectory(): string {
+  if (process.env.SAYDO_DAEMON_JOURNEY_EVIDENCE?.trim()) return process.env.SAYDO_DAEMON_JOURNEY_EVIDENCE.trim();
+  mkdirSync(evidenceParent, { recursive: true });
+  return mkdtempSync(join(evidenceParent, "run-"));
+}
+const EVIDENCE = evidenceDirectory();
 
 const CLAIM = "用户偏好:发布前不用再问我";
 const OWNER_TEST_ROOT = mkdtempSync(join(process.cwd(), ".saydo-journey01-ws-"));

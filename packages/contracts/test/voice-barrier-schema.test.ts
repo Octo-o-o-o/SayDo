@@ -24,7 +24,7 @@ const CAP = newId("evt");
 const PEER = newId("evt");
 const EPOCH = newId("evt");
 
-describe("AsrFinalMsg 四支与白名单", () => {
+describe("AsrFinalMsg 七支与白名单", () => {
   it("旧 final 三字段皆缺仍合法", () => {
     expect(
       asrFinalMsgSchema.safeParse({ t: "asr.final", sessionId: SES, turnId: TURN, text: "旧轮" }).success
@@ -167,6 +167,19 @@ describe("AsrFinalMsg 四支与白名单", () => {
         recordSeq: 1
       })
     ).toMatchObject({ hfSegmentId: segA, recordSeq: 1 });
+  });
+
+  it("PTT 夹带每种 HF 身份均拒绝,不能在白名单剥离后恢复合法", () => {
+    const foreign = {
+      hfSegmentId: newId("evt"), hfRoundId: newId("evt"), recordSeq: 1,
+      hfSegmentIds: [newId("evt")], recordSeqFirst: 1, recordSeqLast: 1
+    };
+    for (const [key, value] of Object.entries(foreign)) {
+      expect(parseAsrFinal({
+        t: "asr.final", sessionId: SES, turnId: TURN, text: "x",
+        captureMode: "ptt", captureId: CAP, recognitionOutcome: "ok", [key]: value
+      }), key).toBeNull();
+    }
   });
 
   it("PTT failed 必须空文本;非空整消息丢弃", () => {

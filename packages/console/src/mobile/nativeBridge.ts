@@ -33,7 +33,7 @@ export type NativeTranscriptResult =
       status: "rejected";
       requestId: string;
       captureId: string;
-      reason: "invalid_request" | "bridge_inactive" | "offline" | "busy" | "draft_conflict" | "focus_mismatch";
+      reason: "invalid_request" | "bridge_inactive" | "offline" | "busy" | "draft_conflict" | "focus_mismatch" | "unknown";
     };
 
 interface NativeMessageHandler {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 零 emoji CI 门禁(docs/11-ui-spec.md §12)。优先 spawn rg;无 rg 时 Node 扫文本文件。
+// 零 emoji CI 门禁(docs/11-ui-spec.md §12)。使用 Node 扫描文本文件。
 import { spawnSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -10,7 +10,6 @@ process.chdir(ROOT);
 
 const BIN_RE = /\.(mp3|wav|png|jpg|jpeg|gif|webp|pdf|ico|icns|woff2?)$/i;
 const JS_FORBIDDEN = /[\p{Emoji_Presentation}\uFE0F\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/u;
-const RG_PATTERN = String.raw`[\p{Emoji_Presentation}\x{FE0F}\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}]`;
 
 function fail(msg, code = 2) {
   process.stderr.write(`[fail] emoji gate: ${msg}\n`);
@@ -22,6 +21,13 @@ function forbiddenCp(cp) {
 }
 
 function listGitFiles() {
+  // 先固定 Git 已知工作区删除；后续读取错误仍按原路径拒绝。
+  const removed = spawnSync("git", ["ls-files", "--deleted", "-z"], {
+    encoding: "buffer",
+    cwd: ROOT
+  });
+  if (removed.status !== 0) fail("git ls-files --deleted failed");
+  const deleted = new Set(removed.stdout.toString("utf8").split("\0").filter(Boolean));
   const r = spawnSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard"], {
     encoding: "buffer",
     cwd: ROOT
@@ -30,7 +36,7 @@ function listGitFiles() {
   return r.stdout
     .toString("utf8")
     .split("\0")
-    .filter(Boolean);
+    .filter((path) => path && !deleted.has(path));
 }
 
 function collectFiles(argv) {
@@ -54,26 +60,6 @@ function collectFiles(argv) {
     return files;
   }
   return listGitFiles().filter((file) => !BIN_RE.test(file));
-}
-
-function scanWithRg(files) {
-  const hits = [];
-  const chunkSize = 80;
-  let usedRg = false;
-  for (let i = 0; i < files.length; i += chunkSize) {
-    const chunk = files.slice(i, i + chunkSize);
-    const r = spawnSync("rg", ["-nP", RG_PATTERN, "--no-heading", "--", ...chunk], {
-      encoding: "utf8",
-      maxBuffer: 32 * 1024 * 1024,
-      cwd: ROOT
-    });
-    if (r.error && r.error.code === "ENOENT") return null;
-    usedRg = true;
-    if (r.status === 0 && r.stdout) hits.push(r.stdout.trimEnd());
-    else if (r.status === 1) continue;
-    else if (r.status > 1) return { hits: "", failed: true, status: r.status };
-  }
-  return usedRg ? { hits: hits.join("\n"), failed: false } : null;
 }
 
 function scanWithNode(files) {

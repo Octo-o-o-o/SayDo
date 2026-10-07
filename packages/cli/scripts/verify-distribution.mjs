@@ -993,16 +993,32 @@ try {
   );
   // B7: 断言同 run、同 session、COUNT(*)=1。
   invariant(resumedRun.native_session_id === "chat-d1-distribution", "恢复后 native session 不一致");
+  invariant(resumedRun.id === running.id, "恢复后 run 不一致");
   invariant(
     lifecycleDb.prepare("SELECT COUNT(*) AS c FROM tier1_runs WHERE task_id=?").get(taskId).c === 1,
     "恢复路径错误新建了额外 run"
   );
   const resumedProof = JSON.parse(resumedRun.settle_proof_json ?? "null");
+  const durablePackage = JSON.parse(lifecycleDb.prepare(
+    "SELECT dp.body_json FROM decision_packages dp JOIN tasks t ON t.package_id=dp.id AND t.package_rev=dp.revision WHERE t.id=?"
+  ).get(taskId).body_json);
+  const checks = resumedProof?.acceptanceChecks;
+  const criteria = durablePackage.acceptance;
   invariant(
-    JSON.stringify(resumedProof?.acceptanceChecks) ===
-      JSON.stringify([{ criterion: "恢复后进入待验收态", status: "unknown", source: "manual" }]),
-    `恢复路径未从 canonical DecisionPackage 逐条重建 AcceptanceCheck:${JSON.stringify(resumedProof?.acceptanceChecks)}`
+    Array.isArray(checks) && checks.length === criteria.length &&
+      new Set(checks.map((check) => check?.criterion)).size === criteria.length &&
+      checks.every((check) => check && criteria.includes(check.criterion) &&
+        check.status === "unknown" && check.source === "manual" &&
+        Object.keys(check).every((key) => ["criterion", "status", "source", "evidenceRef"].includes(key)) &&
+        (check.evidenceRef === undefined ||
+          (typeof check.evidenceRef === "string" && check.evidenceRef.trim().length > 0))),
+    `恢复路径未从 canonical DecisionPackage 逐条重建 manual/unknown AcceptanceCheck:${JSON.stringify(checks)}`
   );
+  // unknown 可以携带证据，但不能因此变成 pass；如有 ref，必须指向本 run 的真实 verify 输出。
+  const verifyBytes = readFileSync(join(stateRoot, "tier1", "runs", resumedRun.id, "verify.json"));
+  const verifyDigest = `sha256:${createHash("sha256").update(verifyBytes).digest("hex")}`;
+  invariant(checks.every((check) => check.evidenceRef === undefined || check.evidenceRef === `verify:${verifyDigest}`),
+    "恢复验收 evidenceRef 未绑定本 run 的 verify.json");
   invariant(
     lifecycleDb.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.restart_resumed'").get().c === 1 &&
       lifecycleDb.prepare("SELECT COUNT(*) AS c FROM audit_log WHERE action='tier1.failed'").get().c === 0,

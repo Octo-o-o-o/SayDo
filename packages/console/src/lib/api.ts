@@ -1,3 +1,4 @@
+import type { CostByProject } from "@saydo/contracts";
 // daemon API 客户端(5.1 + 接线批任务⑤):capability token 从 ?token=/localStorage(G1)。
 // 端口判定归零(接线批修):旧实现写死判定 vite 端口 5173(实际 strictPort 47120),dev 页
 // API/WS 全打错源;且直连 daemon 会撞 G1 的 Origin 白名单(47120 非法 Origin,DNS-rebinding 防护
@@ -202,6 +203,7 @@ export const api = {
   projectTasks: (id: string) => apiGet<TaskRowView[]>(`/api/projects/${id}/tasks`),
   taskDetail: (tid: string, signal?: AbortSignal) => apiGet<Row | null>(`/api/tasks/${tid}`, signal),
   memory: (id: string) => apiGet<Row[]>(`/api/projects/${id}/memory`),
+  recentMemory: () => apiGet<Row[]>("/api/memory/recent"),
   artifacts: (id: string) => apiGet<Row[]>(`/api/projects/${id}/artifacts`),
   projectSettings: (id: string) => apiGet<Row | null>(`/api/projects/${id}/settings`),
   approvals: (project?: string) => apiGet<Row[]>(`/api/approvals${project ? `?project=${project}` : ""}`),
@@ -209,7 +211,7 @@ export const api = {
   ackOutbox: (id: string) => apiPost<{ ok: true; state: string; already?: boolean }>(`/api/outbox/${encodeURIComponent(id)}/ack`, {}),
   costs: () =>
     apiGet<{
-      byProject: Row[];
+      byProject: CostByProject[];
       entries: Row[];
       entriesWindow?: { limit: number; returned: number; total: number; truncated: boolean };
     }>("/api/costs"),

@@ -193,6 +193,8 @@ export interface FocusWriteOps {
   readonly db: Db;
   readonly nowIso: string;
   getFocus(focusId: string): FocusRow;
+  /** 同一锁窗检查写者/调用方提供的epoch，不修改时间或事件；no-op写入口也须调用。 */
+  assertWriteAuthority(focusId: string): void;
   nextEventSeq(focusId: string): number;
   appendEvent<T extends FocusEventType>(focusId: string, input: AppendEventInput<T>): EventInsert;
   createFocus(input: CreateFocusInput): { focusId: string; eventId: string };
@@ -368,6 +370,9 @@ function buildOps(db: Db, nowIso: string, opts: FocusWriteTxOptions): FocusWrite
       if (!row) throw new FocusWriteError("not_found", `focus ${focusId} not found`);
       return row;
     },
+    assertWriteAuthority(focusId: string): void {
+      assertAuthority(ops.getFocus(focusId), opts);
+    },
     maxEventSeq(focusId: string): number {
       const r = db.prepare("SELECT MAX(seq) AS m FROM focus_events WHERE focus_id = ?").get(focusId) as {
         m: number | null;
@@ -403,6 +408,8 @@ function buildOps(db: Db, nowIso: string, opts: FocusWriteTxOptions): FocusWrite
       }
     },
     touchUpdatedAt(focusId: string): void {
+      // 无事件的依赖清除也须在同一锁窗重读权限；拒绝时回滚先前的目标表写。
+      ops.assertWriteAuthority(focusId);
       db.prepare("UPDATE focuses SET updated_at = ? WHERE id = ?").run(nowIso, focusId);
     },
     listOpenObligations(focusId: string): ObligationRow[] {
@@ -995,8 +1002,8 @@ export function assertLifecycleEdge(from: FocusLifecycle, to: FocusLifecycle): v
     (from === "active" && (to === "closed" || to === "abandoned" || to === "archived")) ||
     (from === "dormant" && (to === "closed" || to === "abandoned")) ||
     (from === "archived" && (to === "active" || to === "abandoned")) ||
-    // 既有测试/旧路径:closed|abandoned → dormant(合同 v0.3.3 已禁出边,保留兼容直至收口)
-    ((from === "closed" || from === "abandoned") && to === "dormant");
+    // 放弃后的既有恢复路径不适用于 closed；closed 只能 fork(09 §14)。
+    (from === "abandoned" && to === "dormant");
   if (!ok) {
     throw new FocusWriteError("lifecycle_illegal", `illegal lifecycle transition ${from} → ${to}`);
   }

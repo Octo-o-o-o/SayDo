@@ -7,7 +7,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { newId, taskViewSchema, type Project, type TaskCard } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
 import { insertProject } from "../src/storage/dao/projects.js";
-import { insertTask } from "../src/storage/dao/tasks.js";
+import { insertTask, insertTier1Run } from "../src/storage/dao/tasks.js";
 import { BrainTools } from "../src/brain/tools.js";
 import { stubContextPack } from "../src/brain/contextPack.js";
 import { managedProjectPath } from "../src/projects/workspace.js";
@@ -147,6 +147,28 @@ describe("getStatus(§13:TaskView 最小字段)", () => {
     expect(() => taskViewSchema.parse(r[0])).not.toThrow();
     expect(r[0]!.taskId).toBe(task.id);
     expect(r[0]!.budget.max).toBe(20);
+    expect(r[0]).toMatchObject({ attempt: 0, elapsedActiveMs: 0, status: "已接单" });
+    const first = newId("run");
+    const second = newId("run");
+    for (const [index, id] of [first, second].entries()) {
+      insertTier1Run(db, { id, taskId: task.id, attempt: index + 1, adapter: "cursor",
+        cwd: managedProjectPath(projectId), worktreePath: managedProjectPath(projectId),
+        state: index === 0 ? "settled_failed" : "running", createdAt: TS().toISOString(), updatedAt: TS().toISOString() });
+      db.prepare("UPDATE tier1_runs SET budget_active_ms=?, budget_clock_complete=1 WHERE id=?")
+        .run(index === 0 ? 1000 : 200, id);
+    }
+    const liveTools = new BrainTools({ db, audit: nullAudit, now: TS,
+      elapsedActiveByRun: () => new Map([[second, 350]]) });
+    expect(liveTools.getStatus({ taskId: task.id })).toMatchObject([{ attempt: 2, elapsedActiveMs: 1350 }]);
+    // 无执行器持有的 running 行不能把旧检查点冒充实时总量。
+    expect(tools.getStatus({ taskId: task.id })).toMatchObject([{ elapsedActiveMs: null }]);
+    db.prepare("UPDATE tier1_runs SET state='settled_review', budget_active_ms=350 WHERE id=?").run(second);
+    db.prepare("UPDATE tasks SET status='ready_for_review', parked_deadline=? WHERE id=?").run("2026-07-27T00:00:00Z", task.id);
+    expect(tools.getStatus({ taskId: task.id })).toMatchObject([{ elapsedActiveMs: 1350, status: "已停靠" }]);
+    db.prepare("UPDATE tier1_runs SET budget_clock_complete=0 WHERE id=?").run(first);
+    expect(liveTools.getStatus({ taskId: task.id })).toMatchObject([{ elapsedActiveMs: null,
+      lastEventOneLiner: "历史活跃计时不完整，累计耗时未知" }]);
+
   });
 
   it("无 taskId 返回全部(空库=[])", () => {

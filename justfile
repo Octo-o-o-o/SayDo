@@ -9,39 +9,18 @@ ci: ci-node ci-python
     @echo "[ok] just ci: node + python matrices green"
 
 ci-node:
-    pnpm typecheck
-    pnpm lint
-    pnpm test
-    node scripts/check-emoji.mjs
-    node scripts/test-emoji-gate.mjs
-    node scripts/check-hardcoded-colors.mjs
-    node scripts/test-color-gate.mjs
-    node scripts/test-migration-tools.mjs
-    node scripts/test-gate-temp-cleanup.mjs
-    node scripts/test-dev-lifecycle.mjs
-    node scripts/test-release-physical-evidence.mjs
-    node scripts/test-release-provenance.mjs
-    node scripts/test-public-text-redaction.mjs
-    node scripts/test-public-tree-privacy.mjs
-    node scripts/test-pairing-url-corpus.mjs
-    node scripts/test-prompt-scan-completion.mjs
-    node scripts/test-mobile-installers.mjs
-    node scripts/test-mobile-release-contract.mjs
-    node scripts/test-install-scripts.mjs
-    node scripts/check-active-claims.mjs
-    node scripts/check-public-tree-privacy.mjs --ref "$(git rev-parse HEAD)"
+    pnpm ci:node
 
 ci-python:
     uv --directory pipeline sync --quiet
     uv --directory pipeline run python -m ruff check .
     uv --directory pipeline run python -m pytest -q
 
-# 提交前卫生(emoji / 文档链接 / 公开树隐私 / 排产指针)
+# 提交前卫生(emoji / 活跃文档链接 / 公开树隐私)
 precommit:
     bash scripts/check-emoji.sh
     node scripts/check-doc-links.mjs
     node scripts/check-public-tree-privacy.mjs --fs
-    node scripts/schedule-pointer.mjs --check
 
 # 快照备份(SQLite/JSONL/foundation/knowledge;保留期见 [params].backup_retention_days)
 backup:

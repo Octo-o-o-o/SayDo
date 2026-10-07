@@ -22,7 +22,7 @@
     "prepack": "pnpm build",
     "verify:distribution": "pnpm build && node scripts/verify-distribution.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run"
   },
   "dependencies": {
     "better-sqlite3": "13.0.3",

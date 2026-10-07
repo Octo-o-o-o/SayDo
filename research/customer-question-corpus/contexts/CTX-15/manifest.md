@@ -1,5 +1,9 @@
 # CTX-15 · 经营指标仓库
 
+- `active_status`: `retired_no_updated_source`
+- `retired_on`: `2026-09-30`
+- 当前不可用于执行或有效事实证明；原日期、来源与逐题合同仅供历史回放。owner 已授权无更新来源时退役。
+
 - `as_of`: `2026-08-24T00:00:00Z`
 - `valid_until`: `2026-09-24`
 - `claim_scope`: 批准指标定义用 `metric-contracts.md`；数据路径与已知风险用 `lineage-notes.md`；异常只用 `anomaly-report.md` 形成调查假设。

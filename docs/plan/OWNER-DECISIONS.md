@@ -81,4 +81,4 @@
 |---|---|---|---|---|---|
 | AI-2-SPIKE-20260923 | 2026-09-23 | 本节;执行卡 [`2026-09-23-voice-measure-app-server.md`](2026-09-23-voice-measure-app-server.md) | 生产仍 `deferred_by_AI_decision_2` | 仅 `CODEX-AS-SPIKE-01` 受控原型 | 已记录有限重议(2026-09-23) |
 
-Codex 生产仍沿用 `codex exec`,不为 app-server 建生产平面。`CODEX-AS-SPIKE-01` 只作为未装配生产的实验原型,排在 `VOICE-MEASURE-01` 之后、`PG-02` 之前。owner 2026-09-23 消息「确认，请你继续实施」把该原型从登记推进到施工;本次只授权独立 clone 内的受控 stdio 原型,不授权 commit/merge/push、生产接线、真实模型或真实 effect。PG-07 生产接线与设计 ADR-005 原边界保持。不改旧任务额度。AI-2 签署栏不改。
+Codex 仅作为受限的 BYOA `codex exec` 模型供给;生产执行仍只有 Tier1,其 Codex backend 保持 PG-07 deferred,不为 app-server 建生产平面。`CODEX-AS-SPIKE-01` 只作为未装配生产的实验原型,排在 `VOICE-MEASURE-01` 之后、`PG-02` 之前。owner 2026-09-23 消息「确认，请你继续实施」把该原型从登记推进到施工;本次只授权独立 clone 内的受控 stdio 原型,不授权 commit/merge/push、生产接线、真实模型或真实 effect。PG-07 生产接线与设计 ADR-005 原边界保持。不改旧任务额度。AI-2 签署栏不改。

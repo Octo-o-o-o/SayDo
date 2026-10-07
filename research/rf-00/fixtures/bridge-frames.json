@@ -1,0 +1,189 @@
+{
+  "fixture": "bridge-frames",
+  "version": 1,
+  "binds": {
+    "contract": "docs/09-data-contracts.md §17.7",
+    "rf": "RF-09",
+    "rationale": "三端(iOS/Android/HarmonyOS)bridge 帧 golden 语料:hello/request/response/event/bye 全形 + 拒绝/恢复/unknown 案例。形状按 §17.7 定稿;本仓尚无 bridge 实现,语料用于 RF-09 实现与一致性测试的输入,不证明任何端已实现。"
+  },
+  "status_note": "fixture_pass != production_pass:本语料仅约束帧形状与预期判定,不构成设备/平台行为验收。",
+  "vocabulary": {
+    "kinds": ["hello", "request", "response", "event", "bye"],
+    "error_codes": ["bridge_version_mismatch", "capability_unregistered", "origin_untrusted", "payload_too_large", "lifecycle_dead", "decode_failed"],
+    "bye_reasons": ["shutdown", "unpair", "navigate_away", "protocol_error"],
+    "security_defaults": {
+      "BRIDGE_MAX_FRAME_BYTES": 65536,
+      "BRIDGE_MAX_PENDING_REQUESTS": 64,
+      "BRIDGE_REQUEST_TIMEOUT_MS": 30000,
+      "BRIDGE_RATE_PER_CAPABILITY": "60/min"
+    },
+    "registered_capabilities": ["pairing.status", "handoff.merge.request", "notify.badge"]
+  },
+  "cases": [
+    {
+      "id": "hello-offer-current-gen",
+      "kind": "normal",
+      "direction": "client->daemon",
+      "frame": {
+        "v": 1, "kind": "hello", "msgId": "msg_01J9ZQ2K7C0EXAMPLE000001",
+        "bridgeMajor": 1, "acceptMajors": [1],
+        "capabilities": ["pairing.status", "handoff.merge.request"],
+        "sessionNonce": "9f4e2c7a1b6d5e8f0a3c5b7d9e1f2a4c"
+      },
+      "expect": { "decision": "accept", "note": "bridgeMajor=1 在当前代窗口;capabilities 均为已注册名" }
+    },
+    {
+      "id": "hello-offer-previous-gen-in-window",
+      "kind": "normal",
+      "direction": "client->daemon",
+      "frame": {
+        "v": 1, "kind": "hello", "msgId": "msg_01J9ZQ2K7C0EXAMPLE000002",
+        "bridgeMajor": 0, "acceptMajors": [0],
+        "capabilities": ["pairing.status"],
+        "sessionNonce": "a1b2c3d4e5f60718293a4b5c6d7e8f90"
+      },
+      "expect": { "decision": "documented-shape-only", "note": "当前 GEN=1 为首代、无前代义务——GEN_0 会话按 acceptMajors 交集判定;daemon acceptMajors=[1] 时交集为空,实际将走 mismatch。本案例只冻结『窗口=当前+前一代』的判定形状,不要求 GEN_0 会话成功" }
+    },
+    {
+      "id": "hello-reject-version-mismatch",
+      "kind": "reject",
+      "direction": "client->daemon",
+      "frame": {
+        "v": 1, "kind": "hello", "msgId": "msg_01J9ZQ2K7C0EXAMPLE000003",
+        "bridgeMajor": 7, "acceptMajors": [7],
+        "capabilities": ["pairing.status"],
+        "sessionNonce": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7"
+      },
+      "expect": { "decision": "reject", "error_code": "bridge_version_mismatch", "note": "acceptMajors 交集为空 ⇒ 拒绝并断开,不静默降级" }
+    },
+    {
+      "id": "request-response-pair",
+      "kind": "normal",
+      "direction": "client->daemon->client",
+      "frame": {
+        "v": 1, "kind": "request", "msgId": "msg_01J9ZQ2K7C0EXAMPLE000004",
+        "capability": "pairing.status",
+        "payload": { "detail": "summary" }
+      },
+      "paired_response": {
+        "v": 1, "kind": "response", "replyTo": "msg_01J9ZQ2K7C0EXAMPLE000004",
+        "ok": true, "result": { "paired": true, "trust": "paired_device" }
+      },
+      "expect": { "decision": "accept", "note": "replyTo == request.msgId 完成关联;result 无自报身份字段作权威" }
+    },
+    {
+      "id": "request-unregistered-capability",
+      "kind": "reject",
+      "direction": "client->daemon",
+      "frame": {
+        "v": 1, "kind": "request", "msgId": "msg_01J9ZQ2K7C0EXAMPLE000005",
+        "capability": "voice.dispatch.exec",
+        "payload": {}
+      },
+      "expect": { "decision": "reject", "error_code": "capability_unregistered", "note": "未登记能力不在 hello 宣告集内,fail-closed" }
+    },
+    {
+      "id": "request-oversized-payload",
+      "kind": "reject",
+      "direction": "client->daemon",
+      "frame_meta": { "encoded_bytes": 70000 },
+      "frame": {
+        "v": 1, "kind": "request", "msgId": "msg_01J9ZQ2K7C0EXAMPLE000006",
+        "capability": "pairing.status",
+        "payload": { "blob": "<省略:编码后 70000 字节,超 BRIDGE_MAX_FRAME_BYTES=65536>" }
+      },
+      "expect": { "decision": "reject", "error_code": "payload_too_large", "note": "按 UTF-8 编码后字节判定,不静默截断" }
+    },
+    {
+      "id": "request-unknown-authorization-field",
+      "kind": "reject",
+      "direction": "client->daemon",
+      "frame": {
+        "v": 1, "kind": "request", "msgId": "msg_01J9ZQ2K7C0EXAMPLE000007",
+        "capability": "handoff.merge.request",
+        "payload": { "taskId": "task_01J9ZQ", "via": "trusted_local" }
+      },
+      "expect": { "decision": "reject", "error_code": "decode_failed", "note": "授权命令 strict 解码:via 自报字段未在 schema,先 decode_failed(§17.2);身份由平台层注入,不由请求体自报" }
+    },
+    {
+      "id": "request-origin-untrusted",
+      "kind": "reject",
+      "direction": "client->daemon",
+      "frame_meta": { "origin": "https://evil.example.com" },
+      "frame": {
+        "v": 1, "kind": "request", "msgId": "msg_01J9ZQ2K7C0EXAMPLE000008",
+        "capability": "pairing.status",
+        "payload": {}
+      },
+      "expect": { "decision": "reject", "error_code": "origin_untrusted", "note": "origin 不在打包资源/登记 daemon 白名单" }
+    },
+    {
+      "id": "event-downlink-registered",
+      "kind": "normal",
+      "direction": "daemon->client",
+      "frame": {
+        "v": 1, "kind": "event", "eventId": "evt_01J9ZQ2K7C0EXAMPLE000009",
+        "capability": "notify.badge", "type": "badge.updated",
+        "payload": { "count": 3 },
+        "occurredAt": "2026-09-29T08:00:00.000Z"
+      },
+      "expect": { "decision": "accept", "note": "下行事件无应答;消费侧按 eventId 去重" }
+    },
+    {
+      "id": "event-downlink-unregistered-type",
+      "kind": "reject",
+      "direction": "daemon->client",
+      "frame": {
+        "v": 1, "kind": "event", "eventId": "evt_01J9ZQ2K7C0EXAMPLE000010",
+        "capability": "notify.badge", "type": "badge.telemetry.leaked",
+        "payload": {},
+        "occurredAt": "2026-09-29T08:00:01.000Z"
+      },
+      "expect": { "decision": "reject", "error_code": "decode_failed", "note": "type 未注册词表 ⇒ decode_failed,不静默忽略为已知事件" }
+    },
+    {
+      "id": "bye-flushes-pending",
+      "kind": "recover",
+      "direction": "daemon->client",
+      "frame": {
+        "v": 1, "kind": "bye", "msgId": "msg_01J9ZQ2K7C0EXAMPLE000011",
+        "reason": "shutdown"
+      },
+      "context": { "pending_before": ["msg_01J9ZQ2K7C0EXAMPLE000004", "msg_01J9ZQ2K7C0EXAMPLE000012"] },
+      "expect": { "decision": "accept", "pending_after": [], "pending_error_code": "lifecycle_dead", "note": "bye 到达即作废全部 pending,不留悬挂等超时" }
+    },
+    {
+      "id": "bye-navigate-away",
+      "kind": "recover",
+      "direction": "client->daemon",
+      "frame": {
+        "v": 1, "kind": "bye", "msgId": "msg_01J9ZQ2K7C0EXAMPLE000013",
+        "reason": "navigate_away"
+      },
+      "expect": { "decision": "accept", "note": "页面离开白名单导航即终结会话;重进须重新 hello 协商(新 sessionNonce)" }
+    },
+    {
+      "id": "response-unknown-replyTo",
+      "kind": "unknown",
+      "direction": "daemon->client",
+      "frame": {
+        "v": 1, "kind": "response", "replyTo": "msg_0000000000UNKNOWN000000",
+        "ok": true, "result": {}
+      },
+      "expect": { "decision": "drop_and_audit", "note": "replyTo 不对应任何 pending:unknown 来源一律丢弃+审计,不映射回业务结果" }
+    },
+    {
+      "id": "reconnect-requires-new-hello",
+      "kind": "recover",
+      "direction": "client->daemon",
+      "context": { "prior_session": "bye:shutdown", "prior_pending": ["msg_01J9ZQ2K7C0EXAMPLE000012"] },
+      "frame": {
+        "v": 1, "kind": "hello", "msgId": "msg_01J9ZQ2K7C0EXAMPLE000014",
+        "bridgeMajor": 1, "acceptMajors": [1],
+        "capabilities": ["pairing.status"],
+        "sessionNonce": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8"
+      },
+      "expect": { "decision": "accept", "note": "恢复 = 新 hello + 新 sessionNonce;旧 pending 不跨会话续用(已 lifecycle_dead 作废),不重放旧 msgId" }
+    }
+  ]
+}

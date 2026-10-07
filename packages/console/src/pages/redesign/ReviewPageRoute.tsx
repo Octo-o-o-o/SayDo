@@ -28,7 +28,9 @@ const toastStyle: CSSProperties = {
 export function ReviewPageRoute({ taskId }: { taskId: string }) {
   const { view, loading, error, reload } = useReviewPageData(taskId);
   const [toast, setToast] = useState<string | null>(null);
-  const [manualVerdicts, setManualVerdicts] = useState<Record<number, "pass" | "fail">>({});
+  const verdictScope = JSON.stringify([taskId, view?.ctx.task.attempt, view?.ctx.packageRefText, view?.ctx.acceptance]);
+  const [verdictState, setVerdictState] = useState<{ scope: string; values: Record<number, "pass" | "fail"> }>({ scope: "", values: {} });
+  const manualVerdicts = verdictState.scope === verdictScope ? verdictState.values : {};
 
   useEffect(() => {
     if (!toast) return;
@@ -59,7 +61,7 @@ export function ReviewPageRoute({ taskId }: { taskId: string }) {
           // 纯 UI 选中,ReviewPanel 内部已处理
           return;
         case "verdict":
-          setManualVerdicts((m) => ({ ...m, [action.index]: action.verdict }));
+          setVerdictState((previous) => ({ scope: verdictScope, values: { ...(previous.scope === verdictScope ? previous.values : {}), [action.index]: action.verdict } }));
           return;
         case "approve": {
           const acceptanceVerdicts = view.ctx.acceptance
@@ -125,7 +127,7 @@ export function ReviewPageRoute({ taskId }: { taskId: string }) {
           setToast("未识别的验收动作");
       }
     },
-    [view, taskId, manualVerdicts, reload]
+    [view, taskId, verdictScope, manualVerdicts, reload]
   );
 
   if (error) return <ErrorCard message="验收面加载失败" detail={error} />;
@@ -139,7 +141,7 @@ export function ReviewPageRoute({ taskId }: { taskId: string }) {
 
   return (
     <>
-      <ReviewPage view={patched} onNavigate={onNavigate} onAction={onAction} />
+      <ReviewPage key={verdictScope} view={patched} onNavigate={onNavigate} onAction={onAction} />
       {toast ? (
         <div role="status" data-toast style={toastStyle}>
           {toast}

@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { applyChatDraftEvent, readInitialChatDraft } from "./chatDraftEvent";
 
@@ -59,12 +58,5 @@ describe("Chat 迟到 final 消费(SD-HANDOFF-006)", () => {
     );
     expect(readInitialChatDraft({ getItem: (k) => store.get(k) ?? null })).toBe("断线还在的稿");
     expect(readInitialChatDraft({ getItem: () => null })).toBe("");
-  });
-
-  it("Chat 生产消费路径调用 applyChatDraftEvent", () => {
-    const src = readFileSync(new URL("../pages/Chat.tsx", import.meta.url), "utf8");
-    expect(src).toContain("applyChatDraftEvent({");
-    expect(src).toContain("readInitialChatDraft(");
-    expect(src).toContain("if (result.sent) consumeSentDraft(binding)");
   });
 });

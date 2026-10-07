@@ -1,0 +1,113 @@
+{
+  "fixture": "provider-executor-conformance",
+  "version": 1,
+  "binds": {
+    "contract": "docs/09-data-contracts.md §3/§6.1/§17.1;docs/03-architecture.md 执行边界",
+    "rf": "RF-07",
+    "rationale": "provider(模型/语音能力供给:ASR/TTS/LLM)与 executor(任务执行体:认领/执行/settle)的责任边界语料:启动、取消、恢复、settle、hook 丢失、unknown 终态、计费/provider 切换。任何静默 fallback 或计费切换都判 fail。"
+  },
+  "status_note": "fixture_pass != production_pass:语料定义责任边界与预期判定形状,不替代真实 provider/executor 联跑验收。",
+  "responsibility_boundary": {
+    "provider": "能力供给面:ASR 流、TTS 合成、LLM 推理;不持久业务状态,可重启;失败只报错误不伪造结果",
+    "executor": "任务执行面:认领 queued attempt、运行工作流、上报 settle;attempt 状态归 daemon 账本,executor 不自判终态",
+    "shared_invariants": [
+      "Gate0 未关不得派发(无 bypass)",
+      "attempt 唯一占用:同 task 同时只有一个活跃 attempt",
+      "计费/provider 切换必须走审批收据,禁止静默切换",
+      "hook(回调/事件通道)丢失不重做副作用,只挂起对账"
+    ]
+  },
+  "cases": [
+    {
+      "id": "provider-startup-ok",
+      "surface": "provider",
+      "kind": "normal",
+      "input": { "event": "provider.start", "config": { "asr": "doubao", "tts": "doubao" }, "credentials": "present" },
+      "expect": { "outcome": "ready", "must": ["declare capabilities", "report readiness"], "must_not": ["claim readiness before handshake", "connect without credentials"] }
+    },
+    {
+      "id": "provider-startup-missing-credential",
+      "surface": "provider",
+      "kind": "reject",
+      "input": { "event": "provider.start", "config": { "asr": "doubao" }, "credentials": "missing" },
+      "expect": { "outcome": "fail_closed", "must": ["report unavailable", "leave prior state untouched"], "must_not": ["fallback to another provider silently", "fabricate a degraded-ready state"] }
+    },
+    {
+      "id": "provider-crash-mid-utterance",
+      "surface": "provider",
+      "kind": "recover",
+      "input": { "event": "provider.crash", "during": "asr.streaming", "utterance_state": "partial_transcript" },
+      "expect": { "outcome": "recoverable", "must": ["emit provider.unavailable or error event", "partial 仅为临时 UI 草稿;已接收对话事实须等待 asr.final;恢复不得晋升 partial"], "must_not": ["commit unplayed TTS history as heard", "auto-restart and replay the same utterance without owner-facing state", "promote partial or recovery-unknown transcription to asr.final"] , "asr_acceptance": {"partialDestination": "temporary_ui_draft", "acceptedFactRequires": "asr.final", "recoveryPromotesPartial": false} }
+    },
+    {
+      "id": "provider-billing-switch-attempt",
+      "surface": "provider",
+      "kind": "reject",
+      "input": { "event": "provider.switch", "from": "doubao", "to": "alt-asr", "trigger": "quota_exceeded", "receipt": null },
+      "expect": { "outcome": "rejected", "must": ["surface billing/quota state to owner", "require approval receipt for switch"], "must_not": ["switch billing provider silently", "downgrade model silently"] }
+    },
+    {
+      "id": "provider-terminal-unknown",
+      "surface": "provider",
+      "kind": "unknown",
+      "input": { "event": "provider.result_timeout", "during": "tts.synthesis", "state": "request_sent_response_lost" },
+      "expect": { "outcome": "unknown_hold", "must": ["mark request unknown, keep reconcile surface", "allow owner-visible status query"], "must_not": ["assume synthesis never happened", "replay synthesis automatically"] }
+    },
+    {
+      "id": "executor-claim-queued",
+      "surface": "executor",
+      "kind": "normal",
+      "input": { "event": "executor.poll", "task_state": "queued", "attempt": 1, "gate0": "closed" },
+      "expect": { "outcome": "claimed", "must": ["claim atomically", "run worktree/budget preflight at claim time"], "must_not": ["claim when gate0 open", "double-claim same task"] }
+    },
+    {
+      "id": "executor-claim-gate0-open",
+      "surface": "executor",
+      "kind": "reject",
+      "input": { "event": "executor.poll", "task_state": "queued", "attempt": 1, "gate0": "open" },
+      "expect": { "outcome": "rejected", "must": ["leave task queued", "record refusal reason"], "must_not": ["claim anyway", "bypass gate0 via retry/cancel path"] }
+    },
+    {
+      "id": "executor-cancel-while-running",
+      "surface": "executor",
+      "kind": "normal",
+      "input": { "event": "task.cancel", "attempt_state": "running" },
+      "expect": { "outcome": "cancelled", "must": ["propagate abort to subprocess/stream", "settle attempt to cancelled with audit"], "must_not": ["leave orphan subprocess", "mark cancelled as failed"] }
+    },
+    {
+      "id": "executor-settle-success",
+      "surface": "executor",
+      "kind": "normal",
+      "input": { "event": "executor.settle", "attempt_state": "running", "result": "exit0_diff_committed" },
+      "expect": { "outcome": "settled", "must": ["persist result+audit in same durable transaction as state transition"], "must_not": ["report success before durable commit", "consume the receipt twice"] }
+    },
+    {
+      "id": "executor-crash-reconcile",
+      "surface": "executor",
+      "kind": "recover",
+      "input": { "event": "executor.crash", "attempt_state": "running", "daemon_restart": true },
+      "expect": { "outcome": "reconcile_required", "must": ["mark in-flight attempt reconcile_required on recovery", "preserve consumed-receipt history"], "must_not": ["auto-rerun the attempt", "release the K placeholder so the same intent re-executes"] }
+    },
+    {
+      "id": "executor-hook-loss",
+      "surface": "executor",
+      "kind": "unknown",
+      "input": { "event": "callback.hook_lost", "attempt_state": "running", "delivery": "unconfirmed" },
+      "expect": { "outcome": "unknown_hold", "must": ["suspend settle until callback path reconciled", "keep attempt observable"], "must_not": ["re-emit the same side effect", "assume delivery succeeded"] }
+    },
+    {
+      "id": "executor-terminal-unknown-not-settled",
+      "surface": "executor",
+      "kind": "unknown",
+      "input": { "event": "daemon.restart_during_settle", "attempt_state": "settling", "durable_commit": "unconfirmed" },
+      "expect": { "outcome": "reconcile_required", "must": ["treat missing settle record as unknown", "reconcile via audit/log evidence"], "must_not": ["reopen same idempotency K", "pretend settled"] }
+    },
+    {
+      "id": "executor-retry-subpaths",
+      "surface": "executor",
+      "kind": "normal",
+      "input": { "event": "task.retry", "variants": ["failed->queued(redispatch,new attempt)", "blocked->running(answer injection,same run)"] },
+      "expect": { "outcome": "per-subpath", "must": ["redispatch subpath re-passes dispatch prerequisites at claim", "injection subpath reuses active run without new receipt/budget"], "must_not": ["conflate injection with redispatch", "consume new receipt for injection"] }
+    }
+  ]
+}

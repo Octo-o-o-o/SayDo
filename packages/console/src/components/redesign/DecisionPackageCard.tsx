@@ -17,27 +17,25 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export function DecisionPackageCard({ pkg, onAction }: {
   pkg: DecisionPackageView;
-  /** approve 现役仅 step_confirm;旧 selectedMode=direct_to_review fail-closed;revise/expect 回调 */
+  /** approve 现役仅 step_confirm；canonical mode优先，旧UI direct同样fail-closed；revise/expect回调。 */
   onAction?: (action: "select_mode" | "approve" | "revise" | "edit_expectation", payload?: string) => void;
 }) {
   const approved = pkg.status === "approved";
-  const blockedDirect = pkg.selectedMode === "direct_to_review";
-  const canApprove = !approved && !blockedDirect;
+  const proposed = pkg.status === "proposed";
+  const canonicalMode = pkg.mode === "step_confirm" || pkg.mode === "direct_to_review" ? pkg.mode : undefined;
+  const blockedDirect = (canonicalMode ?? pkg.selectedMode) === "direct_to_review";
+  const canApprove = proposed && !blockedDirect;
+  const statusLabel = { draft: "草稿", proposed: "待拍板", approved: "已批准", expired: "已作废", superseded: "已被新版本替代" }[pkg.status] ?? "状态未知";
   return (
     <div style={card} data-decision-package={pkg.id}>
       <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center", flexWrap: "wrap" }}>
         <Package size={15} aria-hidden />
-        <strong>决策包 · 给你拍板</strong>
+        <strong>决策包{proposed ? " · 给你拍板" : ""}</strong>
         <Mono faint>r{pkg.revision}</Mono>
-        {approved ? (
-          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-success)", display: "inline-flex", gap: 4, alignItems: "center" }}>
-            <Check size={12} aria-hidden /> 已批准
-          </span>
-        ) : (
-          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-warning)", display: "inline-flex", gap: 4, alignItems: "center" }}>
-            <AlertTriangle size={12} aria-hidden /> 待拍板{pkg.expiresInH ? ` · ${pkg.expiresInH} 小时内有效` : ""}
-          </span>
-        )}
+        <span style={{ fontSize: "var(--text-xs)", color: approved ? "var(--color-success)" : proposed ? "var(--color-warning)" : "var(--text-muted)", display: "inline-flex", gap: 4, alignItems: "center" }}>
+          {approved ? <Check size={12} aria-hidden /> : proposed ? <AlertTriangle size={12} aria-hidden /> : null}
+          {statusLabel}{proposed && pkg.expiresInH ? ` · ${pkg.expiresInH} 小时内有效` : ""}
+        </span>
       </div>
 
       <Section title="做出来什么样">
@@ -107,9 +105,11 @@ export function DecisionPackageCard({ pkg, onAction }: {
         </Section>
       ) : null}
 
-      {!approved && (
+      {(proposed || pkg.status === "draft") && (
         <Section title="怎么跑?">
-          {blockedDirect ? (
+          {!proposed ? (
+            <div style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>草稿尚未提议，修改后重新提议。</div>
+          ) : blockedDirect ? (
             <div style={{ fontSize: "var(--text-sm)", color: "var(--color-warning)", marginTop: "var(--space-3)" }}>
               这份包带着直达验收档,本期 designed/deferred,不能从这里拍板。现役只按逐步确认执行。
             </div>
@@ -119,10 +119,10 @@ export function DecisionPackageCard({ pkg, onAction }: {
             </div>
           )}
           <ActionRow>
-            <Btn variant="seal" disabled={!canApprove} onClick={() => onAction?.("approve")}>拍板,开始</Btn>
+            {proposed ? <Btn variant="seal" disabled={!canApprove} onClick={() => { if (canApprove) onAction?.("approve"); }}>拍板,开始</Btn> : null}
             <Btn onClick={() => onAction?.("edit_expectation")}>改期待</Btn>
             <Btn onClick={() => onAction?.("revise")}>还要改改</Btn>
-            <span style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>不置可否就按「每步问你」处理</span>
+            {proposed ? <span style={{ fontSize: "var(--text-xs)", color: "var(--text-faint)" }}>不置可否就按「每步问你」处理</span> : null}
           </ActionRow>
         </Section>
       )}

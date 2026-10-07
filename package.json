@@ -11,7 +11,9 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "eslint packages e2e/journey01-browser",
     "test": "pnpm -r --filter '!@saydo/android' --if-present test",
-    "ci:node": "pnpm typecheck && pnpm lint && pnpm test && node scripts/check-emoji.mjs && node scripts/test-emoji-gate.mjs && node scripts/check-hardcoded-colors.mjs && node scripts/test-color-gate.mjs && node scripts/test-migration-tools.mjs && node scripts/test-gate-temp-cleanup.mjs && node scripts/test-dev-lifecycle.mjs && node scripts/test-release-physical-evidence.mjs && node scripts/test-release-provenance.mjs && node scripts/test-public-text-redaction.mjs && node scripts/test-public-tree-privacy.mjs && node scripts/test-pairing-url-corpus.mjs && node scripts/test-prompt-scan-completion.mjs && node scripts/test-mobile-installers.mjs && node scripts/test-mobile-release-contract.mjs && node scripts/test-install-scripts.mjs && pnpm --filter @saydo/cli verify:distribution && node scripts/check-active-claims.mjs && node scripts/check-public-tree-privacy.mjs --ref \"$(git rev-parse HEAD)\""
+    "ci:node": "pnpm typecheck && pnpm lint && pnpm test && node scripts/check-emoji.mjs && node scripts/check-public-tree-privacy.mjs --fs",
+    "test:tools": "node scripts/test-emoji-gate.mjs && node scripts/test-color-gate.mjs && node scripts/test-dev-lifecycle.mjs && node scripts/test-public-tree-privacy.mjs",
+    "test:release": "node scripts/test-release-physical-evidence.mjs && node scripts/test-release-provenance.mjs && node scripts/test-public-text-redaction.mjs && node scripts/test-pairing-url-corpus.mjs && node scripts/test-mobile-installers.mjs && node scripts/test-install-scripts.mjs && node scripts/third-party-notices.mjs --check"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",

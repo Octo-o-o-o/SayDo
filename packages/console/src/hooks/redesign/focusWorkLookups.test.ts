@@ -34,9 +34,11 @@ describe("buildFocusWorkLookups", () => {
       package: { id: PKG, revision: 2, status: "approved", outcomePreview: "任务上的包" },
       runs: []
     };
+    const focusDetail = emptyDetail([{ id: "pkg_pending", revision: 1, status: "proposed", outcomePreview: "待批包" }]);
+    focusDetail.tasks = [{ id: TSK, title: "导出", status: "queued" }];
     const work = buildFocusWorkLookups({
       focusId: FOC,
-      detail: emptyDetail([{ id: "pkg_pending", revision: 1, status: "proposed", outcomePreview: "待批包" }]),
+      detail: focusDetail,
       taskDetails: [taskDetail],
       attention: [],
       liveCard: {
@@ -119,5 +121,44 @@ describe("dispatchCardMatchesPackage", () => {
     expect(dispatchCardMatchesPackage({ ...card, revision: 1 }, { id: PKG, revision: 2 })).toBe(false);
     expect(dispatchCardMatchesPackage({ ...card, digest: undefined }, { id: PKG, revision: 2 })).toBe(false);
     expect(dispatchCardMatchesPackage({ ...card, kind: "memory" }, { id: PKG, revision: 2 })).toBe(false);
+  });
+});
+
+
+describe("Focus 同 revision 权威包状态", () => {
+  function focus() {
+    const d = emptyDetail([{ id: PKG, revision: 2, status: "approved", outcomePreview: "已拍板包" }]);
+    d.tasks = [{ id: TSK, title: "绑定任务", status: "ready_for_review" }];
+    return d;
+  }
+  function detail(revision = 2, taskId = TSK): TaskDetailPayload {
+    return { task: { id: taskId, title: "绑定任务", status: "ready_for_review", package_id: PKG, package_rev: revision }, package: { id: PKG, revision, outcomePreview: "canonical body 不存 status" }, runs: [] };
+  }
+  function work(taskDetails: Array<TaskDetailPayload | null>) {
+    return buildFocusWorkLookups({ focusId: FOC, detail: focus(), taskDetails, attention: [], sessionOwned: false });
+  }
+  it("正常详情 canonical body 缺 status 不覆写同 revision 的 approved", () => {
+    const x = work([detail()]);
+    expect(x.packageLookup[`${PKG}@2`]?.status).toBe("approved");
+    expect(x.packageLookup[PKG]?.status).toBe("approved");
+  });
+  it("详情失败保留 Focus 包与已拍板状态", () => {
+    expect(work([null]).packageLookup[`${PKG}@2`]?.status).toBe("approved");
+  });
+  it("不同 revision 不借旧状态", () => {
+    const x = work([detail(3)]);
+    expect(x.packageLookup[`${PKG}@2`]?.status).toBe("approved");
+    expect(x.packageLookup[`${PKG}@3`]).toBeUndefined();
+    expect(x.packageLookup[PKG]?.revision).toBe(2);
+  });
+  it("没有同 revision 权威状态的 canonical body 不新造 proposed 包", () => {
+    const d = focus();
+    d.packages = [];
+    const x = buildFocusWorkLookups({ focusId: FOC, detail: d, taskDetails: [detail()], attention: [], sessionOwned: false });
+    expect(x.packageLookup[PKG]).toBeUndefined();
+    expect(x.packageLookup[`${PKG}@2`]).toBeUndefined();
+  });
+  it("外部任务详情不灌入本 Focus 包状态", () => {
+    expect(work([detail(2, "tsk_foreign")]).packageLookup[`${PKG}@2`]?.status).toBe("approved");
   });
 });

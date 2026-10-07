@@ -6,14 +6,6 @@ import { join } from "node:path";
 import { expect, test, type Page, type Route, type WebSocket } from "@playwright/test";
 
 const ROOT = join(import.meta.dirname, "..", "..");
-const SHOT = join(
-  process.env.HOME ?? "",
-  ".codex",
-  "tasks",
-  "saydo-handoff-20260912",
-  "evidence",
-  "repair11-browser"
-);
 const FOC = "foc_01F1XT0RE0F0CVS00000000001";
 const FOB = "fob_01F1XT0RE0F0CVS00000000001";
 const PRJ = "prj_01F1XT0RE0A000000000000000";
@@ -21,7 +13,8 @@ const TSK_READY = "tsk_01F1XT0RE0TSKRDE0000000001";
 const TSK_RUN = "tsk_01F1XT0RE0TSKRVN0000000000";
 const TSK_DONE = "tsk_01F1XT0RE0TSKD0N0000000000";
 
-const runtime = JSON.parse(readFileSync(join(ROOT, "e2e", "console", ".runtime.json"), "utf8")) as { token: string };
+const runtime = JSON.parse(readFileSync(join(ROOT, "e2e", "console", ".runtime.json"), "utf8")) as { token: string; evidenceRoot: string };
+const SHOT = process.env.SAYDO_E2E_REAL_ENTRY_DIR?.trim() || join(runtime.evidenceRoot, "real-entry");
 const token = runtime.token;
 
 test.beforeAll(() => {

@@ -1,5 +1,5 @@
 // 反例:fake executor 删掉 npm 只留 pnpm。生产 verify 必须失败,
-// 验收项为 fail,页面不能把该项或通过按钮当成 pass。
+// 未绑定验收项保持 unknown,真实日志显示失败,任务与通过按钮不得变绿。
 // 不直接写数据库证据。scripted LLM + drop-npm 替身,不是云服务。
 
 import "./mode-drop.js";
@@ -86,7 +86,7 @@ async function waitAiContains(page: Page, re: RegExp): Promise<void> {
   });
 }
 
-test("删掉 npm 时验收项失败,UI 不能声称 pass", async ({ page }) => {
+test("删掉 npm 时任务失败,未绑定验收项 unknown 且 UI 不能声称 pass", async ({ page }) => {
   test.setTimeout(240_000);
   assertSeedMatchesRuntime(runtime);
   const seededClaims = sqlite(
@@ -147,7 +147,7 @@ test("删掉 npm 时验收项失败,UI 不能声称 pass", async ({ page }) => {
   }>(page, `/api/tasks/${encodeURIComponent(taskId)}`);
   const checks = detail.acceptanceChecks ?? [];
   const npmCheck = checks.find((check) => check.criterion === "现有 npm 说明保留");
-  expect(npmCheck?.status).toBe("fail");
+  expect(npmCheck?.status).toBe("unknown");
   expect(checks.every((check) => check.status !== "pass")).toBe(true);
   const evidence = detail.acceptanceEvidence ?? [];
   expect(evidence.some((row) => row.ok && (row.body ?? "").includes("[fail] npm install missing"))).toBe(true);
@@ -156,7 +156,7 @@ test("删掉 npm 时验收项失败,UI 不能声称 pass", async ({ page }) => {
   await expect(page.locator(`[data-review-panel="${taskId}"]`)).toBeVisible({ timeout: 20_000 });
   await expect(page.locator("[data-acceptance-status=pass]")).toHaveCount(0);
   const npmItem = page.locator("[data-acceptance-item]", { hasText: "现有 npm 说明保留" });
-  await expect(npmItem).toHaveAttribute("data-acceptance-status", "fail");
+  await expect(npmItem).toHaveAttribute("data-acceptance-status", "unknown");
   await npmItem.click();
   const shown = page.locator("[data-review-evidence]");
   await expect(shown).toBeVisible();

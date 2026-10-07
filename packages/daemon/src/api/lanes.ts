@@ -2,6 +2,7 @@
 // console 写口直接执行+audit;window.confirm 在前端。
 
 import { z } from "zod";
+import { withSqliteAuditTransaction } from "./sqliteAuditTransaction.js";
 import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
 import { FocusWriteError } from "../focus/writeTx.js";
@@ -23,16 +24,18 @@ export function retireLaneApi(
   laneId: string
 ): ApiResponse {
   try {
-    const r = retireLane(db, { focusId, laneId, actorKind: "user" });
-    audit.record({
-      actor: "owner",
-      action: "lane.retired",
-      meta: { focusId, laneId, resolvedIds: r.resolvedIds, eventId: r.eventId }
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const r = retireLane(db, { focusId, laneId, actorKind: "user" });
+      audit.record({
+        actor: "owner",
+        action: "lane.retired",
+        meta: { focusId, laneId, resolvedIds: r.resolvedIds, eventId: r.eventId }
+      });
+      return {
+        status: 200,
+        payload: { ok: true, focusId, laneId, resolvedIds: r.resolvedIds, eventId: r.eventId }
+      };
     });
-    return {
-      status: 200,
-      payload: { ok: true, focusId, laneId, resolvedIds: r.resolvedIds, eventId: r.eventId }
-    };
   } catch (e) {
     if (e instanceof FocusWriteError) {
       return err(e.code === "lane_not_found" ? 404 : 409, e.code, e.message);
@@ -56,18 +59,20 @@ export function createLaneApi(
   const parsed = createLaneBody.safeParse(body ?? {});
   if (!parsed.success) return err(400, "invalid_input", parsed.error.message);
   try {
-    const r = createLane(db, {
-      focusId,
-      title: parsed.data.title,
-      parentLaneId: parsed.data.parentLaneId ?? null,
-      actorKind: "user"
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const r = createLane(db, {
+        focusId,
+        title: parsed.data.title,
+        parentLaneId: parsed.data.parentLaneId ?? null,
+        actorKind: "user"
+      });
+      audit.record({
+        actor: "owner",
+        action: "lane.created",
+        meta: { focusId, laneId: r.laneId, eventId: r.eventId }
+      });
+      return { status: 200, payload: { ok: true, focusId, laneId: r.laneId, eventId: r.eventId } };
     });
-    audit.record({
-      actor: "owner",
-      action: "lane.created",
-      meta: { focusId, laneId: r.laneId, eventId: r.eventId }
-    });
-    return { status: 200, payload: { ok: true, focusId, laneId: r.laneId, eventId: r.eventId } };
   } catch (e) {
     if (e instanceof FocusWriteError) {
       return err(e.code === "lane_parent_missing" ? 404 : 409, e.code, e.message);
@@ -84,13 +89,15 @@ export function unretireLaneApi(
   laneId: string
 ): ApiResponse {
   try {
-    const r = unretireLane(db, { focusId, laneId, actorKind: "user" });
-    audit.record({
-      actor: "owner",
-      action: "lane.restored",
-      meta: { focusId, laneId, eventId: r.eventId }
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const r = unretireLane(db, { focusId, laneId, actorKind: "user" });
+      audit.record({
+        actor: "owner",
+        action: "lane.restored",
+        meta: { focusId, laneId, eventId: r.eventId }
+      });
+      return { status: 200, payload: { ok: true, focusId, laneId, eventId: r.eventId } };
     });
-    return { status: 200, payload: { ok: true, focusId, laneId, eventId: r.eventId } };
   } catch (e) {
     if (e instanceof FocusWriteError) {
       return err(e.code === "lane_not_found" ? 404 : 409, e.code, e.message);
@@ -125,10 +132,10 @@ export function redoFromLaneApi(
          AND created_from_event IS NOT NULL AND created_from_event > ?`
     )
     .all(focusId, laneId, parsed.data.anchorSeq) as Array<{
-    id: string;
-    title: string;
-    created_from_event: number;
-  }>;
+      id: string;
+      title: string;
+      created_from_event: number;
+    }>;
   // unknown_origin:created_from_event IS NULL 的未结行——不自动入集,响应单列
   const unknownOrigin = db
     .prepare(
@@ -160,36 +167,38 @@ export function redoFromLaneApi(
   }
 
   try {
-    const r = redoFromLane(db, {
-      focusId,
-      laneId,
-      anchorSeq: parsed.data.anchorSeq,
-      supersededIds: exact,
-      actorKind: "user"
-    });
-    audit.record({
-      actor: "owner",
-      action: "lane.redo_from",
-      meta: {
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const r = redoFromLane(db, {
         focusId,
         laneId,
         anchorSeq: parsed.data.anchorSeq,
-        supersededIds: r.supersededIds,
-        eventId: r.eventId
-      }
+        supersededIds: exact,
+        actorKind: "user"
+      });
+      audit.record({
+        actor: "owner",
+        action: "lane.redo_from",
+        meta: {
+          focusId,
+          laneId,
+          anchorSeq: parsed.data.anchorSeq,
+          supersededIds: r.supersededIds,
+          eventId: r.eventId
+        }
+      });
+      return {
+        status: 200,
+        payload: {
+          ok: true,
+          focusId,
+          laneId,
+          supersededIds: r.supersededIds,
+          suggestedIds: r.suggestedIds,
+          unknownOrigin,
+          eventId: r.eventId
+        }
+      };
     });
-    return {
-      status: 200,
-      payload: {
-        ok: true,
-        focusId,
-        laneId,
-        supersededIds: r.supersededIds,
-        suggestedIds: r.suggestedIds,
-        unknownOrigin,
-        eventId: r.eventId
-      }
-    };
   } catch (e) {
     if (e instanceof FocusWriteError) {
       return err(e.code === "lane_not_found" || e.code === "obligation_not_found" ? 404 : 409, e.code, e.message);

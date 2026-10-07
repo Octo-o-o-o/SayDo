@@ -27,4 +27,4 @@ try {
 } finally {
   Remove-Item -Force $tmpCore -ErrorAction SilentlyContinue
 }
-if ($exitCode -ne 0) { Write-Host "[fail] SayDo install did not complete (exit $exitCode)" -ForegroundColor Red }
+if ($exitCode -ne 0) { throw "[fail] SayDo install did not complete (exit $exitCode)" }

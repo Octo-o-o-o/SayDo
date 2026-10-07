@@ -46,7 +46,7 @@ npm install --global https://github.com/Octo-o-o-o/SayDo/releases/download/v0.1.
 saydo up
 ```
 
-该包支持 macOS、Windows 与 Linux，启动 daemon + Web 控制台；Windows/Linux 当前以前台方式运行。语音 pipeline、macOS launchd 常驻和源码开发仍走下方开发安装。远程终端可加 `--no-open`，按 `Ctrl+C` 优雅停止。
+该 GitHub Release 开发预览版提供 macOS、Windows 与 Linux 的 daemon + Web 控制台；Windows/Linux 当前以前台方式运行。语音 pipeline、macOS launchd 常驻和源码开发仍走下方开发安装。远程终端可加 `--no-open`，按 `Ctrl+C` 优雅停止。
 
 | 命令 | 作用 |
 |---|---|
@@ -62,8 +62,13 @@ saydo up
 pnpm install          # Node >= 22
 cd pipeline && uv sync
 just dev              # daemon + pipeline + console
-just ci               # 本地 Node/Python 基线(不是托管 CI 等效)
+just ci               # 日常 Node/Python 基线(不是托管 CI 等效)
+pnpm test:tools       # 工具变更时运行保留工具自测
+pnpm test:release     # 安装/发布相关变更的专项回归
+pnpm exec playwright test # 浏览器行为验证
 ```
+
+工具、安装和发布相关路径的 PR/main push 会自动运行单个 Linux `tools and release checks` 专项，也可手动触发；普通产品改动仍走日常 CI。原生平台/三平台安装继续用 `platform checks` 手动入口及发布矩阵，专项未执行不代表通过。工作区 emoji/隐私扫描允许尚未暂存的 Git 删除；显式文件与发布 ref 扫描仍按原规则检查。已有测试包不允许零测试成功。
 
 ## 文档地图
 

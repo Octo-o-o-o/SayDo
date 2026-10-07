@@ -55,7 +55,7 @@ describe("CLI 参数", () => {
 
   it("help / --help / 无参数解析为 help 命令", () => {
     for (const argv of [[], ["help"], ["--help"], ["-h"]]) {
-      const parsed = parseCliOptions(argv, {});
+      const parsed = parseCliOptions(argv, { SAYDO_HOME: "invalid-relative-home" });
       expect(parsed.command).toBe("help");
       expect(parsed.openBrowser).toBe(false);
     }
@@ -63,11 +63,26 @@ describe("CLI 参数", () => {
   });
 
   it("拒绝未知命令与非法端口", () => {
-    expect(() => parseCliOptions(["start"])).toThrow(/未知命令:start[\s\S]*用法/);
+    expect(() => parseCliOptions(["start"])).toThrow(/未知命令[\s\S]*用法/);
     expect(() => parseCliOptions(["up", "--port", "0"])).toThrow(/端口非法/);
     expect(() => parseCliOptions(["up", "--bogus"])).toThrow(/未知参数/);
     expect(() => parseCliOptions(["up", "stray"])).toThrow(/未知参数/);
     expect(() => parseCliOptions(["up", "--port", "47100", "--port", "48100"])).toThrow(/参数重复/);
     expect(() => parseCliOptions(["up", "--home", "/tmp/a", "--home", "/tmp/b"])).toThrow(/参数重复/);
+  });
+
+  it("用法错误不回显误填的凭据、路径或终端控制字符", () => {
+    const input = "sk-test-secret-/private/example\u001b[2J";
+    for (const argv of [[input], ["up", input], ["up", "--port", input]]) {
+      let message = "";
+      try {
+        parseCliOptions(argv, {});
+      } catch (err) {
+        message = (err as Error).message;
+      }
+      expect(message).toMatch(/未知命令|未知参数|端口非法/);
+      expect(message).not.toContain(input);
+      expect(message).not.toContain("\u001b");
+    }
   });
 });

@@ -1,5 +1,7 @@
 # 场次④ 现场清单 · P0.5-D 窄闭环 bridge 版(首发交付的最终发布裁决点)
 
+> 2026-10-07 入口更新：旧 `scripts/runtime-preflight.sh` 已退役。按实际部署模式使用 `saydo doctor`、`saydo status` 与 health/readyz 诊断，并人工核对目标 SHA、磁盘 clean、runtime 路径、daemon/pipeline loaded SHA、stateRootDigest 和健康新鲜度。诊断不等价于旧预检；真人语音场次仍须实际 voice ready。旧 release-config digest 是历史验收格式，不得伪造或从 doctor 输出冒取；新场次需记录实际有效配置核对证据，配置变化仍使既有场次结果失效。
+
 > 目的:05 §3 八条验收在**真实 Hopper(锁定副本)+ 真 runner** 经 bridge 现场跑通(0.5 手动版与
 > fake-runner 自动化版已各过一遍,本场次是 owner 亲验版)+ 直达档念清单 + trust-report 展示 + 升级仪式演练。
 > **首发交付 = final-readback + 本场次通过**(final-readback §首发交付判定)。
@@ -20,7 +22,7 @@
 
 | 检查 | 命令 | 期望 |
 |---|---|---|
-| runtime 服务 | `scripts/runtime-preflight.sh <开场前记录的40位-runtime-SHA>` | 单条 fail-fast 断言磁盘与两进程 loaded SHA、clean、runtime 路径及 fresh readyz |
+| runtime 服务 | `saydo doctor`、`saydo status`，按实际部署地址读取 health/readyz 并人工核对 | 目标 SHA、磁盘 clean、runtime 路径、双方 loaded SHA、stateRootDigest 与健康新鲜度正确；真人语音必须 voice ready，禁止另起 `just dev` 验到开发树 |
 | 锁定副本 | `git -C ~/.saydo/hopper-dist rev-parse HEAD` | `bdd1e548f9359789497a797eda24398beba68ac5`(baseline.2) |
 | 运行时切锁 | `rg -n expected_version ~/.saydo/config.toml` | 同上 SHA |
 | 专用 vault | `ls ~/.saydo/hopper-vault` | 存在;**绝不与用户日常 vault 共用**(裁决红线) |
@@ -84,11 +86,11 @@
 |---|---|
 | status | `not_run` |
 | 日期 | 待约 |
-| 场次① status / runtime SHA / config digest | 待核对 `pass` / 同一 SHA / 同一 digest |
-| 场次② status / runtime SHA / config digest | 待核对 `pass` / 同一 SHA / 同一 digest |
-| 场次③ status / runtime SHA / config digest | 待核对 `pass` / 同一 SHA / 同一 digest |
+| 场次① status / runtime SHA / 有效配置核对 | 待核对 `pass` / 同一 SHA / 同一有效配置 |
+| 场次② status / runtime SHA / 有效配置核对 | 待核对 `pass` / 同一 SHA / 同一有效配置 |
+| 场次③ status / runtime SHA / 有效配置核对 | 待核对 `pass` / 同一 SHA / 同一有效配置 |
 | OctoBlog writing status / evidence | 待从场次③核对 `pass` / 逐节验收与 artifact 引用；否则本场不得 `pass` |
-| 本场 runtime SHA / config digest / Hopper SHA | 待开场记录；runtime SHA 与 config digest 必须与前三场相同 |
+| 本场 runtime SHA / 有效配置核对 / Hopper SHA | 待开场记录；runtime SHA 与有效配置必须与前三场相同 |
 | owner verdict | 待 owner；只有 `pass` 才解锁 `v0.1.0` |
 | evidence origin | 待注明 `live` / `fixture` / `test`；本场通过只认 `live` |
 | 证据 | 待填写八条判据、真 runner、成本与 MergeProof 引用 |

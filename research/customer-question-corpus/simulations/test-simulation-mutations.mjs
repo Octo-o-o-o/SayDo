@@ -95,3 +95,5 @@ if (before !== after) {
 }
 process.stdout.write(`[ok] official tree unchanged sha256 ${after}\n`);
 process.stdout.write("[ok] mutation self-test passed\n");
+
+expectGeneratedRejected("retired-context-false-current-success", generated => { generated.coverage = generated.coverage.replaceAll("not_executable_retired_context", "EXECUTABLE"); });

@@ -1,6 +1,6 @@
 # Codex app-server 受控原型
 
-这是未装配进生产 daemon 的本地 stdio 实验。`packages/daemon/src/index.ts` 不加载本目录。生产路径仍是 `codex exec`。PG-07 与设计 ADR-005 的生产接线继续 deferred。
+这是未装配进生产 daemon 的本地 stdio 实验。`packages/daemon/src/index.ts` 不加载本目录。Tier1 仍是唯一生产执行路径；`codex exec` 仅作 BYOA 模型供给，不是生产任务执行后端。PG-07 与设计 ADR-005 的生产接线继续 deferred。
 
 官方说明:[Codex app-server](https://learn.chatgpt.com/docs/app-server)。2026-09-23 读到该接口仍是实验性的,不支持生产负载。本机生成的 JSON Schema 形状优先于文档叙述。来源是 codex-cli `0.153.3` 的 304 个 schema 文件;本目录只保留用到的字段和 `provenance.ts` 里的 sha256,不复制 schema 树。
 
@@ -10,7 +10,7 @@
 
 ## 未验层
 
-- 真实 CLI 无模型握手。下面的命令由 supervisor 执行。本实施调用没有跑它,也没有发 `turn/start`。
+- 2026-09-23 的真实无模型握手已通过，见[本地验收记录](../../../../../e2e/evidence/codex-as-spike-01.md)。这只证明当时固定 CLI 的 initialize/initialized；本次源码候选尚未重跑真实握手。
 - 受控真实 Agent。入口默认拒绝。没有具名 model、`deny-exec-file-permissions`、次数和墙钟上限时不会 spawn。
 - MCP、网络、浏览器和其它 effect 面没有实测。本原型只回答下面列出的审批请求。
 - 不恢复重启前的 thread,不接管外部 thread id。`completed` 只是上游终态,不是 SayDo verify、settle 或用户验收。
@@ -34,8 +34,12 @@ pnpm --filter @saydo/daemon exec tsx src/experimental/codex-app-server/cli.ts ha
 pnpm --filter @saydo/daemon exec tsx src/experimental/codex-app-server/cli.ts experiment --intent-log /tmp/saydo-codex-as-spike-20260923/experiment-intent.jsonl
 ```
 
-要真正发出 turn,必须同时给出 `--enabled true`、`--model <具名模型>`、`--effect-boundary deny-exec-file-permissions`、`--max-turns`(1 到 3)、`--wall-ms`(1000 到 120000)、`--task-id` 和 `--text`。即使如此,命令、文件和权限仍按 schema 拒绝,用户输入回答为空对象。意图日志只记关联和摘要,不记正文。
+要真正发出 turn,必须同时给出 `--enabled true`、`--model <具名模型>`、`--effect-boundary deny-exec-file-permissions`、`--max-turns`(1 到 3)、`--wall-ms`(1000 到 120000)、`--task-id` 和 `--text`。即使如此,命令、文件和权限仍按 schema 拒绝,用户输入回答为空对象。意图日志只记关联和摘要,不记正文。未知 method 只记固定分类,不把对端提供的 method 原文写入诊断或意图日志。
 
 ## 接入生产前的最小缺口
 
-生产 index 仍不能加载本原型。缺真实握手、真实 turn、审批效果、重启恢复,以及 MCP/网络/浏览器覆盖的证据。没有这些之前,不能把本目录接进后端选择器。
+生产 index 仍不能加载本原型。已有历史无模型握手证据，但仍缺真实 turn、审批效果、重启恢复，以及 MCP/网络/浏览器覆盖的证据。没有这些之前,不能把本目录接进后端选择器。
+
+## 2026-09-27 审计候选
+
+握手现在等待 `initialized` 实际写入 stdin 后才进入 ready；仅入队不算已发送。背压超时关闭会话并丢弃未写通知，迟到 drain 不能补发。定向 fixture 已覆盖成功 drain 与超时路径，尚未经过本批独立复审和完整门禁。

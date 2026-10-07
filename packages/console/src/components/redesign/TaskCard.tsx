@@ -1,3 +1,4 @@
+import { costEntryText } from "../../lib/costDisplay";
 // TaskCard(demo taskCardHtml):16 呈现态全覆盖;状态 chip 用既有 StatusChip 单源(11 §5.11 登记);
 // 动作按钮全部 onAction 回调(组件不接线);HP(Hopper 投影)只读说明,不给本地动作。
 // 状态词三级:收到/等你验收/已交付;成本 unknown 显示「还没有确切数字」。
@@ -9,6 +10,7 @@ import { ActionRow, Btn, card, Mono, StageTag } from "./shared";
 import type { TaskView } from "./types";
 
 export type TaskAction =
+  | { type: "open_detail" } | { type: "reload_detail" }
   | { type: "review" } | { type: "answer"; text: string } | { type: "step_ok" } | { type: "step_no" }
   | { type: "billing"; accept: boolean } | { type: "s3_merge" } | { type: "retry" }
   | { type: "merge_conflict" } | { type: "open_focus" } | { type: "explain"; level: "one_liner" | "walkthrough" | "decisions" };
@@ -22,9 +24,23 @@ export function TaskCard({ task, onAction, inModal }: {
   const [answer, setAnswer] = useState("");
   const vs = task.viewStatus;
 
+  if (task.detailUnavailable) {
+    return (
+      <div style={card} data-task-card={task.id} data-detail-unavailable data-task-state={task.lastEvent}>
+        <strong>{task.title}</strong>
+        <div style={{ color: "var(--text-muted)", marginTop: 6 }}>任务状态：{task.lastEvent}</div>
+        <div role="status" style={{ color: "var(--text-muted)", marginTop: 6 }}>任务详情未加载，绑定仍在；请重读后核对证据和可用动作。</div>
+        <ActionRow>
+          <Btn onClick={() => onAction?.({ type: "reload_detail" }, task)}>重读详情</Btn>
+          <Btn onClick={() => onAction?.({ type: "open_detail" }, task)}>查看任务详情</Btn>
+        </ActionRow>
+      </div>
+    );
+  }
+
   const budget = isHopper
-    ? `Hopper 执行域 · 熔断 ¥${task.budget.maxCost} · 已花 ${task.spent.known ? `¥${task.spent.value}` : "还没有确切数字"}`
-    : `已跑 ${task.elapsedMin} 分钟 / 上限 ${task.budget.walltimeActiveMin} 分钟 · 已花 ${task.spent.known ? `¥${task.spent.value}` : "还没有确切数字"} / 熔断 ¥${task.budget.maxCost}`;
+    ? `Hopper 执行域 · 熔断 ¥${task.budget.maxCost} · 已花 ${task.spentText ?? costEntryText({ source: "api", known: task.spent.known, amount: task.spent.value, currency: task.spent.currency })}`
+    : `${task.elapsedMin === null ? "执行耗时未知" : `已跑 ${task.elapsedMin} 分钟`} / 上限 ${task.budget.walltimeActiveMin} 分钟 · 已花 ${task.spentText ?? costEntryText({ source: "api", known: task.spent.known, amount: task.spent.value, currency: task.spent.currency })} / 熔断 ¥${task.budget.maxCost}`;
 
   let actions: React.ReactNode = null;
   if (isHopper) {

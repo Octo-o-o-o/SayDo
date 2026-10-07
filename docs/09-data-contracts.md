@@ -14,7 +14,7 @@ type Id = string;      // ULID;前缀:prj_/ses_/pkg_/tsk_/apr_/mem_/ntf_(outbox)
 type Digest = string;  // "sha256:<hex>",JCS 规范化后哈希
 type Ts = string;      // ISO-8601 带时区
 type Money = { known: boolean; value?: number; currency?: "CNY" | "USD"; asOf?: Ts };  // 接线处:cost_entries 与投列显示;unknown 永不显示为 0。Focus 级预算无来源时用显式 unknown 形状,文案「还没有确切数字」,禁 0/0、¥0 / ¥0 冒充未知(PG-01B)
-// 第三态(07 D18):known=false 且 cost_entries.source='subscription' ⇒ 呈现"订阅额度内(已用 N 次)",不落"未知"话术;月预算汇总只 SUM api 计费行
+// 第三态(07 D18):known=false、cost_entries.source='subscription'且 meta.provenance='subscription' ⇒ 订阅额度内;仅完整合法 requests 才显示已用 N 次(§9.1/§11-5),不折算金额;月预算汇总只 SUM api 计费行
 ```
 
 - **幂等**:一切跨边界写操作携带 `idempotencyKey`(ULID)并**先落盘后发送**(见 §6.3 出站命令 journal);重放返回首次结果。
@@ -890,6 +890,7 @@ CREATE TABLE cost_entries(id TEXT PRIMARY KEY, ts TEXT, project_id TEXT, task_id
   CHECK (source != 'subscription' OR (known = 0 AND amount IS NULL)));  -- 订阅行恒 known=0/amount=NULL(07 D18 纪律 3;复评 B2 机械化)
 -- GET /api/costs 读口(2026-09-20 诚实契约;不改本表):
 --   byProject = 全账本聚合(无 LIMIT;分币种 known + unknownCount),是「全部」合计的唯一权威。
+--   可选 byProject[].billing 的唯一形状与完整性规则见 §9.1；旧 unknownCount 保持兼容，不冒新 API 未知笔数。
 --   月预算不读本聚合:维持既有期间 API 计费口径(只 SUM source='api' 的期间行),本字段无月份过滤,不得当当月开销。
 --   entries = 明细窗口,默认最新 300 条(ORDER BY ts DESC LIMIT 300);不是全账本。
 --   响应必须带 entriesWindow:{ limit:number, returned:number, total:number, truncated:boolean }。
@@ -956,6 +957,7 @@ CREATE TABLE tier1_runs(id TEXT PRIMARY KEY NOT NULL, task_id TEXT NOT NULL REFE
   restart_pending_at TEXT, restart_reason TEXT, -- §16.4 可恢复退出 marker;不扩 run 状态词
   finalize_pending_json TEXT, -- failure/review 终态 durable 意图判别联合;恢复只收口、禁止重跑 agent
   budget_active_ms INTEGER NOT NULL DEFAULT 0, budget_tool_calls INTEGER NOT NULL DEFAULT 0,
+  budget_clock_complete INTEGER NOT NULL DEFAULT 0 CHECK (budget_clock_complete IN (0,1)),
   created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
   CHECK (adapter IN ('claude_code','cursor','codex')),
   CHECK (state IN ('reserved','running','step_paused','settled_review','settled_failed','cancel_requested','cancel_settled')));
@@ -972,6 +974,7 @@ CREATE TABLE task_messages(id TEXT PRIMARY KEY NOT NULL, task_id TEXT NOT NULL R
   CHECK (kind IN ('retry','review_comments','steer')));   -- steer=cursor 后端 queued_delta 的落点(无 live steer)
 CREATE INDEX task_messages_task ON task_messages(task_id, attempt);
 ```
+
 
 **Tier1SettleProof**(§6.3 settle barrier 的路径一形态,替代路径二的机械判定):`{ kind:"tier1", taskId, runId, attempt, packageRevision, treeSha, tier1VerifyDigest, acceptanceChecks, transcriptCursor, settledAt }`——回叫前必须齐备且 verify 独立通过。`kind` 为新写必带的判别键;旧 coding proof 可在解析时补默认 `tier1`,但批准时仍须回读当前持久化 DecisionPackage 并以 `packageRevision` + acceptance criterion exact-set 对账,缺包、包正文非 canonical、revision 不符、漏项、重复项或幽灵项任一出现都 fail-closed 拒批。`settle_proof_json` = `Tier1SettleProof | WritingSettleProof` 判别联合,按 `kind`(tier1/writing)分支解析,§12 round-trip 分别覆盖。**verify 的确定性 oracle 首选 `hopper check`**(Hopper 反馈 §4.1,零改可用):`hopper check --base <ref>|--staged --criteria - --format json` 对任意 git repo diff 跑四道确定性闸门(verification / guardrails 含 secret+forbidden 扫描 / 逐条 AC acceptance / docs),不写事件流不动工作区,退出码 0–4(4=needs_human ⇒ 映射回叫),`--criteria -` 直接喂 `DecisionPackage.acceptance[]`——比自建异族 oracle 独立性更强(纯确定性、非模型),异族深评只留给"确定性闸门测不了的语义判断";agent 未 commit 产出用 `git add -A` + `--staged`。可行性验证在计划 0.5(窄闭环 PoC 顺做)。(字段原名 `verifyEvidenceDigest` 依裁决 §4 改名:与 Hopper `evidenceDigest` 同名不同物,防跨路径混读。)**Tier1CancelProof**:`{ taskId, runId, processExited:true, worktreeLockReleased:true, lastEventId, settledAt }`——cancel_settled 前必须齐备,旧 run 晚到事件转历史、不触发当前回叫。**step_confirm 语义**(P0 owner 已定;deferred——P0 执行器单 attempt 拓扑不产生 step_paused,见下方实施状态注):Tier1 步序 = **同一 agent session 内暂停**(非多 run;原文"SDK session"随 2026-08-21 传输改 CLI 中性化,session 载体 = 各 backend 的 native session),`step_paused` 是 session 暂停态,续跑用同 session,不产生新 run(避免重复执行)。
 
@@ -990,6 +993,39 @@ CREATE INDEX task_messages_task ON task_messages(task_id, attempt);
 | reserved → cancel_requested → cancel_settled | 供给失败/启动前异常收尾(经取消链落终态,无 settled_failed 直边;proof.lastEventId 带 `pre-start:` 前缀)或用户在 spawn 前取消(Codex 20 B1 补录,2026-07-26) |
 
 **attempt 规则**:返工(§6.1 `ready_for_review → running`)与 `retryTask` = **INSERT 新行、attempt+1**,旧行终态不动、证据不串线。**blocked/failed 回叫的最小 settle proof** = `{ questionId 或 exitEvidence, transcriptCursor }`(ready_for_review 用完整 `Tier1SettleProof`;blocked/failed 不需 tree/verify digest,只需可定位的问题/失败证据 + 转写游标)。
+
+### 9.1 全账本计费来源只读汇总（2026-10-04 repair61 合同候选，待独立一致性检查点）
+
+本节是 `GET /api/costs` 的兼容附加读口合同，标题保留 repair61 冻结时点。新增形状已通过 review31 具名一致性检查点（PASS_SCOPE_ONLY）；repair62 已接线 contracts schema 与生产读口/消费者，具体本地反例与未验边界另记该轮证据，独立实现验收仍待定，不将本文当全任务通过。`cost_entries` DDL、写入、source/provenance 词表、月预算与 maxCost 只算 API 的纪律不变；不新增分页协议。
+
+```typescript
+type CostBillingSummary = {
+  unknownMoneyEntries: number | null;
+  subscriptionEntries: number | null;
+  subscriptionRequests: number | null;
+  upstreamCliEntries: number | null;
+};
+// 既有 byProject 元素附加 billing?: CostBillingSummary；其余返回字段不变。
+```
+
+`billing` 可缺失以兼容旧 server；存在时四键必须齐备，不允许额外键，每值仅非负安全整数或 null（有限、`Number.isSafeInteger`、0 至 `Number.MAX_SAFE_INTEGER`）。schema/type 在 `@saydo/contracts` 单源实现，daemon/console 复用；不在各消费者另造同名形状。非法/缺键/类型漂移的 billing 整对象按未提供处理，不能把字符串、小数、负数、unsafe 或 null 转成 0。旧 client 忽略附加字段；新 client 对旧 server 保持“计费来源与调用次数未汇总”，不拿 entries 窗口补全。
+
+**同一集合与完整性**：每个项目（含真实 project_id=NULL）按该项目的全量 cost_entries 行统计，与其 knownByCurrency/旧 unknownCount 使用同一次只读事务快照；byProject 全账本、entries 最新300窗口与 entriesWindow.total 也须来自同一响应的同一快照，禁止并发写入导致金额/计数各属不同集合。返回不是当前月份或剩余额度。不从调用结果、任务/runs 数、窗口行数或时间戳推 requests。计数可为0仅来自该完整集合的确切空分类；计数/转换/累积溢出或不能证明精确完整时该项为null，不用SQL int64到JS不安全转换近似计数。subscriptionRequests 另遵下面的严格完整规则。
+
+**互斥行分类与金额**：
+
+1. `source='api'` 的合法 known Money 按 §0/schema 验证 value 非负有限、currency 为 CNY/USD；合法已知0保留其币种。仅这些行进入按币种已知小计。API known=false、字段缺失/非法/非有限/负数/币种非法均计 unknownMoneyEntries，不编金额0。既有 Money 的金额允许合法小数，安全整数约束仅用于计数。
+2. `source='subscription'` 只用 JSON 数据解析 meta_json；对象必须非null非数组，缺失/非法JSON/未知provenance不授订阅话术。provenance 精确为 `subscription` 的行计 subscriptionEntries；其无amount不进入API金额、不计 unknownMoneyEntries。provenance 为 external_api/unknown、legacy缺失或非法 meta 的 subscription 行均计 upstreamCliEntries，呈现 §11-5 的上游计费文案，不把source重分类为API、不写回账本、不推免费。若订阅行违反既有 known=0/amount=NULL 约束，只读时不消费非法金额；仍按明确 provenance 分流，不能把它加入API预算或据非法金额授权。
+3. source 缺失/非法不能按 API 已知金额或 subscription 可信声明消费；该行计 unknownMoneyEntries。每行仅归上述一个分类，不能把真实订阅无金额同时算API未知。已知API行内部贡献计数仅用于下一项溢出规则，不新增返回字段。
+
+**币种及溢出**：每项目各币种的全部合法API known行求和；只要某币种总和不可表示为合法有限 Money，该币种不输出 knownByCurrency 金额，unknownMoneyEntries 加入该币种所有已知贡献行的真实 knownCount（包含溢出前、触发条与之后条），不能只计最后一条、留部分小计或重复计原未知行。旧 unknownCount 保留原“未提供合法API金额”兼容口径：订阅行也在旧字段中，不以它冒新的API未知量；该币种溢出贡献行仍按既有兼容口径计入。CNY/USD不混加、不换汇。
+
+跨项目“全部”再汇总也分币种；若某币种项目总和溢出，该币种整体金额未知，不能显示部分项目金额作总量。四字段未提供各项目的逐币种 knownCount，故此时跨项目汇总的 unknownMoneyEntries 必为null，不用项目数/金额组数冒未知行数；原各项目自己的准确billing保留，其他币种小计仍可带币种显示。跨项目计数求和只在每项目相应字段均非null且累积仍safe integer时给值，否则传播null。缺失/非法billing会使跨项目计费来源与N均不完整；不得将其余项目的局部计数冒全账本总数。
+
+**订阅请求N**：subscriptionEntries 为0时 subscriptionRequests 必为null，不编“已用0次”。只在完整集合内每一条真实 subscription provenance 行的 requests 都是正safe integer，且全部之和仍为正safe integer时输出N。已确证订阅分类内的requests缺失/null/0/负数/小数/字符串/unsafe或累计溢出任一使这一集合的完整N为null，不输出合法条目的局部N。N只表示已确证subscription分类的完整次数，不表示所有CLI调用总数；upstreamCliEntries不并入订阅N，非法meta已归上游未确证分类，不据它补订阅N；未知 provenance 即使带 requests 也不授订阅次数。跨项目合计跳过已证明 subscriptionEntries=0 且 requests=null 的空订阅集合；任何项目subscriptionEntries未知或>0且N=null使整个N=null；合计无订阅亦N=null。不得以行数、num_turns、usage零键或API行填N。
+
+**实施核验清单（repair61 冻结时 NOT_RUN；当前执行边界见 repair62）**：原响应/旧server缺billing与旧client控制；四键合法/缺键/额外键/null/小数/unsafe控制；真实SQLite完整同快照的>300行（窗口300、全账本401或413）；API合法0的CNY/USD分别保留；合法订阅无amount与external_api/unknown/legacy/非法meta分流；known与unknown混合不丢未知；项目内同币种overflow全knownCount归未知；项目间overflow金额未知且整体unknownMoneyEntries=null；requests缺失/0/负/小数/unsafe/累计overflow及空订阅null；多项目一个不完整不得显示局部N；实际Cost summary/chart/project groups、TaskDetail、ReviewPanel使用共享projection与contracts shape，导出/下钻窗口与全量合计分母不混。核验不得发真实provider、修改写账口或DDL。
+
 
 ## 10. 语音管线 WS 契约(A1 ⇄ A2)
 
@@ -1026,16 +1062,18 @@ type VoiceHelloAck = { t: "hello.ack"; v: 1; peerId: Id; daemonEpoch: Id };
 type AsrFinalMsg =
   | { t: "asr.final"; sessionId: Id; turnId: Id; text: string; confidence?: number }
   | { t: "asr.final"; sessionId: Id; turnId: Id; text: string; confidence?: number;
-      captureMode: "hands_free"; recognitionOutcome: "ok"; hfRoundId?: Id }
+      captureMode: "hands_free"; recognitionOutcome: "ok" }
   | { t: "asr.final"; sessionId: Id; turnId: Id; text: ""; confidence?: number;
-      captureMode: "hands_free"; recognitionOutcome: "failed"; hfRoundId?: Id }
+      captureMode: "hands_free"; recognitionOutcome: "failed" }
   | { t: "asr.final"; sessionId: Id; turnId: Id; text: string; confidence?: number;
       captureMode: "ptt"; captureId: Id; recognitionOutcome: "ok" }
   | { t: "asr.final"; sessionId: Id; turnId: Id; text: ""; confidence?: number;
-      captureMode: "ptt"; captureId: Id; recognitionOutcome: "failed" };
+      captureMode: "ptt"; captureId: Id; recognitionOutcome: "failed" }
+  | HfAsrFinalMsg; // §10.1.13 两条新 HF 分支,四个身份字段必须齐全
 const ASR_FINAL_KEYS = [
   "t", "sessionId", "turnId", "text", "confidence",
-  "captureMode", "captureId", "recognitionOutcome", "hfRoundId"
+  "captureMode", "captureId", "recognitionOutcome", "hfRoundId",
+  "hfSegmentIds", "recordSeqFirst", "recordSeqLast"
 ] as const;
 
 type PipelineMsg =
@@ -1043,8 +1081,8 @@ type PipelineMsg =
   | { t: "asr.partial"; sessionId: Id; turnId: Id; text: string; confidence?: number }
   | AsrFinalMsg
   // confidence 可选:定档 sauc 大模型不回置信度(工程 ADR-101 实测 2026-07-24),provider 有则透传。
-  // asr.final 字段白名单仅 t/sessionId/turnId/text/confidence?/captureMode?/captureId?/recognitionOutcome?/hfRoundId?;
-  // hub 按白名单解析,白名单外字段剥离不入库、不转发;白名单内组合必须落在 AsrFinalMsg 五支之一,否则整消息丢弃。
+  // asr.final 字段白名单以 ASR_FINAL_KEYS 为准,包括新 HF 句段集合与录音序区间;
+  // hub 按白名单解析,白名单外字段剥离不入库、不转发;白名单内组合必须落在 AsrFinalMsg 七支之一,否则整消息丢弃。
   // captureMode/captureId/recognitionOutcome 为 §10.1 设计候选 additive;hfRoundId 为 HF 线身份 additive(2026-09-22)。
   // 新 pipeline 每条 asr.final 必带明确来源:HF 必 captureMode:"hands_free" 且禁 captureId,recognitionOutcome 必填且为 "ok"|"failed";
   // 新分类 PTT 必 captureMode:"ptt" 且必带 captureId,且必须填 recognitionOutcome:"ok"|"failed"。
@@ -1598,9 +1636,9 @@ discard 只构成音频+registry 结算依据,随后仍须 10.1.2:账本已结�
 
 原协议不承诺 crash 恢复:未知集随 daemon 进程消失;重启后不得把旧未确认音频当已保存,也不得自动恢复 discard。未移交旧稿仍按 10.1.8 诚实提示;已写入 console 的稿照旧保留。
 
-#### 10.1.13 HF 句段 / 逻辑轮 / 录音序提交(2026-09-22 合同前提;本轮不改 schema/runtime)
+#### 10.1.13 HF 句段 / 逻辑轮 / 录音序提交(2026-09-22 合同;2026-09-23 本地集成)
 
-本节关闭「两个 VAD 开口经 EOU 合成一条 final 时,final 归哪个 id、其余开口如何终结、部分失败如何结算」的缺口。形状以本节为准;`AsrFinalMsg`/`vad.speech` 上既有可选 `hfRoundId` 的「每开口一个 id」口径**由本节取代**,审查通过前**不得**改 `packages/contracts` schema、Hub 解析、barrier/dialog 或 pipeline 产品。不为少改选用不可证明的到达序 FIFO。合同是否可实施由 fresh reviewer 判定。
+本节关闭「两个 VAD 开口经 EOU 合成一条 final 时,final 归哪个 id、其余开口如何终结、部分失败如何结算」的缺口。形状以本节为准;`AsrFinalMsg`/`vad.speech` 上既有可选 `hfRoundId` 的「每开口一个 id」口径**由本节取代**,“先评审再改 schema/runtime”是 2026-09-22 的施工前置。该链已随 `62b07c2` 本地集成,历史验收及例外见 [JOURNEY-01 本地记录](review/2026-09-23-journey01-local-acceptance.md);本地集成不证明真实硬件/云 ASR 验收。不为少改选用不可证明的到达序 FIFO。
 
 **三层身份(禁止混用):**
 
@@ -1641,7 +1679,7 @@ type HfLogicalRound = {
 );
 ```
 
-`recordSeq` 在本 `sessionId`+`pipelineEpoch` 内从 1 单调 +1,禁止复用、回绕、按返回序重排。`hfSegmentIds` 必须按 `recordSeq` 升序、长度≥1、与该轮账本集合精确相等;`recordSeqFirst`/`Last` 必须等于集合两端。只带 `hfRoundId` 不带句段集 = 非法,整消息丢弃,不结算。PTT 消息出现上述任一 HF 身份字段 = 非法整消息丢弃。
+`recordSeq` 在本 `sessionId`+`pipelineEpoch` 内从 1 单调 +1,禁止复用、回绕、按返回序重排。`hfSegmentIds` 必须按 `recordSeq` 升序、长度≥1、与该轮账本集合精确相等;`recordSeqFirst`/`Last` 必须等于集合两端。只带 `hfRoundId` 不带句段集 = 非法,整消息丢弃,不结算。PTT 消息出现上述任一 HF 身份字段(`hfSegmentId`/`hfRoundId`/`recordSeq`/`hfSegmentIds`/`recordSeqFirst`/`recordSeqLast`) = 非法整消息丢弃;此拒绝先于普通未知字段剥离,不能把夹带的句段身份剥掉后当合法 PTT。
 
 **产生顺序(pipeline,新协议;禁止 ASR 返回序提交):**
 
@@ -1702,7 +1740,7 @@ type HfLogicalRound = {
 | X7 | 重放已终态 `hfRoundId` 或旧 epoch | 再进 Brain / 清新世代 | 忽略 |
 | X8 | done/quiesce tail 无开轮身份 | 匿名合并进下一轮用户话;或为空识别补造一轮只为发空 final | 非空:新开轮一条终态;有效空/短:empty ack,不造 final |
 
-**源码映射(冻结实现;审查前禁止按本节改产品):**
+**历史源码缺口(2026-09-22 评审输入,不是当前状态;当前映射见 §10.1.14):**
 
 | 合同步骤 | 当前代码 | 缺口 |
 |---|---|---|
@@ -1715,21 +1753,20 @@ type HfLogicalRound = {
 | 失败账本 | pipeline 已发 HF `failed`;`asrFinalHandsFreeSchema` 仅 `ok` | Hub 丢弃;quiesce 可能看不到失败 |
 | 旧 FIFO | `confirmOldestClosedHf` / 无身份 leftover | 不可证明乱序对应,且会碰到新身份项 |
 
-#### 10.1.14 HF 合同→实现映射(续 10.1.13;本轮不改 schema/runtime)
+HF 轮次终态、退役或明确放弃后,pipeline 应释放该轮的识别结果与已提交正文;迟到结果不得重新创建已结束轮。单调序号与世代拒绝规则仍保留,此释放不清 daemon 的未知音频账本或 console 已移交旧稿。
 
-| 合同条款 | 变更理由 | 当前实现(冻结) | 审查通过后应对 |
-|---|---|---|---|
-| 三层身份 + `hfSegmentIds` | 「按 id」无法回答多句段哪一个 id | 线无句段集;一条 final 只 `confirmOldestClosedHf` | schema 增句段/轮/seq;final 必须列出本轮句段集 |
-| 按 `recordSeq` 提交 | 返回序会丢前半句 | `_pending_text` 在 recognize 返回时拼接 | `resultsBySeq`+`commitHead`;完成≠提交 |
-| 一轮一条终态 | EOU 合并与「一次结算一条」必须同一对象 | 每段都可能 emit | **已拥有轮**只在 EOU/done/quiesce 发一条(空识别=`ok`+`text:""`);无开轮空 leftover 不发 final |
-| 空识别分流 | 旧 10.1.6 步骤 8「不造 final」与 10.1.13「恰好一条空 final」互斥 | 文案冲突,实现冻结 | 无开轮=`emptyRound` ACK;已拥有轮=一条空 ok final。本包只改合同 |
-| HF `failed` 支 + 空 text | 失败轮既要终态又不得当成功旧稿 | schema 仅 HF `ok`;Hub 丢弃 | 增 failed 支;列出句段全部 `unknown` |
-| `failed` 阻 quiesce | 空 tail 不得洗成成功 ACK | 10.1.6 文案已有;实现看解析成功的 final | 失败汇总按轮保留;无 discard 不得 `classified:true` |
-| `speechGen` 贯通 | 旧非空 final 不得清新轮 | barrier 有世代,Hub/dialog 未贯通 | Hub 传世代;`onAsrFinal`/`settlePendingSpeech` 必比世代 |
-| 旧/新降级 | 兼容不得打穿新所有权 | 无身份即 FIFO | 有新身份在途则旧 FIFO 禁动;缺字段丢弃不结算 |
-| 审查前冻结 | 避免未审形状落地 | 本行 | **不得**改 contracts/Hub/pipeline/dialog 产品 |
+#### 10.1.14 HF 合同→实现映射(2026-09-27 源码对照)
 
-审查未通过前:pipeline 继续如实发 failed(不假 ok);Hub 继续按现 schema 丢弃——该缺口保持报告,不在本包用产品 bypass 抹平。
+JOURNEY-01 已把 §10.1.13 接到下列源码。“审查前冻结/仅 HF ok/按返回序拼接”是 2026-09-22 的缺口快照,不再描述当前产品。本次候选完整门禁和独立复审仍待收口;历史本地验收不代替真实硬件/云 ASR 验收。
+
+| 合同条款 | 当前承载 |
+|---|---|
+| 句段/轮/录音序 | `pipeline/src/saydo_pipeline/hf_round.py` 的 `SegmentSlot` / `HfRoundMachine.open_speech`;`hub_client.py` 的 `_send_vad_phase` 发送三字段 |
+| 有序提交与一轮终态 | `HfRoundMachine.note_result` / `_commit` / `settle` / `_finish`;返回序结果先缓存,按 `commit_head` 入正文,失败轮只发空 failed |
+| wire 形状 | `packages/contracts/src/types/pipeline.ts` 的 HF 新旧联合与 `ASR_FINAL_KEYS`;Hub 按白名单解析,PTT 拒绝 HF 身份字段 |
+| 账本与兼容隔离 | `voice/voiceBarrier.ts` 的 `consumeAsrFinal`,核对轮/句段集合/序号/epoch,旧 FIFO 不消费新身份项 |
+| 世代贯通 | `voice/hub.ts` 传 `decision.speechGen`,ROOT 回调传给 `LiveDialog.onAsrFinal` / `settlePendingSpeech`;旧世代不得清新待决轮 |
+| tail / quiesce | `hub_client.py` 继承当前轮,等待已有识别,保留失败汇总;无开轮空 leftover 走 empty ACK |
 
 ## 11. 文件布局与配置
 
@@ -1953,7 +1990,7 @@ type DialogCliOneshotEnvelope = {
 
 5. setup probe 每槽投影 `effective:"active"|"fallback_dialog"|"unarmed"`,dialog 另投影 `mode:"realtime"|"oneshot"`,可带 `reason:"cli_self_test_required"|"cli_self_test_failed"|"provider_unavailable"|"same_family_blocked"|"isolation_ack_required"|"recovery_only"`;回落槽可带 `fallbackTo:"dialog"`。dialog API 为 `mode:"realtime"`,全局 dialog CLI 只有活动 runtime 登记与 self-test 通过时才为 `effective:"active",mode:"oneshot"`。这是活动 resolver 与 runtime self-test 登记的实况,只读 active config/`.env`/binary 登记并现场复核文件 digest,不得借 pending 或配置形状推断。CLI 自检成功后投影须从 unarmed 变为 active,活动 binding 的生产 resolver 同进程随下一次调用生效,不得出现 probe 已 active 而实际仍缓存旧 fallback/unarmed;失败、unknown 登记或二进制漂移统一维持红灯并给人话原因。
 6. setup 自检按生产请求形态验证:dialog API 必须完成一次 tool call 与 tool-result 往返;dialog CLI 必须真实返回合法 `DialogCliOneshotEnvelope`(固定 `reply="pong",actions=[]`,不得触碰生产 registry 或账本);thinking CLI 必须真实一发一收且非空;cheap CLI 必须通过真实 schema 请求与严格解析;evaluator CLI 必须通过与生产深评相同的 schema 请求、严格 JSON、四字段 observedModel 与家族断言。四槽一发一收的 prompt 头部必须逐字加入“不要执行任何命令/不要读文件,仅基于给定内容直接输出 JSON”,cwd 必须是逐调用新建、用后清理的空隔离目录,self-test 与生产调用均不得传仓库或 HOME;若输出侧 tripwire 触发且零正文消费、无 model 冲突,只允许在全调用唯一重试预算内带强化禁令重试一次,再次触发即如实失败,强化 prompt 仍必须以逐字硬头开头,tripwire 本身不得放开;若首发因 unknown_event 作废,允许在同一预算内同参再发一次(不改 prompt、不加强化禁令),两次都 unknown 才失败;tripwire 与 unknown_event 共用该一次预算,已重试后不得再发 schema 或网络第三次请求。任一失败只把对应槽标红,清除/不写该 binding 的成功登记,并给不含 secret 或完整路径的人话原因。pending config 含任一 CLI binding 时,`POST /api/setup/restart` 与进程启动晋升都必须逐槽复核同一 activation 的成功登记和不可变 receipt;缺一即拒绝晋升,活动配置保持不动。四槽调用以 `source='subscription'` 记账,槽位写入 `kind=llm.<slot>`,金额 `NULL`、`known=0`;每个真实进程请求逐行落账且 `requests=1`,网络重试不得聚成一行导致“已用 N 次”少计;CLI 无 usage 时 token 四键记 0 并标 `usage_unavailable:true`,不得编数。BYOA 只消费已白名单且字段类型合法的 NDJSON,未知事件、未知 content block、畸形字段或缺少供应商成功终态均整次作废;明确空终态不得回收此前 partial text。子进程随 AbortSignal 生命周期终止:新用户轮与 barge-in 立即使旧轮 stale,barge-in 到对应 ASR final 结算之间以独立 speech-pending 门阻止 control 抢跑,空 final 或确认采集截获的 final 也必须显式释放该门;session 关闭与 daemon shutdown 均先 abort;POSIX spawn 必须建立独立进程组,直接父进程正常退出或 abort 时都要对整组按 SIGTERM→3s 宽限→SIGKILL 收口,不得泄漏 ignore stdio 后代或被继承 pipe 永久拖住;shutdown 期间拒绝新 CLI 调用并等待既有子进程 settled 后才退出或 self-restart。缺省 wall/idle/output 上限为 120s/45s/512KB;输入总 cap 为 256KB,先丢最旧历史、再截 Context Pack,instructions 与当前请求仍超限则返回 `input_limit`,不得静默截断。stdout/stderr 用有状态 UTF-8 decoder,任意 chunk 边界不得损坏正文。
-7. `POST /api/setup/first-run/query` 以 `SAYDO_HOME/first-run-onboarding.json` 作为独立 once marker,原子结合 Focus 计数与启动前 session/audit 活动判定。空 HOME 必须在 daemon 自身 bootstrap/setup audit 前持久化 `eligible`,使资格跨配置重启保留;已有 session/audit 的 HOME 写 `legacy_not_eligible`。eligible 投递固定开场白“第一次来?随便说三件你这周要办的事,我来立账给你看——说完它们会变成右边的卡片,之后你随时可以问我『那三件事怎么样了』。”为 assistant 转写轮,并在 durable transcript 与可重建 history 全程保留 `origin=onboarding`;legacy 不投;抢先用户消息只有在真正被接纳后才写 `skipped_by_user`,被 recovery 拒收的消息不得消费 marker。投递采用可恢复的 `presenting→presented` 提交协议:投递抛错保留同 turn 重试,若转写/不可变审计已证投递则只提交 marker;同一 session 对已 presented marker 的后续探询必须幂等回放同一 `turnId/message`,不重复落轮。
+7. `POST /api/setup/first-run/query` 以 `SAYDO_HOME/first-run-onboarding.json` 作为独立 once marker,原子结合 Focus 计数与启动前 session/audit 活动判定。空 HOME 必须在 daemon 自身 bootstrap/setup audit 前持久化 `eligible`,使资格跨配置重启保留;已有 session/audit 的 HOME 写 `legacy_not_eligible`。eligible 投递固定开场白“第一次来?随便说三件你这周要办的事,我们先聊清楚。聊成熟了,我会问你要不要把这件事立起来持续关注。”为 assistant 转写轮,并在 durable transcript 与可重建 history 全程保留 `origin=onboarding`;legacy 不投;抢先用户消息只有在真正被接纳后才写 `skipped_by_user`,被 recovery 拒收的消息不得消费 marker。投递采用可恢复的 `presenting→presented` 提交协议:投递抛错保留同 turn 重试,若转写/不可变审计已证投递则只提交 marker;同一 session 对已 presented marker 的后续探询必须幂等回放同一 `turnId/message`,不重复落轮。
 8. `POST /api/setup/cli-capability/reprobe` 是本机 setup 轻量重探(T19):body `{ names: CliName[] }`(目录内名字,去重保序,空数组合法);逐家绕缓存并行探测、单家预算 8s,只做装没装/登录态/可枚举模型,禁止发起真实模型调用。成功 `{ ok:true, clis: CliCapability[] }`,非法 names 400。鉴权同其它 setup 写口:仅 `via="local"`,tailnet/`mobile_lan` 403,不得加入 mobile_lan 白名单。`POST /api/setup/cli-capability/confirm` 仍是用户显式真实一发,不得被自动重探复用。
 
 ### History:T17 前的 D18 CLI 目标草案
@@ -1974,7 +2011,7 @@ type DialogCliOneshotEnvelope = {
    **invocation 记录(全部 BYOA/api 调用,不可变)**:生效 profile、configured_provider(配置面)、**routed_provider(聚合网关实际路由上游,M2 2026-07-25;无上游回显显式记 unknown,不留空歧义)**、argv digest、cwd、笼档、observedModel、tool 事件计数、所引证据 digest——落 audit_log,审计可证调用与声明绑定一致(复评 B7;§12-9 断言 routed_provider 落账);
    **笼档字段单源(GAP-02 2.9)**:`byoa/cage.ts` 导出 `CAGE_LEVELS: Record<CageProvider, {level: "tool-deny"|"write-sandbox"|"ask+tripwire", enforcement: "full"|"partial"}>`(tool-deny / write-sandbox 事前 allow 式 = full;ask+tripwire 事后检测 = partial);invocation 审计 `cage` + `cageEnforcement` 与 `GET /api/setup/cli-capability` 每个 provider 非 null 项的 `cage` 都引用它,不得内联判档;本表只是声明档位,真实 CLI conformance 探针归 AS-03。
    **无 resume**(依赖会话落盘,与隐私开关互斥;BYOA 调用一律无状态一发一收;2026-07-23 实测 resume 对延迟也无收益——瓶颈在每次调用的服务端 agent-loop 初始化);唯一例外:奠基/调研任务显式传只读仓 cwd(claude 侧 `--tools "Read,Glob,Grep"`);**tripwire**:笼内出现任何 tool_call 事件 ⇒ 终止调用、结果作废、记审计;
-5. 订阅调用记账:`cost_entries.source='subscription'`,`known=0`,`amount=NULL`;`meta_json` 形状(2026-07-25 Codex 13b 消解与 §9 M4 矛盾):**`kind` 以 `llm.` 为前缀的订阅行同样必含 §9 定型四键 `{model,input_tokens,cached_input_tokens,output_tokens}`(tokens 可得时;流式 CLI 不回 usage 时四键记 0 并 meta 标 `usage_unavailable:true`,不编数),另含 `{provider, plan_window?, requests, provenance?}`;`routed_provider?` 按 M2**。**`provenance` ∈ `{subscription, external_api, unknown}`**(2026-08-13):探测时按各家认证面采集(gemini oauth-personal→subscription;qwen `auth-type=openai`+key→external_api;copilot GitHub 登录→subscription;判不出→unknown),ledger 原样带上。**只有 `provenance="subscription"` 才允许「订阅内零成本」文案**;`external_api`/`unknown` 用如实文案「按该 CLI 的上游计费方式,SayDo 不代付」(文案分流在 console,daemon 端点必须把 provenance 吐给前端)。呈现"订阅额度内(已用 N 次)",**不显示 ¥0 或"未知"**,不预测剩余额度;月预算/任务 maxCost 只 SUM `source='api'` 行,订阅调用靠墙钟+回合数熔断兜底;**限流 fail-fast + 切计费收据**(复评 A5):返回 `{ok:false, code:"subscription_rate_limited", retryable:true}` → 槽位置 `waiting_confirmation` → Brain 按 10 话术**询问**(有同族 key:切按量计费或等重置;无 key:如实告知阻塞)——确认落**一次性 billing-switch 收据**(绑 sessionId+槽位+目标端点+有效期,原子单次消费),**无收据不得产生 `source='api'` 计费行**,provider 层禁止跨计费源自动降级;P0 不做自动排队重放(**本句范围 = BYOA 四槽人工确认切源纪律;Tier1 执行器例外(2026-08-21 W5.4-b 前置)**:`kind='tier1_run'` 走 `subscription_retry_queue` durable 重放(§9 DDL 注),重放仍订阅额度内、不产生 api 行、billing-switch 收据纪律不变);
+5. 订阅调用记账:`cost_entries.source='subscription'`,`known=0`,`amount=NULL`;`meta_json` 形状(2026-07-25 Codex 13b 消解与 §9 M4 矛盾):**`kind` 以 `llm.` 为前缀的订阅行同样必含 §9 定型四键 `{model,input_tokens,cached_input_tokens,output_tokens}`(tokens 可得时;流式 CLI 不回 usage 时四键记 0 并 meta 标 `usage_unavailable:true`,不编数),另含 `{provider, plan_window?, requests, provenance?}`;`routed_provider?` 按 M2**。**`provenance` ∈ `{subscription, external_api, unknown}`**(2026-08-13):探测时按各家认证面采集(gemini oauth-personal→subscription;qwen `auth-type=openai`+key→external_api;copilot GitHub 登录→subscription;判不出→unknown),ledger 原样带上。**只有 `provenance="subscription"` 才允许「订阅内零成本」文案**;`external_api`/`unknown` 用如实文案「按该 CLI 的上游计费方式,SayDo 不代付」(文案分流在 console,daemon 端点必须把 provenance 吐给前端)。呈现"订阅额度内"，仅按 §9.1 完整合法 requests 显示"已用 N 次"；N 缺失/不完整如实显示"调用次数未提供/不完整"，**不显示 ¥0 或把可信订阅当金额"未知"**,不预测剩余额度;月预算/任务 maxCost 只 SUM `source='api'` 行,订阅调用靠墙钟+回合数熔断兜底;**限流 fail-fast + 切计费收据**(复评 A5):返回 `{ok:false, code:"subscription_rate_limited", retryable:true}` → 槽位置 `waiting_confirmation` → Brain 按 10 话术**询问**(有同族 key:切按量计费或等重置;无 key:如实告知阻塞)——确认落**一次性 billing-switch 收据**(绑 sessionId+槽位+目标端点+有效期,原子单次消费),**无收据不得产生 `source='api'` 计费行**,provider 层禁止跨计费源自动降级;P0 不做自动排队重放(**本句范围 = BYOA 四槽人工确认切源纪律;Tier1 执行器例外(2026-08-21 W5.4-b 前置)**:`kind='tier1_run'` 走 `subscription_retry_queue` durable 重放(§9 DDL 注),重放仍订阅额度内、不产生 api 行、billing-switch 收据纪律不变);
 6. **evaluator 深评调用律**(复评 B1):按 `(sessionId, evidenceDigest, trigger)` 去重(同证据不重评),每会话上限 `[params].evaluator_deep_review_max_per_session`(缺省 3)+ 冷却 60s;与 Tier 1 执行共享订阅时窗时并发预检(执行在跑 ⇒ 深评排队不抢)。
 
 ## 12. 契约测试清单(P0 必须全绿)
@@ -2167,8 +2204,11 @@ suspendSession(i:{ sessionId:Id; reason:string }): { ok:true };
 
 > 命名:契约与工具签名统一 **camelCase**;03/10 的 instructions 若出现 snake_case 以本节为准(落地生成 tool manifest 时统一)。
 
-`TaskView` = §7 投影表的用户视图对象,**最小字段(Codex 复审 B3 定形,与 10 #23 话术槽位对齐)**:`{ taskId, title, status /* §7 用户语词表 */, attempt, elapsedActiveMs /* 活跃墙钟,停靠停表 */, currentStep?:{seq,name}, budget:{spentKnown?:number, max:number, subscriptionCalls?:number}, lastEventOneLiner, asOf }`;`Decision`(decisions[] 项)= `{ what:string; why:string; overridable:true }`。
-**`AcceptanceCheck`(A3 结果合同——决策卡与验收卡共享同一组 acceptance criteria)** = `{ criterion:string; status:"pass"|"fail"|"unknown"; evidenceRef?:string; source:"verify"|"agent_claim"|"manual" }`:`DecisionPackage.acceptance` 每条 criterion 一一对账。**条件必填规则**:`status∈{"pass","fail"}` 时 `evidenceRef` 必须是非空字符串;绑不上证据只能标 `unknown`(不显示伪精确,A8 同纪律),呈现层遇历史坏值也必须降为 unknown。`ready_for_review`/`explainResult` 载荷带 `checks[]`,"做了但不在验收标准内"入 `outOfScope`。**2026-08-23 收紧**:coding 的 `Tier1SettleProof.acceptanceChecks[]` 持久化这组逐条状态;当前 `DecisionPackage.acceptance:string[]` 与 verify 模板没有显式绑定,因此只凭「所有 verify 退出 0」不得把全部 criterion 推成 pass,未绑定项固化为 `manual/unknown`;旧 proof 缺该字段时呈现层按包内 criterion 补 unknown。任务/run 终态永远不是逐条验收证据。呈现层必须把 `evidenceRef` 解析为该指针所指的原始输出/文件差异/检查结果;缺 ref、digest 不匹配、跨 run、无权 = 诚实缺证,禁止把 runId/treeSha/status 拼成 log。coding `reviewTask(approve)` 必须重新读取 task 当前绑定的 durable DecisionPackage 完整 canonical 正文并对 `packageRevision` 与 criterion 双向 exact-set;不得仅信 run 自带 proof。这是"按验收标准组织的证据视图"从 UI 承诺升为合同承载(§12-3 加对应断言)。
+`TaskView` = §7 投影表的用户视图对象,**最小字段(Codex 复审 B3 定形,与 10 #23 话术槽位对齐)**:`{ taskId, title, status /* §7 用户语词表 */, attempt /* 已有 attempt 的最大序号,尚未运行=0 */, elapsedActiveMs /* 全任务累计活跃毫秒;不完整=null;停靠停表 */, currentStep?:{seq,name}, budget:{spentKnown?:number, max:number, subscriptionCalls?:number}, lastEventOneLiner, asOf }`;`Decision`(decisions[] 项)= `{ what:string; why:string; overridable:true }`。
+
+2026-09-27 owner 裁定:耗时跨 attempt 累计。每条 run 取完整的持久活跃时长,当前执行器持有的 run 用实时预算计时替换同一行快照,不得重复相加;停靠/等待审批不加时。任一历史或非优雅恢复 run 的计时不完整则 `elapsedActiveMs=null`,不得用 0 冒充。无 run 时 attempt=0、耗时=0。`tier1_runs.budget_clock_complete` 为新增完整性位,默认 0 保留历史未知;新认领置 1,非优雅恢复置 0,终态事务保存 `budget_active_ms`。状态使用用户语言,不能把 running/ready_for_review 原样送入话术。
+
+**`AcceptanceCheck`(A3 结果合同——决策卡与验收卡共享同一组 acceptance criteria)** = `{ criterion:string; status:"pass"|"fail"|"unknown"; evidenceRef?:string; source:"verify"|"agent_claim"|"manual" }`:`DecisionPackage.acceptance` 每条 criterion 一一对账。**条件必填规则**:`status∈{"pass","fail"}` 时 `evidenceRef` 必须是非空字符串;绑不上证据只能标 `unknown`(不显示伪精确,A8 同纪律),呈现层遇历史坏值也必须降为 unknown。`ready_for_review`/`explainResult` 载荷带 `checks[]`,"做了但不在验收标准内"入 `outOfScope`。**2026-08-23 收紧**:coding 的 `Tier1SettleProof.acceptanceChecks[]` 持久化这组逐条状态;当前 `DecisionPackage.acceptance:string[]` 与 verify 模板没有显式绑定,因此只凭「所有 verify 退出 0」不得把全部 criterion 推成 pass,未绑定项固化为 `manual/unknown`;verify 非零也不得把所有 criterion 批量判 fail,可附该 verify 文件引用供查看诊断,任务/run 仍保持失败;旧 proof 缺该字段时呈现层按包内 criterion 补 unknown。任务/run 终态永远不是逐条验收证据。呈现层必须把 `evidenceRef` 解析为该指针所指的原始输出/文件差异/检查结果;缺 ref、digest 不匹配、跨 run、无权 = 诚实缺证,禁止把 runId/treeSha/status 拼成 log。coding `reviewTask(approve)` 必须重新读取 task 当前绑定的 durable DecisionPackage 完整 canonical 正文并对 `packageRevision` 与 criterion 双向 exact-set;不得仅信 run 自带 proof。这是"按验收标准组织的证据视图"从 UI 承诺升为合同承载(§12-3 加对应断言)。
 
 DecisionPackage 的存储列 `project_id`、正文 `projectId`、task `project_id` 必须在 settle 与 approve 两处均相等;这是 acceptance 对账的前置身份闸,不能由 digest 自洽替代。
 
@@ -2275,13 +2315,14 @@ promoteProject(i:{ projectId:Id; title:string; type:"coding"|"planning"|"researc
 #### 15.2.2 写口、互斥清列、终态、审计
 
 - HTTP:`POST /api/obligations/:id/waiting-on`。body 三选一且互斥:`{preId:Id}` 义务前置 / `{preId:null}` 清除全部等待 / `{taskId:Id, condition?:"accepted"|"delivered"}` 任务前置。`preId` 与 `taskId` 同发 → 400。缺任一必填 → 400。
-- 实现单点:`setObligationWaitingOn` / `setObligationWaitingOnTask`(`packages/daemon/src/focus/dependency.ts`)。任务推进钩子=`applyTaskDependencyTransition`(挂 `transitionTask` 与 S3/writing approve 裸 UPDATE 之后)。
+- 实现单点:`setObligationWaitingOn` / `setObligationWaitingOnTask`(`packages/daemon/src/focus/dependency.ts`)。任务推进钩子=`applyTaskDependencyTransition`(挂 `transitionTask` 与 S3/writing approve 裸 UPDATE 之后)。任务状态与本次依赖更新/事件须在同一 SQLite 事务内提交;任一失败整体回滚,可按原状态重试。合并证明的本地结算同样包含 `task.done` 审计,不撤销已发生的外部 Git 合并。
+- **等待写入边界(2026-10-03 普通权限修复)**:设置和清除每次均在 `FocusWriteTx` 锁窗内重读真实 Focus 的 semanticAuthority,writer 缺省 `saydo`;不匹配则整组回滚。调用方提供 `capturedEpoch` 时才与 authorityEpoch 比较并 fence;未传时只读取锁窗内当前 epoch,HTTP body 不携带 epoch,不得声称旧请求已有 epoch fence。HTTP waiting-on 的状态、已有依赖事件和 `obligation.waiting_on|obligation.waiting_on_task` 审计同一 SQLite 事务提交;任一写失败均不得残留状态或审计。sink 未声明与该连接同库时,在语义写前返回 409 `audit_transaction_unavailable`;文件/JSONL 不具有跨介质原子能力。用户清除不新增或冒用 `dependency_woken` 事件。
 - **切换必清旧列(同一 UPDATE)**:
   - 设任务前置:写 `waiting_on_task_id`+`waiting_task_condition`+`waiting_on=任务标题`,并 `waiting_on_obligation_id=NULL`。
   - 设义务前置:写 `waiting_on_obligation_id`+`waiting_on=义务标题`,并 `waiting_on_task_id=NULL` 且 `waiting_task_condition=NULL`。前置已终态则直接 `blocked`,同样清任务列。
   - 清除(`preId:null`):`waiting_on` / `waiting_on_obligation_id` / `waiting_on_task_id` / `waiting_task_condition` 四列全 NULL;若原 `waiting|blocked` 则回 `open`。
 - 终态:任务满足条件 → 依赖方 `open` + 四列清空 + 事件 `dependency_task_woken`。任务负向终态(`failed`/`cancel_settled`/`superseded`)→ 依赖方 `blocked`,任务列保留 provenance + 事件 `dependency_task_blocked`。设任务前置时条件已满足 → 同事务 `dependency_task_set` 后立即 woken;已负向终态 → set 后立即 blocked。
-- 归档闸:`POST /api/focuses/:id/archive` 若存在绑定任务且状态 ∈ `{confirmed,queued,running,paused_step_boundary,ready_for_review,review_approved_waiting_merge,merging,cancel_requested}` → 409 `focus_has_running_work`;audit `focus.archive_rejected`。归档 ≠ 放弃 ≠ 关闭。
+- 归档闸:`POST /api/focuses/:id/archive` 若存在绑定任务且状态 ∈ `{confirmed,queued,running,paused_step_boundary,ready_for_review,review_approved_waiting_merge,merging,cancel_requested}` → 409 `focus_has_running_work`;audit `focus.archive_rejected`。归档 ≠ 放弃 ≠ 关闭。允许归档时,关闭全部 active activation、生命周期/事件变更及同库 `focus.archived` 审计必须在同一事务提交;任一失败整组回滚,不得吞关闭异常后继续归档。
 - 审计(敏感只 digest):`obligation.waiting_on` / `obligation.waiting_on_task` / `obligation.deferred` / `focus.archived` / `focus.archive_rejected`。事件流:`dependency_set|woken|blocked` 与 `dependency_task_set|woken|blocked`。零主动通知。
 
 #### 15.2.3 七步生产 Focus 旅程(读口优先现有 API/live;不另建状态权威)
@@ -2460,3 +2501,752 @@ attention 数字与 §15 的现役 read model 同源,DND 与活动配置同源;�
   显式端口;⑥活跃 Tier1 prepare-shutdown 后续接且不落 failed、BYOA 不冒充可恢复;
   ⑦Ctrl+C/重启后无 daemon 或 agent 孤儿;⑧Node 22 真机加载 `koffi` 且 `better-sqlite3` 真开库;
   ⑨`npm pack` tarball 可安装。brew/npm 公网发布是独立 release gate,未发布不得称档2已成立。
+
+### Windows stdio 原生所有权补充（SC-51）
+
+父端 overlapped I/O 的缓冲区、OVERLAPPED、事件与管道句柄,只有在证实该次I/O终结后才能释放。WAIT_FAILED、IO_INCOMPLETE、取消请求成功、等待截止均不能充当完成证据。截止必须显式报错并保留在途所有权;后续终结才能清理。事件或管道 CloseHandle 失败不得吞掉或标 released/disposed。原生EOF仅由明确断管/文件末尾错误证明,其它错误保留失败属性并传到消费者。仅调用线程读取对应 GetLastError。
+
+## 17. RF 目标合同(2026-09-29 modular-foundation;designed — 未实现)
+
+> 本节是 **designed** 级目标合同:为 RF-01~11 实施与 PG-02~06 前置准备的统一
+> canonical 形状。**当前生产实现不以本节为准**;本节任何形状写成过去完成时或
+> 被引用为既有事实都算错误。实现落地以各自 RF/PG 批卡验收为准。
+> 与现役条款冲突时现役条款仍有效;本节逐条落地时把相应形状迁入正文章节并
+> 移除 designed 标记。
+
+### 17.1 业务幂等:服务端复合键 K 与 digest 分离(目标合同)
+
+三层标识不共用字段、不互推;缺任何一层都不得声称幂等:
+
+| 层 | 标识 | 生成方 | 语义与生命周期 |
+|---|---|---|---|
+| 传输去重 | `idempotencyKey`(ULID,`cmd_`/`evt_` 已登记前缀) | 调用方 | 同连接重放逐字返回首次传输应答;不证明业务只执行一次 |
+| 业务幂等键 K | `installationId + principal + scope + operation + requestId` 五元组 | 服务端组装 | 持久唯一约束 + 原子占位;跨连接/跨重启/并发下只执行一次 |
+| 内容指纹 | `requestDigest`(`sha256:<hex>`,JCS) | 服务端在严格解码与版本化规范化之后计算 | **K 之外的比较域**,不进 K;同 K 异 digest ⇒ `idempotency_conflict` |
+
+- K 各分量的可信来源:`installationId`/`principal`/`scope` 取自服务端建立的
+  TrustedContext(§17.2),**不得**由请求体自报;`operation` 是服务端注册词表中的
+  稳定操作名(未注册 `unregistered_not_claimable`);`requestId` 是调用方对一次
+  业务意图签发的 ULID,新意图必须新 ID——确认卡重现不得重播旧"同意"。
+- `requestDigest` 在 zod strict 解码与版本化规范化之后计算:字段序/空白/
+  编码差异不折叠成不同 digest,未知授权字段先被 strict 拒绝(§17.2 配合)。
+  digest 只回答"同 K 请求是否同一内容",不承担唯一键职责。
+- 记录形状(目标;接入 RF-02 竖切 DTO 时落 contracts schema):
+
+```typescript
+type CommandIdempotencyRecord = {
+  installationId: Id; principal: PrincipalRef; scope: ScopeRef;
+  operation: string; requestId: Id;          // 五元组 = K,持久唯一约束
+  requestDigest: Digest;                     // 比较域,不入唯一键
+  operationId: Id;                           // 服务端签发的稳定操作身份;查询/对账入口
+  status: "accepted" | "executing" | "settled" | "rejected"
+        | "expired" | "reconcile_required";
+  expectedRevision?: number;                 // 写操作可声明;执行前与对象当前 revision 重验
+  attempt: number;                           // ≥1;同 K 重放不增、不重置
+  boundReceiptId?: Id;                       // 实际业务派发已单次消费的收据(§3);模型准备不要求此字段
+  responseDigest?: Digest;                   // 首次应答指纹;重放返回同一应答
+  createdAt: Ts; updatedAt: Ts;
+  expiresAt?: Ts;  // 只裁剪应答载荷域的到期点;K+status+operationId+updatedAt
+                   // 墓碑永不随 TTL 删除(见下「墓碑不灭」)
+};
+```
+
+- **原子占位**:首个请求在持久事务内对 K INSERT 占位(status=accepted)再执行
+  业务;并发同 K ⇒ 恰一占位成功,其余读回原记录或得到 `idempotency_inflight`,
+  不得双执行。
+- **重放语义**:同 K 同 digest ⇒ 返回既有 `operationId`/`status`/
+  `responseDigest`(只读原结果),不重建 intent、不重复消费收据、不重置预算
+  或资格;失败或取消保留消费历史。
+- **不确定路径**:提交/应答/网络任一不确定 ⇒ 按 `operationId`/`requestId`
+  查询记录,**禁止自动重执行**;`executing`/`reconcile_required` 只挂起对账。
+- **K 一次占位、墓碑不灭**:K 占位一旦持久提交,该五元组的执行资格即被永久
+  消耗——TTL/缓存清理/容量回收只可裁剪应答载荷域(`responseDigest` 与详情
+  字段),**不得删除唯一性墓碑**;`K + status + operationId + updatedAt` 为
+  最低保留集,任何"到期即删除、再允许同 K 占位"的实现都算 bug。墓碑保留期
+  是独立参数 `idempotencyTombstoneRetention`(缺省 180 天,且不得短于业务
+  最长重试跨度);期满仅允许加密粉碎不可恢复副本,唯一约束随墓碑同步轮换到
+  下一个持久化载体,期间同 K 重放始终返回墓碑 `expired`,不新建占位、不
+  再执行。
+- **终态与可安全保留集**:`settled`/`rejected`/`expired`/`reconcile_required`
+  是可安全长期保留的终态;`accepted`/`executing` 非终态——崩溃或恢复后
+  一律先转 `reconcile_required` 接受人工对账,不得冒充 `settled`。
+- **查询结果形状与权限**:K 查询应答最小域为
+  `{lookup: "found" | "expired" | "reconcile_required" | "unknown",
+  operationId?, status?, updatedAt?}`;`unknown` 只是查询判定(恢复缺
+  记录/载体未挂载),**不是可入库终态**。恢复后缺记录显式返回 `unknown`,
+  **"查不到记录"不证明"未执行"**,调用方与服务端都不得据此自动重发;
+  缺记录对象进入 reconcile 清单等明示处置。查询入口仍走 §17.2
+  `control.settle` 谓词(身份 ∧ 归属 ∧ 目标 scope),墓碑存在性不授予
+  任何执行或越 scope 读取权限。
+- **新 requestId = 新业务意图**:换 `requestId` 允许建立新 K 并走正常准入,
+  但它不回溯证明旧 K 的副作用未发生;旧查询为 `unknown`/`reconcile_required`
+  时,调用方必须先完成人工对账再发新意图——确认卡重现不得重播旧"同意"。
+- **幂等不授权**:记录存在性与结果返回仍走 §17.2 鉴权与归属校验;K 查询口
+  只对本 scope 开放。
+- **边界**:传输 ULID 去重只管连接内重放;durable 事件保留窗口(§17.3)只管
+  事件补发,其到期只能断补发、不得清 K 墓碑;二者都不构成跨重启/跨恢复的
+  业务幂等,业务幂等只认本节 K 记录及其墓碑。
+
+### 17.2 服务端权威身份与命令效果分类(目标合同)
+
+`TrustedContext` 在认证/绑定后由服务端建立;请求体中的 via/local/trust/
+scope/principal 自报字段一律不作权威(可作审计线索,不作准入判据):
+
+```typescript
+type PrincipalRef = { kind: "owner"; id: Id };   // P0 单用户;扩期另立合同
+type ScopeRef = { kind: "project" | "session" | "global"; id: Id };
+
+type TrustedContext = {
+  installationId: Id;        // 配对/安装绑定时服务端登记
+  principal: PrincipalRef;
+  projectScope: ScopeRef[];  // 服务端按连接绑定与资源归属解析,不接受请求自报
+  connectionTrust: "local_loopback" | "paired_device" | "untrusted"; // 由传输与配对态推导
+  authEpoch: Id;             // 授权代际:凭据吊销/配对变更/恢复后更换(§17.3)
+};
+```
+
+一切 `CommandIntent` 归入下表唯一类别;未注册类别按 `unregistered_not_claimable`
+fail-closed。准入谓词全部由服务端判定;效果类别不隐含新任务派发。命令 admission 沿
+"严格解码 → 服务端身份/范围与当前 remote/recovery 策略 → 适用 Gate0/风险/预算
+→ 按分面绑定适用收据(模型用量不绑定任务派发收据) → 持久意图与业务提交 → 执行前重验 → 副作用与 settle" 的次序:
+
+| effectClass | 定义 | 准入谓词(按实际分面组合) | 记录 |
+|---|---|---|---|
+| `read` | 只读 | 已认证 TrustedContext ∧ 目标资源归属 ∈ projectScope | 采样审计 |
+| `subscribe` | 只读流,不改服务端状态 | `read` 谓词 ∧ 游标绑定当前 authEpoch/recoveryEpoch(§17.3) | 订阅/退订审计 |
+| `control.settle` | 收口:取消/停止/拒绝批准/恢复读取/对账查询 | 身份 ∧ 归属 ∧ 目标对象存在 ∧ 其状态机允许该跃迁 | 完整审计;**不得**误套新派发预算、收据或 Gate0 readiness;关闭新派发不得阻断收口 |
+| `write.idempotent` | 可安全重放的有界写 | 身份 ∧ 归属 ∧ §17.1 K 原子占位且持久落地先于应答 | 完整审计 |
+| `write.effect` | 有外部副作用(执行/付费/投递) | `write.idempotent` ∧ 适用风险 ∧ 下述 providerAdmission 与 dispatchAdmission 各自谓词;不得仅凭 write.effect 要求派发收据 | 完整审计 + outbox |
+| `write.irreversible` | 不可由系统撤销(发消息/合并/发布) | `write.effect` 全部要求 + Gate0/适用业务预算/§3 收据或 grant + 明示确认面;S3 仍只走 §3.3 本机强认证 | 完整审计 + 不可变证据 |
+
+- **现役命令逐项归类**(按真实实现效果而非命名,逐项源码证据见
+  `research/rf-00/action-effect-audit.md`;目标形状,不是路由改动):
+
+| 现役入口 | 真实效果(实现证据) | effectClass | 附加谓词 |
+|---|---|---|---|
+| `review` `verdict=reject` | 评审否决,任务收口不执行 | `control.settle` | — |
+| `review` `verdict=approve` | 决策写:落 `approved_tree_sha`+冻结收叫+审计;**不执行合并** | `write.idempotent` | `expectedAttempt` CAS 防重放 |
+| `review` `verdict=request_changes` | 同 task 新 attempt 回 `running` 由执行器认领继续 | `write.effect` | 认领时适用派发前置与预算记账归属 |
+| `cancel` | `cancelWithAutoSettle`:取消活跃 run,无活跃 run 直接收口 | `control.settle` | — |
+| `retry` | `failed→queued` 重派发(认领时重过 worktree/预算/Gate 0);`blocked→running` 应答注入 | `write.effect` | 仅重派发子路径收新派发谓词;注入子路径不新开预算、不新消费收据 |
+| `request-manual-merge` | 读 task status + 审计 + 返回 `handoffUrl`;**不执行合并、不建新派发、不起进程** | `control.settle`(交接收口) | 不受"合并"名义升级为 write.effect;S3 合并链受信终端约束不变 |
+| `verify-merge` | `execFileSync git` 只读现读 `HEAD^{tree}` 对账批准落库值,匹配才 CAS→`task_done` | `control.settle`(对账查询+收口跃迁) | 受信终端约束同 S3 合并链 |
+| `approve-merge` | 消费 S3MergeReceipt→`merging`+异步执行段 | `write.irreversible` | S3MergeReceipt 判别型不变(§3.3) |
+| `POST /api/s3/challenge`/`register`/`verify` | 挑战签发/凭据注册/断言验签出收据 | `write.idempotent` | 任何业务逻辑前过 §3.3 四断言 |
+| `POST /api/s3/status` | 注册态查询(POST 仅为 Origin 断言形状) | `read` | 同上 |
+| `POST /api/approvals/:id/decide` `reject` | 拒绝批准,收据终局不可消费 | `control.settle` | S3 行一律拒走本口(§3.3 红线) |
+| `POST /api/approvals/:id/decide` `accept`/`edit` | 决议写:收据成为可消费/改签新收据 | `write.idempotent` | `edit` 仅本机受信终端;S3 行同拒 |
+| `POST /api/memory/:id/approve`/`reject` | 记忆 candidate→trusted 晋级 / 否决 | approve=`write.idempotent`;reject=`control.settle` | memory owner 域写,未注册不 claim |
+
+- Brain 工具面调用同一用例,逐工具静态分面见 RF-00 `semantic-claims.json`
+  的 `effectFacets`;此处为目标分类,不宣称现役已实现持久幂等或统一准入。
+  `approveAction.decision=accept/reject` 分别跟随 `approval.decide` 的
+  `write.idempotent/control.settle`;批准只改变收据资格,实际消费与派发仍在
+  `confirmAndDispatch`/执行器。关闭新派发不得阻断拒绝。
+- `dispatchAdmission` 单独记录新派发关系:`none` 不引入新派发前置,
+  `at_dispatch` 在实际派发点检查,`existing_run` 只注入在场 run、不新开预算
+  或消费新收据。它不撤销身份/归属/状态机/S3/provider 等既有门。
+  附属确认卡、语音呈现及内部候选写不因名字含 approve/propose 升为执行。
+  下块保留上表现役同用例分类的结构化表达,与正文同属本节 canonical;
+  RF-00 库存扫描及离线自证门已于 2026-10-07 退役，research 不得另立权威。键为 operation:branch,值为
+  [effectClass,dispatchAdmission,providerAdmission],所有已登记工具分面必须有 canonical 项。
+
+- **效果、模型用量、新任务派发三者独立**:起草/采访/解释/深评即使可能计费,
+  也只消费模型调用授权,不消费尚未存在的任务派发收据。`proposeStart` 先调用
+  drafter(可含 evaluator),形成 proposed 包;`issueDispatchReceipt` 再依据该包签发,
+  `confirmAndDispatch` 才消费收据。禁止从 write.effect 推导 at_dispatch。
+- `providerAdmission` 为 `"none"` 或下列严格对象(无可选字段):
+  `{routeAuthorization:"current_binding",resourceOwnership:"server_scope",
+  budget:"provider_usage",billing:"billing_owner",audit:"usage_digest"}`。
+  `none` 仅表示该分面不直接发起模型请求;不得撤销执行器已有任务预算。
+  对象表示每个实际模型请求(含重试)均保留 §11 模型槽/route/provider 绑定授权、
+  服务端解析的会话/项目/任务归属、现役 provider 用量预算/调用律、billing owner
+  的付费路线与切换资格及用量审计(敏感内容仅 digest)。API 与订阅/BYOA 均适用;
+  不把订阅无金额当无用量,不以准备动作名义绕付费切换确认。setup 自检/CLI
+  真实一发仍走现役本机 setup 显式授权,不要求任务包。无 provider/缓存/规则
+  回退分支不捏造调用或计费。此为目标约束,不声称现役每条路径已经统一实现。
+- `dispatchAdmission=at_dispatch` 独立要求 Gate0 已关、任务归属、适用风险/任务
+  预算与 §3 收据或预授权 grant 的单次消费,在真实派发/认领/新 run 边界重验。
+  retry failed、返工、新 attempt、confirmAndDispatch 不因上述拆分降级;
+  `existing_run` 沿用原 run 预算与授权,不重开额度/消费新收据;原授权消费历史
+  不重置。目标 claimDispatch/run 同受此约束,现役对应 claimNext/runAttempt。
+  批准、记忆 candidate→trusted、billing-switch 仍各守原 owner 与状态机;
+  control.settle 取消/拒绝/停止不因新派发关闭而阻断。
+
+
+```rf00-effect-contract
+{
+  "cli.up:attached": [
+    "read",
+    "none",
+    "none"
+  ],
+  "cli.up:available": [
+    "write.effect",
+    "none",
+    "none"
+  ],
+  "cli.status:*": [
+    "control.settle",
+    "none",
+    "none"
+  ],
+  "cli.open:*": [
+    "write.effect",
+    "none",
+    "none"
+  ],
+  "cli.doctor:*": [
+    "read",
+    "none",
+    "none"
+  ],
+  "cli.help:*": [
+    "read",
+    "none",
+    "none"
+  ],
+  "task.cancel:*": [
+    "control.settle",
+    "none",
+    "none"
+  ],
+  "task.retry:failed": [
+    "write.effect",
+    "at_dispatch",
+    "none"
+  ],
+  "task.retry:blocked": [
+    "write.effect",
+    "existing_run",
+    "none"
+  ],
+  "task.handoff:*": [
+    "control.settle",
+    "none",
+    "none"
+  ],
+  "task.review:approve": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "task.review:request_changes": [
+    "write.effect",
+    "at_dispatch",
+    "none"
+  ],
+  "task.review:reject": [
+    "control.settle",
+    "none",
+    "none"
+  ],
+  "task.verifyMerge:*": [
+    "control.settle",
+    "none",
+    "none"
+  ],
+  "approval.decide:accept": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "approval.decide:reject": [
+    "control.settle",
+    "none",
+    "none"
+  ],
+  "approval.decide:edit": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "memory.decide:approve": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "memory.decide:reject": [
+    "control.settle",
+    "none",
+    "none"
+  ],
+  "explainResult:provider": [
+    "write.effect",
+    "none",
+    {
+      "routeAuthorization": "current_binding",
+      "resourceOwnership": "server_scope",
+      "budget": "provider_usage",
+      "billing": "billing_owner",
+      "audit": "usage_digest"
+    }
+  ],
+  "explainResult:local": [
+    "read",
+    "none",
+    "none"
+  ],
+  "resolveProject:*": [
+    "read",
+    "none",
+    "none"
+  ],
+  "proposeProjectAnchor:*": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "promoteProject:*": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "task.draft:provider": [
+    "write.effect",
+    "none",
+    {
+      "routeAuthorization": "current_binding",
+      "resourceOwnership": "server_scope",
+      "budget": "provider_usage",
+      "billing": "billing_owner",
+      "audit": "usage_digest"
+    }
+  ],
+  "task.draft:mechanical_fallback": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "proposeStart:*": [
+    "write.effect",
+    "none",
+    {
+      "routeAuthorization": "current_binding",
+      "resourceOwnership": "server_scope",
+      "budget": "provider_usage",
+      "billing": "billing_owner",
+      "audit": "usage_digest"
+    }
+  ],
+  "getDecisionPackage:*": [
+    "read",
+    "none",
+    "none"
+  ],
+  "issueDispatchReceipt:*": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "confirmAndDispatch:*": [
+    "write.effect",
+    "at_dispatch",
+    "none"
+  ],
+  "getStatus:*": [
+    "read",
+    "none",
+    "none"
+  ],
+  "screen.open:review_url": [
+    "read",
+    "none",
+    "none"
+  ],
+  "screen.open:editor_link": [
+    "write.effect",
+    "none",
+    "none"
+  ],
+  "task.steer:cancel_resume": [
+    "write.effect",
+    "at_dispatch",
+    "none"
+  ],
+  "task.steer:queued_delta": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "remember:*": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "forget:*": [
+    "control.settle",
+    "none",
+    "none"
+  ],
+  "confirmReadiness:*": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "addHotword:*": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "listProjectDir:*": [
+    "read",
+    "none",
+    "none"
+  ],
+  "readProjectFile:*": [
+    "read",
+    "none",
+    "none"
+  ],
+  "suspendSession:*": [
+    "control.settle",
+    "none",
+    "none"
+  ],
+  "assessReadiness:provider": [
+    "write.effect",
+    "none",
+    {
+      "routeAuthorization": "current_binding",
+      "resourceOwnership": "server_scope",
+      "budget": "provider_usage",
+      "billing": "billing_owner",
+      "audit": "usage_digest"
+    }
+  ],
+  "assessReadiness:local": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "proposeFocusAnchor:*": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "obligation.resolveProposal:done": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "obligation.resolveProposal:abandoned": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "obligation.resolveProposal:no_longer_applicable": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "getFocusStatus:*": [
+    "read",
+    "none",
+    "none"
+  ],
+  "proposeObligation:*": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "proposeFocusRevision:*": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "proposeLaneSplit:*": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "proposeExpectationAck:*": [
+    "write.idempotent",
+    "none",
+    "none"
+  ],
+  "dialog.model:*": [
+    "write.effect",
+    "none",
+    {
+      "routeAuthorization": "current_binding",
+      "resourceOwnership": "server_scope",
+      "budget": "provider_usage",
+      "billing": "billing_owner",
+      "audit": "usage_digest"
+    }
+  ],
+  "setup.modelSelfTest:*": [
+    "write.effect",
+    "none",
+    {
+      "routeAuthorization": "current_binding",
+      "resourceOwnership": "server_scope",
+      "budget": "provider_usage",
+      "billing": "billing_owner",
+      "audit": "usage_digest"
+    }
+  ],
+  "setup.cliConfirm:*": [
+    "write.effect",
+    "none",
+    {
+      "routeAuthorization": "current_binding",
+      "resourceOwnership": "server_scope",
+      "budget": "provider_usage",
+      "billing": "billing_owner",
+      "audit": "usage_digest"
+    }
+  ],
+  "task.claimDispatch:*": [
+    "write.effect",
+    "at_dispatch",
+    "none"
+  ],
+  "task.run:*": [
+    "write.effect",
+    "at_dispatch",
+    "none"
+  ]
+}
+```
+
+- 其余写路由(setup/空间/focus/obligations/artifacts/会话上下文等)按同一
+  谓词表逐路由归类属 RF-05 迁移台账,分母 = `inventory.json` `http_routes`;
+  本检查点不对未列路由声称归类完成。
+- 现役审批状态机(§3 outcome 转换表、§6.1 task 状态机、§6.3 outbox)、
+  S3 语音绝不放行、远程业务 fail-closed(§3 push 行上限与现役 403)不因本表
+  改变;HTTP/WS/Brain/媒体各入口共用同一授权权威与同一拒绝语料,不另立权威。
+
+### 17.3 durable 事件:提交序/代际/快照-游标一致边界(目标合同)
+
+- **两个代际,不混用**:`daemonEpoch` 是 §10.1.1 的进程级 `evt_` Id(每进程
+  一次,传输与连接归属用,不是序号);`recoveryEpoch` 是数据根级恢复代际(Id,
+  每次按 §17.5 隔离恢复建立,持久,跨进程重启不重置);`authEpoch` 是授权代际
+  (Id,凭据吊销/配对变更/角色变化时更换)。三者都是 Id,任何一处把
+  daemonEpoch 当 number 序号充当代际都算 bug。
+- **提交序**:业务状态与 durable 事件记录在同一持久事务内提交,commit 之后
+  才发布;提交后发送前崩溃 ⇒ 恢复时按持久记录补发;已发未 ACK 可重放,消费侧
+  按 `eventId` 去重(事件没有业务幂等键,不得借用 §17.1 的字段)。
+- **可恢复来源**:每条事件在发布前已有具名持久来源(领域账本/事务记录);
+  优先复用既有账本,`callback_outbox` 不升级为通用事件总线,不向客户端暴露
+  原始审计行。
+- **快照与游标同一边界**:snapshot 必须携带其采集点的 cursor——snapshot@C
+  语义 = "截至游标 C 的全部已提交状态";订阅恢复与迁移时 snapshot+cursor 作为
+  原子单元传递,禁止从不同一致性点拼接。
+- **游标失效**:authEpoch 变化(撤权/配对/角色)、recoveryEpoch 变化(旧库
+  恢复)、保留窗口过期 ⇒ `cursor_expired`,消费侧走 resync;跨代游标一律不
+  续用。游标失效不代替业务授权失效(§17.5 另行隔离)。
+- **保留窗口与过滤形状(定档,designed 级缺省;落地可收紧不可放宽)**:
+  - `durableEventRetention`:缺省 `P30D`(ISO 8601 时段,按 `occurredAt`
+    计),实现下限 `P7D`;另配每流硬顶 `maxEventsPerStream`(缺省
+    `10000`),窗口或硬顶先到即算过期。窗口只界定"可补发的最早游标"——
+    早于窗口的游标 ⇒ `cursor_expired` + resync;**不得**用它截断业务状态
+    本身,更不得借清理事件清除 §17.1 幂等墓碑。
+  - 订阅过滤形状:`{scope: ScopeRef, streamId?: Id, types?: string[]}`——
+    `scope` 严格等值且必须 ∈ 订阅者 `projectScope`(§17.2);`streamId`
+    精确收窄单流;`types` 为空 = 该 scope 全类型,含未注册名 ⇒
+    `unregistered_not_claimable`。过滤只减不增,不授予新读权。
+  - 敏感域形状:事件携带 `payloadDigest`,可附 `summary`——`summary`
+    只允许标量白名单字段(枚举/计数/时间戳),逐字段登记于 contracts
+    schema;原文不进事件、不进 resync 应答、不进审计之外的任何面。
+- **跨资源不假设分布式事务**:SQLite 与文件/JSONL、外部投递各自声明真相源、
+  可重建投影、提交顺序与 checkpoint;文件类来源须落 (path, byteOffset) 才
+  可重放;任一环节结果不确定 ⇒ unknown/reconcile,禁止自动重做。
+
+```typescript
+type DurableEvent = {
+  kind: "durableEvent"; v: 1;
+  eventId: Id;               // evt_ 前缀;消费侧唯一去重键
+  streamId: Id;              // 聚合/流身份
+  cursor: string;            // 单调游标,仅在同一 authEpoch+recoveryEpoch 内有效
+  causationId?: Id;          // 触发它的命令/事件(可选)
+  scope: ScopeRef;           // 订阅过滤域(§17.2)
+  authEpoch: Id; recoveryEpoch: Id;
+  type: string;              // 注册词表;未注册 fail-closed
+  payloadDigest: Digest;     // 敏感原文不进事件
+  occurredAt: Ts;
+};
+```
+
+### 17.4 唯一 owner、语义 ports 与跨资源提交(目标合同)
+
+- 每类 durable 状态恰有一个 owner 域;其余消费侧经窄 port
+  (`port.<domain>.<action>`,如 `port.task.cancel`;未注册 port ⇒
+  `unregistered_not_claimable` fail-closed)访问,不直接写对方表。
+  **目标 owner 表**(本节即 canonical;`research/rf-00/semantic-claims.json`
+  与 `inventory.json` 的 `table_writers` 是现状机械面证据,不是目标来源;
+  RF-04 逐行归口并消除 `index.ts`/`fixture` 越权写面):
+
+| durable 状态族 | 唯一 owner(目标域) | 说明 |
+|---|---|---|
+| task/TaskCard 状态机 | task 用例域 | §6.1 状态机与 TASK_ACTIONS 跃迁 |
+| approvals/收据/挑战 | approval 门面 | §3 矩阵与 §3.3 S3 判别型不变 |
+| execution run/attempt/settle | execution owner | settle barrier 归其所有 |
+| memory candidate→trusted | memory owner | §4;M0 拒第三方不变 |
+| notification outbox/ACK/escalation | notification owner | §6.3 投递语义不变 |
+| 预算预留/释放、计费切换资格 | billing owner | adapter 不自行决定 |
+| focus 族写路径 | focus owner | §15 |
+| audit_log | audit sink(只追加) | 不可变;不暴露写 port |
+
+- **UnitOfWork**:同库需要强一致的一组写(幂等占位/状态转移/收据消费/
+  执行意图/事务内审计/outbox)由显式 UnitOfWork 协调——`begin → 语义
+  repository 写 → commit`;同库不假设自动同事务;**事务内不等待网络/模型/
+  外部进程**;repository 只暴露语义方法,不把裸 SQL 透给上层。
+- **读投影**:查询适配器可跨表 JOIN 组装读模型,但不得取得写权;读模型
+  不是真相源,不回写权威状态。
+- **跨资源提交**:SQLite/文件/JSONL/外部进程(SMTP/CLI)没有隐含分布式
+  事务;逐链声明真相源、可重建投影、提交顺序与持久恢复意图;部分提交后的
+  未知结果进 unknown/reconcile,禁止自动重发。
+
+### 17.5 旧库恢复:准入顺序与重开谓词(目标合同)
+
+恢复快照不是把旧库挂回继续用;业务重新开放前必须按序满足:
+
+1. **关闭新副作用**:dispatch/effect 入口拒新请求,在途写取消或等待至可判定
+   边界;`control.settle` 类收口入口(取消/拒绝/恢复读)保持开放——关闭新
+   派发不得阻断收口(§17.2)。
+2. **旧进程核验**:按 §16.3 durable child ownership 核真实所有权——owner
+   identity、数据根、进程组登记三者匹配才算"本仓旧进程";只看 PID 不算核验。
+   匹配者停止(TERM→KILL 纪律不变);不匹配者**不杀**,隔离处置。
+3. **保全证据**:快照之后产生的审计、运行证据、外部产物先收集归档,不因
+   恢复丢弃。
+4. **隔离恢复**:恢复到隔离数据根;旧 pending 不恢复成可执行。
+5. **新恢复代际**:建立新 `recoveryEpoch`(§17.3);旧 epoch 的授权、游标与
+   §17.1 幂等记录一律失效/隔离,不跨代续用。
+6. **旧资格隔离**:旧待决收据、未决派发、billing-switch 资格、设备会话不因
+   快照记录有效而续用;重新执行按适用规则重新获取授权。
+7. **撤销对账**:快照之后发生的设备配对、凭据与记忆信任撤销逐项对账;不能
+   证明有效的状态不可恢复为可消费。
+8. **未知不外推**:恢复点之后已执行/已付费/已投递不可由 DB 回滚撤销;
+   unknown 外部结果保持 reconcile,禁止自动重派;新授权不把未知执行追认为
+   未发生;记录丢失窗口由 owner 决定处置。
+
+**重开谓词**(三者缺一,恢复面保持只读/对账模式):① 步骤 1–8 全部完成并
+留证;② 恢复所用旧制品满足最低安全版本,且能识别当前数据/授权/恢复隔离
+状态——不满足的旧制品不在回滚清单;③ owner 明示批准重开并落审计。
+§16.4 的 `prepareShutdown`/`recover()` 是进程退出清理,不替代本节快照恢复
+序列。RF-04 反例清单(既定):已消费收据、旧 intent、已撤销凭据、已投递
+outbox、存活旧进程——逐项测。
+
+### 17.6 媒体 watermark 与延迟硬门(目标合同)
+
+- playout watermark 语义不变:**截断"已听到的历史"**,未播放文本标 unheard、
+  不进对话事实;任何媒体栈替换(RF-08 对照)不得放宽此语义。
+- 延迟硬门冻结:P50 ≤ 1.5s 且 P90 ≤ 2.5s、样本 ≥20、非有限/逆序时间戳记
+  `undeterminable` 不算 pass;取消/超时/缺段轮进分母;分轮型(文本/PTT/免手/
+  工具轮)分别出分布。RF-08 任何替换必须用同语料同判定重验,
+  未重验 = `designed`,不得升级为 `supported`。
+
+### 17.7 三端 bridge(目标合同)
+
+- **帧形状**(iOS/Android/HarmonyOS 同一合同;实现随 RF-09,形状现在定稿):
+
+```typescript
+type BridgeRequest = {
+  v: 1; kind: "request";
+  msgId: Id;                  // 单次请求身份
+  capability: string;         // 已协商能力名;未注册 unregistered_not_claimable
+  payload: JsonValue;         // ≤ BRIDGE_MAX_FRAME_BYTES=65536(下方定档)
+};
+type BridgeResponse = {
+  v: 1; kind: "response"; replyTo: Id;   // replyTo = 对应请求的 msgId
+  ok: boolean; result?: JsonValue;
+  error?: { code: BridgeErrorCode; retryable: boolean; message?: string };
+};
+type BridgeHello = {          // 双向首帧:先于一切业务帧,协商未成不收发业务帧
+  v: 1; kind: "hello"; msgId: Id;
+  bridgeMajor: number;        // 本端协议主版本(当前 = 1)
+  acceptMajors: number[];     // 本端可接受的对端主版本集合(兼容窗口)
+  capabilities: string[];     // 本端已注册能力名;未登记不宣告
+  sessionNonce: string;       // ≥128bit 随机;凭据注入与帧归属绑会话
+};
+type BridgeEvent = {          // 下行事件:无应答,消费侧按 eventId 去重
+  v: 1; kind: "event"; eventId: Id;
+  capability: string;         // 已协商能力名;未注册 unregistered_not_claimable
+  type: string;               // 事件名(注册词表)
+  payload: JsonValue;         // ≤ 单帧上限
+  occurredAt: Ts;
+};
+type BridgeBye = {            // 终结帧:对端收到后全部 pending 以 lifecycle_dead 作废
+  v: 1; kind: "bye"; msgId: Id;
+  reason: "shutdown" | "unpair" | "navigate_away" | "protocol_error";
+};
+type BridgeErrorCode =
+  | "bridge_version_mismatch" | "capability_unregistered" | "origin_untrusted"
+  | "payload_too_large" | "lifecycle_dead" | "decode_failed";
+```
+
+- **安全参数定档**(designed 级缺省,落地可收紧不可放宽):
+  `BRIDGE_MAX_FRAME_BYTES = 65536`(UTF-8 编码后的单帧上限)、
+  `BRIDGE_MAX_PENDING_REQUESTS = 64`(超出即拒 `lifecycle_dead`,不排队放大)、
+  `BRIDGE_REQUEST_TIMEOUT_MS = 30000`、
+  `BRIDGE_RATE_PER_CAPABILITY = 60 帧/分`(能力级覆盖表注册化)。
+  超帧 ⇒ `payload_too_large`,不静默截断。
+- **版本与能力**:`bridgeMajor` 是协议代际 GEN;握手双方互换
+  `acceptMajors`,交集为空 ⇒ `bridge_version_mismatch` 断开,不静默降级。
+  **兼容窗口(定档)**:受支持窗口 = 当前代 GEN_N 与前一代 GEN_{N-1};
+  当前 GEN=1(首代无前代义务)。同代内 minor 向后兼容:读取侧可忽略未知
+  可选字段,授权命令的未知字段仍按 §17.2 strict 拒绝。daemon 侧能力按
+  maturity ladder(inventory_only→designed→contracted→implemented_hidden→
+  conditional→supported→deprecated)逐级提升,缺证据不升级;
+  `implemented_hidden` 与公开 `preview` 不混用;未登记能力不出现在
+  `capabilities` 宣告、默认选择器与对外声称。
+- **可信 origin**:webview 只接受打包资源 origin 与登记的 daemon origin;
+  请求体不携带自报身份——可信来源由平台层(WKWebView/Android WebView/
+  ArkTS Web 组件)校验后注入,页面不能伪造。**导航限制**:页面不得跳
+  白名单外 URL、不得 `window.open` 任意外链,外链一律交系统浏览器。
+  **消息约束**:类型词表注册化(未注册 `decode_failed`/`capability_unregistered`
+  拒绝)、单帧大小上限、每 capability 频率上限。
+- **生命周期**:页面卸载/配对失效/登出 ⇒ 全部 pending 请求以
+  `lifecycle_dead` 作废,不留悬挂等超时;凭据不随帧明文往返。
+- **凭据安全存储三端映射**(与 RF-00 现状清单一致):iOS = Keychain
+  (`SecItemAdd/Update/Delete`,现役 `apps/ios/SayDo/ConnectionStore.swift`
+  KeychainTokenStore);Android = SharedPreferences + AndroidKeyStore
+  AES/GCM 包装(现役 `TokenStore.kt`);HarmonyOS = `preferences` +
+  SecureStore 封装(现役 `SecureStore.ets`)。合同硬约束:凭据不进明文
+  prefs/UserDefaults;写失败不静默降级为无凭据继续;删除 = 存储项清除与
+  会话失效同语义。移动端原生写面在 `inventory.json` `file_writers` 类可核。
+- 远端开放与设备矩阵升级不因壳可用而宣布;远程业务 fail-closed 不变。
+
+### 17.8 制品来源、安装闭包与兼容版本合同(目标合同)
+
+- **provenance 绑定实际字节**:`sourceRevision` = 构建源码 + lockfile +
+  构建配置的 canonical content digest,`buildId` 覆盖该 digest(与 §16.6
+  一致);逐文件 path+digest 无歧义 framing。发布验证把**实际下载/安装字节**
+  的 digest 绑定到预期 {仓库, commit, workflow, 签名主体}——回答"谁在哪个
+  workflow 从哪个 commit 产出了这些字节",不是只验文件存在或 tarball 内容
+  自洽。
+- **完整安装闭包**:npm 解析依赖、原生平台组件(`better-sqlite3`/`koffi`
+  各运行时闭包分别构建,§16.6)、额外下载字节逐条记录实际 version/来源/
+  integrity/OS+arch;不由 tarball 或根 lockfile 推导"全安装覆盖";闭包缺口
+  明示,不标完成。
+- **exact-set 兼容与版本化扩展**:现役 release 资产集合 = {SHA256SUMS,
+  release-metadata.json, saydo-cli-${version}.tgz} 不变;RF-10 的 SBOM/
+  签名/来源证明为**增量**——新增资产必须同步版本化资产清单合同与检查器
+  (exact-set schema 升版,旧集仍验),不得把新资产排除在来源合同外,也不得
+  删掉既有完整性门。
+- 兼容版本:`compat.v = {minSupportedMajor: number, currentMajor: number}`
+  标订阅双方兼容窗口;跨窗口握手返回 `incompatible_contract`,不静默降级。
+  **SDK 代际规则(定档)**:client-sdk 每个发布在包元数据声明
+  `supportsGen: number[]`;服务端受支持窗口 = 当前代 GEN_N 与前一代
+  GEN_{N-1}(与 §17.7 `acceptMajors` 同规则);SDK minor 在同代内向后
+  兼容、可忽略服务端新增可选字段;0.x/预览代际不自动享有窗口承诺;
+  旧代退出窗口 = 后继代发布后的一个受支持周期,过期握手按
+  `incompatible_contract` 拒绝而非走错协议。签名/公证与来源证明分别验。
+- 追踪型资产清单(docs/release/*-assets.json,已发布事实)与 CI 符号模板
+  路径(`artifacts/release/github/${ENV}`,构建期模板)分账。
+
+## 18. 静态真相控制面退役（2026-10-07）
+
+按 owner 本次门禁精简授权，PG-02 的静态解释器、capability/action/support ledger、gate registry、source binding、专用类型和自测整体退役，不再是开发、合并或发布的必需门禁，也不以另一套静态证明框架替代。旧版 §18 及历次 RED/未决结果保留于 Git 历史与原评审档案；退役不表示旧失败已修复或产品已通过验收。
+
+产品运行时 Gate 0、S3 收据、身份和归属、provider 用量与预算、审计、状态机、脱敏及恢复合同仍由本文件既有节规定。§17 的业务协议、效果分类与准入约束保留；RF-00 研究库存、离线夹具和静态台账不再要求随源码变化刷新，不授予生产通过。
+
+当前质量入口由根 package.json 定义：`ci:node` 运行类型检查、lint、产品测试、emoji 与工作区公开隐私扫描；`just ci` 加 Python lint/tests。`test:tools` 在工具变更时执行，`test:release` 在发布与安装相关变更时执行，平台构建在显式专项工作流执行。浏览器测试仍通过 `pnpm exec playwright test` 验证真实页面行为。未运行或跳过的专项检查不得记为通过。
+
+第二轮退役固定移动发布版本/历史失败文案门、`rc4-mobile` 历史 prompt 专属原生扫描，以及测试中的源码拼写、工作流文本接线和重复案例库存断言。真实安装执行、原生配对解析、发布身份、文件事务与恢复测试保留。安装脚本的元数据关系和文件编码检查保留；删除源码锁不表示 PowerShell、SSH 或托管工作流已实际运行，也不表示原有特殊设备词表扫描获得等价替代。
+
+命令效果测试保留相对当前 legacy 的单调性与具体安全反例，退役历史大快照；不再保证历史分类器的全部旧判定冻结。旧 `runtime-preflight.sh` 入口退役，诊断按实际运行模式使用 doctor/status/health；目标版本、实际运行身份、新鲜度以及真人语音场次的 voice ready 仍须核验，现有诊断不等价于旧预检或其 release-config digest。
+
+固定历史周审不再阻断普通 CI 或要求每次开发提交重生成。现有发布事务仍使用 week-audit publication manifest 与原子写接口，发布信任链未退役。公开声明仍须对应实际验证范围，遵守 06 §7 与 11 §10.3；文件存在、静态字符串命中、手写样例与自身一致均不是产品行为证据。

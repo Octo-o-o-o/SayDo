@@ -163,6 +163,10 @@ export function pickAsrFinalKeys(raw: Record<string, unknown>): Record<string, u
 
 export function parseAsrFinal(raw: unknown): AsrFinalMsg | null {
   if (!raw || typeof raw !== "object") return null;
+  if (
+    "captureMode" in raw && raw.captureMode === "ptt"
+    && ["hfSegmentId", "hfRoundId", "recordSeq", "hfSegmentIds", "recordSeqFirst", "recordSeqLast"].some((key) => key in raw)
+  ) return null;
   const picked = pickAsrFinalKeys(raw as Record<string, unknown>);
   const parsed = asrFinalMsgSchema.safeParse(picked);
   return parsed.success ? parsed.data : null;

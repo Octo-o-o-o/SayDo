@@ -80,6 +80,8 @@ export function setWaitingOnOnOps(
       }
     | undefined;
   if (!dep) throw new FocusWriteError("not_found", `obligation ${input.obligationId} not found`);
+  // 清除已为空时仍须检查；不能依赖后续touch/event，否则no-op会绕过权限门。
+  ops.assertWriteAuthority(dep.focus_id);
 
   // 清除(DAILY-01:同时清义务级与任务级前置列)
   if (input.preId === null) {
@@ -299,6 +301,7 @@ export function setWaitingOnTaskOnOps(
       }
     | undefined;
   if (!dep) throw new FocusWriteError("not_found", `obligation ${input.obligationId} not found`);
+  ops.assertWriteAuthority(dep.focus_id);
   if (dep.status === "resolved" || dep.status === "superseded") {
     throw new FocusWriteError("obligation_terminal", `obligation ${dep.id} is ${dep.status}`);
   }

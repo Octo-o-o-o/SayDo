@@ -13,6 +13,7 @@ import { createFocus } from "../src/focus/registry.js";
 import { upsertObligation as upsertOb } from "../src/focus/obligations.js";
 import { LiveVoiceSessions } from "../src/live/voiceSessions.js";
 import { SessionManager } from "../src/session/manager.js";
+import { createSqliteAuditSink } from "../src/storage/dao/misc.js";
 import type { AuditSink } from "../src/obs/audit.js";
 import { SCREEN_CLAIM_RE } from "../src/brain/dialogLoop.js";
 import { resolveObligationApi } from "../src/api/obligations.js";
@@ -177,7 +178,7 @@ describe("④e A7 证据门(d/e/f)", () => {
         resolution: "done"
       })
     ).toThrow(/evidence_required/);
-    const api = resolveObligationApi(fx.db, nullAudit, ob.obligationId, { resolution: "done" });
+    const api = resolveObligationApi(fx.db, createSqliteAuditSink(fx.db), ob.obligationId, { resolution: "done" });
     expect(api.status).toBe(409);
     expect((api.payload as { code: string }).code).toBe("evidence_required");
   });

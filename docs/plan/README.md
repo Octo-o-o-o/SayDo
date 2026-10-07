@@ -13,6 +13,16 @@
 - `MIGRATION.md`:2026-07-29 双目录合并的执行记录、路径映射与回滚说明。
 - `REPO-MERGE-PROPOSAL.md`:2026-07-25 的 v2 前置方案;已由 `MIGRATION.md` 的实况执行记录 supersede。
 
+## 模块化底座全量交接(2026-09-29)
+
+- [融合终稿](../review/2026-09-29-modular-foundation-consolidated-final.md):本专题架构与迁移方案唯一入口,覆盖RF-00～RF-11,保留既有PG门禁。
+- [全量自主实施Prompt](IMPL-PROMPT-2026-09-29-modular-foundation.md):供owner在新会话提交;不在文档生成阶段自动施工或改PLAN-2。普通阶段无需反复确认,外部发布与真实人工条件分开。
+- [交叉评审原稿](../review/2026-09-29-modular-foundation-cross-review.md):本次唯一subagent的原始意见,具体采纳裁决见终稿末节;不是产品验收。
+
+> 以上三份是仓外原件的**脱敏投影**(2026-09-29 repair-1 处理):内容逐字保留,
+> 仅把本机 home 前缀转为 `~`;各自文首"脱敏投影注"登记原件只读位置与原件
+> SHA-256,原件不进本仓 Git。
+
 ## 专题方案
 
 ### 项目缺口治理总案（2026-08-28）

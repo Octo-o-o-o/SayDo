@@ -1,0 +1,3596 @@
+{
+  "code_commit": "74792ae4464216866772e9b09203aefb961958f3",
+  "discovery_ref": "6653de8a34f697ce38469b95af70274e82d083a4",
+  "state": "作者I11局部及latest本地ci/PW验证，原ci两次失败原因UNKNOWN，待固定E真正fresh；不是整体GREEN",
+  "scope": "仅exact-root测试卫生：lstat确失才新建；共用严格解析，非法JSON/shape/读取或当前run归属不符在写前拒绝；保留合法legacy数组/无runId对象与旧路径。业务权限/DDL/09类型/原PG SC预算不变。",
+  "owning_source_extent": {
+    "before_helper_lines": 273,
+    "before_test_lines": 90,
+    "after_helper_lines": 293,
+    "after_test_lines": 178,
+    "setup_lines": 92,
+    "global_cleanup_lines": 29,
+    "tier1_executor": "73–106登记调用选段",
+    "C27_original_diff": "请求6302–6598但同cell输出预算截断，未冒本次全hunk读完",
+    "preflight_count_correction": "初preflight临时279/82描述错误；后wc273/90真实，原条保留并明确更正"
+  },
+  "before": {
+    "unit": "before116 16例9PASS/7FAIL；其中syntax/shape为真实覆盖缺口，mixed/run是严格边界，directory是明确读错误语义，legacy array和悬空链接为具名控制",
+    "production_function": "独立before117正常集合先assert失败再清扫；syntax/shape register无错、覆字节、清新后assert无错而旧root仍在，exit1；自己设计probe，不执行host/reviewer命令",
+    "test_state": "新增用例为tracked文件工作稿，helper仍E10字节；不是clean候选",
+    "limits": "模拟损坏输入与真实fs/当前PID函数，不是业务授权或native认证"
+  },
+  "after": {
+    "focused": "focused118两文件20PASS(16exact+4PTT)、三真实函数控制、type/lint/RF均0；prepare119四门0",
+    "byte_preservation": "指登记失败后立即读回原字节/目录哨兵/悬空链接；assert/sweep原先断言再清扫语义不改，坏清单不能恢复此前未知路径。probe finally只清自己创建的精确sandbox",
+    "legacy": "合法字符串数组及无runId对象集合保留；原死PID和归属门仍用于stale清扫，活外run不动，正常追加/重复/旧泄漏先失败后清扫正控制保持"
+  },
+  "input_bindings": [
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/preflight.json",
+      "bytes": 46529,
+      "sha256": "e412dafd6e7296d7de7925f90abb075dc8444cc1c345396fb968dc0f46a8b655"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/before-exact-test-roots.ts",
+      "bytes": 9907,
+      "sha256": "fc794b6404a570bd3f032b6ed12c0962b419dde2ffc1ab23144b16b0787af63b"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/before-exact-test-roots.test.ts",
+      "bytes": 4426,
+      "sha256": "cd30f10bf728fe17bfc41df671dc6bcf3471d16b4c07d3232487702192d1a955"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/before-116-new-tests.ts",
+      "bytes": 8699,
+      "sha256": "7566106a3082826b38921276bffbf5c3217a4f28a20f8e0ee611c5183cf8d374"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/before-116-inputs.json",
+      "bytes": 1055,
+      "sha256": "0d1bede4e06635031ee0a187bb6d42eb90c884684e89cd93150587a45da1ceae"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/before-117-probe-source.ts",
+      "bytes": 2351,
+      "sha256": "8a2934f66737f12b9391966bfd5a6fdbb58367b3bda7f2d0c11ad9dc641a6b72"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/before-117-inputs.json",
+      "bytes": 517,
+      "sha256": "e958a8af1f6090c057523d0ebca748cf83942998d68522b47ad69e426a9fde20"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/after-118-inputs.json",
+      "bytes": 774,
+      "sha256": "1b38ac37f425da043f303678f38786d195fa4c44ab864945f60ffb48b94eafc8"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/after-118-exact-test-roots.ts",
+      "bytes": 10679,
+      "sha256": "27ba4786f5c3571e5da451475843498b4ada36707d058259f371cd89ef9b3263"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/after-118-exact-test-roots.test.ts",
+      "bytes": 8699,
+      "sha256": "7566106a3082826b38921276bffbf5c3217a4f28a20f8e0ee611c5183cf8d374"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/register-root-probe.ts",
+      "bytes": 2351,
+      "sha256": "8a2934f66737f12b9391966bfd5a6fdbb58367b3bda7f2d0c11ad9dc641a6b72"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/rf-exact-source-refresh-119.json",
+      "bytes": 4213,
+      "sha256": "bfe537aa2916986c509c9a99674721c86cb71b921d8b47270ce8723929ce92b9"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/I11-ref.json",
+      "bytes": 1102,
+      "sha256": "24675a37d87dfd899fe1804e6c237c3d22f05a0bac3d8d3f59052d6e985c3f66"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/full-exact-120-preflight.json",
+      "bytes": 43952,
+      "sha256": "ed1d58af0a6daaa73c0ae507d3355cd0acb1ed0d7bd7cf4bb3ef38687807f176"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/full-exact-120-manifest.json",
+      "bytes": 943,
+      "sha256": "4bb2bbf17d38064cee069a1daa2c861186265a8f7f953d350ae3f05a0cb2e88d"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/full-ci-exact-retry-122-preflight.json",
+      "bytes": 563,
+      "sha256": "fc08eb0a94ab08511037a296e0a8c97cf0951f0cb741dea70e17e9128edeca5d"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/full-ci-exact-retry-123-preflight.json",
+      "bytes": 43844,
+      "sha256": "4e85d1e5b3fde96baf9d41ca43570e0e3cb0e1b9250f78c359b2f21306978754"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/recovery-start-failure-121-diagnosis.json",
+      "bytes": 1185,
+      "sha256": "bd3df95764309596c4fb468f2c4ec652960c2efe5b5198a91736a2c6e36dd5e7"
+    },
+    {
+      "path": "$TASK/evidence/implementation/exact-root-I11-115/post-retry-122-owned-check.json",
+      "bytes": 280,
+      "sha256": "2ca80c9a4b705ebd9bb8d650b877df7f68bd2e9c7485d548acf70156f02657e2"
+    }
+  ],
+  "phases": [
+    {
+      "phase": "before-exact-116",
+      "raw_binding": {
+        "path": "$TASK/evidence/implementation/exact-root-I11-115/before-exact-116-results.json",
+        "bytes": 3180,
+        "sha256": "cbfc9bdf3010986f71c3d7bf502132fb6785af89fa667abc30a1754b214f8cc6"
+      },
+      "results": {
+        "phase": "before-exact-116",
+        "started_candidate": {
+          "head": "6653de8a34f697ce38469b95af70274e82d083a4",
+          "git_diff_sha256": "68d1dceb47f75a5184388bfd4870ea5580e88406528ff5a900dfba3ecece24c3"
+        },
+        "results": [
+          {
+            "name": "daemon",
+            "argv": [
+              "pnpm",
+              "--filter",
+              "@saydo/daemon",
+              "exec",
+              "vitest",
+              "run",
+              "test/exact-test-roots.test.ts"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "6653de8a34f697ce38469b95af70274e82d083a4",
+              "git_diff_sha256": "68d1dceb47f75a5184388bfd4870ea5580e88406528ff5a900dfba3ecece24c3"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-8y_dbxoc",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/before-exact-116/daemon/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/before-exact-116/daemon/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/before-exact-116/daemon/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/before-exact-116/daemon/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/before-exact-116/daemon/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 6,
+            "duration_seconds": 2.009,
+            "error_type": null,
+            "executable": "pnpm",
+            "exit_code": 1,
+            "finished_at": "2026-10-03T20:33:47.199884+00:00",
+            "idle_seconds_at_exit": 1.002,
+            "interruption_signal": null,
+            "log_bytes": 6973,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/before-exact-116-daemon.log",
+            "log_sha256": "ed3a6b11e8ab4e8f0567662f2a7b61b4986a5972cd58276b2d472ee2e2f1cc1c",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:33:45.191126+00:00",
+            "status": "failed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/before-exact-116-daemon.runner.json",
+            "runner_exit_code": 1
+          }
+        ]
+      }
+    },
+    {
+      "phase": "before-probe-exact-117",
+      "raw_binding": {
+        "path": "$TASK/evidence/implementation/exact-root-I11-115/before-probe-exact-117-results.json",
+        "bytes": 3296,
+        "sha256": "eaa0af1d6faec1624bdca1c6ccf15e3f5b1956e2b120d1a1c9af02f1d324bb41"
+      },
+      "results": {
+        "phase": "before-probe-exact-117",
+        "started_candidate": {
+          "head": "6653de8a34f697ce38469b95af70274e82d083a4",
+          "git_diff_sha256": "68d1dceb47f75a5184388bfd4870ea5580e88406528ff5a900dfba3ecece24c3"
+        },
+        "results": [
+          {
+            "name": "probe",
+            "argv": [
+              "pnpm",
+              "--filter",
+              "@saydo/daemon",
+              "exec",
+              "tsx",
+              "$TASK/evidence/implementation/exact-root-I11-115/register-root-probe.ts"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "6653de8a34f697ce38469b95af70274e82d083a4",
+              "git_diff_sha256": "68d1dceb47f75a5184388bfd4870ea5580e88406528ff5a900dfba3ecece24c3"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-o8c6acuh",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/before-probe-exact-117/probe/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/before-probe-exact-117/probe/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/before-probe-exact-117/probe/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/before-probe-exact-117/probe/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/before-probe-exact-117/probe/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 5,
+            "duration_seconds": 1.015,
+            "error_type": null,
+            "executable": "pnpm",
+            "exit_code": 1,
+            "finished_at": "2026-10-03T20:35:54.268223+00:00",
+            "idle_seconds_at_exit": 1.015,
+            "interruption_signal": null,
+            "log_bytes": 1500,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/before-probe-exact-117-probe.log",
+            "log_sha256": "d30134b2105d0fc5a603c206e24c7ceefd7defd5107e061c1dedddcdbdb22cfd",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:35:53.252684+00:00",
+            "status": "failed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/before-probe-exact-117-probe.runner.json",
+            "runner_exit_code": 1
+          }
+        ]
+      }
+    },
+    {
+      "phase": "focused-exact-118",
+      "raw_binding": {
+        "path": "$TASK/evidence/implementation/exact-root-I11-115/focused-exact-118-results.json",
+        "bytes": 14859,
+        "sha256": "591e53124e1958da570cf8fd642c9a6e9126ae20122e09c108d1bd3fee09d950"
+      },
+      "results": {
+        "phase": "focused-exact-118",
+        "started_candidate": {
+          "head": "6653de8a34f697ce38469b95af70274e82d083a4",
+          "git_diff_sha256": "e1cc9b28da1fa1787ee758021ffd50c3ffd843193046bddf888236b83197b9dc"
+        },
+        "results": [
+          {
+            "name": "daemon",
+            "argv": [
+              "pnpm",
+              "--filter",
+              "@saydo/daemon",
+              "exec",
+              "vitest",
+              "run",
+              "test/exact-test-roots.test.ts",
+              "test/voice-barrier-capacity-ownership.test.ts"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "6653de8a34f697ce38469b95af70274e82d083a4",
+              "git_diff_sha256": "e1cc9b28da1fa1787ee758021ffd50c3ffd843193046bddf888236b83197b9dc"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-qee450sv",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/focused-exact-118/daemon/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/daemon/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/daemon/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/daemon/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/daemon/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 7,
+            "duration_seconds": 2.011,
+            "error_type": null,
+            "executable": "pnpm",
+            "exit_code": 0,
+            "finished_at": "2026-10-03T20:37:27.197728+00:00",
+            "idle_seconds_at_exit": 1.008,
+            "interruption_signal": null,
+            "log_bytes": 401,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/focused-exact-118-daemon.log",
+            "log_sha256": "13dbb40bc9d36d402788eec46bd74dbbe701d3162d50d6b6de8a356e4e971f94",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:37:25.186915+00:00",
+            "status": "completed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/focused-exact-118-daemon.runner.json",
+            "runner_exit_code": 0
+          },
+          {
+            "name": "probe",
+            "argv": [
+              "pnpm",
+              "--filter",
+              "@saydo/daemon",
+              "exec",
+              "tsx",
+              "$TASK/evidence/implementation/exact-root-I11-115/register-root-probe.ts"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "6653de8a34f697ce38469b95af70274e82d083a4",
+              "git_diff_sha256": "e1cc9b28da1fa1787ee758021ffd50c3ffd843193046bddf888236b83197b9dc"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-guglctxy",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/focused-exact-118/probe/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/probe/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/probe/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/probe/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/probe/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 5,
+            "duration_seconds": 1.003,
+            "error_type": null,
+            "executable": "pnpm",
+            "exit_code": 0,
+            "finished_at": "2026-10-03T20:37:28.244729+00:00",
+            "idle_seconds_at_exit": 1.003,
+            "interruption_signal": null,
+            "log_bytes": 1869,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/focused-exact-118-probe.log",
+            "log_sha256": "b2f67ccf11ccfe437dd15d37459e144974b61dbd26d5c540ec14f6522e3d0883",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:37:27.241548+00:00",
+            "status": "completed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/focused-exact-118-probe.runner.json",
+            "runner_exit_code": 0
+          },
+          {
+            "name": "type",
+            "argv": [
+              "pnpm",
+              "typecheck"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "6653de8a34f697ce38469b95af70274e82d083a4",
+              "git_diff_sha256": "e1cc9b28da1fa1787ee758021ffd50c3ffd843193046bddf888236b83197b9dc"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-j3kgozsp",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/focused-exact-118/type/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/type/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/type/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/type/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/type/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 1,
+            "duration_seconds": 6.027,
+            "error_type": null,
+            "executable": "pnpm",
+            "exit_code": 0,
+            "finished_at": "2026-10-03T20:37:34.327352+00:00",
+            "idle_seconds_at_exit": 3.013,
+            "interruption_signal": null,
+            "log_bytes": 526,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/focused-exact-118-type.log",
+            "log_sha256": "743d496d4bf61254f017c4353090b2c3053f35a53e17870a02cfb43098f8678a",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:37:28.299952+00:00",
+            "status": "completed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/focused-exact-118-type.runner.json",
+            "runner_exit_code": 0
+          },
+          {
+            "name": "lint",
+            "argv": [
+              "pnpm",
+              "lint"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "6653de8a34f697ce38469b95af70274e82d083a4",
+              "git_diff_sha256": "e1cc9b28da1fa1787ee758021ffd50c3ffd843193046bddf888236b83197b9dc"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-y63ic5xv",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/focused-exact-118/lint/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/lint/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/lint/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/lint/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/lint/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 1,
+            "duration_seconds": 5.045,
+            "error_type": null,
+            "executable": "pnpm",
+            "exit_code": 0,
+            "finished_at": "2026-10-03T20:37:39.414791+00:00",
+            "idle_seconds_at_exit": 4.04,
+            "interruption_signal": null,
+            "log_bytes": 129,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/focused-exact-118-lint.log",
+            "log_sha256": "186e5fdf31e61e4da9d89dd82b82bfa2e77ba1c91cee748d5a0c58077b901621",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:37:34.369947+00:00",
+            "status": "completed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/focused-exact-118-lint.runner.json",
+            "runner_exit_code": 0
+          },
+          {
+            "name": "rf-discover",
+            "argv": [
+              "node",
+              "scripts/rf00-inventory-scan.mjs",
+              "--json"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "6653de8a34f697ce38469b95af70274e82d083a4",
+              "git_diff_sha256": "e1cc9b28da1fa1787ee758021ffd50c3ffd843193046bddf888236b83197b9dc"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-70rbxsnx",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/focused-exact-118/rf-discover/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/rf-discover/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/rf-discover/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/rf-discover/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-exact-118/rf-discover/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 2,
+            "duration_seconds": 1.007,
+            "error_type": null,
+            "executable": "node",
+            "exit_code": 0,
+            "finished_at": "2026-10-03T20:37:40.512152+00:00",
+            "idle_seconds_at_exit": 1.007,
+            "interruption_signal": null,
+            "log_bytes": 656398,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/focused-exact-118-rf-discover.log",
+            "log_sha256": "c72a2cc9ab61366add28862cf08b30571228049479b30c976532aec046e2c6f7",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:37:39.505149+00:00",
+            "status": "completed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/focused-exact-118-rf-discover.runner.json",
+            "runner_exit_code": 0
+          }
+        ]
+      }
+    },
+    {
+      "phase": "focused-recovery-121",
+      "raw_binding": {
+        "path": "$TASK/evidence/implementation/exact-root-I11-115/focused-recovery-121-results.json",
+        "bytes": 3289,
+        "sha256": "fb02941c759eafcb20713133f1c14e2f8d57432a688af029395f4c987dc57379"
+      },
+      "results": {
+        "phase": "focused-recovery-121",
+        "started_candidate": {
+          "head": "74792ae4464216866772e9b09203aefb961958f3",
+          "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "results": [
+          {
+            "name": "process",
+            "argv": [
+              "pnpm",
+              "--filter",
+              "@saydo/daemon",
+              "exec",
+              "vitest",
+              "run",
+              "test/recovery-only-process.test.ts",
+              "-t",
+              "可控调度器下不初始化业务"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "74792ae4464216866772e9b09203aefb961958f3",
+              "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-egaor2lr",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/focused-recovery-121/process/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-recovery-121/process/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-recovery-121/process/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-recovery-121/process/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/focused-recovery-121/process/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 8,
+            "duration_seconds": 3.017,
+            "error_type": null,
+            "executable": "pnpm",
+            "exit_code": 0,
+            "finished_at": "2026-10-03T20:52:36.941091+00:00",
+            "idle_seconds_at_exit": 1.009,
+            "interruption_signal": null,
+            "log_bytes": 508,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/focused-recovery-121-process.log",
+            "log_sha256": "7723af79bad9c574bfd8da885fefdebdd49e98957835643ee0d55d51fb46a71c",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:52:33.923665+00:00",
+            "status": "completed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/focused-recovery-121-process.runner.json",
+            "runner_exit_code": 0
+          }
+        ]
+      }
+    },
+    {
+      "phase": "full-ci-exact-retry-122",
+      "raw_binding": {
+        "path": "$TASK/evidence/implementation/exact-root-I11-115/full-ci-exact-retry-122-results.json",
+        "bytes": 3086,
+        "sha256": "8f09deed959ca920f654122501882e45b1d61f1f96244cde1bded298fd88123b"
+      },
+      "results": {
+        "phase": "full-ci-exact-retry-122",
+        "started_candidate": {
+          "head": "74792ae4464216866772e9b09203aefb961958f3",
+          "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "results": [
+          {
+            "name": "ci",
+            "argv": [
+              "just",
+              "ci"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "74792ae4464216866772e9b09203aefb961958f3",
+              "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-x8ha39k2",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/full-ci-exact-retry-122/ci/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-122/ci/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-122/ci/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-122/ci/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-122/ci/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 1,
+            "duration_seconds": 23.129,
+            "error_type": null,
+            "executable": "just",
+            "exit_code": -9,
+            "finished_at": "2026-10-03T20:54:57.246182+00:00",
+            "idle_seconds_at_exit": 1.005,
+            "interruption_signal": null,
+            "log_bytes": 11097,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/full-ci-exact-retry-122-ci.log",
+            "log_sha256": "c8138e95a93f3dcaa2b6be151b67fc890199e5fa965213b20305df7dacbc0572",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:54:34.116505+00:00",
+            "status": "failed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/full-ci-exact-retry-122-ci.runner.json",
+            "runner_exit_code": 1
+          }
+        ]
+      }
+    },
+    {
+      "phase": "full-ci-exact-retry-123",
+      "raw_binding": {
+        "path": "$TASK/evidence/implementation/exact-root-I11-115/full-ci-exact-retry-123-results.json",
+        "bytes": 3090,
+        "sha256": "706b4f369f44dad0d9656c68d2fb71de22e96e2f0a52fd4687309d1f54517a20"
+      },
+      "results": {
+        "phase": "full-ci-exact-retry-123",
+        "started_candidate": {
+          "head": "74792ae4464216866772e9b09203aefb961958f3",
+          "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "results": [
+          {
+            "name": "ci",
+            "argv": [
+              "just",
+              "ci"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "74792ae4464216866772e9b09203aefb961958f3",
+              "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-t9njpxdw",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/full-ci-exact-retry-123/ci/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-123/ci/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-123/ci/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-123/ci/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-123/ci/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 1,
+            "duration_seconds": 235.498,
+            "error_type": null,
+            "executable": "just",
+            "exit_code": 0,
+            "finished_at": "2026-10-03T21:03:21.292069+00:00",
+            "idle_seconds_at_exit": 1.004,
+            "interruption_signal": null,
+            "log_bytes": 133499,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/full-ci-exact-retry-123-ci.log",
+            "log_sha256": "aee915b3f6b98511469d471c7c4ce1358f490fe20671b2d27d2de3ca90ced671",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:59:25.792699+00:00",
+            "status": "completed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/full-ci-exact-retry-123-ci.runner.json",
+            "runner_exit_code": 0
+          }
+        ]
+      }
+    },
+    {
+      "phase": "full-exact-120",
+      "raw_binding": {
+        "path": "$TASK/evidence/implementation/exact-root-I11-115/full-exact-120-results.json",
+        "bytes": 6072,
+        "sha256": "201e76bd350fe8ab7f1cbfa3fe7921b1a26a0fb1eef5aeb9f55eb8278e88c9c4"
+      },
+      "results": {
+        "phase": "full-exact-120",
+        "started_candidate": {
+          "head": "74792ae4464216866772e9b09203aefb961958f3",
+          "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "results": [
+          {
+            "name": "ci",
+            "argv": [
+              "just",
+              "ci"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "74792ae4464216866772e9b09203aefb961958f3",
+              "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-lrsb4qwy",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/full-exact-120/ci/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/ci/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/ci/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/ci/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/ci/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 1,
+            "duration_seconds": 135.325,
+            "error_type": null,
+            "executable": "just",
+            "exit_code": 1,
+            "finished_at": "2026-10-03T20:45:46.226440+00:00",
+            "idle_seconds_at_exit": 1.001,
+            "interruption_signal": null,
+            "log_bytes": 105941,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/full-exact-120-ci.log",
+            "log_sha256": "bc2303caf754d23c4e5ed7132bc485d5f998388fb8e9177dc8e1435410ca6993",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:43:30.900369+00:00",
+            "status": "failed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/full-exact-120-ci.runner.json",
+            "runner_exit_code": 1
+          },
+          {
+            "name": "playwright",
+            "argv": [
+              "pnpm",
+              "exec",
+              "playwright",
+              "test",
+              "--output",
+              "$TASK/evidence/implementation/exact-root-I11-115/playwright-full-I11-120-results"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "74792ae4464216866772e9b09203aefb961958f3",
+              "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-awc8206i",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/full-exact-120/playwright/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/playwright/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/playwright/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/playwright/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/playwright/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 5,
+            "duration_seconds": 280.725,
+            "error_type": null,
+            "executable": "pnpm",
+            "exit_code": 0,
+            "finished_at": "2026-10-03T20:50:27.087217+00:00",
+            "idle_seconds_at_exit": 3.007,
+            "interruption_signal": null,
+            "log_bytes": 8264,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/full-exact-120-playwright.log",
+            "log_sha256": "2db769eb785d816c0a0155556c9790cbb71a3b51e7e834db94a6b3116165d592",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:45:46.363163+00:00",
+            "status": "completed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/full-exact-120-playwright.runner.json",
+            "runner_exit_code": 0
+          }
+        ]
+      }
+    },
+    {
+      "phase": "prepare-exact-119",
+      "raw_binding": {
+        "path": "$TASK/evidence/implementation/exact-root-I11-115/prepare-exact-119-results.json",
+        "bytes": 11725,
+        "sha256": "25375d5b9c3e8e6eb2c4c2410ac6c48b1ddf6c832f4bb685732f64a6958a8b22"
+      },
+      "results": {
+        "phase": "prepare-exact-119",
+        "started_candidate": {
+          "head": "6653de8a34f697ce38469b95af70274e82d083a4",
+          "git_diff_sha256": "7db7e44d64ed995addc3d61a271e232e0881e22aef9442cfa19c9575616df009"
+        },
+        "results": [
+          {
+            "name": "rf-write",
+            "argv": [
+              "node",
+              "scripts/rf00-inventory-scan.mjs",
+              "--write"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "6653de8a34f697ce38469b95af70274e82d083a4",
+              "git_diff_sha256": "7db7e44d64ed995addc3d61a271e232e0881e22aef9442cfa19c9575616df009"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-99khfwgm",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/prepare-exact-119/rf-write/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/rf-write/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/rf-write/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/rf-write/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/rf-write/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 2,
+            "duration_seconds": 2.004,
+            "error_type": null,
+            "executable": "node",
+            "exit_code": 0,
+            "finished_at": "2026-10-03T20:40:51.365192+00:00",
+            "idle_seconds_at_exit": 2.004,
+            "interruption_signal": null,
+            "log_bytes": 69,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/prepare-exact-119-rf-write.log",
+            "log_sha256": "7504082de1d6f837978c38fbfd796c767ed369d4ef9a49c793f6eca72e666a9a",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:40:49.361124+00:00",
+            "status": "completed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/prepare-exact-119-rf-write.runner.json",
+            "runner_exit_code": 0
+          },
+          {
+            "name": "rf-check",
+            "argv": [
+              "node",
+              "scripts/rf00-inventory-scan.mjs",
+              "--check"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "6653de8a34f697ce38469b95af70274e82d083a4",
+              "git_diff_sha256": "7db7e44d64ed995addc3d61a271e232e0881e22aef9442cfa19c9575616df009"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-r7u9l1ta",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/prepare-exact-119/rf-check/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/rf-check/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/rf-check/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/rf-check/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/rf-check/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 2,
+            "duration_seconds": 9.017,
+            "error_type": null,
+            "executable": "node",
+            "exit_code": 0,
+            "finished_at": "2026-10-03T20:41:00.433762+00:00",
+            "idle_seconds_at_exit": 9.017,
+            "interruption_signal": null,
+            "log_bytes": 368,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/prepare-exact-119-rf-check.log",
+            "log_sha256": "a73c4d5591715b1a6ef6539c078ff909ce42da29a61dce48b91212211432dc7c",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:40:51.416824+00:00",
+            "status": "completed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/prepare-exact-119-rf-check.runner.json",
+            "runner_exit_code": 0
+          },
+          {
+            "name": "emoji",
+            "argv": [
+              "bash",
+              "scripts/check-emoji.sh"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "6653de8a34f697ce38469b95af70274e82d083a4",
+              "git_diff_sha256": "7db7e44d64ed995addc3d61a271e232e0881e22aef9442cfa19c9575616df009"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-e_iloh6c",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/prepare-exact-119/emoji/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/emoji/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/emoji/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/emoji/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/emoji/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 1,
+            "duration_seconds": 1.003,
+            "error_type": null,
+            "executable": "bash",
+            "exit_code": 0,
+            "finished_at": "2026-10-03T20:41:01.508280+00:00",
+            "idle_seconds_at_exit": 1.003,
+            "interruption_signal": null,
+            "log_bytes": 23,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/prepare-exact-119-emoji.log",
+            "log_sha256": "e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:41:00.504664+00:00",
+            "status": "completed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/prepare-exact-119-emoji.runner.json",
+            "runner_exit_code": 0
+          },
+          {
+            "name": "diff",
+            "argv": [
+              "git",
+              "diff",
+              "--check"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "6653de8a34f697ce38469b95af70274e82d083a4",
+              "git_diff_sha256": "7db7e44d64ed995addc3d61a271e232e0881e22aef9442cfa19c9575616df009"
+            },
+            "environment": {
+              "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+              "TMPDIR": "/private/tmp/sua-2vk_6w_2",
+              "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/prepare-exact-119/diff/home",
+              "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+              "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+              "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+              "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/diff/playwright-journey",
+              "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/diff/playwright-screenshots",
+              "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/diff/playwright-real-entry",
+              "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/prepare-exact-119/diff/daemon-journey",
+              "HOME": "~"
+            },
+            "argument_count": 2,
+            "duration_seconds": 1.002,
+            "error_type": null,
+            "executable": "git",
+            "exit_code": 0,
+            "finished_at": "2026-10-03T20:41:02.568116+00:00",
+            "idle_seconds_at_exit": 1.002,
+            "interruption_signal": null,
+            "log_bytes": 0,
+            "log_path": "$TASK/evidence/implementation/exact-root-I11-115/prepare-exact-119-diff.log",
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "reason": "exit",
+            "started_at": "2026-10-03T20:41:01.565432+00:00",
+            "status": "completed",
+            "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/prepare-exact-119-diff.runner.json",
+            "runner_exit_code": 0
+          }
+        ]
+      }
+    },
+    {
+      "phase": "write-exact-evidence-124",
+      "raw_binding": {
+        "path": "$TASK/evidence/implementation/exact-root-I11-115/write-exact-evidence-124-results.json",
+        "bytes": 861,
+        "sha256": "1dc3a1c83b9e421dda6ace57b051b37b4659bccd4439b204231cd98963e5045b"
+      },
+      "results": {
+        "phase": "write-exact-evidence-124",
+        "started_candidate": {
+          "head": "74792ae4464216866772e9b09203aefb961958f3",
+          "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "results": [
+          {
+            "name": "write",
+            "argv": [
+              "python3",
+              "$TASK/evidence/implementation/exact-root-I11-115/write-evidence-exact.py"
+            ],
+            "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+            "candidate": {
+              "head": "74792ae4464216866772e9b09203aefb961958f3",
+              "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "status": "NOT_RUN_whole_deadline",
+            "exit_code": null,
+            "reason": "whole runner/deadline remaining <5sec; no new execution"
+          }
+        ]
+      }
+    }
+  ],
+  "full": {
+    "actual_ref": "74792ae4464216866772e9b09203aefb961958f3",
+    "first_attempt": {
+      "phase": "full-exact-120",
+      "started_candidate": {
+        "head": "74792ae4464216866772e9b09203aefb961958f3",
+        "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "results": [
+        {
+          "name": "ci",
+          "argv": [
+            "just",
+            "ci"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "74792ae4464216866772e9b09203aefb961958f3",
+            "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-lrsb4qwy",
+            "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/full-exact-120/ci/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/ci/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/ci/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/ci/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/ci/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 1,
+          "duration_seconds": 135.325,
+          "error_type": null,
+          "executable": "just",
+          "exit_code": 1,
+          "finished_at": "2026-10-03T20:45:46.226440+00:00",
+          "idle_seconds_at_exit": 1.001,
+          "interruption_signal": null,
+          "log_bytes": 105941,
+          "log_path": "$TASK/evidence/implementation/exact-root-I11-115/full-exact-120-ci.log",
+          "log_sha256": "bc2303caf754d23c4e5ed7132bc485d5f998388fb8e9177dc8e1435410ca6993",
+          "reason": "exit",
+          "started_at": "2026-10-03T20:43:30.900369+00:00",
+          "status": "failed",
+          "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/full-exact-120-ci.runner.json",
+          "runner_exit_code": 1
+        },
+        {
+          "name": "playwright",
+          "argv": [
+            "pnpm",
+            "exec",
+            "playwright",
+            "test",
+            "--output",
+            "$TASK/evidence/implementation/exact-root-I11-115/playwright-full-I11-120-results"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "74792ae4464216866772e9b09203aefb961958f3",
+            "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-awc8206i",
+            "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/full-exact-120/playwright/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/playwright/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/playwright/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/playwright/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/playwright/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 5,
+          "duration_seconds": 280.725,
+          "error_type": null,
+          "executable": "pnpm",
+          "exit_code": 0,
+          "finished_at": "2026-10-03T20:50:27.087217+00:00",
+          "idle_seconds_at_exit": 3.007,
+          "interruption_signal": null,
+          "log_bytes": 8264,
+          "log_path": "$TASK/evidence/implementation/exact-root-I11-115/full-exact-120-playwright.log",
+          "log_sha256": "2db769eb785d816c0a0155556c9790cbb71a3b51e7e834db94a6b3116165d592",
+          "reason": "exit",
+          "started_at": "2026-10-03T20:45:46.363163+00:00",
+          "status": "completed",
+          "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/full-exact-120-playwright.runner.json",
+          "runner_exit_code": 0
+        }
+      ]
+    },
+    "second_attempt": {
+      "phase": "full-ci-exact-retry-122",
+      "started_candidate": {
+        "head": "74792ae4464216866772e9b09203aefb961958f3",
+        "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "results": [
+        {
+          "name": "ci",
+          "argv": [
+            "just",
+            "ci"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "74792ae4464216866772e9b09203aefb961958f3",
+            "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-x8ha39k2",
+            "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/full-ci-exact-retry-122/ci/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-122/ci/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-122/ci/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-122/ci/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-122/ci/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 1,
+          "duration_seconds": 23.129,
+          "error_type": null,
+          "executable": "just",
+          "exit_code": -9,
+          "finished_at": "2026-10-03T20:54:57.246182+00:00",
+          "idle_seconds_at_exit": 1.005,
+          "interruption_signal": null,
+          "log_bytes": 11097,
+          "log_path": "$TASK/evidence/implementation/exact-root-I11-115/full-ci-exact-retry-122-ci.log",
+          "log_sha256": "c8138e95a93f3dcaa2b6be151b67fc890199e5fa965213b20305df7dacbc0572",
+          "reason": "exit",
+          "started_at": "2026-10-03T20:54:34.116505+00:00",
+          "status": "failed",
+          "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/full-ci-exact-retry-122-ci.runner.json",
+          "runner_exit_code": 1
+        }
+      ]
+    },
+    "latest_ci": {
+      "phase": "full-ci-exact-retry-123",
+      "started_candidate": {
+        "head": "74792ae4464216866772e9b09203aefb961958f3",
+        "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "results": [
+        {
+          "name": "ci",
+          "argv": [
+            "just",
+            "ci"
+          ],
+          "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+          "candidate": {
+            "head": "74792ae4464216866772e9b09203aefb961958f3",
+            "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "environment": {
+            "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": "/private/tmp/sua-t9njpxdw",
+            "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/full-ci-exact-retry-123/ci/home",
+            "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+            "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+            "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+            "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-123/ci/playwright-journey",
+            "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-123/ci/playwright-screenshots",
+            "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-123/ci/playwright-real-entry",
+            "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-ci-exact-retry-123/ci/daemon-journey",
+            "HOME": "~"
+          },
+          "argument_count": 1,
+          "duration_seconds": 235.498,
+          "error_type": null,
+          "executable": "just",
+          "exit_code": 0,
+          "finished_at": "2026-10-03T21:03:21.292069+00:00",
+          "idle_seconds_at_exit": 1.004,
+          "interruption_signal": null,
+          "log_bytes": 133499,
+          "log_path": "$TASK/evidence/implementation/exact-root-I11-115/full-ci-exact-retry-123-ci.log",
+          "log_sha256": "aee915b3f6b98511469d471c7c4ce1358f490fe20671b2d27d2de3ca90ced671",
+          "reason": "exit",
+          "started_at": "2026-10-03T20:59:25.792699+00:00",
+          "status": "completed",
+          "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/full-ci-exact-retry-123-ci.runner.json",
+          "runner_exit_code": 0
+        }
+      ]
+    },
+    "latest_PW": {
+      "name": "playwright",
+      "argv": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--output",
+        "$TASK/evidence/implementation/exact-root-I11-115/playwright-full-I11-120-results"
+      ],
+      "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+      "candidate": {
+        "head": "74792ae4464216866772e9b09203aefb961958f3",
+        "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "environment": {
+        "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+        "TMPDIR": "/private/tmp/sua-awc8206i",
+        "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/full-exact-120/playwright/home",
+        "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+        "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+        "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+        "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/playwright/playwright-journey",
+        "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/playwright/playwright-screenshots",
+        "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/playwright/playwright-real-entry",
+        "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/full-exact-120/playwright/daemon-journey",
+        "HOME": "~"
+      },
+      "argument_count": 5,
+      "duration_seconds": 280.725,
+      "error_type": null,
+      "executable": "pnpm",
+      "exit_code": 0,
+      "finished_at": "2026-10-03T20:50:27.087217+00:00",
+      "idle_seconds_at_exit": 3.007,
+      "interruption_signal": null,
+      "log_bytes": 8264,
+      "log_path": "$TASK/evidence/implementation/exact-root-I11-115/full-exact-120-playwright.log",
+      "log_sha256": "2db769eb785d816c0a0155556c9790cbb71a3b51e7e834db94a6b3116165d592",
+      "reason": "exit",
+      "started_at": "2026-10-03T20:45:46.363163+00:00",
+      "status": "completed",
+      "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/full-exact-120-playwright.runner.json",
+      "runner_exit_code": 0
+    },
+    "latest_counts": {
+      "node_package_summaries": [
+        [
+          155,
+          0
+        ],
+        [
+          121,
+          14
+        ],
+        [
+          74,
+          1
+        ],
+        [
+          565,
+          0
+        ],
+        [
+          2923,
+          6
+        ]
+      ],
+      "node_passed": 3838,
+      "node_skipped": 21,
+      "python_passed": 160,
+      "playwright_passed": 64,
+      "basis": "最新same-I11 ci123及PW120真实日志；首ci1与第二ci-9另列，不继承E10"
+    },
+    "first_failure": "ci120 exit1，recovery-only controlled-runtime child health前exit1且未给diagnostic正文；Node3837PASS/1FAIL/21SKIP，PythonNOT_RUN",
+    "second_failure": "ci122 exit-9/reason exit/interruption null，非runner超时，Node仅部分摘要、PythonNOT_RUN",
+    "cause": "两原失败均UNKNOWN；focused121 1PASS/9SKIP不足确定环境原因，ci123一次procedure复试0，不删除原FAIL/无第4次",
+    "preflight": {
+      "observed_at": "2026-10-03T20:42:52.129315+00:00",
+      "head": "74792ae4464216866772e9b09203aefb961958f3",
+      "status": "",
+      "fingerprint": {
+        "algorithm": "git-diff-v1",
+        "fingerprint": "e42dd19ca752c0ee2dca966fb0e915cbc9fce9375efcd3d45a53f060692f9727",
+        "head": "74792ae4464216866772e9b09203aefb961958f3"
+      },
+      "sources": [
+        {
+          "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/test/exact-test-roots.ts",
+          "bytes": 10679,
+          "sha256": "27ba4786f5c3571e5da451475843498b4ada36707d058259f371cd89ef9b3263"
+        },
+        {
+          "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/test/exact-test-roots.test.ts",
+          "bytes": 8699,
+          "sha256": "7566106a3082826b38921276bffbf5c3217a4f28a20f8e0ee611c5183cf8d374"
+        }
+      ],
+      "guards": {
+        "tracked_images": [
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+            "bytes": 4779,
+            "sha256": "248efb188c5e7b94b136e4eab461405f1441a9d4cb372219f5fad896f90ee4b9",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png",
+            "bytes": 4012,
+            "sha256": "6e210576cdcdf0161ead00fe966acbe6d9ec3e4402f1543583bb410b38d4fff2",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+            "bytes": 2590,
+            "sha256": "338c0641060b196bad17d1bc87139b7aaf33bc715e14b62657f97c3978bb80ab",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png",
+            "bytes": 2372,
+            "sha256": "573baecbb0a21c441f44f6f6b5f150fd043b778252071aba89886b672ef81492",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+            "bytes": 7585,
+            "sha256": "f4f1920fe44982f62e474507b396b9521f5f92fb0cd8c006262ef134c1740161",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png",
+            "bytes": 5236,
+            "sha256": "d13a52033483844c334bfd5617268c1a9083ed0e75d334d197e4666ffa45e9f8",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+            "bytes": 14822,
+            "sha256": "47a5542c1924ef66d74cc801990f8c10d1f6c7f81a100bca3ec9a713202e4ee1",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png",
+            "bytes": 9157,
+            "sha256": "9c7d4e92b2f3d5098a496fcf5f294a04126147bb9ffacac1bd78df097ea75044",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+            "bytes": 24988,
+            "sha256": "310155ea6760082661ddc73901fd2a3d3d59bd268647988fdc067da33eb42566",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png",
+            "bytes": 10061,
+            "sha256": "baf2b80f44f698c678dea8572289b1143460d829621225ff9e6625d3508f7d6d",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/harmonyos/AppScope/resources/base/media/background.png",
+            "bytes": 5338,
+            "sha256": "11c5c13206f0928709323b69043f49cb5cf6615257abd03c112aff7e48fc1ce6",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/harmonyos/AppScope/resources/base/media/foreground.png",
+            "bytes": 25470,
+            "sha256": "1ab65f527d1a7620e44c421dbacef2dc738db2f8c81249dfdb85d2130b8fcc60",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/harmonyos/AppScope/resources/base/media/start_icon.png",
+            "bytes": 1602585,
+            "sha256": "8d922fdc4d936fd49eec6da4d66d79e954d4c4d5b91eff88b2937f254f6ddb43",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/ios/SayDo/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png",
+            "bytes": 1602585,
+            "sha256": "8d922fdc4d936fd49eec6da4d66d79e954d4c4d5b91eff88b2937f254f6ddb43",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/artifacts/release/copyright/shots/demo-console.png",
+            "bytes": 447183,
+            "sha256": "d2435f6a40b9a66e93315c8b241e556dce7f5e529c3037d4f1ed48a7df36a708",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/artifacts/release/copyright/shots/site-docs.png",
+            "bytes": 663313,
+            "sha256": "0ca3823295061bf8da37259b6690dcde9c3c08113086717b042cf00786cc7f27",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/artifacts/release/copyright/shots/site-home.png",
+            "bytes": 577807,
+            "sha256": "60a27d9e9c404ab794a6699d1371cc308524cd0f31441e54c11d56d4684c206a",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/artifacts/release/store-assets/agc-icon-216.png",
+            "bytes": 62815,
+            "sha256": "e8a596a65b1ba9ff7a8c25fc14200e25ffc70e52f972e6ee11a725028a7bcf81",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/artifacts/release/store-assets/app-icon-1024.png",
+            "bytes": 1631852,
+            "sha256": "906a45d1d45ebdaaaa288a150c4c992394e381d9dbfe070c653e3e3fa2bff14f",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/artifacts/release/store-assets/app-icon-flat-1024.png",
+            "bytes": 820626,
+            "sha256": "8c07951bfe782326d5222ea0d7213b75e82c9581b08d875c8407fe8abe136298",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/artifacts/release/store-assets/play-icon-512.png",
+            "bytes": 382426,
+            "sha256": "bf1b46416535befc67bb06645c5cb3243dbada5799d62dd76c1341a3d3bdd060",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/monogram-exploration/saydo-sd-direction-01-figure-ground.png",
+            "bytes": 942314,
+            "sha256": "ddebee37eed68ab3a3c48450cf601bdd06618aaa231d5b25f1b1e8b17bdfcac0",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/monogram-exploration/saydo-sd-direction-02-interlock.png",
+            "bytes": 892652,
+            "sha256": "8f2b8d447a8ec49fe4ea6500c79ec2450e81608e967df586e81ceae7ac9345cd",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/monogram-exploration/saydo-sd-direction-03-optical.png",
+            "bytes": 966396,
+            "sha256": "6d78b1de029bd5d130cde34a5a598b0cf5cab60b9fd9966c410e07951fa0e928",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/monogram-exploration/saydo-sd-direction-04-modular.png",
+            "bytes": 925781,
+            "sha256": "24de1eafe7296c56fe5d334ef170b8ff0fe13afa5217c7b0e471b4b26c1d98ac",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/monogram-exploration/saydo-sd-direction-05-organic.png",
+            "bytes": 867532,
+            "sha256": "c8064696c1be340c99f48439cf05f5741f8a1f7ce7332011b595a5202d71f2a6",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-app-icon-v1.png",
+            "bytes": 920562,
+            "sha256": "2cee20ca7a5d7ce3da79005160a049049cd81cb748a8fa11e63342b7e20d8aa9",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-hero-v1.png",
+            "bytes": 1146124,
+            "sha256": "b0d214c6200a115bbad4a7147e327ee9406399f7d1142edce3dcced4702f699c",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-icon-flat-1024.png",
+            "bytes": 610992,
+            "sha256": "9a281d767969e7b6577b4dbaf263311d7890ee500c2b3aab2365081c646c30ab",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-icon-heavy-1024.png",
+            "bytes": 1622894,
+            "sha256": "ef74ef957560018ecb8183590655bdffb67337a9b2517121e2e6918dd5a96cab",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-icon-tex-1024.png",
+            "bytes": 1602585,
+            "sha256": "8d922fdc4d936fd49eec6da4d66d79e954d4c4d5b91eff88b2937f254f6ddb43",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-lockup-v1.png",
+            "bytes": 825035,
+            "sha256": "f76fad214e80c04a91d784c76f39258b705c502eba1cedfb7ca68936c520dad0",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-mark-v1-transparent.png",
+            "bytes": 265285,
+            "sha256": "5d6c5f3cf28f01f8a11a58e232b41986400873cb47ec7164fb99fca2a04402f3",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-mark-v1.png",
+            "bytes": 859847,
+            "sha256": "1a12565afad27c1513e11ff8bbe8d31d52e8333e182ffde6381b883d43eeeeb9",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-social-cover-v1.png",
+            "bytes": 1423670,
+            "sha256": "33b0be3f7c24c901e68cba3c3c452c6b7db4458a71901d6813f89be51e5226a0",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-vertical-poster-v1.png",
+            "bytes": 1585642,
+            "sha256": "a38604f6a43d2bc3e7ce201c244da48e59d58309557e43bb27ebf2b9cfacdeb3",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/demo/white-edition-previews/SayDo_White_Edition_Desktop.png",
+            "bytes": 210324,
+            "sha256": "637c0e2fb405ca3e6bda5a0bcb6f1656dc1a9430211ca2e09473dab488b37149",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/demo/white-edition-previews/SayDo_White_Edition_English.png",
+            "bytes": 196226,
+            "sha256": "4731600f839440408ef60c112cd642af910d21a754c4586046a9260d4ee74c2b",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/demo/white-edition-previews/SayDo_White_Edition_Mobile.png",
+            "bytes": 51953,
+            "sha256": "e1c6ac7d0f51c4b52053b9df2b39b508f523e783d4261d6b98ceaec3b5d00a46",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/demo/white-edition-previews/SayDo_White_Edition_Review.png",
+            "bytes": 180752,
+            "sha256": "4a68ab0db1330555a052123bc6650b2eb0659c350428f5856521d18c176acbd3",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/demo/white-edition-previews/SayDo_White_Edition_Tablet.png",
+            "bytes": 152812,
+            "sha256": "d31ae2dc1d1756ebbbd719446443e4d930edb5eb18110886d3c99e9623beed34",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/deploy/saydo-octoooo-com/apple-touch-icon.png",
+            "bytes": 43595,
+            "sha256": "24113a26aff9a978fa7b482db99055c024e9260623bd9ddc5086857c636f25e7",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/deploy/saydo-octoooo-com/favicon.png",
+            "bytes": 1863,
+            "sha256": "ab3774773076c8010781219579bece51632865edc7a823d4326e1a18402fc80a",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/deploy/saydo-octoooo-com/icon-1024.png",
+            "bytes": 1602585,
+            "sha256": "8d922fdc4d936fd49eec6da4d66d79e954d4c4d5b91eff88b2937f254f6ddb43",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/deploy/saydo-octoooo-com/icon-192.png",
+            "bytes": 49769,
+            "sha256": "1b0a8828af510b4ca08ef437468ec12cf35f0ff6c8d11705649a4469f4d3e42a",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/shots/saydo-docs-install-candidate-en.png",
+            "bytes": 7236,
+            "sha256": "dce0210e3e83668750fd175c67a76cb92cf98bba662b56bb55fa5275b347fd83",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/shots/saydo-home-install-candidate.png",
+            "bytes": 207869,
+            "sha256": "db79b6f0943f809f1fc7f219b8d2672d3bd68ae2bd165089de09535c1cd8855d",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-1280-full.png",
+            "bytes": 392794,
+            "sha256": "ef6739aa873daa8ad781d431e0b8b2cac16290ee715f854b822b67d2a2ff380a",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-375-full.png",
+            "bytes": 245876,
+            "sha256": "ba065caa7e55b5bc04fd44f4cc892a26b42782cd09a1356d21207d243b0cbd36",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-768-full.png",
+            "bytes": 316409,
+            "sha256": "ab0965528ea11cbb9cfe12bdf1d43d8f31f9401a4e435b9fd44112cf0e5cd5bd",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-v2-1280-full.png",
+            "bytes": 445401,
+            "sha256": "b74ef2f853b01b04586b2e2ccdbf8d750a21bff931b46d365642e9e9595965e1",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-v2-375-full.png",
+            "bytes": 253079,
+            "sha256": "9ffa9f489492effd456d030c88d4a165fcaaabdf3114aef7a68ef4b508cac026",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-v3-1280-full.png",
+            "bytes": 451048,
+            "sha256": "afeef0aab5b496b3c4d97858f63e9c9ddebf6ea28a93e40fc4c20903b9537d74",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-v3-1280-hero.png",
+            "bytes": 327102,
+            "sha256": "c2fddebd9574ac8c7b55ca4358243fb3b19eda289539ad1a66a7a3bc70f0a623",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-v3-375-full.png",
+            "bytes": 256678,
+            "sha256": "52bae4f9f2b7990df9995ff1eb399d686c9758fa0ab3df14dc5cac96607c2f20",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-v3-375-hero.png",
+            "bytes": 161382,
+            "sha256": "4af3cb4f6a68d43068e078f27f5bc4c2a38169a567dd53b1987d8504ade3476d",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/01-dialogue.png",
+            "bytes": 1407495,
+            "sha256": "c6037ec5d5b0c1f058d7f83afeff12c1b3df7f79c9530c8e0a262eca925d1ae0",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/02-vertical-classic.png",
+            "bytes": 4798197,
+            "sha256": "c020459e29293653ef018d9bc65f7ef179a53ebe44583c340c61c45de79fa5aa",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/03-poster.png",
+            "bytes": 3827501,
+            "sha256": "4808335b36ebc5fe0d3098a70dd6142b7a2d0a8f20925ea064921c72bb6d81bb",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/04-metro-map.png",
+            "bytes": 1185972,
+            "sha256": "05ab2d66648416ec81fc55328159a2130d6e0565225bf8e468e38554f6a48957",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/05-night-terminal.png",
+            "bytes": 1296029,
+            "sha256": "7712d15da3d76f13e6b963335e22fc2a9968d7d7ea8d12cabf2f5378f0749941",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/06-one-day.png",
+            "bytes": 971293,
+            "sha256": "cd086781e157f9ad1ab5370a7fbf4c22b4fd98d51ea9d8974349b87aeba1f029",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/07-magazine.png",
+            "bytes": 1534932,
+            "sha256": "71a73bc56bb932b761c36c8967128661fcc8e62ca0dbefc3844ea76780d723c4",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/08-blueprint.png",
+            "bytes": 1482241,
+            "sha256": "195d4594c21d4f20db6487c12cddb2d2b916327b492e5bdd6c5ce8d918eaa2fa",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/09-app-console.png",
+            "bytes": 1111570,
+            "sha256": "38c59a36da0e5db30867a91dc561e2ced931decf9c986d667533ee59d88dc99b",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/10-ink-brush.png",
+            "bytes": 1211169,
+            "sha256": "62cea16928f9a726752b8a18d02fa8f6337a47ad7ff9a4a5a1d9458c7fb2cb1b",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/01-D1_20260816-175009_PASS.png",
+            "bytes": 25738,
+            "sha256": "dc7c42fe7532fb923e37b9bd1fdc648f6630cf268a4108465a6528e2af150543",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/02-D2_20260816-175011_PASS.png",
+            "bytes": 45690,
+            "sha256": "440e3bd959b0aeaff06171ec5bc4750e9fd668bad219903240f836a87f6328f7",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/03-D3_20260816-175011_PASS.png",
+            "bytes": 64626,
+            "sha256": "bea9e9dc5e89f9288e56adc9f86b6d6cc85640f2ed8a1b30ab84ab5d5bf1b295",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/04-D4_20260816-175011_PASS.png",
+            "bytes": 125588,
+            "sha256": "866f68edd713b47e588b57ad1dac86571b61016abda3b3e293185e163dec7b8e",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/05-D5_20260816-175011_PASS.png",
+            "bytes": 151875,
+            "sha256": "710f620dd578b3deef6a5b1625ed5fe35ff706792e9677a9cadc24df8fd491ca",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/06-D6_20260816-175011_PASS.png",
+            "bytes": 114997,
+            "sha256": "01522ca78f6035cc2d3ce362cfe5fa52d5dc4deef9ee94a0a5e4f281f8960159",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/07-D7_20260816-175011_PASS.png",
+            "bytes": 45414,
+            "sha256": "f001a2bee773c59b5d3850fe72d3758f72689e446e661d2e210d7ab9a5445fd3",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/08-D8_20260816-175011_PASS.png",
+            "bytes": 46744,
+            "sha256": "c5fde003f54547c0825505c79895e13afa3a8d551869f1d46bc0b1761861e126",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/09-D9_20260816-175011_PASS.png",
+            "bytes": 110871,
+            "sha256": "34c3b19442bf5cd13da214956fc31da479285e115b2b6316e22f8dd204bb4da8",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/10-D10_20260816-175012_PASS.png",
+            "bytes": 49820,
+            "sha256": "0f01355ed4090867b469b0a1cf59cd5f5fedf751e0b7bf91f179a5e2f20774de",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/11-D11_20260816-175012_PASS.png",
+            "bytes": 71614,
+            "sha256": "572dc1d7bca691ac9d9e572279bc79fa544927b8c2cbae0fe9abd399f3ecc840",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/12-D12_20260816-175012_PASS.png",
+            "bytes": 39585,
+            "sha256": "7648629cda3e6d0b52dadce96c5125b195773f2bf8eed7adb80ee9e27062de19",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/13-D13_20260816-175012_PASS.png",
+            "bytes": 227308,
+            "sha256": "79bc795eee6da59f77cfd5d6058c9e25d3da8396e5706b6eb517256482c611e1",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/14-D14_20260816-175012_PASS.png",
+            "bytes": 45690,
+            "sha256": "440e3bd959b0aeaff06171ec5bc4750e9fd668bad219903240f836a87f6328f7",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/15-D15_20260816-175012_PASS.png",
+            "bytes": 45690,
+            "sha256": "440e3bd959b0aeaff06171ec5bc4750e9fd668bad219903240f836a87f6328f7",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/15-D15_20260816-175800_PASS.png",
+            "bytes": 37206,
+            "sha256": "dea599758f083852daceea4a7e9b20cc30fcad10813ae4d1765e222246381547",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/16-F1_20260816-175012_PASS.png",
+            "bytes": 115809,
+            "sha256": "9e2cb7f7d91c27517580d2b63084f1c4c10c175d9d2f00e923f7d19825bf9b39",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/17-L1_20260816-175012_PASS.png",
+            "bytes": 37205,
+            "sha256": "c4aafb485832dece31bad6056f3c703ba36e36c001c8d0d3c70c75de27f4c324",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/18-L2_20260816-175012_PASS.png",
+            "bytes": 27724,
+            "sha256": "72ed45455a47977b750cee3c7ba250f94020d571f8b5512bc3728599bcdd9456",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/19-L3_20260816-175012_PASS.png",
+            "bytes": 40150,
+            "sha256": "286724e71c280d742b3017f97d0b2ca09d5962d34912b3b5b052b017bc1a6a3c",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/approvals.png",
+            "bytes": 83065,
+            "sha256": "a0f23bddd39d6a6d38912ca627903a2ce06e82d5e2dcba4cd5e57073b72c0d88",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/artifacts.png",
+            "bytes": 67048,
+            "sha256": "5e56c29b530a90494d88a22ff223127aa799003e4564921b823ad2e8c3c70c32",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/chat.png",
+            "bytes": 143176,
+            "sha256": "d2bd8f0864ebc929b55067f7d4f3e787b1ee6cf748b1668f75099f499c8a5839",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/cost.png",
+            "bytes": 69709,
+            "sha256": "e445e0efb98e0c9aafac59d88d03f3148d950fd43820994d8d11222c461fd8d4",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/dashboard.png",
+            "bytes": 111172,
+            "sha256": "9020ab1b5f1c803001a36d8f657f83126fb857f53c5965f184c8a87209d98a21",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/memory.png",
+            "bytes": 83040,
+            "sha256": "a173141d5c01f5b161d148d6ecd3694dee9719c3aa149263240062fd89a55906",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/notify.png",
+            "bytes": 76394,
+            "sha256": "48b7c2153b5745b9cc7612b24a739dd9683e5a33c70b68bbf53cc0d3711385bc",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/psettings.png",
+            "bytes": 153010,
+            "sha256": "26ac1b0ada7f1c02c7c31acc4cc64ff37649cc6b9e340b497fa1fc98b3ce323f",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/settings.png",
+            "bytes": 326141,
+            "sha256": "8f5749fb850341162fb51719c51dfb3a3cfdcc373339f79cdeeefc1de1626cde",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/task-detail.png",
+            "bytes": 157216,
+            "sha256": "8658060bbde306edbc9ca99b673f72d5c1bc59ac00c6e6499e513223730229b6",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/tasks.png",
+            "bytes": 122362,
+            "sha256": "73f9729ede34f2e5f1fd2b973bc266eb9ddd0d9318a8c8456c3e2c913f5a89aa",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/approvals.png",
+            "bytes": 83384,
+            "sha256": "5bb5a0b8ef8e5d018f20514b40bc03f3a8f90563c14b6d33fd6d1914b06b542f",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/artifacts.png",
+            "bytes": 67483,
+            "sha256": "7b7c91bc92c457ea3ab76bf782edd0b6af05aa79e781b8686501fb87daf9f2bc",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/chat.png",
+            "bytes": 145677,
+            "sha256": "1045fe9e3fd86753ad95ae9292ec421561dc4237833c95b6b91f246ca1e5bb6d",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/cost.png",
+            "bytes": 70263,
+            "sha256": "21d0b5ed8311865ae50afe8bdea6083d9962a7cb6885a490298a81aff217aa8e",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/dashboard.png",
+            "bytes": 113108,
+            "sha256": "c1d13d2850c49124a75c2b0d803a13646031d86e78c823d4a906e309cd2d3b2a",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/memory.png",
+            "bytes": 84371,
+            "sha256": "8d2886da528a1207ddc932ab40fc4540c009668f6baf1dc9c2a7e1322c2485ba",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/notify.png",
+            "bytes": 76915,
+            "sha256": "32d566450011368d5bd53c26ad268437c86e515225137d58dc1f33d2d1756e9f",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/psettings.png",
+            "bytes": 156688,
+            "sha256": "422b0b9476f3c5acb7b2a24e371886ed116b7e7f23e52815d93c557ac90b6586",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/settings.png",
+            "bytes": 333720,
+            "sha256": "ad7acd26e98a674edf10c52f5151690708e41bfd0d33097632286bd1e223d1cf",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/task-detail.png",
+            "bytes": 160481,
+            "sha256": "f03c02ca3e9d2ed77579b33f940f8eabaebda223a2da4978e148ea287f86e67a",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/tasks.png",
+            "bytes": 122545,
+            "sha256": "5d4d4365f95739010ed57538d390193eb288241a20918538ea9aa8e9dec85b98",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/console/public/apple-touch-icon.png",
+            "bytes": 40366,
+            "sha256": "f1a51f89eb570fdc4c7e89a4c6618de4ecab07c21b750abc082f85bbe1af9ef5",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/console/public/favicon-16.png",
+            "bytes": 610,
+            "sha256": "26aeee84425d3433e4b1a79b131dd9d400b6a23b241c1b66b1e0756a0300f10f",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/console/public/favicon-32.png",
+            "bytes": 1481,
+            "sha256": "dfb95d189352fa3a561880e24b3823c7591fd432c5c75b20eb8bd1639f9e4f34",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/console/public/icon-512.png",
+            "bytes": 175797,
+            "sha256": "ce6e86edcd7e839c7107e1311348099270c539b62e22cdb8ba43d8e646871a40",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/console/src/assets/saydo-mark.png",
+            "bytes": 6556,
+            "sha256": "0efb715899b387d8dd08b9da70c24a510dc3e1e71b69b1a1a41fa33903d7ded7",
+            "same_as_start": true
+          }
+        ],
+        "old_current_paths": [
+          {
+            "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/b3-draft-barrier.png",
+            "bytes": 149658,
+            "sha256": "2ab26becba14612066e9c5fa2708b50636c5e31e21acf3468640a0b2756bf385",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/b3-draft-posts.json",
+            "bytes": 268,
+            "sha256": "7df1bba757419ce2cda9fa23147a99aaafda2dfbd3eb5dacb1f4b3fdc44a3deb",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/board-lanes.png",
+            "bytes": 262241,
+            "sha256": "587ab4f920a51f6021bbd4187a26ff5eb0dcac9562ff6760709d3226055f2da0",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/board-list.png",
+            "bytes": 171969,
+            "sha256": "24d4d4e290e33f012319b896b65a42d8b5b5d92e5489f191d3b39532e482a1bb",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/board-kanban.png",
+            "bytes": 305394,
+            "sha256": "c45d87ecf2b4de7074d2d7af5c643bd339b81b2505605da30ff0a6849482ea22",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/arrangements.png",
+            "bytes": 149735,
+            "sha256": "a9eb2649985abc3d69bfa8e9a36d0e2988c58d289e609a5870e31f7e98a6f05d",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/archive.png",
+            "bytes": 148042,
+            "sha256": "d4ef3f44cee2b416f37d0a8d2b734d342baa2195a4de0eae878e06dcbee92c56",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/cost-identity.png",
+            "bytes": 93518,
+            "sha256": "3c168d7ff12089327b06063bf7bdf8d877371f8433d954829a5d1079b083da51",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-obligation-modal-1440.png",
+            "bytes": 111975,
+            "sha256": "07dd49b018fa2b089e31eb8ba282fa20188d522760377b01dc024dfda4911cd6",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/expect-draft-chat.png",
+            "bytes": 158225,
+            "sha256": "07d692b596d3096e7f53b4ff7dd261d26ea43ee4305fe2e239aeb273027522e1",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/anchor-failed-keeps-draft.png",
+            "bytes": 159758,
+            "sha256": "aa5f1b630d1d466bdb618358442522a23e1c2476c7ac1b651e3cb24b64188e2e",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/records-continue-main-lane.png",
+            "bytes": 157168,
+            "sha256": "f674bc305fdcab4086ac92cea1cf9e9d1b9a64b1e84ab6790f970e0afc16d7f7",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/task-modal-running.png",
+            "bytes": 134554,
+            "sha256": "7d3ff3b9a057530a14f9549176f830143d9ec2ed4205fc9f66da2bc6ddf8f917",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-desktop-1440.png",
+            "bytes": 99222,
+            "sha256": "458e0696500df1bb962074beff64f637acbeacbc9a8ebe1fb8a9a3ab93d8dee7",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-mobile-390.png",
+            "bytes": 45941,
+            "sha256": "32dad3e4f6500d73bfb80cbd910d2c5c4810578f64666e7761a060efc0437f5b",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-mobile-390-obligation.png",
+            "bytes": 35755,
+            "sha256": "2621b5eab8f3cdd47967f61e970a5f2fbafc1f68ef6a3ae2394e6d3ca3d1219d",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/pending-anchor-retry-ws-http.json",
+            "bytes": 2651,
+            "sha256": "1a9be2f02093acb00a989e9afd242f5e1ee4ade781e2ddabd0a9c06fc6e26f20",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/delay-focus-a-to-b-ws-http.json",
+            "bytes": 2651,
+            "sha256": "52b1b210f68f1dc76bcfaa2d2775f8d94e49eb45cf8439ea0b6eb6a432b374c9",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/records-continue-ws-http.json",
+            "bytes": 1781,
+            "sha256": "e36f01536cb282de2881e683541c392875dc131e9c49848a9658871150044c8b",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/journey01-closed-loop.json",
+            "bytes": 944,
+            "sha256": "979f959c8fe504dcb4622b7d783c7489d5e0c5b3e529f45cf4c20d8a0174a5c2",
+            "same_as_start": true
+          }
+        ],
+        "old13": [
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/api/sqliteAuditTransaction.ts",
+            "bytes": 637,
+            "sha256": "76d4fbeb7776cd56ddebe96a748600ac4c362111cb493a2d6c4443a7021b42c2",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/api/focuses.ts",
+            "bytes": 12770,
+            "sha256": "18b0d3fdc65096e91116a247045fd9a0ce64c730d85b9e57407807aa3a42b7e4",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/api/spaces.ts",
+            "bytes": 6335,
+            "sha256": "85eaa746559c928cb690b13e408f9380f27a6139e74cf4c9886c3c4750f4fa2c",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/api/artifacts.ts",
+            "bytes": 8073,
+            "sha256": "81032db71cdee427de030ca5e22eeb7f008ce57f04d93bea2b38fc1817cf7998",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/api/expectations.ts",
+            "bytes": 6117,
+            "sha256": "5cd43cb4530ceba4940dceb7c424b19ae7d95c7c045327eba3e7a4c221e55a8f",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/api/lanes.ts",
+            "bytes": 6511,
+            "sha256": "71687bec5abf1a3c77687ce8f96f3ab1f1f50f523f8f4e3c6a32b05214459b80",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/api/obligations.ts",
+            "bytes": 8597,
+            "sha256": "84319cf9ee1d35be6d8994025dd1aa5d20d1ba5821c55b578e0390eba5a937bb",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/focus/dependency.ts",
+            "bytes": 17581,
+            "sha256": "d3c534c66622f125c6d516d5c3a7a3e0c3f57ccd5c2fdd04ada5cda19947ccd4",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/platform/src/win32.ts",
+            "bytes": 104202,
+            "sha256": "0c3014441ca6545fd7c242e7a32874da4283a5bfa61ab20be3401500324db6b6",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/test/helpers/playwright-isolation.ts",
+            "bytes": 6467,
+            "sha256": "d7fe30167a276c8d2b24915dd962759e1fbf3b95de5bf467590184175ef9a770",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/console/global-setup.ts",
+            "bytes": 7062,
+            "sha256": "1122c395f41feb1f01305a6547e3b11c8849ecb6892f227b3b86d49d201da377",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/scripts/rf00-inventory-scan.mjs",
+            "bytes": 92276,
+            "sha256": "9afac225cad8d13b4264877c389572798fe3581d9cc66e0ad451d5a6c780bd30",
+            "same_as_start": true
+          },
+          {
+            "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/runtimeChildRegistry.ts",
+            "bytes": 86745,
+            "sha256": "5edf8fcc31b21e1b84fc1e171b11740e298610dfd3757424f6ebe7b8d89c31dc",
+            "same_as_start": true
+          }
+        ]
+      },
+      "launch_requested": "UNKNOWN"
+    },
+    "prepared": {
+      "phase": "full-exact-120",
+      "code_implementation": "74792ae4464216866772e9b09203aefb961958f3",
+      "frozen_implementation": "74792ae4464216866772e9b09203aefb961958f3",
+      "prepared_at": "2026-10-03T20:42:52.144985+00:00",
+      "launch_requested": "UNKNOWN",
+      "whole_runner_timeout_seconds": 1200,
+      "hard_deadline_utc": "2026-10-03T21:02:00Z",
+      "gates": [
+        {
+          "name": "ci",
+          "argv": [
+            "just",
+            "ci"
+          ],
+          "timeout": 600,
+          "idle_timeout": 300
+        },
+        {
+          "name": "playwright",
+          "argv": [
+            "pnpm",
+            "exec",
+            "playwright",
+            "test",
+            "--output",
+            "$TASK/evidence/implementation/exact-root-I11-115/playwright-full-I11-120-results"
+          ],
+          "timeout": 480,
+          "idle_timeout": 240
+        }
+      ],
+      "complete41": "NOT_RUN_on_I11，仅latest local ci/PW与具名focused/small门，旧8不重复"
+    },
+    "launch_requested": "UNKNOWN",
+    "complete41": "NOT_RUN_on_I11；仅新required ci/PW+具名focused/small，不继承E10或I10结果"
+  },
+  "RF": {
+    "observed_at": "2026-10-03T20:40:27.231768+00:00",
+    "changed_semantic_claims": [
+      {
+        "file": "packages/daemon/test/exact-test-roots.test.ts",
+        "before": {
+          "sha256": "cd30f10bf728fe17bfc41df671dc6bcf3471d16b4c07d3232487702192d1a955",
+          "registration_ids": [],
+          "scope": "有限静态发现语料,无命中不等于动态可达性已证明"
+        },
+        "after": {
+          "sha256": "7566106a3082826b38921276bffbf5c3217a4f28a20f8e0ee611c5183cf8d374",
+          "registration_ids": [],
+          "scope": "有限静态发现语料,无命中不等于动态可达性已证明",
+          "refresh_basis": "I11仅exact-root测试清单登记/严格读取与正反控；正文全读，非产品语义或原生证明"
+        },
+        "actual_extent": "helper273原行全文/修改后register+parse+read；原测试90行全文、新9控制全文。setup92/global29全文登记调用，tier1-executor73–106选段，不称全文件runtime验收"
+      },
+      {
+        "file": "packages/daemon/test/exact-test-roots.ts",
+        "before": {
+          "sha256": "fc794b6404a570bd3f032b6ed12c0962b419dde2ffc1ab23144b16b0787af63b",
+          "registration_ids": [],
+          "scope": "有限静态发现语料,无命中不等于动态可达性已证明"
+        },
+        "after": {
+          "sha256": "27ba4786f5c3571e5da451475843498b4ada36707d058259f371cd89ef9b3263",
+          "registration_ids": [],
+          "scope": "有限静态发现语料,无命中不等于动态可达性已证明",
+          "refresh_basis": "I11仅exact-root测试清单登记/严格读取与正反控；正文全读，非产品语义或原生证明"
+        },
+        "actual_extent": "helper273原行全文/修改后register+parse+read；原测试90行全文、新9控制全文。setup92/global29全文登记调用，tier1-executor73–106选段，不称全文件runtime验收"
+      }
+    ],
+    "stable_classes_fresh_exact": [
+      "transport_registrations",
+      "http_routes",
+      "ws_messages",
+      "ipc_frames",
+      "brain_tools",
+      "task_actions",
+      "cli_commands",
+      "console_api_members",
+      "tables",
+      "table_writers",
+      "file_writers",
+      "module_dependencies",
+      "external_dependencies",
+      "artifacts",
+      "support_facts"
+    ],
+    "stable_registrations_changed": false,
+    "corpus_count": 861,
+    "dual_write_gap_ids": [
+      "table_writers:confirmation_ledger <- packages/daemon/src/index.ts",
+      "table_writers:focus_events <- packages/daemon/src/live/confirm.ts",
+      "table_writers:focuses <- packages/daemon/src/live/confirm.ts",
+      "table_writers:pending_confirmations <- packages/daemon/src/index.ts"
+    ],
+    "dual_write_gap_unchanged": true,
+    "legacy_scope": "仅现机运行元数据快照，不作为产品语义全量证明",
+    "read_limits": "C27原diff6302–6598请求输出被整cell budget截断；不冒本次全hunk语义读完；当前helper/tests全文与生产调用具名范围",
+    "observed_files_scanned": {
+      "total_tracked": 2542,
+      "product_sources": 864,
+      "by_ext": {
+        "md": 1105,
+        "gitattributes": 1,
+        "yml": 3,
+        "gitignore": 4,
+        "LICENSE": 1,
+        "NOTICE": 1,
+        "kts": 3,
+        "pro": 1,
+        "xml": 7,
+        "kt": 8,
+        "png": 113,
+        "sh": 20,
+        "properties": 2,
+        "jar": 1,
+        "apps/android/gradlew": 1,
+        "json": 164,
+        "json5": 8,
+        "ts": 704,
+        "txt": 9,
+        "ets": 11,
+        "swift": 14,
+        "plist": 1,
+        "html": 35,
+        "pdf": 2,
+        "icns": 1,
+        "well-known/apple-app-site-association": 1,
+        "deploy/link-saydo-octoooo-com/_headers": 1,
+        "deploy/link-saydo-octoooo-com/_redirects": 1,
+        "deploy/link-saydo-octoooo-com/well-known/apple-app-site-association": 1,
+        "deploy/saydo-octoooo-com/_headers": 1,
+        "deploy/saydo-octoooo-com/_redirects": 1,
+        "ps1": 3,
+        "css": 5,
+        "js": 2,
+        "tsv": 3,
+        "yaml": 3,
+        "svg": 1,
+        "mjs": 142,
+        "err": 1,
+        "jsonl": 17,
+        "py": 32,
+        "justfile": 1,
+        "packages/cli/LICENSE": 1,
+        "packages/cli/NOTICE": 1,
+        "ico": 1,
+        "tsx": 92,
+        "ndjson": 1,
+        "mts": 3,
+        "sql": 1,
+        "toml": 3,
+        "lock": 1,
+        "draft": 1,
+        "example": 1
+      }
+    }
+  },
+  "guards": {
+    "tracked_images": [
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+        "bytes": 4779,
+        "sha256": "248efb188c5e7b94b136e4eab461405f1441a9d4cb372219f5fad896f90ee4b9",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png",
+        "bytes": 4012,
+        "sha256": "6e210576cdcdf0161ead00fe966acbe6d9ec3e4402f1543583bb410b38d4fff2",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+        "bytes": 2590,
+        "sha256": "338c0641060b196bad17d1bc87139b7aaf33bc715e14b62657f97c3978bb80ab",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png",
+        "bytes": 2372,
+        "sha256": "573baecbb0a21c441f44f6f6b5f150fd043b778252071aba89886b672ef81492",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+        "bytes": 7585,
+        "sha256": "f4f1920fe44982f62e474507b396b9521f5f92fb0cd8c006262ef134c1740161",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png",
+        "bytes": 5236,
+        "sha256": "d13a52033483844c334bfd5617268c1a9083ed0e75d334d197e4666ffa45e9f8",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+        "bytes": 14822,
+        "sha256": "47a5542c1924ef66d74cc801990f8c10d1f6c7f81a100bca3ec9a713202e4ee1",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png",
+        "bytes": 9157,
+        "sha256": "9c7d4e92b2f3d5098a496fcf5f294a04126147bb9ffacac1bd78df097ea75044",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+        "bytes": 24988,
+        "sha256": "310155ea6760082661ddc73901fd2a3d3d59bd268647988fdc067da33eb42566",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png",
+        "bytes": 10061,
+        "sha256": "baf2b80f44f698c678dea8572289b1143460d829621225ff9e6625d3508f7d6d",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/harmonyos/AppScope/resources/base/media/background.png",
+        "bytes": 5338,
+        "sha256": "11c5c13206f0928709323b69043f49cb5cf6615257abd03c112aff7e48fc1ce6",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/harmonyos/AppScope/resources/base/media/foreground.png",
+        "bytes": 25470,
+        "sha256": "1ab65f527d1a7620e44c421dbacef2dc738db2f8c81249dfdb85d2130b8fcc60",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/harmonyos/AppScope/resources/base/media/start_icon.png",
+        "bytes": 1602585,
+        "sha256": "8d922fdc4d936fd49eec6da4d66d79e954d4c4d5b91eff88b2937f254f6ddb43",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/apps/ios/SayDo/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png",
+        "bytes": 1602585,
+        "sha256": "8d922fdc4d936fd49eec6da4d66d79e954d4c4d5b91eff88b2937f254f6ddb43",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/artifacts/release/copyright/shots/demo-console.png",
+        "bytes": 447183,
+        "sha256": "d2435f6a40b9a66e93315c8b241e556dce7f5e529c3037d4f1ed48a7df36a708",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/artifacts/release/copyright/shots/site-docs.png",
+        "bytes": 663313,
+        "sha256": "0ca3823295061bf8da37259b6690dcde9c3c08113086717b042cf00786cc7f27",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/artifacts/release/copyright/shots/site-home.png",
+        "bytes": 577807,
+        "sha256": "60a27d9e9c404ab794a6699d1371cc308524cd0f31441e54c11d56d4684c206a",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/artifacts/release/store-assets/agc-icon-216.png",
+        "bytes": 62815,
+        "sha256": "e8a596a65b1ba9ff7a8c25fc14200e25ffc70e52f972e6ee11a725028a7bcf81",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/artifacts/release/store-assets/app-icon-1024.png",
+        "bytes": 1631852,
+        "sha256": "906a45d1d45ebdaaaa288a150c4c992394e381d9dbfe070c653e3e3fa2bff14f",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/artifacts/release/store-assets/app-icon-flat-1024.png",
+        "bytes": 820626,
+        "sha256": "8c07951bfe782326d5222ea0d7213b75e82c9581b08d875c8407fe8abe136298",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/artifacts/release/store-assets/play-icon-512.png",
+        "bytes": 382426,
+        "sha256": "bf1b46416535befc67bb06645c5cb3243dbada5799d62dd76c1341a3d3bdd060",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/monogram-exploration/saydo-sd-direction-01-figure-ground.png",
+        "bytes": 942314,
+        "sha256": "ddebee37eed68ab3a3c48450cf601bdd06618aaa231d5b25f1b1e8b17bdfcac0",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/monogram-exploration/saydo-sd-direction-02-interlock.png",
+        "bytes": 892652,
+        "sha256": "8f2b8d447a8ec49fe4ea6500c79ec2450e81608e967df586e81ceae7ac9345cd",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/monogram-exploration/saydo-sd-direction-03-optical.png",
+        "bytes": 966396,
+        "sha256": "6d78b1de029bd5d130cde34a5a598b0cf5cab60b9fd9966c410e07951fa0e928",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/monogram-exploration/saydo-sd-direction-04-modular.png",
+        "bytes": 925781,
+        "sha256": "24de1eafe7296c56fe5d334ef170b8ff0fe13afa5217c7b0e471b4b26c1d98ac",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/monogram-exploration/saydo-sd-direction-05-organic.png",
+        "bytes": 867532,
+        "sha256": "c8064696c1be340c99f48439cf05f5741f8a1f7ce7332011b595a5202d71f2a6",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-app-icon-v1.png",
+        "bytes": 920562,
+        "sha256": "2cee20ca7a5d7ce3da79005160a049049cd81cb748a8fa11e63342b7e20d8aa9",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-hero-v1.png",
+        "bytes": 1146124,
+        "sha256": "b0d214c6200a115bbad4a7147e327ee9406399f7d1142edce3dcced4702f699c",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-icon-flat-1024.png",
+        "bytes": 610992,
+        "sha256": "9a281d767969e7b6577b4dbaf263311d7890ee500c2b3aab2365081c646c30ab",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-icon-heavy-1024.png",
+        "bytes": 1622894,
+        "sha256": "ef74ef957560018ecb8183590655bdffb67337a9b2517121e2e6918dd5a96cab",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-icon-tex-1024.png",
+        "bytes": 1602585,
+        "sha256": "8d922fdc4d936fd49eec6da4d66d79e954d4c4d5b91eff88b2937f254f6ddb43",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-lockup-v1.png",
+        "bytes": 825035,
+        "sha256": "f76fad214e80c04a91d784c76f39258b705c502eba1cedfb7ca68936c520dad0",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-mark-v1-transparent.png",
+        "bytes": 265285,
+        "sha256": "5d6c5f3cf28f01f8a11a58e232b41986400873cb47ec7164fb99fca2a04402f3",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-mark-v1.png",
+        "bytes": 859847,
+        "sha256": "1a12565afad27c1513e11ff8bbe8d31d52e8333e182ffde6381b883d43eeeeb9",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-social-cover-v1.png",
+        "bytes": 1423670,
+        "sha256": "33b0be3f7c24c901e68cba3c3c452c6b7db4458a71901d6813f89be51e5226a0",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/assets/brand/saydo-vertical-poster-v1.png",
+        "bytes": 1585642,
+        "sha256": "a38604f6a43d2bc3e7ce201c244da48e59d58309557e43bb27ebf2b9cfacdeb3",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/demo/white-edition-previews/SayDo_White_Edition_Desktop.png",
+        "bytes": 210324,
+        "sha256": "637c0e2fb405ca3e6bda5a0bcb6f1656dc1a9430211ca2e09473dab488b37149",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/demo/white-edition-previews/SayDo_White_Edition_English.png",
+        "bytes": 196226,
+        "sha256": "4731600f839440408ef60c112cd642af910d21a754c4586046a9260d4ee74c2b",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/demo/white-edition-previews/SayDo_White_Edition_Mobile.png",
+        "bytes": 51953,
+        "sha256": "e1c6ac7d0f51c4b52053b9df2b39b508f523e783d4261d6b98ceaec3b5d00a46",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/demo/white-edition-previews/SayDo_White_Edition_Review.png",
+        "bytes": 180752,
+        "sha256": "4a68ab0db1330555a052123bc6650b2eb0659c350428f5856521d18c176acbd3",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/demo/white-edition-previews/SayDo_White_Edition_Tablet.png",
+        "bytes": 152812,
+        "sha256": "d31ae2dc1d1756ebbbd719446443e4d930edb5eb18110886d3c99e9623beed34",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/deploy/saydo-octoooo-com/apple-touch-icon.png",
+        "bytes": 43595,
+        "sha256": "24113a26aff9a978fa7b482db99055c024e9260623bd9ddc5086857c636f25e7",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/deploy/saydo-octoooo-com/favicon.png",
+        "bytes": 1863,
+        "sha256": "ab3774773076c8010781219579bece51632865edc7a823d4326e1a18402fc80a",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/deploy/saydo-octoooo-com/icon-1024.png",
+        "bytes": 1602585,
+        "sha256": "8d922fdc4d936fd49eec6da4d66d79e954d4c4d5b91eff88b2937f254f6ddb43",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/deploy/saydo-octoooo-com/icon-192.png",
+        "bytes": 49769,
+        "sha256": "1b0a8828af510b4ca08ef437468ec12cf35f0ff6c8d11705649a4469f4d3e42a",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/shots/saydo-docs-install-candidate-en.png",
+        "bytes": 7236,
+        "sha256": "dce0210e3e83668750fd175c67a76cb92cf98bba662b56bb55fa5275b347fd83",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/shots/saydo-home-install-candidate.png",
+        "bytes": 207869,
+        "sha256": "db79b6f0943f809f1fc7f219b8d2672d3bd68ae2bd165089de09535c1cd8855d",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-1280-full.png",
+        "bytes": 392794,
+        "sha256": "ef6739aa873daa8ad781d431e0b8b2cac16290ee715f854b822b67d2a2ff380a",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-375-full.png",
+        "bytes": 245876,
+        "sha256": "ba065caa7e55b5bc04fd44f4cc892a26b42782cd09a1356d21207d243b0cbd36",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-768-full.png",
+        "bytes": 316409,
+        "sha256": "ab0965528ea11cbb9cfe12bdf1d43d8f31f9401a4e435b9fd44112cf0e5cd5bd",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-v2-1280-full.png",
+        "bytes": 445401,
+        "sha256": "b74ef2f853b01b04586b2e2ccdbf8d750a21bff931b46d365642e9e9595965e1",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-v2-375-full.png",
+        "bytes": 253079,
+        "sha256": "9ffa9f489492effd456d030c88d4a165fcaaabdf3114aef7a68ef4b508cac026",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-v3-1280-full.png",
+        "bytes": 451048,
+        "sha256": "afeef0aab5b496b3c4d97858f63e9c9ddebf6ea28a93e40fc4c20903b9537d74",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-v3-1280-hero.png",
+        "bytes": 327102,
+        "sha256": "c2fddebd9574ac8c7b55ca4358243fb3b19eda289539ad1a66a7a3bc70f0a623",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-v3-375-full.png",
+        "bytes": 256678,
+        "sha256": "52bae4f9f2b7990df9995ff1eb399d686c9758fa0ab3df14dc5cac96607c2f20",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/.shots/d11-v3-375-hero.png",
+        "bytes": 161382,
+        "sha256": "4af3cb4f6a68d43068e078f27f5bc4c2a38169a567dd53b1987d8504ade3476d",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/01-dialogue.png",
+        "bytes": 1407495,
+        "sha256": "c6037ec5d5b0c1f058d7f83afeff12c1b3df7f79c9530c8e0a262eca925d1ae0",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/02-vertical-classic.png",
+        "bytes": 4798197,
+        "sha256": "c020459e29293653ef018d9bc65f7ef179a53ebe44583c340c61c45de79fa5aa",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/03-poster.png",
+        "bytes": 3827501,
+        "sha256": "4808335b36ebc5fe0d3098a70dd6142b7a2d0a8f20925ea064921c72bb6d81bb",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/04-metro-map.png",
+        "bytes": 1185972,
+        "sha256": "05ab2d66648416ec81fc55328159a2130d6e0565225bf8e468e38554f6a48957",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/05-night-terminal.png",
+        "bytes": 1296029,
+        "sha256": "7712d15da3d76f13e6b963335e22fc2a9968d7d7ea8d12cabf2f5378f0749941",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/06-one-day.png",
+        "bytes": 971293,
+        "sha256": "cd086781e157f9ad1ab5370a7fbf4c22b4fd98d51ea9d8974349b87aeba1f029",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/07-magazine.png",
+        "bytes": 1534932,
+        "sha256": "71a73bc56bb932b761c36c8967128661fcc8e62ca0dbefc3844ea76780d723c4",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/08-blueprint.png",
+        "bytes": 1482241,
+        "sha256": "195d4594c21d4f20db6487c12cddb2d2b916327b492e5bdd6c5ce8d918eaa2fa",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/09-app-console.png",
+        "bytes": 1111570,
+        "sha256": "38c59a36da0e5db30867a91dc561e2ced931decf9c986d667533ee59d88dc99b",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/docs/site/style-demos/shots/10-ink-brush.png",
+        "bytes": 1211169,
+        "sha256": "62cea16928f9a726752b8a18d02fa8f6337a47ad7ff9a4a5a1d9458c7fb2cb1b",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/01-D1_20260816-175009_PASS.png",
+        "bytes": 25738,
+        "sha256": "dc7c42fe7532fb923e37b9bd1fdc648f6630cf268a4108465a6528e2af150543",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/02-D2_20260816-175011_PASS.png",
+        "bytes": 45690,
+        "sha256": "440e3bd959b0aeaff06171ec5bc4750e9fd668bad219903240f836a87f6328f7",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/03-D3_20260816-175011_PASS.png",
+        "bytes": 64626,
+        "sha256": "bea9e9dc5e89f9288e56adc9f86b6d6cc85640f2ed8a1b30ab84ab5d5bf1b295",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/04-D4_20260816-175011_PASS.png",
+        "bytes": 125588,
+        "sha256": "866f68edd713b47e588b57ad1dac86571b61016abda3b3e293185e163dec7b8e",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/05-D5_20260816-175011_PASS.png",
+        "bytes": 151875,
+        "sha256": "710f620dd578b3deef6a5b1625ed5fe35ff706792e9677a9cadc24df8fd491ca",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/06-D6_20260816-175011_PASS.png",
+        "bytes": 114997,
+        "sha256": "01522ca78f6035cc2d3ce362cfe5fa52d5dc4deef9ee94a0a5e4f281f8960159",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/07-D7_20260816-175011_PASS.png",
+        "bytes": 45414,
+        "sha256": "f001a2bee773c59b5d3850fe72d3758f72689e446e661d2e210d7ab9a5445fd3",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/08-D8_20260816-175011_PASS.png",
+        "bytes": 46744,
+        "sha256": "c5fde003f54547c0825505c79895e13afa3a8d551869f1d46bc0b1761861e126",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/09-D9_20260816-175011_PASS.png",
+        "bytes": 110871,
+        "sha256": "34c3b19442bf5cd13da214956fc31da479285e115b2b6316e22f8dd204bb4da8",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/10-D10_20260816-175012_PASS.png",
+        "bytes": 49820,
+        "sha256": "0f01355ed4090867b469b0a1cf59cd5f5fedf751e0b7bf91f179a5e2f20774de",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/11-D11_20260816-175012_PASS.png",
+        "bytes": 71614,
+        "sha256": "572dc1d7bca691ac9d9e572279bc79fa544927b8c2cbae0fe9abd399f3ecc840",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/12-D12_20260816-175012_PASS.png",
+        "bytes": 39585,
+        "sha256": "7648629cda3e6d0b52dadce96c5125b195773f2bf8eed7adb80ee9e27062de19",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/13-D13_20260816-175012_PASS.png",
+        "bytes": 227308,
+        "sha256": "79bc795eee6da59f77cfd5d6058c9e25d3da8396e5706b6eb517256482c611e1",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/14-D14_20260816-175012_PASS.png",
+        "bytes": 45690,
+        "sha256": "440e3bd959b0aeaff06171ec5bc4750e9fd668bad219903240f836a87f6328f7",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/15-D15_20260816-175012_PASS.png",
+        "bytes": 45690,
+        "sha256": "440e3bd959b0aeaff06171ec5bc4750e9fd668bad219903240f836a87f6328f7",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/15-D15_20260816-175800_PASS.png",
+        "bytes": 37206,
+        "sha256": "dea599758f083852daceea4a7e9b20cc30fcad10813ae4d1765e222246381547",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/16-F1_20260816-175012_PASS.png",
+        "bytes": 115809,
+        "sha256": "9e2cb7f7d91c27517580d2b63084f1c4c10c175d9d2f00e923f7d19825bf9b39",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/17-L1_20260816-175012_PASS.png",
+        "bytes": 37205,
+        "sha256": "c4aafb485832dece31bad6056f3c703ba36e36c001c8d0d3c70c75de27f4c324",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/18-L2_20260816-175012_PASS.png",
+        "bytes": 27724,
+        "sha256": "72ed45455a47977b750cee3c7ba250f94020d571f8b5512bc3728599bcdd9456",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/evidence/2026-08-16-full-acceptance/screenshots/19-L3_20260816-175012_PASS.png",
+        "bytes": 40150,
+        "sha256": "286724e71c280d742b3017f97d0b2ca09d5962d34912b3b5b052b017bc1a6a3c",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/approvals.png",
+        "bytes": 83065,
+        "sha256": "a0f23bddd39d6a6d38912ca627903a2ce06e82d5e2dcba4cd5e57073b72c0d88",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/artifacts.png",
+        "bytes": 67048,
+        "sha256": "5e56c29b530a90494d88a22ff223127aa799003e4564921b823ad2e8c3c70c32",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/chat.png",
+        "bytes": 143176,
+        "sha256": "d2bd8f0864ebc929b55067f7d4f3e787b1ee6cf748b1668f75099f499c8a5839",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/cost.png",
+        "bytes": 69709,
+        "sha256": "e445e0efb98e0c9aafac59d88d03f3148d950fd43820994d8d11222c461fd8d4",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/dashboard.png",
+        "bytes": 111172,
+        "sha256": "9020ab1b5f1c803001a36d8f657f83126fb857f53c5965f184c8a87209d98a21",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/memory.png",
+        "bytes": 83040,
+        "sha256": "a173141d5c01f5b161d148d6ecd3694dee9719c3aa149263240062fd89a55906",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/notify.png",
+        "bytes": 76394,
+        "sha256": "48b7c2153b5745b9cc7612b24a739dd9683e5a33c70b68bbf53cc0d3711385bc",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/psettings.png",
+        "bytes": 153010,
+        "sha256": "26ac1b0ada7f1c02c7c31acc4cc64ff37649cc6b9e340b497fa1fc98b3ce323f",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/settings.png",
+        "bytes": 326141,
+        "sha256": "8f5749fb850341162fb51719c51dfb3a3cfdcc373339f79cdeeefc1de1626cde",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/task-detail.png",
+        "bytes": 157216,
+        "sha256": "8658060bbde306edbc9ca99b673f72d5c1bc59ac00c6e6499e513223730229b6",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/dark/tasks.png",
+        "bytes": 122362,
+        "sha256": "73f9729ede34f2e5f1fd2b973bc266eb9ddd0d9318a8c8456c3e2c913f5a89aa",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/approvals.png",
+        "bytes": 83384,
+        "sha256": "5bb5a0b8ef8e5d018f20514b40bc03f3a8f90563c14b6d33fd6d1914b06b542f",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/artifacts.png",
+        "bytes": 67483,
+        "sha256": "7b7c91bc92c457ea3ab76bf782edd0b6af05aa79e781b8686501fb87daf9f2bc",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/chat.png",
+        "bytes": 145677,
+        "sha256": "1045fe9e3fd86753ad95ae9292ec421561dc4237833c95b6b91f246ca1e5bb6d",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/cost.png",
+        "bytes": 70263,
+        "sha256": "21d0b5ed8311865ae50afe8bdea6083d9962a7cb6885a490298a81aff217aa8e",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/dashboard.png",
+        "bytes": 113108,
+        "sha256": "c1d13d2850c49124a75c2b0d803a13646031d86e78c823d4a906e309cd2d3b2a",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/memory.png",
+        "bytes": 84371,
+        "sha256": "8d2886da528a1207ddc932ab40fc4540c009668f6baf1dc9c2a7e1322c2485ba",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/notify.png",
+        "bytes": 76915,
+        "sha256": "32d566450011368d5bd53c26ad268437c86e515225137d58dc1f33d2d1756e9f",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/psettings.png",
+        "bytes": 156688,
+        "sha256": "422b0b9476f3c5acb7b2a24e371886ed116b7e7f23e52815d93c557ac90b6586",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/settings.png",
+        "bytes": 333720,
+        "sha256": "ad7acd26e98a674edf10c52f5151690708e41bfd0d33097632286bd1e223d1cf",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/task-detail.png",
+        "bytes": 160481,
+        "sha256": "f03c02ca3e9d2ed77579b33f940f8eabaebda223a2da4978e148ea287f86e67a",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/screenshots/light/tasks.png",
+        "bytes": 122545,
+        "sha256": "5d4d4365f95739010ed57538d390193eb288241a20918538ea9aa8e9dec85b98",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/console/public/apple-touch-icon.png",
+        "bytes": 40366,
+        "sha256": "f1a51f89eb570fdc4c7e89a4c6618de4ecab07c21b750abc082f85bbe1af9ef5",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/console/public/favicon-16.png",
+        "bytes": 610,
+        "sha256": "26aeee84425d3433e4b1a79b131dd9d400b6a23b241c1b66b1e0756a0300f10f",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/console/public/favicon-32.png",
+        "bytes": 1481,
+        "sha256": "dfb95d189352fa3a561880e24b3823c7591fd432c5c75b20eb8bd1639f9e4f34",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/console/public/icon-512.png",
+        "bytes": 175797,
+        "sha256": "ce6e86edcd7e839c7107e1311348099270c539b62e22cdb8ba43d8e646871a40",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/console/src/assets/saydo-mark.png",
+        "bytes": 6556,
+        "sha256": "0efb715899b387d8dd08b9da70c24a510dc3e1e71b69b1a1a41fa33903d7ded7",
+        "same_as_start": true
+      }
+    ],
+    "old_current_paths": [
+      {
+        "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/b3-draft-barrier.png",
+        "bytes": 149658,
+        "sha256": "2ab26becba14612066e9c5fa2708b50636c5e31e21acf3468640a0b2756bf385",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/b3-draft-posts.json",
+        "bytes": 268,
+        "sha256": "7df1bba757419ce2cda9fa23147a99aaafda2dfbd3eb5dacb1f4b3fdc44a3deb",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/board-lanes.png",
+        "bytes": 262241,
+        "sha256": "587ab4f920a51f6021bbd4187a26ff5eb0dcac9562ff6760709d3226055f2da0",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/board-list.png",
+        "bytes": 171969,
+        "sha256": "24d4d4e290e33f012319b896b65a42d8b5b5d92e5489f191d3b39532e482a1bb",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/board-kanban.png",
+        "bytes": 305394,
+        "sha256": "c45d87ecf2b4de7074d2d7af5c643bd339b81b2505605da30ff0a6849482ea22",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/arrangements.png",
+        "bytes": 149735,
+        "sha256": "a9eb2649985abc3d69bfa8e9a36d0e2988c58d289e609a5870e31f7e98a6f05d",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/demo/archive.png",
+        "bytes": 148042,
+        "sha256": "d4ef3f44cee2b416f37d0a8d2b734d342baa2195a4de0eae878e06dcbee92c56",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/cost-identity.png",
+        "bytes": 93518,
+        "sha256": "3c168d7ff12089327b06063bf7bdf8d877371f8433d954829a5d1079b083da51",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-obligation-modal-1440.png",
+        "bytes": 111975,
+        "sha256": "07dd49b018fa2b089e31eb8ba282fa20188d522760377b01dc024dfda4911cd6",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/expect-draft-chat.png",
+        "bytes": 158225,
+        "sha256": "07d692b596d3096e7f53b4ff7dd261d26ea43ee4305fe2e239aeb273027522e1",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/anchor-failed-keeps-draft.png",
+        "bytes": 159758,
+        "sha256": "aa5f1b630d1d466bdb618358442522a23e1c2476c7ac1b651e3cb24b64188e2e",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/records-continue-main-lane.png",
+        "bytes": 157168,
+        "sha256": "f674bc305fdcab4086ac92cea1cf9e9d1b9a64b1e84ab6790f970e0afc16d7f7",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/task-modal-running.png",
+        "bytes": 134554,
+        "sha256": "7d3ff3b9a057530a14f9549176f830143d9ec2ed4205fc9f66da2bc6ddf8f917",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-desktop-1440.png",
+        "bytes": 99222,
+        "sha256": "458e0696500df1bb962074beff64f637acbeacbc9a8ebe1fb8a9a3ab93d8dee7",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-mobile-390.png",
+        "bytes": 45941,
+        "sha256": "32dad3e4f6500d73bfb80cbd910d2c5c4810578f64666e7761a060efc0437f5b",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/focus-mobile-390-obligation.png",
+        "bytes": 35755,
+        "sha256": "2621b5eab8f3cdd47967f61e970a5f2fbafc1f68ef6a3ae2394e6d3ca3d1219d",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/pending-anchor-retry-ws-http.json",
+        "bytes": 2651,
+        "sha256": "1a9be2f02093acb00a989e9afd242f5e1ee4ade781e2ddabd0a9c06fc6e26f20",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/delay-focus-a-to-b-ws-http.json",
+        "bytes": 2651,
+        "sha256": "52b1b210f68f1dc76bcfaa2d2775f8d94e49eb45cf8439ea0b6eb6a432b374c9",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-handoff-20260912/evidence/repair11-browser/records-continue-ws-http.json",
+        "bytes": 1781,
+        "sha256": "e36f01536cb282de2881e683541c392875dc131e9c49848a9658871150044c8b",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/tasks/saydo-journey01-acceptance-20260920/repair4-evidence/journey01-closed-loop.json",
+        "bytes": 944,
+        "sha256": "979f959c8fe504dcb4622b7d783c7489d5e0c5b3e529f45cf4c20d8a0174a5c2",
+        "same_as_start": true
+      }
+    ],
+    "old13": [
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/api/sqliteAuditTransaction.ts",
+        "bytes": 637,
+        "sha256": "76d4fbeb7776cd56ddebe96a748600ac4c362111cb493a2d6c4443a7021b42c2",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/api/focuses.ts",
+        "bytes": 12770,
+        "sha256": "18b0d3fdc65096e91116a247045fd9a0ce64c730d85b9e57407807aa3a42b7e4",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/api/spaces.ts",
+        "bytes": 6335,
+        "sha256": "85eaa746559c928cb690b13e408f9380f27a6139e74cf4c9886c3c4750f4fa2c",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/api/artifacts.ts",
+        "bytes": 8073,
+        "sha256": "81032db71cdee427de030ca5e22eeb7f008ce57f04d93bea2b38fc1817cf7998",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/api/expectations.ts",
+        "bytes": 6117,
+        "sha256": "5cd43cb4530ceba4940dceb7c424b19ae7d95c7c045327eba3e7a4c221e55a8f",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/api/lanes.ts",
+        "bytes": 6511,
+        "sha256": "71687bec5abf1a3c77687ce8f96f3ab1f1f50f523f8f4e3c6a32b05214459b80",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/api/obligations.ts",
+        "bytes": 8597,
+        "sha256": "84319cf9ee1d35be6d8994025dd1aa5d20d1ba5821c55b578e0390eba5a937bb",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/focus/dependency.ts",
+        "bytes": 17581,
+        "sha256": "d3c534c66622f125c6d516d5c3a7a3e0c3f57ccd5c2fdd04ada5cda19947ccd4",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/platform/src/win32.ts",
+        "bytes": 104202,
+        "sha256": "0c3014441ca6545fd7c242e7a32874da4283a5bfa61ab20be3401500324db6b6",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/test/helpers/playwright-isolation.ts",
+        "bytes": 6467,
+        "sha256": "d7fe30167a276c8d2b24915dd962759e1fbf3b95de5bf467590184175ef9a770",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/e2e/console/global-setup.ts",
+        "bytes": 7062,
+        "sha256": "1122c395f41feb1f01305a6547e3b11c8849ecb6892f227b3b86d49d201da377",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/scripts/rf00-inventory-scan.mjs",
+        "bytes": 92276,
+        "sha256": "9afac225cad8d13b4264877c389572798fe3581d9cc66e0ad451d5a6c780bd30",
+        "same_as_start": true
+      },
+      {
+        "path": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo/packages/daemon/src/runtimeChildRegistry.ts",
+        "bytes": 86745,
+        "sha256": "5edf8fcc31b21e1b84fc1e171b11740e298610dfd3757424f6ebe7b8d89c31dc",
+        "same_as_start": true
+      }
+    ]
+  },
+  "clock": {
+    "model_entry": "UNKNOWN",
+    "model_active": "UNKNOWN",
+    "native_dispatch_observation": 30,
+    "formal_V4": false,
+    "target": "2026-10-03T21:05:00Z",
+    "stop_new": "2026-10-03T21:15:00Z",
+    "hard_terminal": "2026-10-03T21:25:00Z",
+    "first_tool": "2026-10-03T20:27:35Z",
+    "target_21_05": "未达收口目标；stop21:15/hard21:25仍不延"
+  },
+  "raw_policy": "只索引具名固定输入和已闭合phase/log元数据；不索引任何temporary envelope或自身活跃write phase；完成元数据任务外终态独立记录",
+  "retained": [
+    "旧8PG/CTX RED/600/five exact-set/原SC PG D1预算保持，正式gate未rerun",
+    "20原PNG/JSONUNRECOVERED，13/113/20仅具名current保护",
+    "E9 temporary历史203→255差异/271当时索引限制保持，不恢复猜测原件",
+    "160文档46提交机械全覆盖不顶替语义，原actual extent/FAIL/WARN/unverified不改",
+    "旧每次FAIL/NOT_RUN/迟时及未读范围不抹，#31delegation未施工",
+    "作者不自审、未合main/push/cleanup/新公共CI/部署/真实provider/native/paidCLI"
+  ],
+  "privacy_projection": "递归任务前缀->$TASK、用户home->~；日志原文不Git、原件不改，投影不是字节同一",
+  "evidence_working_gates_I11": {
+    "phase": "evidence-exact-125",
+    "started_candidate": {
+      "head": "74792ae4464216866772e9b09203aefb961958f3",
+      "git_diff_sha256": "5be6c63ecd20845d3af77e452077b6d5ef62703c6dc37a6f6443dea4c95d9003"
+    },
+    "results": [
+      {
+        "name": "rf-write",
+        "argv": [
+          "node",
+          "scripts/rf00-inventory-scan.mjs",
+          "--write"
+        ],
+        "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+        "candidate": {
+          "head": "74792ae4464216866772e9b09203aefb961958f3",
+          "git_diff_sha256": "5be6c63ecd20845d3af77e452077b6d5ef62703c6dc37a6f6443dea4c95d9003"
+        },
+        "environment": {
+          "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+          "TMPDIR": "/private/tmp/sua-9m62nlcc",
+          "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/evidence-exact-125/rf-write/home",
+          "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+          "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+          "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+          "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/rf-write/playwright-journey",
+          "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/rf-write/playwright-screenshots",
+          "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/rf-write/playwright-real-entry",
+          "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/rf-write/daemon-journey",
+          "HOME": "~"
+        },
+        "argument_count": 2,
+        "duration_seconds": 1.011,
+        "error_type": null,
+        "executable": "node",
+        "exit_code": 0,
+        "finished_at": "2026-10-03T21:11:49.648867+00:00",
+        "idle_seconds_at_exit": 1.011,
+        "interruption_signal": null,
+        "log_bytes": 69,
+        "log_path": "$TASK/evidence/implementation/exact-root-I11-115/evidence-exact-125-rf-write.log",
+        "log_sha256": "7504082de1d6f837978c38fbfd796c767ed369d4ef9a49c793f6eca72e666a9a",
+        "reason": "exit",
+        "started_at": "2026-10-03T21:11:48.637944+00:00",
+        "status": "completed",
+        "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/evidence-exact-125-rf-write.runner.json",
+        "runner_exit_code": 0
+      },
+      {
+        "name": "rf-check",
+        "argv": [
+          "node",
+          "scripts/rf00-inventory-scan.mjs",
+          "--check"
+        ],
+        "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+        "candidate": {
+          "head": "74792ae4464216866772e9b09203aefb961958f3",
+          "git_diff_sha256": "5be6c63ecd20845d3af77e452077b6d5ef62703c6dc37a6f6443dea4c95d9003"
+        },
+        "environment": {
+          "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+          "TMPDIR": "/private/tmp/sua-pgtg7bc0",
+          "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/evidence-exact-125/rf-check/home",
+          "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+          "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+          "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+          "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/rf-check/playwright-journey",
+          "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/rf-check/playwright-screenshots",
+          "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/rf-check/playwright-real-entry",
+          "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/rf-check/daemon-journey",
+          "HOME": "~"
+        },
+        "argument_count": 2,
+        "duration_seconds": 7.062,
+        "error_type": null,
+        "executable": "node",
+        "exit_code": 0,
+        "finished_at": "2026-10-03T21:11:56.767754+00:00",
+        "idle_seconds_at_exit": 7.062,
+        "interruption_signal": null,
+        "log_bytes": 368,
+        "log_path": "$TASK/evidence/implementation/exact-root-I11-115/evidence-exact-125-rf-check.log",
+        "log_sha256": "a73c4d5591715b1a6ef6539c078ff909ce42da29a61dce48b91212211432dc7c",
+        "reason": "exit",
+        "started_at": "2026-10-03T21:11:49.705768+00:00",
+        "status": "completed",
+        "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/evidence-exact-125-rf-check.runner.json",
+        "runner_exit_code": 0
+      },
+      {
+        "name": "links",
+        "argv": [
+          "node",
+          "scripts/check-doc-links.mjs"
+        ],
+        "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+        "candidate": {
+          "head": "74792ae4464216866772e9b09203aefb961958f3",
+          "git_diff_sha256": "5be6c63ecd20845d3af77e452077b6d5ef62703c6dc37a6f6443dea4c95d9003"
+        },
+        "environment": {
+          "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+          "TMPDIR": "/private/tmp/sua-kzpvuo_4",
+          "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/evidence-exact-125/links/home",
+          "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+          "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+          "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+          "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/links/playwright-journey",
+          "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/links/playwright-screenshots",
+          "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/links/playwright-real-entry",
+          "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/links/daemon-journey",
+          "HOME": "~"
+        },
+        "argument_count": 1,
+        "duration_seconds": 1.009,
+        "error_type": null,
+        "executable": "node",
+        "exit_code": 0,
+        "finished_at": "2026-10-03T21:11:57.839609+00:00",
+        "idle_seconds_at_exit": 1.009,
+        "interruption_signal": null,
+        "log_bytes": 47,
+        "log_path": "$TASK/evidence/implementation/exact-root-I11-115/evidence-exact-125-links.log",
+        "log_sha256": "fd572c00a95bcd71926a73eac61d8a3912d8b530d25e42d102ad5608e1ea2060",
+        "reason": "exit",
+        "started_at": "2026-10-03T21:11:56.830900+00:00",
+        "status": "completed",
+        "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/evidence-exact-125-links.runner.json",
+        "runner_exit_code": 0
+      },
+      {
+        "name": "emoji",
+        "argv": [
+          "bash",
+          "scripts/check-emoji.sh"
+        ],
+        "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+        "candidate": {
+          "head": "74792ae4464216866772e9b09203aefb961958f3",
+          "git_diff_sha256": "5be6c63ecd20845d3af77e452077b6d5ef62703c6dc37a6f6443dea4c95d9003"
+        },
+        "environment": {
+          "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+          "TMPDIR": "/private/tmp/sua-15qp8ujj",
+          "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/evidence-exact-125/emoji/home",
+          "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+          "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+          "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+          "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/emoji/playwright-journey",
+          "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/emoji/playwright-screenshots",
+          "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/emoji/playwright-real-entry",
+          "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/emoji/daemon-journey",
+          "HOME": "~"
+        },
+        "argument_count": 1,
+        "duration_seconds": 1.007,
+        "error_type": null,
+        "executable": "bash",
+        "exit_code": 0,
+        "finished_at": "2026-10-03T21:11:58.908028+00:00",
+        "idle_seconds_at_exit": 1.007,
+        "interruption_signal": null,
+        "log_bytes": 23,
+        "log_path": "$TASK/evidence/implementation/exact-root-I11-115/evidence-exact-125-emoji.log",
+        "log_sha256": "e97ffbbcc1ec2da64acb2b45cd94178bfa0703a13878c9345ab3f93ff96d7da3",
+        "reason": "exit",
+        "started_at": "2026-10-03T21:11:57.900538+00:00",
+        "status": "completed",
+        "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/evidence-exact-125-emoji.runner.json",
+        "runner_exit_code": 0
+      },
+      {
+        "name": "privacy-fs",
+        "argv": [
+          "node",
+          "scripts/check-public-tree-privacy.mjs",
+          "--fs"
+        ],
+        "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+        "candidate": {
+          "head": "74792ae4464216866772e9b09203aefb961958f3",
+          "git_diff_sha256": "5be6c63ecd20845d3af77e452077b6d5ef62703c6dc37a6f6443dea4c95d9003"
+        },
+        "environment": {
+          "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+          "TMPDIR": "/private/tmp/sua-_r7pivfd",
+          "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/evidence-exact-125/privacy-fs/home",
+          "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+          "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+          "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+          "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/privacy-fs/playwright-journey",
+          "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/privacy-fs/playwright-screenshots",
+          "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/privacy-fs/playwright-real-entry",
+          "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/privacy-fs/daemon-journey",
+          "HOME": "~"
+        },
+        "argument_count": 2,
+        "duration_seconds": 1.007,
+        "error_type": null,
+        "executable": "node",
+        "exit_code": 0,
+        "finished_at": "2026-10-03T21:11:59.976225+00:00",
+        "idle_seconds_at_exit": 1.007,
+        "interruption_signal": null,
+        "log_bytes": 67,
+        "log_path": "$TASK/evidence/implementation/exact-root-I11-115/evidence-exact-125-privacy-fs.log",
+        "log_sha256": "ecdfd06519a51629fb242b0f706914989425a844fbd38c629264a1befb16a8ff",
+        "reason": "exit",
+        "started_at": "2026-10-03T21:11:58.968844+00:00",
+        "status": "completed",
+        "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/evidence-exact-125-privacy-fs.runner.json",
+        "runner_exit_code": 0
+      },
+      {
+        "name": "diff",
+        "argv": [
+          "git",
+          "diff",
+          "0880c49fc2509358f5bb16ece2f4aab5d7c4856e",
+          "--check"
+        ],
+        "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+        "candidate": {
+          "head": "74792ae4464216866772e9b09203aefb961958f3",
+          "git_diff_sha256": "5be6c63ecd20845d3af77e452077b6d5ef62703c6dc37a6f6443dea4c95d9003"
+        },
+        "environment": {
+          "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+          "TMPDIR": "/private/tmp/sua-ygy4xygj",
+          "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/evidence-exact-125/diff/home",
+          "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+          "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+          "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+          "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/diff/playwright-journey",
+          "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/diff/playwright-screenshots",
+          "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/diff/playwright-real-entry",
+          "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/diff/daemon-journey",
+          "HOME": "~"
+        },
+        "argument_count": 3,
+        "duration_seconds": 1.009,
+        "error_type": null,
+        "executable": "git",
+        "exit_code": 0,
+        "finished_at": "2026-10-03T21:12:01.046020+00:00",
+        "idle_seconds_at_exit": 1.009,
+        "interruption_signal": null,
+        "log_bytes": 0,
+        "log_path": "$TASK/evidence/implementation/exact-root-I11-115/evidence-exact-125-diff.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "reason": "exit",
+        "started_at": "2026-10-03T21:12:00.037223+00:00",
+        "status": "completed",
+        "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/evidence-exact-125-diff.runner.json",
+        "runner_exit_code": 0
+      },
+      {
+        "name": "precommit",
+        "argv": [
+          "just",
+          "precommit"
+        ],
+        "cwd": "~/.codex/worktrees/saydo-unify-audit-20261003/SayDo",
+        "candidate": {
+          "head": "74792ae4464216866772e9b09203aefb961958f3",
+          "git_diff_sha256": "5be6c63ecd20845d3af77e452077b6d5ef62703c6dc37a6f6443dea4c95d9003"
+        },
+        "environment": {
+          "PATH": "/opt/homebrew/opt/node@22/bin:~/.local/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/usr/bin:/bin:/usr/sbin:/sbin",
+          "TMPDIR": "/private/tmp/sua-2jojl6fz",
+          "SAYDO_HOME": "$TASK/evidence/implementation/exact-root-I11-115/runtime/evidence-exact-125/precommit/home",
+          "UV_CACHE_DIR": "$TASK/evidence/implementation/exact-root-I11-115/uv-cache",
+          "PLAYWRIGHT_BROWSERS_PATH": "~/.codex/tasks/saydo-ci-fix-01-20261001/playwright-browsers",
+          "SAYDO_E2E_STATE_PARENT": "$TASK/evidence/implementation/exact-root-I11-115/playwright-state",
+          "SAYDO_REPAIR4_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/precommit/playwright-journey",
+          "SAYDO_E2E_SCREENSHOT_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/precommit/playwright-screenshots",
+          "SAYDO_E2E_REAL_ENTRY_DIR": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/precommit/playwright-real-entry",
+          "SAYDO_DAEMON_JOURNEY_EVIDENCE": "$TASK/evidence/implementation/exact-root-I11-115/outputs/evidence-exact-125/precommit/daemon-journey",
+          "HOME": "~"
+        },
+        "argument_count": 1,
+        "duration_seconds": 2.016,
+        "error_type": null,
+        "executable": "just",
+        "exit_code": 0,
+        "finished_at": "2026-10-03T21:12:03.126557+00:00",
+        "idle_seconds_at_exit": 1.009,
+        "interruption_signal": null,
+        "log_bytes": 370,
+        "log_path": "$TASK/evidence/implementation/exact-root-I11-115/evidence-exact-125-precommit.log",
+        "log_sha256": "274a31281ad72fe2d21362b925ffda998cb2460ef77a139b2d5868ad13075f67",
+        "reason": "exit",
+        "started_at": "2026-10-03T21:12:01.110064+00:00",
+        "status": "completed",
+        "summary_path": "$TASK/evidence/implementation/exact-root-I11-115/evidence-exact-125-precommit.runner.json",
+        "runner_exit_code": 0
+      }
+    ]
+  },
+  "fixed_evidence_gates": {
+    "phase": "fixed-E11-126",
+    "state": "NOT_RUN_stop_new_deadline",
+    "prepared_at": null,
+    "first_child_at": null,
+    "launch_requested": "UNKNOWN",
+    "gates": [
+      {
+        "name": "privacy-ref",
+        "state": "NOT_RUN_stop_new_deadline",
+        "exit_code": null,
+        "log": null
+      },
+      {
+        "name": "rf-check",
+        "state": "NOT_RUN_stop_new_deadline",
+        "exit_code": null,
+        "log": null
+      },
+      {
+        "name": "links",
+        "state": "NOT_RUN_stop_new_deadline",
+        "exit_code": null,
+        "log": null
+      },
+      {
+        "name": "emoji",
+        "state": "NOT_RUN_stop_new_deadline",
+        "exit_code": null,
+        "log": null
+      },
+      {
+        "name": "privacy-fs",
+        "state": "NOT_RUN_stop_new_deadline",
+        "exit_code": null,
+        "log": null
+      },
+      {
+        "name": "whole-period-diff",
+        "state": "NOT_RUN_stop_new_deadline",
+        "exit_code": null,
+        "log": null
+      },
+      {
+        "name": "precommit",
+        "state": "NOT_RUN_stop_new_deadline",
+        "exit_code": null,
+        "log": null
+      }
+    ]
+  },
+  "closing_clock": {
+    "resumed_clock_observed_at": "2026-10-03T21:15:21Z",
+    "stop_new": "2026-10-03T21:15:00Z",
+    "observed_stop_new_lateness_seconds": 21,
+    "hard_terminal": "2026-10-03T21:25:00Z",
+    "model_entry": "UNKNOWN",
+    "model_active": "UNKNOWN",
+    "new_business_execution_after_stop_new": false,
+    "closing_only_after_stop_new": true,
+    "closing_evidence_written_at": "2026-10-03T21:17:29.637704+00:00",
+    "native_dispatch_observation": 30,
+    "native_dispatch_is_model_turn_or_managed_receipt": false
+  },
+  "writer_closing_policy": "write124首次准备截止未运行；124b真实执行。125仅工作稿门禁；固定E七门未运行，不追认工作稿为固定E通过。活跃临时envelope不入当前字节索引，旧历史索引不改写。"
+}

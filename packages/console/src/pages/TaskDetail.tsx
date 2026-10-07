@@ -13,7 +13,7 @@ import { ErrorCard, PaperCard, Mono, SectionTitle, CostText } from "../component
 import { RiskBadge, RouteBadge, StatusChip } from "../components/StatusChip";
 import { PackageDemoPreview } from "../components/redesign/DemoFrame";
 import { CANCELABLE_TASK_STATUSES } from "../lib/taskModalView";
-import { acceptanceApprovalBlocked, judgeAcceptanceCheck, type AcceptanceEvidenceRow } from "../lib/acceptanceEvidenceGate";
+import { latestAcceptanceRunConflicts, acceptanceApprovalBlocked, judgeAcceptanceCheck, type AcceptanceEvidenceRow } from "../lib/acceptanceEvidenceGate";
 
 export { CANCELABLE_TASK_STATUSES as CANCELABLE } from "../lib/taskModalView";
 
@@ -31,12 +31,8 @@ export function acceptanceStateForCriterion(
   const matches = checks.filter((check) => check.criterion === criterion);
   if (matches.length !== 1) return "unknown";
   const check = matches[0]!;
-  if (!evidence) {
-    if (check.status !== "unknown" && !check.evidenceRef?.trim()) return "unknown";
-    return check.status;
-  }
   const ref = check.evidenceRef?.trim() ?? "";
-  const row = ref ? evidence.find((item) => item.evidenceRef === check.evidenceRef || item.evidenceRef === ref) : undefined;
+  const row = ref ? evidence?.find((item) => item.evidenceRef === check.evidenceRef || item.evidenceRef === ref) : undefined;
   return judgeAcceptanceCheck(check, row).status;
 }
 
@@ -78,7 +74,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const writingProof = data["writingProof"] as { acceptanceChecks?: { criterion: string; source: string; status: string }[] } | null;
   const acceptanceChecks = (data["acceptanceChecks"] ?? []) as AcceptanceCheck[];
   const acceptanceEvidence = (data["acceptanceEvidence"] ?? []) as AcceptanceEvidenceRow[];
-  const evidenceBlocked = acceptanceApprovalBlocked(acceptanceChecks, acceptanceEvidence);
+  const terminalConflict = latestAcceptanceRunConflicts(runs);
+  const evidenceBlocked = acceptanceApprovalBlocked(acceptanceChecks, acceptanceEvidence, runs);
   const isWriting = String(task["project_type"] ?? "") === "writing" && writingProof !== null;
   const acceptance = ((pkg?.["acceptance"] as (string | Acceptance)[] | undefined) ?? []).map((a) =>
     typeof a === "string" ? a : a.text ?? a.criterion ?? JSON.stringify(a)
@@ -300,7 +297,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             {costs.map((c, i) => (
               <div key={i} className="flex justify-between" style={{ fontSize: "var(--text-sm)" }}>
                 <Mono>{String(c["kind"])}</Mono>
-                <CostText known={c["known"] === 1} amount={(c["amount"] as number) ?? null} source={String(c["source"] ?? "")} currency={(c["currency"] as string) ?? null} />
+                <CostText known={c["known"] === 1} amount={(c["amount"] as number) ?? null} source={String(c["source"] ?? "")} currency={(c["currency"] as string) ?? null} metaJson={c["meta_json"]} />
               </div>
             ))}
           </div>
@@ -326,7 +323,9 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                   data-action="approve"
                   disabled={(isWriting && !allManualDecided) || evidenceBlocked}
                   title={
-                    evidenceBlocked
+                    terminalConflict
+                      ? "本轮执行结果相互冲突,不能批准"
+                      : evidenceBlocked
                       ? "已绑定的证据引用失效,不能批准"
                       : isWriting && !allManualDecided
                         ? "先逐条裁决每个验收项(settled 不等于全绿)"

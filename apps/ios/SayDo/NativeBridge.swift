@@ -54,6 +54,10 @@ enum NativeSubmissionStatus: String {
 struct NativeSubmissionResult {
     let status: NativeSubmissionStatus
     let reason: String?
+
+    var transfersTranscriptOwnership: Bool {
+        status == .queuedToSocket || status == .drafted
+    }
 }
 
 enum NativeDaemonStatus: String {

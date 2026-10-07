@@ -57,3 +57,7 @@ owner 2026-09-15 直接授权:「看一下现在安装部署 SayDo 的方式是�
 - `install.ps1` 改动未在 Windows 真机回归(not_run;本机无 pwsh);Linux 真机仍未执行(沿用既有 not_run)。
 - 未做:npm registry / Homebrew / Scoop 发布(owner 待决);Windows/Linux 常驻;向导主链 Playwright 用例。
 - 分支未合并、未 push;官网 production 已从 `8fb99bd` 部署(与 2026-09-02 先例相同:部署绑定的 commit 随后 ff 入 main)。
+
+## 2026-09-27 双向审计勘误（候选，未发布）
+
+上文“仍按官方 SHASUMS256 校验”措辞不准确：脚本的 Node 压缩包与 SHASUMS256 来自同一选定下载源；镜像模式并未独立取得官方签名或校验文件。本次校准现役脚本注释与双语文档，不追认历史部署为独立来源认证。Windows 引导脚本另补核心非零退出时抛错，避免只打印失败后返回成功；本机无 PowerShell，当前仅结构反例与 POSIX 隔离安装回归，不声明 Windows 运行验收。

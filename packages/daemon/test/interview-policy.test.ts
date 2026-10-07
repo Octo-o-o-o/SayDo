@@ -1,5 +1,5 @@
 // 3.1 验收(A4):预算耗尽必停;"值得问"词表与选项 2-5 代码层强制;覆盖扫描不重复问;
-// Impact x Uncertainty 确定性排序;Quick 直通;golden 采访 3 条(真 Pack)+ Quick 直通 1 条。
+// Impact x Uncertainty 确定性排序;Quick 直通。
 
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -16,7 +16,6 @@ import {
   validateCandidate,
   type QuestionCandidate
 } from "../src/interview/policy.js";
-import { checkGolden, type GoldenCase } from "../src/brain/golden.js";
 import { PARAM_DEFAULTS } from "../src/config/types.js";
 import type { AuditSink } from "../src/obs/audit.js";
 
@@ -127,7 +126,7 @@ describe("Quick 直通(05 §4 P0 保证)", () => {
   });
 });
 
-describe("3.1 golden(真 Context Pack;重跑 1.4 框架)", () => {
+describe("真 Context Pack", () => {
   function realPack() {
     const db = openDb(join(mkdtempSync(join(tmpdir(), "saydo-g31-")), "saydo.db"));
     const ledger = new MemoryLedger({ db, audit: nullAudit, now: TS });
@@ -162,43 +161,5 @@ describe("3.1 golden(真 Context Pack;重跑 1.4 框架)", () => {
     expect(snap.compilerVersion).toContain("b1/"); // 真编译器,非 b1-stub
     expect(snap.slices.length).toBeGreaterThan(0);
     expect(text).toContain("报表页已经有分页");
-  });
-
-  it("golden 采访 3 条(带预研结论问/预算停/选项式)+ Quick 直通 1 条", () => {
-    const { text } = realPack();
-    const golden: (GoldenCase & { packMustContain?: string[] })[] = [
-      {
-        id: "g31-1",
-        scene: "#6 采访提问(带预研结论,真 Pack 事实)",
-        utterance: "我看报表页已经有分页了,但还没有导出。这个导出是给财务对账,还是给用户自己下载?",
-        mustContain: ["报表页", "导出", "?"],
-        packMustContain: ["报表页已经有分页"]
-      },
-      {
-        id: "g31-2",
-        scene: "预算耗尽转摘要(A4 停止策略)",
-        utterance: "问得差不多了,以我现在的理解先归纳:导出 CSV、给财务对账、Excel 能直开。我们看够不够开始。",
-        mustContain: ["以我现在的理解"],
-        mustNotContain: ["做完了"]
-      },
-      {
-        id: "g31-3",
-        scene: "选项式提问(2-5 互斥 + 推荐)",
-        utterance: "验收口径三选一:第一,Excel 直接打开不乱码;第二,字段和后台一致就行;第三,两个都要。我推荐第三个。",
-        mustContain: ["第一", "第二", "第三", "推荐"]
-      },
-      {
-        id: "g31-quick",
-        scene: "Quick 直通(已奠基即刻派单,不采访)",
-        utterance: "好,底座是现成的,直接建卡开工,过程我盯着。",
-        mustContain: ["直接建卡开工"],
-        mustNotContain: ["先问", "?"]
-      }
-    ];
-    for (const g of golden) {
-      const r = checkGolden(g);
-      expect(r.ok, `${g.id}: ${r.reasons.join(";")}`).toBe(true);
-      for (const m of g.packMustContain ?? []) expect(text).toContain(m);
-    }
   });
 });

@@ -1,0 +1,396 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-10-03T22:55:00Z",
+  "reviewer": "last-cross-code-34",
+  "review_role": "fresh_read_only_code_implementation",
+  "candidate": {
+    "fixed_E": "b51c277f036d87cd2f92be2786365efdb0cb2dba",
+    "code_I": "f8d74a121037b5bc5482f927b62f93771cab059e",
+    "baseline": "53be7405954bbb7e2cad299cd59f5aa3ee2dad02",
+    "fingerprint": "e42dd19ca752c0ee2dca966fb0e915cbc9fce9375efcd3d45a53f060692f9727"
+  },
+  "judgement_dimensions": [
+    {
+      "id": "D1",
+      "name": "生产 changed hunks、caller/consumer 与 canonical 09/10/11",
+      "result": "PASS_SCOPED"
+    },
+    {
+      "id": "D2",
+      "name": "I12/I13/I14 失败行为与真实生产入口控制",
+      "result": "PASS_SCOPED"
+    },
+    {
+      "id": "D3",
+      "name": "证据声明、门禁与固定 HEAD 一致性",
+      "result": "PASS_SCOPED_WITH_RETAINED_LIMITS"
+    }
+  ],
+  "production_changed_hunks": {
+    "selection": "53be..E 下 apps/ios/SayDo、packages/*/src、pipeline/src、scripts 的非测试 code，共50项",
+    "expected_count": 50,
+    "read_count": 50,
+    "not_read_count": 0,
+    "evidence": "evidence/production-hunks.log",
+    "evidence_bytes": 663435,
+    "evidence_sha256": "fe846b9e5e2ab236f1d83cde1a5c166a5924ac2e7da805d3765e2e506cc0c02b",
+    "items": [
+      {
+        "path": "apps/ios/SayDo/NativeBridge.swift",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "apps/ios/SayDo/NativeSpeechController.swift",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "apps/ios/SayDo/RootView.swift",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/components/StatusChip.tsx",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/components/redesign/DecisionPackageCard.tsx",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/components/redesign/FocusRail.tsx",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/components/redesign/ReviewPanel.tsx",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/components/redesign/TaskCard.tsx",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/components/redesign/types.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/hooks/redesign/focusWorkLookups.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/hooks/redesign/mappers.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/lib/acceptanceEvidenceGate.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/lib/quiescedTranscripts.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/lib/sessionStoragePort.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/lib/voiceAnchorFlow.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/mobile/MobileApp.tsx",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/mobile/nativeBridge.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/pages/Chat.tsx",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/pages/TaskDetail.tsx",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/pages/redesign/FocusPage.tsx",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/pages/redesign/FocusPageRoute.tsx",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/pages/redesign/RecordsPageRoute.tsx",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/console/src/voice/useVoiceChannel.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/api/acceptanceEvidence.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/api/artifacts.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/api/console.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/api/expectations.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/api/focuses.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/api/lanes.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/api/obligations.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/api/spaces.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/api/sqliteAuditTransaction.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/experimental/codex-app-server/session.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/focus/dependency.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/focus/writeTx.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/memory/m0Confirm.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/runtimeChildRegistry.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/tier1/cmdEffect.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/tier1/cmdEffectLegacy.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/tier1/operations.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/tier1/terminalEvidence.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/voice/hub.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/daemon/src/voice/voiceBarrier.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "packages/platform/src/win32.ts",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "pipeline/src/saydo_pipeline/doubao_tts.py",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "pipeline/src/saydo_pipeline/hub_client.py",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "scripts/check-offline-fixtures.mjs",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "scripts/rf00-inventory-scan.mjs",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "scripts/schedule-pointer.mjs",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      },
+      {
+        "path": "scripts/test-offline-fixture-mutations.mjs",
+        "read_level": "ALL_CHANGED_HUNKS_AND_NECESSARY_CALLER_CONSUMER_ANCHORS",
+        "result": "READ"
+      }
+    ]
+  },
+  "canonical": {
+    "items": [
+      {
+        "path": "docs/09-data-contracts.md",
+        "read_level": "RELEVANT_CHANGED_SECTIONS_AND_ANCHORS",
+        "result": "READ_SCOPED"
+      },
+      {
+        "path": "docs/10-voice-ux-spec.md",
+        "read_level": "RELEVANT_CHANGED_SECTIONS_AND_ANCHORS",
+        "result": "READ_SCOPED"
+      },
+      {
+        "path": "docs/11-ui-spec.md",
+        "read_level": "RELEVANT_CHANGED_SECTIONS_AND_ANCHORS",
+        "result": "READ_SCOPED"
+      }
+    ],
+    "limitation": "未将三个长文档的全部历史版本或全篇逐行阅读冒充本轮代码验收。"
+  },
+  "tests": {
+    "read_or_executed": [
+      {
+        "path": "packages/daemon/test/tier1-http-delegation.test.ts",
+        "extent": "全文与changed hunk；未执行作者测试，另写生产链控制"
+      },
+      {
+        "path": "packages/console/src/mobile/MobileApp.test.ts",
+        "extent": "相关changed hunk与helper能力；未以helper测试替代浏览器生产链"
+      },
+      {
+        "path": "packages/console/src/pages/redesign/FocusPage.test.tsx",
+        "extent": "相关changed hunk；另写生产组件浏览器控制"
+      },
+      {
+        "path": "packages/daemon/test/focus-api-audit-atomic.test.ts",
+        "extent": "changed hunk与真实SQLite能力边界"
+      },
+      {
+        "path": "packages/daemon/test/focus-obligation-audit-atomic.test.ts",
+        "extent": "changed hunk与真实SQLite能力边界"
+      },
+      {
+        "path": "packages/daemon/test/voice-barrier-capacity-ownership.test.ts",
+        "extent": "changed hunk与合成状态边界"
+      },
+      {
+        "path": "packages/daemon/test/voice-handover-privacy.test.ts",
+        "extent": "changed hunk与合成状态边界"
+      },
+      {
+        "path": "pipeline/tests/test_hf_feed_ownership.py",
+        "extent": "changed hunk与合成状态边界"
+      },
+      {
+        "path": "pipeline/tests/test_provider_log_privacy.py",
+        "extent": "changed hunk与故障注入边界"
+      }
+    ],
+    "remaining_changed_tests": "NOT_READ_AS_WHOLE_SEMANTIC_SOURCES；仅按生产调用链需要抽读，未声称全部changed tests逐文件语义验收。",
+    "author_baseline_use": "EVIDENCE_ONLY_NOT_RERUN"
+  },
+  "evidence_projection": {
+    "I_to_E_changed_paths": [
+      "e2e/evidence/fortnight-audit-2026-10-03-gates.json",
+      "e2e/evidence/fortnight-audit-2026-10-03-matrix.json",
+      "e2e/evidence/fortnight-audit-2026-10-03.md",
+      "history/PROCESS-JOURNAL.md"
+    ],
+    "exact_count": 4,
+    "self_reference": false,
+    "latest_author_claims": "I上的just ci与PW为Node3865 PASS/21 SKIP、Python160、PW64；旧CI135失败保留；完整41与作者固定E七小门NOT_RUN。",
+    "retained_limits": [
+      "旧required 8 RED",
+      "CTX09/12/16 owner选择",
+      "4 dual_write_gap",
+      "20个原字节UNRECOVERED",
+      "真实Swift/iOS设备、Windows、provider、付费CLI未验"
+    ]
+  },
+  "independent_controls": [
+    {
+      "name": "source-bindings",
+      "result": "PASS",
+      "exit_code": 0,
+      "scope": "70个changed code输入逐字节匹配fixed E；只证身份，不代替语义阅读"
+    },
+    {
+      "name": "daemon-command-policy-voice-gate",
+      "result": "PASS",
+      "exit_code": 0,
+      "scope": "10例commandToEffect→computeRisk→decideCommand"
+    },
+    {
+      "name": "system-chrome-mobile-focus",
+      "result": "PASS",
+      "exit_code": 0,
+      "scope": "生产VoiceProvider→MobileApp→WS回执与FocusPage真实浏览器渲染；transport为自写fake，非真实daemon/provider/native"
+    }
+  ],
+  "exclusions": [
+    "未运行完整just ci、Playwright全套或41门",
+    "未编译Swift/XCTest",
+    "未运行真实iOS设备、Windows、provider或真实网络daemon",
+    "未审计160文档与46 commit的全部历史语义"
+  ]
+}

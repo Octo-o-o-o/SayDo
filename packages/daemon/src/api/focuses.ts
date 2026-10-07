@@ -1,8 +1,9 @@
 // Focus 写口(批 2):POST 新建 / archive / reopen;PG-01B 增 POST abandon。
 // create=registry.createFocus + 可选归空间 + 可选首 revision(direction);
-// archive/reopen/abandon 走 changeFocusLifecycle + 独立 audit。abandon 不得写 archived。
+// archive/reopen/abandon 的生命周期、会话段与独立 audit 同库原子提交。abandon 不得写 archived。
 
 import { z } from "zod";
+import { withSqliteAuditTransaction } from "./sqliteAuditTransaction.js";
 import { jcsDigest } from "@saydo/contracts";
 import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
@@ -53,63 +54,66 @@ export function createFocusApi(
     if (!sp) return err(404, "space_not_found", `space ${parsed.data.spaceId} not found`);
   }
 
-  let focusId: string;
   try {
-    const created = createFocus(db, { title, actorKind: "user" });
-    focusId = created.focusId;
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const created = createFocus(db, { title, actorKind: "user" });
+      const focusId = created.focusId;
+
+      if (parsed.data.spaceId) {
+        db.prepare("UPDATE focuses SET space_id = ?, updated_at = ? WHERE id = ?").run(
+          parsed.data.spaceId,
+          nowIso,
+          focusId
+        );
+      }
+
+      let directionIgnored = false;
+      const direction = parsed.data.direction?.trim();
+      if (direction) {
+        try {
+          // settleRevision 写 focus_states 首 revision;create 后 current_revision=0 → 升 1
+          withFocusWriteTx(db, {}, (ops) => {
+            ops.settleRevision(focusId, {
+              currentDirection: direction,
+              lastReliableState: "新建",
+              actorKind: "user"
+            });
+          });
+        } catch {
+          // 不硬造写入路径:失败则标 directionIgnored,前端可隐藏方向框
+          directionIgnored = true;
+        }
+      }
+
+      audit.record({
+        actor: "owner",
+        action: "focus.created",
+        meta: {
+          focusId,
+          title,
+          spaceId: parsed.data.spaceId ?? null,
+          hasDirection: Boolean(direction) && !directionIgnored,
+          directionIgnored
+        }
+      });
+
+      return {
+        status: 200,
+        payload: {
+          ok: true,
+          id: focusId,
+          title,
+          spaceId: parsed.data.spaceId ?? null,
+          ...(directionIgnored ? { directionIgnored: true as const } : {})
+        }
+      };
+    });
   } catch (e) {
+    if (e instanceof FocusWriteError) return err(409, e.code, e.message);
     const msg = e instanceof Error ? e.message : String(e);
     return err(409, "create_failed", msg);
   }
 
-  if (parsed.data.spaceId) {
-    db.prepare("UPDATE focuses SET space_id = ?, updated_at = ? WHERE id = ?").run(
-      parsed.data.spaceId,
-      nowIso,
-      focusId
-    );
-  }
-
-  let directionIgnored = false;
-  const direction = parsed.data.direction?.trim();
-  if (direction) {
-    try {
-      // settleRevision 写 focus_states 首 revision;create 后 current_revision=0 → 升 1
-      withFocusWriteTx(db, {}, (ops) => {
-        ops.settleRevision(focusId, {
-          currentDirection: direction,
-          lastReliableState: "新建",
-          actorKind: "user"
-        });
-      });
-    } catch {
-      // 不硬造写入路径:失败则标 directionIgnored,前端可隐藏方向框
-      directionIgnored = true;
-    }
-  }
-
-  audit.record({
-    actor: "owner",
-    action: "focus.created",
-    meta: {
-      focusId,
-      title,
-      spaceId: parsed.data.spaceId ?? null,
-      hasDirection: Boolean(direction) && !directionIgnored,
-      directionIgnored
-    }
-  });
-
-  return {
-    status: 200,
-    payload: {
-      ok: true,
-      id: focusId,
-      title,
-      spaceId: parsed.data.spaceId ?? null,
-      ...(directionIgnored ? { directionIgnored: true as const } : {})
-    }
-  };
 }
 
 /** DAILY-01(合同 §15.2):归档前置——有在途执行(queued/running/review/merge 链)的 Focus 拒绝直接归档;
@@ -161,40 +165,35 @@ export function archiveFocusApi(
     );
   }
 
-  // 先关 active activation(合同 §4.1 archive 事务)
-  const acts = db
-    .prepare(
-      `SELECT id, session_id, focus_id FROM focus_activations
-       WHERE focus_id = ? AND status = 'active'`
-    )
-    .all(focusId) as Array<{ id: string; session_id: string; focus_id: string }>;
-  for (const a of acts) {
-    try {
-      closeActivation(db, {
-        activationId: a.id,
-        sessionId: a.session_id,
-        focusId: a.focus_id,
+  try {
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const acts = db
+        .prepare(
+          `SELECT id, session_id, focus_id FROM focus_activations
+           WHERE focus_id = ? AND status = 'active'`
+        )
+        .all(focusId) as Array<{ id: string; session_id: string; focus_id: string }>;
+      for (const a of acts) {
+        closeActivation(db, {
+          activationId: a.id,
+          sessionId: a.session_id,
+          focusId: a.focus_id,
+          actorKind: "user"
+        });
+      }
+      const r = changeFocusLifecycle(db, focusId, {
+        to: "archived",
+        reason: parsed.data.reason,
         actorKind: "user"
       });
-    } catch {
-      // 竞态已关:忽略
-    }
-  }
-
-  try {
-    const r = changeFocusLifecycle(db, focusId, {
-      to: "archived",
-      reason: parsed.data.reason,
-      actorKind: "user"
+      audit.record({
+        actor: "owner",
+        action: "focus.archived",
+        refDigest: jcsDigest(parsed.data.reason),
+        meta: { focusId, eventId: r.eventId, closedActivations: acts.length }
+      });
+      return { status: 200, payload: { ok: true, id: focusId, lifecycle: "archived" } };
     });
-    const reason = parsed.data.reason;
-    audit.record({
-      actor: "owner",
-      action: "focus.archived",
-      refDigest: jcsDigest(reason),
-      meta: { focusId, eventId: r.eventId, closedActivations: acts.length }
-    });
-    return { status: 200, payload: { ok: true, id: focusId, lifecycle: "archived" } };
   } catch (e) {
     if (e instanceof FocusWriteError) {
       return err(409, e.code, e.message);
@@ -221,40 +220,39 @@ export function abandonFocusApi(
     return err(409, "abandon_from_invalid", `abandon 仅限 active/dormant/archived,当前 ${focus.lifecycle}`);
   }
 
-  const acts = db
-    .prepare(
-      `SELECT id, session_id, focus_id FROM focus_activations
-       WHERE focus_id = ? AND status = 'active'`
-    )
-    .all(focusId) as Array<{ id: string; session_id: string; focus_id: string }>;
-  for (const a of acts) {
-    try {
-      closeActivation(db, {
-        activationId: a.id,
-        sessionId: a.session_id,
-        focusId: a.focus_id,
-        actorKind: "user"
-      });
-    } catch {
-      // 竞态已关:忽略
-    }
-  }
 
   try {
-    const reason = parsed.data.reason;
-    const r = changeFocusLifecycle(db, focusId, {
-      to: "abandoned",
-      reason,
-      actorKind: "user"
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const acts = db
+        .prepare(
+          `SELECT id, session_id, focus_id FROM focus_activations
+       WHERE focus_id = ? AND status = 'active'`
+        )
+        .all(focusId) as Array<{ id: string; session_id: string; focus_id: string }>;
+      for (const a of acts) {
+        closeActivation(db, {
+          activationId: a.id,
+          sessionId: a.session_id,
+          focusId: a.focus_id,
+          actorKind: "user"
+        });
+      }
+
+      const reason = parsed.data.reason;
+      const r = changeFocusLifecycle(db, focusId, {
+        to: "abandoned",
+        reason,
+        actorKind: "user"
+      });
+      // E3:abandon 独立 audit 不落理由原文;关联只走顶层 refDigest。
+      audit.record({
+        actor: "owner",
+        action: "focus.abandoned",
+        refDigest: jcsDigest(reason),
+        meta: { focusId, eventId: r.eventId, closedActivations: acts.length }
+      });
+      return { status: 200, payload: { ok: true, id: focusId, lifecycle: "abandoned" } };
     });
-    // E3:abandon 独立 audit 不落理由原文;关联只走顶层 refDigest。
-    audit.record({
-      actor: "owner",
-      action: "focus.abandoned",
-      refDigest: jcsDigest(reason),
-      meta: { focusId, eventId: r.eventId, closedActivations: acts.length }
-    });
-    return { status: 200, payload: { ok: true, id: focusId, lifecycle: "abandoned" } };
   } catch (e) {
     if (e instanceof FocusWriteError) {
       return err(409, e.code, e.message);
@@ -285,60 +283,62 @@ export function forkFocusApi(db: Db, audit: AuditSink, focusId: string, body: un
   if (!src) return err(404, "not_found", `focus ${focusId} not found`);
 
   const title = parsed.data.title?.trim() || `${src.title}(分叉)`;
-  let forkedId: string;
   try {
-    const r = withFocusWriteTx(db, {}, (ops) => {
-      const created = ops.createFocus({ title, actorKind: "user" });
-      db.prepare("UPDATE focuses SET forked_from = ?, space_id = ?, updated_at = ? WHERE id = ?").run(
-        src.id,
-        src.space_id,
-        ops.nowIso,
-        created.focusId
-      );
-      ops.appendEvent(created.focusId, {
-        type: "focus_forked",
-        payload: { sourceId: src.id, sourceTitle: src.title, newId: created.focusId },
-        actorKind: "user"
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const r = withFocusWriteTx(db, {}, (ops) => {
+        const created = ops.createFocus({ title, actorKind: "user" });
+        db.prepare("UPDATE focuses SET forked_from = ?, space_id = ?, updated_at = ? WHERE id = ?").run(
+          src.id,
+          src.space_id,
+          ops.nowIso,
+          created.focusId
+        );
+        ops.appendEvent(created.focusId, {
+          type: "focus_forked",
+          payload: { sourceId: src.id, sourceTitle: src.title, newId: created.focusId },
+          actorKind: "user"
+        });
+        return created;
       });
-      return created;
+      const forkedId = r.focusId;
+
+      let directionIgnored = false;
+      const direction = parsed.data.direction?.trim();
+      if (direction) {
+        try {
+          withFocusWriteTx(db, {}, (ops) => {
+            ops.settleRevision(forkedId, {
+              currentDirection: direction,
+              lastReliableState: `自「${src.title}」分叉`,
+              actorKind: "user"
+            });
+          });
+        } catch {
+          directionIgnored = true;
+        }
+      }
+
+      audit.record({
+        actor: "owner",
+        action: "focus.forked",
+        meta: { focusId: forkedId, sourceId: src.id, title, directionIgnored }
+      });
+      return {
+        status: 200,
+        payload: {
+          ok: true,
+          id: forkedId,
+          title,
+          forkedFrom: src.id,
+          ...(directionIgnored ? { directionIgnored: true as const } : {})
+        }
+      };
     });
-    forkedId = r.focusId;
   } catch (e) {
     if (e instanceof FocusWriteError) return err(409, e.code, e.message);
     return err(409, "fork_failed", e instanceof Error ? e.message : String(e));
   }
 
-  let directionIgnored = false;
-  const direction = parsed.data.direction?.trim();
-  if (direction) {
-    try {
-      withFocusWriteTx(db, {}, (ops) => {
-        ops.settleRevision(forkedId, {
-          currentDirection: direction,
-          lastReliableState: `自「${src.title}」分叉`,
-          actorKind: "user"
-        });
-      });
-    } catch {
-      directionIgnored = true;
-    }
-  }
-
-  audit.record({
-    actor: "owner",
-    action: "focus.forked",
-    meta: { focusId: forkedId, sourceId: src.id, title, directionIgnored }
-  });
-  return {
-    status: 200,
-    payload: {
-      ok: true,
-      id: forkedId,
-      title,
-      forkedFrom: src.id,
-      ...(directionIgnored ? { directionIgnored: true as const } : {})
-    }
-  };
 }
 
 /** archived → active */
@@ -353,17 +353,19 @@ export function reopenFocusApi(db: Db, audit: AuditSink, focusId: string): ApiRe
   }
 
   try {
-    const r = changeFocusLifecycle(db, focusId, {
-      to: "active",
-      reason: "reopen",
-      actorKind: "user"
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const r = changeFocusLifecycle(db, focusId, {
+        to: "active",
+        reason: "reopen",
+        actorKind: "user"
+      });
+      audit.record({
+        actor: "owner",
+        action: "focus.reopened",
+        meta: { focusId, eventId: r.eventId, from: focus.lifecycle }
+      });
+      return { status: 200, payload: { ok: true, id: focusId, lifecycle: "active" } };
     });
-    audit.record({
-      actor: "owner",
-      action: "focus.reopened",
-      meta: { focusId, eventId: r.eventId, from: focus.lifecycle }
-    });
-    return { status: 200, payload: { ok: true, id: focusId, lifecycle: "active" } };
   } catch (e) {
     if (e instanceof FocusWriteError) {
       return err(409, e.code, e.message);

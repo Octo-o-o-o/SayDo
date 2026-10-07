@@ -593,6 +593,24 @@ describe("§12-13 收编补充:迁移对账 + 崩溃恢复 + 全链正例", () =
     expect(executeMergeSegment({ db, audit: deps.audit, runsDir: g.runsDir, now }, g.taskId).state).toBe("task_done");
   });
 
+  it.each([false, true])("执行段审计失败回滚本地 task_done,保留真实 Git 结果(replay=%s)", (replay) => {
+    const g = seedGitTask();
+    const auth = new FakeAuthenticator();
+    register(auth);
+    const rid = issueReceipt(auth, g.taskId);
+    approveMerge(deps, { taskId: g.taskId, s3ReceiptId: rid });
+    if (replay) {
+      expect(executeMergeSegment({ db, audit: deps.audit, runsDir: g.runsDir, now }, g.taskId).state).toBe("task_done");
+      db.prepare("UPDATE tasks SET status='merging' WHERE id=?").run(g.taskId);
+    }
+    db.exec(`CREATE TRIGGER reject_task_done BEFORE INSERT ON audit_log
+      WHEN NEW.action = 'task.done' BEGIN SELECT RAISE(ABORT, 'audit unavailable'); END`);
+    const res = executeMergeSegment({ db, audit: deps.audit, runsDir: g.runsDir, now }, g.taskId);
+    expect(res.state).toBe("merge_failed");
+    expect((db.prepare("SELECT status FROM tasks WHERE id=?").get(g.taskId) as { status: string }).status).toBe("merge_failed");
+    expect(execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: g.repo, encoding: "utf8" }).trim()).toBe(g.treeSha);
+  });
+
   it("执行段:主仓批准后有新提交(非快进)⇒ merge_failed(冲突常态转人工)", () => {
     const g = seedGitTask();
     const auth = new FakeAuthenticator();

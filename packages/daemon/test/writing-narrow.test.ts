@@ -524,6 +524,66 @@ describe("§12-14 writing 全链 e2e(真 git;settle → approve → content_done
     expect(projected.every((check) => check.status === "unknown")).toBe(true);
   });
 
+  it("真实 writing settle/approve 新审计绑定 run；完整旧审计仍可读，错误旧绑定保持 unknown", async () => {
+    const repo = seedGitRepo();
+    const { taskId } = seedWritingTaskAndPackage(repo);
+    const exec = buildExecutor(repo); exec.tick(); await waitStatus(taskId, "ready_for_review");
+    reviewTask(db, audit, { taskId, verdict: "approve", expectedAttempt: 1,
+      acceptanceVerdicts: [{criterion:"核心论点覆盖",status:"pass"},{criterion:"结构完整",status:"pass"}] }, clock.toISOString());
+    const run = db.prepare("SELECT id,settle_proof_json FROM tier1_runs WHERE task_id=?").get(taskId) as {id:string;settle_proof_json:string};
+    const row = db.prepare("SELECT meta_json FROM audit_log WHERE action='task.review_approve' AND json_extract(meta_json,'$.taskId')=?").get(taskId) as {meta_json:string};
+    const meta = JSON.parse(row.meta_json);
+    expect(meta.runId).toBe(run.id);
+    delete meta.runId;
+    const insertOld = (delta: Record<string,unknown>, seq: number) => db.prepare("INSERT INTO audit_log(id,ts,actor,action,meta_json) VALUES (?,?,'owner','task.review_approve',?)")
+      .run(newId("aud"), `2099-01-01T00:00:0${seq}.000Z`, JSON.stringify({...meta,...delta}));
+    insertOld({}, 1);
+    let detail = getTaskDetail(db, taskId)!;
+    expect((detail["acceptanceChecks"] as AcceptanceCheck[]).every(c => c.status === "pass")).toBe(true);
+    expect((detail["acceptanceEvidence"] as {ok:boolean}[]).every(e => e.ok)).toBe(true);
+    for (const [index, delta] of [{runId:""},{runId:newId("run")},{attempt:2},{evidenceDigest:"sha256:"+"0".repeat(64)},{verdicts:[]}].entries()) {
+      insertOld(delta, index + 2);
+      detail = getTaskDetail(db, taskId)!;
+      expect((detail["acceptanceChecks"] as AcceptanceCheck[]).every(c => c.status === "unknown")).toBe(true);
+    }
+    const proof = JSON.parse(run.settle_proof_json); proof.runId = newId("run");
+    db.prepare("UPDATE tier1_runs SET settle_proof_json=? WHERE id=?").run(JSON.stringify(proof),run.id);
+    detail = getTaskDetail(db, taskId)!;
+    expect(detail["writingProof"]).toBeNull();
+    expect((detail["acceptanceChecks"] as AcceptanceCheck[]).every(c => c.status === "unknown")).toBe(true);
+  });
+
+  it.each(["conflict", "duplicate", "mismatch"] as const)("writing manual 无引用的 %s 终态必须拒绝且全表回滚", async terminal => {
+    const repo = seedGitRepo(); const { taskId } = seedWritingTaskAndPackage(repo);
+    const exec = buildExecutor(repo); exec.tick(); await waitStatus(taskId, "ready_for_review");
+    const run = db.prepare("SELECT id FROM tier1_runs WHERE task_id=?").get(taskId) as {id:string};
+    let expectedAttempt = 1;
+    if (terminal === "mismatch") {
+      const row = db.prepare("SELECT * FROM tier1_runs WHERE id=?").get(run.id) as {settle_proof_json:string;cwd:string;worktree_path:string;tree_sha:string};
+      const id = newId("run"); const proof = {...JSON.parse(row.settle_proof_json),runId:id,attempt:2};
+      db.prepare("INSERT INTO tier1_runs(id,task_id,attempt,adapter,cwd,worktree_path,tree_sha,state,settle_proof_json,created_at,updated_at) VALUES (?,?,2,'cursor',?,?,?,'settled_review',?,?,?)")
+        .run(id,taskId,row.cwd,row.worktree_path,row.tree_sha,JSON.stringify(proof),clock.toISOString(),clock.toISOString());
+      run.id=id; expectedAttempt=2;
+    }
+    audit.record({actor:"daemon",action:terminal === "duplicate" ? "tier1.settled_review" : "tier1.failed",meta:{taskId,runId:run.id}});
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all() as {name:string}[];
+    const snapshot = () => Object.fromEntries(tables.map(({name})=>[name,db.prepare('SELECT * FROM "'+name.replaceAll('"','""')+'"').all()]));
+    const before = snapshot(); let accepted = false;
+    try { reviewTask(db,audit,{taskId,verdict:"approve",expectedAttempt,acceptanceVerdicts:[{criterion:"核心论点覆盖",status:"pass"},{criterion:"结构完整",status:"pass"}]},clock.toISOString()); accepted = true; } catch { /* 拒绝必须在任何持久写之前。 */ }
+    console.log(JSON.stringify({writing:true,terminal,accepted}));
+    expect(accepted).toBe(false); expect(snapshot()).toEqual(before);
+  });
+
+  it("writing 合法旧run缺终态审计仍可逐项批准且保持JCS绑定", async () => {
+    const repo=seedGitRepo();const {taskId}=seedWritingTaskAndPackage(repo);const exec=buildExecutor(repo);exec.tick();await waitStatus(taskId,"ready_for_review");
+    const row=db.prepare("SELECT * FROM tier1_runs WHERE task_id=?").get(taskId) as {settle_proof_json:string;cwd:string;worktree_path:string;tree_sha:string};
+    const id=newId("run");const proof={...JSON.parse(row.settle_proof_json),runId:id,attempt:2};
+    db.prepare("INSERT INTO tier1_runs(id,task_id,attempt,adapter,cwd,worktree_path,tree_sha,state,settle_proof_json,created_at,updated_at) VALUES (?,?,2,'cursor',?,?,?,'settled_review',?,?,?)")
+      .run(id,taskId,row.cwd,row.worktree_path,row.tree_sha,JSON.stringify(proof),clock.toISOString(),clock.toISOString());
+    expect(reviewTask(db,audit,{taskId,verdict:"approve",expectedAttempt:2,acceptanceVerdicts:[{criterion:"核心论点覆盖",status:"pass"},{criterion:"结构完整",status:"pass"}]},clock.toISOString()).state).toBe("review_approved_waiting_merge");
+    const detail=getTaskDetail(db,taskId)!;expect((detail["acceptanceChecks"] as AcceptanceCheck[]).every(c=>c.status==="pass")).toBe(true);
+  });
+
   it("成稿 symlink 即使目标是普通文本也拒绝，prospective tree mode 不得伪装常规文件", async () => {
     if (process.platform === "win32") return;
     const repo = seedGitRepo();

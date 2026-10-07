@@ -1,31 +1,33 @@
 # IMPLEMENTATION-PLAN-2 · 补充实施方案(第一期 · 全量清偿)v1.2
 
+> **2026-10-07 门禁精简现役规则**：按 owner 当前授权，静态 truth-plane、RF-00 库存/离线自证、迁移冻结、排产指针、gate parity、固定宣传句门退役；下文历史批卡引用这些工具的 required/focused gate 不再生效，历史结论不重写。日常用 `just ci`，工具变更用 `pnpm test:tools`，发布安装变更用 `pnpm test:release`，浏览器用 `pnpm exec playwright test`；平台专项通过 workflow_dispatch 执行。PG-02 静态证明链不再作为进入产品工作的前置。现有发布事务周审接口保留，但不要求每次开发提交重生成。当前任务是先精简并提交，再审查有价值缺口、实施并提交；未开展平台/设备/provider 验收不称通过。
+
 > **owner 指令(2026-07-26 凌晨)**:完整检查全部文档,把所有"后续会做"的待实施项收进第一期,全部完成。
 > **与首发计划的关系**:[IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md)(P0+P0.5 主体历史实现与 evidence 已收口；当前仍须把发布前回修 commit/deploy，再跑 owner 场次①–④与 v0.1.0 发布门);本方案接管其后**全部**已梳理未实施项(原 P1/P2 全量 + 提前批 + 合同债 + 数据触发轨),**取代原 P1/P2/P3 分期作为唯一排产源**(05 §4 原分期行保留作出处索引;移交回写见 W1.9 与本方案收口动作)。
 > **纪律继承**:AGENTS.md 评审制度(设计文档轮次=重制度;实施期轻量版)、HANDOFF §4 铁律、IMPL-PROMPT 系列交接模式、本仓实施会话串行。
 > **v1.1(2026-07-26)**:经自审 + 四路 subagent 评审(完整性对账/架构契约/范围克制/可操作性)回修。**v1.2(同日)**:叠加 Codex 19(报告 `research/codex-findings/19-plan2-review.md`,评的是 v1.0,与 subagent 重叠项已在 v1.1 修)——最重发现:电话形态已有**锁定实施计划**(`research/phone-call-impl-plan-2026-07.md` v3,40–55 工程日、自带解锁触发与四道前置门),从 W7 摘出为指针;另修 S3 merge 措辞(候选方案而非既定语义)、corpus 双资产拆分、planning 出缺省集、APNs/FCM 等 B 级十余项。
 
+## 2026-10-06 本地整合合同（历史记录，2026-10-07 退役静态门）
+
+上一批的 101 动作静态报告、原 43 门逐 ID 映射及工具支持域证明要求已随 [09 §18](../09-data-contracts.md#18-静态真相控制面退役2026-10-07) 退役，不再是当前工作单元或进入后续产品工作的前置。原报告、失败、未决问题与其当时授权保留在 Git 历史和证据档案，不授予本任务额外合并、推送或清理权限。
+
+当前入口为 `just ci`、`pnpm test:tools`、`pnpm test:release` 与 `pnpm exec playwright test`，按本文件顶部现役规则及实际改动范围执行。发布、平台、真机和 provider 验证分别报告，退役静态门不使这些未验项通过。
+
 ## 当前唯一排产链 · PG-00 导入（2026-08-29）
 
-<!-- schedule-pointer:begin -->
-schema_version=1
-revision=18
-active=none
-next=PG-02
-last_closed=SC-RELAND-01
-evidence_ref=e2e/evidence/sc-reland-01.md
-updated_at=2026-09-26
-<!-- schedule-pointer:end -->
+当前排产以本文件顶部 2026-10-07 规则及 owner 当前任务为准；旧指针记录见 Git 历史。
 
-> 本节是 2026-08-29 起 PLAN-2 的唯一当前排产坐标。下方 §0 现状锚点与 §1 W1–W9 / 合同轮 / `ai-supply` 为历史原文，只增加 superseded/disposition，不删除历史节点、不重写既有 evidence。当前现势指针见本节顶部 schedule-pointer 块,由 `scripts/schedule-pointer.mjs` 守护;不得手写第二套 active/next。字段原逐字来自 `docs/plan/2026-08-28-project-gap-closure-program.md` §20 批卡与 D17 §4.2；2026-09-06 在 PG-01B 与 PG-02 之间插入唯一批 ID `AS-01-AS-02`（owner 决策单第 10 节，不是 D17 扩权）；2026-09-09 在 AS-01-AS-02 与 PG-02 之间插入唯一批 ID `GAP-02-consolidation`（执行卡 `IMPL-PROMPT-2026-09-09-gap-consolidation.md` §0 排产关系，与 AS 同法插批；owner 2026-09-09 已确认插批）；2026-09-15 在 EMAIL-A-outbound 与 PG-02 之间插入唯一批 ID `JOURNEY-01`（owner 决策单第 13 节，回应外部审查「治理链全在前、参考旅程无排产」的失衡警告）；2026-09-19 在 EMAIL-A-outbound 与 JOURNEY-01 之间插入唯一批 ID `DAILY-01-workbench-restore`（owner 当场授权「改 + 插队 + 现在开始完整实施」，插批位置 JOURNEY-01 前，JOURNEY-01 顺延为 next）；2026-09-23 在 JOURNEY-01 与 PG-02 之间插入 `VOICE-MEASURE-01`、`CODEX-AS-SPIKE-01`（owner 采纳 v3;执行卡 [`2026-09-23-voice-measure-app-server.md`](2026-09-23-voice-measure-app-server.md)）。不新增功能平台。`PLAN2-default-all` 已 `superseded`；未被 exact 选入的未来项一律 deferred，取消“未回复则缺省全做”。
+> 本节是 2026-08-29 起 PLAN-2 的唯一当前排产坐标。下方 §0 现状锚点与 §1 W1–W9 / 合同轮 / `ai-supply` 为历史原文，只增加 superseded/disposition，不删除历史节点、不重写既有 evidence。当前排产由本文维护，不再生成第二份指针或执行指针门禁。字段原逐字来自 `docs/plan/2026-08-28-project-gap-closure-program.md` §20 批卡与 D17 §4.2；2026-09-06 在 PG-01B 与 PG-02 之间插入唯一批 ID `AS-01-AS-02`（owner 决策单第 10 节，不是 D17 扩权）；2026-09-09 在 AS-01-AS-02 与 PG-02 之间插入唯一批 ID `GAP-02-consolidation`（执行卡 `IMPL-PROMPT-2026-09-09-gap-consolidation.md` §0 排产关系，与 AS 同法插批；owner 2026-09-09 已确认插批）；2026-09-15 在 EMAIL-A-outbound 与 PG-02 之间插入唯一批 ID `JOURNEY-01`（owner 决策单第 13 节，回应外部审查「治理链全在前、参考旅程无排产」的失衡警告）；2026-09-19 在 EMAIL-A-outbound 与 JOURNEY-01 之间插入唯一批 ID `DAILY-01-workbench-restore`（owner 当场授权「改 + 插队 + 现在开始完整实施」，插批位置 JOURNEY-01 前，JOURNEY-01 顺延为 next）；2026-09-23 在 JOURNEY-01 与 PG-02 之间插入 `VOICE-MEASURE-01`、`CODEX-AS-SPIKE-01`（owner 采纳 v3;执行卡 [`2026-09-23-voice-measure-app-server.md`](2026-09-23-voice-measure-app-server.md)）。不新增功能平台。`PLAN2-default-all` 已 `superseded`；未被 exact 选入的未来项一律 deferred，取消“未回复则缺省全做”。
 
 ### 唯一串行链
 
 ```text
-PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → EMAIL-A-outbound → DAILY-01-workbench-restore → JOURNEY-01 → VOICE-MEASURE-01 → CODEX-AS-SPIKE-01 → SC-RELAND-01 → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → owner-stop
+PROC-01 → PG-01B → AS-01-AS-02 → GAP-02-consolidation → EMAIL-A-outbound → DAILY-01-workbench-restore → JOURNEY-01 → VOICE-MEASURE-01 → CODEX-AS-SPIKE-01 → SC-RELAND-01 → RF-00 → CI-FIX-01 → PG-02 → PG-03 → PG-04 → PG-05 → PG-06 → RF-01 → RF-02 → RF-03 → RF-04 → RF-05 → RF-06 → RF-07 → RF-08 → RF-09 → RF-10 → RF-11 → owner-stop
 ```
 
-断言形态：`PLAN2_chain == PROC-01>PG-01B>AS-01-AS-02>GAP-02-consolidation>EMAIL-A-outbound>DAILY-01-workbench-restore>JOURNEY-01>VOICE-MEASURE-01>CODEX-AS-SPIKE-01>SC-RELAND-01>PG-02>PG-03>PG-04>PG-05>PG-06>owner-stop`。
+断言形态：`PLAN2_chain == PROC-01>PG-01B>AS-01-AS-02>GAP-02-consolidation>EMAIL-A-outbound>DAILY-01-workbench-restore>JOURNEY-01>VOICE-MEASURE-01>CODEX-AS-SPIKE-01>SC-RELAND-01>RF-00>CI-FIX-01>PG-02>PG-03>PG-04>PG-05>PG-06>RF-01>RF-02>RF-03>RF-04>RF-05>RF-06>RF-07>RF-08>RF-09>RF-10>RF-11>owner-stop`。
+
+> 2026-09-29 modular-foundation 导入（owner 采纳 `IMPL-PROMPT-2026-09-29-modular-foundation.md` 与 consolidated-final/cross-review）：`RF-00` 插在 `SC-RELAND-01` 与 `PG-02` 之间（本调用只推进到其预声明的合同检查点，未收口）；`RF-01`～`RF-11` 列于 `PG-06` 之后，链尾 `owner-stop` 是本任务新的最终 owner 验收停止点，旧 owner-stop 位置保留为历史记录不回改。schedule-pointer schema/checker/self-test 已同步导入 `RF-\d{2}` 批 ID。未授权 deferred 项不启动。
 
 PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代码批，也不占用 active/next。
 
@@ -206,6 +208,7 @@ PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代�
 - depends_on：CODEX-AS-SPIKE-01 本地收口(evidence `e2e/evidence/codex-as-spike-01.md`);来源 = 本地归档 tag `archive/wip-consolidation-20260913`(2026-09-13 暂停的整合候选,基线 `49ed96f`,未评审、未合并)与其对账报告
 - A-ID exact-set：`close_set=[]`；`stop_loss_set=[]`(缺陷重落地,不关闭 program A 级项)
 - deferred exact-set：`[DF-SC51-WIN-STDIO,DF-SC54-SPIKE-EVIDENCE,DF-TIER1-SHELL-01]`(前两项在来源任务中经两次同根因回修仍 RED 并等待 owner,且需 Windows 原生或历史 spike 重放,本批不搬;重议须具名授权)。HEAD 上同样存在、候选未更松的 shell/git 分类绕过(评审各轮反例清单见 e2e/evidence/sc-reland-01.md)转后续批 TIER1-SHELL-01;本批以 legacyCommandToEffect 单调下限保证不比 main 更松
+- 2026-10-03 普通整合具名勘误：仅补 `http.delegation`（含 URL 子节）的凭据委派 S3 分类，依据 docs/04 §5.1；上行 deferred 集合、历史取严下限和其余 shell/git 延期仍原样保留，不重置旧 SC/PG/native 预算。
 - 排除(不属本批,非 deferred)：SC-01(09-13 当时的远端 CI 状态,已过时);SC-02/03/21/25/31 与 truth-plane 账本/检查器(归 PG-02 在途候选);SC-06/35/37 语音修复(JOURNEY-01 已按 2026-09-20 取舍吸收,本批只核不搬)
 - scope roots：来源候选中 SC-04–SC-59(扣除上两行)对应的 `packages/{daemon,cli,console,contracts,platform}/**`、`pipeline/**`、`scripts/**`(不含 PG-02 账本/检查器)、`apps/*/`配对语料与 README、`deploy/**` 站点源码文案(不部署)、`templates/**`、canonical 对齐(`docs/01–11`、`docs/adr/**`、`docs/modules/**`)、历史证据/评审/计划文档的时点补注、对账报告入 `docs/review/`、本批卡与执行卡。每项先在当前 main 真实入口复现,已被后续批修复或替代的只记证据不搬
 - focused gate：`FG-SC-RELAND-01` = `pnpm -r typecheck`；`pnpm lint`；受影响包 `vitest run <文件>`；`uv --directory pipeline run python -m pytest -q`；`node scripts/schedule-pointer.mjs --check`；`node scripts/schedule-pointer.mjs --self-test`；`bash scripts/check-emoji.sh`；`node scripts/check-doc-links.mjs`；`node scripts/check-public-tree-privacy.mjs --fs`；`node scripts/check-active-claims.mjs`；`git diff --check`
@@ -215,7 +218,26 @@ PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代�
 - not_run(预期)：Windows 原生 API(koffi DACL/ACE、命名管道)只在宿主上以单测/注入覆盖;iOS/Android/HarmonyOS 真机;官网部署;真实 SMTP/ntfy;发布动作
 - 批卡摘要：consolidation 残余缺陷按当前 main 逐项复现后重落地,规模 L;canonical_change=yes。一名实施者、一名零上下文 reviewer 最终统一评审。执行卡 [`IMPL-PROMPT-SC-RELAND-01.md`](IMPL-PROMPT-SC-RELAND-01.md)。
 
-### PG-02 · minimal-truth-gate-bootstrap
+### RF-00 · modular-foundation-baseline——**状态:已收口(合同检查点,owner 本卡确认独立通过;不代表 PG-02 产品验收)**
+
+- depends_on：SC-RELAND-01 evidence commit
+- scope roots：`scripts/rf00-inventory-scan.mjs`、`research/rf-00/**`(inventory.json/.md、semantic-claims.json、pg02-fact-reconciliation.md、README.md)、`docs/09-data-contracts.md` §17(目标合同,designed)、`docs/03-architecture.md`、`docs/07-tech-stack-decisions.md`、`docs/08-module-design.md`、`docs/modules/e-crosscutting.md` 对齐指针、`docs/plan/IMPLEMENTATION-PLAN-2.md` 排产链与批卡、`HANDOFF.md` 指针投影、`scripts/schedule-pointer.mjs` schema/checker/self-test、`.octoworkflow/project-profile.md` 本任务具名例外、`docs/README.md` 与 `history/PROCESS-JOURNAL.md` 索引/轮次。**不含 daemon 业务行为变更**——本批只到合同检查点,不改生产实现
+- focused gate：`node scripts/rf00-inventory-scan.mjs --check`；`node scripts/schedule-pointer.mjs --check`；`node scripts/schedule-pointer.mjs --self-test`；`node scripts/check-doc-links.mjs`；`bash scripts/check-emoji.sh`；`git diff --check`
+- full gate：`just ci`；`pnpm exec playwright test`（本检查点 NOT_RUN,留待后续阶段）
+- evidence path：本调用证据写仓外 `~/.codex/tasks/saydo-modular-foundation-20260929/implement-1-artifacts/REPORT.md`;收口后 evidence commit 按两提交法登记
+- 批卡摘要：现势/历史清单（全路由、WS/IPC 词表、Brain 工具、表/文件写入者、状态 owner、依赖、制品、真实支持矩阵、旧候选 disposition）+ PG-02 现场对账（旧账与 RED 保留,不修旧根因）+ 统一 canonical 目标合同包（09 §17）+ 排产链/schema/checker/test 导入。机械扫描与语义核验分账;`unregistered_not_claimable` 默认不变。独立合同评审后才准进入 PG-02。
+
+### CI-FIX-01 · public-ci-repair——**状态:本地 S2 可移交,已受控吸收;公开 CI pending,未正式关闭**
+
+- owner 2026-10-01 采纳接续 prompt,只在 RF-00 与 PG-02 之间插批,保留完整 RF-00～RF-11 链。
+- 受控差额:7 文件固定 patch,修复 distribution AcceptanceCheck/evidenceRef、Linux birth/pgid fixture 与五项回收正负例,标准 just ci-node 补 distribution。共享 PLAN-2/HANDOFF/schedule 增量合并,未覆盖 PG-02 候选。
+- 本地 CI-FIX-01 S2 证据在仓外任务 saydo-ci-fix-01-20261001/HANDOFF.md;该证据不继承为本整合候选通过,受影响与 required 门重新验证。
+- focused gate:`pnpm --filter @saydo/cli verify:distribution`;`pnpm --filter @saydo/cli exec vitest run test/run-owned-reap.test.ts`;`node scripts/check-gate-list-parity.mjs`。Linux own agent/foreign HOME/CAS successor/错误 birth/错误 pgid 和泄漏清单须实跑。
+- full gate:`just ci`;`pnpm exec playwright test`;排产、隐私、链接和 emoji 门禁及任务专属 Linux 实跑。
+- 指针保留 active=PG-02,next=PG-03,last_closed=RF-00 与原 evidence_ref,不改 RF-00 原关闭事实。CI-FIX-01 未正式关闭,不能改 last_closed;公开 required CI 继续 pending/历史 RED。
+- 仅到 PG-02 未提交候选,不启动后续批、不 push/发布;受控集成与公开 required CI 真实证据齐备才可正式关批。
+
+### PG-02 · minimal-truth-gate-bootstrap——**状态:在途(本地候选,待独立验收;PG-03 未开工)**
 
 - depends_on：AS-01-AS-02 evidence commit
 - A-ID exact-set：`close_set=[G-A3]`；`stop_loss_set=[]`
@@ -225,6 +247,9 @@ PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代�
 - full gate：`just ci`；`pnpm exec playwright test`。本批 implementation commit 上重跑 `FG-PG01A-CLAIM`、`FG-PG01B-RUNTIME`；其中 `FG-PG01A-CLAIM` 回归只运行 read-only validator/mutation 与 Q0 `--check` 子集，明确排除 Q0 `--write` E-artifact producer
 - evidence path：`e2e/evidence/project-gap-pg-02.md`
 - 回滚上限：checker/projector 失败即阻断新 claim，不回退为人工口头对账。`safe_default=unregistered_not_claimable + evidence_bound_to_git_commit`
+- 2026-10-03 owner-decision-17 采纳有限证明/计费域：09 §18.11 是具名有限证明增量权威；owner17历史验收资源为768 origins/16MiB每file或view/64MiB累计/60s完整验收，13hop/256node/depth12保持；历史优先于旧资源数字，现役数值由下一条owner18覆盖，旧RED不改。SOURCE_FINITE与LOCAL_CONTROLLED_REBUILD_16仅探索，正式native认证仍UNKNOWN；当时重建准备预算未知，现由下一条授权一次试验。固定[提案](D1-FINITE-PROOF-PROPOSAL-2026-10-03.md)与[矩阵](D1-FINITE-PROOF-ACCEPTANCE-2026-10-03.md)原样留作出处；旧未采纳/16修建议由本决定覆盖。先fresh canonical一致性审查，再按审后合同推进；不等于完整D1/S1可实施性通过。S0–S6/D1–D5完整范围与43required保留，本轮repair42仅文档与有界native准备，不改产品。
+- 2026-10-03 owner-decision-18 采纳经review20审查的集中资源试验：现役形状与资源权威仍为09 §18.11.3；完整acceptance为2048 origins/64MiB单file或view/128MiB累计读取展开/60s，13hop/256callnodes/depth12保持。一次独立prepare为4096 origins/256MiB单file或view/1GiB累计读取展开/1200s整个试验/2GiB新增outputDisk/2GiB树RSS/网络0/累计128children并发8/jobs1；prepare与acceptance各完整计费，不拼PASS，finite ceiling非充分性。只做局部可逆本机准备与own tiny child能力probe；不网络下载、全局安装、权限或SIP修改。fresh canonical一致性PASS、真实全通道观测或独立有限上界及network-denial未具备即UNKNOWN拒build；作者probe或plan字段不授信，正式独立source/build/ABI/artifact/domain认证仍UNKNOWN。原9修/每根因新增3与累计额度不扩；repair45为owner17第4/9、R-ACTIVE-POSITIVES第3/3累计34/34最后槽。旧RED/43required/B1及S0–S6/D1–D5保持；S2等fullS1，CI两专用自测差额留S2。
+- 2026-09-30 owner 决策 C14(待合同检查点验收,尚未实施):09 §18.10 增加「编译器已证明的原生接收者种类」与「静态闭合超界」两条有界规则;A 仅原始 string 接收者，模式仅已证明 string 或调用处全新正则字面量，数组/可变对象回退，须核隐式转换及方法/原型完整性;PG-02 关闭条件相应改为非超界 action 精确闭合零拒绝、超界 action 满足 §18.10 B;限额、§17 与 focused/full gate 不变。
 - 批卡摘要（program §20.4）：runtime safety/bootstrap，规模 M；canonical_change=yes。最小 capability/action/scope schema、手工维护 scoped ledger、claim/gate/support checker；inventory/deferred 只填最小字段；建立供 PG-03–PG-06 消费的稳定 gate-ID registry，但不建设通用 wave-exit 执行/receipt 平台。
 
 ### PG-03 · gate-truth
@@ -274,6 +299,96 @@ PG-00 只是把本链导入唯一排产源的本地文档批，不是产品代�
 - evidence path：`e2e/evidence/project-gap-pg-06.md`
 - 回滚上限：保持 static inventory 与 provider route disabled；不能回到页面加载即探测。`safe_default=unknown_deny + static_inventory_only + zero_probe`
 - 批卡摘要（program §20.5）：runtime safety，规模 M；canonical_change=yes。只关闭 G-A7/A8。AI 决策 4/5、D12 未签不阻塞本批，也不在本批实现 live ProbeGrant cage。static inventory 与 production admission 分离；field-aware pre-send gate；自动 probe hard-disable。收口后停在 owner-stop。
+
+> 以下 RF-01～RF-11 批卡为 2026-09-29 modular-foundation 排产导入（来源：`docs/review/2026-09-29-modular-foundation-consolidated-final.md` RF 表;执行授权 `IMPL-PROMPT-2026-09-29-modular-foundation.md`）。全部标 **未开工**：开工以各自执行卡与前置批收口为准,focused gate 随执行卡定档;PG-02～06 全部收口前不得启动 RF-01。
+
+### RF-01 · boundary-contribution-entry——**状态:未开工**
+
+- depends_on：RF-00 evidence commit;PG-03 守门项就绪
+- scope roots：导入白名单、模块维护卡、CONTRIBUTING、隔离开发模式、包级命令（随执行卡 exact-set 定档）
+- focused gate：随 RF-01 执行卡定档（NOT_RUN）
+- evidence path：`e2e/evidence/rf-01.md`
+- 批卡摘要：边界与贡献入口——新增禁止依赖必失败;UI/核心贡献者无 key 完成样例;现有基线不退化。
+
+### RF-02 · wire-sdk-vertical-slice——**状态:未开工**
+
+- depends_on：RF-01;PG-02 类型台账、PG-06 准入约束
+- scope roots：一读一写一订阅窄用例、typed DTO、TS SDK、兼容适配（随执行卡 exact-set 定档）
+- focused gate：随 RF-02 执行卡定档（NOT_RUN）
+- evidence path：`e2e/evidence/rf-02.md`
+- 批卡摘要：wire 与 SDK 竖切——合同模拟与生产竖切分列;真实用例/持久幂等/事件接线齐备,同键冲突/并发重复/提交后断线/撤权/恢复通过;能力未齐时仅记合同/SDK 骨架/模拟通过,生产未验证。
+
+### RF-03 · app-service-security-mainline——**状态:未开工**
+
+- depends_on：RF-02;PG-04 审计约束、PG-06 准入
+- scope roots：HTTP/Brain 共用用例、approval 门面、registry/composition（随执行卡 exact-set 定档）
+- focused gate：随 RF-03 执行卡定档（NOT_RUN）
+- evidence path：`e2e/evidence/rf-03.md`
+- 批卡摘要：应用服务与安全主链——任何入口不能绕 Gate0/S3;收据单次消费;同副作用轨迹等价。
+
+### RF-04 · storage-recovery——**状态:未开工**
+
+- depends_on：RF-03;PG-05 先行
+- scope roots：语义 ports、迁移/备份/旧库恢复、读投影（随执行卡 exact-set 定档）
+- focused gate：随 RF-04 执行卡定档（NOT_RUN）
+- evidence path：`e2e/evidence/rf-04.md`
+- 批卡摘要：storage 与恢复——每生产迁移有恢复点;WAL/故障注入通过;不兼容库拒绝;无未验证逆 DDL。
+
+### RF-05 · gateway-protocol-coverage——**状态:未开工**
+
+- depends_on：RF-02/03;RF-04 相关接口
+- scope roots：逐路由迁移、HTTP/WS 独立生命周期、Fastify ADR（随执行卡 exact-set 定档）
+- focused gate：随 RF-05 执行卡定档（NOT_RUN）
+- evidence path：`e2e/evidence/rf-05.md`
+- 批卡摘要：gateway 与协议覆盖——全量路由与旧行为对账,origin/remote/recovery/S3/启动关闭逐项通过。
+
+### RF-06 · web-component-consumption——**状态:未开工**
+
+- depends_on：RF-02/05
+- scope roots：SDK 接线、容器/呈现、fixtures/可访问性、可选 UI 包（随执行卡 exact-set 定档）
+- focused gate：随 RF-06 执行卡定档（NOT_RUN）
+- evidence path：`e2e/evidence/rf-06.md`
+- 批卡摘要：Web 与组件消费——真实参考旅程浏览器验证;新页面无需了解 DAO/executor;mock 不替代真服务。
+
+### RF-07 · provider-executor——**状态:未开工**
+
+- depends_on：RF-03/04;PG-06 先行
+- scope roots：adapter 合同、能力证据、启动/取消/恢复/settle 分责（随执行卡 exact-set 定档）
+- focused gate：随 RF-07 执行卡定档（NOT_RUN）
+- evidence path：`e2e/evidence/rf-07.md`
+- 批卡摘要：provider/executor——hook 失联拒绝,真实进程树终止,未知终态不冒绿,计费不静默切换。
+
+### RF-08 · media-comparison-selection——**状态:未开工**
+
+- depends_on：RF-02/03;既有 VOICE 基线
+- scope roots：自写/Pipecat/LiveKit 对照,选择或不替换 ADR（随执行卡 exact-set 定档）
+- focused gate：随 RF-08 执行卡定档（NOT_RUN）
+- evidence path：`e2e/evidence/rf-08.md`
+- 批卡摘要：media 对照与选择——同语料安全不变量、冻结质量/延迟门(P50/P90 硬门,09 §17.6)与依赖成本;正式替换超出试验另估。
+
+### RF-09 · native-bridge-devices——**状态:未开工**
+
+- depends_on：RF-02/05/06 及选定媒体合同
+- scope roots：三端版本化 bridge、安全存储、设备矩阵（随执行卡 exact-set 定档）
+- focused gate：随 RF-09 执行卡定档（NOT_RUN）
+- evidence path：`e2e/evidence/rf-09.md`
+- 批卡摘要：native bridge 与设备——模拟器/签名制品/升级/真机分别验;不因壳可用宣布 remote 开放。
+
+### RF-10 · toolchain-trusted-release——**状态:未开工**
+
+- depends_on：RF-01 后可逐项穿插;各发布依赖相关工作包
+- scope roots：Node/TS 等单独迁移、制品 SBOM/签名/来源证明、exact-set 升级（随执行卡 exact-set 定档）
+- focused gate：随 RF-10 执行卡定档（NOT_RUN）
+- evidence path：`e2e/evidence/rf-10.md`
+- 批卡摘要：工具链与可信发布——实际下载字节校验,清洁安装升级恢复,required 门无 skip/假绿。
+
+### RF-11 · open-source-second-maintainer——**状态:未开工**
+
+- depends_on：文档早建;收口依赖已声明支持范围
+- scope roots：公开 main 治理、维护者规则、模块贡献示例、交接演练（随执行卡 exact-set 定档）
+- focused gate：随 RF-11 执行卡定档（NOT_RUN）
+- evidence path：`e2e/evidence/rf-11.md`
+- 批卡摘要：开源与第二维护者验收——非原作者独立改 adapter/页面、恢复数据并验证候选发布;未支持面明确标记。收口后停在新最终 owner-stop。
 
 ## 0. 现状锚点(2026-07-26 00:50 定稿时刻快照;开批时现状以 `HANDOFF.md` 为准)
 

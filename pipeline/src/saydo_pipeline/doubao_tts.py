@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import struct
 import uuid
@@ -114,7 +115,7 @@ class DoubaoTts:
                 if m.event == EV_CONNECTION_STARTED:
                     break
                 if m.type == MSG_ERROR or m.event == EV_CONNECTION_FAILED:
-                    raise RuntimeError(f"doubao connect failed: {m.payload[:200]!r}")
+                    raise RuntimeError(f"doubao connect failed digest={hashlib.sha256(m.payload).hexdigest()}")
             await ws.send(
                 _encode(
                     EV_START_SESSION,
@@ -142,14 +143,14 @@ class DoubaoTts:
                 if m.event == EV_SESSION_STARTED:
                     break
                 if m.type == MSG_ERROR or m.event == EV_SESSION_FAILED:
-                    raise RuntimeError(f"doubao session failed: {m.payload[:200]!r}")
+                    raise RuntimeError(f"doubao session failed digest={hashlib.sha256(m.payload).hexdigest()}")
             await ws.send(_encode(EV_TASK_REQUEST, session_id, json.dumps({"req_params": {"text": text}})))
             await ws.send(_encode(EV_FINISH_SESSION, session_id))
             chunks: list[bytes] = []
             while True:
                 m = _decode(await ws.recv())
                 if m.type == MSG_ERROR or m.event == EV_SESSION_FAILED:
-                    raise RuntimeError(f"doubao tts failed: {m.payload[:200]!r}")
+                    raise RuntimeError(f"doubao tts failed digest={hashlib.sha256(m.payload).hexdigest()}")
                 if m.event == EV_TTS_RESPONSE and m.type == MSG_AUDIO_ONLY:
                     chunks.append(m.payload)
                 if m.event == EV_SESSION_FINISHED:

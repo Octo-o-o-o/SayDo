@@ -37,3 +37,9 @@ PYTHONPATH=pipeline/src ~/WorkSpace/SayDo/pipeline/.venv/bin/python -m pytest pi
 
 - `02_SayDo_Voice_Runtime_Recommendation_2026-09-23.md`: 54615 bytes, SHA-256 `83415f3cda73e1a8ca653b1311d15256b511e34e81854aff83d5b1a36a9b8041`。
 - `SayDo_Voice_Runtime_Integration_2026-09-23.md`: 51476 bytes, SHA-256 `f0a9b0a35d5177e2dc04c44c2fa08cc51a830f4e1ce55692edc42e21204f30e6`。
+
+## 2026-09-27 审计候选复核
+
+09-23 的 exit 1 和 JSON 原样保留。当前候选上原探针再次复现旧句下发(exit 1)后，修复 pipeline 输出失效令牌；同一探针修后 exit 0，仅新句下发。增加连续打断、跨会话、空音频重试、吞取消 provider/reset、latency 发送让出期间打断的交错测试，五个相关测试文件 79 passed。首轮 Ruff 报循环闭包绑定，修正后 exit 0。
+
+这只是本轮离线生产代码/fixture 证据，不覆盖已发网络帧过滤、真实扬声器、provider、独立验收或部署。定向日志 `tts-cancel-regression-1.log` 位于 `~/.codex/tasks/saydo-fortnight-audit-20260927/`，179 字节、SHA-256 `9cfd8be9f5bd73e21d9bb535528c3a3c7c4cb3b6c80e191e6915ce8cbd0842f7`、exit 0；当前候选完整门禁尚未运行。

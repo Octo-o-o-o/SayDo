@@ -3,7 +3,7 @@
 // 纯呈现:组折叠与视图模式是页面级呈现状态;卡片点击全部回调,组头跳 Focus 页走 onNavigate。
 
 import { useState } from "react";
-import { BoardColsHeader, BoardLaneGroup } from "../../components/redesign";
+import { BoardColsHeader, BoardLaneGroup, boardColumnOf } from "../../components/redesign";
 import type { BoardLaneGroupData, ObligationView, TaskView } from "../../components/redesign";
 import type { PageNavTarget } from "./nav";
 
@@ -37,19 +37,18 @@ const modeBtn = (active: boolean): React.CSSProperties => ({
 });
 
 const OB_OPEN = new Set(["open", "in_progress", "waiting", "deferred", "blocked"]);
-const TASK_RUNNING = new Set(["running", "queued", "confirmed", "paused_step_boundary", "waiting_confirmation", "merging"]);
-const TASK_DONE = new Set(["task_done", "cancel_settled", "superseded"]);
 
 /** 看板列:等你(human 开放义务)/ 我在做(agent 义务+在跑任务)/ 等外部 / 已收尾(收尾义务+终态任务) */
-function kanbanCols(g: BoardLaneGroupData): { needYou: ObligationView[]; doing: number; external: ObligationView[]; settled: number } {
+function kanbanCols(g: BoardLaneGroupData): { needYou: ObligationView[]; needTasks: TaskView[]; doing: number; external: ObligationView[]; settled: number } {
   const obs = Object.values(g.obligationsByLane).flat();
   const tasks = Object.values(g.tasksByLane).flat();
   return {
     needYou: obs.filter((o) => o.owner === "human" && OB_OPEN.has(o.status)),
+    needTasks: tasks.filter((t) => boardColumnOf(t.viewStatus) === 2),
     doing: obs.filter((o) => o.owner === "agent" && ["open", "in_progress"].includes(o.status)).length
-      + tasks.filter((t) => TASK_RUNNING.has(t.viewStatus)).length,
+      + tasks.filter((t) => boardColumnOf(t.viewStatus) < 2).length,
     external: obs.filter((o) => o.owner === "external" && OB_OPEN.has(o.status)),
-    settled: obs.filter((o) => !OB_OPEN.has(o.status)).length + tasks.filter((t) => TASK_DONE.has(t.viewStatus)).length
+    settled: obs.filter((o) => !OB_OPEN.has(o.status)).length + tasks.filter((t) => boardColumnOf(t.viewStatus) === 3).length
   };
 }
 
@@ -72,12 +71,17 @@ function KanbanBoard({ groups, onNavigate, onAction }: {
   const cols: { title: string; render: (g: BoardLaneGroupData) => React.ReactNode }[] = [
     {
       title: "等你",
-      render: (g) => kanbanCols(g).needYou.map((o) => (
+      render: (g) => [...kanbanCols(g).needYou.map((o) => (
         <button key={o.id} type="button" style={{ ...cellStyle, textAlign: "left", cursor: "pointer" }} data-kanban-ob={o.id}
           onClick={() => onAction?.({ type: "open_obligation", obligation: o })}>
           {o.title}
         </button>
-      ))
+      )), ...kanbanCols(g).needTasks.map((task) => (
+        <button key={task.id} type="button" style={{ ...cellStyle, textAlign: "left", cursor: "pointer" }} data-kanban-task={task.id}
+          onClick={() => onAction?.({ type: "open_task", task })}>
+          {task.title}
+        </button>
+      ))]
     },
     {
       title: "我在做",
@@ -135,9 +139,8 @@ function ListBoard({ groups, view, onNavigate }: {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }} data-board-mode="list">
       {groups.map((g) => {
-        const obs = Object.values(g.obligationsByLane).flat();
         const tasks = Object.values(g.tasksByLane).flat();
-        const needYou = obs.filter((o) => o.owner === "human" && OB_OPEN.has(o.status)).length;
+        const needYou = kanbanCols(g).needYou.length + kanbanCols(g).needTasks.length;
         return (
           <button
             key={g.focus.id}

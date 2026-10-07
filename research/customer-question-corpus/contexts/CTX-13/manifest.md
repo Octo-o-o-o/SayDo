@@ -1,5 +1,9 @@
 # CTX-13 · 家庭照护协作
 
+- `active_status`: `retired_no_updated_source`
+- `retired_on`: `2026-09-30`
+- 当前不可用于执行或有效事实证明；原日期、来源与逐题合同仅供历史回放。owner 已授权无更新来源时退役。
+
 - `as_of`: `2026-08-24`
 - `valid_until`: `2026-09-18`；复诊后医疗与排期信息必须刷新。
 - `claim_scope`: 机构书面行政指示用 `clinic-instructions.md`；家属观察用 `care-notes.md`；日程用 `care-calendar.md`；隐私与协作规则用 `coordination-rules.md`。家属记录不能覆盖机构指示。

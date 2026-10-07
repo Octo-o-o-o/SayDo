@@ -1,6 +1,7 @@
 // Focus v0.4 ④d:Expectation adjust / withdraw 写口。
 
 import { z } from "zod";
+import { withSqliteAuditTransaction } from "./sqliteAuditTransaction.js";
 import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
 import {
@@ -57,54 +58,56 @@ export function adjustExpectationApi(
   }
 
   try {
-    const result = withFocusWriteTx(db, {}, (ops) =>
-      adjustExpectationOnOps(
-        ops,
-        focusId,
-        expectationId,
-        {
-          ...(parsed.data.text !== undefined ? { text: parsed.data.text } : {}),
-          ...(parsed.data.dueOrTrigger !== undefined ? { dueOrTrigger: parsed.data.dueOrTrigger } : {}),
-          ...(parsed.data.budgetNote !== undefined ? { budgetNote: parsed.data.budgetNote } : {})
-        },
-        {
-          actorKind: "user",
-          ...(parsed.data.sessionId ? { sessionId: parsed.data.sessionId } : {})
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const result = withFocusWriteTx(db, {}, (ops) =>
+        adjustExpectationOnOps(
+          ops,
+          focusId,
+          expectationId,
+          {
+            ...(parsed.data.text !== undefined ? { text: parsed.data.text } : {}),
+            ...(parsed.data.dueOrTrigger !== undefined ? { dueOrTrigger: parsed.data.dueOrTrigger } : {}),
+            ...(parsed.data.budgetNote !== undefined ? { budgetNote: parsed.data.budgetNote } : {})
+          },
+          {
+            actorKind: "user",
+            ...(parsed.data.sessionId ? { sessionId: parsed.data.sessionId } : {})
+          }
+        )
+      );
+      audit.record({
+        actor: "owner",
+        action: "expectation.adjusted",
+        meta: {
+          focusId,
+          expectationId: result.expectationId,
+          previousId: expectationId,
+          fromRevision: result.fromRevision,
+          toRevision: result.toRevision,
+          kind: result.kind
         }
-      )
-    );
-    audit.record({
-      actor: "owner",
-      action: "expectation.adjusted",
-      meta: {
-        focusId,
-        expectationId: result.expectationId,
-        previousId: expectationId,
-        fromRevision: result.fromRevision,
-        toRevision: result.toRevision,
-        kind: result.kind
-      }
+      });
+      return {
+        status: 200,
+        payload: {
+          ok: true,
+          expectationId: result.expectationId,
+          logicalKey: result.logicalKey,
+          fromRevision: result.fromRevision,
+          toRevision: result.toRevision,
+          previousActiveId: result.previousActiveId,
+          eventId: result.eventId,
+          appliesFrom: result.appliesFrom,
+          text: result.text,
+          kind: result.kind,
+          status: "pending_ack",
+          /** 调用方(index)据此 injectControlTurn(kind=expectation_adjusted) */
+          controlTurnHint: parsed.data.sessionId
+            ? { kind: "expectation_adjusted" as const, focusId, sessionId: parsed.data.sessionId }
+            : null
+        }
+      };
     });
-    return {
-      status: 200,
-      payload: {
-        ok: true,
-        expectationId: result.expectationId,
-        logicalKey: result.logicalKey,
-        fromRevision: result.fromRevision,
-        toRevision: result.toRevision,
-        previousActiveId: result.previousActiveId,
-        eventId: result.eventId,
-        appliesFrom: result.appliesFrom,
-        text: result.text,
-        kind: result.kind,
-        status: "pending_ack",
-        /** 调用方(index)据此 injectControlTurn(kind=expectation_adjusted) */
-        controlTurnHint: parsed.data.sessionId
-          ? { kind: "expectation_adjusted" as const, focusId, sessionId: parsed.data.sessionId }
-          : null
-      }
-    };
   } catch (e) {
     if (e instanceof FocusWriteError) {
       if (e.code === "pending_ack_exists") return err(409, e.code, e.message);
@@ -137,36 +140,38 @@ export function withdrawExpectationApi(
       : "";
 
   try {
-    const result = withFocusWriteTx(db, {}, (ops) =>
-      withdrawExpectationOnOps(ops, focusId, expectationId, {
-        actorKind: "user",
-        ...(sessionId ? { sessionId } : {})
-      })
-    );
-    audit.record({
-      actor: "owner",
-      action: "expectation.withdrawn",
-      meta: {
-        focusId,
-        expectationId,
-        eventId: result.eventId,
-        revision: result.revision
-      }
+    return withSqliteAuditTransaction<ApiResponse>(db, audit, () => {
+      const result = withFocusWriteTx(db, {}, (ops) =>
+        withdrawExpectationOnOps(ops, focusId, expectationId, {
+          actorKind: "user",
+          ...(sessionId ? { sessionId } : {})
+        })
+      );
+      audit.record({
+        actor: "owner",
+        action: "expectation.withdrawn",
+        meta: {
+          focusId,
+          expectationId,
+          eventId: result.eventId,
+          revision: result.revision
+        }
+      });
+      return {
+        status: 200,
+        payload: {
+          ok: true,
+          expectationId,
+          logicalKey: result.logicalKey,
+          eventId: result.eventId,
+          status: "superseded",
+          /** index 若有 session 上挂着同 expectation 的 ack 卡,应 dismiss 清卡 */
+          dismissHint: sessionId
+            ? { sessionId, expectationId }
+            : null
+        }
+      };
     });
-    return {
-      status: 200,
-      payload: {
-        ok: true,
-        expectationId,
-        logicalKey: result.logicalKey,
-        eventId: result.eventId,
-        status: "superseded",
-        /** index 若有 session 上挂着同 expectation 的 ack 卡,应 dismiss 清卡 */
-        dismissHint: sessionId
-          ? { sessionId, expectationId }
-          : null
-      }
-    };
   } catch (e) {
     if (e instanceof FocusWriteError) {
       if (e.code === "not_found") return err(404, e.code, e.message);

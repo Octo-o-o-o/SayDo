@@ -1,0 +1,48 @@
+{
+  "fixture": "media-corpus",
+  "version": 1,
+  "binds": {
+    "contract": "docs/09-data-contracts.md §17.6;docs/10-voice-ux-spec.md",
+    "rf": "RF-08",
+    "rationale": "固定媒体语料与测量协议:同语料同判定重验是媒体栈替换的前置。场景只定义输入/测量点/判定形状——本批不跑 provider、不含音频文件,不伪造 P50/P90 性能数据。"
+  },
+  "status_note": "fixture_pass != production_pass:语料通过校验只证明覆盖与形状完整;真实延迟数字必须在 RF-08 执行期实测。",
+  "protocol": {
+    "gate": { "p50_ms": 1500, "p90_ms": 2500, "min_samples": 20 },
+    "undeterminable_rules": [
+      "非有限时间戳(NaN/Infinity)或时间戳逆序 ⇒ 该样本记 undeterminable,不计 pass 也不计 fail",
+      "崩溃/进程被杀导致测量点缺失 ⇒ undeterminable,进分母不进分子",
+      "取消/超时/缺段的轮计入分母,不剔除"
+    ],
+    "groups": ["text_turn", "ptt_turn", "handsfree_turn", "tool_turn"],
+    "measurement_points": ["t_input_end", "t_asr_final", "t_intent_commit", "t_tts_start", "t_tts_done"],
+    "latency_definition": "t_tts_start - t_input_end(开口延迟)与 t_asr_final - t_input_end(理解延迟)分轮型分布上报"
+  },
+  "categories_required": ["zh_pause", "code_switch", "late_asr", "barge_in", "media_crash", "bluetooth_route", "lockscreen", "noise", "ptt_race", "false_wake", "tts_redaction", "watermark"],
+  "scenarios": [
+    { "id": "m01-zh-pause-mid-sentence", "group": "ptt_turn", "category": "zh_pause", "kind": "normal", "input": "中文短句中途停顿 1.2s 后继续('把那个…嗯…任务打开')", "expect": "停顿不触发早判终结;asr.final 含停顿后全部文本", "rule": "endpoint 判定不得把句中停顿当轮结束" },
+    { "id": "m02-zh-pause-trailing", "group": "ptt_turn", "category": "zh_pause", "kind": "normal", "input": "中文句尾拖音停顿 2s 无后续", "expect": "停顿超时后正常终结并出 asr.final", "rule": "silence timeout 触发终结,延迟计入分母" },
+    { "id": "m03-code-switch-command", "group": "ptt_turn", "category": "code_switch", "kind": "normal", "input": "中英混说:'帮我把这个 commit squash 掉再 push'", "expect": "asr.final 保留英文术语原文,不当噪声丢弃", "rule": "混说不得触发重新识别循环" },
+    { "id": "m04-code-switch-filename", "group": "text_turn", "category": "code_switch", "kind": "normal", "input": "文本输入含路径:'改 src/utils/helper.ts 第 42 行'", "expect": "路径原样进入 intent;不口语化改写", "rule": "文本轮不经 ASR,intent_commit 时间戳仍入分母" },
+    { "id": "m05-late-asr-final", "group": "ptt_turn", "category": "late_asr", "kind": "recover", "input": "用户已说完并松手 800ms 后 asr.final 才到", "expect": "迟到的 final 仍被采用;不因其晚于 endpoint 判定丢弃", "rule": "迟到 final 计入轮,不重复终结" },
+    { "id": "m06-late-asr-after-cancel", "group": "ptt_turn", "category": "late_asr", "kind": "reject", "input": "轮已取消后迟到 asr.final 到达", "expect": "迟到结果被丢弃不进入对话事实", "rule": "轮终态后到达的识别不复活该轮" },
+    { "id": "m07-barge-in-tts", "group": "handsfree_turn", "category": "barge_in", "kind": "normal", "input": "TTS 播报中用户插话打断", "expect": "播放立即停止,playout watermark 截断在已听到点", "rule": "未播放文本标 unheard,不进对话事实(§17.6)" },
+    { "id": "m08-barge-in-partial-word", "group": "handsfree_turn", "category": "barge_in", "kind": "normal", "input": "播报中途半个词被截断", "expect": "watermark 落在最后一个完整播放单元", "rule": "半词不记为已听" },
+    { "id": "m09-media-crash-tts", "group": "handsfree_turn", "category": "media_crash", "kind": "unknown", "input": "TTS 播放中媒体进程崩溃", "expect": "崩溃轮标记 recoverable/undeterminable,不伪造播放完成", "rule": "崩溃样本进分母;播放完成度 unknown" },
+    { "id": "m10-media-crash-asr", "group": "ptt_turn", "category": "media_crash", "kind": "recover", "input": "ASR 流中 pipeline 重启", "expect": "partial 仅为临时 UI 草稿;已接收对话事实须等待 asr.final;恢复不得晋升 partial", "rule": "provider 恢复需重新握手;重启不自动重放同一句(§17.1 意图幂等)", "asr_acceptance": {"partialDestination": "temporary_ui_draft", "acceptedFactRequires": "asr.final", "recoveryPromotesPartial": false} },
+    { "id": "m11-bluetooth-route-switch", "group": "handsfree_turn", "category": "bluetooth_route", "kind": "recover", "input": "播放中蓝牙耳机断开切到扬声器", "expect": "路由切换不丢轮;播放在新路由继续或按 unheard 截断", "rule": "路由切换的 watermark 语义不变" },
+    { "id": "m12-bluetooth-mic-degrade", "group": "ptt_turn", "category": "bluetooth_route", "kind": "normal", "input": "蓝牙麦克风输入(16kHz 单声道)", "expect": "采样率协商到 ASR 支持档;降级明示", "rule": "降级不静默;输入格式写进测量元数据" },
+    { "id": "m13-lockscreen-ptt", "group": "ptt_turn", "category": "lockscreen", "kind": "reject", "input": "锁屏状态下按住说话", "expect": "锁屏不进入采集或明确提示解锁;不产生半轮残留", "rule": "锁屏拒绝的轮不污染延迟分母,记 reject 类样本" },
+    { "id": "m14-lockscreen-playback", "group": "handsfree_turn", "category": "lockscreen", "kind": "normal", "input": "锁屏时 TTS 继续播报已生成内容", "expect": "播报按锁屏策略继续或暂停,watermark 如实记录", "rule": "锁屏不改变 unheard 判定" },
+    { "id": "m15-noise-restaurant", "group": "handsfree_turn", "category": "noise", "kind": "normal", "input": "餐厅环境噪声下中文短指令", "expect": "VAD 不把持续噪声当语音;识别或明确失败", "rule": "噪声轮照计入分母" },
+    { "id": "m16-noise-tv-background", "group": "handsfree_turn", "category": "noise", "kind": "reject", "input": "电视人声背景触发 ASR partial", "expect": "partial 仅为临时 UI 草稿;已接收对话事实须等待 asr.final;恢复不得晋升 partial", "rule": "非 owner 声源不误触确认卡;误唤醒保护不把 partial-only 当作意图", "asr_acceptance": {"partialDestination": "temporary_ui_draft", "acceptedFactRequires": "asr.final", "recoveryPromotesPartial": false} },
+    { "id": "m17-ptt-race-release", "group": "ptt_turn", "category": "ptt_race", "kind": "recover", "input": "松手瞬间恰逢 asr.final 到达", "expect": "轮终结一次,不双提交;final 归属确定", "rule": "release 只结束采集,不以先到为由丢弃匹配该轮的 final;同一 captureId 的 final 只消费一次,取消后的迟到 final 丢弃" },
+    { "id": "m18-ptt-double-press", "group": "ptt_turn", "category": "ptt_race", "kind": "reject", "input": "0.3s 内连续按下-松开-按下", "expect": "不产生两个重叠轮;第二轮独立开轮或拒绝抖动", "rule": "抖动去重;轮之间不共享 watermark" },
+    { "id": "m19-false-wake-handsfree", "group": "handsfree_turn", "category": "false_wake", "kind": "reject", "input": "免手唤醒词近似音误触发('小度'被'小杜'触发)", "expect": "误唤醒窗口内无意图即自动退出;不产生任务", "rule": "误唤醒样本记 reject,不进成功分母" },
+    { "id": "m20-tts-redaction", "group": "tool_turn", "category": "tts_redaction", "kind": "normal", "input": "工具结果含 token/路径需要播报", "expect": "TTS 文本走脱敏投影:密钥/token/完整路径不进语音", "rule": "脱敏面不进原文(§硬规则4)" },
+    { "id": "m21-watermark-unheard-tail", "group": "handsfree_turn", "category": "watermark", "kind": "normal", "input": "长回复播报被截断,尾部 3 句未播", "expect": "尾部 3 句标 unheard,不出现在对话事实", "rule": "watermark=已听到的历史(§17.6)" },
+    { "id": "m22-asr-interim-flicker", "group": "ptt_turn", "category": "zh_pause", "kind": "normal", "input": "partial 结果 5 次抖动后收敛 final", "expect": "partial 仅为临时 UI 草稿;已接收对话事实须等待 asr.final;恢复不得晋升 partial", "rule": "抖动不重复终结同一轮", "asr_acceptance": {"partialDestination": "temporary_ui_draft", "acceptedFactRequires": "asr.final", "recoveryPromotesPartial": false} },
+    { "id": "m23-tool-turn-latency", "group": "tool_turn", "category": "late_asr", "kind": "normal", "input": "含工具调用的轮:ASR→intent→tool→TTS", "expect": "工具等待期单独打点;不挤占开口延迟口径", "rule": "tool_turn 组独立出 P50/P90 分布" },
+    { "id": "m24-undeterminable-timestamp", "group": "ptt_turn", "category": "media_crash", "kind": "unknown", "input": "采集到逆序/缺失时间戳的样本(崩溃现场)", "expect": "该样本记 undeterminable,进分母不进分子", "rule": "undeterminable 保留在分母,不算 pass(§17.6)" }
+  ]
+}

@@ -1,5 +1,7 @@
 # 场次③ 现场清单 · P0 总验收(Phase 5 出口挂账)
 
+> 2026-10-07 入口更新：旧 `scripts/runtime-preflight.sh` 已退役。按实际部署模式使用 `saydo doctor`、`saydo status` 与 health/readyz 诊断，并人工核对目标 SHA、磁盘 clean、runtime 路径、daemon/pipeline loaded SHA、stateRootDigest 和健康新鲜度。诊断不等价于旧预检；真人语音场次仍须实际 voice ready。旧 release-config digest 是历史验收格式，不得伪造或从 doctor 输出冒取；新场次需记录实际有效配置核对证据，配置变化仍使既有场次结果失效。
+
 > 目的:P0 阶段"可日用 + 界面可视"的真人确认——11 页控制台走查 + 真麦故事一 + 延迟实测表，
 > 并承载 W4 的 OctoBlog 首篇 writing 全链验收。
 > 故事一 x3 已由注入通道稳定复现(story-acceptance.test);本场次 = 真麦体感版 + 界面走查。
@@ -16,11 +18,10 @@
 
 ## 前置
 
-- 运行 `scripts/runtime-preflight.sh <开场前记录的40位-runtime-SHA>`，保存含双方 loaded SHA
-  与 fresh readyz 的 `[ok]` 输出；
+- 运行现役诊断并保存目标版本、双方 loaded SHA、stateRootDigest、fresh readyz 与实际 voice ready 的核对证据；
   耳机；场次①②已过(本场次是总口径,不重复其细项)。禁止另起 `just dev` 验到开发树。
 - OctoBlog writing 项目已创建并绑定 `~/WorkSpace/OctoBlog`；若现场创建，不设置新的项目覆盖，
-  创建后重跑 preflight，release config digest 必须仍与场次①②一致，否则四场从①重跑。
+  创建后重做运行身份与有效配置核对；配置必须仍与场次①②一致，否则四场从①重跑。
 - (可选)owner 录真人音频底板 5 条 → 重跑 `pipeline/.venv/bin/python e2e/smoke/audio-smoke-5.py`(替换合成底板,烟测口径转正)。
 
 ## 步骤与预期
@@ -54,7 +55,7 @@
 | status | `not_run` |
 | 日期 | 待约 |
 | runtime SHA | 待开场记录 |
-| release config digest | 待从本场 preflight 原样记录；须与场次①②相同 |
+| 有效配置核对证据 | 待记录并与场次①②核对；旧 release config digest 格式已退役 |
 | OctoBlog writing status | `not_run`；只有 `pass` 才允许本场 overall 为 `pass` |
 | 故事一合并路径 / origin | 待注明 Touch ID 主路径或人工 fallback，以及 `live` / `fixture` / `test` |
 | owner verdict | 待 owner |

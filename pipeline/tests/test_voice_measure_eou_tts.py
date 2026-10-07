@@ -22,6 +22,9 @@ SYSTEM_SENTENCE_IDS = (
 )
 REJECTED_SENTENCE_IDS = SYSTEM_SENTENCE_IDS + (
     "s-alpha-beta-2",
+    "s-evt_42-١",
+    "s-evt_42-0\n",
+    "s-evt_42-0\r\n",
     "s-ses_NOTULID-1",
     "s-prj_01ABCDEFGHJKMNPQRSTVWXYZAB-0",
     "s-evt_01ABCDEFGHJKMNPQRSTVWXYZAB-0",
@@ -382,5 +385,130 @@ def test_direct_queue_without_binding_still_parses_sentence_id() -> None:
         await client._say_worker(ws, SID)
         assert stage_turns(ws, "tts_first_byte") == ["evt_42"]
         assert audio_count(ws) == 2
+
+    asyncio.run(scenario())
+
+
+def audio_sentence_ids(ws: CollectWs) -> list[str]:
+    return [data[6:6 + data[5]].decode() for data in ws.sent if isinstance(data, bytes)]
+
+
+@pytest.mark.parametrize("interruptions", [1, 2])
+def test_new_sentence_cannot_revive_interrupted_synthesis(interruptions: int) -> None:
+    async def scenario() -> None:
+        tts = GateTts()
+        client = HubClient("ws://x", tts=tts, asr=None)  # type: ignore[arg-type]
+        ws = CollectWs()
+        try:
+            await client._handle(ws, {"t": "tts.say", "sessionId": SID, "sentenceId": "s-evt_40-0", "text": "旧句"})
+            await asyncio.wait_for(tts.started.wait(), 1)
+            for index in range(interruptions):
+                await client._handle(ws, {"t": "barge_in", "sessionId": SID})
+                await client._handle(ws, {"t": "tts.say", "sessionId": SID, "sentenceId": f"s-evt_{41 + index}-0", "text": "新句"})
+            # 另一会话不被打断，且不必等旧 provider。
+            await client._handle(ws, {"t": "tts.say", "sessionId": "other", "sentenceId": "s-evt_50-0", "text": "另一会话"})
+            await asyncio.wait_for(client._say_workers["other"], 1)
+            tts.release.set()
+            await asyncio.wait_for(client._say_workers[SID], 1)
+            assert audio_sentence_ids(ws) == ["s-evt_50-0", f"s-evt_{40 + interruptions}-0"]
+            assert stage_turns(ws, "tts_first_byte") == ["evt_50", f"evt_{40 + interruptions}"]
+        finally:
+            tts.release.set()
+            await client._reset_connection_tasks()
+
+    asyncio.run(scenario())
+
+
+def test_interrupt_during_empty_audio_retry_drops_old_generation() -> None:
+    class RetryTts(GateTts):
+        async def synthesize(self, text: str) -> bytes:
+            self.calls.append(text)
+            if len(self.calls) == 1:
+                return b""
+            if len(self.calls) == 2:
+                self.started.set()
+                await self.release.wait()
+            return b"mp3"
+
+    async def scenario() -> None:
+        tts = RetryTts()
+        client = HubClient("ws://x", tts=tts, asr=None)  # type: ignore[arg-type]
+        ws = CollectWs()
+        try:
+            await client._handle(ws, {"t": "tts.say", "sessionId": SID, "sentenceId": "s-evt_40-0", "text": "“旧句”"})
+            await asyncio.wait_for(tts.started.wait(), 1)
+            await client._handle(ws, {"t": "barge_in", "sessionId": SID})
+            await client._handle(ws, {"t": "tts.say", "sessionId": SID, "sentenceId": "s-evt_41-0", "text": "新句"})
+            tts.release.set()
+            await asyncio.wait_for(client._say_workers[SID], 1)
+            assert audio_sentence_ids(ws) == ["s-evt_41-0"]
+            assert stage_turns(ws, "tts_first_byte") == ["evt_41"]
+        finally:
+            tts.release.set()
+            await client._reset_connection_tasks()
+
+    asyncio.run(scenario())
+
+
+def test_reset_retires_provider_that_swallows_cancellation() -> None:
+    class LateTts(GateTts):
+        async def synthesize(self, text: str) -> bytes:
+            self.calls.append(text)
+            if len(self.calls) == 1:
+                self.started.set()
+                try:
+                    await self.release.wait()
+                except asyncio.CancelledError:
+                    return b"old-after-cancel"
+            return b"new"
+
+    async def scenario() -> None:
+        tts = LateTts()
+        client = HubClient("ws://x", tts=tts, asr=None)  # type: ignore[arg-type]
+        old_ws, new_ws = CollectWs(), CollectWs()
+        try:
+            await client._handle(old_ws, {"t": "tts.say", "sessionId": SID, "sentenceId": "s-evt_40-0", "text": "旧句"})
+            await asyncio.wait_for(tts.started.wait(), 1)
+            await client._handle(old_ws, {"t": "tts.say", "sessionId": SID, "sentenceId": "s-evt_40-1", "text": "旧排队句"})
+            await asyncio.wait_for(client._reset_connection_tasks(), 1)
+            await client._handle(new_ws, {"t": "tts.say", "sessionId": SID, "sentenceId": "s-evt_41-0", "text": "新连接句"})
+            await asyncio.wait_for(client._say_workers[SID], 1)
+            assert old_ws.sent == []
+            assert audio_sentence_ids(new_ws) == ["s-evt_41-0"]
+            assert tts.calls == ["旧句", "新连接句"]
+        finally:
+            tts.release.set()
+            await client._reset_connection_tasks()
+
+    asyncio.run(scenario())
+
+
+def test_interrupt_while_latency_send_yields_cannot_send_old_audio() -> None:
+    class DelayedLatencyWs(CollectWs):
+        def __init__(self) -> None:
+            super().__init__()
+            self.started = asyncio.Event()
+            self.release = asyncio.Event()
+
+        async def send(self, data: str | bytes) -> None:
+            if isinstance(data, str) and not self.started.is_set():
+                self.started.set()
+                await self.release.wait()
+            self.sent.append(data)
+
+    async def scenario() -> None:
+        client = HubClient("ws://x", tts=InstantTts(), asr=None)  # type: ignore[arg-type]
+        ws = DelayedLatencyWs()
+        try:
+            await client._handle(ws, {"t": "tts.say", "sessionId": SID, "sentenceId": "s-evt_40-0", "text": "旧句"})
+            await asyncio.wait_for(ws.started.wait(), 1)
+            await client._handle(ws, {"t": "barge_in", "sessionId": SID})
+            await client._handle(ws, {"t": "tts.say", "sessionId": SID, "sentenceId": "s-evt_41-0", "text": "新句"})
+            ws.release.set()
+            await asyncio.wait_for(client._say_workers[SID], 1)
+            assert audio_sentence_ids(ws) == ["s-evt_41-0"]
+        finally:
+            ws.release.set()
+            await client._reset_connection_tasks()
 
     asyncio.run(scenario())

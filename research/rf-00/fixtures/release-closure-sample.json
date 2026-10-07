@@ -1,0 +1,47 @@
+{
+  "fixture": "release-closure-sample",
+  "version": 1,
+  "binds": {
+    "contract": "docs/09-data-contracts.md §17.8;docs/adr/ 工程决策",
+    "rf": "RF-10",
+    "rationale": "安装闭包样例:证明『根 lockfile/tarball 不足以推断全安装闭包』——npm 解析依赖、原生运行时组件、额外下载字节、OS/arch 逐条登记,签名/来源证明与完整性分开验证。"
+  },
+  "status_note": "fixture_pass != production_pass:样例为形状约束,真实发布字节的 sha 需在 RF-10 执行期由发布工作流产出。",
+  "exact_set_current": ["SHA256SUMS", "release-metadata.json", "saydo-cli-${version}.tgz"],
+  "proposed_incremental_assets": ["sbom.cdx.json", "provenance.intoto.jsonl"],
+  "sbom_sample": {
+    "bomFormat": "CycloneDX",
+    "specVersion": "1.5",
+    "metadata": { "component": { "name": "saydo-cli", "type": "application", "version": "0.0.0-sample" } },
+    "components": [
+      { "type": "library", "name": "better-sqlite3", "version": "12.4.1", "purl": "pkg:npm/better-sqlite3@12.4.1", "scope": "required", "closure_class": "npm_dependency", "integrity": "sha512-EXAMPLEaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+      { "type": "library", "name": "koffi", "version": "2.14.4", "purl": "pkg:npm/koffi@2.14.4", "scope": "required", "closure_class": "npm_dependency", "integrity": "sha512-EXAMPLEbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+      { "type": "library", "name": "zod", "version": "4.1.11", "purl": "pkg:npm/zod@4.1.11", "scope": "required", "closure_class": "npm_dependency", "integrity": "sha512-EXAMPLEcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" }
+    ]
+  },
+  "native_runtime_components": [
+    { "name": "better-sqlite3 native binding", "runtime": "node22-darwin-arm64", "closure_class": "native_runtime", "source": "npm postinstall build or prebuild", "os": "darwin", "arch": "arm64", "note": "每个运行时闭包分别构建(§16.6);不得由 tarball 内容推导已覆盖" },
+    { "name": "koffi native binding", "runtime": "node22-darwin-arm64", "closure_class": "native_runtime", "source": "npm prebuild", "os": "darwin", "arch": "arm64", "note": "同上" }
+  ],
+  "extra_downloads": [
+    { "name": "example-model-weights", "version": "sample", "closure_class": "extra_download", "source": "example.cdn.invalid/path", "integrity": "sha256-EXAMPLEdddd", "note": "安装期/运行期二次下载字节必须逐条登记版本/来源/integrity/OS+arch" }
+  ],
+  "provenance_binding": {
+    "repo": "SayDo",
+    "commit": "d023ffcebfad38563bc988977192e77654d7e2a1",
+    "workflow": ".github/workflows/release.yml",
+    "signer_identity": "release workflow identity(签名主体待 RF-10 定档,样例不伪造)",
+    "artifact_digests": {
+      "SHA256SUMS": "sha256:EXAMPLEeeee",
+      "release-metadata.json": "sha256:EXAMPLEffff",
+      "saydo-cli-0.0.0-sample.tgz": "sha256:EXAMPLE0000"
+    },
+    "binding_rule": "发布验证把实际下载/安装字节 digest 绑定到 {repo, commit, workflow, signer};不是只验文件存在或 tarball 自洽"
+  },
+  "negative_cases": [
+    { "id": "sbom-missing-component", "mutation": "删除一个 npm_dependency component", "expect": "校验拒绝:闭包条目缺失" },
+    { "id": "provenance-commit-shape", "mutation": "commit 改非 40-hex", "expect": "校验拒绝:commit 形状非法" },
+    { "id": "exact-set-shadow-asset", "mutation": "资产清单多出一个未登记文件名", "expect": "校验拒绝:exact-set 阴影资产" },
+    { "id": "closure-infer-from-lockfile", "mutation": "声称根 lockfile 单独证明安装闭包", "expect": "校验拒绝:闭包需逐条登记,不推导" }
+  ]
+}

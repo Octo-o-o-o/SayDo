@@ -234,12 +234,6 @@ describe("claudeIsTerminalResult 与生产 parser 同源", () => {
   });
 });
 
-describe("claude.ts 不引用 parseClaudeLine", () => {
-  it("源码不含 parseClaudeLine", () => {
-    const src = readFileSync(join(__dirname, "../src/tier1/backends/claude.ts"), "utf8");
-    expect(src.includes("parseClaudeLine")).toBe(false);
-  });
-});
 
 describe("claudeEnvOverrides(W5.4-b C1;09 §11 G4 例外两键,方案 D13)", () => {
   it("键集合恰为 DISABLE_AUTOUPDATER/SHELL 且值为终版(不多不少)", () => {

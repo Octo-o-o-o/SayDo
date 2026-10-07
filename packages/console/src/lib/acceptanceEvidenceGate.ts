@@ -7,15 +7,6 @@ export type AcceptanceEvidenceRow = {
   reason?: string;
 };
 
-const RESOLUTION_FAILURES = new Set([
-  "not_found",
-  "digest_mismatch",
-  "cross_run",
-  "unauthorized",
-  "invalid_ref",
-  "missing_ref"
-]);
-
 export function judgeAcceptanceCheck(
   check: { source: string; status: string; evidenceRef?: string } | undefined,
   resolved: { ok: boolean; reason?: string } | undefined
@@ -24,28 +15,27 @@ export function judgeAcceptanceCheck(
   const legal = check.source === "verify" || check.source === "agent_claim" || check.source === "manual";
   if (!legal) return { status: "unknown", boundInvalid: false };
   const ref = typeof check.evidenceRef === "string" ? check.evidenceRef.trim() : "";
-  const humanPending = (check.source === "manual" || check.source === "agent_claim") && check.status === "unknown";
-  const resolutionFailed =
-    resolved !== undefined &&
-    resolved.ok !== true &&
-    (resolved.reason === undefined || RESOLUTION_FAILURES.has(resolved.reason));
-  if (humanPending && !ref) return { status: "unknown", boundInvalid: false };
-  if (humanPending && resolutionFailed) return { status: "unknown", boundInvalid: true };
-  if (humanPending) return { status: "unknown", boundInvalid: false };
-  if (resolutionFailed && (check.status === "pass" || check.status === "fail")) {
-    return { status: "fail", boundInvalid: true };
-  }
-  if (check.status === "unknown") return { status: "unknown", boundInvalid: false };
+  if (ref && resolved?.ok !== true) return { status: "unknown", boundInvalid: true };
   if ((check.status === "pass" || check.status === "fail") && ref) {
     return { status: check.status, boundInvalid: false };
   }
   return { status: "unknown", boundInvalid: false };
 }
 
+/** 当前执行冲突是全局门，不随空验收集或无引用的人工项消失。 */
+export function latestAcceptanceRunConflicts(
+  runs: readonly { attempt?: unknown; evidence_conflict?: unknown }[]
+): boolean {
+  const latest = runs.reduce((max, run) => Math.max(max, Number(run.attempt) || 0), 0);
+  return runs.some(run => (Number(run.attempt) || 0) === latest && run.evidence_conflict === true);
+}
+
 export function acceptanceApprovalBlocked(
   checks: Array<{ source: string; status: string; evidenceRef?: string; criterion?: string }>,
-  evidence: readonly AcceptanceEvidenceRow[]
+  evidence: readonly AcceptanceEvidenceRow[],
+  runs: readonly { attempt?: unknown; evidence_conflict?: unknown }[] = []
 ): boolean {
+  if (latestAcceptanceRunConflicts(runs)) return true;
   return checks.some((check) => {
     const ref = check.evidenceRef?.trim() ?? "";
     if (!ref) return false;

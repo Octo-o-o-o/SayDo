@@ -60,23 +60,10 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Install emoji gate scanner
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
       - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm lint
-      - run: pnpm test
-      - run: bash scripts/check-emoji.sh && bash scripts/test-emoji-gate.sh
-      - run: node scripts/check-hardcoded-colors.mjs && node scripts/test-color-gate.mjs
-      - run: bash scripts/test-migration-tools.sh
-      - run: node scripts/test-release-physical-evidence.mjs
-      - run: node scripts/test-release-provenance.mjs
-      - run: node scripts/check-doc-links.mjs
-      - run: node scripts/third-party-notices.mjs --check
-      - run: node scripts/test-install-scripts.mjs
-      - run: node scripts/week-audit.mjs --check-bundle
+      - run: pnpm ci:node
+      - run: pnpm test:release
       - run: node scripts/post-release-gate.mjs --check-candidate "${GITHUB_REF_NAME}"
-      - run: node scripts/check-active-claims.mjs
       - run: node scripts/check-public-tree-privacy.mjs --ref "$GITHUB_SHA" --allow-missing-probes
 
   quality-python:

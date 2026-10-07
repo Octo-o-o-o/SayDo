@@ -1,3 +1,4 @@
+import { contextAvailability } from "./context-availability.mjs";
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { basename, dirname, join, relative, resolve } from "node:path";
@@ -1912,6 +1913,7 @@ for (const pair of nearDuplicates) errors.push(`问题高度近重复:${pair.lef
 
 const actualContextIds = readdirSync(contextDir).filter((name) => /^CTX-\d{2}$/u.test(name)).sort();
 if (actualContextIds.join(",") !== expectedContextIds.join(",")) errors.push(`上下文目录集合异常:${actualContextIds.join(",")}`);
+const availability = contextAvailability(root);
 const contextSupport = {};
 let fixtureSourceCount = 0;
 let requiredClaimCount = 0;
@@ -1935,7 +1937,7 @@ for (const contextId of expectedContextIds) {
   if (!asOf || !/^\d{4}-\d{2}-\d{2}(?:T.*)?$/u.test(asOf)) errors.push(`${contextId} as_of 不是 ISO 日期:${asOf ?? "缺失"}`);
   if (asOf?.slice(0, 10) > validationDate) errors.push(`${contextId} as_of 晚于校验日 ${validationDate}:${asOf}`);
   if (validUntil && /^\d{4}-\d{2}-\d{2}$/u.test(validUntil)) {
-    if (validUntil < validationDate) errors.push(`${contextId} 已过 valid_until:${validUntil}`);
+    if (validUntil < validationDate && !availability.retired_contexts.includes(contextId)) errors.push(`${contextId} 已过 valid_until:${validUntil}`);
   } else if (!["fixture-frozen", "immutable_event_window"].includes(validUntil)) {
     errors.push(`${contextId} valid_until 非日期且非登记 sentinel:${validUntil ?? "缺失"}`);
   }
@@ -2132,6 +2134,7 @@ if (baStarts > 120) errors.push(`“把”字开头过多:${baStarts}`);
 if (!(averageLengths.H + 0.5 < averageLengths.L)) errors.push(`高频问题未短于长尾:H=${averageLengths.H.toFixed(1)} L=${averageLengths.L.toFixed(1)}`);
 
 const summary = {
+  currentAvailability: availability,
   records: records.length,
   questionFiles: actualQuestionFiles.length,
   contextManifests: actualContextIds.length,

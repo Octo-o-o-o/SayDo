@@ -3,6 +3,7 @@ import type { ConfirmCardIdentity } from "../../lib/taskModalView";
 import {
   mapDecisionPackageView,
   mapTaskViewFromDetail,
+  mapTaskRowToView,
   packageLookupKey,
   type AttentionItemRow,
   type FocusDetailPayload,
@@ -33,10 +34,14 @@ export function buildFocusWorkLookups(input: {
 } {
   const taskLookup: Record<string, TaskView> = {};
   const tasks: TaskView[] = [];
-  for (const detail of input.taskDetails) {
-    if (!detail?.task) continue;
-    const view = mapTaskViewFromDetail(detail.task, input.focusId);
-    if (!view.id) continue;
+  // 绑定读口决定成员；单条详情只补齐同一任务，不把失败或错 id 当成无绑定。
+  const detailsById = new Map(input.taskDetails.filter((d) => d?.task).map((d) => [String(d!.task.id ?? ""), d!]));
+  const boundIds = new Set((input.detail.tasks ?? []).map((t) => t.id));
+  for (const bound of input.detail.tasks ?? []) {
+    const detail = detailsById.get(bound.id);
+    const view = detail
+      ? mapTaskViewFromDetail(detail.task, input.focusId, detail.costs)
+      : { ...mapTaskRowToView(bound, input.focusId), detailUnavailable: true };
     tasks.push(view);
     taskLookup[view.id] = view;
   }
@@ -48,20 +53,31 @@ export function buildFocusWorkLookups(input: {
     packageLookup[packageLookupKey(pkg.id, pkg.revision)] = pkg;
   };
 
+  const focusPackageAuthority = new Map<string, Pick<DecisionPackageView, "status" | "mode">>();
   for (const raw of input.detail.packages ?? []) {
-    putPkg(mapDecisionPackageView(raw));
+    const view = mapDecisionPackageView(raw);
+    putPkg(view);
+    // Focus 完整读口重组状态并验证 canonical 正文；同 revision 的补充读口不能丢掉合法模式。
+    if (raw.status === view.status) focusPackageAuthority.set(packageLookupKey(view.id, view.revision), { status: view.status, mode: view.mode });
   }
   for (const detail of input.taskDetails) {
-    if (detail?.package && typeof detail.package === "object") {
+    if (detail?.package && boundIds.has(String(detail.task?.id ?? "")) && typeof detail.package === "object") {
       const task = detail.task ?? {};
-      putPkg(
-        mapDecisionPackageView({
-          ...detail.package,
-          id: String(detail.package["id"] ?? task["package_id"] ?? task["packageId"] ?? ""),
-          revision: Number(detail.package["revision"] ?? task["package_rev"] ?? task["packageRev"] ?? 1),
-          projectId: String(detail.package["projectId"] ?? task["project_id"] ?? task["projectId"] ?? "")
-        })
-      );
+      const raw = {
+        ...detail.package,
+        id: String(detail.package["id"] ?? task["package_id"] ?? task["packageId"] ?? ""),
+        revision: Number(detail.package["revision"] ?? task["package_rev"] ?? task["packageRev"] ?? 1),
+        projectId: String(detail.package["projectId"] ?? task["project_id"] ?? task["projectId"] ?? "")
+      };
+      const view = mapDecisionPackageView(raw);
+      const authority = focusPackageAuthority.get(packageLookupKey(view.id, view.revision));
+      if (authority) {
+        view.status = authority.status;
+        if (authority.mode) view.mode = authority.mode;
+      }
+      else if (detail.package["status"] !== view.status) continue;
+      // 无同 revision 权威状态且 body 不含合法状态时，不新造 proposed 包。
+      putPkg(view);
     }
   }
 

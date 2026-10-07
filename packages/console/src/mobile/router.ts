@@ -36,7 +36,8 @@ export function parseMobileHash(hash: string): MobileRoute {
 }
 
 export function desktopRouteForMobileHash(hash: string): string | null {
-  if (!hash.replace(/^#/, "").startsWith("/m")) return null;
+  const path = hash.replace(/^#/, "");
+  if (path !== "/m" && !path.startsWith("/m/")) return null;
   const route = parseMobileHash(hash);
   switch (route.page) {
     case "today":

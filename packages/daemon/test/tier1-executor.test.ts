@@ -1458,6 +1458,13 @@ describe("三熔断(任务③;04 §5.4 不变量)", () => {
     await waitTaskStatus(TSK, "blocked");
     const ob = db.prepare("SELECT settle_json FROM callback_outbox WHERE task_id=?").get(TSK) as { settle_json: string };
     expect(JSON.parse(ob.settle_json).minimalProof.exitEvidence).toContain("budget:walltime_active");
+    const clock = db.prepare("SELECT budget_active_ms, budget_clock_complete FROM tier1_runs WHERE task_id=?").get(TSK) as {
+      budget_active_ms: number; budget_clock_complete: number;
+    };
+    expect(clock.budget_clock_complete).toBe(1);
+    expect(clock.budget_active_ms).toBeGreaterThan(0);
+    expect(executor.activeRunElapsedMs().size).toBe(0);
+
   });
 });
 

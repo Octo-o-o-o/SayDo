@@ -1291,3 +1291,54 @@ describe("GAP-02 2.4 延迟观测真实接线(voice/hub.ts latency.stage → onL
     expect(collector.pendingSize()).toBe(0);
   });
 });
+
+describe("peer-session-snapshot 只读元数据不转移现役Set所有权", () => {
+  async function boundPeers() {
+    const pipeline = await connect("pipeline");
+    const console = await connect("console");
+    const observed = nextJson(pipeline, (m) => m["t"] === "voice.mode" && m["sessionId"] === SES);
+    console.send(JSON.stringify({ t: "voice.mode", sessionId: SES, mode: "ptt" }));
+    await observed;
+    return { pipeline, console };
+  }
+  it("predicate 同步删改Set不能篡改peer绑定或伪造其他session", async () => {
+    const { pipeline, console } = await boundPeers();
+    const foreign = newId("ses");
+    hub.sendToConsolePeers((meta) => {
+      expect([...meta.sessionIds]).toContain(SES);
+      const untrustedMutation = meta.sessionIds as Set<string>;
+      untrustedMutation.delete(SES); untrustedMutation.add(foreign);
+      untrustedMutation.has = () => false;
+      return false;
+    }, { t: "screen_text", sessionId: SES, text: "metadata probe" });
+    expect(hub.hasConsolePeerForSession(SES)).toBe(true);
+    expect(hub.hasConsolePeerForSession(foreign)).toBe(false);
+    console.close(); pipeline.close();
+  });
+  it("保存引用后的异步clear/add不能改变现役peer", async () => {
+    const { pipeline, console } = await boundPeers();
+    let retained: ReadonlySet<string> | undefined;
+    hub.sendToConsolePeers((meta) => { retained = meta.sessionIds; return false; }, { t: "screen_text", sessionId: SES, text: "metadata probe" });
+    await Promise.resolve();
+    const foreign = newId("ses");
+    (retained as Set<string>).clear(); (retained as Set<string>).add(foreign);
+    expect(hub.hasConsolePeerForSession(SES)).toBe(true);
+    expect(hub.hasConsolePeerForSession(foreign)).toBe(false);
+    console.close(); pipeline.close();
+  });
+  it("迭代快照不随之后真实session登记变化；合法has谓词仍可投递", async () => {
+    const { pipeline, console } = await boundPeers();
+    let retained: ReadonlySet<string> | undefined;
+    hub.sendToConsolePeers((meta) => { retained = meta.sessionIds; return false; }, { t: "screen_text", sessionId: SES, text: "metadata probe" });
+    const later = newId("ses");
+    const observed = nextJson(pipeline, (m) => m["t"] === "voice.mode" && m["sessionId"] === later);
+    console.send(JSON.stringify({ t: "voice.mode", sessionId: later, mode: "ptt" }));
+    await observed;
+    expect([...retained!]).toContain(SES); expect([...retained!]).not.toContain(later);
+    expect(hub.hasConsolePeerForSession(later)).toBe(true);
+    const delivered = nextJson(console, (m) => m["t"] === "screen_text");
+    expect(hub.sendToConsolePeers((meta) => meta.sessionIds.has(later), { t: "screen_text", sessionId: later, text: "metadata probe" })).toEqual({ attempted: 1, succeeded: 1, failed: 0 });
+    await delivered;
+    console.close(); pipeline.close();
+  });
+});

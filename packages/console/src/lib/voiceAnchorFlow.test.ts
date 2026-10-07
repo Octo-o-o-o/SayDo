@@ -266,3 +266,46 @@ describe("voiceAnchorFlow 处理链", () => {
     expect(readPendingAnchor(store)?.requestId).toBeUndefined();
   });
 });
+
+
+describe("主题续接存储及异常边界", () => {
+  it.each(["quota", "getter"])("%s 失败在 prepare/HTTP/rearm 前阻断并保留 owner 稿", async (fault) => {
+    if (fault === "quota") vi.stubGlobal("sessionStorage", { setItem: () => { throw new Error("QuotaExceededError"); } });
+    else Object.defineProperty(globalThis, "sessionStorage", { configurable: true, get: () => { throw new Error("SecurityError"); } });
+    const port = basePort(); const saved: unknown[] = [];
+    const result = await runVoiceAnchorFlow({ ownerOk: () => true, payload: { focusId: "foc_A" },
+      liveDraft: () => "当前未发送的稿", persist: (p) => { saved.push(p); }, port });
+    expect(result).toMatchObject({ status: "failed", payload: { draft: "当前未发送的稿", daemonEpoch: port.daemonEpoch } });
+    expect(saved).toHaveLength(1); expect(port.sendPrepare).not.toHaveBeenCalled();
+    expect(port.sendRearm).not.toHaveBeenCalled(); expect(posts).toEqual([]);
+  });
+
+  it.each(["stopMic", "sendPrepare", "sendRearm", "waitStatus", "persist"])("%s 抛错结算且下一个 owner 正常运行", async (site) => {
+    const port = basePort(); const boom = () => { throw new Error("synthetic port failure"); };
+    if (site !== "persist") Object.assign(port, { [site]: boom });
+    const first = runVoiceAnchorFlow({ ownerOk: () => true, payload: { focusId: "foc_A", draft: "A" },
+      liveDraft: () => "A", persist: site === "persist" ? boom : () => undefined, port });
+    const timeout = new Promise<never>((_, reject) => { const timer = setTimeout(() => reject(new Error("did not settle")), 200); first.finally(() => clearTimeout(timer)); });
+    expect((await Promise.race([first, timeout])).status).toBe("failed");
+    const next = basePort();
+    expect((await runVoiceAnchorFlow({ ownerOk: () => true, payload: { focusId: "foc_B", draft: "B" },
+      liveDraft: () => "B", persist: () => undefined, port: next })).status).toBe("ready");
+    expect(next.sendPrepare).toHaveBeenCalledOnce(); expect(next.sendRearm).toHaveBeenCalledOnce();
+  });
+
+  it("prepare 后存储失效阻断 HTTP，不自动重放；恢复存储后显式同 ID 重试", async () => {
+    const store = sessionStorage; let failed = false; const original = store.setItem;
+    store.setItem = (key, value) => { if (failed) throw new Error("quota"); original(key, value); };
+    const port = basePort({ waitStatus: vi.fn(async (spec) => {
+      failed = true; return { sessionId: spec.sessionId, requestId: spec.requestId, status: "prepared" as const };
+    }) });
+    const result = await runVoiceAnchorFlow({ ownerOk: () => true, payload: { focusId: "foc_A", draft: "A" },
+      liveDraft: () => "A", persist: () => undefined, port });
+    expect(result.status).toBe("failed"); expect(posts).toEqual([]); expect(port.sendRearm).not.toHaveBeenCalled();
+    if (result.status !== "failed") throw new Error("fixture");
+    failed = false; const next = basePort({ daemonEpoch: port.daemonEpoch });
+    const retry = await runVoiceAnchorFlow({ ownerOk: () => true, payload: result.payload,
+      liveDraft: () => "A", persist: () => undefined, port: next });
+    expect(retry.status).toBe("ready"); expect(next.sendPrepare).toHaveBeenCalledWith(expect.objectContaining({ requestId: result.payload.requestId }));
+  });
+});

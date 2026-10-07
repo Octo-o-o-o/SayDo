@@ -124,20 +124,43 @@ function main() {
       }
     }
 
-    const repo = join(DIR, "untracked-repo");
+    const repo = join(DIR, "worktree-repo");
     mkdirSync(join(repo, "scripts"), { recursive: true });
-    copyFileSync(SCRIPT, join(repo, "scripts", "check-emoji.mjs"));
-    spawnSync("git", ["init", "-q"], { cwd: repo });
-    writeFileSync(join(repo, "new.md"), "untracked \u{1F600}\n");
-    const untracked = spawnSync(process.execPath, [join(repo, "scripts", "check-emoji.mjs")], {
-      encoding: "utf8",
-      cwd: repo
-    });
-    if (untracked.status !== 0) {
-      process.stdout.write("[ok] untracked default scan: caught as expected\n");
+    const repoScanner = join(repo, "scripts", "check-emoji.mjs");
+    copyFileSync(SCRIPT, repoScanner);
+    const gitInit = spawnSync("git", ["init", "-q"], { cwd: repo });
+    if (gitInit.status !== 0) throw new Error("temporary git init failed");
+    writeFileSync(join(repo, "deleted file.md"), "clean\n");
+    writeFileSync(join(repo, "tracked file.md"), "clean\n");
+    const gitAdd = spawnSync("git", ["add", "."], { cwd: repo });
+    if (gitAdd.status !== 0) throw new Error("temporary git add failed");
+    rmSync(join(repo, "deleted file.md"));
+    const defaultScan = () => spawnSync(process.execPath, [repoScanner], { encoding: "utf8", cwd: repo });
+    const deleted = defaultScan();
+    if (deleted.status === 0 && deleted.stdout.includes("[ok] emoji gate: clean")) {
+      process.stdout.write("[ok] unstaged deletion: default worktree scan stays clean\n");
       pass += 1;
     } else {
-      process.stdout.write("[fail] untracked default scan: expected gate to catch, but it passed\n");
+      process.stdout.write("[fail] unstaged deletion: expected clean worktree scan\n");
+      fail += 1;
+    }
+    writeFileSync(join(repo, "tracked file.md"), "modified \u{1F600}\n");
+    const modified = defaultScan();
+    if (modified.status === 1 && modified.stdout.includes("forbidden pictographic characters") && modified.stdout.includes("tracked file.md:1")) {
+      process.stdout.write("[ok] modified tracked file: actual emoji detected\n");
+      pass += 1;
+    } else {
+      process.stdout.write("[fail] modified tracked file: expected emoji violation\n");
+      fail += 1;
+    }
+    writeFileSync(join(repo, "tracked file.md"), "clean\n");
+    writeFileSync(join(repo, "new file.md"), "untracked \u{1F600}\n");
+    const untracked = defaultScan();
+    if (untracked.status === 1 && untracked.stdout.includes("forbidden pictographic characters") && untracked.stdout.includes("new file.md:1")) {
+      process.stdout.write("[ok] untracked default scan: actual emoji detected\n");
+      pass += 1;
+    } else {
+      process.stdout.write("[fail] untracked default scan: expected emoji violation\n");
       fail += 1;
     }
 

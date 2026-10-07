@@ -2,9 +2,9 @@
 // 与 daemon 真实形状一致;FocusObligation 直接 import 自 @saydo/contracts(权威源)。
 // 规则:呈现层不自创字段;派生只读字段(producedBy/realizedAt)只用于展示。
 
-import type { ConfirmKind, FocusObligation } from "@saydo/contracts";
+import type { ConfirmKind, DecisionPackage, FocusObligation, Money, RiskLevel } from "@saydo/contracts";
 
-export type { ConfirmKind, FocusObligation };
+export type { ConfirmKind, FocusObligation, Money, RiskLevel };
 
 /* ---------- attention(handoff §3 原文) ---------- */
 export type AttentionColor = "orange" | "blue" | "green" | "gray";
@@ -33,22 +33,25 @@ export type ViewStatus =
   | "merging" | "merge_failed" | "task_done" | "failed"
   | "cancel_requested" | "cancel_settled" | "superseded" | "parked";
 
-export type RiskLevel = "S0" | "S1" | "S2" | "S3";
-
 export interface TaskView {
   id: string;
   focusId: string;
   title: string;
+  /** 仅呈现层读口状态：绑定已知、任务详情未知；不新增业务状态或允许据此写入。 */
+  detailUnavailable?: boolean;
   route: "tier1" | "hopper";
   adapter?: string;
   viewStatus: ViewStatus;
   attempt: number;
-  riskLevel: RiskLevel;
-  /** 已发生时长(分钟);执行任务只说已发生,不预估剩余 */
-  elapsedMin: number;
+  /** 只读 UI 缺数据投影；null 不是新增业务风险等级。 */
+  riskLevel: RiskLevel | null;
+  /** 已发生的权威活跃时长(分钟)；缺少或不完整时为null，不用时间戳推算。 */
+  elapsedMin: number | null;
   budget: { walltimeActiveMin: number; maxTurns: number; maxCost: number };
   /** Money 纪律:known=false 永不显示 0,显示「还没有确切数字」 */
-  spent: { known: boolean; value?: number };
+  spent: Money;
+  /** 已有账本的只读文案投影：分币种小计、未知及订阅来源，不作为业务数字。 */
+  spentText?: string;
   lastEvent: string;
   projectTitle?: string;
   projectId?: string;
@@ -153,10 +156,12 @@ export interface DecisionPackageView {
   risks: string[];
   preauthorizedEffects: { effect: string; spokenForm: string; ttlHours: number }[];
   expiresInH?: number;
+  /** 只读 canonical 模式；UI 兼容选择不能覆盖它。 */
+  mode?: DecisionPackage["mode"];
   /** AI 推荐只占徽章不占预选位(handoff §4.5/拍板纪律)。direct_to_review=designed/deferred,现役仅 step_confirm。 */
-  recommendedMode?: "step_confirm" | "direct_to_review";
+  recommendedMode?: DecisionPackage["mode"];
   /** schema 兼容读取;现役仅 step_confirm;旧 direct_to_review 必须 fail-closed,不可拍板。 */
-  selectedMode?: "step_confirm" | "direct_to_review" | null;
+  selectedMode?: DecisionPackage["mode"] | null;
   /** 决策包所属项目(看小样读口归属断言) */
   projectId?: string;
   /** assemble/revise 同轮生成的 Demo 小样;无则不渲染「看小样」 */
@@ -184,11 +189,13 @@ export interface AcceptanceItem {
   };
 }
 export interface ReviewTaskContext {
+  /** API 持久任务状态;parked 呈现态不得遮蔽验收前置。 */
+  taskStatus?: string;
   task: TaskView;
   packageRefText: string;
   acceptance: AcceptanceItem[];
   decisions: { what: string; why: string; overridable: true }[];
-  runs: { attempt: number; result: string }[];
+  runs: { attempt: number; result: string; evidence_conflict?: boolean }[];
   writing?: boolean;
   s3?: boolean;
   explain?: { one_liner: string; walkthrough: string; decisions: string };

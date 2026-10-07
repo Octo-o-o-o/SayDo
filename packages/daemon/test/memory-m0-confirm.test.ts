@@ -513,3 +513,42 @@ describe("SC-12 确认审计失败与拒写审计事务边界", () => {
     expect(m0Rows(rig.db)).toEqual([]);
   });
 });
+
+
+describe("M0 非共享审计 sink 的真实账本错误边界", () => {
+  function payloadOf(): MemoryPendingPayload {
+    return { kind: "memory", tier: "M0", claim: CLAIM, claimDigest: claimDigestOf(CLAIM), sourceTurnId: "t-real-ledger-source", projectId: PRJ };
+  }
+  it("真实ledger先insert后memory.add审计抛错，未证明回滚只能unknown", () => {
+    const rig = buildRig();
+    const audit = {
+      record(event: { action: string }) {
+        if (event.action === "memory.add") throw new Error("injected generic memory.add audit failure");
+        return rig.audit.record(event as never);
+      }
+    };
+    const ledger = new MemoryLedger({ db: rig.db, audit });
+    let caught: unknown;
+    try {
+      confirmMemoryProposal({ db: rig.db, ledger, audit }, { sessionId: SES, turnId: "t-real-ledger", receiptId: "mrc_real_unknown", payload: payloadOf() });
+    } catch (error) { caught = error; }
+    expect(caught).toBeInstanceOf(MemoryConfirmWriteError);
+    expect(m0Rows(rig.db)).toHaveLength(1);
+    expect(memoryConfirmPersistOf(caught)).toBe("unknown");
+    expect(rig.db.prepare("SELECT action FROM audit_log WHERE action = 'memory.m0_confirmed'").all()).toEqual([]);
+  });
+  it("同SQLite sink在同一memory.add点失败则确实全表回滚且none", () => {
+    const rig = buildRig();
+    const beforeMemory = rig.db.prepare("SELECT * FROM memory_events ORDER BY id").all();
+    const beforeAudit = rig.db.prepare("SELECT * FROM audit_log ORDER BY id").all();
+    rig.db.exec(`CREATE TRIGGER fail_real_memory_add BEFORE INSERT ON audit_log WHEN NEW.action = 'memory.add' BEGIN SELECT RAISE(ABORT, 'injected memory.add failure'); END;`);
+    let caught: unknown;
+    try {
+      confirmMemoryProposal(memoryDeps(rig), { sessionId: SES, turnId: "t-real-shared", receiptId: "mrc_real_none", payload: payloadOf() });
+    } catch (error) { caught = error; }
+    expect(caught).toBeInstanceOf(MemoryConfirmWriteError);
+    expect(memoryConfirmPersistOf(caught)).toBe("none");
+    expect(rig.db.prepare("SELECT * FROM memory_events ORDER BY id").all()).toEqual(beforeMemory);
+    expect(rig.db.prepare("SELECT * FROM audit_log ORDER BY id").all()).toEqual(beforeAudit);
+  });
+});

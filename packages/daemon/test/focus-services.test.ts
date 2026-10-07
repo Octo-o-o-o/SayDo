@@ -58,6 +58,27 @@ describe("B1 registry+resolver+lifecycle", () => {
     expect(r.kind).toBe("authority_mismatch");
   });
 
+  it("closed 只能 fork：所有出边拒绝且不改写状态、revision 和事件", () => {
+    const { focusId } = createFocus(fx.db, { title: "已收官" });
+    changeFocusLifecycle(fx.db, focusId, { to: "active" });
+    changeFocusLifecycle(fx.db, focusId, { to: "closed" });
+    const before = readFocus(fx.db, focusId);
+    const events = fx.db.prepare("SELECT * FROM focus_events WHERE focus_id=? ORDER BY seq").all(focusId);
+    for (const to of ["captured", "active", "dormant", "abandoned", "archived"] as const) {
+      expect(() => changeFocusLifecycle(fx.db, focusId, { to, reason: "不能复活已收官记录" })).toThrow(/lifecycle_illegal/);
+    }
+    expect(readFocus(fx.db, focusId)).toEqual(before);
+    expect(fx.db.prepare("SELECT * FROM focus_events WHERE focus_id=? ORDER BY seq").all(focusId)).toEqual(events);
+    expect(LIFECYCLE_EDGES.some(([from]) => from === "closed")).toBe(false);
+  });
+
+  it("captured 可归档：边表与受控写口一致", () => {
+    const { focusId } = createFocus(fx.db, { title: "暂存" });
+    expect(LIFECYCLE_EDGES).toContainEqual(["captured", "archived"]);
+    changeFocusLifecycle(fx.db, focusId, { to: "archived", reason: "暂不展开" });
+    expect(readFocus(fx.db, focusId)!.lifecycle).toBe("archived");
+  });
+
   it("title 匹配只产候选:多/零/禁静默", () => {
     createFocus(fx.db, { title: "整理 D2 观察表" });
     createFocus(fx.db, { title: "整理 D2 备份" });

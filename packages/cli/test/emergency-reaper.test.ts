@@ -357,17 +357,29 @@ describe("CLI emergency agent reaper", () => {
   it("CLI agent delete 必须走 HOME boundary：持锁时不得 unlink", async () => {
     const home = mkdtempSync(join(tmpdir(), "saydo-cli-reap-lock-"));
     homes.add(home);
+    // 固定 PID 在宿主或 Linux runner 上可能属于活进程；用本测试已等到退出的子进程作死记录。
+    const posix = process.platform !== "win32";
+    const exited = spawn(process.execPath, ["-e", "process.exit(0)"], {
+      stdio: "ignore",
+      detached: posix
+    });
+    if (!exited.pid) throw new Error("死记录测试进程未获得 pid");
+    pids.add(exited.pid);
+    await once(exited, "exit");
+    pids.delete(exited.pid);
+    expect(exited.exitCode).toBe(0);
+    expect(processAlive(exited.pid)).toBe(false);
     const { ownerPath } = writeAgentOwner(home, {
       version: 1,
       runId: "run_lock",
-      pid: 9,
+      pid: exited.pid,
       binary: process.execPath,
       worktree: join(home, "worktree"),
       processStart: "birth-dead",
       ownerPid: 7001,
       ownerInstanceId: "instance-a"
     });
-    writeFileSync(join(home, "tier1", "runs", "run_lock", "agent.pid"), "9");
+    writeFileSync(join(home, "tier1", "runs", "run_lock", "agent.pid"), String(exited.pid));
     const holdMarker = join(home, "holding.marker");
     const reapMarker = join(home, "reaped.marker");
     const tsx = fileURLToPath(new URL("../../daemon/node_modules/tsx/dist/cli.mjs", import.meta.url));
@@ -381,12 +393,14 @@ describe("CLI emergency agent reaper", () => {
     // tsx 会再 fork 一个真正执行 worker 的子进程,持锁的是那个孙进程;只 SIGKILL tsx 父进程时,
     // Linux 上孙进程成为孤儿继续持锁,waiter 永远拿不到锁(ubuntu CI 稳定超时的根因)。
     // POSIX 上把 holder 放进独立进程组,回收时整组 SIGKILL。
-    const posix = process.platform !== "win32";
     const holder = spawn(process.execPath, [tsx, worker], {
       env: { ...envBase, SAYDO_LOCK_ROLE: "hold", SAYDO_LOCK_MARKER: holdMarker },
       stdio: "ignore",
       detached: posix
     });
+    if (!holder.pid) throw new Error("持锁测试进程未获得 pid");
+    pids.add(holder.pid);
+    const holderJob = attachJob(holder.pid, "cli-lock-test", "holder");
     const started = Date.now();
     while (!existsSync(holdMarker) && Date.now() - started < 5_000) {
       await new Promise((resolve) => setTimeout(resolve, 20));
@@ -394,9 +408,25 @@ describe("CLI emergency agent reaper", () => {
     expect(existsSync(holdMarker)).toBe(true);
     const waiter = spawn(process.execPath, [tsx, worker], {
       env: { ...envBase, SAYDO_LOCK_ROLE: "cli-reap", SAYDO_LOCK_MARKER: reapMarker },
-      stdio: "ignore"
+      stdio: "ignore",
+      detached: posix
     });
+    if (!waiter.pid) throw new Error("回收测试进程未获得 pid");
+    pids.add(waiter.pid);
+    attachJob(waiter.pid, "cli-lock-test", "waiter");
+    const waiterStarted = Date.now();
+    while (!existsSync(`${reapMarker}.started`) && Date.now() - waiterStarted < 5_000) {
+      if (waiter.exitCode !== null || waiter.signalCode !== null) break;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    const waiterError = () => existsSync(`${reapMarker}.error`)
+      ? readFileSync(`${reapMarker}.error`, "utf8") : "worker 未记录错误";
+    expect(existsSync(`${reapMarker}.started`), waiterError()).toBe(true);
     await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(holder.exitCode).toBeNull();
+    expect(holder.signalCode).toBeNull();
+    expect(waiter.exitCode, waiterError()).toBeNull();
+    expect(waiter.signalCode).toBeNull();
     expect(existsSync(ownerPath)).toBe(true);
     expect(existsSync(reapMarker)).toBe(false);
     if (posix && holder.pid) {
@@ -405,20 +435,38 @@ describe("CLI emergency agent reaper", () => {
       } catch {
         holder.kill("SIGKILL");
       }
+    } else if (holderJob) {
+      // Windows 同样回收整个 tsx 子树；保活 worker 不能只等包装进程退出。
+      closeNamedJob(holderJob);
+      jobs.delete(holderJob);
     } else {
       holder.kill("SIGKILL");
     }
     await new Promise<void>((resolve) => {
-      if (holder.exitCode !== null) resolve();
+      if (holder.exitCode !== null || holder.signalCode !== null) resolve();
       else holder.once("exit", () => resolve());
     });
+    pids.delete(holder.pid);
     // waiter 要等 HOME 锁释放后完成 reap；容器/CI 上进程调度与文件锁明显慢于本机开发机，
     // 原来的 8s 在 ubuntu 容器里会超时（本地 CI 模拟实测，macOS/Windows 上均不复现）。
     // it 自身超时同步放宽，保证是 waiter 判据到期而不是被 testTimeout 截断。
     await new Promise<void>((resolve, reject) => {
-      waiter.once("exit", () => resolve());
-      setTimeout(() => reject(new Error("cli-reap waiter timeout")), 20_000);
+      if (waiter.exitCode !== null || waiter.signalCode !== null) return resolve();
+      const finish = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      const timer = setTimeout(() => {
+        waiter.off("exit", finish);
+        reject(new Error("cli-reap waiter timeout"));
+      }, 20_000);
+      waiter.once("exit", finish);
     });
+    pids.delete(waiter.pid);
+    expect(waiter.exitCode, waiterError()).toBe(0);
+    expect(waiter.signalCode).toBeNull();
+    expect(readFileSync(reapMarker, "utf8")).toBe("reaped:1");
+    expect(existsSync(ownerPath)).toBe(false);
   }, 40_000);
 
   it("daemon 硬退后也回收 durable registry 中的 managed/BYOA 进程组", async () => {

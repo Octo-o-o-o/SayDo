@@ -2633,6 +2633,7 @@ const retrieval = new Retrieval(memoryFts, memoryLedger);
 const artifactStore = new ArtifactStore({ db, saydoDir: SAYDO_HOME });
 const packageFactory = new DecisionPackageFactory({ db, artifacts: artifactStore, audit, now: () => new Date() });
 const brainTools = new BrainTools({
+  elapsedActiveByRun: () => tier1Executor?.activeRunElapsedMs() ?? new Map(),
   db,
   audit,
   thinkingProviderFor,
@@ -3263,7 +3264,7 @@ async function announceReady(): Promise<void> {
       pid: process.pid,
       startedAt: STARTED_AT,
       capToken: CAP_TOKEN === "" ? "disabled" : "enabled",
-      // 结构化 logger 对嵌套对象只会打成 [object Object],这里展平成一行可读串。
+      // logger 的终端投影将嵌套对象显示为 [object Object],这里展平成一行可读串。
       bootPromote: [
         `configPromoted=${String(bootConfigPromoted)}`,
         `envPromoted=${String(bootEnvPromoted)}`,

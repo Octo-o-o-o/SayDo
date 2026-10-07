@@ -1,3 +1,5 @@
+import { costEntryText } from "../../lib/costDisplay";
+import { latestAcceptanceRunConflicts } from "../../lib/acceptanceEvidenceGate";
 // ReviewPanel(demo renderReview):验收面按验收标准组织——左标准右证据;
 // agent_claim 的 pass 用空心勾+虚线边(与机器验实心绿勾降权区分,handoff §4.3);
 // 讲给我听三层;判断可推翻;writing 人工项逐条裁决后才放行通过键;S3 独立按钮区。
@@ -52,8 +54,11 @@ export function ReviewPanel({ ctx, onAction, backLabel }: {
   const allManualJudged = !ctx.writing || ctx.acceptance.every((a, i) => a.source !== "manual" || verdicts[i]);
   const blockedByFail = ctx.acceptance.some((a, i) => effStatus(a, i) === "fail");
   const blockedByEvidence = ctx.acceptance.some((a) => a.evidenceBlock === "bound_invalid");
-  const approveBlocked = !allManualJudged || blockedByFail || blockedByEvidence;
   const t = ctx.task;
+  const taskStatus = ctx.taskStatus ?? t.viewStatus;
+  const blockedByTask = taskStatus !== "ready_for_review" && taskStatus !== "review_approved_waiting_merge";
+  const blockedByTerminal = latestAcceptanceRunConflicts(ctx.runs);
+  const approveBlocked = blockedByTerminal || blockedByTask || !allManualJudged || blockedByFail || blockedByEvidence;
 
   const emit = (a: ReviewAction) => {
     if (a.type === "select_ac") setSel(a.index);
@@ -122,10 +127,14 @@ export function ReviewPanel({ ctx, onAction, backLabel }: {
           <Mono faint>{t.route === "hopper" ? "HP" : "T1"}</Mono>
         </div>
         <div style={{ fontSize: "var(--text-sm)", marginTop: 6 }}>
-          {blockedByFail ? (
+          {blockedByTerminal ? (
+            "本轮执行结果相互冲突,先别通过。"
+          ) : blockedByFail || taskStatus === "failed" ? (
             "验证没过,这些验收项不能当成通过。"
           ) : blockedByEvidence ? (
             "有验收项绑过证据,但引用已经对不上。先别通过。"
+          ) : blockedByTask ? (
+            "任务当前不在待验收状态,暂不能通过。"
           ) : (
             <>
               执行和检查都跑完了,<strong>等你验收</strong>。下面按验收标准逐条看。
@@ -134,7 +143,7 @@ export function ReviewPanel({ ctx, onAction, backLabel }: {
         </div>
         <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
           <span>{ctx.packageRefText}</span>
-          <Mono>已跑 {t.elapsedMin} 分钟 · 已花 {t.spent.known ? `¥${t.spent.value}` : "还没有确切数字"} / 熔断 ¥{t.budget.maxCost}</Mono>
+          <Mono>{t.elapsedMin === null ? "执行耗时未知" : `已跑 ${t.elapsedMin} 分钟`} · 已花 {t.spentText ?? costEntryText({ source: "api", known: t.spent.known, amount: t.spent.value, currency: t.spent.currency })} / 熔断 ¥{t.budget.maxCost}</Mono>
           <Mono>第 {t.attempt} 次尝试</Mono>
         </div>
         {ctx.explain ? (

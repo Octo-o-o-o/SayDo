@@ -7,6 +7,7 @@
 //   1 字节 tag(0x01 mic PCM 上行 / 0x02 TTS 音频下行)+ 4 字节 BE seq + payload;
 // - capability token 参数位:?token= 现在只透传记录,校验 4.1 启用(计划 1.2 括注,防 5.x 返工)。
 
+import { createHash } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 import type { Server } from "node:http";
 import { WebSocketServer, WebSocket, type RawData } from "ws";
@@ -29,6 +30,11 @@ import type { RedactSpan } from "./redactor.js";
 import type { IdentityVia } from "../net/identity.js";
 import { remoteVoiceWsDecision } from "../net/remoteSurface.js";
 import { VoiceBarrier } from "./voiceBarrier.js";
+
+function safeErrorFields(err: unknown): { errorType: string; errorDigest: string } {
+  return { errorType: err instanceof SyntaxError ? "SyntaxError" : err instanceof Error ? "Error" : "unknown",
+    errorDigest: createHash("sha256").update(String(err)).digest("hex") };
+}
 
 export const VOICE_WS_PROTOCOL_VERSION = 1;
 
@@ -215,6 +221,11 @@ export class VoiceHub {
         return !!peer && peer.ws.readyState === WebSocket.OPEN;
       },
       peerVia: (peerId) => this.findPeer(peerId)?.via,
+      isRegisteredReceiver: (peerId, sessionId) => {
+        const peer = this.findPeer(peerId);
+        return !!peer && peer.helloDone && peer.role === "console" && peer.via === "local" &&
+          peer.ws.readyState === WebSocket.OPEN && peer.sessionIds?.has(sessionId) === true;
+      },
       registerSession: (peerId, sessionId) => {
         const peer = this.findPeer(peerId);
         if (!peer) return;
@@ -356,7 +367,7 @@ export class VoiceHub {
     ws.on("close", onPeerClose);
     ws.on("error", (err) => {
       this.markPipelineUnavailable(peer);
-      this.safeWarn("voice ws error", { error: String(err) });
+      this.safeWarn("voice ws error", { ...safeErrorFields(err) });
     });
     // 半开检测(冻结尸检回修):对端冻结/网络半开时 close 事件永不来——服务端 30s ping,
     // 两个周期无 pong 即 terminate(触发 close 路径:peers 清理 + down 广播 + 对端库层感知重连)
@@ -517,7 +528,7 @@ export class VoiceHub {
     try {
       raw = JSON.parse(String(data));
     } catch (err) {
-      this.safeWarn("voice ws: invalid message dropped", { from: peer.role, error: String(err).slice(0, 200) });
+      this.safeWarn("voice ws: invalid message dropped", { from: peer.role, ...safeErrorFields(err) });
       return;
     }
     if (raw && typeof raw === "object" && (raw as { t?: string }).t === "hello.ack") {
@@ -606,7 +617,8 @@ export class VoiceHub {
         peer.sessionIds.add(msg.sessionId);
         peer.lastHeartbeatAtMs = performance.now();
         if (peer.via === "local") this.barrier.replayHandover(msg.sessionId);
-      } else if ("sessionId" in msg && typeof msg.sessionId === "string") {
+      } else if (msg.t !== "voice.quiesced_transcript_ack" && msg.t !== "voice.anchor_prepare" &&
+                 "sessionId" in msg && typeof msg.sessionId === "string") {
         if (!peer.sessionIds) peer.sessionIds = new Set();
         peer.sessionIds.add(msg.sessionId);
       }
@@ -916,7 +928,8 @@ export class VoiceHub {
       const meta: ConsolePeerMeta = {
         via: p.via,
         role: p.role,
-        sessionIds: p.sessionIds ?? new Set()
+        // predicate 可保存或篡改自己的集合；不暴露peer内部可变绑定。
+        sessionIds: new Set(p.sessionIds ?? [])
       };
       if (!predicate(meta)) continue;
       delivery.attempted += 1;
@@ -959,7 +972,7 @@ export class VoiceHub {
     try {
       pipelineMsgSchema.parse(msg);
     } catch (err) {
-      this.safeWarn("screen_text dropped (schema)", { error: String(err).slice(0, 120) });
+      this.safeWarn("screen_text dropped (schema)", { ...safeErrorFields(err) });
       return { attempted: 0, succeeded: 0, failed: 0 };
     }
     return this.sendToConsolePeers((m) => m.via === "local", msg);
@@ -1052,7 +1065,7 @@ export class VoiceHub {
         this.broadcast("console", msg);
       }
     } catch (err) {
-      this.safeWarn("console event dropped (schema)", { t: msg.t, error: String(err).slice(0, 120) });
+      this.safeWarn("console event dropped (schema)", { t: msg.t, ...safeErrorFields(err) });
     }
   }
 

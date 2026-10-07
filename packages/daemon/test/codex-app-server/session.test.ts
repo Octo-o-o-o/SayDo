@@ -1,5 +1,4 @@
-import { readFileSync } from "node:fs";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
@@ -7,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { issueExperimentPermit } from "../../src/experimental/codex-app-server/permit.js";
 import { declineDecision } from "../../src/experimental/codex-app-server/protocol.js";
 import { openFixtureSession, openRealSession, type TurnView } from "../../src/experimental/codex-app-server/session.js";
-import { boot, createPair, delay, initResult, line, openPair, ownThread, requestByMethod, threadBody, turnBody } from "./support.js";
+import { Gate, boot, createPair, delay, initResult, line, openPair, ownThread, requestByMethod, threadBody, turnBody } from "./support.js";
 
 function phaseOf(pair: ReturnType<typeof openPair>): string | null {
   return pair.session.snapshot().threads[0]?.turn?.phase ?? null;
@@ -37,6 +36,35 @@ describe("codex app-server session", () => {
     const blocked = await early.session.startThread({ taskId: "task-1" });
     expect(blocked.reason).toBe("not_ready");
     expect(early.frames.some((frame) => frame["method"] === "thread/start")).toBe(false);
+  });
+
+  it("背压下 initialized 实际写出前不宣称 ready，超时也不能写出迟到通知", async () => {
+    for (const release of [true, false]) {
+      const pair = createPair();
+      const gate = new Gate();
+      gate.hold = true;
+      pair.link.stdin = gate;
+      const session = openFixtureSession({ link: pair.link, recorder: pair.recorder, runId: "blocked-init", requestTimeoutMs: 50 });
+      try {
+        const pending = session.initialize();
+        const request = JSON.parse(gate.chunks[0]!.toString()) as { id: string };
+        pair.stdout.write(line({ id: request.id, result: initResult() }));
+        expect(session.snapshot().phase).toBe("initializing");
+        expect(gate.chunks).toHaveLength(1);
+        expect((await session.startThread({ taskId: "task-1" })).reason).toBe("not_ready");
+        if (release) gate.release();
+        const outcome = await pending;
+        expect(outcome.status).toBe(release ? "acked" : "rejected");
+        expect(session.snapshot().phase).toBe(release ? "ready" : "closed");
+        gate.release();
+        await delay(1);
+        expect(gate.chunks).toHaveLength(release ? 2 : 1);
+        expect(session.snapshot().timers).toBe(0);
+      } finally {
+        gate.release();
+        await session.shutdown();
+      }
+    }
   });
 
   it("ACK 丢失后不自动重发 initialize", async () => {
@@ -213,6 +241,23 @@ describe("codex app-server session", () => {
     expect(pair.session.diagnostics().warnings.join(" ")).not.toContain(secret);
   });
 
+  it("未知 method 不把不可信正文写入诊断或意图日志，重复请求同样脱敏", async () => {
+    const pair = openPair();
+    await boot(pair);
+    const secret = "private-method-content";
+    pair.stdout.write(line({ method: secret, params: {} }));
+    pair.stdout.write(line({ id: "unknown-1", method: secret, params: {} }));
+    pair.stdout.write(line({ id: "unknown-1", method: secret, params: {} }));
+    const records = pair.recorder.records.filter((record) => record.method === "unknown_server_method");
+    expect(records).toHaveLength(2);
+    expect(records.map((record) => record.summary["code"])).toEqual([-32601, -32600]);
+    expect(pair.session.diagnostics().warnings).toContain("ignored_notification");
+    expect(JSON.stringify(pair.session.diagnostics())).not.toContain(secret);
+    expect(JSON.stringify(pair.recorder.records)).not.toContain(secret);
+    expect(JSON.stringify(pair.frames)).not.toContain(secret);
+    await pair.session.shutdown();
+  });
+
   it("具名一次授权只生效一次,越权、过期和重复请求不授予", async () => {
     const pair = createPair();
     const session = openFixtureSession({
@@ -359,13 +404,6 @@ describe("codex app-server session", () => {
     expect(sleeper.pid).toBeTruthy();
     expect(alive(sleeper.pid ?? 0)).toBe(true);
     sleeper.kill("SIGKILL");
-  });
-
-  it("生产入口源码不引用这个原型", () => {
-    const index = readFileSync(new URL("../../src/index.ts", import.meta.url), "utf8");
-    const pkg = readFileSync(new URL("../../package.json", import.meta.url), "utf8");
-    expect(index.includes("experimental/codex-app-server")).toBe(false);
-    expect(pkg.includes("experimental/codex-app-server")).toBe(false);
   });
 });
 

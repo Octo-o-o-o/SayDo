@@ -192,6 +192,8 @@ export interface RuntimeJobGeneration {
   binary: string;
   kind: string;
   processHandle?: unknown;
+  /** 本轮 Windows 父端 stdio 仍须独立证实释放，进程退出不能替代。 */
+  stdioOwner?: OwnedWindowsProcess;
 }
 
 function jobGeneration(pid: number, job: NamedJob, extra?: Partial<RuntimeJobGeneration>): RuntimeJobGeneration {
@@ -207,7 +209,8 @@ function jobGeneration(pid: number, job: NamedJob, extra?: Partial<RuntimeJobGen
     commandToken: extra?.commandToken ?? commandTokenForGeneration(id),
     binary: extra?.binary ?? process.execPath,
     kind: extra?.kind ?? "runtime",
-    ...(extra?.processHandle !== undefined ? { processHandle: extra.processHandle } : {})
+    ...(extra?.processHandle !== undefined ? { processHandle: extra.processHandle } : {}),
+    ...(extra?.stdioOwner ? { stdioOwner: extra.stdioOwner } : {})
   };
 }
 
@@ -220,6 +223,7 @@ function jobGenerationsMatch(left: RuntimeJobGeneration, right: RuntimeJobGenera
     left.processStart === right.processStart &&
     left.commandToken === right.commandToken &&
     left.processHandle === right.processHandle &&
+    left.stdioOwner === right.stdioOwner &&
     left.binary === right.binary &&
     left.kind === right.kind &&
     left.job.name === right.job.name &&
@@ -1425,6 +1429,24 @@ async function teardownRuntimeJob(expected: RuntimeJobGeneration): Promise<void>
       ));
     }
   }
+  if (current.stdioOwner) {
+    const deadline = runtimeNow() + (runtimeTestHooks.drainDeadlineMs ?? RUNTIME_DRAIN_DEADLINE_MS);
+    for (;;) {
+      let state: ReturnType<OwnedWindowsProcess["disposeStdio"]>;
+      try {
+        state = current.stdioOwner.disposeStdio();
+      } catch (err) {
+        throw contaminateRuntimeChildLifecycle(err);
+      }
+      if (state === "disposed") break;
+      if (state !== "pending" || runtimeNow() >= deadline) {
+        throw contaminateRuntimeChildLifecycle(new ProcessGroupLifecycleError(
+          `runtime stdio ownership retained:${String(expected.pid)}:${String(state)}`
+        ));
+      }
+      await new Promise<void>((resolve) => runtimeSetTimeout(resolve, 20));
+    }
+  }
   try {
     (runtimeTestHooks.closeNamedJob ?? closeNamedJob)(job);
   } catch (err) {
@@ -1432,12 +1454,18 @@ async function teardownRuntimeJob(expected: RuntimeJobGeneration): Promise<void>
   }
   if (current.processHandle !== undefined) {
     try {
-      closeRawHandle(current.processHandle, "runtime-process");
+      if (current.stdioOwner) current.stdioOwner.closeProcessHandle();
+      else closeRawHandle(current.processHandle, "runtime-process");
     } catch (err) {
       throw contaminateRuntimeChildLifecycle(err);
     }
   }
   forgetGeneration(expected);
+}
+
+/** 只供模拟回归走真实 teardown；不得拿此入口声明 Windows native 通过。 */
+export function teardownRuntimeJobForTests(expected: RuntimeJobGeneration): Promise<void> {
+  return teardownRuntimeJob(expected);
 }
 
 /**
@@ -1504,15 +1532,31 @@ function childFromOwnedWindows(
   let closeEmitted = false;
   let exitCode: number | null = null;
   let exitUnknown = false;
+  let stdioRetry: NodeJS.Timeout | null = null;
+  let stdioDeadlineAt: number | null = null;
+  let stdioFailure: ProcessGroupLifecycleError | null = null;
   const pending = new Set(["process", "stdout", "stderr", "stdin", "permit"]);
   const emitClose = (): void => {
-    if (closeEmitted || pending.size > 0) return;
-    closeEmitted = true;
+    if (closeEmitted || pending.size > 0 || stdioFailure) return;
     try {
-      owned.disposeStdio();
-    } catch {
-      // 测试 stub 可能无 disposeStdio
+      const state = owned.disposeStdio();
+      if (state === "pending") {
+        stdioDeadlineAt ??= runtimeNow() + (runtimeTestHooks.closeDeadlineMs ?? RUNTIME_CLOSE_DEADLINE_MS);
+        if (runtimeNow() >= stdioDeadlineAt) {
+          throw new ProcessGroupLifecycleError(`runtime stdio ownership retained:${String(owned.pid)}:pending`);
+        }
+        stdioRetry ??= runtimeSetTimeout(() => { stdioRetry = null; emitClose(); }, 20);
+        return;
+      }
+      if (state !== "disposed") throw new ProcessGroupLifecycleError("runtime stdio disposal result invalid");
+    } catch (err) {
+      stdioFailure = contaminateRuntimeChildLifecycle(err);
+      if (stdioRetry) { runtimeClearTimeout(stdioRetry); stdioRetry = null; }
+      try { child.emit("error", stdioFailure); } catch { /* 错误留在 contamination，禁止假 close。 */ }
+      return;
     }
+    if (stdioRetry) { runtimeClearTimeout(stdioRetry); stdioRetry = null; }
+    closeEmitted = true;
     child.emit("close", exitCode, null);
   };
   const mark = (name: string): void => {
@@ -1557,9 +1601,9 @@ function childFromOwnedWindows(
     child.emit("exit", code, null);
     mark("process");
   };
-  // `waitForExit(0)` 的 "timeout" 与 `readExitCode()` 的 "live" 都表示子进程**仍在正常运行**
-  // （零超时的 WaitForSingleObject 对未 signaled 的句柄返回 WAIT_TIMEOUT，这是正常返回值，
-  // 不是错误）。因此不得对这两种状态套用任何从 spawn 起算的 deadline——否则任何存活时间超过
+  // `waitForExit(0)` 的 "timeout" 表示子进程仍在运行，不是错误。
+  // wait 已 signaled 后 `readExitCode()` 的 "live" 按真实退出码 259 收口，见下方分支。
+  // 不得对正常 timeout 套用任何从 spawn 起算的 deadline——否则任何存活时间超过
   // RUNTIME_CLOSE_DEADLINE_MS 的健康 Tier1 agent 都会被判为超时，走 emit("error") →
   // executor beginFinish(127) → hardKill → TerminateJobObject，把整个 Job 连同后代杀光。
   // 有界重试只对真正的异常读数（WAIT_FAILED / 退出码不可读）生效，且从**首次异常**开始计时。
@@ -1824,6 +1868,7 @@ function spawnRuntimeChildImpl(
         jobName: job.name,
         processStart: birth,
         processHandle: ownedWindows.processHandle,
+        stdioOwner: ownedWindows,
         commandToken,
         binary: process.execPath,
         kind

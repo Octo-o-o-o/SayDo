@@ -15,36 +15,39 @@ export function quiescedTranscriptKey(sessionId: string): string {
   return `saydo.chat.quiescedTranscripts.${sessionId}`;
 }
 
+function readQueue(
+  storage: Pick<Storage, "getItem">,
+  sessionId: string
+): { ok: true; rows: QuiescedTranscript[] } | { ok: false } {
+  try {
+    const raw = storage.getItem(quiescedTranscriptKey(sessionId));
+    if (raw === null) return { ok: true, rows: [] };
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return { ok: false };
+    const valid = parsed.every((item) => item && typeof item === "object" &&
+      item.sessionId === sessionId && typeof item.requestId === "string" &&
+      typeof item.turnId === "string" && typeof item.text === "string" && item.text.trim() !== "");
+    return valid ? { ok: true, rows: parsed as QuiescedTranscript[] } : { ok: false };
+  } catch {
+    return { ok: false };
+  }
+}
+
 export function readQuiescedTranscripts(
   storage: Pick<Storage, "getItem">,
   sessionId: string
 ): QuiescedTranscript[] {
-  try {
-    const raw = storage.getItem(quiescedTranscriptKey(sessionId));
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item): item is QuiescedTranscript => {
-      return (
-        item &&
-        typeof item === "object" &&
-        typeof item.sessionId === "string" &&
-        typeof item.requestId === "string" &&
-        typeof item.turnId === "string" &&
-        typeof item.text === "string" &&
-        item.text.trim() !== ""
-      );
-    });
-  } catch {
-    return [];
-  }
+  const read = readQueue(storage, sessionId);
+  return read.ok ? read.rows : [];
 }
 
 export function upsertQuiescedTranscript(
   storage: Pick<Storage, "getItem" | "setItem">,
   item: QuiescedTranscript
 ): boolean {
-  const list = readQuiescedTranscripts(storage, item.sessionId);
+  const read = readQueue(storage, item.sessionId);
+  if (!read.ok) return false;
+  const list = read.rows;
   if (list.some((row) => row.requestId === item.requestId && row.turnId === item.turnId)) {
     return true;
   }
@@ -73,14 +76,17 @@ export function removeQuiescedTranscript(
   sessionId: string,
   requestId: string,
   turnId: string
-): void {
-  const next = readQuiescedTranscripts(storage, sessionId).filter(
+): boolean {
+  const read = readQueue(storage, sessionId);
+  if (!read.ok) return false;
+  const next = read.rows.filter(
     (row) => !(row.requestId === requestId && row.turnId === turnId)
   );
   try {
     storage.setItem(quiescedTranscriptKey(sessionId), JSON.stringify(next));
+    return true;
   } catch {
-    /* ignore */
+    return false;
   }
 }
 

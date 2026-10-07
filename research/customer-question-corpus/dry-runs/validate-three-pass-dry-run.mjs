@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { contextAvailability } from "../context-availability.mjs";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -110,6 +111,7 @@ export function collectDryRunIssues({
   const solution = solutionText ?? readFileSync(join(dryRunDir, SOLUTION_NAME), "utf8");
   const sourceTree = hashCorpusSourceTree(corpusRoot);
   const judged = model ?? buildDryRun(corpusRoot);
+  if (JSON.stringify(judged.availability) !== JSON.stringify(contextAvailability(corpusRoot))) fail("当前上下文可用性与 manifest/题目依赖不一致");
 
   const renderedResult = renderResult(judged);
   const renderedSolution = renderSolution(judged);

@@ -102,7 +102,10 @@ export function StatusChip({ status, deadline }: { status: string; deadline?: st
 }
 
 /** 风险徽章(§2.6 其余语义:S0/S1 muted 不着色,S2 warning 描边 + shield,S3 error 填充 + shield-alert) */
-export function RiskBadge({ risk }: { risk: string }) {
+export function RiskBadge({ risk }: { risk: string | null | undefined }) {
+  if (!risk || !["S0", "S1", "S2", "S3"].includes(risk)) {
+    return <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>风险等级未知</span>;
+  }
   const style: Record<string, { color: string; bg: string; border: string; icon?: LucideIcon }> = {
     S2: { color: "var(--color-warning)", bg: "transparent", border: "var(--color-warning)", icon: Shield },
     S3: { color: "var(--fg-on-fill)", bg: "var(--color-error)", border: "var(--color-error)", icon: ShieldAlert }

@@ -8,12 +8,14 @@ function fail(message: string, code: number): never {
   process.exit(code);
 }
 
-function flags(argv: string[]): Record<string, string> {
+function flags(argv: string[], allowed: readonly string[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (let index = 0; index < argv.length; index += 1) {
     const key = argv[index];
-    if (!key?.startsWith("--")) fail(`unknown argument ${key ?? ""}`, 2);
+    if (!key?.startsWith("--")) fail("unknown argument", 2);
     const name = key.slice(2);
+    if (!allowed.includes(name)) fail("unknown option", 2);
+    if (Object.hasOwn(out, name)) fail("duplicate option", 2);
     const value = argv[index + 1];
     if (value === undefined || value.startsWith("--")) fail(`missing value for ${key}`, 2);
     out[name] = value;
@@ -35,7 +37,7 @@ function writeReport(report: unknown, path: string | undefined): void {
 }
 
 async function handshake(argv: string[]): Promise<void> {
-  const args = flags(argv);
+  const args = flags(argv, ["intent-log", "timeout-ms", "report"]);
   const intentLog = required(args, "intent-log");
   const timeout = args["timeout-ms"] === undefined ? 15_000 : Number(args["timeout-ms"]);
   if (!Number.isInteger(timeout) || timeout < 1000 || timeout > 120_000) fail("invalid --timeout-ms", 2);
@@ -45,7 +47,7 @@ async function handshake(argv: string[]): Promise<void> {
 }
 
 async function experiment(argv: string[]): Promise<void> {
-  const args = flags(argv);
+  const args = flags(argv, ["enabled", "model", "effect-boundary", "max-turns", "wall-ms", "task-id", "text", "intent-log", "report"]);
   const enabled = args["enabled"] === "true";
   const maxTurns = Number(args["max-turns"] ?? "");
   const wallMs = Number(args["wall-ms"] ?? "");

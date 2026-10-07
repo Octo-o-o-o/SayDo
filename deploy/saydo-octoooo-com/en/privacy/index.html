@@ -67,7 +67,7 @@
       <p class="lede">Effective: August 21, 2026&ensp;|&ensp;Developer: Yixiao&nbsp;Wang&nbsp;(individual)&ensp;|&ensp;Contact: <a href="mailto:support@octoooo.com">support@octoooo.com</a></p>
 
       <h2>The one-sentence version</h2>
-      <p>SayDo runs no servers. Core ledger data stays on <strong>your computer</strong>. Cloud voice, AI upstreams, and push that you enable yourself are called directly from your computer to those third parties, and egress follows your current configuration. Remote business access is currently closed; use the local interface on your computer. The developer cannot access — and does not collect — any of your data.</p>
+      <p>SayDo does not operate a user cloud service that stores product data. Core ledger data stays on <strong>your computer</strong>. AI, speech, and push services you enable are called directly from your devices, according to your configuration. Network-based system speech recognition may send audio directly from your phone to the OS vendor. Remote business access is currently closed; use the local interface on your computer.</p>
 
       <h2>What we collect</h2>
       <p>Nothing. The app has no developer-operated backend, no account system, no analytics, and no third-party tracking or advertising SDKs. No user data is uploaded to the developer. AI, optional cloud voice, and optional push that you configure yourself are governed by your agreements with those third parties.</p>
@@ -82,16 +82,16 @@
         <tbody>
           <tr><td>Camera</td><td>Scanning the pairing QR code shown by the desktop side</td><td>Decoded on-device only; images are never stored</td></tr>
           <tr><td>Microphone</td><td>Hold-to-talk voice input</td><td>Audio is passed to the system speech recognizer and is not stored by SayDo; whether recognition is on-device or network-based depends on app or OS settings and the OS vendor's implementation, and network processing is governed by that vendor's privacy terms</td></tr>
-          <tr><td>Speech recognition</td><td>Transcribing your speech to text (uses the system speech recognizer)</td><td>Transcribed text is sent only to <strong>your own paired computer</strong>; see the microphone row above for the network-recognition exception</td></tr>
-          <tr><td>Local network</td><td>Communicating with the SayDo service on your own computer</td><td>Your LAN or an encrypted overlay you configure, authenticated with the pairing token</td></tr>
+          <tr><td>Speech recognition</td><td>Transcribing your speech to text (uses the system speech recognizer)</td><td>The iOS shell prefers on-device Chinese recognition. When unavailable, network recognition requires an explicit opt-in in shell settings and may send audio to the OS vendor. Remote business access is currently closed, so phone transcripts cannot be submitted to desktop business endpoints</td></tr>
+          <tr><td>Local network</td><td>Communicating with the SayDo service on your own computer</td><td>A connection method used by the historical evaluation shell; remote business access is currently closed and production pairing is not available</td></tr>
         </tbody>
       </table>
       </div>
 
       <h2>Storage and transmission</h2>
       <ul>
-        <li>All items, conversations, and ledger data live in the SayDo data directory on <strong>your computer</strong>; the phone acts only as a display and input device for your computer;</li>
-        <li>Phone-to-computer communication happens on your LAN or an encrypted overlay you configure, authenticated by a token exchanged via QR pairing; the token is kept in the phone's secure system storage (iOS Keychain / Android Keystore / the HarmonyOS equivalent);</li>
+        <li>Core items, conversations, and ledger data live in the SayDo data directory on <strong>your computer</strong>; data processed by system speech recognition or third-party AI is also subject to those providers’ terms;</li>
+        <li>Connection tokens from the historical evaluation shell are kept in secure system storage (iOS Keychain / Android Keystore / HarmonyOS HUKS). This is not a delivered production pairing protocol; remote business access is currently closed;</li>
         <li>Third-party AI, optional cloud voice, and optional push that you enable on the desktop side are called directly by your computer, under your own agreements with those providers; the developer of this app never touches or sees them.</li>
       </ul>
 

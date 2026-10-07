@@ -2,6 +2,8 @@
 
 > 2026-09-13 后续实现边界:以下为 08-25 候选的根因与历史真机记录,本次未重跑 Windows。当前 `childFromOwnedWindows` 在 wait 已 signaled 后把 STILL_ACTIVE(259) 当实际退出码,不再沿用下文“live 一律续轮询”的旧修法。读取/关闭 stdio 错误传播仍有 SC-51 反例,独立回修中,不能从历史 distribution 通过推断现役 native 链完整。
 
+> 2026-09-27 双周复核：上段“独立回修中”为旧时点。SC-51 在 SC-RELAND-01 中以 `DF-SC51-WIN-STDIO` 延期，旧两次回修仍 RED，不能将当前本地测试或 rc.13 制品验证当作该 native 管道缺陷已修复。当前处置见 `e2e/evidence/sc-reland-01.md` 的不搬清单。
+
 > **范围声明（2026-08-27 月度审计补）**：本文档自 §13 起超出标题所述的 runtime 重实施范围，承载
 > release 线合并 → rc.5-rc.12 发布链 → 发布合同 v2 → 实体门 → availability 翻转的完整收口叙事
 > （§14-§17），是 08-26 RC 链收口的唯一详账载体。检索「rc.12 收口在哪」应至本文 §17。

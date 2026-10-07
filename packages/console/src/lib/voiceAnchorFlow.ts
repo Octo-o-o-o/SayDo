@@ -1,6 +1,7 @@
 // 跨 Chat 卸载仍存活的主题屏障串行协调:prepare → HTTP → rearm。
 
 import { newId, VOICE_QUIESCE_TIMEOUT_MS } from "@saydo/contracts";
+import { sessionStoragePort } from "./sessionStoragePort";
 import { apiPost } from "./api";
 import {
   focusAnchorBody,
@@ -96,13 +97,15 @@ export async function runVoiceAnchorFlow(opts: {
   ownerOk: () => boolean;
   payload: PendingAnchorPayload;
   liveDraft: () => string;
-  persist: (payload: PendingAnchorPayload) => void;
+  persist: (payload: PendingAnchorPayload) => unknown;
   port: VoiceAnchorPort;
 }): Promise<FlowResult> {
   let settle!: (result: FlowResult) => void;
   const result = new Promise<FlowResult>((resolve) => {
     settle = resolve;
   });
+  let current = opts.payload;
+  let activeWait: string | undefined;
   tail = tail.catch(() => undefined).then(async () => {
     if (!opts.ownerOk()) {
       settle({ status: "stale" });
@@ -110,9 +113,11 @@ export async function runVoiceAnchorFlow(opts: {
     }
     const persist = (base: PendingAnchorPayload): PendingAnchorPayload => {
       const next = mergeLiveDraft(base, opts.liveDraft());
-      if (!opts.ownerOk()) return next;
-      opts.persist(next);
-      writePendingAnchor(sessionStorage, next);
+      if (!opts.ownerOk()) throw new Error("anchor owner changed");
+      current = next;
+      if (opts.persist(next) === false || !writePendingAnchor(sessionStoragePort, next)) {
+        throw new Error("anchor draft persistence failed");
+      }
       return next;
     };
     if (!opts.port.connected || !opts.port.daemonEpoch) {
@@ -127,11 +132,13 @@ export async function runVoiceAnchorFlow(opts: {
     const pttLive = opts.port.micActive && opts.port.mode === "ptt";
     opts.port.stopMic();
     if (pttLive) opts.port.finalizeRecordingEdit();
+    activeWait = identified.requestId;
     const preparedWait = opts.port.waitStatus({
       sessionId: opts.port.sessionId,
       requestId: identified.requestId,
       statuses: ["prepared", "rejected"]
     });
+    void preparedWait.catch(() => undefined);
     if (
       !opts.port.sendPrepare({
         ...identified,
@@ -179,6 +186,7 @@ export async function runVoiceAnchorFlow(opts: {
       });
       return;
     }
+    persist(identified);
     try {
       await apiPost(focusAnchorPath(opts.port.sessionId), focusAnchorBody(identified));
     } catch {
@@ -199,6 +207,7 @@ export async function runVoiceAnchorFlow(opts: {
       requestId: identified.requestId,
       statuses: ["rearmed", "rejected"]
     });
+    void rearmedWait.catch(() => undefined);
     if (!opts.port.sendRearm(identified.requestId)) {
       opts.port.cancelWait(identified.requestId);
       settle({ status: "failed", payload: persist(identified), reason: "续接还没放开语音,草稿还在,可重试" });
@@ -225,6 +234,16 @@ export async function runVoiceAnchorFlow(opts: {
     }
     persist(identified);
     settle({ status: "ready", sessionId: opts.port.sessionId, requestId: identified.requestId });
+  }).catch(() => {
+    // 同步 port 异常、存储 getter 和异步等待异常都结算，不让共享尾链锁死。
+    if (activeWait) {
+      try { opts.port.cancelWait(activeWait); } catch { /* 仍须结算外部 Promise。 */ }
+    }
+    let owned = false;
+    try { owned = opts.ownerOk(); } catch { /* 无法确认 owner 时不再写。 */ }
+    settle(owned
+      ? { status: "failed", payload: current, reason: "续接或草稿保存失败,当前稿还在,可重试" }
+      : { status: "stale" });
   });
   return result;
 }
@@ -236,7 +255,7 @@ function withStatusTimeout(
 ): Promise<AnchorStatusEvent> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      port.cancelWait(requestId);
+      try { port.cancelWait(requestId); } catch { /* 取消失败仍按超时结算，不抛出定时器。 */ }
       reject(new Error(`anchor status timeout ${requestId}`));
     }, STATUS_TIMEOUT_MS);
     wait.then(

@@ -1,5 +1,7 @@
 # CTX-12 · 搬家项目
 
+- `active_status`: `retired_no_updated_source`
+- `retired_on`: `2026-10-04`
 - `as_of`: `2026-08-24`
 - `valid_until`: `2026-09-30`；报价按各自有效期更早失效。
 - `claim_scope`: 家庭硬约束用 `constraints.md`；供应商自报价格用 `vendor-quotes.md`；未批准排期只用 `moving-plan.md` 草案。

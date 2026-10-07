@@ -4,7 +4,7 @@ import { join } from "node:path";
 import type { Db } from "../storage/db.js";
 
 export const FIRST_RUN_OPENING =
-  "第一次来?随便说三件你这周要办的事,我来立账给你看——说完它们会变成右边的卡片,之后你随时可以问我『那三件事怎么样了』。";
+  "第一次来?随便说三件你这周要办的事,我们先聊清楚。聊成熟了,我会问你要不要把这件事立起来持续关注。";
 
 export type FirstRunState = "presented" | "legacy_not_eligible" | "skipped_by_user";
 type StoredFirstRunState = FirstRunState | "eligible" | "presenting";

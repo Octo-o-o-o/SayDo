@@ -10,7 +10,7 @@
     "t2-pair": "tsx src/net/pairUrl.ts",
     "backup": "tsx src/backup/cli.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run"
   },
   "dependencies": {
     "@saydo/contracts": "workspace:*",

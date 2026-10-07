@@ -34,14 +34,27 @@ export function registerExactTestRoot(path: string, hostTmp = hostTmpdir()): voi
   const dir = exactRootsDir(hostTmp);
   mkdirSync(dir, { recursive: true });
   const file = join(dir, `${String(process.pid)}.json`);
-  let paths: string[] = [];
+  let present = false;
   try {
-    const parsed = JSON.parse(readFileSync(file, "utf8")) as unknown;
-    if (parsed !== null && typeof parsed === "object" && Array.isArray((parsed as { paths?: unknown }).paths)) {
-      paths = (parsed as { paths: unknown[] }).paths.filter((item): item is string => typeof item === "string");
+    lstatSync(file);
+    present = true;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw new Error(`测试根清单读取失败:${file}`, { cause: err });
     }
-  } catch {
-    paths = [];
+  }
+  let paths: string[] = [];
+  if (present) {
+    try {
+      const manifest = parseManifest(JSON.parse(readFileSync(file, "utf8")) as unknown);
+      if (manifest.runId !== null && manifest.runId !== currentTestRunId()) {
+        throw new Error("测试根清单run归属不一致");
+      }
+      paths = manifest.paths;
+    } catch (err) {
+      // 只在 lstat 确认不存在时建立新清单。读失败、悬空链接或坏内容均保留原件。
+      throw new Error(`测试根清单读取失败:${file}`, { cause: err });
+    }
   }
   if (!paths.includes(path)) paths.push(path);
   writeFileSync(file, JSON.stringify({ runId: currentTestRunId(), paths }));
@@ -87,21 +100,28 @@ export function isOwnedTestRoot(path: string, hostTmp = hostTmpdir(), home = hom
 
 type ManifestRead = { runId: string | null; paths: string[]; corrupt?: string };
 
+function parseManifest(parsed: unknown): Omit<ManifestRead, "corrupt"> {
+  if (Array.isArray(parsed)) {
+    // 旧格式(无 runId):清扫仍按外 run 的死进程和原归属门处理。
+    if (!parsed.every((item): item is string => typeof item === "string")) {
+      throw new Error("测试根清单paths必须是字符串数组");
+    }
+    return { runId: null, paths: parsed };
+  }
+  if (parsed === null || typeof parsed !== "object") throw new Error("测试根清单形状错误");
+  const obj = parsed as { runId?: unknown; paths?: unknown };
+  if (!Array.isArray(obj.paths) || !obj.paths.every((item): item is string => typeof item === "string")) {
+    throw new Error("测试根清单paths必须是字符串数组");
+  }
+  if (obj.runId !== undefined && obj.runId !== null && typeof obj.runId !== "string") {
+    throw new Error("测试根清单runId必须是字符串");
+  }
+  return { runId: typeof obj.runId === "string" ? obj.runId : null, paths: obj.paths };
+}
+
 function readManifest(file: string): ManifestRead {
   try {
-    const parsed = JSON.parse(readFileSync(file, "utf8")) as unknown;
-    if (Array.isArray(parsed)) {
-      // 旧格式(无 runId):按外 run 处理,只能走死进程+归属验证清扫
-      return { runId: null, paths: parsed.filter((item): item is string => typeof item === "string") };
-    }
-    if (parsed !== null && typeof parsed === "object" && Array.isArray((parsed as { paths?: unknown }).paths)) {
-      const obj = parsed as { runId?: unknown; paths: unknown[] };
-      return {
-        runId: typeof obj.runId === "string" ? obj.runId : null,
-        paths: obj.paths.filter((item): item is string => typeof item === "string")
-      };
-    }
-    throw new Error("not manifest");
+    return parseManifest(JSON.parse(readFileSync(file, "utf8")) as unknown);
   } catch (err) {
     return { runId: null, paths: [], corrupt: String(err) };
   }

@@ -4,7 +4,9 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
 import { join, sep } from "node:path";
-import { textDigest, type AcceptanceCheck } from "@saydo/contracts";
+import { acceptanceExactSetViolations, jcsDigest, textDigest, verifyPackageDigest, writingSettleProofSchema, type AcceptanceCheck } from "@saydo/contracts";
+import { getPackage } from "../storage/dao/packages.js";
+import { hasTier1TerminalConflict } from "../tier1/terminalEvidence.js";
 import type { Db } from "../storage/db.js";
 
 const MAX_BODY_CHARS = 16_384;
@@ -194,6 +196,40 @@ function readTreeDiff(cwd: string, treeSha: string, relPath: string): string | n
   ].join("\n");
 }
 
+/** 旧 writing 审计无 runId 时仅凭完整当前 proof/JCS/包/批准态合取恢复绑定。 */
+export function isWritingApprovalForRun(
+  db: Db,
+  row: { actor: string; action: string; meta_json: string },
+  scope: AcceptanceEvidenceScope
+): boolean {
+  try {
+    if (row.actor !== "owner" || row.action !== "task.review_approve") return false;
+    const meta = JSON.parse(row.meta_json) as Record<string, unknown>;
+    if (Object.hasOwn(meta, "runId") && meta["runId"] !== scope.runId) return false;
+    const run = db.prepare("SELECT attempt, tree_sha, settle_proof_json FROM tier1_runs WHERE id=? AND task_id=?")
+      .get(scope.runId, scope.taskId) as { attempt: number; tree_sha: string; settle_proof_json: string } | undefined;
+    const task = db.prepare("SELECT status, project_id, package_id, package_rev, package_digest, approved_tree_sha FROM tasks WHERE id=?")
+      .get(scope.taskId) as { status: string; project_id: string; package_id: string; package_rev: number; package_digest: string; approved_tree_sha: string } | undefined;
+    if (!run || !task || !["review_approved_waiting_merge", "merging", "task_done"].includes(task.status)) return false;
+    const proof = writingSettleProofSchema.parse(JSON.parse(run.settle_proof_json));
+    if (proof.taskId !== scope.taskId || proof.runId !== scope.runId || proof.attempt !== run.attempt ||
+        proof.treeSha !== scope.treeSha || run.tree_sha !== scope.treeSha || task.approved_tree_sha !== scope.treeSha ||
+        proof.packageRevision !== task.package_rev) return false;
+    const pkg = getPackage(db, task.package_id, task.package_rev);
+    if (!pkg || pkg.projectId !== task.project_id || pkg.digest !== task.package_digest || verifyPackageDigest(pkg) !== null ||
+        acceptanceExactSetViolations(proof.acceptanceChecks, pkg.acceptance).length !== 0) return false;
+    const manual = proof.acceptanceChecks.filter(check => check.source === "manual");
+    if (meta["taskId"] !== scope.taskId || meta["kind"] !== "writing" || meta["evidenceDigest"] !== jcsDigest(proof) ||
+        meta["prospectiveTreeSha"] !== scope.treeSha || meta["attempt"] !== run.attempt || meta["acceptancePassed"] !== manual.length ||
+        !Array.isArray(meta["verdicts"])) return false;
+    const verdicts = meta["verdicts"] as { criterion?: unknown; status?: unknown }[];
+    return verdicts.length === manual.length && new Set(verdicts.map(v => v.criterion)).size === manual.length &&
+      verdicts.every(v => v.status === "pass" && manual.some(c => c.criterion === v.criterion));
+  } catch {
+    return false;
+  }
+}
+
 export function resolveAcceptanceEvidence(
   db: Db,
   ref: string,
@@ -203,10 +239,13 @@ export function resolveAcceptanceEvidence(
   if (!evidenceRef) return { evidenceRef: ref, ok: false, reason: "missing_ref" };
 
   const owner = db
-    .prepare("SELECT id, task_id, tree_sha FROM tier1_runs WHERE id=? AND task_id=?")
-    .get(scope.runId, scope.taskId) as { id: string; task_id: string; tree_sha: string | null } | undefined;
+    .prepare("SELECT id, task_id, tree_sha, attempt, state FROM tier1_runs WHERE id=? AND task_id=?")
+    .get(scope.runId, scope.taskId) as { id: string; task_id: string; tree_sha: string | null; attempt: number; state: string } | undefined;
   if (!owner) return { evidenceRef, ok: false, reason: "cross_run" };
   if ((owner.tree_sha ?? "") !== scope.treeSha) return { evidenceRef, ok: false, reason: "digest_mismatch" };
+  if (hasTier1TerminalConflict(db, scope.taskId, scope.runId, owner.state)) {
+    return { evidenceRef, ok: false, reason: "cross_run" };
+  }
 
   const verifyHit = VERIFY_RE.exec(evidenceRef);
   if (verifyHit) {
@@ -227,10 +266,10 @@ export function resolveAcceptanceEvidence(
   if (auditHit) {
     const row = db
       .prepare(
-        `SELECT action, meta_json FROM audit_log
+        `SELECT actor, action, meta_json FROM audit_log
          WHERE id=? AND json_valid(meta_json) AND json_extract(meta_json, '$.taskId')=?`
       )
-      .get(auditHit[1], scope.taskId) as { action: string; meta_json: string } | undefined;
+      .get(auditHit[1], scope.taskId) as { actor: string; action: string; meta_json: string } | undefined;
     if (!row) return { evidenceRef, ok: false, reason: "not_found" };
     let meta: Record<string, unknown> = {};
     try {
@@ -238,8 +277,13 @@ export function resolveAcceptanceEvidence(
     } catch {
       return { evidenceRef, ok: false, reason: "not_found" };
     }
-    const runId = typeof meta["runId"] === "string" ? meta["runId"] : "";
-    if (runId && runId !== scope.runId) return { evidenceRef, ok: false, reason: "cross_run" };
+    if (Object.hasOwn(meta, "runId")) {
+      if (meta["runId"] !== scope.runId) return { evidenceRef, ok: false, reason: "cross_run" };
+    } else if (!isWritingApprovalForRun(db, row, scope)) {
+      return { evidenceRef, ok: false, reason: "cross_run" };
+    }
+    if (Object.hasOwn(meta, "attempt") && meta["attempt"] !== owner.attempt) return { evidenceRef, ok: false, reason: "cross_run" };
+    if (Object.hasOwn(meta, "prospectiveTreeSha") && meta["prospectiveTreeSha"] !== scope.treeSha) return { evidenceRef, ok: false, reason: "digest_mismatch" };
     const lines = auditVerdictLines(meta);
     if (lines.length === 0) return { evidenceRef, ok: false, reason: "not_found" };
     return { evidenceRef, ok: true, kind: "log", body: sanitizeEvidenceBody(lines.join("\n")) };
@@ -281,8 +325,8 @@ export function readRunVerifyPayload(runsDir: string, runId: string): string | n
 }
 
 /**
- * verify 门失败时,无逐条绑定不得把任何验收项标成 pass。
- * 逐条 fail,evidenceRef 指向这份真实 verify.json 的 digest。全绿或无法解析则不投影。
+ * verify 门失败不等于每个 criterion 都失败;没有逐条绑定时仍为 manual/unknown。
+ * evidenceRef 只提供真实 verify 诊断,不替代逐条裁决。全绿或无法解析则不投影。
  */
 export function acceptanceChecksForFailedVerify(
   criteria: readonly string[],
@@ -305,8 +349,8 @@ export function acceptanceChecksForFailedVerify(
   const evidenceRef = `verify:${textDigest(verifyPayload)}`;
   return criteria.map((criterion) => ({
     criterion,
-    status: "fail",
-    source: "verify",
+    status: "unknown",
+    source: "manual",
     evidenceRef
   }));
 }

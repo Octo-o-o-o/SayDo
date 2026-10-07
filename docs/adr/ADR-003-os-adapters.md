@@ -158,7 +158,7 @@ quoted span 的闭合内容必须**整段**是路径(以 `/`、`~/` 或盘符绝
   避免 shebang bash。`just dev` 的三进程:Windows 用 `Start-Process` 或
   一个 Node supervisor 脚本 `scripts/dev.mjs`(推荐,跨 OS 单一入口)。
 - 当前 CI 的 `distribution` 在 Ubuntu、macOS、Windows 三平台运行制品安装验证;Node 全量单测与浏览器门仍在 Ubuntu,不能把 Windows distribution 通过称为 Windows 全量单测通过。
-  Windows 完整门禁仍须实际验收。历史 billing/pnpm 冲突不是当前失败原因,以当次 run/job/step 为准。
+  Windows 完整门禁仍须实际验收。历史单次失败原因不得沿用，须分仓库读取当次 run/job/step：2026-10-03 宿主读回私有归档 SayDo-archive 的 d023/run 36232389634，8 个 job 均因 payment/spending blocker 未启动；公开快照 SayDo 的 88aa/run 36232419283 是此前 9/26 的 Node 与三平台 distribution 失败信号，本条未重新联网验收公开 run。它们都不是本轮候选的远端 CI 结果，不能用本地基线或另一仓库的失败原因替代。
 
 ## 8. 测试纪律
 

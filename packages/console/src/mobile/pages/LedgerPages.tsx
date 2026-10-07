@@ -14,12 +14,12 @@ interface ObligationListRow {
   title: string;
   waitingOnTaskId: string | null;
   waitingOnObligationId: string | null;
-  preObligationTitle: string | null;
-  preTaskTitle: string | null;
+  waitingOnObligationTitle: string | null;
+  waitingOnTaskTitle: string | null;
   waitingTaskCondition: string | null;
   deferReason: string | null;
   dueOrTrigger: string | null;
-  blocking: number;
+  blocking: boolean;
 }
 
 const GROUPS: Array<{ owner: string; label: string }> = [
@@ -35,9 +35,9 @@ const STATUS_LABEL: Record<string, string> = {
 
 function waitingText(o: ObligationListRow): string | null {
   if (o.waitingOnTaskId) {
-    return `等任务「${o.preTaskTitle ?? o.waitingOnTaskId}」${o.waitingTaskCondition === "delivered" ? "已交付" : "验收通过"}`;
+    return `等任务「${o.waitingOnTaskTitle ?? o.waitingOnTaskId}」${o.waitingTaskCondition === "delivered" ? "已交付" : "验收通过"}`;
   }
-  if (o.waitingOnObligationId) return `等「${o.preObligationTitle ?? o.waitingOnObligationId}」`;
+  if (o.waitingOnObligationId) return `等「${o.waitingOnObligationTitle ?? o.waitingOnObligationId}」`;
   return null;
 }
 

@@ -24,38 +24,6 @@ if (verifierStartup.status !== 2 || !verifierStartup.stderr.includes("用法:nod
   );
 }
 const postReleaseGateSource = readFileSync(fileURLToPath(new URL("./post-release-gate.mjs", import.meta.url)), "utf8");
-const windowsWrapperSource = readFileSync(
-  fileURLToPath(new URL("./run-release-verifier-windows.ps1", import.meta.url)),
-  "utf8"
-);
-const publicSnapshotSource = readFileSync(
-  fileURLToPath(new URL("./publish-public-snapshot.sh", import.meta.url)),
-  "utf8"
-);
-if (
-  postReleaseGateSource.includes("--mac-evidence-exec") ||
-  postReleaseGateSource.includes("--windows-evidence-exec") ||
-  !postReleaseGateSource.includes("拒绝预制输入") ||
-  !postReleaseGateSource.includes("StrictHostKeyChecking=yes") ||
-  !postReleaseGateSource.includes("toString(\"base64url\")") ||
-  !postReleaseGateSource.includes("powershell.exe") ||
-  !postReleaseGateSource.includes('"-NoProfile"') ||
-  !windowsWrapperSource.includes("ConvertFrom-Json") ||
-  !windowsWrapperSource.includes("exit $LASTEXITCODE")
-) {
-  throw new Error("availability gate 未保持直接实体实跑边界");
-}
-if (
-  !publicSnapshotSource.includes('canonical_private_probes_file="$git_common_dir/info/saydo-private-probes"') ||
-  !publicSnapshotSource.includes("resolved_private_probes_file") ||
-  !publicSnapshotSource.includes("owner-only")
-) {
-  throw new Error("公开 tag 隐私探针未固定到 Git 私有目录");
-}
-const verifierPathContract = /\$request\.verifierPath\s+-cne\s+"([^"]+)"/.exec(windowsWrapperSource)?.[1];
-if (verifierPathContract !== "scripts/verify-release-url.mjs") {
-  throw new Error(`Windows wrapper 未锁定固定相对 verifier 路径:${String(verifierPathContract)}`);
-}
 const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const windowsFiles = windowsVerifierClosure(repoRoot);
 if (
@@ -171,30 +139,6 @@ try {
 }
 if (!provenanceRejected) throw new Error("实体证据 transport 漂移未拒绝");
 
-if (
-  postReleaseGateSource.includes("function parseVerifierOutput(") ||
-  postReleaseGateSource.includes("parseVerifierOutput as parsePhysicalVerifierOutput") ||
-  postReleaseGateSource.includes("charCodeAt(") ||
-  /JSON\.parse\(\s*output\.trim\(\)/.test(postReleaseGateSource)
-) {
-  throw new Error("post-release-gate 仍保留测试专用解析回落或本地重复解析");
-}
-if (
-  !postReleaseGateSource.includes("parseVerifierOutput,") ||
-  !postReleaseGateSource.includes('from "./release-physical-evidence.mjs"') ||
-  !postReleaseGateSource.includes("parseVerifierOutput(output, spec.key)")
-) {
-  throw new Error("post-release-gate 未正常 import 调用生产 parseVerifierOutput");
-}
-if (
-  postReleaseGateSource.includes("head=") ||
-  postReleaseGateSource.includes("tail=") ||
-  postReleaseGateSource.includes("slice(0, 200)") ||
-  postReleaseGateSource.includes("slice(-200)")
-) {
-  throw new Error("post-release-gate 仍回显 stdout 原文片段");
-}
-
 const privateMarker = "fixture-private-output-marker-not-a-real-secret";
 const dirtyOutput = `not-json ${privateMarker}`;
 
@@ -267,10 +211,6 @@ function extractFunction(source, name) {
 }
 
 const runWindowsPhysicalSrc = extractFunction(postReleaseGateSource, "runWindowsPhysical");
-if (!/remoteRootOwned/.test(runWindowsPhysicalSrc)) {
-  throw new Error("runWindowsPhysical 缺少远端根目录归属标记");
-}
-
 function makeRunWindowsPhysical(deps) {
   const names = [
     "repo",

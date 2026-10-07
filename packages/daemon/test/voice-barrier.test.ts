@@ -4,6 +4,8 @@ import { createServer, type Server } from "node:http";
 import { once } from "node:events";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { WebSocket } from "ws";
+import Database from "better-sqlite3";
+import { createSqliteAuditSink } from "../src/storage/dao/misc.js";
 import { newId } from "@saydo/contracts";
 import { VoiceHub, VOICE_WS_PROTOCOL_VERSION } from "../src/voice/hub.js";
 import type { Logger } from "../src/obs/logger.js";
@@ -999,4 +1001,27 @@ describe("repair-14 ASR 失败门顺序", () => {
     pipeline.ws.close();
     ws.close();
   });
+});
+
+// 真实 WS -> Barrier -> callback -> SQLite audit sink,同时核请求重放不重复审计。
+it("voice.anchor_prepare 真实写入 audit_log 且同请求重放不重复", async () => {
+  const db = new Database(":memory:");
+  db.exec("CREATE TABLE audit_log(id TEXT PRIMARY KEY, ts TEXT, actor TEXT, action TEXT, ref_digest TEXT, meta_json TEXT)");
+  const audit = createSqliteAuditSink(db);
+  installEvents({ onBarrierAudit: (action, meta) => { audit.record({ actor: "daemon", action, meta }); } });
+  const { ws, ack } = await connect("console");
+  const requestId = newId("evt");
+  try {
+    for (let i = 0; i < 2; i++) {
+      const status = nextJson(ws, m => m["t"] === "voice.anchor_status" && m["requestId"] === requestId);
+      ws.send(JSON.stringify(prepareMsg(ack.daemonEpoch, requestId)));
+      await status;
+    }
+    const rows = db.prepare("SELECT action, meta_json FROM audit_log WHERE action = ?").all("voice.anchor_prepare") as { action: string; meta_json: string }[];
+    expect(rows).toHaveLength(1);
+    expect(JSON.parse(rows[0]!.meta_json)).toMatchObject({ sessionId: SES, requestId, focusId: FOC });
+  } finally {
+    ws.close();
+    db.close();
+  }
 });

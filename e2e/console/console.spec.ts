@@ -1,5 +1,5 @@
 // D1 控制台冒烟(5.1/5.2):各路由渲染 + fixture 一致 + 切项目不断会话 + 截图基线(亮暗)。
-// daemon 由 global-setup 启动(固定 home/47188),console 走 daemon 静态服务(同源,G1 真 token)。
+// daemon 由 global-setup 启动(本轮唯一 home/47188),console 走 daemon 静态服务(同源,G1 真 token)。
 
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -15,12 +15,14 @@ const runtime = JSON.parse(readFileSync(join(ROOT, "e2e", "console", ".runtime.j
   lanAddress: string;
   firstRunToken: string;
   firstRunPort: number;
+  evidenceRoot: string;
 };
+const SCREENSHOTS = process.env.SAYDO_E2E_SCREENSHOT_DIR?.trim() || join(runtime.evidenceRoot, "screenshots");
 const token = runtime.token;
 
 test.beforeAll(() => {
-  mkdirSync(join(ROOT, "e2e", "screenshots", "light"), { recursive: true });
-  mkdirSync(join(ROOT, "e2e", "screenshots", "dark"), { recursive: true });
+  mkdirSync(join(SCREENSHOTS, "light"), { recursive: true });
+  mkdirSync(join(SCREENSHOTS, "dark"), { recursive: true });
 });
 
 async function open(page: Page, hash: string): Promise<void> {
@@ -205,7 +207,7 @@ test("11 路由全部渲染 + fixture 一致 + 截图基线(亮暗)", async ({ p
       await page.reload({ waitUntil: "networkidle" });
       await expect(page.locator(p.probe)).toBeVisible({ timeout: 10_000 });
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-      await page.screenshot({ path: join(ROOT, "e2e", "screenshots", theme, `${p.name}.png`), fullPage: true });
+      await page.screenshot({ path: join(SCREENSHOTS, theme, `${p.name}.png`), fullPage: true });
     }
   }
 });

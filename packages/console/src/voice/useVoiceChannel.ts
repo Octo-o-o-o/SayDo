@@ -1,3 +1,4 @@
+import { sessionStoragePort } from "../lib/sessionStoragePort";
 // console <-> daemon 语音通道(1.2 最小):hello 握手、转写流、TTS 句播放 + playout watermark 回报、
 // PTT barge-in + 真实麦克风采集(PTT 按住期间:getUserMedia -> AudioWorklet -> PCM16 16k mono
 // -> 二进制帧 0x01 + 4B BE seq + payload 上行,09 §10;hub 已路由 console->pipeline)。
@@ -238,7 +239,7 @@ export function useVoiceChannel(sessionId: string) {
     lastTextOutcome: null,
     lastTextRetryable: false,
     lastAnchorStatus: null,
-    quiescedDrafts: typeof sessionStorage !== "undefined" ? readQuiescedTranscripts(sessionStorage, sessionId) : [],
+    quiescedDrafts: typeof sessionStoragePort !== "undefined" ? readQuiescedTranscripts(sessionStoragePort, sessionId) : [],
     interviewRounds: []
   });
   const modeRef = useRef<"ptt" | "hands_free">("ptt");
@@ -288,7 +289,7 @@ export function useVoiceChannel(sessionId: string) {
   useEffect(() => {
     setState((s) => ({
       ...s,
-      quiescedDrafts: readQuiescedTranscripts(sessionStorage, sessionId)
+      quiescedDrafts: readQuiescedTranscripts(sessionStoragePort, sessionId)
     }));
   }, [sessionId]);
 
@@ -612,7 +613,7 @@ export function useVoiceChannel(sessionId: string) {
             epochChangeLeavesPendingUnknown(
               prevEpoch,
               daemonEpoch,
-              Boolean(readPendingTurnText(sessionStorage, sessionId))
+              Boolean(readPendingTurnText(sessionStoragePort, sessionId))
             )
           ) {
             lastTextOutcomeRef.current = "unknown";
@@ -620,7 +621,7 @@ export function useVoiceChannel(sessionId: string) {
             setState((s) => ({ ...s, lastTextOutcome: "unknown", lastTextRetryable: false }));
           }
           setState((s) => ({ ...s, connected: true, peerId, daemonEpoch }));
-          const pendingTurn = readPendingTurnText(sessionStorage, sessionId);
+          const pendingTurn = readPendingTurnText(sessionStoragePort, sessionId);
           if (shouldReplayPendingOnHello(pendingTurn, daemonEpoch) && pendingTurn && daemonEpoch) {
             ws.send(
               JSON.stringify({
@@ -887,7 +888,7 @@ export function useVoiceChannel(sessionId: string) {
             msg["outcome"] === "accepted" || msg["outcome"] === "rejected" || msg["outcome"] === "unknown"
               ? msg["outcome"]
               : "unknown";
-          if (outcome === "accepted") clearPendingTurnTextIfMatch(sessionStorage, sessionId, turnId);
+          if (outcome === "accepted") clearPendingTurnTextIfMatch(sessionStoragePort, sessionId, turnId);
           const retryable = msg["retryable"] === true;
           lastTextOutcomeRef.current = outcome;
           lastTextRetryableRef.current = retryable;
@@ -910,7 +911,7 @@ export function useVoiceChannel(sessionId: string) {
             ...(typeof msg["sourceFocusId"] === "string" ? { sourceFocusId: msg["sourceFocusId"] } : {})
           };
           if (item.text.trim() === "") break;
-          if (upsertQuiescedTranscript(sessionStorage, item)) {
+          if (upsertQuiescedTranscript(sessionStoragePort, item)) {
             ws.send(
               JSON.stringify({
                 t: "voice.quiesced_transcript_ack",
@@ -1158,20 +1159,20 @@ export function useVoiceChannel(sessionId: string) {
       const plan = planDesktopTurnText({
         text: t,
         daemonEpoch: daemonEpochRef.current,
-        pending: readPendingTurnText(sessionStorage, sessionId),
+        pending: readPendingTurnText(sessionStoragePort, sessionId),
         lastOutcome: lastTextOutcomeRef.current,
         lastRetryable: lastTextRetryableRef.current,
         nextTurnId: () => newId("ses")
       });
       if (!plan.ok) return false;
       const { turnId, receiptAction, daemonEpoch } = plan;
-      leaseUserTurnRef.current(turnId);
-      writePendingTurnText(sessionStorage, sessionId, {
+      if (!writePendingTurnText(sessionStoragePort, sessionId, {
         turnId,
         text: t,
         daemonEpoch,
         receiptAction
-      });
+      })) return false;
+      leaseUserTurnRef.current(turnId);
       ws.send(
         JSON.stringify({
           t: "turn.text",
@@ -1191,7 +1192,7 @@ export function useVoiceChannel(sessionId: string) {
         });
       });
       if (shouldAcceptDesktopTurn(outcome)) {
-        clearPendingTurnTextIfMatch(sessionStorage, sessionId, turnId);
+        clearPendingTurnTextIfMatch(sessionStoragePort, sessionId, turnId);
         lastTextOutcomeRef.current = "accepted";
         lastTextRetryableRef.current = false;
         setState((s) => ({
@@ -1275,7 +1276,7 @@ export function useVoiceChannel(sessionId: string) {
 
   const discardQuiescedDraft = useCallback(
     (requestId: string, turnId: string) => {
-      removeQuiescedTranscript(sessionStorage, sessionId, requestId, turnId);
+      if (!removeQuiescedTranscript(sessionStoragePort, sessionId, requestId, turnId)) return;
       setState((s) => ({
         ...s,
         quiescedDrafts: s.quiescedDrafts.filter((row) => !(row.requestId === requestId && row.turnId === turnId))

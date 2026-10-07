@@ -19,12 +19,14 @@ const REJECTED_SENTENCE_IDS = [
   "s-evt_01ABCDEFGHJKMNPQRSTVWXYZAB-0",
   "s-ctl-bogus-01ABCDEF-k3j2h1a-0",
   "s-0-1",
-  "s-evt_42-hold"
+  "s-evt_42-hold",
+  "s-evt_42-١",
+  "s-evt_42-0\n",
+  "s-evt_42-0\r\n"
 ];
 
 describe("sentence turn attribution", () => {
   it("accepts evt digits, ses ULID, and proven control turns only", () => {
-    expect(STRING_TURN).toHaveLength(30);
     expect(turnIdOfSentence("s-evt_42-0")).toBe("evt_42");
     expect(turnIdOfSentence("s-evt_7-12")).toBe("evt_7");
     expect(turnIdOfSentence(`s-${STRING_TURN}-3`)).toBe(STRING_TURN);
@@ -76,7 +78,7 @@ describe("sentence turn attribution", () => {
     expect(seen.size).toBe(2);
   });
 
-  it("playout dedup clears after the existing bound and still records that sentence", () => {
+  it("首播去重超过上限只淘汰最旧 turn，最近 turn 不重复计入", () => {
     const seen = new Set<string>();
     let calls = 0;
     for (let index = 1; index <= PLAYOUT_SEEN_MAX + 1; index += 1) {
@@ -86,6 +88,15 @@ describe("sentence turn attribution", () => {
       });
     }
     expect(calls).toBe(PLAYOUT_SEEN_MAX + 1);
-    expect(seen.size).toBe(0);
+    expect(seen.size).toBe(PLAYOUT_SEEN_MAX);
+    expect(seen.has("evt_1")).toBe(false);
+    expect(seen.has("evt_2")).toBe(true);
+    for (const index of [2, PLAYOUT_SEEN_MAX, PLAYOUT_SEEN_MAX + 1]) {
+      notePlayout(seen, `s-evt_${index}-1`, 999, () => {
+        calls += 1;
+        return null;
+      });
+    }
+    expect(calls).toBe(PLAYOUT_SEEN_MAX + 1);
   });
 });

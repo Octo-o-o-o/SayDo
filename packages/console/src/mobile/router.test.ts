@@ -32,6 +32,7 @@ describe("M1 移动 hash 路由", () => {
     expect(desktopRouteForMobileHash("#/m/card/task/tsk_1")).toBe("/today");
     expect(desktopRouteForMobileHash("#/m/chat")).toBe("/chat-new");
     expect(desktopRouteForMobileHash("#/today")).toBeNull();
+    expect(desktopRouteForMobileHash("#/memory")).toBeNull();
   });
 
   it("视口边界严格为小于 768px", () => {

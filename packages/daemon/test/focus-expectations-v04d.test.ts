@@ -40,6 +40,7 @@ import {
   ConfirmationLoop,
   type PendingPayload
 } from "../src/live/confirm.js";
+import { createSqliteAuditSink } from "../src/storage/dao/misc.js";
 import { openDb, type Db } from "../src/storage/db.js";
 import { insertPackage } from "../src/storage/dao/packages.js";
 
@@ -120,7 +121,7 @@ function makePkg(
 }
 
 function auditSink() {
-  return { record: () => ({ id: "aud_test" }) };
+  return createSqliteAuditSink(db);
 }
 
 let db: Db;

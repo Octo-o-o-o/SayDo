@@ -10,6 +10,7 @@ import {
   SE_DACL_PROTECTED,
   applyWin32OwnerOnlyAclReadback,
   canonicalizeWin32SidToken,
+  decodeWin32AllowedAce,
   setWin32AclReadbackForTests,
   type Win32AclAceView,
   type Win32AclReadbackView
@@ -105,5 +106,53 @@ describe("applyWin32OwnerOnlyAclReadback 生产回读注入", () => {
     expect(() => applyWin32OwnerOnlyAclReadback(PATH, OWNER, "file")).toThrow(/mask mismatch/u);
     inject(view({ aces: [{ ...allowAce(OWNER, "dir"), aceFlags: 0 }] }));
     expect(() => applyWin32OwnerOnlyAclReadback(PATH, OWNER, "dir")).toThrow(/flags mismatch/u);
+  });
+});
+
+
+describe("native ACE 解码边界", () => {
+  it("未知 ACE 类型只读类型头，不尝试固定偏移的 SID", () => {
+    const reads: number[] = [];
+    expect(() => decodeWin32AllowedAce((offset) => {
+      reads.push(offset);
+      if (offset !== 0) throw new Error("unexpected memory read");
+      return 5; // ACCESS_ALLOWED_OBJECT_ACE 的 SID 位置取决于 flags。
+    })).toThrow(/ACE type not allow/u);
+    expect(reads).toEqual([0]);
+  });
+
+  it("短 ACE 在读取 SID subauthority count 前拒绝", () => {
+    const reads: number[] = [];
+    expect(() => decodeWin32AllowedAce((offset) => {
+      reads.push(offset);
+      if (offset === 0) return ACCESS_ALLOWED_ACE_TYPE;
+      if (offset === 2) return 8;
+      throw new Error("out of bounds read");
+    })).toThrow(/ACE size invalid/u);
+    expect(reads).toEqual([0, 2]);
+  });
+
+  it("SID 长度超出 ACE 时不读取 SID 正文", () => {
+    const reads: number[] = [];
+    expect(() => decodeWin32AllowedAce((offset) => {
+      reads.push(offset);
+      if (offset === 0) return ACCESS_ALLOWED_ACE_TYPE;
+      if (offset === 2) return 16;
+      if (offset === 9) return 2;
+      throw new Error("out of bounds read");
+    })).toThrow(/SID truncated/u);
+    expect(reads).toEqual([0, 2, 9]);
+  });
+
+  it("合法 allow ACE 在边界内解码完整 SID 和权限", () => {
+    const bytes = Buffer.alloc(20);
+    bytes.writeUInt16LE(20, 2);
+    bytes.writeUInt32LE(OWNER_ONLY_FILE_MASK, 4);
+    bytes[8] = 1;
+    bytes[9] = 1;
+    bytes[15] = 5;
+    bytes.writeUInt32LE(18, 16);
+    const decoded = decodeWin32AllowedAce((offset, type) => type === "uint8" ? bytes.readUInt8(offset) : type === "uint16" ? bytes.readUInt16LE(offset) : bytes.readUInt32LE(offset));
+    expect(decoded).toEqual({ aceType: 0, aceFlags: 0, mask: OWNER_ONLY_FILE_MASK, sidBuf: bytes.subarray(8) });
   });
 });

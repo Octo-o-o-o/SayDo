@@ -800,7 +800,8 @@ export const MIGRATIONS: ReadonlyArray<Migration> = [
   { version: 30, apply: applyDdlV30NativeSessionConfirmed },
   { version: 31, apply: applyDdlV31FinalizePending },
   { version: 32, apply: applyDdlV32OutboxThreadMessageId },
-  { version: 33, apply: applyDdlV33TaskDependency }
+  { version: 33, apply: applyDdlV33TaskDependency },
+  { version: 34, apply: (db) => addColumnIfMissing(db, "tier1_runs", "budget_clock_complete", "INTEGER NOT NULL DEFAULT 0 CHECK (budget_clock_complete IN (0,1))") }
 ];
 
 // v29(D1 可分发运行时):可恢复退出使用 additive marker,不扩 tier1 run 状态机。
