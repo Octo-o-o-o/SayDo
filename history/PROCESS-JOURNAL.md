@@ -6221,3 +6221,10 @@ E工作稿doclinks/schedule/emoji/privacy-fs/diff真实exit0，`close-gates-I57.
 - 行动：仅增强原shell安装harness，真实坏digest拒绝、npm零调用与唯一固定tgz及下载/校验/消费内容绑定；已有独立风险期望充分，不重复加legacy表。外置两个实际脚本突变均被新增断言抓住。
 - 产出：代码c6e621c45aabe5642796546a4c2080ea1584bc9f，单测试文件净增94行；双实施核验无阻塞且各自安装专项通过。完整记录research/codex-findings/2026-10-07-gates-round2-phase2.md，外部日志bytes/SHA同列。
 - 结论：最终release/precommit通过，未变产品沿用第一阶段本地基线，不冒称重跑。另归档后移除101旧副本与3条已合并分支，恢复包留仓外；待本证据提交后执行已授权main合并、私有与过滤公开GitHub同步。未授予真实设备/provider/部署通过。
+
+### 2026-10-07 托管 CI 共享依赖回修（本任务第 5 轮）
+
+- 输入：已合并/推送59f71c5e及公开3f48fbf2，两个真实Node job各有2项memory-retrieval因spawn rg ENOENT失败；其余Python、浏览器、tools/release通过。
+- 行动：定位第一轮误删旧emoji scanner安装步骤，同时漏掉产品仓库检索消费者；仅恢复Node CI的ripgrep运行依赖，不跳过测试。fresh非作者只读核验无阻塞。
+- 产出：代码5fb897c5128cce18c7beda61eeb5e391a299cc09；失败日志bytes/SHA和范围见research/codex-findings/2026-10-07-gates-ci-dependency-fix.md。
+- 结论：源码回修已验，修复后托管CI仍待本证据提交和双仓推送后实际确认；原失败证据保留。

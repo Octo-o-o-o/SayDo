@@ -23,6 +23,9 @@ jobs:
           # Major pin only; patch is whatever this pinned setup-node SHA resolves for 22.
           node-version: 22
           cache: pnpm
+      - name: 安装仓库检索运行依赖
+        # memory/retrieval 的仓库现读实际调用 rg，与已退役的扫描门无关。
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
       - run: pnpm install --frozen-lockfile
       - run: pnpm ci:node
 
