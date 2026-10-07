@@ -9,7 +9,6 @@ import { createOpenAICompatProvider } from "../src/providers/openaiCompat.js";
 import { breakdown, decompose, percentile, type LatencyTrace } from "../src/obs/latency.js";
 import { detectNegationRevision, captureNegation } from "../src/memory/negation.js";
 import { MemoryLedger } from "../src/memory/ledger.js";
-import { detectDrift, type SentinelBaseline, type SentinelSample } from "../src/voice/driftSentinel.js";
 import type { AuditSink } from "../src/obs/audit.js";
 
 const nullAudit: AuditSink = { record: () => ({ id: "aud_x" }) };
@@ -103,28 +102,5 @@ describe("M5 否定/修订即时落账本", () => {
     expect(ev).not.toBeNull();
     if (ev && ev.op === "add") expect(ev.trust).toBe("user_stated");
     expect(captureNegation(ledger, { utterance: "继续", turnRef: "ses_01AAAAAAAAAAAAAAAAAAAAAAAA" })).toBeNull();
-  });
-});
-
-describe("M10 TTS 漂移哨兵", () => {
-  const baseSample = (text: string): SentinelSample => ({
-    text,
-    durationMs: 2000,
-    loudnessEnvelope: [0.1, 0.5, 0.8, 0.6, 0.3],
-    asrRoundtrip: text
-  });
-  const baseline: SentinelBaseline = { capturedAt: "2026-07-20", samples: [baseSample("句子一"), baseSample("句子二")] };
-
-  it("无漂移 ⇒ 空;时长超阈值 / ASR 回转不一致 ⇒ finding", () => {
-    expect(detectDrift(baseline, [baseSample("句子一")])).toEqual([]);
-    const durDrift = detectDrift(baseline, [{ ...baseSample("句子一"), durationMs: 2600 }]); // +30% > 15%
-    expect(durDrift.some((f) => f.kind === "duration")).toBe(true);
-    const asrDrift = detectDrift(baseline, [{ ...baseSample("句子一"), asrRoundtrip: "句子壹(漂移)" }]);
-    expect(asrDrift.some((f) => f.kind === "asr_roundtrip")).toBe(true);
-  });
-
-  it("响度包络形状漂移 ⇒ finding", () => {
-    const envDrift = detectDrift(baseline, [{ ...baseSample("句子一"), loudnessEnvelope: [0.9, 0.1, 0.1, 0.1, 0.9] }]);
-    expect(envDrift.some((f) => f.kind === "envelope")).toBe(true);
   });
 });

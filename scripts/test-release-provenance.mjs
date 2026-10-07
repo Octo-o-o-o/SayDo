@@ -32,15 +32,13 @@ import {
   serializeReleaseAssetManifest
 } from "./release-asset-manifest.mjs";
 import {
-  WEEK_AUDIT_WRITE_OUTPUTS,
   assertSafeDirMemberName,
   defaultFsIo,
   replaceRegularFileInPlace,
   runMutationsWithRollback,
   writeDirAtomic,
   writeFdFully,
-  writeFileAtomic,
-  writeWeekAuditOutputs
+  writeFileAtomic
 } from "./release-file-transaction.mjs";
 import { applyAvailabilityReplacementsFromSnapshot } from "./release-availability.mjs";
 import {
@@ -90,7 +88,6 @@ import {
   evaluateTagWorkflowHistory,
   githubRefPatternMatches
 } from "./release-tag-guard.mjs";
-import { assertPublicationExactSet, privateExcludedIdentity } from "./week-audit-publication.mjs";
 import {
   ANCHORED_FAILURE_TUPLES,
   HELPER_STDIN_OPEN_MODE,
@@ -794,7 +791,6 @@ async function testDeployStateMachine() {
     const calls = [];
     const persisted = [];
     const durable = [];
-    const durableAtAudit = [];
     try {
       const error = await (async () => {
         try {
@@ -855,24 +851,7 @@ async function testDeployStateMachine() {
               if (fail === "completed-persist" && evidence.status === "completed") {
                 throw new Error("persist completed");
               }
-              if (fail === "audit-failed-persist-retry" && evidence.status === "audit_failed") {
-                const attempts = persisted.filter((item) => item.status === "audit_failed").length;
-                if (attempts === 1) throw new Error("audit_failed persist first");
-              }
-              if (fail === "audit-failed-persist-continuous" && evidence.status === "audit_failed") {
-                throw new Error("持续 audit persist failure");
-              }
               durable.push(structuredClone(evidence));
-            },
-            audit: async () => {
-              durableAtAudit.push(...durable.map((item) => item.status));
-              calls.push(["audit"]);
-              if (durableAtAudit.includes("completed")) {
-                throw new Error("audit 调用前的耐久快照绝无 completed");
-              }
-              if (fail === "audit" || fail === "audit-failed-persist-retry" || fail === "audit-failed-persist-continuous") {
-                throw new Error("audit failed");
-              }
             },
             lease: handle.lease
           });
@@ -881,7 +860,7 @@ async function testDeployStateMachine() {
           return { evidence: persisted.at(-1) ?? null, error: caught };
         }
       })();
-      return { name, fail, calls, persisted, durable, durableAtAudit, ...error };
+      return { name, fail, calls, persisted, durable, ...error };
     } finally {
       cleanupLease(handle);
     }
@@ -923,16 +902,6 @@ async function testDeployStateMachine() {
   if (!persistFirst.error?.persistFailed) throw new Error("evidence 持久化失败未标记 persistFailed");
   if (persistFirst.calls.some((item) => item[0] === "wrangler")) throw new Error("started 持久化失败后仍调用 Wrangler");
 
-  const audit = await runCase("audit", "audit");
-  if (!audit.error || audit.persisted.at(-1)?.status !== "audit_failed") throw new Error("audit 失败未写 audit_failed");
-  if (audit.persisted.at(-1)?.sites?.some((site) => site.production.status !== "deployed")) {
-    throw new Error("audit 失败覆盖了真实部署结果");
-  }
-  if (!audit.durable.some((item) => item.status === "audit_pending")) throw new Error("audit 失败前未耐久化 audit_pending");
-  if (audit.durable.some((item) => item.status === "completed") || audit.durableAtAudit.includes("completed")) {
-    throw new Error("audit 失败路径出现 completed");
-  }
-
   const success = await runCase("success", null);
   if (success.error) throw new Error(`全成功路径失败:${success.error.message}`);
   const wranglerOrder = success.calls.filter((item) => item[0] === "wrangler").map((item) => `${item[1]}:${item[2]}:${item[3]}`);
@@ -950,28 +919,19 @@ async function testDeployStateMachine() {
   if (success.persisted[0]?.status !== "started" || success.evidence.status !== "completed") {
     throw new Error("全成功路径未从 started 到 completed");
   }
-  if (!success.calls.some((item) => item[0] === "audit") || !success.calls.some((item) => item[0] === "readProject")) {
-    throw new Error("全成功路径缺 audit 或 project production readback");
+  if (!success.calls.some((item) => item[0] === "readProject")) {
+    throw new Error("全成功路径缺 project production readback");
   }
   if (success.calls.filter((item) => item[0] === "listDeployments").length !== 4) {
     throw new Error("全成功路径未对每次部署做 deployment list readback");
   }
-  const auditCallAt = success.calls.findIndex((item) => item[0] === "audit");
-  const persistBeforeAudit = success.calls.slice(0, auditCallAt).filter((item) => item[0] === "persist");
-  const persistAfterAudit = success.calls.slice(auditCallAt).filter((item) => item[0] === "persist");
-  if (auditCallAt < 0 || persistBeforeAudit.at(-1)?.[1] !== "audit_pending") {
-    throw new Error("audit_pending 正常落盘顺序失败: audit 前最后耐久态不是 audit_pending");
-  }
-  if (persistBeforeAudit.some((item) => item[1] === "completed") || success.durableAtAudit.includes("completed")) {
-    throw new Error("audit 调用前的耐久快照绝无 completed");
-  }
-  if (persistAfterAudit[0]?.[1] !== "completed" || success.durable.at(-1)?.status !== "completed") {
-    throw new Error("audit 成功后未把 completed 落盘");
+  const finalStates = success.durable.map((item) => item.status);
+  if (finalStates.at(-2) !== "audit_pending" || finalStates.at(-1) !== "completed") {
+    throw new Error("本地收口必须先耐久 pending，再耐久 completed");
   }
 
   const pendingPersist = await runCase("audit-pending-persist", "audit-pending-persist");
   if (!pendingPersist.error?.persistFailed) throw new Error("audit_pending persist 失败未标记 persistFailed");
-  if (pendingPersist.calls.some((item) => item[0] === "audit")) throw new Error("audit_pending persist 失败后仍运行 audit");
   if (pendingPersist.error.lastDurableStatus === "completed" || pendingPersist.durable.some((item) => item.status === "completed")) {
     throw new Error("audit_pending persist 失败后出现 completed");
   }
@@ -979,44 +939,12 @@ async function testDeployStateMachine() {
     throw new Error("audit_pending persist 失败仍被记为耐久成功");
   }
 
-  const auditFailedRetry = await runCase("audit-failed-persist-retry", "audit-failed-persist-retry");
-  if (!auditFailedRetry.error || auditFailedRetry.error.persistFailed) {
-    throw new Error("audit 抛错且 audit_failed 首次 persist 失败后 retry 成功 不应标记 persistFailed");
-  }
-  if (auditFailedRetry.error.message !== "部署失败") throw new Error("retry 成功后未抛出受控常量错误");
-  if (auditFailedRetry.durable.at(-1)?.status !== "audit_failed") throw new Error("audit_failed 首次 persist 失败后 retry 未落盘");
-  if (auditFailedRetry.durable.some((item) => item.status === "completed") || auditFailedRetry.durableAtAudit.includes("completed")) {
-    throw new Error("audit_failed retry 路径出现 completed");
-  }
-  if (auditFailedRetry.persisted.filter((item) => item.status === "audit_failed").length < 2) {
-    throw new Error("audit_failed 未做 emergency retry");
-  }
-
-  const auditFailedContinuous = await runCase("audit-failed-persist-continuous", "audit-failed-persist-continuous");
-  if (!(auditFailedContinuous.error instanceof AggregateError) || !auditFailedContinuous.error.persistFailed) {
-    throw new Error("持续 audit persist failure 未聚合 persistFailed");
-  }
-  if (auditFailedContinuous.error.lastDurableStatus !== "audit_pending") {
-    throw new Error(`持续 audit persist failure 最后耐久态不是 audit_pending:${String(auditFailedContinuous.error.lastDurableStatus)}`);
-  }
-  const aggregated = auditFailedContinuous.error.errors.map((item) => String(item?.message ?? item));
-  if (aggregated.some((message) => message.includes("audit failed") || message.includes("持续 audit persist failure"))) {
-    throw new Error("持续 audit persist failure 泄漏了未拥有错误原文");
-  }
-  if (!aggregated.every((message) => message === "部署失败")) {
-    throw new Error("持续 audit persist failure 未收敛为受控常量");
-  }
-  if (auditFailedContinuous.durable.at(-1)?.status !== "audit_pending" || auditFailedContinuous.durable.some((item) => item.status === "completed")) {
-    throw new Error("持续 audit persist failure 耐久态被推进到成功终态");
-  }
-
   const completedPersist = await runCase("completed-persist", "completed-persist");
-  if (!completedPersist.error?.persistFailed) throw new Error("audit 成功但 completed persist 失败 未标记 persistFailed");
+  if (!completedPersist.error?.persistFailed) throw new Error("本地 completed persist 失败 未标记 persistFailed");
   if (completedPersist.error.lastDurableStatus !== "audit_pending") {
     throw new Error(`completed persist 失败后最后耐久态不是 audit_pending:${String(completedPersist.error.lastDurableStatus)}`);
   }
-  if (!completedPersist.calls.some((item) => item[0] === "audit")) throw new Error("completed persist 失败路径未调用 audit");
-  if (completedPersist.durable.some((item) => item.status === "completed") || completedPersist.durableAtAudit.includes("completed")) {
+  if (completedPersist.durable.some((item) => item.status === "completed")) {
     throw new Error("completed persist 失败仍把 completed 记为耐久成功");
   }
 
@@ -1117,9 +1045,6 @@ async function testDeployStateMachine() {
               calls.push(["persist", snapshot.status]);
               durable.push(structuredClone(snapshot));
             },
-            audit: async () => {
-              calls.push(["audit"]);
-            },
             ...restOverrides,
             lease: handle.lease
           });
@@ -1141,7 +1066,6 @@ async function testDeployStateMachine() {
   const recoverPending = await runRecovery("既有 audit_pending", recoverySnapshot("audit_pending"));
   if (recoverPending.error) throw new Error(`既有 audit_pending 恢复失败:${recoverPending.error.message}`);
   assertZeroRedeploy(recoverPending, "既有 audit_pending");
-  if (!recoverPending.calls.some((item) => item[0] === "audit")) throw new Error("既有 audit_pending 恢复未跑 audit");
   if (recoverPending.calls.filter((item) => item[0] === "listDeployments").length !== 4) {
     throw new Error("既有 audit_pending 恢复未重列 preview/production");
   }
@@ -1172,7 +1096,6 @@ async function testDeployStateMachine() {
     const result = await runRecovery(name, existing, overrides);
     if (!result.error) throw new Error(`反例未拒绝:${name}`);
     assertZeroRedeploy(result, name);
-    if (result.calls.some((item) => item[0] === "audit")) throw new Error(`${name} 漂移仍调用了 audit`);
     if (result.persisted.length !== 0) throw new Error(`${name} 覆盖了既有 evidence`);
     return result;
   }
@@ -1236,10 +1159,9 @@ async function testDeployStateMachine() {
       if (!result.error) throw new Error(`畸形证据未拒绝:${name}`);
       const wranglerCalls = result.calls.filter((item) => item[0] === "wrangler").length;
       const persistCalls = result.calls.filter((item) => item[0] === "persist").length;
-      const auditCalls = result.calls.filter((item) => item[0] === "audit").length;
-      if (wranglerCalls !== 0 || persistCalls !== 0 || auditCalls !== 0) {
+      if (wranglerCalls !== 0 || persistCalls !== 0) {
         throw new Error(
-          `畸形证据 ${name} 发生 mutation: wrangler=${wranglerCalls} persist=${persistCalls} audit=${auditCalls}`
+          `畸形证据 ${name} 发生 mutation: wrangler=${wranglerCalls} persist=${persistCalls}`
         );
       }
     }
@@ -1249,9 +1171,8 @@ async function testDeployStateMachine() {
     function assertNoMutationCalls(result, label) {
       const wranglerCalls = result.calls.filter((item) => item[0] === "wrangler").length;
       const persistCalls = result.calls.filter((item) => item[0] === "persist").length;
-      const auditCalls = result.calls.filter((item) => item[0] === "audit").length;
-      if (wranglerCalls !== 0 || persistCalls !== 0 || auditCalls !== 0) {
-        throw new Error(`${label} 发生 mutation: wrangler=${wranglerCalls} persist=${persistCalls} audit=${auditCalls}`);
+      if (wranglerCalls !== 0 || persistCalls !== 0) {
+        throw new Error(`${label} 发生 mutation: wrangler=${wranglerCalls} persist=${persistCalls}`);
       }
     }
 
@@ -1298,9 +1219,6 @@ async function testDeployStateMachine() {
             calls.push(["persist", snapshot.status]);
             persisted.push(structuredClone(snapshot));
             persistClaimedDeployEvidence(lease, snapshot);
-          },
-          audit: async () => {
-            calls.push(["audit"]);
           },
           lease
         });
@@ -1457,9 +1375,6 @@ async function testDeployStateMachine() {
     });
     if (!recoverMalicious.error) throw new Error("恢复路径恶意 canonical id 未拒绝");
     assertZeroRedeploy(recoverMalicious, "recovery malicious canonical id");
-    if (recoverMalicious.calls.some((item) => item[0] === "audit")) {
-      throw new Error("恢复路径恶意 canonical id 仍调用了 audit");
-    }
     if (recoverMalicious.persisted.length !== 0) throw new Error("恢复路径恶意 canonical id 覆盖了既有 evidence");
     assertNoResultLeak(
       [recoverMalicious.error.message, recoverMalicious.error.stack, ...recoverMalicious.persisted],
@@ -1492,9 +1407,6 @@ async function testDeployStateMachine() {
           fetchHttp: async (url) => ({ ok: true, status: 200, url, body: currentAvailabilityBody() }),
           persist: async (snapshot) => {
             freshPersisted.push(structuredClone(snapshot));
-          },
-          audit: async () => {
-            throw new Error("不应 audit");
           },
           officialPages: officialPagesFixture,
           lease: freshHandle.lease
@@ -1556,9 +1468,6 @@ async function testDeployStateMachine() {
               calls.push(["persist", snapshot.status]);
               persisted.push(structuredClone(snapshot));
             },
-            audit: async () => {
-              calls.push(["audit"]);
-            },
             officialPages: officialPagesFixture,
             lease: handle.lease,
             ...overrides
@@ -1582,6 +1491,8 @@ async function testDeployStateMachine() {
           publicMain: seed.publicMain,
           url: previewUrl(project)
         });
+        // 注入真实自有数据字段；仅 get trap 不会被安全投影读取。
+        rec.id = selectedMaliciousId;
         return [
           new Proxy(rec, {
             get(target, property, receiver) {
@@ -1594,12 +1505,13 @@ async function testDeployStateMachine() {
           })
         ];
       },
-      audit: async () => {
-        throw new Error(`audit ${bodyFragment}`);
-      }
     });
     if (!selectedAttack.error) throw new Error("selected Bearer id 未拒绝");
-    if (selectedAttack.calls.some((item) => item[0] === "audit")) throw new Error("selected Bearer id 仍调用了 audit");
+    if (selectedAttack.persisted.at(-1)?.failedStage !== "preview:saydo" ||
+        selectedAttack.calls.filter((item) => item[0] === "wrangler").length !== 1 ||
+        selectedAttack.persisted.some((item) => item.status === "audit_pending" || item.status === "completed")) {
+      throw new Error("恶意 deployment identity 必须在首个 preview 读回时拒绝，不能由后续收口异常托底");
+    }
     assertNoResultLeak(
       leakBlobs(selectedAttack.error, selectedAttack.persisted, [selectedAttack.stdout, selectedAttack.evidence]),
       "fresh selected Bearer id",
@@ -1617,9 +1529,6 @@ async function testDeployStateMachine() {
         projectReadback(project, {
           domains: [canonicalHost(project), project === "saydo" ? "saydo.octoooo.com" : "link.saydo.octoooo.com", maliciousDomain, domainFragment]
         }),
-      audit: async () => {
-        throw new Error("audit failed");
-      }
     });
     if (!extraDomainAttack.error) throw new Error("extra domain 未拒绝");
     if (extraDomainAttack.calls.some((item) => item[0] === "wrangler")) throw new Error("extra domain 仍调用了 Wrangler");
@@ -1668,7 +1577,6 @@ async function testDeployStateMachine() {
     });
     if (!recoverSelected.error) throw new Error("恢复路径 selected Bearer id 未拒绝");
     assertZeroRedeploy(recoverSelected, "recovery selected Bearer id");
-    if (recoverSelected.calls.some((item) => item[0] === "audit")) throw new Error("恢复路径 selected Bearer id 仍调用了 audit");
     assertNoResultLeak(leakBlobs(recoverSelected.error, recoverSelected.persisted), "recovery selected Bearer id", [
       selectedToken,
       selectedFragment,
@@ -1678,8 +1586,8 @@ async function testDeployStateMachine() {
     const concurrentDir = mkdtempSync(join(tmpdir(), "saydo-claim-race-"));
     const concurrentPath = join(concurrentDir, "evidence.json");
     try {
-      const countersA = { wrangler: 0, persist: 0, audit: 0 };
-      const countersB = { wrangler: 0, persist: 0, audit: 0 };
+      const countersA = { wrangler: 0, persist: 0 };
+      const countersB = { wrangler: 0, persist: 0 };
       async function concurrentCaller(counters) {
         const calls = [];
         let lease;
@@ -1716,10 +1624,6 @@ async function testDeployStateMachine() {
               counters.persist += 1;
               persistClaimedDeployEvidence(lease, snapshot);
             },
-            audit: async () => {
-              calls.push(["audit"]);
-              counters.audit += 1;
-            },
             officialPages: officialPagesFixture,
             lease
           });
@@ -1744,9 +1648,9 @@ async function testDeployStateMachine() {
       if (winner.error) throw new Error(`并发 winner 失败:${winner.error.message}`);
       if (!loser.error) throw new Error("并发 loser 未失败");
       if (winnerCounters.wrangler !== 4) throw new Error(`并发 winner Wrangler 次数不符:${winnerCounters.wrangler}`);
-      if (loserCounters.wrangler !== 0 || loserCounters.persist !== 0 || loserCounters.audit !== 0) {
+      if (loserCounters.wrangler !== 0 || loserCounters.persist !== 0) {
         throw new Error(
-          `并发 loser 发生外部动作: wrangler=${loserCounters.wrangler} persist=${loserCounters.persist} audit=${loserCounters.audit}`
+          `并发 loser 发生外部动作: wrangler=${loserCounters.wrangler} persist=${loserCounters.persist}`
         );
       }
       if (winnerCounters.wrangler + loserCounters.wrangler !== 4) {
@@ -1840,7 +1744,6 @@ try {
           },
           fetchHttp: async () => ({ ok: true, status: 200 }),
           persist: async () => {},
-          audit: async () => {},
           ...blockedCloudflare,
           ...args,
           lease: handle.lease
@@ -1905,7 +1808,6 @@ try {
       persist: async (snapshot) => {
         extraPersisted.push(structuredClone(snapshot));
       },
-      audit: async () => {},
       officialPages: officialPagesFixture,
       lease: extraSeedHandle.lease
     });
@@ -2345,7 +2247,6 @@ async function testCloudflareBinding() {
           persist: async (evidence) => {
             persisted.push(structuredClone(evidence));
           },
-          audit: async () => {},
           officialPages: officialPagesFixture,
           ...overrides,
           lease: handle.lease
@@ -3007,32 +2908,116 @@ async function testCloudflareRestClient() {
   );
 }
 
-function testWeekAuditAtomicWriter() {
-  const root = mkdtempSync(join(tmpdir(), "saydo-audit-write-"));
+// 整个 fixture 在隔离子进程运行；生产函数不提供测试 env/adapter 接口。
+function testTrustedPhysicalToolsGitSource() {
+  const root = mkdtempSync(join(tmpdir(), "saydo-source-git-"));
   try {
-    const files = WEEK_AUDIT_WRITE_OUTPUTS.map((relative, index) => [join(root, relative), `out-${index}\n`]);
-    for (const [path] of files) mkdirSync(dirname(path), { recursive: true });
-    let renames = 0;
-    writeWeekAuditOutputs(files, (path, content) => {
-      writeFileAtomic(path, content, {
-        ...defaultFsIo,
-        rename(from, to) {
-          renames += 1;
-          return defaultFsIo.rename(from, to);
-        }
-      });
+    const config = join(root, "empty-git-config");
+    const hooks = join(root, "empty-hooks");
+    writeFileSync(config, "");
+    mkdirSync(hooks);
+    const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^GIT_/i.test(key)));
+    Object.assign(env, {
+      GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_SYSTEM: config, GIT_CONFIG_GLOBAL: config,
+      GIT_TERMINAL_PROMPT: "0", GIT_ALLOW_PROTOCOL: "file", GIT_CONFIG_COUNT: "5",
+      GIT_CONFIG_KEY_0: "core.hooksPath", GIT_CONFIG_VALUE_0: hooks,
+      GIT_CONFIG_KEY_1: "commit.gpgsign", GIT_CONFIG_VALUE_1: "false",
+      GIT_CONFIG_KEY_2: "tag.gpgsign", GIT_CONFIG_VALUE_2: "false",
+      GIT_CONFIG_KEY_3: "core.autocrlf", GIT_CONFIG_VALUE_3: "false",
+      GIT_CONFIG_KEY_4: "init.defaultBranch", GIT_CONFIG_VALUE_4: "main"
     });
-    if (renames !== 7) throw new Error(`week-audit writer 未对 7 个输出做 atomic rename:${renames}`);
-    for (const [path, content] of files) {
-      if (readFileSync(path, "utf8") !== content) throw new Error(`week-audit writer 字节不符:${path}`);
-    }
+    const child = spawnSync(process.execPath, ["--input-type=module", "-e", `(${physicalGitFixture.toString()})(...process.argv.slice(1));`, repo, root], {
+      env, encoding: "utf8", timeout: 90_000, maxBuffer: 4 * 1024 * 1024
+    });
+    if (child.error || child.status !== 0) throw new Error(`真实 Git 来源 fixture 失败:${child.error?.message ?? child.stderr}`);
+    if (child.stdout.trim() !== "physical-git-source:ok") throw new Error("真实 Git 来源 fixture 未到达终态");
+    console.log("[ok] physical Git source: HEAD/fetch/clean/remote/tag/hidden-byte invariants");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 }
 
+async function physicalGitFixture(sourceRepo, root) {
+  const assert = (await import("node:assert/strict")).default;
+  const { execFileSync, spawnSync } = await import("node:child_process");
+  const { readFileSync, writeFileSync, rmSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const { pathToFileURL } = await import("node:url");
+  const { trustedPhysicalTools, physicalToolClosure, materializeClosure, hashClosureFiles } =
+    await import(pathToFileURL(join(sourceRepo, "scripts/release-physical-closure.mjs")).href);
+  const repo = join(root, "work");
+  const publicUrl = join(root, "public.git");
+  const git = (args, cwd = repo) => execFileSync("git", args, {
+    cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 4 * 1024 * 1024
+  }).trim();
+  materializeClosure(sourceRepo, physicalToolClosure(sourceRepo), repo);
+  git(["init", "--initial-branch=main"]);
+  git(["config", "user.name", "SayDo fixture"]);
+  git(["config", "user.email", "fixture@example.invalid"]);
+  git(["add", "."]);
+  git(["commit", "-m", "release tools"]);
+  const releaseTagSha = git(["rev-parse", "HEAD"]);
+  git(["clone", "--bare", repo, publicUrl], root);
+  git(["remote", "add", "public", publicUrl]);
+  const tag = "v0.0.0-fixture";
+  const fetchRef = `refs/remotes/public/release-${tag}`;
+  const files = physicalToolClosure(repo);
+  const run = () => trustedPhysicalTools({ repo, releaseTagSha, publicUrl, tag });
+  const successfulSource = () => {
+    git(["update-ref", "-d", fetchRef]);
+    const before = spawnSync("git", ["show-ref", "--verify", "--quiet", fetchRef], { cwd: repo });
+    assert.equal(before.status, 1, "成功路径前 fetch ref 必须不存在");
+    const actual = run();
+    assert.equal(git(["rev-parse", fetchRef]), releaseTagSha, "真实 fetch 必须建立 release ref");
+    assert.equal(actual.implementationBoundary, git(["rev-parse", "HEAD"]));
+    assert.deepEqual(actual.fingerprints, hashClosureFiles(repo, files));
+    return actual;
+  };
+  assert.equal(successfulSource().implementationBoundary, releaseTagSha);
+  writeFileSync(join(repo, "unrelated.txt"), "unrelated committed text\n");
+  git(["add", "unrelated.txt"]);
+  git(["commit", "-m", "unrelated change"]);
+  const currentHead = git(["rev-parse", "HEAD"]);
+  assert.notEqual(currentHead, releaseTagSha);
+  assert.equal(successfulSource().implementationBoundary, currentHead, "当前来源不能替换为旧 release SHA");
+  const member = "scripts/verify-release-url.mjs";
+  assert.ok(files.includes(member));
+  const original = readFileSync(join(repo, member));
+  const drift = () => writeFileSync(join(repo, member), Buffer.concat([original, Buffer.from("\n// fixture drift\n")]));
+  const reject = (message) => assert.throws(run, (error) => error.message === message);
+  drift();
+  reject("availability 实体门启动前要求完整工作树 clean");
+  writeFileSync(join(repo, member), original);
+  const loose = join(repo, "untracked.txt");
+  writeFileSync(loose, "untracked\n");
+  reject("availability 实体门启动前要求完整工作树 clean");
+  rmSync(loose);
+  git(["switch", "-c", "other"]);
+  reject("availability 实体门只能从 internal main 执行");
+  git(["switch", "main"]);
+  git(["remote", "set-url", "--push", "public", join(root, "wrong.git")]);
+  reject("public remote 指向异常");
+  git(["remote", "set-url", "--push", "public", publicUrl]);
+  // 隐藏工作树改动：Git 表面干净，只能由真实文件 hash 拒绝。
+  git(["update-index", "--assume-unchanged", member]);
+  drift();
+  assert.equal(git(["status", "--porcelain=v1", "--untracked-files=all"]), "");
+  git(["diff", "--quiet", releaseTagSha, "HEAD", "--", ...files]);
+  assert.notDeepEqual(readFileSync(join(repo, member)), original);
+  reject(`实体门闭包与 immutable tag 不一致:${member}`);
+  writeFileSync(join(repo, member), original);
+  git(["update-index", "--no-assume-unchanged", member]);
+  // 已提交工具漂移走更早的 tag/HEAD diff 拒绝，不能用它代替上例。
+  drift();
+  git(["add", member]);
+  git(["commit", "-m", "changed tools"]);
+  assert.equal(git(["status", "--porcelain=v1", "--untracked-files=all"]), "");
+  reject("availability 实体门代码与 immutable release tag 不一致");
+  process.stdout.write("physical-git-source:ok\n");
+}
+
 function testPhysicalClosureAndWindowsProbe() {
-  const js = walkJsClosure(repo, ["scripts/post-release-gate.mjs", "scripts/verify-release-url.mjs", "scripts/week-audit.mjs"]);
+  const js = walkJsClosure(repo, ["scripts/post-release-gate.mjs", "scripts/verify-release-url.mjs"]);
   const closure = physicalToolClosure(repo);
   if (!js.includes("scripts/release-asset-manifest.mjs") || !js.includes("scripts/release-file-transaction.mjs")) {
     throw new Error("实体门 JS 闭包漏了 verifier/post-gate 传递依赖");
@@ -3080,21 +3065,28 @@ function testPhysicalClosureAndWindowsProbe() {
     );
     expectThrow("materialize exists", () => materializeClosure(repo, files, complete, { failIfExists: true }));
     windowsRemoteRootName("11111111-1111-4111-8111-111111111111");
-    const publicationEntries = closure.map((path) => ({ path, kind: "file", sha256: hashClosureFiles(repo, [path])[path] }));
+    const hashes = hashClosureFiles(repo, closure);
     assertPhysicalToolFingerprints({
       files: closure,
       worktreeHashes: hashClosureFiles(repo, closure),
-      tagHashes: hashClosureFiles(repo, closure),
-      publicationEntries
+      tagHashes: hashes
     });
-    expectThrow("missing publication entry", () =>
+    expectThrow("missing tag closure entry", () =>
       assertPhysicalToolFingerprints({
         files: closure,
         worktreeHashes: hashClosureFiles(repo, closure),
-        tagHashes: hashClosureFiles(repo, closure),
-        publicationEntries: publicationEntries.slice(1)
+        tagHashes: Object.fromEntries(Object.entries(hashes).slice(1))
       })
     );
+    for (const [name, patch] of [
+      ["tag byte drift", { tagHashes: { ...hashes, [closure[0]]: "0".repeat(64) } }],
+      ["missing worktree hash", { worktreeHashes: { ...hashes, [closure[0]]: undefined } }],
+      ["empty closure", { files: [], worktreeHashes: {}, tagHashes: {} }],
+      ["duplicate closure member", { files: [...closure, closure[0]] }]
+    ]) {
+      expectThrow(name, () => assertPhysicalToolFingerprints({ files: closure, worktreeHashes: hashes, tagHashes: hashes, ...patch }));
+    }
+
   } finally {
     rmSync(parent, { recursive: true, force: true });
   }
@@ -3317,60 +3309,6 @@ async function testFinalIndependentReviewRegressions() {
     rmSync(parentRoot, { recursive: true, force: true });
   }
 
-  const fingerprint = () => ({ kind: "file", mode: 0o644, bytes: 1, sha256: "a".repeat(64) });
-  const generatedOutputs = new Set(["research/week-audit/2026-08-22-bundle-integrity.json"]);
-  const publicPath = "README.md";
-  const emptyIdentity = privateExcludedIdentity([publicPath], fingerprint);
-  assertPublicationExactSet({
-    livePaths: { tracked: [publicPath], others: [] },
-    entryPaths: [publicPath],
-    generatedOutputs,
-    privateExcludedCount: emptyIdentity.count,
-    privateExcludedDigest: emptyIdentity.digest,
-    fingerprint
-  });
-  const injectedPrefix = "artifacts/release/copyright/";
-  const injectedName = `${injectedPrefix}injected`;
-  try {
-    assertPublicationExactSet({
-      livePaths: { tracked: [publicPath, injectedName], others: [] },
-      entryPaths: [publicPath],
-      generatedOutputs,
-      privateExcludedCount: emptyIdentity.count,
-      privateExcludedDigest: emptyIdentity.digest,
-      fingerprint
-    });
-    throw new Error("私有路径注入未拒绝");
-  } catch (error) {
-    if (error.message === "私有路径注入未拒绝") throw error;
-    if (error.message !== "公开发布树仍含私有排除路径") throw new Error("私有路径注入错误不是常量");
-    if (String(error.message).includes(injectedPrefix) || String(error.stack ?? "").includes(injectedPrefix)) {
-      throw new Error("私有路径注入错误含私有路径");
-    }
-  }
-  assertPublicationExactSet({
-    livePaths: { tracked: [publicPath], others: ["prompts/extra-untracked.md"] },
-    entryPaths: [publicPath],
-    generatedOutputs,
-    privateExcludedCount: emptyIdentity.count,
-    privateExcludedDigest: emptyIdentity.digest,
-    fingerprint
-  });
-  try {
-    assertPublicationExactSet({
-      livePaths: { tracked: [publicPath], others: ["scripts/new-helper.mjs"] },
-      entryPaths: [publicPath],
-      generatedOutputs,
-      privateExcludedCount: emptyIdentity.count,
-      privateExcludedDigest: emptyIdentity.digest,
-      fingerprint
-    });
-    throw new Error("未入 index 的应发布源未拒绝");
-  } catch (error) {
-    if (error.message === "未入 index 的应发布源未拒绝") throw error;
-    if (error.message !== "应发布源文件未入 index") throw new Error("未入 index 源文件错误不是常量");
-  }
-
   const accountId = "a".repeat(32);
   const apiToken = "t".repeat(40);
   const forgedPublic = new Proxy(
@@ -3472,7 +3410,6 @@ async function testFinalIndependentReviewRegressions() {
       persist: async (snapshot) => {
         proxyPersisted.push(snapshot);
       },
-      audit: async () => {},
       officialPages: officialPagesFixture,
       lease: proxyHandle.lease
     });
@@ -3507,7 +3444,6 @@ async function testFinalIndependentReviewRegressions() {
       persist: async (snapshot) => {
         revokedPersisted.push(snapshot);
       },
-      audit: async () => {},
       officialPages: officialPagesFixture,
       lease: revokedHandle.lease
     });
@@ -3523,50 +3459,6 @@ async function testFinalIndependentReviewRegressions() {
   }
   if (revokedPersisted.at(-1)?.error?.message && revokedPersisted.at(-1).error.message !== "部署失败") {
     throw new Error("revoked readProject evidence 不是受控常量");
-  }
-
-  const auditHandle = makeFreshLease();
-  const auditPersisted = [];
-  try {
-    await runPagesDeployStateMachine({
-      evidenceSeed: smSeed,
-      sites: smSites,
-      wrangler: async (req) => `Deployed to ${previewUrl(req.project)}`,
-      listDeployments: async ({ project, environment }) => [
-        deploymentRecord({
-          project,
-          environment,
-          branch: environment === "preview" ? "preview-v0.1.0-rc.13" : "main",
-          publicMain,
-          url: previewUrl(project)
-        })
-      ],
-      readProject: async ({ project }) => projectReadback(project),
-      fetchHttp: async (url) => ({ ok: true, status: 200, url, body: currentAvailabilityBody() }),
-      persist: async (snapshot) => {
-        auditPersisted.push(snapshot);
-      },
-      audit: async () => {
-        throw new Proxy(
-          {},
-          {
-            get(_t, property) {
-              if (property === "message") return attackMark;
-              return undefined;
-            }
-          }
-        );
-      },
-      officialPages: officialPagesFixture,
-      lease: auditHandle.lease
-    });
-  } catch {
-    // expected
-  } finally {
-    cleanupLease(auditHandle);
-  }
-  if (auditPersisted.some((item) => item?.error?.message?.includes(attackMark))) {
-    throw new Error("audit Proxy 攻击文本写入 evidence");
   }
 
   if (!isIdentityDecimal("9007199254740993") || isIdentityDecimal(9007199254740993) || isIdentityDecimal("1e2") || isIdentityDecimal("-1") || isIdentityDecimal("01") || isIdentityDecimal("+1")) {
@@ -4731,7 +4623,7 @@ await testSnapshotSafety();
 await testDeployStateMachine();
 await testCloudflareBinding();
 await testCloudflareRestClient();
-testWeekAuditAtomicWriter();
+testTrustedPhysicalToolsGitSource();
 testPhysicalClosureAndWindowsProbe();
 testReleaseTagGuardUsage();
 testHelperStdinSingleFd();

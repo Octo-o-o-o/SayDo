@@ -27,28 +27,15 @@
 
 ## 评审制度
 
-实施、修复与交付走 `/supervised-delivery`:每个 candidate 一名零上下文 reviewer,预算按
-`~/.octoworkflow/v2-policy.json`。
+普通任务当前会话直接处理，不强制初始化外部流程账本。用户要求监督交付或独立验收时采用相应流程；作者不自验，reviewer 只读冻结候选，数量与范围遵守用户明确要求。重大 canonical 语义变化先做一致性核对，再修改生产实现。
 
-设计文档评审保留互补双视角,但每个版本最多 2 轮对抗 + 1 轮回修;第 3 轮需 owner 当前消息明示。
+候选用真实 commit 或可复核的固定 diff 标识；评审前后检查输入未变，不依赖某个外部脚本版本作为所有任务前置。设计评审保留互补视角，轮次和预算以当前授权及已启动任务冻结合同为准，不重置旧额度。
 
-风险等级(L1/L2/L3)只改变 review scope、coverage matrix 与 owner checkpoint,不改变 reviewer
-数量。
+保护已有工作；存在重叠改动时使用独立 worktree/clone。本轮继续既定独立树、双 reviewer 与阶段提交合同。战略与范围取舍由 owner 决定；已授权可逆工作连续推进。
 
-派发纪律:候选先冻结(commit 或 detached worktree),reviewer 只读该 ref;派发前后各算一次
-`python3 ~/.octoworkflow/candidate_fingerprint.py`;评审 prompt 给固定核验清单,判断维度不超过
-3–4 个;超时按历史 p90 定。
+报告与验证范围见 `.octoworkflow/project-profile.md`。保留重要决定、失败、未验项与真实证据；不要求每次小修复制流程账本。历史 profile 原文归档，旧任务冻结合同与累计资源不因新默认重置。
 
-施工与评审只在独立 worktree/clone,主树只合并、只读与收口。
-
-报告状态词、落点与命名以 `.octoworkflow/project-profile.md` 为准;OctoWorkFlow 阶段 D
-落地前,全局 skill 的默认状态词与路径不适用于本仓,派发 prompt 须重述。
-
-journal/证据:免评审。战略与范围:上浮 owner。回修后把“输入/行动/产出/结论”写入
-`history/PROCESS-JOURNAL.md`,轮次编号顺延。
-
-评审产物落盘后、收口前必须过 `scripts/check-emoji.sh`。`*.log` 不入 Git;
-Codex 报告或 journal 记录日志文件名、字节数与 SHA-256，历史日志位置见迁移说明。
+评审产物落盘后、收口前运行 `scripts/check-emoji.sh`。`*.log` 不入 Git；报告或 journal 记录所引用日志的文件名、字节数与 SHA-256。
 
 ## 仓库结构
 
@@ -78,12 +65,12 @@ Codex 报告或 journal 记录日志文件名、字节数与 SHA-256，历史日
 
 ## 质量门
 
-- 2026-10-07 起日常入口统一为根 package.json 的 `ci:node`，just 与 CI 调用同一命令。工具自测、发布安装回归分别为 `pnpm test:tools`、`pnpm test:release`；原生平台与分发专项显式触发。退役静态 truth-plane、RF 库存、迁移冻结、排产指针及固定宣传句门，不要求旧批卡重新通过；历史失败与未决产品验证如实保留。发布事务的周审接口保留，但不再每个开发提交重生成。
-
-- 每个 Phase:lint + typecheck + 单测 + 契约测试绿，`just ci` 双矩阵(node + python)作为本地基线，不宣称托管 CI 等效。
-- owner 明确授权提交时使用两提交法:先 `feat(phase-N): ...` 代码提交，再
-  `chore(evidence): phase-N` 证据提交;证据记录代码提交 SHA，不自指。
-- 批量编辑后逐项程序化核验改动落盘;长文件用 `wc -l` 与关键内容检索复核。
+- 按实际影响选门：产品/共享依赖运行对应语言 lint、typecheck、单测与契约测试；`just ci` 是 Node/Python 本地基线，不宣称托管 CI 等效。
+- 工具变更运行 `pnpm test:tools`，发布安装变更运行 `pnpm test:release`，UI 行为/接线变化运行真实浏览器；原生平台与分发专项单独验证。仅文档变更不默认重跑全部产品/浏览器。输入未变的既有证据可明确沿用，不冒充重跑。
+- 前两轮已退役静态 truth-plane、RF 库存、迁移冻结、排产指针及固定宣传句门；历史失败不升级。本轮已退役发布事务历史周审生产者，待独立验收，保留的发布来源、事务与恢复合同见 `docs/09-data-contracts.md` §18。
+- 适用 required gate 未验或未通过不得称完整交付；本地与实际远端 CI 分别报告。
+- 授权提交后默认附验证摘要；证据需引用代码 SHA 或用户指定时采用代码/证据两提交，不自指。本轮仍按既定两提交法及先精简、再补足的阶段边界。
+- 批量编辑后程序化核对落盘，长文件用 `wc -l` 和关键内容检索复核。
 
 ## 常用命令
 

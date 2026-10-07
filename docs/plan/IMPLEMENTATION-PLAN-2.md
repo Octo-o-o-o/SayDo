@@ -1,6 +1,6 @@
 # IMPLEMENTATION-PLAN-2 · 补充实施方案(第一期 · 全量清偿)v1.2
 
-> **2026-10-07 门禁精简现役规则**：按 owner 当前授权，静态 truth-plane、RF-00 库存/离线自证、迁移冻结、排产指针、gate parity、固定宣传句门退役；下文历史批卡引用这些工具的 required/focused gate 不再生效，历史结论不重写。日常用 `just ci`，工具变更用 `pnpm test:tools`，发布安装变更用 `pnpm test:release`，浏览器用 `pnpm exec playwright test`；平台专项通过 workflow_dispatch 执行。PG-02 静态证明链不再作为进入产品工作的前置。现有发布事务周审接口保留，但不要求每次开发提交重生成。当前任务是先精简并提交，再审查有价值缺口、实施并提交；未开展平台/设备/provider 验收不称通过。
+> **2026-10-07 当前规则与第三轮实施状态**：普通任务按 AGENTS 与项目 profile 直接处理，验证按受影响范围选择：产品基线 `just ci`、工具 `pnpm test:tools`、发布安装 `pnpm test:release`、UI 行为/接线 `pnpm exec playwright test`；平台专项单独验证。前两轮已退役的静态 truth-plane、RF 库存、迁移冻结、排产指针与固定文案门不再是进入产品工作的前置。本轮已退役固定历史周审 producer/publication manifest 消费，待独立验收；保留发布身份、工具来源、物理证据、原子收口与恢复核验（09 §18）。本条覆盖下文历史 required 清单与过期流程约束，历史失败、未决项、授权与累计资源不重写。当前批继续双 reviewer、两提交及先精简提交、再补足提交；未验平台/设备/provider 不称通过。
 
 > **owner 指令(2026-07-26 凌晨)**:完整检查全部文档,把所有"后续会做"的待实施项收进第一期,全部完成。
 > **与首发计划的关系**:[IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md)(P0+P0.5 主体历史实现与 evidence 已收口；当前仍须把发布前回修 commit/deploy，再跑 owner 场次①–④与 v0.1.0 发布门);本方案接管其后**全部**已梳理未实施项(原 P1/P2 全量 + 提前批 + 合同债 + 数据触发轨),**取代原 P1/P2/P3 分期作为唯一排产源**(05 §4 原分期行保留作出处索引;移交回写见 W1.9 与本方案收口动作)。

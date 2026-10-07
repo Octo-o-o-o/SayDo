@@ -79,3 +79,11 @@
 - **依赖**:E1(用量事件)、C3(Hopper 成本);被 D1 成本页/A6(估算)消费。
 - **验证归属**:§12-9(subscription 行形状 DDL CHECK/限流未确认不产生 api 行)。
 - **分期**:P0 记账 / P1 表盘。
+
+## 2026-10-07 未装配原型范围（已退役，待独立验收）
+
+依据设计 ADR-005，已退役 Hopper bridge 中仅由历史测试持有的函数及旧 `storage/dao/dispatch.ts`，保留 `tier1/operations.ts` 实际调用的 `hopperSteerSupport` 拒绝话术与审计语义、schema/DDL、存量记录可读性、focus binding/stage 和真实消费者。现役恢复仍由 Tier1Executor.recover 承担，不删除真实 Tier1 崩溃恢复职责。
+
+C5 已退役 `approvals/directMode.ts` 预授权原型与 `approvals/presentationFull.ts` 内存原型；不改变 EffectGrant/收据 schema、现役确认环、Tier1 gate、S3 与所闻即所签安全合同，不将此解释为所有直达模式已支持或均不支持。C8 已退役未装配的 `cost/estimate.ts`，保留 Money unknown 语义、真实 usage ledger、预算熔断与 package factory。
+
+混合测试必须保留实际合同断言：p05a 的 A3 build/parse、retryability、CancelProof、RunSettled；storage-crash 的 Tier1 恢复钥匙可由现役测试或最小 SQL fixture 承接，不复制已退役 DAO 成新生产包装层。focus-m3-live 可直接播种同语义数据，保留实际绑定行为。旧原型单测不构成生产端到端证据。

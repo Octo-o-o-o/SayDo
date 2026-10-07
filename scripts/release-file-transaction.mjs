@@ -20,16 +20,6 @@ import {
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { encodeEvidenceBody, openatSupported, selectAnchoredMethod, viewAnchoredResult } from "./release-openat.mjs";
 
-export const WEEK_AUDIT_WRITE_OUTPUTS = [
-  "docs/review/2026-08-22-week-audit-ledger.md",
-  "research/week-audit/2026-08-22-ledger.json",
-  "research/week-audit/2026-08-22-semantic-review.json",
-  "research/week-audit/2026-08-22-bundle-integrity.json",
-  "research/week-audit/2026-08-23-publication-manifest.json",
-  "research/week-audit/2026-08-23-remediation-ledger.json",
-  "docs/review/2026-08-23-remediation-ledger.md"
-];
-
 function invariant(value, message) {
   if (!value) throw new Error(message);
 }
@@ -408,11 +398,6 @@ export function assertPathSnapshot(snapshot, io = defaultFsIo) {
       invariant(sameBytes(actual[name], entry.files[name]), `回滚后目录文件字节不一致:${entry.path}/${name}`);
     }
   }
-}
-
-export function writeWeekAuditOutputs(files, writeAtomic = writeFileAtomic) {
-  invariant(Array.isArray(files) && files.length === WEEK_AUDIT_WRITE_OUTPUTS.length, "week-audit 输出数量必须恰好为 7");
-  for (const [path, content] of files) writeAtomic(path, content);
 }
 
 export async function runMutationsWithRollback({ snapshotPaths, mutate, preflight, afterPreflight, io = defaultFsIo }) {

@@ -1,5 +1,5 @@
 // 3.4 验收:§12-3 相关(收据生命周期/矩阵/单次消费)+ S2 效果升级测试 +
-// effectPolicyVersion 变 ⇒ 旧包拒 dispatch(§12-1 子项)+ G5 贯通 join。
+// effectPolicyVersion 变 ⇒ 旧包拒 dispatch(§12-1 子项)+ 收据 turnRef 持久化。
 
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -18,7 +18,6 @@ import {
   approvePackageWithReceipt,
   packageRiskLevel
 } from "../src/approvals/issue.js";
-import { intentChainByTask, intentChainByTurn } from "../src/intent/view.js";
 import { insertPackage } from "../src/storage/dao/packages.js";
 import { insertTask } from "../src/storage/dao/tasks.js";
 import { insertProject } from "../src/storage/dao/projects.js";
@@ -164,8 +163,8 @@ describe("dispatch_package 收据(签发/矩阵/生命周期,09 §3)", () => {
   });
 });
 
-describe("G5 意图账本关联视图(贯通 join)", () => {
-  it("谁说的(turnRef)-> 签了什么(receipt)-> 执行什么(task)三方可追", () => {
+describe("收据 turnRef 持久化", () => {
+  it("签发收据保留 turnRef", () => {
     const pkg = mkPkg();
     insertPackage(db, pkg);
     insertProject(db, {
@@ -198,13 +197,6 @@ describe("G5 意图账本关联视图(贯通 join)", () => {
       { pkg, decidedVia: "voice", authStrength: "voice_weak", turnRef: turn, taskId: task.id },
       TS
     );
-    const chain = intentChainByTask(db, task.id);
-    expect(chain.links).toHaveLength(1);
-    expect(chain.links[0]?.receiptId).toBe(r.id);
-    expect(chain.links[0]?.turnRef).toBe(turn);
-    expect(chain.task?.packageDigest).toBe(pkg.digest);
-    const byTurn = intentChainByTurn(db, turn);
-    expect(byTurn[0]?.taskId).toBe(task.id);
     expect(getApproval(db, r.id)?.turnRef).toBe(turn);
   });
 });

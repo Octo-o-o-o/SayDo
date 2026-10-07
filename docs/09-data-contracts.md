@@ -3249,4 +3249,20 @@ type BridgeErrorCode =
 
 命令效果测试保留相对当前 legacy 的单调性与具体安全反例，退役历史大快照；不再保证历史分类器的全部旧判定冻结。旧 `runtime-preflight.sh` 入口退役，诊断按实际运行模式使用 doctor/status/health；目标版本、实际运行身份、新鲜度以及真人语音场次的 voice ready 仍须核验，现有诊断不等价于旧预检或其 release-config digest。
 
-固定历史周审不再阻断普通 CI 或要求每次开发提交重生成。现有发布事务仍使用 week-audit publication manifest 与原子写接口，发布信任链未退役。公开声明仍须对应实际验证范围，遵守 06 §7 与 11 §10.3；文件存在、静态字符串命中、手写样例与自身一致均不是产品行为证据。
+### 第三轮发布与原型精简实施状态（待独立验收）
+
+固定历史周审不再阻断普通 CI 或要求每次开发提交重生成。本轮已退役 week-audit 历史生产者、publication manifest 的运行时消费和历史产物重算接口；历史报告、manifest 及未决结果保留原文，隐私检查继续覆盖，不为新发布授权或背书。下列约束由本轮实现承接，独立验收及真实发布验证分别报告。
+
+物理发布门继续核验 internal main、完整 clean 工作树、public remote 身份、immutable release tag、实际工具闭包的 exact-set，以及 tag/工作树逐项非空且相等的字节指纹。保留 closure discovery、非 JS wrapper/manifest/openat 根及 Windows 传输后 exact fingerprints，git diff 不能取代真实 hash。证据继续绑定实际平台与安装模式、运行身份、challenge、gateRunId、transport、releaseTagSha 与工具指纹；缺核心来源键、闭包成员错误、文件缺失或字节漂移均拒绝。
+
+物理证据沿用 schemaVersion=2。新生产者的 provenance.implementationBoundary 表示本次经 main/clean 与上述来源核验的工具完整 Git HEAD（40 位 commit SHA），由生产者读取，不接受任意外部填值；它只证明工具来源，不表示 owner 批准、独立评审通过或历史 manifest 的实施授权。releaseTagSha 单独绑定发布制品，消费者按本次 expected 来源身份和完整指纹精确匹配。旧 schema2 证据保持原值与原语义，不追溯重写；不匹配本次 expected 的旧证据不自动转为本次通过。新工具与现有 release tag 不同必须拒绝，不能为通过实体门放宽一致性；本轮无 bump/tag/release 授权，不生成虚假的真实发布成功证据。
+
+Availability 已去掉七历史输出的快照/重算和为其存在的临时 git add/reset；实体证据目录、availability 文档与指定 evidencePath 继续纳入事务快照/回滚，保留 HEAD/branch/clean 前置。失败时原有及原先缺失的文件/目录恢复，index 不产生附带修改，不留下 available 声明或新成功证据。
+
+Pages 已删除历史 audit callback 及其参数检查、专属失败逻辑，不以空函数代替。沿用 schema1 与旧状态名：新生产者的 audit_pending 表示外部读回完成、等待本地耐久收口；audit_failed 仅为旧证据兼容输入，不再由已删除 callback 产生。新流程先持久化 pending，再在持有 lease 的前提下以原子写入落 completed；completed 持久化失败必须拒绝成功并保留可恢复 pending。路径/链接防护、openat/fsync、持久化失败报告与敏感异常脱敏继续有效。
+
+旧 audit_pending/audit_failed 必须完整重新核验 seed/release/publicMain/site directory、project/domain 集合、preview/production deployment id/url/environment/branch/commit、当前 production 指向、正式页面 HTTP 状态和预期 marker，之后才可 durable completed。恢复路径不得再次 deploy，不可直接改状态；claimed/started/partial_failed 不因此获得额外恢复许可。真实 lease、恢复与持久化失败测试保留，只退役历史 callback 专属断言。
+
+本轮同时退役分域 a/c/e 状态注列出的未装配普通原型；能力设计、类型、schema/DDL、存量兼容和安全要求保留。09 §12 的 TTL、Gate 0、S3 等反例不因原型测试退役取消。memory/recovery、snapshotForget、evaluator/verify 及其测试保留，装配未证明如实登记，不在本轮新增接线。console cn/utils、clsx/tailwind-merge 和 shadcn 配置有真实开发工具消费者，继续保留。
+
+公开声明仍须对应实际验证范围，遵守 06 §7 与 11 §10.3；文件存在、静态字符串命中、手写样例与自身一致均不是产品行为证据。合同已先行核对，源码与文档共同冻结后独立验收；真实 release、平台、设备、Cloudflare 或 provider 未验须单列。

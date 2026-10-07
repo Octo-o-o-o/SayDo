@@ -1,6 +1,6 @@
 # SayDo 首发 · 会话交接文档(HANDOFF)
 
-> **2026-10-07 门禁精简现役规则**：按 owner 当前授权，静态 truth-plane、RF-00 库存/离线自证、迁移冻结、排产指针、gate parity、固定宣传句门退役；下文历史批卡引用这些工具的 required/focused gate 不再生效，历史结论不重写。日常用 `just ci`，工具变更用 `pnpm test:tools`，发布安装变更用 `pnpm test:release`，浏览器用 `pnpm exec playwright test`；平台专项通过 workflow_dispatch 执行。PG-02 静态证明链不再作为进入产品工作的前置。现有发布事务周审接口保留，但不要求每次开发提交重生成。当前任务是先精简并提交，再审查有价值缺口、实施并提交；未开展平台/设备/provider 验收不称通过。
+> **2026-10-07 当前规则与第三轮实施状态**：普通任务按 AGENTS 与项目 profile 直接处理，验证按受影响范围选择：产品基线 `just ci`、工具 `pnpm test:tools`、发布安装 `pnpm test:release`、UI 行为/接线 `pnpm exec playwright test`；平台专项单独验证。前两轮已退役的静态 truth-plane、RF 库存、迁移冻结、排产指针与固定文案门不再是进入产品工作的前置。本轮已退役固定历史周审 producer/publication manifest 消费，待独立验收；保留发布身份、工具来源、物理证据、原子收口与恢复核验（09 §18）。本条覆盖下文历史 required 清单与过期流程约束，历史失败、未决项、授权与累计资源不重写。当前批继续双 reviewer、两提交及先精简提交、再补足提交；未验平台/设备/provider 不称通过。
 
 > 重写 2026-07-25(收口会话):旧版 §3"后续待办"、§4.1"ASR 阻塞"、§6"切锁待做"、§5"Codex 攒批待做"
 > 均为中途旧段,与 §1 自相矛盾——已按 git log + 运行时配置 + 独立对账裁决清理(裁决记录:
@@ -16,7 +16,7 @@
 
 1. **绝不在源码/测试写完整凭据形态字面量**(完整 AWS key / PEM 私钥块 / `sk-`+长串 / 手机号卡号 / `PRIVATE KEY` 连续词)——会触发平台实时网络内容防护,导致整个对话请求被阻断。敏感样本一律**运行时拼接构造**(见 `packages/daemon/src/voice/redactor.ts` 与其测试的写法)。
 2. **每次 Write/Shell/提交后,用独立 Shell 命令核实真实落盘/真实 SHA**,不要基于"我以为写了"继续。首发实施会话曾多次臆想工具结果(HANDOFF、2.2 的 compiler/retrieval、多个提交 SHA 都曾是幻觉);收口对账另抓到 Gate 0 两行证据虚报(closeout-verification §3.2)——自报不可信,证据必须可复跑。
-3. 发布时仍由原发布事务维护 publication manifest；普通开发收尾不再重生成固定历史周审。
+3. 普通开发收尾不重生成固定历史周审；本轮已退役发布事务的历史 publication manifest 消费，现役合同见 09 §18，待独立验收。
 
 ---
 

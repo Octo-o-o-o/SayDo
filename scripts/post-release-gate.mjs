@@ -27,7 +27,6 @@ import {
   requireCloudflareCredentials
 } from "./release-cloudflare-pages.mjs";
 import {
-  WEEK_AUDIT_WRITE_OUTPUTS,
   runMutationsWithRollback,
   writeFileAtomic
 } from "./release-file-transaction.mjs";
@@ -43,11 +42,10 @@ import {
 } from "./release-physical-evidence.mjs";
 import {
   assertClosureFingerprints,
-  assertPhysicalToolFingerprints,
   assertSafeRemoteVerifierPath,
   hashClosureFiles,
   materializeClosure,
-  physicalToolClosure,
+  trustedPhysicalTools,
   WINDOWS_VERIFIER_RELATIVE_PATH,
   WINDOWS_WRAPPER_RELATIVE_PATH,
   windowsRemoteRootName,
@@ -332,59 +330,6 @@ function sshClientEnv() {
   return env;
 }
 
-function trustedPhysicalTools(releaseTagSha) {
-  invariant(gitText(["branch", "--show-current"]) === "main", "availability 实体门只能从 internal main 执行");
-  invariant(
-    gitText(["status", "--porcelain=v1", "--untracked-files=all"]) === "",
-    "availability 实体门启动前要求完整工作树 clean"
-  );
-  invariant(gitText(["remote", "get-url", "--push", "public"]) === publicUrl, "public remote 指向异常");
-  execFileSync("git", ["fetch", "--no-tags", "public", `+${releaseTagSha}:refs/remotes/public/release-${tag}`], {
-    cwd: repo,
-    stdio: ["ignore", "ignore", "pipe"]
-  });
-  const toolPaths = physicalToolClosure(repo);
-  try {
-    execFileSync("git", ["diff", "--quiet", releaseTagSha, "HEAD", "--", ...toolPaths], {
-      cwd: repo,
-      stdio: "ignore"
-    });
-  } catch {
-    throw new Error("availability 实体门代码与 immutable release tag 不一致");
-  }
-  const manifest = JSON.parse(readFileSync(resolve(repo, "research/week-audit/2026-08-23-publication-manifest.json"), "utf8"));
-  invariant(
-    manifest.schemaVersion === 2 && /^[0-9a-f]{40}$/.test(manifest.implementationBoundary ?? ""),
-    "公开发布 manifest 缺稳定实施边界"
-  );
-  try {
-    execFileSync("git", ["merge-base", "--is-ancestor", manifest.implementationBoundary, "HEAD"], {
-      cwd: repo,
-      stdio: "ignore"
-    });
-  } catch {
-    throw new Error("availability HEAD 不包含已审实施边界");
-  }
-  const worktreeHashes = hashClosureFiles(repo, toolPaths);
-  const tagHashes = Object.fromEntries(
-    toolPaths.map((path) => {
-      let bytes;
-      try {
-        bytes = execFileSync("git", ["show", `${releaseTagSha}:${path}`], { cwd: repo, maxBuffer: 32 * 1024 * 1024 });
-      } catch {
-        throw new Error(`immutable tag 缺实体门闭包:${path}`);
-      }
-      return [path, sha256(bytes)];
-    })
-  );
-  const fingerprints = assertPhysicalToolFingerprints({
-    files: toolPaths,
-    worktreeHashes,
-    tagHashes,
-    publicationEntries: manifest.entries ?? []
-  });
-  return { implementationBoundary: manifest.implementationBoundary, fingerprints };
-}
 
 function physicalExpected(releaseEvidence, tools, spec, challenge, path, gateRunId) {
   return {
@@ -652,7 +597,7 @@ function persistPhysicalEvidence(records, writeDir) {
 }
 
 function verifyPhysicalEvidence(releaseEvidence) {
-  const tools = trustedPhysicalTools(releaseEvidence.tagSha);
+  const tools = trustedPhysicalTools({ repo, releaseTagSha: releaseEvidence.tagSha, publicUrl, tag });
   const sshConfig = pinnedSshConfig();
   const gateRunId = randomUUID();
   const outputDir = physicalEvidenceDir.replace(/\/$/u, "");
@@ -689,8 +634,7 @@ function availabilitySnapshotPaths() {
   return [
     ...new Set(availabilityReplacements.map((item) => resolve(repo, item.path))),
     resolve(repo, evidencePath),
-    resolve(repo, physicalEvidenceDir),
-    ...WEEK_AUDIT_WRITE_OUTPUTS.map((path) => resolve(repo, path))
+    resolve(repo, physicalEvidenceDir)
   ];
 }
 
@@ -874,7 +818,6 @@ async function deploySites(releaseEvidence) {
     persist: async (evidence) => {
       persistDeployEvidence(evidence, lease);
     },
-    audit: refreshAuditBundle,
     officialPages: officialPages(),
     lease
   });
@@ -897,17 +840,6 @@ function persistEvidence(evidence, writeAtomic = writeFileAtomic) {
   }
   console.log(JSON.stringify(result, null, 2));
   return result;
-}
-
-function refreshAuditBundle() {
-  execFileSync(process.execPath, [resolve(repo, "scripts/week-audit.mjs"), "--write"], {
-    cwd: repo,
-    stdio: "inherit"
-  });
-  execFileSync(process.execPath, [resolve(repo, "scripts/week-audit.mjs"), "--check"], {
-    cwd: repo,
-    stdio: "inherit"
-  });
 }
 
 if (mode === "--check-candidate") {
@@ -947,22 +879,7 @@ if (mode === "--check-candidate") {
           },
           writeAtomic
         );
-        // 新写的实体证据在 index 之外,而 refreshAuditBundle 内的
-        // capturePublicationManifest 要求应发布源全部入 index(rc.11 实体门在此自拦,
-        // 四项真机实跑全绿后功亏一篑)。先 add 再刷账本;失败时对称撤销暂存,
-        // 文件内容由外层 snapshot rollback 恢复。
-        const stagedPaths = [evidencePath, physicalEvidenceDir];
-        gitText(["add", "--", ...stagedPaths]);
-        try {
-          refreshAuditBundle();
-        } catch (error) {
-          try {
-            gitText(["reset", "-q", "--", ...stagedPaths]);
-          } catch {
-            // reset 失败不掩盖主错误
-          }
-          throw error;
-        }
+
       }
     });
   } else {

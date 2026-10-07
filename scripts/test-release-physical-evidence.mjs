@@ -129,15 +129,21 @@ const wrapped = {
   }
 };
 validatePhysicalReleaseEvidence(wrapped, expected);
-const forgedTransport = structuredClone(wrapped);
-forgedTransport.provenance.transport = "pinned_ssh";
-let provenanceRejected = false;
-try {
-  validatePhysicalReleaseEvidence(forgedTransport, expected);
-} catch {
-  provenanceRejected = true;
+// 本次 expected 身份不可由旧来源、缺字段或其它传输证据替代。
+for (const field of ["implementationBoundary", "releaseTagSha", "gateRunId", "challenge", "transport"]) {
+  for (const missing of [false, true]) {
+    const changed = structuredClone(wrapped);
+    if (missing) delete changed.provenance[field];
+    else changed.provenance[field] = `${changed.provenance[field]}-different`;
+    let rejected = false;
+    try {
+      validatePhysicalReleaseEvidence(changed, expected);
+    } catch {
+      rejected = true;
+    }
+    if (!rejected) throw new Error(`实体证据来源漂移/缺失未拒绝:${field}:${missing}`);
+  }
 }
-if (!provenanceRejected) throw new Error("实体证据 transport 漂移未拒绝");
 
 const privateMarker = "fixture-private-output-marker-not-a-real-secret";
 const dirtyOutput = `not-json ${privateMarker}`;

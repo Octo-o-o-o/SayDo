@@ -6228,3 +6228,17 @@ E工作稿doclinks/schedule/emoji/privacy-fs/diff真实exit0，`close-gates-I57.
 - 行动：定位第一轮误删旧emoji scanner安装步骤，同时漏掉产品仓库检索消费者；仅恢复Node CI的ripgrep运行依赖，不跳过测试。fresh非作者只读核验无阻塞。
 - 产出：代码5fb897c5128cce18c7beda61eeb5e391a299cc09；失败日志bytes/SHA和范围见research/codex-findings/2026-10-07-gates-ci-dependency-fix.md。
 - 结论：源码回修已验，修复后托管CI仍待本证据提交和双仓推送后实际确认；原失败证据保留。
+
+### 2026-10-08 第三轮精简第一阶段（本任务第 6 轮）
+
+- 输入：owner 明确要求再做完整精简，并扩查过度实现/规则；基线886cfb2f。两名方案 reviewer 对抗后核对实际 canonical，无阻断才施工。
+- 行动：退役历史周审生产链、未装配原型与专属测试，规则改为按影响验证；保留真实发布身份/事务/恢复、混合合同断言、隐私安全原语和历史原文。
+- 产出：代码25214865567265b1a78ac8b0ae42b053f4d5ae98，58文件净减4336行；fresh非作者四维验收通过且指纹未漂移，详见research/codex-findings/2026-10-07-gates-round3-phase1.md（含原始日志bytes/SHA）。
+- 结论：本地just ci/tools/release/precommit均exit0，Node3900pass/20skip、Python159pass；没有真实平台/provider/部署验收。提交本证据后才开始第二阶段补足评估，尚未push。
+
+### 2026-10-08 第三轮精简第二阶段（本任务第 7 轮）
+
+- 输入：第一阶段25214865/de5e1480完整提交后，两名新的reviewer独立评估并交叉challenge，仅采纳真实Git来源回归；不重复Pages矩阵、不把memory几行接线当完整产品修复。
+- 行动：来源函数搬既有closure模块，真实localGit/bare fixture区分当前HEAD/旧releaseSHA、实际fetch、表面干净的隐藏字节漂移和各来源前置拒绝；不增加新框架或门禁。
+- 产出：代码cb232ab160f2ec01ab8d8063e4c97c9de5b76c24，3文件净增110行；fresh验收通过，三个外置突变均被测试抓住，完整日志bytes/SHA见research/codex-findings/2026-10-07-gates-round3-phase2.md。
+- 结论：release/tools/precommit退出0，产品沿用阶段一基线；无真实平台/provider/发布验收。此证据提交后推进已授权main合并和私有/过滤公开GitHub同步，托管CI按新SHA另核。

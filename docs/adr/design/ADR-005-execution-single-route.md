@@ -8,10 +8,12 @@
 
 1. **Tier1 是唯一生产执行路线**。用户说 → Brain → 决策包 → Tier1 在 worktree 里驱动 coding CLI → settle / verify / S3 合并。
 2. **当前生产后端**为 `cursor`、`claude_code`(已有实现)。`codex` 延后到 PG-07,不是当前生产后端。
-3. **Hopper 桥状态为 `designed/deferred`**:保留 schema 与 dormant 代码,不再维护;锁定副本(`~/.saydo/hopper-dist`)与专用 vault(`~/.saydo/hopper-vault`)可删除。
+3. **Hopper 桥状态为 `designed/deferred`**:保留 schema、存量数据兼容读取及现役能力拒绝判定。本轮实施已退役仅由历史测试消费的未装配桥接原型及专属测试，不再要求保留可编译的 dormant 实现；源文件已删除。历史实现可从 Git 恢复，再次接入仍须满足跨域所有权、授权、幂等与恢复合同。锁定副本(`~/.saydo/hopper-dist`)与专用 vault(`~/.saydo/hopper-vault`)的既有处置边界不变。
 4. **`native_api` 执行器是 PG-08 候选**,不是本批承诺落地。用途、边界与估算见 `docs/plan/2026-08-15-default-runner-decision.md` §四。
 
 ## 证据
+
+以下是 2026-09-02 决策时的历史证据与规模，保留原口径；本轮已退役范围不将其升级为生产验收。下节历史后果估算亦不代表本轮实际删除量。
 
 坐标取自 `docs/plan/2026-09-02-process-convergence-plan.fable.md` §1.6:
 

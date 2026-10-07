@@ -38,7 +38,6 @@ import { ConfirmationLoop } from "../src/live/confirm.js";
 import { LiveDialog } from "../src/live/dialog.js";
 import { LiveVoiceSessions } from "../src/live/voiceSessions.js";
 import { SessionManager } from "../src/session/manager.js";
-import { beginDispatch, completeDispatch } from "../src/bridge/dispatch.js";
 import { reconcileOnStartup } from "../src/recovery/reconciler.js";
 import type { AuditSink } from "../src/obs/audit.js";
 import type { Logger } from "../src/obs/logger.js";
@@ -443,29 +442,10 @@ describe("C5 binding 生产接线", () => {
         enabled: false
       })
     ).toBeNull();
-    // fake-hopper 写序:begin → complete 同测
-    beginDispatch(
-      fx.db,
-      nullAudit,
-      {
-        voiceTaskId: taskId,
-        idemKey: `saydo-${taskId}`,
-        packageDigest: `sha256:${"c".repeat(64)}`,
-        mode: "step_confirm"
-      },
-      "2026-08-04T00:00:00.000Z"
-    );
-    completeDispatch(
-      fx.db,
-      nullAudit,
-      taskId,
-      {
-        dispatchId: newId("dsp"),
-        hopper: { projectId: fx.projectId, taskId, revision: 1 },
-        outcome: "created"
-      },
-      { hopperFocusBindingEnabled: true, nowIso: "2026-08-04T00:00:00.000Z" }
-    );
+    activateHopperBindingOnDispatchComplete(fx.db, {
+      taskId, projectId: fx.projectId, enabled: true,
+      nowIso: "2026-08-04T00:00:00.000Z"
+    });
     const b = getActiveBindingForTask(fx.db, taskId);
     expect(b?.phase).toBe("bound");
     expect(b?.authoritativeLedgerRef).toBe(`hopper:${fx.projectId}/${taskId}`);

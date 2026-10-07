@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join, posix, resolve } from "node:path";
@@ -10,8 +10,7 @@ export const WINDOWS_WRAPPER_RELATIVE_PATH = "scripts/run-release-verifier-windo
 export const TRACKED_ASSET_MANIFEST_RELATIVE_PATH = "docs/release/v0.1.0-rc.13-assets.json";
 export const PHYSICAL_JS_ROOTS = Object.freeze([
   "scripts/post-release-gate.mjs",
-  "scripts/verify-release-url.mjs",
-  "scripts/week-audit.mjs"
+  "scripts/verify-release-url.mjs"
 ]);
 export const PHYSICAL_NON_JS_ROOTS = Object.freeze([
   WINDOWS_WRAPPER_RELATIVE_PATH,
@@ -106,16 +105,18 @@ export function assertClosureFingerprints(actual, expected, label) {
   }
 }
 
-export function assertPhysicalToolFingerprints({ files, worktreeHashes, tagHashes, publicationEntries }) {
-  const extra = files.filter((path) => !publicationEntries.some((entry) => entry.path === path));
-  invariant(extra.length === 0, `实体门闭包未登记 publication manifest:${extra.join(",")}`);
+export function assertPhysicalToolFingerprints({ files, worktreeHashes, tagHashes }) {
+  invariant(Array.isArray(files) && files.length > 0 && new Set(files).size === files.length, "实体门闭包为空或重复");
+  const expectedKeys = [...files].sort();
+  for (const hashes of [worktreeHashes, tagHashes]) {
+    invariant(JSON.stringify(Object.keys(hashes ?? {}).sort()) === JSON.stringify(expectedKeys), "实体门闭包成员不一致");
+  }
   const fingerprints = {};
   for (const path of files) {
     const worktree = worktreeHashes[path];
     const tagged = tagHashes[path];
-    const entry = publicationEntries.find((candidate) => candidate.path === path);
-    invariant(worktree && tagged && worktree === tagged, `实体门闭包与 immutable tag 不一致:${path}`);
-    invariant(entry?.kind === "file" && entry.sha256 === worktree, `实体门闭包未绑定 publication manifest:${path}`);
+    invariant(typeof worktree === "string" && /^[0-9a-f]{64}$/.test(worktree) && worktree === tagged,
+      `实体门闭包与 immutable tag 不一致:${path}`);
     fingerprints[path] = worktree;
   }
   return fingerprints;
@@ -139,4 +140,45 @@ export function probeVerifierModuleLoad(nodePath, root) {
     cwd: root,
     encoding: "utf8"
   });
+}
+
+export function trustedPhysicalTools({ repo, releaseTagSha, publicUrl, tag }) {
+  const gitText = (args) => execFileSync("git", args, { cwd: repo, encoding: "utf8", maxBuffer: 32 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] }).trim();
+  invariant(gitText(["branch", "--show-current"]) === "main", "availability 实体门只能从 internal main 执行");
+  invariant(
+    gitText(["status", "--porcelain=v1", "--untracked-files=all"]) === "",
+    "availability 实体门启动前要求完整工作树 clean"
+  );
+  invariant(gitText(["remote", "get-url", "--push", "public"]) === publicUrl, "public remote 指向异常");
+  execFileSync("git", ["fetch", "--no-tags", "public", `+${releaseTagSha}:refs/remotes/public/release-${tag}`], {
+    cwd: repo,
+    stdio: ["ignore", "ignore", "pipe"]
+  });
+  const toolPaths = physicalToolClosure(repo);
+  try {
+    execFileSync("git", ["diff", "--quiet", releaseTagSha, "HEAD", "--", ...toolPaths], {
+      cwd: repo,
+      stdio: "ignore"
+    });
+  } catch {
+    throw new Error("availability 实体门代码与 immutable release tag 不一致");
+  }
+  const worktreeHashes = hashClosureFiles(repo, toolPaths);
+  const tagHashes = Object.fromEntries(
+    toolPaths.map((path) => {
+      let bytes;
+      try {
+        bytes = execFileSync("git", ["show", `${releaseTagSha}:${path}`], { cwd: repo, maxBuffer: 32 * 1024 * 1024 });
+      } catch {
+        throw new Error(`immutable tag 缺实体门闭包:${path}`);
+      }
+      return [path, createHash("sha256").update(bytes).digest("hex")];
+    })
+  );
+  const fingerprints = assertPhysicalToolFingerprints({
+    files: toolPaths,
+    worktreeHashes,
+    tagHashes
+  });
+  return { implementationBoundary: gitText(["rev-parse", "HEAD"]), fingerprints };
 }

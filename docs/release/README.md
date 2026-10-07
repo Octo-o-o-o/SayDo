@@ -1,5 +1,7 @@
 # docs/release — 上架占坑文档地图
 
+> **2026-10-07 发布工具实施状态**：本轮已退役历史 week-audit producer/publication manifest 消费，待独立验收。物理来源、实际平台/安装身份、challenge/gateRunId/transport、完整工具字节指纹、availability 回滚及 Pages schema1 旧 pending/failed 的完整重验恢复仍须保留，准确合同见 [09 §18](../09-data-contracts.md#18-静态真相控制面退役2026-10-07)。不再运行历史重算入口；受影响回归用 `pnpm test:release`。本轮没有版本发布/部署授权，工具与现有 tag 不同应拒绝，不以模拟回归冒充真实发布验证。
+
 本目录是 2026-08-13 起「说到」上架/备案战役的工作文档,不是 `docs/01–11` 合同 canonical。
 
 读之前先认角色,避免把冻结稿或定名前核验当成现行事实。

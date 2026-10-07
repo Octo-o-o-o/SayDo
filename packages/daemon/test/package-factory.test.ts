@@ -1,4 +1,4 @@
-// 3.3 验收:cost unknown 不显示 0(estimate);产物版本链 + digest 校验(B4);
+// 3.3 验收:产物版本链 + digest 校验(B4);
 // A6 组装签署(digest 可复算/revision 变 digest 变/acceptance 空拒/step_confirm 带 grants 拒/
 // critical unknown 不可拍板)。
 
@@ -12,7 +12,6 @@ import { ArtifactStore, ArtifactCorruptError } from "../src/artifacts/store.js";
 import { artifactLineage } from "../src/storage/dao/artifacts.js";
 import { DecisionPackageFactory, assertProposable, type AssembleInput } from "../src/packages/factory.js";
 import { getPackage, insertPackage } from "../src/storage/dao/packages.js";
-import { estimateCost, lookupRate } from "../src/cost/estimate.js";
 import type { AuditSink } from "../src/obs/audit.js";
 
 const nullAudit: AuditSink = { record: () => ({ id: "aud_x" }) };
@@ -50,32 +49,6 @@ const baseInput = (over?: Partial<AssembleInput>): AssembleInput => ({
   preauthorizedEffects: [],
   effectPolicyVersion: "e2/0.1.0",
   ...over
-});
-
-describe("Money 接线(estimate;Codex B6:无表项即 unknown 不编数)", () => {
-  const pricing = { currency: "CNY" as const, as_of: "2026-07-24", llm: { "gpt-5-mini": 0.008, "gpt-5": 0.02 }, tts: { "seed-tts": 0.02 } };
-
-  it("全维可计价 ⇒ known(value/currency/asOf);p95=1.5x", () => {
-    const c = estimateCost({ llmModel: "gpt-5-mini-2026", llmKTokens: 100, ttsVoice: "seed-tts-2.0", ttsKChars: 10 }, pricing, 20);
-    expect(c.expected).toEqual({ known: true, value: 1, currency: "CNY", asOf: "2026-07-24T00:00:00.000Z" });
-    expect(c.p95.known && c.p95.value).toBe(1.5);
-    expect(c.max).toBe(20);
-  });
-
-  it("有用量但无价目 ⇒ unknown(绝不编数、绝不 0);max 必 known 为正", () => {
-    const c = estimateCost({ llmModel: "claude-sonnet-5", llmKTokens: 100 }, pricing, 20);
-    expect(c.expected.known).toBe(false);
-    expect(c.expected.value).toBeUndefined(); // 不是 0
-    expect(() => estimateCost({}, pricing, 0)).toThrow(/positive/);
-    // 无 pricing 表 ⇒ unknown
-    expect(estimateCost({ llmModel: "gpt-5-mini", llmKTokens: 1 }, undefined, 20).expected.known).toBe(false);
-  });
-
-  it("最长前缀匹配(gpt-5-mini 优先于 gpt-5;短键会兜住同前缀家族——表键须写全名避免误配)", () => {
-    expect(lookupRate(pricing.llm, "gpt-5-mini-hot")).toBe(0.008);
-    expect(lookupRate(pricing.llm, "gpt-5.6-sol")).toBe(0.02); // "gpt-5" 是其前缀:简单前缀匹配的真实行为
-    expect(lookupRate(pricing.llm, "claude-sonnet-5")).toBeUndefined();
-  });
 });
 
 describe("B4 产物库:版本链 + digest 校验", () => {

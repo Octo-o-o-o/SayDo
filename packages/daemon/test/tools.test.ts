@@ -9,7 +9,6 @@ import { openDb, type Db } from "../src/storage/db.js";
 import { insertProject } from "../src/storage/dao/projects.js";
 import { insertTask, insertTier1Run } from "../src/storage/dao/tasks.js";
 import { BrainTools } from "../src/brain/tools.js";
-import { stubContextPack } from "../src/brain/contextPack.js";
 import { managedProjectPath } from "../src/projects/workspace.js";
 import type { LlmProvider } from "../src/providers/types.js";
 import type { AuditSink } from "../src/obs/audit.js";
@@ -259,14 +258,5 @@ describe("openOnScreen 编辑器深链(W5a 3.2;09 §13 签名不动,纯实现扩
       expect(r.url).toContain("/#/p/_/task/");
     }
     expect(opened).toEqual([]);
-  });
-});
-
-describe("桩 Context Pack(1.3b;确定性)", () => {
-  it("同输入同 digest;topicTerms 规范化(小写+字典序)", () => {
-    const a = stubContextPack({ sessionId: newId("ses"), projectId: newId("prj"), topicTerms: ["CSV", "导出"] });
-    const b = stubContextPack({ sessionId: newId("ses"), projectId: newId("prj"), topicTerms: ["导出", "csv"] });
-    expect(a.packDigest).toBe(b.packDigest); // sessionId/projectId 不入签名域
-    expect(a.topicTerms).toEqual(["csv", "导出"]);
   });
 });

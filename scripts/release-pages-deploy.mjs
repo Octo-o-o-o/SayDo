@@ -994,7 +994,6 @@ export async function runPagesDeployStateMachine({
   readProject,
   fetchHttp,
   persist,
-  audit,
   officialPages,
   lease
 }) {
@@ -1002,7 +1001,7 @@ export async function runPagesDeployStateMachine({
   const normalizedSites = normalizeDeploySites(sites);
   invariant(typeof wrangler === "function" && typeof fetchHttp === "function", "wrangler/fetch 必须可注入");
   invariant(typeof listDeployments === "function" && typeof readProject === "function", "Cloudflare readback 必须可注入");
-  invariant(typeof persist === "function" && typeof audit === "function", "persist/audit 必须可注入");
+  invariant(typeof persist === "function", "persist 必须可注入");
   invariant(isArraySafe(officialPages) && officialPages.length > 0, "正式域名检查表为空");
   invariant(lease && (lease.kind === "fresh" || lease.kind === "existing") && typeof lease.path === "string" && lease.path.length > 0, LEASE_REQUIRED);
   assertLeaseHeld(lease);
@@ -1118,33 +1117,9 @@ export async function runPagesDeployStateMachine({
     return { url, httpStatus: status, bytes: Buffer.byteLength(bodyText) };
   }
 
-  async function runAuditAndComplete() {
-    try {
-      assertLeaseHeld(lease);
-      await callExternal(() => audit(), SAFE_FAILURE);
-    } catch {
-      evidence.status = "audit_failed";
-      evidence.error = { message: SAFE_FAILURE };
-      try {
-        await persistClone();
-      } catch {
-        let emergencyFailed = false;
-        try {
-          await persistClone();
-        } catch {
-          emergencyFailed = true;
-        }
-        if (emergencyFailed) {
-          throw trustedError("audit_failed persist failed", {
-            persistFailed: true,
-            lastDurableStatus: lastDurable?.status ?? null,
-            emergencyPersisted: false,
-            aggregateErrors: [trustedError(SAFE_FAILURE), trustedError(SAFE_FAILURE), trustedError(SAFE_FAILURE)]
-          });
-        }
-      }
-      throw trustedError(SAFE_FAILURE);
-    }
+  // 保留历史 pending 状态名；这里仅做本地耐久收口，不再调用历史周审。
+  async function finalizeDeployment() {
+    assertLeaseHeld(lease);
     evidence.status = "completed";
     await persistDurable();
     return lastDurable;
@@ -1239,7 +1214,7 @@ export async function runPagesDeployStateMachine({
     lastDurable = recordedEvidence;
     evidence = await reverifyExistingDeployments(recordedEvidence);
     await persistDurable();
-    return runAuditAndComplete();
+    return finalizeDeployment();
   }
 
   try {
@@ -1372,5 +1347,5 @@ export async function runPagesDeployStateMachine({
     throw trustedError(SAFE_FAILURE, { stage: rec?.stage ?? "unknown" });
   }
 
-  return runAuditAndComplete();
+  return finalizeDeployment();
 }

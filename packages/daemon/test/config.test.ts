@@ -5,7 +5,6 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseConfigText, mergeConfig, paramValue } from "../src/config/load.js";
 import { validateConfig, formatViolations } from "../src/config/validate.js";
-import { probeOnce, probeFixHint, type ProbeFn } from "../src/config/probe.js";
 import { familyFromModelName } from "../src/config/family.js";
 
 const TEMPLATES = resolve(__dirname, "../../../templates");
@@ -414,28 +413,6 @@ evaluator = "gpt-5-mini"
     expect(text).toContain("修复:");
     // 无 pictographic
     expect(text).not.toMatch(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/u);
-  });
-});
-
-describe("BYOA 探测逻辑(5s + 重试一次;错误分类)", () => {
-  it("首次失败、二次成功 => attempts=2 ok", async () => {
-    let n = 0;
-    const fn: ProbeFn = async () => {
-      n++;
-      return n === 1 ? { ok: false, status: "timeout" } : { ok: true, status: "logged_in" };
-    };
-    const r = await probeOnce(fn, { provider: "codex_cli" });
-    expect(r.attempts).toBe(2);
-    expect(r.outcome.ok).toBe(true);
-  });
-
-  it("两次都失败 => 处方化修复行", async () => {
-    const fn: ProbeFn = async () => ({ ok: false, status: "not_logged_in" });
-    const r = await probeOnce(fn, { provider: "claude_cli" });
-    expect(r.attempts).toBe(2);
-    expect(probeFixHint(r.target, r.outcome)).toContain("claude auth login");
-    const cur = probeFixHint({ provider: "cursor_cli" }, { ok: false, status: "keychain_error" });
-    expect(cur).toContain("keychain");
   });
 });
 

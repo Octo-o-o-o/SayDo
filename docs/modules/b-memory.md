@@ -49,3 +49,7 @@
 - **依赖**:B2(账本)、workspace(rg);被 B1/A3/A4 消费。
 - **验证归属**:2.2(freshness 过滤测试;D9 spike 语料两批跑分)。
 - **分期与开放项**:P0。开放:中文召回不达标时的降级链(07 D9 风险表)。
+
+## 2026-10-07 安全装配边界（本轮不改实现）
+
+本轮只读检查发现正常入口直接构造 MemoryLedger/MemoryFts，未证明 `recoverMemory` 与 `makeSnapshotForgetStore` 已在生产启动/遗忘入口装配。保留 tombstone 重放、FTS 重建、readiness 清除、快照/评估明文清除原语及其测试；安全合同不降级。不得据此宣称 hard-forget 传播与恢复已完整支持，本轮不新增接线；缺口作为未证明装配事项继续保留。B2 的设计要求和历史原语测试不等于生产端到端验收。

@@ -8,7 +8,6 @@ import type { TaskCard } from "@saydo/contracts";
 import { openDb, type Db } from "../src/storage/db.js";
 import { Summarizer, renderOneLiner } from "../src/summary/summarizer.js";
 import { reconcileOnStartup, deliveryPreflight, inDndWindow } from "../src/recovery/reconciler.js";
-import { PowerAssertion, type PowerSpawner } from "../src/recovery/power.js";
 import { insertProject } from "../src/storage/dao/projects.js";
 import { managedProjectPath } from "../src/projects/workspace.js";
 import { insertTask, insertTier1Run, type Tier1RunRow } from "../src/storage/dao/tasks.js";
@@ -136,31 +135,5 @@ describe("C7 preflight + DND", () => {
     expect(inDndWindow("02:00", "23:00-08:00")).toBe(true);
     expect(inDndWindow("12:00", "23:00-08:00")).toBe(false);
     expect(inDndWindow("08:00", "23:00-08:00")).toBe(false); // 窗口末不含
-  });
-});
-
-describe("电源断言(引用计数)", () => {
-  it("首个 acquire 启动 caffeinate,清零 release 才 kill", () => {
-    let started = 0;
-    let killed = 0;
-    const spawner: PowerSpawner = { start: () => (started++, { kill: () => void killed++ }) };
-    const pa = new PowerAssertion(spawner);
-    pa.acquire();
-    pa.acquire();
-    expect(started).toBe(1); // 只启一次
-    expect(pa.active).toBe(true);
-    pa.release();
-    expect(killed).toBe(0); // 还有 1 ref
-    pa.release();
-    expect(killed).toBe(1); // 清零才 kill
-    expect(pa.active).toBe(false);
-  });
-
-  it("不可用环境(spawner 返回 null)⇒ no-op 不炸", () => {
-    const pa = new PowerAssertion({ start: () => null });
-    expect(() => {
-      pa.acquire();
-      pa.release();
-    }).not.toThrow();
   });
 });

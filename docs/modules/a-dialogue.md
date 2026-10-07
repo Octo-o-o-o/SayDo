@@ -111,3 +111,9 @@
 - **依赖**:A2(转写)、C5(收据)、C1/C2(任务卡)。
 - **验证归属**:3.4(G5 贯通 join 查询测试)、§12-3(voice 缺 turn_ref 拒,DDL CHECK)。
 - **分期与开放项**:P0 关联视图 / P1 独立账本。
+
+## 2026-10-07 未装配原型范围（已退役，待独立验收）
+
+已退役 `brain/contextPack.ts` 的空 slices stub、`interview/policy.ts` 的独立采访算法和 `intent/view.ts` 的查询便捷层；它们只有测试消费者，不是现役入口。保留实际 memory/compiler、ContextSnapshot/computePackDigest、live interview 的归属与 turn.text/readiness 应答、问题/授权设计要求，以及 approvals/session/turn_ref 与意图存证。不能将采访整体标为不存在，也不能由便捷查询层退役推断 G5 全链已验。
+
+A5 的 `evaluator/verify.ts` 及其测试保留；原型或合同测试通过不证明生产取证闭环已完整接线。本轮不新增装配。混合 tools、policy-approvals 等测试只删除已退役原型专属断言，保留实际能力和安全反例。

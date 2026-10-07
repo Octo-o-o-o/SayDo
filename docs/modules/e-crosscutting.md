@@ -30,3 +30,7 @@
 - **目标合同注(2026-09-29)**:durable 事件的提交序/恢复/代际/保留窗口目标形状见 [09 §17.3](../09-data-contracts.md)(designed,未实现);本模块现行日志/审计分流规则不变。
 - **验证归属**:随各安全测试断言审计痕(§12-9/-10 的"+审计"从句);0.1(日志底座随脚手架)。
 - **分期**:P0 日志+审计 / P1 指标。
+
+## 2026-10-07 未装配原型范围（已退役，待独立验收）
+
+已退役仅由测试持有的 `config/probe.ts`、`voice/driftSentinel.ts` 与 `recovery/power.ts`。仅旧 config/probe 假探针原型退役；09 §11 的现役 CLI self-test、active/fallback/unarmed、活动 resolver 与二进制 digest 复核继续有效。周期漂移监测及该电源断言尚未装配，删除原型不表示监测验证成功，也不宣称平台已具备防睡眠能力。平台生命周期/disposer 和实际恢复实现保留；improvements-m、summary-reconcile 混合测试中的其他有效断言保留。
