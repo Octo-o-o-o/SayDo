@@ -78,6 +78,17 @@
 - `just ci` — 本地 Node/Python 基线(node/python 双矩阵 + emoji 与工作区隐私扫描;不是托管 CI 等效)
 - `just backup` — SQLite/JSONL/knowledge 快照备份
 
+## Cursor Cloud
+
+- 开发入口仍是 `just dev` 与 `just ci`。环境启动脚本在 tmux 会话 `saydo-dev` 中运行 `node scripts/dev.mjs`(与 `just dev` 相同的三进程入口)。
+- daemon 监听 `127.0.0.1:47100`(`GET /health`);控制台 Vite 监听 `127.0.0.1:47120`,并把 `/api`、`/health`、`/ws` 代理到 daemon。
+- 控制台请求要带 capability token。打开 `http://127.0.0.1:47120/?token=` 再接 `~/.saydo/.cap-token` 的内容。该文件是本机密钥,不要写入日志、文档或提交。
+- 语音管线在 `pipeline/`,用 `uv sync --frozen`(需要 Python `>=3.11`)。未安装 `uv` 时 `just dev` 跳过 pipeline,文本路径与控制台仍可启动。
+- 对话模型要 owner 自备已登录的 AI CLI,或 OpenAI 兼容 API key。`/health`、控制台壳、空间与 Focus 写入不依赖该密钥。
+- Node `>=22`。pnpm 版本以根 `package.json` 的 `packageManager` 为准。
+- 仓库在 Cloud Agent 里位于 `/workspace`,不在登录用户的家目录下。daemon 只接受 owner home 之内的项目路径。环境里的 `just` 包装与启动脚本把 `HOME` 设为 `/workspace`(状态在 `/workspace/.saydo`,已 gitignore),并把 PATH 前的 Node 指到带 npm 的 nvm Node 22。Git 全局配置、pnpm store 与 uv cache 仍留在 `/home/ubuntu`。绕过 `just` 直接跑 `pnpm test` 时也要先 `export HOME=/workspace`,否则会报「路径必须位于 owner home 的子目录」。
+- `packages/cli` 的 `run-owned-reap` 夹具用 `ps lstart` 写锁,Linux 上 supervisor 用 `/proc` starttime 比对。这 3 个用例在当前 main 上会红,不是缺依赖。
+
 ## 语言与身份
 
 - 全部沟通、注释、文档使用简体中文;标识符与日志键用英文。
