@@ -89,23 +89,25 @@ export function createOpenAICompatProvider(opts: OpenAICompatOptions): LlmProvid
       controller.abort();
     }, timeoutMs);
     try {
+      // 每次尝试复制消息；结构化输出指令不得改写调用方的历史或在重试时累加。
+      const messages = req.messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+        ...(m.toolCalls && m.toolCalls.length > 0
+          ? {
+              tool_calls: m.toolCalls.map((tc) => ({
+                id: tc.id,
+                type: "function",
+                function: { name: tc.name, arguments: tc.arguments }
+              }))
+            }
+          : {}),
+        ...(m.toolCallId !== undefined ? { tool_call_id: m.toolCallId } : {})
+      }));
       const body: Record<string, unknown> = {
         model: opts.model,
         // function-call 装配(接线批任务③):assistant 带 tool_calls / tool 结果带 tool_call_id
-        messages: req.messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-          ...(m.toolCalls && m.toolCalls.length > 0
-            ? {
-                tool_calls: m.toolCalls.map((tc) => ({
-                  id: tc.id,
-                  type: "function",
-                  function: { name: tc.name, arguments: tc.arguments }
-                }))
-              }
-            : {}),
-          ...(m.toolCallId !== undefined ? { tool_call_id: m.toolCallId } : {})
-        })),
+        messages,
         ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
         // 8/6 晚破案:deepseek-v4-pro 等 reasoning 模型把预算花在 reasoning 字段,content=null 被判
         // invalid_response(今日"上游抖动"总根因,instructions 加长后暴增)。max_tokens 上调给推理留
@@ -115,7 +117,16 @@ export function createOpenAICompatProvider(opts: OpenAICompatOptions): LlmProvid
         ...(endpoint.origin === OPENROUTER_ORIGIN ? { reasoning: { max_tokens: 1200 } } : {})
       };
       if (req.jsonSchema) {
-        body["response_format"] = { type: "json_schema", json_schema: { name: "result", schema: req.jsonSchema } };
+        if (endpoint.origin === DEEPSEEK_DIRECT_ORIGIN && req.jsonSchema["type"] === "object") {
+          // 09 §11：官方 Chat Completions 支持 JSON 模式，消费端仍须按原合同严格校验。
+          body["response_format"] = { type: "json_object" };
+          const instruction = `仅返回符合以下 JSON Schema 的 JSON 对象，不要添加 Markdown 或解释：\n${JSON.stringify(req.jsonSchema)}`;
+          const system = [...messages].reverse().find((message) => message.role === "system");
+          if (system) system.content = `${system.content}\n\n${instruction}`;
+          else messages.unshift({ role: "system", content: instruction });
+        } else {
+          body["response_format"] = { type: "json_schema", json_schema: { name: "result", schema: req.jsonSchema } };
+        }
       }
       if (req.tools && req.tools.length > 0) {
         body["tools"] = req.tools.map((t) => ({

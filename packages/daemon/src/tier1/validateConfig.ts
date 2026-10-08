@@ -8,6 +8,7 @@ import { basename, dirname, isAbsolute } from "node:path";
 import { hostKind, isReparsePoint } from "@saydo/platform";
 import { familyFromModelName } from "../config/family.js";
 import type { ClaudeIdentityVerdict } from "./claudeIdentity.js";
+import { cursorNodeEntrypoint } from "./cursorNodeEntrypoint.js";
 
 export interface Tier1ConfigInput {
   cursorAgentBin: string;
@@ -62,11 +63,17 @@ export function validateTier1Config(i: Tier1ConfigInput): Tier1Verdict {
   }
   if (hostKind() === "win32") {
     const base = basename(i.cursorAgentBin).toLowerCase();
-    if (base !== "cursor-agent.exe" && base !== "cursor-agent") {
+    if (base === "index.js") {
+      try {
+        cursorNodeEntrypoint(i.cursorAgentBin);
+      } catch {
+        return { ok: false, code: "bin_not_versions_layout", reason: "Cursor Node 入口或同目录 node.exe 不满足实体版本目录要求" };
+      }
+    } else if (base !== "cursor-agent.exe" && base !== "cursor-agent") {
       return {
         ok: false,
         code: "bin_not_versions_layout",
-        reason: `cursor_agent_bin 基名须为 cursor-agent.exe(得到 ${basename(i.cursorAgentBin)})`
+        reason: `cursor_agent_bin 基名须为 cursor-agent.exe 或原生包 index.js(得到 ${basename(i.cursorAgentBin)})`
       };
     }
   } else {

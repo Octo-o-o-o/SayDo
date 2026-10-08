@@ -1952,6 +1952,19 @@ type DevAgentBinding =
 
 - **M1 移动 LAN 临时访问面(2026-08-11;PG-01B 止损 2026-09-04)**:`SAYDO_MOBILE_LAN=1` 是独立显式开关;未开启时不改变缺省 `127.0.0.1` 监听与 G1 拒绝语义,开启后监听 IPv4 `0.0.0.0`,受身份门保护的请求只接受带 daemon 端口的 RFC 1918 IPv4 Host、RFC 1918 socket peer 与 capability token;Host 自报 localhost 但 peer 非环回必须拒。浏览器带 Origin 时要求与 Host 同源;同源 GET 天然缺 Origin 时只接受同 Host Referer,且 `Sec-Fetch-Site` 存在时必须为 `same-origin`;非浏览器缺来源证明仍拒。来源标为 `via="mobile_lan"`。**现役(PG-01B)**:远程 HTTP 业务 `/api/**` 一律 403(`remote_business_forbidden`);远程 WS 业务连接 fail-closed。只保留无业务 payload 的 `/health`、`/readyz` 与 console 静态壳;recovery-only composition root 不消费本开关,沿用既有监听配置,且同样受远程业务 403。下列历史只读白名单 / WS 上行白名单为 `designed/deferred`(DF-REMOTE-REOPEN),不得当作现役入口——业务 HTTP API 曾放行 M1 所需只读投影(`/api/attention`、`/api/focuses` 及 Focus 详情)和 `POST /api/setup/first-run/query`,以及 `GET /api/sessions/recent-transcript`(Chat 回放;payload 含 `sessionId`/`projectId` + 转写原文 `speaker`/`text`,可选 `origin`/`turnId`/`ts`;转写不是记忆权威)、`GET /api/memory/recent`(菜单最近记忆;含 `claim` 全文与 `trust`/`source`/`taint`/`expiresAt`/`ts`)、`GET /api/projects/:id/memory`(已放行 helper,移动页面尚未调用;返回该项目 M1-M3 活跃投影;行含 `id`/`tier`/`claim`/`trust`/`source`/`taint`/`expiresAt`,其中 `claim` 为全文、`taint` 为数组;不含 `ts`)。`GET /api/setup/probe` 仍不在白名单。移动 Attention/Focus DTO 与确认 outcome 复用 contracts 严格 schema,移动 Focus 详情只投方向、义务、泳道与逐字符串脱敏后的轨迹摘要,不返回 repo note、artifact ref、sessionId 或原始 event payload。该面是 **LAN 明文 HTTP/WS + 长期 capability token** 的 dogfood 临时边界,不等于设备配对或端到端加密;Noise 与逐设备身份留 M2,不得暴露到不受信网络。WS 上行历史白名单(designed/deferred)曾接受 `turn.text`、`confirm.decision`、只登记 session 而不转发 pipeline 的 `voice.mode` 与 `console.heartbeat`;二进制音频、`confirm.click`、播放水位和采集控制均拒。`GET /api/attention` 的 confirmation 条目投影 durable `expiresAt` 与 `confirmKind`(= `pending_confirmations.kind`,与 `CONFIRM_KINDS` 同源,additive 可选;表外值不投,呈现层按未知 kind 回落;GAP-02 残项 2.1);`GET /api/focuses` 的 `fourState` 复用 contracts 的 `FocusFourStateCounts`。
 
+### Cursor Windows 原生 Node 入口(2026-10-08)
+
+- Windows 的 `[tier1].cursor_agent_bin` 另接受官方原生包的 `versions/<cursor_agent_pinned_version>/index.js` 绝对路径；该入口与同目录 `node.exe` 必须是常规实体文件，入口、运行时和版本目录不得是符号链接或 reparse point。既有 `cursor-agent.exe` / POSIX 入口保持原行为，`.cmd` / `.ps1` 不作为 Cursor 执行入口。
+- 启动探测和实际执行统一映射为同目录 `node.exe` 加 `index.js` 与原始 argv；不调用 shell、不读取 PATH、不选择 latest 目录、不改写提示词。运行时每次解析时重验文件与目录，版本目录形态与启动精确版本断言均保留；这不新增内容摘要身份登记，也不宣称可防止同用户修改安装包。
+- Windows Job、子进程归属、Gate 0、审批 hooks、版本升级门禁和模型身份规则保持原合同。此补充只适配安装入口，不将入口可运行等同于已通过执行门禁。
+
+### API 结构化输出传输(2026-10-08)
+
+- `ChatRequest.jsonSchema` 表示调用方要求的输出合同；上游返回 HTTP 200 或合法 JSON 不等于合同校验通过。起草与评估仍须经既有严格解析与 zod 校验，缺字段、额外字段、越界、非 JSON 或空内容不得变成可派发结果。
+- OpenAI 兼容 Chat Completions 默认发送 `response_format.type="json_schema"`。仅解析后的端点 origin 精确等于 `https://api.deepseek.com` 且 schema 根 `type` 为 `object` 时，结构化请求改发其支持的 `json_object`，并将完整 JSON Schema 与“仅返回符合 schema 的 JSON 对象”约束加入最后一条 system 消息；没有 system 消息时新增一条。保留原有 system 指令、其他消息及请求对象，不以模型名、路径子串、仿冒域名或网关推断此能力。根数组、联合类型及未声明根 `type` 的 schema 维持原传输，不暗中包裹或解包；上游不支持时仍显式失败。
+- 此适配不新增配置开关、不替换模型或计费来源、不改变重试与模型身份校验，也不降低消费端的结构校验。非结构化请求保持原状；DeepSeek 经 OpenRouter 等网关调用仍走网关的默认传输。
+- 依据：[DeepSeek JSON Output](https://api-docs.deepseek.com/guides/json_mode/)；2026-10-08 Windows 真调中 `deepseek-flash` 对 `json_schema` 返回 400，对 `json_object` 返回 200。该证据只证明传输能力，不替代评估自检。
+
 ### T18b 当前模型槽、对话单发与首跑合同(2026-08-11)
 
 本节覆盖下方 T17 历史附录中关于“未接线/不可武装”的表述。thinking/cheap/evaluator 与全局 dialog 的 CLI binding 均已接线;CLI binding 出现在全局 dialog 槽即表示 `dialog_cli_oneshot`,不改 `ModelBinding` 形状。项目级 dialog override 维持恒拒 CLI。

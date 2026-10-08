@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { PassThrough, type Readable, type Writable } from "node:stream";
 import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { delimiter, dirname, extname, join, resolve, win32 } from "node:path";
+import { basename, delimiter, dirname, extname, join, resolve, win32 } from "node:path";
 import {
   appendReapAudit,
   assignPidToJob,
@@ -68,6 +68,7 @@ import {
   type PipeFailureRecord
 } from "./processGroupLifecycle.js";
 import { readOwnedAgentProcessStart } from "./tier1/restartPolicy.js";
+import { cursorNodeEntrypoint } from "./tier1/cursorNodeEntrypoint.js";
 
 export interface RuntimeChildOwnershipRecord {
   version: 1;
@@ -332,6 +333,10 @@ export function resolveRuntimeInvocation(
   args: string[],
   platform: NodeJS.Platform = process.platform
 ): RuntimeInvocation {
+  if (platform === "win32" && basename(file) === "index.js" && basename(dirname(dirname(file))) === "versions") {
+    const entry = cursorNodeEntrypoint(file);
+    return { file: entry.file, args: [entry.script, ...args] };
+  }
   const extension = extname(file).toLowerCase();
   if (platform !== "win32" || (extension !== ".cmd" && extension !== ".bat")) return { file, args };
   const raw = readFileSync(file, "utf8");
