@@ -29,7 +29,7 @@ let dbPath: string;
 // v14 用例必须用真实 $HOME 下的路径(验证 external workspace 迁移),统一走本 registry 回收。
 const homeFixtures = new Set<string>();
 function homeFixture(prefix: string): string {
-  const path = mkdtempSync(join(process.cwd(), prefix));
+  const path = mkdtempSync(join(homedir(), prefix));
   homeFixtures.add(path);
   return path;
 }

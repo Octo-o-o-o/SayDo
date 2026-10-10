@@ -3279,3 +3279,59 @@ Pages 已删除历史 audit callback 及其参数检查、专属失败逻辑，�
 本轮同时退役分域 a/c/e 状态注列出的未装配普通原型；能力设计、类型、schema/DDL、存量兼容和安全要求保留。09 §12 的 TTL、Gate 0、S3 等反例不因原型测试退役取消。memory/recovery、snapshotForget、evaluator/verify 及其测试保留，装配未证明如实登记，不在本轮新增接线。console cn/utils、clsx/tailwind-merge 和 shadcn 配置有真实开发工具消费者，继续保留。
 
 公开声明仍须对应实际验证范围，遵守 06 §7 与 11 §10.3；文件存在、静态字符串命中、手写样例与自身一致均不是产品行为证据。合同已先行核对，源码与文档共同冻结后独立验收；真实 release、平台、设备、Cloudflare 或 provider 未验须单列。
+
+
+## 19. Anyvia personal-context v1（2026-10-10，设计候选，待一致性评审及实施）
+
+本节是 Anyvia W10 的新增合同，不声明 SayDo 已有这些公共 API。补丁独立于日用树；未完成独立评审、生产装配和两侧故障测试前，状态保持 designed。现有 Focus、确认环、M0、Gate 0、S3 与 remoteSurface 合同全部继续有效。
+
+### 19.1 权威与四个操作
+
+协议标识固定为 `anyvia-saydo-personal-context/1`，协商精确版本与 schema digest。不接受隐式降级、自由方法名、任意 SQL、路径或透传业务 HTTP。四种操作互不推导权限：
+
+| 操作 | 方向与效果 | 权威及约束 |
+|---|---|---|
+| `compile/request` | SayDo 请求 Anyvia 已明确授权的个人上下文 | Anyvia 分别核验处理授权、披露授权、接收实例、实际下游处理方、用途、资料版本、Case 与预算；请求本身不创建授权。仅交付已冻结的准确 contextId，不能用项目名换取全部资料 |
+| `candidate/propose` | SayDo 向 Anyvia 提出资料更新候选 | 独立候选写授权；带真实来源与基准版本；不得自动转 trusted、覆盖当前记录或自报本人事实。Anyvia 内部候选确认权不转移到 SayDo |
+| `event/ingest` | SayDo 将已登记 Focus/会话的真实变化交给 Anyvia | 独立事件范围、稳定源身份、提交顺序、游标去重与缺口恢复；完成只描述 SayDo 的实际状态，不结清 Anyvia 本人验收或责任项 |
+| `request/respond` | Anyvia 回应精确 SayDo 原请求 | 单独回应授权；SayDo 源端同步核验请求当前身份、版本、内容 digest、会话归属、允许 actor、有效期、主持代次和收据；传输 ACK 不等于源端消费或执行 |
+
+每次效果带稳定 operationId 和规范化 payloadDigest；幂等键包含安装实例、连接代次、操作类型与 operationId。相同键不同 digest 拒绝。先耐久写意图，再在网络事务外发送；源端效果、回执与审计同事务。超时保留 unknown，通过只读 `operation/status` 协议信封查询原 operationId；该信封不是第五种业务效果，不接受正文变更、不触发执行或重试，查询权限绑定原安装身份、连接代次与操作。返回 `not_found|pending|applied|rejected|unknown|expired` 及原 payloadDigest/源回执，`not_found` 不能证明对方从未执行。原业务幂等记录至少覆盖该授权最大寿命及其恢复/对账窗口；保留期已过只返回 expired/unknown，不重新消费旧键。只有源端耐久回执能够证明 applied；不盲重放已可能产生副作用的请求。恢复备份后旧授权代次失效，旧队列不自动重发。恢复库中来自 Anyvia 的个人正文及模型派生历史默认隔离，不显示、不重注入；必须从独立于该备份的当前 Anyvia 权威取得最新删除/撤销水位并完成应用后，才允许在仍有效的对应授权下逐项使用。无法取得当前水位时继续隔离。重新配对、新 token 或旧备份内未出现 tombstone 都不能证明内容重新获准；备份内事件重放不足以发现备份后的删除。
+
+### 19.2 受保护本地接入与主体
+
+默认关闭。Owner 明确启用并登记双方安装身份与各项最小权限。通过受保护本地适配器接入；实现必须验证操作系统端点归属、私有凭据引用、每次连接的新挑战与有界帧，不能把任意 localhost 调用方视为 owner。凭据不出现在参数、URL、审计或日志中。远程部署须通过单独核验的受控 host 传输，不能扩大已有 `/api/`、`/dev/` 或业务 WS 的 tailnet/mobile_lan 权限。
+
+服务器配置确定 installationId、nodeId、connectionEpoch 和原请求来源，不接受 payload 自报替换。Owner 与 representative 是独立 actor。representative 必须携带当前 mandateId/revision、Case controlGeneration 与硬约束 revision，源端还必须允许该动作的代表主体。现有只接受 owner 的 ApprovalReceipt 不扩成“代表也是 owner”；这些请求继续 owner-only。Owner 响应必须验证与原动作绑定的认证证明，不能仅凭 Anyvia 的标签字符串获得 owner 身份。S3 沿现有源端强认证屏幕确认，不由 MCP token、语音或通用适配器绕过。
+
+凭据撤销、连接暂停、锁定、Case 删除或主持切换使等待中的旧交付失效；在最终实际写入处再次核验。事件与资料读取许可都不能推导回应或启动任务的许可。停用 Anyvia 后 SayDo 原独立功能保持可用；停用 SayDo 后 Anyvia 的资料与本人管理仍可用。
+
+### 19.3 B1 消费、最小化与遗忘
+
+B1 在当次请求中读取明确的个人上下文授权，不扫描 Anyvia 库、不复制个人记忆全库、不共享 SQLite。上下文必须含 compilerVersion、contextId、payloadDigest、来源与资料 revision、expiresAt、restrictionSequence、预期用途及接收方绑定；无来源、不匹配、过期、撤销或 digest 错误一律不注入。不可用时明确显示本轮未使用个人上下文；本人硬约束不可静默丢弃后继续派发。
+
+外部资料保留 taint 和事实/推断/偏好类别，不进入 M0，不被升格为 SayDo 本人批准。个人硬约束独立于可裁剪信息，编译预算不足时拒绝该次依赖它的执行，不能把硬约束变成被省略的普通记忆。既有 Focus/currentRevision、项目能力和批准规则优先保持各自权威，不由个人资料改变。
+
+SayDo 实际调用的外部模型/Agent 也是披露接收方：对 SayDo 的读取许可不自动授权转发给任何下游。每次下游选择及账号/实例必须满足 Anyvia 原披露范围；在实际发送字节前获得当前 Anyvia 权威复核的一次性有界准入，并在最终 writer 同步重校验原派发绑定。仅持有旧 expiresAt/restrictionSequence 或本地缓存不足以证明撤销后仍可发送。离线或无法取得新鲜权威时不发送个人片段；依赖个人硬约束的执行必须拒绝，不能吞掉编译错误后继续，也不改选另一个处理方。现有 context_snapshots 保存 refs/token 等元信息，renderPackText 从事实读取正文；不能误称现表已保存外部个人正文。新增个人正文默认仅保留于该次受控内存，不写入普通 context_snapshots、转写或诊断日志；外部 refs 的审计/重建不得重新扩大读取权限；必要的使用审计仅存身份/版本/digest，独立撤销水位使缓存失效。不能把“未写入个人账本”说成外部服务已经遗忘。模型回复可能引用个人片段，派生文本同样继承本次披露来源及保留限制；默认不把该轮输入/输出正文写入 SayDo 普通转写、会话历史或快照。需要本地历史保留时，必须先明确征得对应保留授权并有可执行的删除/到期传播，不能仅凭模型输出已改写而去掉来源。源端留存限制如实展示；关闭本地记录不等于供应商零留存。
+
+既有 memory/recovery 与 snapshotForget 的装配缺口仍需修复和验收；本接入不借其原语存在宣称硬遗忘全链路完成。
+
+### 19.4 Focus、原请求和沟通主持
+
+Focus 是 SayDo 源端权威；Anyvia Case 只保存明确的外部引用和源版本。连接映射绑定 Focus ID、SayDo 安装代次、Case ID/空间、originOwner、communicationHost 与 controlGeneration。本人可在 Anyvia 收紧人侧要求，但不能把远端旧快照改写为“源端已接受”；离线时两种状态分别呈现。
+
+操作中的源端绑定还必须包含原生 `focusRevision`、`focusAuthorityEpoch`、`focusAnchorRevision` 与精确 `sessionId`，均使用源端实际非负代次，不与 Anyvia 的 authorityEpoch/controlGeneration 混用。SayDo 在原会话上复核 primary_focus_id、anchor 和 Focus revision/authority；Focus 切走再切回也使旧 anchor 失效。不能仅检查 Focus ID 和 revision。复用既有 FocusAuthSnapshot/CAS 的源端校验，不另造可绕过的影子权威；封闭、遗弃或未由 SayDo 掌权的 Focus 不接受新的跨产品业务效果，历史只读对账另行按原身份核验，不复活写权。
+
+`event/ingest` 仅披露已提交源事件，不创建或重新授权 Focus 动作。Focus 关闭、归档或原会话切换后，仍可在当前独立事件披露许可下报告其真实终态；此路径不得复用新增业务效果的活动 Focus 门，也不得因此允许 `compile/request`、`candidate/propose` 或 `request/respond`。终态披露必须使用登记时已持久化的安装/Focus/精确 session 及 anchor 映射，核验真实 focus_events 的 fev、Focus、原 session（可为空）、seq、kind 和源 digest，并验证同事务提交的全局游标；不能接受调用方自由填写事件或因已结束而跳过归属检查。原 session 非空时必须与登记会话精确相等；原 session 为空的真实 Focus 级事件必须保留空值，并有独立明确允许 Focus 级事件的披露范围及源提交事务捕获的登记映射，不能伪装为该会话产生的事件。协议分开表达映射 sessionId 与 sourceSessionId。事件流持久记录必须在真实 appendEvent 的同一事务捕获源版本/authority、登记 anchor 与映射版本，失败与源事件一起回滚；不得以后来的 Focus/current session 拼补旧事件。新增接入之前缺少这组来源证明的历史事件不补造，明确不可逐事件披露，只能另按当前范围取得一致快照且标为快照而非历史事件。当前连接、Case、主持、删除/撤销水位与披露范围仍在发送前重新校验；映射撤销后拒绝新披露，已发送 unknown 仅按原身份对账。协议 link 的源版本表示该事件在源提交时捕获的绑定，不冒称当前 Focus 已重新接受动作；接收方按来源顺序更新只读投影，不能将历史事件版本覆盖当前执行授权。新增候选即使引用历史事件仍属于新效果，继续受当前活动权威约束。
+
+有效期使用操作最外层独立持久化的时间高水位；同步嵌套事务共享该次固定观察，不得在内层重新采样后随业务失败丢失过期观察。缺少可信外层观察的嵌套事件捕获拒绝执行，不静默丢弃已登记事件；无登记映射的既有 Focus 操作不因此获得新限制。事件绑定读取须与登记的 boundary、Case、主持及硬约束版本、session/anchor 精确一致；捕获的 Focus revision/authority 则与同事务源流快照一致。事件流和绑定不可原地改写，登记映射只能单调撤销，不能改身份或范围。
+
+事件序列由 SayDo 提交事务生成，不使用时间戳推算顺序。对已登记 Focus 使用真实 focus_events seq；跨源流另有提交游标，不能把多个 Focus 的 seq 拼成全局单调序。读取快照与游标必须一致；发现缺口先补齐/重取快照，再消费后续事件。源端先答、过期、删除或版本变化后，Anyvia 晚到响应必须拒绝，不能重新创建同名问题。
+
+原确认请求使用原 receiptId/digest/sessionId/kind 以及实际 Focus/package/task 绑定，不用标题、当前任意卡或可编辑草稿替代。现有 live 采访没有独立请求 ID 的情况，必须由 SayDo 源端新增稳定请求身份与当前问题状态后才能声明可精确回应；不得在 Anyvia 伪造原生 ID。普通 turn.text 不能冒充原问题消费证据。
+
+主持切换必须显式、带代次、可审计；交接先进入 handoff_pending，取消旧主持尚未发送的意图，并停止其新派发；已发送或 unknown 的意图逐一对账，未证明取消/源端终态或经本人明确裁决前，新主持不得继续对同一冲突责任派发。本人收紧要求即时生效，不以等待交接完成为由推迟限制；在途 unknown 保留对账，不自动结清。两侧不得同时启动无边界采访或规划循环。源端表示执行检查跑完仍与本人验收、责任结清分开。
+
+### 19.5 生产验收边界
+
+必须从实际 daemon 与 Anyvia Gateway 入口验证：未启用/无授权零披露；三种权限互不升级；跨空间/跨实例/旧代次拒绝；真实 B1 本轮消费与下游范围；候选需要本人确认；本机伪装、重放、ACK 丢失及双侧重启；原端先答、过期、owner/representative 区分；离线收紧/主持切换后旧作业拒发；撤销、删除、恢复不复活。适配器的 mock 或接口自洽单测不替代这组集成测试，真实外部模型调用另列账号/费用验收。

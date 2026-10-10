@@ -26,6 +26,8 @@ import {
   type ObligationResolveEvidence
 } from "@saydo/contracts";
 import type { Db } from "../storage/db.js";
+import { captureRegisteredContextEvent } from "../personalContext/eventCapture.js";
+import { withPersonalContextCaptureClock, assertSynchronousContextResult } from "../personalContext/clock.js";
 import {
   focusFromRow,
   obligationFromRow,
@@ -505,6 +507,7 @@ function buildOps(db: Db, nowIso: string, opts: FocusWriteTxOptions): FocusWrite
         event.createdAt
       );
       ops.touchUpdatedAt(focusId);
+      captureRegisteredContextEvent(db, event.id);
       return event;
     },
     createFocus(input: CreateFocusInput): { focusId: string; eventId: string } {
@@ -1014,14 +1017,16 @@ export function assertLifecycleEdge(from: FocusLifecycle, to: FocusLifecycle): v
  * work 内的一切 mutation 使用 ops;提交前跑一致性 validator。
  */
 export function withFocusWriteTx<T>(db: Db, opts: FocusWriteTxOptions, work: (ops: FocusWriteOps) => T): T {
+  return withPersonalContextCaptureClock(db, () => {
   const nowIso = (opts.now ?? (() => new Date()))().toISOString();
   const tx = db.transaction(() => {
     const ops = buildOps(db, nowIso, opts);
-    const result = work(ops);
+    const result = assertSynchronousContextResult(work(ops));
     // 事务末尾:凡触及的 focuses 可在 work 内 assert;此处全局不做扫全表
     return result;
   });
   return tx.immediate();
+  });
 }
 
 /** 只读:解析 focus 行(不经写路径) */

@@ -1,8 +1,10 @@
+import { PERSONAL_CONTEXT_DDL } from "../personalContext/schema.js";
+import { PERSONAL_CONTEXT_EVENT_DDL, PERSONAL_CONTEXT_EVENT_IMMUTABLE_DDL } from "../personalContext/eventSchema.js";
 // docs/09 §9 SQLite DDL(对话域;执行域归 Hopper)—— v1 = 本表全集,照抄。
 // dispatch_bindings/hopper_commands 两张表零成本建好,其读写路径属 P0.5-B(计划 0.3)。
 // 迁移纪律:v1 之后只允许 additive 迁移,不改既有列语义。
 
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { canonicalizeWorkspace, validateManagedWorkspace, WorkspacePolicyError } from "../projects/workspace.js";
 import { relative, sep } from "node:path";
 
@@ -801,7 +803,13 @@ export const MIGRATIONS: ReadonlyArray<Migration> = [
   { version: 31, apply: applyDdlV31FinalizePending },
   { version: 32, apply: applyDdlV32OutboxThreadMessageId },
   { version: 33, apply: applyDdlV33TaskDependency },
-  { version: 34, apply: (db) => addColumnIfMissing(db, "tier1_runs", "budget_clock_complete", "INTEGER NOT NULL DEFAULT 0 CHECK (budget_clock_complete IN (0,1))") }
+  { version: 34, apply: (db) => addColumnIfMissing(db, "tier1_runs", "budget_clock_complete", "INTEGER NOT NULL DEFAULT 0 CHECK (budget_clock_complete IN (0,1))") },
+  { version: 35, sql: PERSONAL_CONTEXT_DDL },
+  { version: 36, apply: db => {
+    db.exec(PERSONAL_CONTEXT_EVENT_DDL);
+    db.prepare("INSERT INTO personal_context_event_stream_identity(singleton,stream_epoch) VALUES(1,?)").run(randomUUID());
+  } },
+  { version: 37, sql: PERSONAL_CONTEXT_EVENT_IMMUTABLE_DDL }
 ];
 
 // v29(D1 可分发运行时):可恢复退出使用 additive marker,不扩 tier1 run 状态机。
