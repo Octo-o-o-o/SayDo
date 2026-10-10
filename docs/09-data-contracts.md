@@ -3332,6 +3332,16 @@ Windows 的本地 Ed25519 签名私钥使用当前用户 Windows Credential Mana
 
 真实凭据测试必须使用执行时新生成 UUID 的独立固定测试前缀 `saydo-personal-context-test/1/`，先证明该精确目标不存在，最后仅清理本次创建的目标；禁止测试固定生产 service/account，禁止枚举、查询或重写用户既有凭据。平台不可用时明确拒绝，不回退明文文件或任意环境变量。Mac/Linux 单独实现和验收，Windows 的通过不代替其他系统。
 
+#### 19.2.3 本机 Owner 密钥准备与耐久状态
+
+本机 Owner 管理面新增 `POST /api/personal-context/keys/provision`，严格正文仅包含 `operationId`（UUID）、`registrationId`（UUID）、`expectedRegistrationRevision`（正整数）。沿用现有 Owner CAP、Host/origin/远程表面门，读正文后再次认证。该请求只为仍处于 registered、版本相等且未过期的登记准备本地签名密钥，不启用登记、不创建许可。新登记的启用要求该精确登记已有完整可读取的系统密钥引用；平台不支持或准备失败不得假称启用。返回值仅含操作ID、准备状态、本地公钥和公钥指纹，不返回私钥或系统凭据引用。
+
+跨 SQLite/OS 的准备分为独立事实：先在同库审计事务保存精确操作ID、登记ID/版本、请求摘要和随机凭据引用/公钥意图，再调用 OS 写入，最后重新检查登记当前状态并将精确回读摘要与 stored 状态同审计提交。操作ID复用但请求摘要不同拒绝；相同操作先核验原请求摘要和当前 Owner，再返回该操作当前耐久准备状态，不重新生成密钥、不替换原 expectedRegistrationRevision；旧 stored 事实不表示当前可用，登记暂停、撤销、到期或恢复后不得展示 keyready。每个登记最多一个准备意图；pending/unknown 不自动重试 OS 写入，需明确撤销旧登记再新建。启动发现未完成 intent 时仅隔离为 unknown，不枚举凭据、不恢复活跃授权。OS 创建和数据库提交不是原子事务；无法证明精确归属的孤儿保留并报告。
+
+密钥准备记录只允许 pending→stored/unknown、stored/unknown→revoked 的单调状态变化，身份、范围与引用不可改写，不删除对账事实。pending 期间撤销先把结果隔离为 unknown，再单调转 revoked，保留 OS 结果未知的事实；后台成功提交只能 CAS 原 pending，不能把 unknown/revoked 改回 stored。恢复后的 stored 元信息不能使内存活跃登记重生；资料库恢复或换机必须新登记和新密钥，即使同用户的旧系统凭据仍可回读也不能重新启用。普通进程重启与资料库恢复明确区分，实际使用仍同时检查当前登记及系统回读指纹。暂停/撤销先提交登记与许可失效、停止内部认证/通道，再单独处理密钥记录撤销和可选物理清理；清理失败以 retained 呈现，不回滚逻辑撤销，unknown 不因清理而改成未送达。纯元信息管理、准备成功、资料许可、真实任务往返和已连接分别展示。
+
+当前受支持的恢复隔离接点是生产备份流程：在独立 SQLite 副本内将全部旧登记（包括仍 registered 的登记）、许可及密钥准备记录审计隔离，原库和系统凭据不变；恢复该副本后即使原系统私钥仍存在也不能启用旧登记。未来恢复入口必须复用同等隔离约束。任意手工回拷原始数据库、旧于此隔离流程的备份，以及缺少独立非备份撤销水位的恢复尚未覆盖，不得据此宣称完整恢复权威已实现。
+
 ### 19.3 B1 消费、最小化与遗忘
 
 B1 在当次请求中读取明确的个人上下文授权，不扫描 Anyvia 库、不复制个人记忆全库、不共享 SQLite。上下文必须含 compilerVersion、contextId、payloadDigest、来源与资料 revision、expiresAt、restrictionSequence、预期用途及接收方绑定；无来源、不匹配、过期、撤销或 digest 错误一律不注入。不可用时明确显示本轮未使用个人上下文；本人硬约束不可静默丢弃后继续派发。

@@ -22,6 +22,8 @@ import {
 } from "node:fs";
 import { basename, isAbsolute, join, resolve } from "node:path";
 import Database from "better-sqlite3";
+import { quarantinePersonalContextBackup } from "../personalContext/keyBackupIsolation.js";
+import { createSqliteAuditSink } from "../storage/dao/misc.js";
 import type { Db } from "../storage/db.js";
 import { verifiedProjectWorkspace } from "../storage/dao/projects.js";
 
@@ -307,6 +309,9 @@ export async function runSnapshotBackup(opts: SnapshotOptions): Promise<Snapshot
       const copiedDb = new Database(dest);
       try {
         copiedDb.pragma("journal_mode = DELETE");
+        if (copiedDb.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='personal_context_registrations'").get()) {
+          quarantinePersonalContextBackup(copiedDb, createSqliteAuditSink(copiedDb));
+        }
         const quickCheck = copiedDb.pragma("quick_check", { simple: true });
         if (quickCheck !== "ok") throw new Error(`SQLite 快照 quick_check 失败:${s.destName}`);
       } finally {

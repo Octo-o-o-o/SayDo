@@ -18,6 +18,7 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
+import { restrictOwnerOnly } from "@saydo/platform";
 import { newId } from "@saydo/contracts";
 import { backupRetentionDays, backupTranscriptPersistence } from "../src/backup/config.js";
 import {
@@ -28,10 +29,13 @@ import {
   reconcileSnapshotRetention,
   runSnapshotBackup
 } from "../src/backup/snapshot.js";
-import { openDb } from "../src/storage/db.js";
-import { canonicalizeWorkspace } from "../src/projects/workspace.js";
+import { registerExactTestRoot } from "./exact-test-roots.js";
+import { openDb, closeTrackedDatabases } from "../src/storage/db.js";
+import { canonicalizeWorkspace, ensureManagedWorkspaceRoot } from "../src/projects/workspace.js";
 
-const OWNER_TEST_ROOT = mkdtempSync(join(process.cwd(), ".saydo-backup-test-"));
+// 真实生产策略要求 workspace 位于本人 home；仅新建本测试独占随机目录。
+const OWNER_TEST_ROOT = mkdtempSync(join(homedir(), ".saydo-anchor-test-backup-"));
+registerExactTestRoot(OWNER_TEST_ROOT);
 
 function fixtureDir(prefix: string): string {
   return mkdtempSync(join(OWNER_TEST_ROOT, prefix));
@@ -41,6 +45,7 @@ async function withSaydoHome<T>(saydoHome: string, action: () => Promise<T>): Pr
   const previous = process.env["SAYDO_HOME"];
   process.env["SAYDO_HOME"] = saydoHome;
   try {
+    ensureManagedWorkspaceRoot();
     return await action();
   } finally {
     if (previous === undefined) delete process.env["SAYDO_HOME"];
@@ -72,6 +77,7 @@ function insertExternalProject(
 }
 
 afterAll(() => {
+  closeTrackedDatabases();
   rmSync(OWNER_TEST_ROOT, { recursive: true, force: true });
 });
 
@@ -220,6 +226,7 @@ describe("snapshot backup (0.1 快照 + 保留期)", () => {
       "2026-07-29T00:00:00Z"
     );
 
+    restrictOwnerOnly(managedWorkspace, "dir");
     const r = await withSaydoHome(saydoHome, () =>
       runSnapshotBackup({
         backupRoot: join(saydoHome, "backups"),

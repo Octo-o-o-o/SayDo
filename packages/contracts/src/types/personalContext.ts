@@ -56,6 +56,17 @@ export const personalContextPermissionSchema = z.strictObject({
   link: personalContextLinkSchema,
   expiresAt: positive,
 });
+// §19.2.3：只有本机 Owner 可准备精确登记的本地签名密钥。
+export const personalContextKeyProvisionSchema = z.strictObject({
+  operationId: uuid, registrationId: uuid, expectedRegistrationRevision: positive,
+});
+export type PersonalContextKeyProvision = z.infer<typeof personalContextKeyProvisionSchema>;
+export const personalContextKeyPreparationSchema = z.strictObject({
+  operationId: uuid, state: z.enum(["pending", "stored", "unknown", "revoked"]),
+  publicKey: z.string().min(1).max(1024), publicKeyDigest: digestSchema,
+});
+export type PersonalContextKeyPreparation = z.infer<typeof personalContextKeyPreparationSchema>;
+
 export const personalContextPermissionRevokeSchema = z.strictObject({
   permissionId: uuid, expectedRevision: positive,
 });

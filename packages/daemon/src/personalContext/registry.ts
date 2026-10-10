@@ -30,11 +30,15 @@ function identity(row: Registration): PersonalContextPeerIdentity {
     registrationId: row.id, registrationRevision: row.revision });
 }
 
+export interface PersonalContextKeyGuard {
+  assertReady(registrationId: string, expectedRevision: number): void;
+  revokeForRegistration(registrationId: string): void;
+}
 export class PersonalContextRegistry {
   // 数据库 enabled 只表示保存过的配置；重启没有活跃授权会话。
   private readonly live = new Set<string>();
   readonly authentication: PersonalContextPeerAuthentication;
-  constructor(private readonly db: Db, private readonly audit: AuditSink, private readonly now: () => number = Date.now) {
+  constructor(private readonly db: Db, private readonly audit: AuditSink, private readonly now: () => number = Date.now, private readonly keyGuard?: PersonalContextKeyGuard) {
     if (audit.sharesSqlite?.(db) !== true) throw Error("personal_context_same_database_required");
     this.authentication = new PersonalContextPeerAuthentication(value => this.currentPeer(value),
       () => personalContextOperationTime(this.db),
@@ -91,6 +95,7 @@ export class PersonalContextRegistry {
       const row = this.row(value.registrationId);
       if (row.revision !== value.expectedRevision) throw Error("personal_context_registration_conflict");
       if (value.action === "enable" && (row.state !== "registered" || row.expires_at <= personalContextOperationTime(this.db))) throw Error("personal_context_registration_not_enableable");
+      if (value.action === "enable") this.keyGuard?.assertReady(row.id, row.revision);
       const state = value.action === "enable" ? "enabled" : value.action === "pause" ? "paused" : "revoked";
       this.db.prepare("UPDATE personal_context_registrations SET state=?,revision=revision+1 WHERE id=? AND revision=?").run(state, row.id, row.revision);
       if (state !== "enabled") this.db.prepare("UPDATE personal_context_permissions SET state='revoked',revision=revision+1 WHERE registration_id=? AND state='active'").run(row.id);
@@ -98,7 +103,7 @@ export class PersonalContextRegistry {
       return identity(this.row(row.id));
     });
     if (value.action === "enable") this.live.add(result.registrationId);
-    else this.live.delete(result.registrationId);
+    else { this.live.delete(result.registrationId); this.keyGuard?.revokeForRegistration(result.registrationId); }
     return result;
   }
   currentPeer(input: PersonalContextPeerIdentity): { publicKey: string } {
@@ -106,6 +111,7 @@ export class PersonalContextRegistry {
     return withPersonalContextClock(this.db, () => {
       const row = this.row(value.registrationId);
       if (jcsSerialize(identity(row)) !== jcsSerialize(value) || row.state !== "enabled" || !this.live.has(row.id) || row.expires_at <= personalContextOperationTime(this.db)) throw Error("personal_context_registration_stale");
+      this.keyGuard?.assertReady(row.id, row.revision);
       if (jcsDigest({ publicKey: row.public_key }) !== row.key_digest) throw Error("personal_context_registration_damaged");
       return { publicKey: row.public_key };
     }, this.now);

@@ -24,6 +24,8 @@ import {
 import { backupRetentionDays } from "./backup/config.js";
 import { openDb } from "./storage/db.js";
 import { createSqliteAuditSink } from "./storage/dao/misc.js";
+import { createWin32PersonalSigningKey, loadWin32PersonalSigningKey } from "@saydo/platform";
+import { PersonalContextKeyCustody } from "./personalContext/keyCustody.js";
 import { PersonalContextRegistry } from "./personalContext/registry.js";
 import { handlePersonalContextOwnerApi } from "./api/personalContextOwner.js";
 import { VoiceHub } from "./voice/hub.js";
@@ -510,7 +512,13 @@ if (startupAbort.signal.aborted || runtimeDraining) {
 }
 const db = openDb(join(SAYDO_HOME, "saydo.db"));
 const audit = createSqliteAuditSink(db);
-const personalContextRegistry = new PersonalContextRegistry(db, audit);
+const personalContextKeys = new PersonalContextKeyCustody(db, audit, {
+  available: process.platform === "win32",
+  create: beforeWrite => createWin32PersonalSigningKey("production", beforeWrite),
+  load: loadWin32PersonalSigningKey,
+});
+// 生产登记始终装配真实系统密钥门；纯元信息测试不代表此生产门已通过。
+const personalContextRegistry = new PersonalContextRegistry(db, audit, Date.now, personalContextKeys);
 // CLI runtime 只做预检;候选文件全部晋升后才发布 active 登记。
 let bootCliRuntimePromoted = 0;
 let bootCliRuntimePromotedBindings: Array<{ slot: string; bindingDigest: string; binaryDigest: string }> = [];
@@ -1007,7 +1015,7 @@ server.on("request", (req, res) => {
       void handlePersonalContextOwnerApi(req, res, personalContextRegistry, () => {
         const current = checkIdentity(req);
         return current.ok && current.via === "local";
-      });
+      }, personalContextKeys);
       return;
     }
     // W4 3.1:S3 面(09 §3.3)—— challenge/register/verify/status/approve-merge;

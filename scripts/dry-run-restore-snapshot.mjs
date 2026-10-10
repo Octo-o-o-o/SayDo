@@ -24,8 +24,8 @@ execFileSync(process.execPath, [join(scriptDir, "verify-snapshot.mjs"), snapshot
 const require = createRequire(join(repoRoot, "packages", "daemon", "package.json"));
 const Database = require("better-sqlite3");
 const manifest = JSON.parse(readFileSync(join(snapshotDir, "snapshot-manifest.json"), "utf8"));
-// 必须在 owner home 子树内（workspace 政策）；沙箱常禁写 $HOME 根目录，改落 repo 下临时区。
-const dryRunRoot = mkdtempSync(join(repoRoot, ".tmp-saydo-restore-"));
+// 真实 workspace 门要求本人 home 子树；仅创建本次独占演练目录，不回退仓库外例外。
+const dryRunRoot = mkdtempSync(join(homedir(), ".saydo-anchor-test-restore-"));
 let retainDryRunRoot = false;
 process.on("exit", (code) => {
   if (code !== 0 && !retainDryRunRoot) rmSync(dryRunRoot, { recursive: true, force: true });
@@ -145,7 +145,11 @@ const consumerProbe = `
   import { SessionManager } from "./packages/daemon/src/session/manager.ts";
   import { verifiedProjectWorkspace } from "./packages/daemon/src/storage/dao/projects.ts";
   import { openDb } from "./packages/daemon/src/storage/db.ts";
+  import { ensureManagedWorkspaceRoot } from "./packages/daemon/src/projects/workspace.ts";
+  import { restrictOwnerOnly } from "./packages/platform/src/index.ts";
   const projects = ${JSON.stringify(activeProjects)};
+  ensureManagedWorkspaceRoot();
+  for (const project of projects) restrictOwnerOnly(project.workspace, "dir");
   const db = openDb(${JSON.stringify(join(saydoHome, "saydo.db"))});
   try {
     for (const project of projects) {
