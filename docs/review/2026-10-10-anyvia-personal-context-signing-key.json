@@ -1,0 +1,126 @@
+{
+  "codeCommit": "596be13563d1bf7733962d058f3974c3ed26b9e1",
+  "state": "in_progress",
+  "productionRegistrationComposed": false,
+  "candidate": {
+    "archive": "artifacts/w10-saydo-signing-key-frozen/signing-key-20261010T0413-fixed.zip",
+    "sha256": "afbaedd5d47c86fe82361478994adb56b6fedc7f31dc4b045f1540b5411c2247",
+    "base": "0adc3947631e61a963c635e2ed1766aaf5a9697c",
+    "files": 5
+  },
+  "reviewArchive": {
+    "repository": "Octoooo",
+    "path": "docs/implementation/2026-10-09/evidence/w10-saydo/signing-key-independent-reviews-596be13.zip",
+    "sha256": "5fc9addf685e245216bc67fb97f5d66f2f527cc6330da6152240d2baaecfd345"
+  },
+  "newTestIds": [
+    "UPGRADE.T08.109",
+    "UPGRADE.T08.110",
+    "UPGRADE.T08.111",
+    "UPGRADE.T08.112",
+    "UPGRADE.T08.113"
+  ],
+  "checks": [
+    {
+      "id": "20261010T040603896120Z-w10-saydo-signing-key-types",
+      "exitCode": 0,
+      "log": "20261010T040603896120Z-w10-saydo-signing-key-types/output.log",
+      "bytes": 208,
+      "sha256": "82273649401664352ded2fa2243df6fb6ebec17c8b4f1643e47cbcbe0dca3dfc",
+      "sourceChangedDuringCheck": false,
+      "artifactChangedDuringCheck": false
+    },
+    {
+      "id": "20261010T040657705144Z-w10-saydo-signing-key-real-windows",
+      "exitCode": 0,
+      "log": "20261010T040657705144Z-w10-saydo-signing-key-real-windows/output.log",
+      "bytes": 422,
+      "sha256": "b8a172d53525d7b4c46b059e4510663ebfc4174d347c4ca02020690e31a278e0",
+      "sourceChangedDuringCheck": false,
+      "artifactChangedDuringCheck": false
+    },
+    {
+      "id": "20261010T040854687081Z-w10-saydo-signing-key-intent-order",
+      "exitCode": 0,
+      "log": "20261010T040854687081Z-w10-saydo-signing-key-intent-order/output.log",
+      "bytes": 422,
+      "sha256": "5d6f7fcf87e36c54819107c1f55900cfab95f01a9cc84cf7467823e8b6c2e08a",
+      "sourceChangedDuringCheck": false,
+      "artifactChangedDuringCheck": false
+    },
+    {
+      "id": "20261010T041208967191Z-w10-saydo-signing-key-async-red",
+      "exitCode": 1,
+      "log": "20261010T041208967191Z-w10-saydo-signing-key-async-red/output.log",
+      "bytes": 2754,
+      "sha256": "49370b022e8721ea0bcb188b3a2fe317d91636d815f56cc88aa383299c700d95",
+      "sourceChangedDuringCheck": false,
+      "artifactChangedDuringCheck": false
+    },
+    {
+      "id": "20261010T041225708664Z-w10-saydo-signing-key-async-fixed",
+      "exitCode": 0,
+      "log": "20261010T041225708664Z-w10-saydo-signing-key-async-fixed/output.log",
+      "bytes": 481,
+      "sha256": "551bb36130150ca28cf3ad672ca8190972ae42a0c2cab82ed609d7711e2ab0d3",
+      "sourceChangedDuringCheck": false,
+      "artifactChangedDuringCheck": false
+    },
+    {
+      "id": "20261010T041249500803Z-w10-saydo-signing-key-all-types",
+      "exitCode": 0,
+      "log": "20261010T041249500803Z-w10-saydo-signing-key-all-types/output.log",
+      "bytes": 751,
+      "sha256": "e36c559542fe38ffaadaeff74c89ad8457d3798b4e41540283ba2c3aeacbfd76",
+      "sourceChangedDuringCheck": false,
+      "artifactChangedDuringCheck": false
+    },
+    {
+      "id": "20261010T041249635114Z-w10-saydo-signing-key-lint",
+      "exitCode": 0,
+      "log": "20261010T041249635114Z-w10-saydo-signing-key-lint/output.log",
+      "bytes": 199,
+      "sha256": "e18911e5c1ebe8df2bab3a52811f082b3d82799a30925ec5bc165e4560939c45",
+      "sourceChangedDuringCheck": false,
+      "artifactChangedDuringCheck": false
+    },
+    {
+      "id": "20261010T041410568459Z-w10-saydo-signing-key-pipe-regression",
+      "exitCode": 0,
+      "log": "20261010T041410568459Z-w10-saydo-signing-key-pipe-regression/output.log",
+      "bytes": 922,
+      "sha256": "090ae1254f621f3d515e2bc1cb9bb348e13a933c8c632fec033821aeb91dead0",
+      "sourceChangedDuringCheck": false,
+      "artifactChangedDuringCheck": false
+    }
+  ],
+  "sourceFiles": {
+    "docs/09-data-contracts.md": {
+      "testedRawSHA256": "4526c003ed908d35c630acd6b5d876942149bb380d6444688007a291eee03139",
+      "committedBlobSHA256": "bac3ee054510b0430b95fa344c534a13018bf920715e7fb8c139d6ba28b6b550"
+    },
+    "packages/platform/src/index.ts": {
+      "testedRawSHA256": "117fe727362e854e91e4769a85bb0a2f5201fe0ddd9bca90d28cca38571b2376",
+      "committedBlobSHA256": "117fe727362e854e91e4769a85bb0a2f5201fe0ddd9bca90d28cca38571b2376"
+    },
+    "packages/platform/src/win32PersonalKeys.ts": {
+      "testedRawSHA256": "c68ccb037e34f2863afa9dde9d482175312f127370ca4197babad6f68b2d5868",
+      "committedBlobSHA256": "c68ccb037e34f2863afa9dde9d482175312f127370ca4197babad6f68b2d5868"
+    },
+    "packages/platform/test/personal-signing-key-windows.test.ts": {
+      "testedRawSHA256": "a5b196a18fae18eddbcd73b8ff6561c1828774cbe8fdff1dfe394e6c6a0179a1",
+      "committedBlobSHA256": "a5b196a18fae18eddbcd73b8ff6561c1828774cbe8fdff1dfe394e6c6a0179a1"
+    },
+    "packages/platform/test/personal-signing-key-async.test.ts": {
+      "testedRawSHA256": "a804fed81acc7d218562ac2f80a637be85d5f29ec1c6d8576abca3f0a9d5624e",
+      "committedBlobSHA256": "a804fed81acc7d218562ac2f80a637be85d5f29ec1c6d8576abca3f0a9d5624e"
+    }
+  },
+  "officialSources": [
+    "https://learn.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-credwritew",
+    "https://learn.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-credreadw",
+    "https://learn.microsoft.com/en-us/windows/win32/api/wincred/ns-wincred-credentialw",
+    "https://learn.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-creddeletew",
+    "https://koffi.dev/pointers"
+  ]
+}
