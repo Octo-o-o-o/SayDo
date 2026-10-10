@@ -175,3 +175,27 @@ export const personalContextStatusSchema = z.strictObject({
     context.addIssue({ code: "custom", message: "源端已应用必须有耐久回执" });
   }
 });
+
+// §19.2.4：本人打开会话只管理传输生命周期，不产生业务许可。
+export const personalContextSessionOpenSchema = z.strictObject({
+  operationId: uuid,
+  registrationId: uuid,
+  expectedRegistrationRevision: positive,
+});
+export const personalContextSessionCloseSchema = z.strictObject({
+  operationId: uuid,
+  expectedRevision: positive,
+});
+
+// 只接通既有只读对账方法；其他效果必须另经领域最终写者，不能塞入任意 JSON。
+export const personalContextBusinessStatusRequestSchema = z.strictObject({
+  protocol: z.literal(PERSONAL_CONTEXT_PROTOCOL), version: z.literal(1), type: z.literal("request"),
+  requestId: uuid, identity: personalContextPeerIdentitySchema,
+  query: personalContextStatusQuerySchema,
+});
+export const personalContextBusinessStatusResponseSchema = z.strictObject({
+  protocol: z.literal(PERSONAL_CONTEXT_PROTOCOL), version: z.literal(1), type: z.literal("response"),
+  requestId: uuid, identity: personalContextPeerIdentitySchema,
+  method: z.literal("operation/status"), queryDigest: digestSchema,
+  result: personalContextStatusSchema,
+});

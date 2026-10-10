@@ -26,6 +26,8 @@ import { openDb } from "./storage/db.js";
 import { createSqliteAuditSink } from "./storage/dao/misc.js";
 import { createWin32PersonalSigningKey, loadWin32PersonalSigningKey } from "@saydo/platform";
 import { PersonalContextKeyCustody } from "./personalContext/keyCustody.js";
+import { PersonalContextSessionJournal } from "./personalContext/sessionJournal.js";
+import { PersonalContextSessionSupervisor } from "./personalContext/sessionSupervisor.js";
 import { PersonalContextRegistry } from "./personalContext/registry.js";
 import { handlePersonalContextOwnerApi } from "./api/personalContextOwner.js";
 import { VoiceHub } from "./voice/hub.js";
@@ -519,6 +521,7 @@ const personalContextKeys = new PersonalContextKeyCustody(db, audit, {
 });
 // 生产登记始终装配真实系统密钥门；纯元信息测试不代表此生产门已通过。
 const personalContextRegistry = new PersonalContextRegistry(db, audit, Date.now, personalContextKeys);
+const personalContextSessions = new PersonalContextSessionSupervisor(new PersonalContextSessionJournal(db, audit), personalContextRegistry, personalContextKeys);
 // CLI runtime 只做预检;候选文件全部晋升后才发布 active 登记。
 let bootCliRuntimePromoted = 0;
 let bootCliRuntimePromotedBindings: Array<{ slot: string; bindingDigest: string; binaryDigest: string }> = [];
@@ -1015,7 +1018,7 @@ server.on("request", (req, res) => {
       void handlePersonalContextOwnerApi(req, res, personalContextRegistry, () => {
         const current = checkIdentity(req);
         return current.ok && current.via === "local";
-      }, personalContextKeys);
+      }, personalContextKeys, personalContextSessions);
       return;
     }
     // W4 3.1:S3 面(09 §3.3)—— challenge/register/verify/status/approve-merge;
@@ -3984,6 +3987,7 @@ async function drainRuntime(reason: PrepareShutdownReason): Promise<{
   abortedUnrecoverable: number;
 }> {
   armShutdownIngress();
+  const personalContextDrain = personalContextSessions.stop();
   runtimeApprovals.prepareShutdown();
   liveSessions.prepareShutdown();
   const tier1Drain = tier1Executor?.prepareShutdown(reason) ??
@@ -4000,7 +4004,8 @@ async function drainRuntime(reason: PrepareShutdownReason): Promise<{
     byoaDrain,
     voiceDrain,
     jobsDrain,
-    closeGateServer(tier1GateServer)
+    closeGateServer(tier1GateServer),
+    personalContextDrain
   ]);
   server.closeAllConnections();
   await httpClosed;

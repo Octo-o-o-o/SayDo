@@ -4,6 +4,7 @@ import {
   jcsDigest, jcsSerialize, personalContextRegisterSchema, personalContextRegistrationChangeSchema,
   personalContextPermissionSchema, personalContextPermissionRevokeSchema, personalContextPeerIdentitySchema,
   personalContextEffectSchema,
+  personalContextStatusQuerySchema, PERSONAL_CONTEXT_PROTOCOL,
   type PersonalContextPeerIdentity, type PersonalContextEffect,
 } from "@saydo/contracts";
 import type { Db } from "../storage/db.js";
@@ -12,6 +13,8 @@ import { withSqliteAuditTransaction } from "../api/sqliteAuditTransaction.js";
 import { withPersonalContextClock, personalContextOperationTime } from "./clock.js";
 import { assertPersonalContextSourceCurrent } from "./sourceAuthority.js";
 import { PersonalContextPeerAuthentication, type AuthenticatedPeerHandle } from "./peerAuthentication.js";
+import { PersonalContextJournal, type OperationStatus } from "./journal.js";
+import { assertPersonalContextEventSource } from "./events.js";
 
 interface Registration {
   id: string; installation_id: string; peer_installation_id: string; node_id: string;
@@ -37,6 +40,10 @@ export interface PersonalContextKeyGuard {
 export class PersonalContextRegistry {
   // 数据库 enabled 只表示保存过的配置；重启没有活跃授权会话。
   private readonly live = new Set<string>();
+  private readonly invalidationListeners = new Set<(registrationId: string) => void>();
+  onInvalidation(listener: (registrationId: string) => void): () => void {
+    this.invalidationListeners.add(listener); return () => this.invalidationListeners.delete(listener);
+  }
   readonly authentication: PersonalContextPeerAuthentication;
   constructor(private readonly db: Db, private readonly audit: AuditSink, private readonly now: () => number = Date.now, private readonly keyGuard?: PersonalContextKeyGuard) {
     if (audit.sharesSqlite?.(db) !== true) throw Error("personal_context_same_database_required");
@@ -103,7 +110,12 @@ export class PersonalContextRegistry {
       return identity(this.row(row.id));
     });
     if (value.action === "enable") this.live.add(result.registrationId);
-    else { this.live.delete(result.registrationId); this.keyGuard?.revokeForRegistration(result.registrationId); }
+    else {
+      this.live.delete(result.registrationId);
+      // 同步封闭已拥有 writer，系统关闭结果由监督器/Owner handler 等待。
+      for (const listener of this.invalidationListeners) listener(result.registrationId);
+      this.keyGuard?.revokeForRegistration(result.registrationId);
+    }
     return result;
   }
   currentPeer(input: PersonalContextPeerIdentity): { publicKey: string } {
@@ -115,6 +127,48 @@ export class PersonalContextRegistry {
       if (jcsDigest({ publicKey: row.public_key }) !== row.key_digest) throw Error("personal_context_registration_damaged");
       return { publicKey: row.public_key };
     }, this.now);
+  }
+  /** 从真实行读取精确当前身份，不接受调用方提供新的代次替换旧请求。 */
+  sessionIdentity(registrationId: string, expectedRevision: number): PersonalContextPeerIdentity {
+    const value = identity(this.row(registrationId));
+    if (value.registrationRevision !== expectedRevision) throw Error("personal_context_registration_conflict");
+    this.currentPeer(value); return value;
+  }
+  /** 仅供已验证管道监督器调用；没有制造旧 PeerAuthentication 的 WeakMap 句柄。 */
+  sessionStatus(identity: PersonalContextPeerIdentity, input: unknown): OperationStatus {
+    const query = personalContextStatusQuerySchema.parse(input);
+    const journal = new PersonalContextJournal(this.db, this.audit, {
+      sharesDatabase: db => db === this.db,
+      assertEffectCurrent: () => { throw Error("personal_context_session_effect_not_connected"); },
+      assertStatusCurrent: value => {
+        this.currentPeer(identity);
+        const boundary = value.boundary;
+        if (boundary.installationId !== identity.installationId || boundary.nodeId !== identity.nodeId || boundary.connectionId !== identity.connectionId || boundary.connectionEpoch !== identity.connectionEpoch) throw Error("personal_context_status_scope_denied");
+        const row = this.db.prepare("SELECT boundary_json,link_json,payload_digest,event_source_json,expires_at FROM personal_context_operations WHERE installation_id=? AND node_id=? AND connection_id=? AND connection_epoch=? AND method=? AND operation_id=?")
+          .get(boundary.installationId, boundary.nodeId, boundary.connectionId, boundary.connectionEpoch, value.originalMethod, value.operationId) as { boundary_json: string | null; link_json: string | null; payload_digest: string; event_source_json: string | null; expires_at: number } | undefined;
+        if (!row || !row.boundary_json || !row.link_json || row.boundary_json !== jcsSerialize(boundary) || row.payload_digest !== value.payloadDigest) throw Error("personal_context_status_scope_denied");
+        if (value.originalMethod === "event/ingest") {
+          // 原始事件证明来自耐久准入行；查询不能补造版本、映射或正文。
+          if (!row.event_source_json) throw Error("personal_context_status_scope_denied");
+          const effect = personalContextEffectSchema.parse({ protocol: PERSONAL_CONTEXT_PROTOCOL,
+            method: "event/ingest", operationId: value.operationId, boundary: JSON.parse(row.boundary_json),
+            link: JSON.parse(row.link_json), payload: JSON.parse(row.event_source_json),
+            payloadDigest: row.payload_digest, expiresAt: row.expires_at });
+          if (effect.method !== "event/ingest") throw Error("personal_context_status_scope_denied");
+          // 核对真实提交时的源版本，不要求历史终态等于当前 Focus 版本。
+          assertPersonalContextEventSource(this.db, effect);
+          const mapping = this.db.prepare("SELECT permission_id FROM personal_context_event_mappings WHERE id=?").get(effect.payload.mappingId) as { permission_id: string };
+          const permission = this.db.prepare("SELECT * FROM personal_context_permissions WHERE id=? AND registration_id=? AND state='active' AND method='event/ingest' AND expires_at>?")
+            .get(mapping.permission_id, identity.registrationId, personalContextOperationTime(this.db)) as Permission | undefined;
+          if (!permission || jcsSerialize({ ...JSON.parse(permission.link_json), focusRevision: effect.link.focusRevision, focusAuthorityEpoch: effect.link.focusAuthorityEpoch }) !== row.link_json) throw Error("personal_context_status_scope_denied");
+        } else {
+          const permission = this.db.prepare("SELECT 1 FROM personal_context_permissions WHERE registration_id=? AND state='active' AND method=? AND link_json=? AND expires_at>? LIMIT 1")
+            .get(identity.registrationId, value.originalMethod, row.link_json, personalContextOperationTime(this.db));
+          if (!permission) throw Error("personal_context_status_scope_denied");
+        }
+      },
+    }, this.now);
+    return journal.status(query);
   }
   grant(input: unknown): { permissionId: string; revision: number } {
     const value = personalContextPermissionSchema.parse(input);

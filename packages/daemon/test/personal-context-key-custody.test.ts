@@ -46,7 +46,7 @@ function fixture(path = ":memory:") {
 }
 
 test("UPGRADE.T10.114 v39严格准备与真实同库审计，软件仓不代表系统能力", () => {
-  const f = fixture(); expect(f.db.prepare("SELECT MAX(version) v FROM schema_migrations").get()).toEqual({ v: 39 });
+  const f = fixture(); expect(f.db.prepare("SELECT version v FROM schema_migrations WHERE version=39").get()).toEqual({ v: 39 });
   expect(() => f.registry.change({ registrationId: f.input.registrationId, expectedRevision: 1, action: "enable" })).toThrow("key_not_ready");
   const result = f.keys.provision(f.input); expect(result.state).toBe("stored"); expect(Object.keys(result).sort()).toEqual(["operationId", "publicKey", "publicKeyDigest", "state"]);
   expect(createPublicKey(result.publicKey).asymmetricKeyType).toBe("ed25519"); expect(f.software.writes()).toBe(1);
@@ -171,7 +171,7 @@ test("UPGRADE.T10.124 实际v38库迁移v39保留登记，旧登记无私钥不�
   const oldRegistry = new PersonalContextRegistry(legacy, createSqliteAuditSink(legacy));
   const peer = generateKeyPairSync("ed25519"), old = oldRegistry.register({ peerInstallationId: randomUUID(), nodeId: randomUUID(), publicKey: peer.publicKey.export({ format: "pem", type: "spki" }).toString(), expiresAt: Date.now() + 3600000 });
   legacy.close(); const db = openDb(path), software = softwareStore(), keys = new PersonalContextKeyCustody(db, createSqliteAuditSink(db), software.store), registry = new PersonalContextRegistry(db, createSqliteAuditSink(db), Date.now, keys);
-  expect(db.prepare("SELECT MAX(version) v FROM schema_migrations").get()).toEqual({ v: 39 });
+  expect(db.prepare("SELECT version v FROM schema_migrations WHERE version=39").get()).toEqual({ v: 39 });
   expect(() => registry.change({ registrationId: old.registrationId, expectedRevision: 1, action: "enable" })).toThrow("key_not_ready");
   expect(software.writes()).toBe(0); db.close(); const reopened = openDb(path);
   expect(reopened.prepare("SELECT count(*) n FROM schema_migrations WHERE version=39").get()).toEqual({ n: 1 });

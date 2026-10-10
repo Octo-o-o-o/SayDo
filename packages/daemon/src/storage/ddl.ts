@@ -1,4 +1,5 @@
 import { PERSONAL_CONTEXT_KEY_CUSTODY_DDL } from "../personalContext/keyCustodySchema.js";
+import { PERSONAL_CONTEXT_SESSION_DDL } from "../personalContext/sessionSchema.js";
 import { PERSONAL_CONTEXT_DDL } from "../personalContext/schema.js";
 import { PERSONAL_CONTEXT_REGISTRY_DDL } from "../personalContext/registrySchema.js";
 import { PERSONAL_CONTEXT_EVENT_DDL, PERSONAL_CONTEXT_EVENT_IMMUTABLE_DDL } from "../personalContext/eventSchema.js";
@@ -813,7 +814,8 @@ export const MIGRATIONS: ReadonlyArray<Migration> = [
   } },
   { version: 37, sql: PERSONAL_CONTEXT_EVENT_IMMUTABLE_DDL },
   { version: 38, sql: PERSONAL_CONTEXT_REGISTRY_DDL },
-  { version: 39, sql: PERSONAL_CONTEXT_KEY_CUSTODY_DDL }
+  { version: 39, sql: PERSONAL_CONTEXT_KEY_CUSTODY_DDL },
+  { version: 40, sql: PERSONAL_CONTEXT_SESSION_DDL }
 ];
 
 // v29(D1 可分发运行时):可恢复退出使用 additive marker,不扩 tier1 run 状态机。

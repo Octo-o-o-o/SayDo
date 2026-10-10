@@ -1,7 +1,8 @@
 // §19.2.3：耐久意图与系统凭据分开提交，失败不重写 OS 或恢复旧授权。
 import { createHash, createPublicKey, type KeyObject } from "node:crypto";
-import { jcsDigest, jcsSerialize, personalContextKeyProvisionSchema, type PersonalContextKeyPreparation } from "@saydo/contracts";
-import type { Win32PersonalSigningKeyReference } from "@saydo/platform";
+import { jcsDigest, jcsSerialize, personalContextKeyProvisionSchema, type PersonalContextKeyPreparation, type PersonalContextPeerIdentity } from "@saydo/contracts";
+import type { Win32PersonalSigningKeyReference, Win32PersonalPipe } from "@saydo/platform";
+import { PersonalContextWindowsTransport } from "./windowsTransport.js";
 import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
 import { withSqliteAuditTransaction } from "../api/sqliteAuditTransaction.js";
@@ -131,7 +132,10 @@ export class PersonalContextKeyCustody {
     }
   }
   assertReady(registrationId: string, expectedRevision: number): void {
-    withPersonalContextClock(this.db, () => {
+    this.readReady(registrationId, expectedRevision);
+  }
+  private readReady(registrationId: string, expectedRevision: number): { key: KeyObject; row: Preparation; registration: Registration } {
+    return withPersonalContextClock(this.db, () => {
       const registration = this.registration(registrationId), row = this.db.prepare("SELECT * FROM personal_context_key_preparations WHERE registration_id=?").get(registrationId) as Preparation | undefined;
       if (!row || row.state !== "stored" || !row.credential_digest || !this.store.available || registration.revision !== expectedRevision || registration.expires_at <= personalContextOperationTime(this.db) || !((registration.state === "registered" && registration.revision === row.registration_revision) || (registration.state === "enabled" && registration.revision === row.registration_revision + 1))) throw Error("personal_context_key_not_ready");
       // 成功及失败的阻塞系统读取都推进原期限，错误仍保留给调用者。
@@ -140,7 +144,31 @@ export class PersonalContextKeyCustody {
       // OS 读取可以阻塞；另一连接可能已撤销。只接受原完整登记与原意图仍完全相同。
       const currentRegistration = this.registration(registrationId), currentIntent = this.row(row.operation_id);
       if (!currentIntent || jcsSerialize(currentRegistration) !== jcsSerialize(registration) || jcsSerialize(currentIntent) !== jcsSerialize(row) || currentRegistration.expires_at <= personalContextOperationTime(this.db)) throw Error("personal_context_key_not_ready");
+      return { key, row, registration };
     }, this.now);
+  }
+  /** 只返回非秘密的原意图水位，不向调用方返回 KeyObject。 */
+  sessionKeyFacts(registrationId: string, expectedRevision: number): { operationId: string; revision: number; publicKeyDigest: string } {
+    const { row } = this.readReady(registrationId, expectedRevision);
+    return { operationId: row.operation_id, revision: row.revision, publicKeyDigest: row.public_key_digest };
+  }
+  /** 受监督握手唯一入口；私钥不交给外部 callback 或 HTTP。 */
+  async establishSession(pipe: Win32PersonalPipe, input: { identity: PersonalContextPeerIdentity; keyOperationId: string; keyRevision: number; bootEpoch: string; peerKey: KeyObject; assertCurrent: () => void }): Promise<PersonalContextWindowsTransport> {
+    const captured = this.readReady(input.identity.registrationId, input.identity.registrationRevision);
+    if (captured.row.operation_id !== input.keyOperationId || captured.row.revision !== input.keyRevision) throw Error("personal_context_key_session_stale");
+    const registrationJson = jcsSerialize(captured.registration), intentJson = jcsSerialize(captured.row);
+    // 不能捕获含 key 的 captured 对象：此 guard 在握手结束后仍由连接持有。
+    const registrationId = input.identity.registrationId, operationId = input.keyOperationId;
+    const assertCurrent = () => {
+      input.assertCurrent();
+      withPersonalContextClock(this.db, () => {
+        const registration = this.registration(registrationId), row = this.row(operationId);
+        if (!row || jcsSerialize(registration) !== registrationJson || jcsSerialize(row) !== intentJson || registration.expires_at <= personalContextOperationTime(this.db)) throw Error("personal_context_key_session_stale");
+      }, this.now);
+    };
+    assertCurrent();
+    const transport = await PersonalContextWindowsTransport.establish(pipe, { role: "saydo", identity: input.identity, bootEpoch: input.bootEpoch, privateKey: captured.key, peerKey: input.peerKey, assertCurrent });
+    try { assertCurrent(); return transport; } catch (error) { try { await transport.close(); } catch (cleanup) { throw new AggregateError([error, cleanup], "personal_context_session_handshake_cleanup_failed"); } throw error; }
   }
   /** 登记、许可和内存认证先失效；此方法只收紧记录，不尝试物理删除。 */
   revokeForRegistration(registrationId: string): void {

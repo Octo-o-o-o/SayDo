@@ -27,13 +27,14 @@ export class PersonalContextWindowsTransport {
   private resolveClosed!: () => void;
   private rejectClosed!: (error: unknown) => void;
   readonly closed = new Promise<void>((resolve, reject) => { this.resolveClosed = resolve; this.rejectClosed = reject; });
-  private constructor(private readonly pipe: Win32PersonalPipe, private readonly options: PersonalContextWindowsTransportOptions) {
+  private constructor(private readonly pipe: Win32PersonalPipe, private readonly assertAuthorityCurrent: () => void) {
     // 调用方监督 closed；未及时订阅也不会产生全局未处理拒绝。
     void this.closed.catch(() => undefined);
   }
 
   static async establish(pipe: Win32PersonalPipe, options: PersonalContextWindowsTransportOptions): Promise<PersonalContextWindowsTransport> {
-    const transport = new PersonalContextWindowsTransport(pipe, options);
+    // 连接只保留复核能力；私钥限于 establish 的握手作用域。
+    const transport = new PersonalContextWindowsTransport(pipe, options.assertCurrent);
     let handshake: PersonalContextSecureHandshake | undefined;
     try {
       const observation = pipe.assertCurrent();
@@ -101,7 +102,7 @@ export class PersonalContextWindowsTransport {
   private guard(): void {
     const at = performance.now();
     if (this.stopped || !Number.isFinite(at) || at < this.lastObserved || at >= this.deadline) throw Error("personal_context_transport_closed");
-    this.lastObserved = at; this.pipe.assertCurrent(); this.options.assertCurrent();
+    this.lastObserved = at; this.pipe.assertCurrent(); this.assertAuthorityCurrent();
     // 同步权限回调也可能阻塞事件循环；不能依赖尚未执行的 timer 判定仍有效。
     const after = performance.now();
     if (!Number.isFinite(after) || after < at || after >= this.deadline) throw Error("personal_context_transport_expired");

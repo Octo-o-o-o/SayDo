@@ -1,5 +1,5 @@
 // §19：业务效果、源端回执和审计同事务；出站 unknown 不自动重放。
-import { personalContextEffectSchema, personalContextStatusQuerySchema, digestSchema, type PersonalContextEffect } from "@saydo/contracts";
+import { jcsSerialize, personalContextEffectSchema, personalContextStatusQuerySchema, digestSchema, type PersonalContextEffect } from "@saydo/contracts";
 import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
 import { withSqliteAuditTransaction } from "../api/sqliteAuditTransaction.js";
@@ -20,7 +20,7 @@ export interface OperationStatus {
   state: "not_found" | "pending" | "unknown" | "applied" | "rejected" | "expired";
   sourceReceiptDigest: string | null;
 }
-interface Row { payload_digest: string; state: Exclude<OperationStatus["state"], "not_found">; receipt_digest: string | null }
+interface Row { payload_digest: string; state: Exclude<OperationStatus["state"], "not_found">; receipt_digest: string | null; boundary_json: string | null; link_json: string | null }
 const KEY = "installation_id=? AND node_id=? AND connection_id=? AND connection_epoch=? AND method=? AND operation_id=?";
 function key(effect: PersonalContextEffect | StatusQuery) {
   const b = effect.boundary;
@@ -35,16 +35,18 @@ export class PersonalContextJournal {
     return withPersonalContextClock(this.db, work, this.now);
   }
   private get(value: PersonalContextEffect | StatusQuery): OperationStatus | null {
-    const row = this.db.prepare(`SELECT payload_digest,state,receipt_digest FROM personal_context_operations WHERE ${KEY}`).get(...key(value)) as Row | undefined;
+    const row = this.db.prepare(`SELECT payload_digest,state,receipt_digest,boundary_json,link_json FROM personal_context_operations WHERE ${KEY}`).get(...key(value)) as Row | undefined;
     if (!row) return null;
     if (row.payload_digest !== value.payloadDigest) throw new Error("personal_context_idempotency_conflict");
+    if (!row.boundary_json || !row.link_json) throw new Error("personal_context_original_scope_missing");
+    if (row.boundary_json !== jcsSerialize(value.boundary) || (value.method !== "operation/status" && row.link_json !== jcsSerialize(value.link))) throw new Error("personal_context_idempotency_conflict");
     return { operationId: value.operationId, payloadDigest: row.payload_digest, state: row.state, sourceReceiptDigest: row.receipt_digest };
   }
   private insert(effect: PersonalContextEffect, state: "pending" | "unknown", now: number): void {
     if (effect.expiresAt <= now) throw new Error("personal_context_expired");
     const count = this.db.prepare("SELECT count(*) n FROM personal_context_operations").get() as { n: number };
     if (count.n >= 100000) throw new Error("personal_context_journal_capacity");
-    this.db.prepare("INSERT INTO personal_context_operations(installation_id,node_id,connection_id,connection_epoch,method,operation_id,payload_digest,state,expires_at,created_at,observed_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)").run(...key(effect), effect.payloadDigest, state, effect.expiresAt, now, now);
+    this.db.prepare("INSERT INTO personal_context_operations(installation_id,node_id,connection_id,connection_epoch,method,operation_id,payload_digest,state,expires_at,created_at,observed_at,boundary_json,link_json,event_source_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(...key(effect), effect.payloadDigest, state, effect.expiresAt, now, now, jcsSerialize(effect.boundary), jcsSerialize(effect.link), effect.method === "event/ingest" ? jcsSerialize(effect.payload) : null);
     this.audit.record({ actor: "bridge", action: "personal_context.admitted", refDigest: effect.payloadDigest, meta: { operationId: effect.operationId, method: effect.method, state } });
   }
   /** 仅用于同库的源端业务操作；apply 不得执行网络或返回异步工作。 */

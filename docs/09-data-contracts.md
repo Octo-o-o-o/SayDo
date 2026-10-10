@@ -3342,6 +3342,28 @@ Windows 的本地 Ed25519 签名私钥使用当前用户 Windows Credential Mana
 
 当前受支持的恢复隔离接点是生产备份流程：在独立 SQLite 副本内将全部旧登记（包括仍 registered 的登记）、许可及密钥准备记录审计隔离，原库和系统凭据不变；恢复该副本后即使原系统私钥仍存在也不能启用旧登记。未来恢复入口必须复用同等隔离约束。任意手工回拷原始数据库、旧于此隔离流程的备份，以及缺少独立非备份撤销水位的恢复尚未覆盖，不得据此宣称完整恢复权威已实现。
 
+#### 19.2.4 受监督本机会话与业务请求边界
+
+本机 Owner 可为已启用且系统密钥可用的精确登记显式打开单次连接。open 正文仅含 operationId、registrationId 与 expectedRegistrationRevision；同操作ID的正文变化拒绝，相同操作仅返回当前耐久状态，不重新创建端点。打开会话不授予任何资料、回应或执行许可。先同库审计保存 opening 意图及原登记/密钥版本，再创建服务生成的随机受保护端点；只有实际端点存在、清理监督者已持有且原身份仍通过最终 binding CAS，才可记录 listening。握手通过且再核原权限后才可 connected。数据库唯一约束与有界容量覆盖 opening/listening/connected/stopping/unknown，不能只用进程 Map；unknown 或清理未证实的占位不能靠开启新实例绕过。
+
+Owner 获得的非秘密描述精确绑定协议/schema、双方 installation、公钥指纹、原登记revision、本次 boot epoch、端点及真实内核 PID/创建时间；描述不是身份凭据，不含 Owner CAP、私钥或业务内容。对端握手声明必须与双方内核观察和登记绑定一致。签名能力限于监督器内部不透明的短作用域，不向任意调用者返回可缓存、可复用的 KeyObject。底层加密原语必须使用 KeyObject 时，仅在监督器持有的当前握手短作用域内传入，签名前及握手完成后复核原登记/密钥/会话；close 或 revoke 后晚到握手不得恢复 session。撤销不能物理收回已经泄漏的 KeyObject，不作此保证。
+
+关闭首先不可逆封闭该 session 的 writer authority，然后取消 accept/read/write 并等待真实 closed；所有 owned I/O 确认结束才记录 closed。失败保存 unknown/retained 与具体清理错误并向监督者传播，不能吞错重开。启动只隔离旧活动行，不恢复端点或请求；仅在已核实旧 owned PID/创建时间不再存活或实际关闭旧句柄之后释放生命周期占位。备份副本隔离会话元数据，不允许恢复的 state 自行授予监听权。新监听始终要求当前本人显式操作。
+
+请求与响应使用严格版本化判别信封，绑定 requestId、原 operationId、方法、payloadDigest 及原双产品身份；未知字段、错类型、错请求、错方法或错摘要一律拒绝并关闭。每连接最多一个在途业务请求，绝对30秒截止从本次发送或接受开始固定；既有5秒空闲关闭仍独立生效，长时间静默请求可能更早关闭为unknown。没有隐式heartbeat或滑动延长；未来如增加heartbeat需独立合同，且不得延长绝对截止。取消、错误和迟到响应不能重新创建已关闭的在途操作；丢失应答保持原unknown，不自动重发。
+
+业务信封经过签名加密不代表获准执行。SayDo 复用真实源Focus/session/anchor、本人或代理证明与原生写闸；Anyvia 复用真实 Vault/Case/DataAccess/唯一Dispatch及本人回应权威；不得共享 live SQLite 或使用对端JSON自报替代本地独立当前事实，网络不得进入SQLite事务。operation/status 只读当前认证对端已有原范围内的journal，不可自由指定他人操作、不创建效果，not_found 不构成重试授权。错误只返回有限代码及原绑定，不回显正文、路径或凭据。
+
+响应解密后仍保留原 payloadDigest/方法/authorityEpoch/vaultGeneration/restrictionSequence 与Focus/session边界，不能用响应的新水位替换原操作。compile资料必须由真实Anyvia compiler生成并绑定contextId、compilerVersion、来源记录及revision、用途、processor、recipient、expiry、restrictionSequence及完整payloadDigest，保留类别与taint。B1最终使用前再次核对原请求、当前真实许可及源权威；无法确认时本轮明确未使用，不把缓存当离线授权。candidate/event/respond继续使用各自原领域最终写闸，不新增平行action台账。会话基础设施或status往返通过，不代表四种业务方法或双产品整体已接通。
+
+##### 19.2.4.1 首个只读方法的精确形状与旧账本兼容
+
+A 首个支持的方法仅 operation/status。请求 strict 对象字段为 protocol（既有协议常量）、version=1、type=request、requestId（UUID）、identity（既有PersonalContextPeerIdentity）、query（既有personalContextStatusQuerySchema）。响应 strict 对象字段为 protocol、version=1、type=response、requestId、identity、method=operation/status、queryDigest（原完整query的JCS摘要）、result（既有personalContextStatusSchema）。禁止额外字段。客户端除了严格parse，必须逐一核对原requestId、identity、queryDigest与result.operationId/payloadDigest；不将对端结果中的水位代入原请求。单连接最多256个请求ID，重复ID拒绝并关闭，正常对账重询需本人/业务调用方明确发起的新requestId，不自动重放。四效果不属于此监听器的当前支持集合，输入这些方法会拒绝并关闭，不能返回假applied。
+
+原 personal_context_operations 只追加 boundary_json/link_json 两个非正文绑定列；原admit/apply同事务写入规范JCS，与已有payload_digest对应的原effect一致。原主键、方法、operationId、payloadDigest及这两列不得原地改变。迁移历史NULL保持NULL，禁止按查询补填；缺证明的旧记录不向新适配器披露回执，也不允许重复提交重新执行。查询只接受当前认证session对应的原安装/节点/连接/代次、原完整boundary、原digest和该登记下当前未撤销未过期、精确原方法+link的许可。旧权限过期、撤销、恢复隔离或错scope均拒绝并关闭，不泄露旧receipt；不能因not_found自动发送。
+
+Owner返回会话元信息为 operationId、registrationId、registrationRevision、revision、state、failureCode 与 binding。仅本进程当前活跃且权限仍有效时binding非空，含protocol、schemaDigest、identity、saydoKeyDigest、anyviaKeyDigest、bootEpoch、endpoint、local:{pid,birth}和peer。listening尚未观察对端时peer=null；connected时peer来自真实内核观察{pid,birth}。本机公钥取既有keys/provision公开结果，端点描述不是新认证凭据。
+
 ### 19.3 B1 消费、最小化与遗忘
 
 B1 在当次请求中读取明确的个人上下文授权，不扫描 Anyvia 库、不复制个人记忆全库、不共享 SQLite。上下文必须含 compilerVersion、contextId、payloadDigest、来源与资料 revision、expiresAt、restrictionSequence、预期用途及接收方绑定；无来源、不匹配、过期、撤销或 digest 错误一律不注入。不可用时明确显示本轮未使用个人上下文；本人硬约束不可静默丢弃后继续派发。
