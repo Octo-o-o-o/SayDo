@@ -1,4 +1,5 @@
 export { hostKind, homeDir, pathDelimiter, type HostKind } from "./host.js";
+export { createWin32PersonalPipe, openWin32PersonalPipe, type Win32PersonalPipe, type Win32PersonalPipeObservation } from "./win32.js";
 export {
   classifyKillProbe,
   isOwnErrno,

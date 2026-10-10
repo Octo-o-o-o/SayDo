@@ -24,6 +24,7 @@ type WinIoFn = {
 
 /** 注入 stdio overlapped 读/写/关/取消边界。不是真机 kernel32。 */
 export type Win32PipeIoNative = {
+  ConnectNamedPipe?: (handle: unknown, overlapped: unknown) => number;
   ReadFile: (handle: unknown, buf: Buffer, n: number, written: number[], overlapped: unknown) => number;
   WriteFile: (handle: unknown, buf: Buffer, n: number, written: number[], overlapped: unknown) => number;
   CreateEventW: (sa: unknown, manualReset: number, initialState: number, name: unknown) => unknown;
@@ -196,6 +197,9 @@ interface Native {
     sacl: unknown[],
     sd: unknown[]
   ) => number;
+  GetSecurityInfo: (handle: unknown, objType: number, info: number, owner: unknown[], group: unknown[], dacl: unknown[], sacl: unknown[], sd: unknown[]) => number;
+  GetNamedPipeClientProcessId: (handle: unknown, pid: number[]) => number;
+  GetNamedPipeServerProcessId: (handle: unknown, pid: number[]) => number;
   SetNamedSecurityInfoW: (
     path: string,
     objType: number,
@@ -581,6 +585,9 @@ function bindNow(): Native {
     ConnectNamedPipe: kernel32.func(
       "int32 __stdcall ConnectNamedPipe(void *, void *)"
     ) as Native["ConnectNamedPipe"],
+    GetSecurityInfo: advapi32.func("uint32 __stdcall GetSecurityInfo(void *, uint32, uint32, _Out_ void **, _Out_ void **, _Out_ void **, _Out_ void **, _Out_ void **)") as Native["GetSecurityInfo"],
+    GetNamedPipeClientProcessId: kernel32.func("int32 __stdcall GetNamedPipeClientProcessId(void *, _Out_ uint32 *)") as Native["GetNamedPipeClientProcessId"],
+    GetNamedPipeServerProcessId: kernel32.func("int32 __stdcall GetNamedPipeServerProcessId(void *, _Out_ uint32 *)") as Native["GetNamedPipeServerProcessId"],
     ReadFile: kernel32.func(
       "int32 __stdcall ReadFile(void *, uint8 *, uint32, _Out_ uint32 *, void *)"
     ) as Native["ReadFile"],
@@ -661,8 +668,12 @@ function sidToString(n: Native, sid: unknown): string {
 
 export function currentUserSid(): string {
   const n = nativeSync();
+  return processUserSid(n, n.GetCurrentProcess());
+}
+
+function processUserSid(n: Native, processHandle: unknown): string {
   const token: unknown[] = [null];
-  if (!n.OpenProcessToken(n.GetCurrentProcess(), TOKEN_QUERY, token) || token[0] == null) {
+  if (!n.OpenProcessToken(processHandle, TOKEN_QUERY, token) || token[0] == null) {
     throw new PlatformNativeError("OpenProcessToken failed");
   }
   return withCheckedHandle(n, token[0], "OpenProcessToken", () => {
@@ -951,14 +962,13 @@ function aceTrusteeSidFromAllowedAce(n: Native, sidBuf: Buffer, currentSid: stri
   return sidToString(n, sidBuf);
 }
 
-function readOwnerOnlyAclViewNative(n: Native, absPath: string, currentSid: string): Win32AclReadbackView {
+function readOwnerOnlyAclViewNative(n: Native, target: string | { handle: unknown }, currentSid: string): Win32AclReadbackView {
   const verifyOwner: unknown[] = [null];
   const verifyGroup: unknown[] = [null];
   const verifyDacl: unknown[] = [null];
   const verifySacl: unknown[] = [null];
   const verifySd: unknown[] = [null];
-  const readRc = n.GetNamedSecurityInfoW(
-    absPath,
+  const args = [
     SE_FILE_OBJECT,
     DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION,
     verifyOwner,
@@ -966,7 +976,8 @@ function readOwnerOnlyAclViewNative(n: Native, absPath: string, currentSid: stri
     verifyDacl,
     verifySacl,
     verifySd
-  );
+  ] as const;
+  const readRc = typeof target === "string" ? n.GetNamedSecurityInfoW(target, ...args) : n.GetSecurityInfo(target.handle, ...args);
   if (readRc !== 0 || verifySd[0] == null) {
     throw new PlatformNativeError(`ACL readback failed:${String(readRc)}`);
   }
@@ -1447,7 +1458,9 @@ function handleAddress(n: Native, handle: unknown): bigint {
 function isInvalidHandle(n: Native, handle: unknown): boolean {
   if (isNullHandle(handle)) return true;
   try {
-    return handleAddress(n, handle) === INVALID_HANDLE_VALUE;
+    // koffi.address 在 Windows 返回无符号指针；-1 还必须按64位补码比较。
+    // 否则失败的 CreateFile 会被误当成当前进程伪句柄继续查询。
+    return BigInt.asIntN(64, handleAddress(n, handle)) === INVALID_HANDLE_VALUE;
   } catch {
     return true;
   }
@@ -1756,7 +1769,7 @@ function settleWin32Overlapped(
   win32: number,
   bytes: number,
   maxBytes: number,
-  kind: "read" | "write"
+  kind: "read" | "write" | "connect"
 ): Win32PipeIoResult | { kind: "fail"; error: Error } {
   if (!Number.isInteger(bytes) || bytes < 0) {
     return { kind: "fail", error: pipeErrno("EIO", kind === "read" ? "named pipe read size invalid" : "named pipe write size invalid") };
@@ -1812,7 +1825,8 @@ function makeOverlapped(n: Win32PipeIoNative, event: unknown): unknown {
   return { Internal: 0, InternalHigh: 0, Offset: 0, OffsetHigh: 0, hEvent: event };
 }
 
-function pipeApisUnavailable(n: Win32PipeIoNative, kind: "read" | "write"): Error | undefined {
+function pipeApisUnavailable(n: Win32PipeIoNative, kind: "read" | "write" | "connect"): Error | undefined {
+  if (kind === "connect" && typeof n.ConnectNamedPipe !== "function") return pipeErrno("EIO", "named pipe connect unavailable");
   if (typeof n.ReadFile !== "function" || typeof n.WriteFile !== "function") {
     return pipeErrno("EIO", kind === "read" ? "named pipe read unavailable" : "named pipe write unavailable");
   }
@@ -1834,7 +1848,7 @@ function startWin32HandleIo(
   n: Win32PipeIoNative,
   handle: unknown,
   buf: Buffer,
-  kind: "read" | "write"
+  kind: "read" | "write" | "connect"
 ): Win32PipeIoSession {
   let reportFailure!: (error: Error) => void;
   const failure = new Promise<Error>((resolve) => { reportFailure = resolve; });
@@ -1944,7 +1958,8 @@ function startWin32HandleIo(
     let started: number;
     let error: number;
     try {
-      started = kind === "read" ? n.ReadFile(handle, buf, buf.length, written, overlapped)
+      started = kind === "connect" ? n.ConnectNamedPipe!(handle, overlapped)
+        : kind === "read" ? n.ReadFile(handle, buf, buf.length, written, overlapped)
         : n.WriteFile(handle, buf, buf.length, written, overlapped);
       error = started ? 0 : n.GetLastError();
     } catch {
@@ -1952,6 +1967,8 @@ function startWin32HandleIo(
       later(afterComplete);
       return;
     }
+    // 客户端先于 ConnectNamedPipe 打开时，内核已连接且没有待完成 I/O。
+    if (kind === "connect" && !started && error === 535) { finish({ kind: "data", bytes: 0 }); return; }
     if (started) { afterComplete(); return; }
     if (error === WIN32_ERROR_IO_PENDING) { later(poll); return; }
     finish(settleWin32Overlapped(0, error, 0, buf.length, kind));
@@ -1961,6 +1978,163 @@ function startWin32HandleIo(
 
 export function startWin32HandleRead(n: Win32PipeIoNative, handle: unknown, buf: Buffer): Win32PipeIoSession {
   return startWin32HandleIo(n, handle, buf, "read");
+}
+
+export function startWin32HandleConnect(n: Win32PipeIoNative, handle: unknown): Win32PipeIoSession {
+  return startWin32HandleIo(n, handle, Buffer.alloc(0), "connect");
+}
+
+// 个人接入专用管道。此层只证明 OS 用户/进程/端点，不授予安装或业务身份。
+const PERSONAL_PIPE_MASK = 0x0012019b; // 明确去掉 FILE_CREATE_PIPE_INSTANCE。
+const personalPipeName = /^\\\\\.\\pipe\\saydo-personal-context-[0-9a-f-]{36}$/u;
+const retainedPersonalPipes = new Set<Win32PersonalPipe>();
+export interface Win32PersonalPipeIdentity { pid: number; birth: string }
+export interface Win32PersonalPipeObservation {
+  name: string;
+  owner: string;
+  local: Win32PersonalPipeIdentity;
+  peer: Win32PersonalPipeIdentity;
+}
+
+function verifyPersonalPipeAcl(n: Native, handle: unknown, sid: string): void {
+  const view = readOwnerOnlyAclViewNative(n, { handle }, sid);
+  if (!sidTokensEqual(view.ownerSid, sid) || (view.control & (SE_DACL_PRESENT | SE_DACL_PROTECTED)) !== (SE_DACL_PRESENT | SE_DACL_PROTECTED) ||
+      view.aces.length !== 1 || view.aces.some(ace => ace.aceType !== ACCESS_ALLOWED_ACE_TYPE || ace.aceFlags !== 0 || ace.mask !== PERSONAL_PIPE_MASK || !sidTokensEqual(ace.trusteeSid, sid))) {
+    throw new PlatformNativeError("personal pipe ACL rejected");
+  }
+}
+
+async function boundedPipeWait<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try { return await Promise.race([promise, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new PlatformNativeError("personal pipe timeout; cleanup may be retained")), timeoutMs); })]); }
+  finally { if (timer) clearTimeout(timer); }
+}
+
+export class Win32PersonalPipe {
+  private readonly n = nativeSync();
+  private readonly sid = currentUserSid();
+  private readonly pending = new Set<Win32PipeIoSession>();
+  private peerHandle: unknown;
+  private observation: Win32PersonalPipeObservation | undefined;
+  private stopping = false;
+  private released = false;
+  private connecting = false;
+  private reading = false;
+  private writing = false;
+  private closePromise: Promise<void> | undefined;
+  constructor(readonly name: string, private readonly handle: unknown, private readonly server: boolean) {
+    retainedPersonalPipes.add(this);
+  }
+  async accept(): Promise<void> {
+    if (!this.server || this.connecting || this.stopping) throw new PlatformNativeError("personal pipe accept rejected");
+    this.connecting = true;
+    try { await this.run(startWin32HandleConnect(this.n, this.handle), 5000); this.capturePeer(); }
+    catch (error) { await this.close(); throw error; }
+  }
+  capturePeer(): void {
+    if (this.stopping || this.observation) throw new PlatformNativeError("personal pipe identity rejected");
+    verifyPersonalPipeAcl(this.n, this.handle, this.sid);
+    const pid = this.peerPid();
+    const processHandle = this.n.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+    if (isNullHandle(processHandle)) throw new PlatformNativeError("personal pipe peer process unavailable");
+    this.peerHandle = processHandle;
+    if (processUserSid(this.n, processHandle) !== this.sid || this.peerPid() !== pid || processStillActiveFromHandleWin32(processHandle) !== true) throw new PlatformNativeError("personal pipe peer owner rejected");
+    const birth = processBirthFromHandleWin32(processHandle, pid), localBirth = processBirthFromHandleWin32(this.n.GetCurrentProcess(), process.pid);
+    if (!birth || !localBirth) throw new PlatformNativeError("personal pipe process birth unavailable");
+    this.observation = { name: this.name, owner: this.sid, local: { pid: process.pid, birth: localBirth }, peer: { pid, birth } };
+  }
+  assertCurrent(): Win32PersonalPipeObservation {
+    if (this.stopping || !this.observation || !this.peerHandle) throw new PlatformNativeError("personal pipe closed or unverified");
+    verifyPersonalPipeAcl(this.n, this.handle, this.sid);
+    if (this.peerPid() !== this.observation.peer.pid || processStillActiveFromHandleWin32(this.peerHandle) !== true ||
+        processBirthFromHandleWin32(this.peerHandle, this.observation.peer.pid) !== this.observation.peer.birth || processUserSid(this.n, this.peerHandle) !== this.sid) throw new PlatformNativeError("personal pipe peer changed");
+    return structuredClone(this.observation);
+  }
+  async readExact(size: number): Promise<Buffer> {
+    this.assertCurrent();
+    if (this.reading || !Number.isSafeInteger(size) || size <= 0 || size > 65536) throw new PlatformNativeError("personal pipe read bound");
+    this.reading = true; const result = Buffer.alloc(size); let offset = 0;
+    const deadline = performance.now() + 5000;
+    try {
+      while (offset < size) {
+        this.assertCurrent(); const remaining = deadline - performance.now();
+        if (remaining <= 0) throw new PlatformNativeError("personal pipe read timeout");
+        const read = await this.run(startWin32HandleRead(this.n, this.handle, result.subarray(offset)), remaining);
+        if (read.kind !== "data" || read.bytes <= 0) throw new PlatformNativeError("personal pipe EOF");
+        offset += read.bytes;
+      }
+      this.assertCurrent(); return result;
+    } catch (error) { result.fill(0); await this.close(); throw error; }
+    finally { this.reading = false; }
+  }
+  async write(data: Buffer, finalWriter: (commit: () => void) => void): Promise<void> {
+    this.assertCurrent();
+    if (this.writing || data.length === 0 || data.length > 65536) throw new PlatformNativeError("personal pipe write bound");
+    this.writing = true; let active = true, called = false; let completion: Promise<Win32PipeIoResult> | undefined;
+    try {
+      finalWriter(() => {
+        if (!active || called) throw new PlatformNativeError("personal pipe final writer stale");
+        this.assertCurrent(); called = true;
+        completion = this.run(startWin32HandleWrite(this.n, this.handle, Buffer.from(data)), 5000);
+        // finalWriter 可能在写入启动后抛错；挂接处理，退出仍等待内核清理。
+        void completion.catch(() => undefined);
+      });
+      active = false;
+      if (!completion || !called) throw new PlatformNativeError("personal pipe final writer not called");
+      await completion;
+    } catch (error) { active = false; await this.close(); throw error; }
+    finally { active = false; this.writing = false; }
+  }
+  close(): Promise<void> {
+    if (this.closePromise) return this.closePromise;
+    this.stopping = true;
+    this.closePromise = (async () => {
+      const cancellationErrors = [...this.pending].map(session => session.requestCancel()).filter(value => value !== undefined);
+      await boundedPipeWait(Promise.allSettled([...this.pending].map(session => session.promise)), 5000);
+      if (this.pending.size) throw new PlatformNativeError("personal pipe I/O retained");
+      if (!this.released) { closeHandleChecked(this.n, this.handle, "personal-pipe"); this.released = true; }
+      if (this.peerHandle) { closeHandleChecked(this.n, this.peerHandle, "personal-peer-process"); this.peerHandle = undefined; }
+      retainedPersonalPipes.delete(this);
+      if (cancellationErrors.length) throw new PlatformNativeError("personal pipe cancellation failed");
+    })();
+    return this.closePromise;
+  }
+  private peerPid(): number {
+    const pid = [0];
+    if (!(this.server ? this.n.GetNamedPipeClientProcessId(this.handle, pid) : this.n.GetNamedPipeServerProcessId(this.handle, pid)) || !pid[0]) throw new PlatformNativeError("personal pipe peer ID unavailable");
+    return pid[0];
+  }
+  private async run(session: Win32PipeIoSession, timeoutMs: number): Promise<Win32PipeIoResult> {
+    this.pending.add(session);
+    void session.promise.then(() => this.pending.delete(session), () => this.pending.delete(session));
+    try { return await boundedPipeWait(Promise.race([session.promise, session.failure.then(error => { throw error; })]), timeoutMs); }
+    catch (error) { session.requestCancel(); throw error; }
+  }
+}
+
+export function createWin32PersonalPipe(): Win32PersonalPipe {
+  if (hostKind() !== "win32") throw new PlatformNativeError("personal pipe Windows only");
+  const n = nativeSync(), sid = currentUserSid(), name = `\\\\.\\pipe\\saydo-personal-context-${randomUUID()}`;
+  const sd: unknown[] = [null], length = [0];
+  if (!n.ConvertStringSecurityDescriptorToSecurityDescriptorW(`O:${sid}D:P(A;;0x0012019b;;;${sid})`, SDDL_REVISION_1, sd, length) || !sd[0]) throw new PlatformNativeError("personal pipe security descriptor failed");
+  let handle: unknown;
+  try {
+    handle = n.CreateNamedPipeW(name, 3 | FILE_FLAG_FIRST_PIPE_INSTANCE | WIN32_FILE_FLAG_OVERLAPPED, 8, 1, 65536, 65536, 0,
+      { nLength: n.koffi.sizeof(n.SECURITY_ATTRIBUTES), lpSecurityDescriptor: sd[0], bInheritHandle: 0 });
+  } finally { n.LocalFree(sd[0]); }
+  if (isNullHandle(handle) || isInvalidHandle(n, handle)) throw new PlatformNativeError(`personal pipe create failed:${String(n.GetLastError())}`);
+  try { verifyPersonalPipeAcl(n, handle, sid); return new Win32PersonalPipe(name, handle, true); }
+  catch (error) { closeHandleChecked(n, handle, "personal-pipe-rejected"); throw error; }
+}
+
+export async function openWin32PersonalPipe(name: string): Promise<Win32PersonalPipe> {
+  if (hostKind() !== "win32" || !personalPipeName.test(name)) throw new PlatformNativeError("personal pipe name rejected");
+  const n = nativeSync();
+  // 不申请 GENERIC_WRITE，防止它隐含的 FILE_CREATE_PIPE_INSTANCE 权限。
+  const handle = n.CreateFileW(name, PERSONAL_PIPE_MASK, 0, securityAttributes(n, 0), OPEN_EXISTING, WIN32_FILE_FLAG_OVERLAPPED | 0x00100000, null);
+  if (isNullHandle(handle) || isInvalidHandle(n, handle)) throw new PlatformNativeError(`personal pipe open failed:${String(n.GetLastError())}`);
+  const pipe = new Win32PersonalPipe(name, handle, false);
+  try { pipe.capturePeer(); return pipe; } catch (error) { await pipe.close(); throw error; }
 }
 
 export function startWin32HandleWrite(n: Win32PipeIoNative, handle: unknown, data: Buffer): Win32PipeIoSession {

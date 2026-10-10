@@ -57,3 +57,4 @@ export * from "./costBilling.js";
 
 // §19 受保护的 Anyvia 个人上下文协议
 export * from "./types/personalContext.js";
+export * from "./types/personalContextTransport.js";

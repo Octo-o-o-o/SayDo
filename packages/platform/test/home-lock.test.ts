@@ -307,7 +307,7 @@ describe("两进程 writer/reaper 窗口", () => {
     const home = createOwnedHome("saydo-lock-sync-proc-");
     const marker = join(home, "acquired.marker");
     const holdMarker = join(home, "holding.marker");
-    const tsx = fileURLToPath(new URL("../../daemon/node_modules/tsx/dist/loader.mjs", import.meta.url));
+    const tsx = new URL("../../daemon/node_modules/tsx/dist/loader.mjs", import.meta.url).href;
     const worker = fileURLToPath(new URL("./fixtures/home-lock-worker.mjs", import.meta.url));
     const lockModule = fileURLToPath(new URL("../src/homeLock.ts", import.meta.url));
     const holder = spawnOwned(process.execPath, ["--import", tsx, worker], {
@@ -358,7 +358,7 @@ describe("两进程 writer/reaper 窗口", () => {
     const home = createOwnedHome("saydo-lock-proc-");
     const marker = join(home, "acquired.marker");
     const holdMarker = join(home, "holding.marker");
-    const tsx = fileURLToPath(new URL("../../daemon/node_modules/tsx/dist/loader.mjs", import.meta.url));
+    const tsx = new URL("../../daemon/node_modules/tsx/dist/loader.mjs", import.meta.url).href;
     const worker = fileURLToPath(new URL("./fixtures/home-lock-worker.mjs", import.meta.url));
     const lockModule = fileURLToPath(new URL("../src/homeLock.ts", import.meta.url));
     const holder = spawnOwned(process.execPath, ["--import", tsx, worker], {
@@ -402,7 +402,7 @@ describe("两进程 writer/reaper 窗口", () => {
   }, 15_000);
 
   it("本测试子进程与 mkdtemp：先退出再删除，已 signal 退出按双条件收口", async () => {
-    const tsx = fileURLToPath(new URL("../../daemon/node_modules/tsx/dist/loader.mjs", import.meta.url));
+    const tsx = new URL("../../daemon/node_modules/tsx/dist/loader.mjs", import.meta.url).href;
     const worker = fileURLToPath(new URL("./fixtures/home-lock-worker.mjs", import.meta.url));
     const lockModule = fileURLToPath(new URL("../src/homeLock.ts", import.meta.url));
     const held = createOwnedHome("saydo-lock-cleanup-");
