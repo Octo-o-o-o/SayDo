@@ -1,0 +1,162 @@
+{
+  "codeCommit": "ffd913797a773dd80fc5bed593d7c8a10a9e95ac",
+  "state": "in_progress",
+  "productionComposition": false,
+  "distinctNewTests": 26,
+  "nativeRegressionPass": 307,
+  "independentFixTests": {
+    "clock": 4,
+    "binding": 5
+  },
+  "reviewArchive": {
+    "repository": "Octoooo",
+    "path": "docs/implementation/2026-10-09/evidence/w10-saydo/independent-fix-reviews-20261010.zip",
+    "sha256": "ccb9697165da41d35d4fb63e29665e8df6ebaab1a7e3ccba2340ddb02e8a81ab"
+  },
+  "checks": [
+    {
+      "id": "20261010T015546339011Z-w10-saydo-events-final-contracts",
+      "result": "pass",
+      "log": "20261010T015546339011Z-w10-saydo-events-final-contracts/output.log",
+      "bytes": 411,
+      "sha256": "9fb38481dbe7ebf3fee1b7064d27505e5057db393ef2de27195319b9c17b9030"
+    },
+    {
+      "id": "20261010T021420667748Z-w10-saydo-unmapped-focus-preserved",
+      "result": "pass",
+      "log": "20261010T021420667748Z-w10-saydo-unmapped-focus-preserved/output.log",
+      "bytes": 14769,
+      "sha256": "bb3ef27de77468aa6a39f2ad22afbc06f5dd20e999b9c976779fa58f4f14ea09"
+    },
+    {
+      "id": "20261010T021529096864Z-w10-saydo-unmapped-final-types",
+      "result": "pass",
+      "log": "20261010T021529096864Z-w10-saydo-unmapped-final-types/output.log",
+      "bytes": 286,
+      "sha256": "6f7e44810e79a33c035a50b5fab3349fa4aaddc5667f9b1f017ae7b2806c83f4"
+    },
+    {
+      "id": "20261010T021539477114Z-w10-saydo-unmapped-final-lint",
+      "result": "pass",
+      "log": "20261010T021539477114Z-w10-saydo-unmapped-final-lint/output.log",
+      "bytes": 481,
+      "sha256": "aeeb8caa77dc5e977338426c952837ff32d76cc8fd3faa466a4a0fa05e5fb318"
+    },
+    {
+      "id": "20261010T021503661145Z-w10-saydo-review-fixes-emoji",
+      "result": "pass",
+      "log": "20261010T021503661145Z-w10-saydo-review-fixes-emoji/output.log",
+      "bytes": 124,
+      "sha256": "db80cd25f81a4e94beb5a646af2c1020f355810aa9317e2de9a2d7834aa01fd3"
+    },
+    {
+      "id": "20261010T022008547189Z-w10-saydo-checkpoint-privacy",
+      "result": "pass",
+      "log": "20261010T022008547189Z-w10-saydo-checkpoint-privacy/output.log",
+      "bytes": 168,
+      "sha256": "aef603d9c9cadbf61a43767a8e4ffe4b81dc29d2ea336f154d8250453cd62483"
+    }
+  ],
+  "sourceFiles": {
+    "docs/09-data-contracts.md": {
+      "testedRawSha256": "b1837dee48ea97727b42eb48be69c4854d8e2a457108e2bf8fa1664031197973",
+      "committedSha256": "b1837dee48ea97727b42eb48be69c4854d8e2a457108e2bf8fa1664031197973",
+      "lineEndingsOnly": false
+    },
+    "packages/contracts/src/index.ts": {
+      "testedRawSha256": "2e00fc801ed21b8413be5f3ceaa799b1c4dc2f7551c2bd32b0cc7d865d35a1a9",
+      "committedSha256": "02294d601efdfec46dbb606bfa8cbc91fb62884ed5e54474acec17324658f3c6",
+      "lineEndingsOnly": true
+    },
+    "packages/contracts/src/types/personalContext.ts": {
+      "testedRawSha256": "282226acc9998dba378e8117a799c21b3c6e435c6ea6b9caf7e1a9be3ff34b32",
+      "committedSha256": "0ab821cbaade7477bb6a8c35be11ba5605b82539bf0101f9382b1f58023a2a26",
+      "lineEndingsOnly": true
+    },
+    "packages/contracts/test/personal-context.test.ts": {
+      "testedRawSha256": "6288e92f92bd53b0ad7630f79ae384f9bb338964a30c9d9347d16874be3c1415",
+      "committedSha256": "8c329a6ed9d0ddce5090598c8d40db795b4c5ea6286ea5fb204cd001e7d9b5d1",
+      "lineEndingsOnly": true
+    },
+    "packages/daemon/src/api/sqliteAuditTransaction.ts": {
+      "testedRawSha256": "d6bb8695bfc7f94c960ba0498efd58ebf163e14d9bb37540dc5c88c40840efbf",
+      "committedSha256": "d6bb8695bfc7f94c960ba0498efd58ebf163e14d9bb37540dc5c88c40840efbf",
+      "lineEndingsOnly": false
+    },
+    "packages/daemon/src/focus/writeTx.ts": {
+      "testedRawSha256": "0ed8b68e8f650fcf9fccac1692557d2df19006ad8143d63fd76ca01a72bdde60",
+      "committedSha256": "0ed8b68e8f650fcf9fccac1692557d2df19006ad8143d63fd76ca01a72bdde60",
+      "lineEndingsOnly": false
+    },
+    "packages/daemon/src/personalContext/clock.ts": {
+      "testedRawSha256": "f50a9e3aada225cb5f8462a2399236b480ced1e5c5657d35742509d47cc3a7a3",
+      "committedSha256": "f50a9e3aada225cb5f8462a2399236b480ced1e5c5657d35742509d47cc3a7a3",
+      "lineEndingsOnly": false
+    },
+    "packages/daemon/src/personalContext/eventCapture.ts": {
+      "testedRawSha256": "7b9ab8d4175fb900d68c24985f675ea9e1efc2064f6846c832643ba7b0f46ffd",
+      "committedSha256": "7b9ab8d4175fb900d68c24985f675ea9e1efc2064f6846c832643ba7b0f46ffd",
+      "lineEndingsOnly": false
+    },
+    "packages/daemon/src/personalContext/eventSchema.ts": {
+      "testedRawSha256": "e27f19af0914f0e8444f003dd37f2f1747666e41a17045260c2524a896cebbe8",
+      "committedSha256": "e27f19af0914f0e8444f003dd37f2f1747666e41a17045260c2524a896cebbe8",
+      "lineEndingsOnly": false
+    },
+    "packages/daemon/src/personalContext/events.ts": {
+      "testedRawSha256": "69b3d2278962a7275224ad4abe065cc2959bd0bdc9bfd2e034d36d9f143017c4",
+      "committedSha256": "69b3d2278962a7275224ad4abe065cc2959bd0bdc9bfd2e034d36d9f143017c4",
+      "lineEndingsOnly": false
+    },
+    "packages/daemon/src/personalContext/journal.ts": {
+      "testedRawSha256": "dee20d6596dc403f3e50393f58aab14fd5535ef5016ec7838368d3d87108a56e",
+      "committedSha256": "dee20d6596dc403f3e50393f58aab14fd5535ef5016ec7838368d3d87108a56e",
+      "lineEndingsOnly": false
+    },
+    "packages/daemon/src/personalContext/peerAuthentication.ts": {
+      "testedRawSha256": "62ceebc8bd8b889fef03dfb13be847b6c0909bc675b7adec38cec307e77b9684",
+      "committedSha256": "941d3ca5afcc1a5ada8d19081731c321fb66fe70ec2917da87f15588274bd994",
+      "lineEndingsOnly": true
+    },
+    "packages/daemon/src/personalContext/schema.ts": {
+      "testedRawSha256": "fb5cb8269938df26d3b27d5f07aed69e5330e539aedd1a906c2f76813543af3d",
+      "committedSha256": "23dc9acbe6f8403e3ba6608d94ab1e2c691f15238899cb403f94f190c7f7371b",
+      "lineEndingsOnly": true
+    },
+    "packages/daemon/src/personalContext/sourceAuthority.ts": {
+      "testedRawSha256": "29c78330ed4928249f69bec20452bf91a9ea693ae9ed9e335d020171efb39a4a",
+      "committedSha256": "29c78330ed4928249f69bec20452bf91a9ea693ae9ed9e335d020171efb39a4a",
+      "lineEndingsOnly": false
+    },
+    "packages/daemon/src/storage/ddl.ts": {
+      "testedRawSha256": "4ea0fed5248cdabc73646cd225e0cfa2c53494f0c8e5e08a81bbb789c08f52f0",
+      "committedSha256": "4ea0fed5248cdabc73646cd225e0cfa2c53494f0c8e5e08a81bbb789c08f52f0",
+      "lineEndingsOnly": false
+    },
+    "packages/daemon/test/personal-context-events.test.ts": {
+      "testedRawSha256": "79ba6b2e8a644635f73059feba20ca5cc5bd03cb1ed91ccf2e14c0a1bbcf1ea0",
+      "committedSha256": "79ba6b2e8a644635f73059feba20ca5cc5bd03cb1ed91ccf2e14c0a1bbcf1ea0",
+      "lineEndingsOnly": false
+    },
+    "packages/daemon/test/personal-context-journal.test.ts": {
+      "testedRawSha256": "a417bca441609890ee34fbe5c72ccefacbbacbae4d50f7f04fb288777fdfce3f",
+      "committedSha256": "a9636ff10a4eeefa9b2b825f7a9724d9db7cdbeab73bb60a99b643d599ed7e08",
+      "lineEndingsOnly": true
+    },
+    "packages/daemon/test/personal-context-peer.test.ts": {
+      "testedRawSha256": "284eb0ec4dfcb67047cd24423671b8a0243bbb8c4feb74607fe5c2c1686f6bed",
+      "committedSha256": "13fbe34f2fb56d256166fae6cd8b1133d1add873428715b61f535ed6efa953dd",
+      "lineEndingsOnly": true
+    },
+    "packages/daemon/test/personal-context-source.test.ts": {
+      "testedRawSha256": "3e903cad9631032559ab72f67c3c6d7c230173816cc74e5af73f642622e771bd",
+      "committedSha256": "3e903cad9631032559ab72f67c3c6d7c230173816cc74e5af73f642622e771bd",
+      "lineEndingsOnly": false
+    },
+    "packages/daemon/test/storage-migration-v5.test.ts": {
+      "testedRawSha256": "5b80dacb96277ff208c0c8272c448b630a72e8579f5cb1958170fb25563ebff8",
+      "committedSha256": "5b80dacb96277ff208c0c8272c448b630a72e8579f5cb1958170fb25563ebff8",
+      "lineEndingsOnly": false
+    }
+  }
+}
