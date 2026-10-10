@@ -13,6 +13,7 @@ const label = z.string().min(1).max(128).regex(/^[a-zA-Z0-9_.:-]+$/u);
 const boundedText = z.string().min(1).max(16384);
 
 export const personalContextBoundarySchema = z.strictObject({
+  // SayDo 源安装；与 Anyvia 节点和对端安装分别绑定。
   installationId: uuid,
   nodeId: uuid,
   connectionId: uuid,
@@ -36,6 +37,28 @@ export const personalContextLinkSchema = z.strictObject({
   sessionId: idOf("ses"),
 });
 export type PersonalContextLink = z.infer<typeof personalContextLinkSchema>;
+
+export const personalContextPeerIdentitySchema = personalContextBoundarySchema
+  .pick({ installationId: true, nodeId: true, connectionId: true, connectionEpoch: true })
+  .extend({ peerInstallationId: uuid, registrationId: uuid, registrationRevision: positive });
+export type PersonalContextPeerIdentity = z.infer<typeof personalContextPeerIdentitySchema>;
+export const personalContextRegisterSchema = z.strictObject({
+  peerInstallationId: uuid, nodeId: uuid,
+  publicKey: z.string().min(1).max(1024), expiresAt: positive,
+});
+export const personalContextRegistrationChangeSchema = z.strictObject({
+  registrationId: uuid, expectedRevision: positive,
+  action: z.enum(["enable", "pause", "revoke"]),
+});
+export const personalContextPermissionSchema = z.strictObject({
+  registrationId: uuid, expectedRegistrationRevision: positive,
+  method: z.enum(["compile/request", "candidate/propose", "event/ingest", "request/respond"]),
+  link: personalContextLinkSchema,
+  expiresAt: positive,
+});
+export const personalContextPermissionRevokeSchema = z.strictObject({
+  permissionId: uuid, expectedRevision: positive,
+});
 
 export const personalContextEventMappingSchema = z.strictObject({
   id: uuid,

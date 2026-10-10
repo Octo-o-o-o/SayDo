@@ -1,15 +1,15 @@
 // §19：双向本地适配器使用独立的安装公钥。认证此 peer 不授予 owner 身份。
 import { createPublicKey, randomBytes, timingSafeEqual, verify, type KeyObject } from "node:crypto";
-import { jcsSerialize, PERSONAL_CONTEXT_PROTOCOL, personalContextBoundarySchema } from "@saydo/contracts";
+import { jcsSerialize, PERSONAL_CONTEXT_PROTOCOL, personalContextPeerIdentitySchema, type PersonalContextPeerIdentity } from "@saydo/contracts";
 
-export interface PeerIdentity { installationId: string; nodeId: string; connectionId: string; connectionEpoch: number }
+export type PeerIdentity = PersonalContextPeerIdentity;
 export interface PeerChallenge { protocol: typeof PERSONAL_CONTEXT_PROTOCOL; serverEpoch: string; nonce: string; expiresAt: number }
 export interface PeerAssertion { nonce: string; operationDigest: string; signature: string }
 declare const peerHandleBrand: unique symbol;
 export interface AuthenticatedPeerHandle { readonly [peerHandleBrand]: true }
 interface Pending { challenge: PeerChallenge; identity: PeerIdentity; key: KeyObject }
 interface Authenticated { identity: PeerIdentity; operationDigest: string; expiresAt: number; key: KeyObject }
-const identitySchema = personalContextBoundarySchema.pick({ installationId: true, nodeId: true, connectionId: true, connectionEpoch: true });
+const identitySchema = personalContextPeerIdentitySchema;
 const digest = /^sha256:[a-f0-9]{64}$/u;
 const nonce = /^[A-Za-z0-9_-]{43}$/u;
 const signature = /^[A-Za-z0-9_-]{86}$/u;
@@ -24,9 +24,11 @@ export class PersonalContextPeerAuthentication {
   private readonly pending = new Map<string, Pending>();
   private highWater = 0;
   private readonly authenticated = new WeakMap<AuthenticatedPeerHandle, Authenticated>();
-  constructor(private readonly currentPeer: (identity: PeerIdentity) => { publicKey: string }, private readonly now: () => number = Date.now) {}
+  constructor(private readonly currentPeer: (identity: PeerIdentity) => { publicKey: string }, private readonly now: () => number = Date.now,
+    private readonly withOperation: <T>(work: () => T) => T = work => work()) {}
 
   challenge(identity: PeerIdentity): PeerChallenge {
+    return this.withOperation(() => {
     identity = identitySchema.parse(identity);
     const at = this.time();
     for (const [id, value] of this.pending) if (value.challenge.expiresAt <= at) this.pending.delete(id);
@@ -37,8 +39,10 @@ export class PersonalContextPeerAuthentication {
     const challenge = { protocol: PERSONAL_CONTEXT_PROTOCOL, serverEpoch: this.serverEpoch, nonce: randomBytes(32).toString("base64url"), expiresAt: at + 30000 };
     this.pending.set(challenge.nonce, { challenge, identity: structuredClone(identity), key });
     return structuredClone(challenge);
+    });
   }
   authenticate(input: unknown): AuthenticatedPeerHandle {
+    return this.withOperation(() => {
     if (!input || typeof input !== "object" || Array.isArray(input) || Object.keys(input).sort().join(",") !== "nonce,operationDigest,signature") throw new Error("personal_context_assertion_shape");
     const value = input as PeerAssertion;
     if (!nonce.test(value.nonce) || !digest.test(value.operationDigest) || !signature.test(value.signature)) throw new Error("personal_context_assertion_shape");
@@ -52,15 +56,18 @@ export class PersonalContextPeerAuthentication {
     const handle = Object.freeze({}) as AuthenticatedPeerHandle;
     this.authenticated.set(handle, { identity: entry.identity, operationDigest: value.operationDigest, expiresAt: entry.challenge.expiresAt, key: entry.key });
     return handle;
+    });
   }
   /** 由业务事务在实际效果/发送前调用；HTTP JSON不能制造 WeakMap 中的句柄。 */
   assertCurrent(handle: AuthenticatedPeerHandle, operationDigest: string): Readonly<PeerIdentity> {
+    return this.withOperation(() => {
     const value = this.authenticated.get(handle);
     if (!value || value.expiresAt <= this.time() || value.operationDigest !== operationDigest) throw new Error("personal_context_authentication_stale");
     const current = createPublicKey(this.currentPeer(value.identity).publicKey);
     const original = value.key.export({ type: "spki", format: "der" }), latest = current.export({ type: "spki", format: "der" });
     if (original.length !== latest.length || !timingSafeEqual(original, latest)) throw new Error("personal_context_key_changed");
     return Object.freeze(structuredClone(value.identity));
+    });
   }
   discard(handle: AuthenticatedPeerHandle): void { this.authenticated.delete(handle); }
   private time(): number {

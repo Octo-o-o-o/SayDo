@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { jcsDigest } from "@saydo/contracts";
 import { PersonalContextPeerAuthentication, peerAssertionBytes, type AuthenticatedPeerHandle } from "../src/personalContext/peerAuthentication.js";
 function fixture() {
-  const key = generateKeyPairSync("ed25519"), identity = { installationId: randomUUID(), nodeId: randomUUID(), connectionId: randomUUID(), connectionEpoch: 1 }, digest = jcsDigest({ effect: "exact effect" });
+  const key = generateKeyPairSync("ed25519"), identity = { installationId: randomUUID(), nodeId: randomUUID(), connectionId: randomUUID(), connectionEpoch: 1, peerInstallationId: randomUUID(), registrationId: randomUUID(), registrationRevision: 1 }, digest = jcsDigest({ effect: "exact effect" });
   let publicKey = key.publicKey.export({ type: "spki", format: "pem" }).toString(), revoked = false, now = 100;
   const auth = new PersonalContextPeerAuthentication(value => { if (revoked || JSON.stringify(value) !== JSON.stringify(identity)) throw Error("peer revoked"); return { publicKey }; }, () => now);
   const issue = () => { const challenge = auth.challenge(identity); return { nonce: challenge.nonce, operationDigest: digest, signature: sign(null, peerAssertionBytes(challenge, identity, digest), key.privateKey).toString("base64url") }; };
