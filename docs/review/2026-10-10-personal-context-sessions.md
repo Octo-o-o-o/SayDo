@@ -1,0 +1,73 @@
+# 本机会话与原范围对账实施证据
+
+代码提交：`406754bbe6bcf3a608a0e35308b09831d3067b98`。
+
+# SayDo A：受监督本机会话与原范围只读对账候选
+
+基线90b8a95075015080d036bd927d9e70762899d3e7。新增19.2.4原提案736697和精确信封补充4997ad均先经root/baseline双读回，再写canonical。该候选经两路独立实现审查及S01修复原oracle复验后提交；旧custody三个冻结包和原A16不变。
+
+## 实现
+
+v40在既有operation journal追加原boundary/link两列；原admit/apply同TX保存，包含原effect摘要，immutable trigger拒改，legacy NULL不能根据查询回填/披露或重新执行。会话只保存生命周期，不另建action账本。opening审计先于native创建；原登记/密钥revision和当前行CAS才可listening/connected；唯一活动行包含unknown，最多8活动/1000历史。
+
+Owner list/open/close真实handler保留正文前后本机Owner认证；main装配真实WinCredential生产库和Win32私有pipe。关闭先同步失效writer，再等accept/read/write/pipe实际关闭，持久审计失败仍清句柄并保存unknown/拒绝停止成功；重复stop传播旧错误。旧boot隔离unknown、不自动重建，显式close需要原PID/birth已退出证明。备份只在生产副本隔离会话及旧权限；原监听/系统钥匙不变。
+
+签名KeyObject只进入custody内部握手调用，不返回任意callback；transport不长期保存含privateKey的options。每个同步guard及握手后重核原登记/密钥/会话，原生最终WriteFile前继续核验。这里只承诺引用生命周期，不承诺运行时物理擦除KeyObject。
+
+status严格信封绑定requestId/原identity/queryDigest及原result ID；请求重放/超出256拒绝。一连接串行，固定30秒绝对期限与原5秒idle同时生效，无heartbeat。只从既有journal读取有原scope且当前许可仍有效的操作；最终写入再读原许可及同一状态，撤销/过期/恢复/错scope不披露receipt。四效果不在监听器支持集合，严格parse拒绝并关闭，不能返回假applied。
+
+## 实际验证
+
+- 052801662969Z五文件51/51（session当时12项，custody21，registry8，journal4，实际WindowsTransport6）；052801661235Z types稳定绿。
+- 053006860878Z最终session13/13，含T10.140–152；053006929550Z生产lint绿；053119806331Z最终daemon types绿，均source/artifact双稳定。
+- T146两独立Node PID真实Windows管道+AEAD对账unknown，许可撤销后第二次查询无receipt；软件keyStore明示。
+- T152同旅程改本次createWin32PersonalSigningKey('test')新随机UUID系统凭据，实际加载/握手，结束full descriptor精确删除并再验证absent。不枚举、查询或改既有凭据。
+- T147实际生产snapshot隔离活动会话、旧许可，原监听和原软件私钥不变；T148真实等待过期；T149实际关闭审计触发器拒绝仍关闭pipe/unknown/重复stop拒绝；T150实际Owner HTTP错误身份/额外endpoint/慢body换Owner零新会话与正常打开关闭；T151真实v39库迁移NULL保持/immutable/重开一次。
+- 最终emoji清洁、privacy2430扫描/0hits、git diff check无错误。日志名称/字节/SHA见evidence-logs.json；不在Git加入日志。
+
+## 原红和范围
+
+051353349947Z旧fixture固定max migration39在v40出现失败，改核精确39已执行；原权限oracle不改。052322848331Z新fixture许可expiry晚于登记expiry被正确拒绝，缩短新fixture TTL，未改生产检查。052454455682Z新fixture fork的windowsHide TS类型错误，改Node spawn显式IPC/windowsHide，实际两进程原oracle不变。
+
+未测完整production daemon进程启动/退出和真实产品Anyvia B；这里独立对端是固定测试进程。Windows之外明确未验/不可用。30秒绝对期限代码已接但未用30秒长阻塞专项实测；既有实际5秒阻塞/idle反例仍绿。未声称四业务效果、B1 context消费、完整恢复独立水位或完整W10通过。Owner可视化与双方手工配对生命周期继续待接。
+
+## 原始输入
+
+每个modified path原raw字节由代码基线Git内容（必要时按checkout CRLF还原）与custody最终emoji的sourceBefore逐路径SHA精确匹配后保存；不是未经验证的行尾推断。manifest同时保存Gitbase/rawbase/overlay SHA。新路径原始为空。
+
+## A-STATUS-S01 独立真实反例与第二冻结
+
+旧16路径053258Z包保持不变。baseline原terminal-status.test.ts证明真实终态event进入unknown后，literal许可link比较误拒状态查询。修复在原operations同TX保存immutable event_source_json（原提交payload，源投影summary为空），expires_at同时不可改；查询只从原row重构effect并校验原digest，复用真实event来源证明，再核原mapping.permissionId的当前许可。只接受提交时的focusRevision/focusAuthorityEpoch差异，其余Case/session/anchor/boundary不变。legacy NULL拒绝；不扫描事件、不由query回填、不要求历史事件等于最新Focus版本、不恢复行动。
+
+独立原oracle13:40:30通过，fixed-result.json保留原红和输入快照。新增T153两参数真实终态与之后abandoned→dormant源版本推进均unknown，随后许可撤销拒绝、事件proof不可回填。054256834211Z明确绝对Node22命令四文件27/27，054229628873Z绝对Node22 daemon类型通过；054156156668Z窄生产lint通过，均源码稳定。此前递归pnpm typecheck虽通过但提示Node24子调度，不以其替代明确Node22结果；054032误用不存在types脚本和一次错误本地tsc路径为工具失败，保留日志，未算产品红。
+
+## 日志定位与完整性
+
+日志不进入Git。下列文件位于Anyvia任务树 artifacts/w10-saydo-development。
+
+|文件|字节|SHA-256|
+|---|---:|---|
+|20261010T014005720145Z-events-native-session-cursors.log|2277|90109449d2ad5a9c7e56f8aa3293cc46c6851c3b1b7ef613a437b78cd0d4e5ed|
+|20261010T051356224552Z-session-journal-first.log|3441|6c135bbac3174d64904e5ae13fa0cf251dd925d6e1a587c06b8c05fd21e60b67|
+|20261010T051719075948Z-session-journal-v2.log|967|4abfa3b15923678f3c2345ac5d1063b94a292358309bd7d0c535129baf250fc8|
+|20261010T051719562291Z-session-types-first.log|104|d8e6dfc36e67c336f99cb0094f3d296aebeecc1ea58cf1c713feeef436d41003|
+|20261010T051841841519Z-session-native-first.log|316|cdc44abff2e6d42aa3389305cc1a41551c2bf0a0ed75781b892189838d9a932e|
+|20261010T052126218546Z-session-status-types.log|104|d8e6dfc36e67c336f99cb0094f3d296aebeecc1ea58cf1c713feeef436d41003|
+|20261010T052327321296Z-session-status-native.log|3238|6ef71c9b14e815914348eff23b53848d9a45d5fa29182e475ae317a1a8cd5b93|
+|20261010T052457646610Z-session-status-native-v2.log|558|2502b8184344fd9bb63d8c57b17302a6edc94c365f2273ca42a58e3c187d1c58|
+|20261010T052457647092Z-session-status-types-v2.log|868|3a1a90bc4b718fa373325f067b3b9dd019d90e4a76366fea94e511baa6f7a610|
+|20261010T052804929672Z-session-complete-first.log|1557|813fc1559126791a58ad3187fa7ddbe3e40ea5a7e6734ba5431ea3389ade1a39|
+|20261010T052804930312Z-session-types-v3.log|104|d8e6dfc36e67c336f99cb0094f3d296aebeecc1ea58cf1c713feeef436d41003|
+|20261010T053012576115Z-session-systemkey.log|659|dbd34b5dfd5043282eb9567e94428f9cb1b1210d9702f474aaf85d19d6cb3114|
+|20261010T053012786285Z-session-lint.log|0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855|
+|20261010T053122564980Z-session-types-final.log|104|d8e6dfc36e67c336f99cb0094f3d296aebeecc1ea58cf1c713feeef436d41003|
+|20261010T054003457890Z-session-event-status-fix.log|949|3696d21e40558a0a0e3a33d0774e2fa6ee0a714ca37d71c388342aa65713e556|
+|20261010T054032516450Z-session-event-status-types.log|205|ac176507976cad2dbe160b75a132d7b39270f85eb7daf96479a93673d88be45c|
+|20261010T054038227651Z-session-event-status-typecheck.log|647|133d0f861244884cbdbf5994f7d4fc937fd4b0a39d3f5d7a6f73a03ba9d79e7e|
+|20261010T054127376858Z-session-event-status-node22.log|949|97a330101f107e2811e30817124e352aa30023e7078e5a5c29fabc735024d096|
+|20261010T054135320305Z-session-event-status-types-node22.log|647|08a9e7f861b797ddaa42c8c847b0a7a8a70006468f732daadad9395fcb483918|
+|20261010T054156156668Z-session-event-status-lint.log|0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855|
+|20261010T054229628873Z-session-event-status-types-direct.log|0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855|
+|20261010T054256834211Z-session-event-status-direct22.log|949|a4a3ab0f191fe17e51b9df80099b161efb918e9145584372df2682761d1b29af|
+
+第二冻结17路径ZIP SHA-256：da96c9253def318d9b76f091abc46bd18cbc1eae03085f9796e3befa7889d3d9。独立审查：Anyvia任务树 artifacts/w10-saydo-business-review-root/REVIEW.md 与 artifacts/w10-saydo-business-review-security/REVIEW.md；原反例及未改oracle保留。提交前emoji清洁、privacy2431文件/113二进制/0hits、diff检查无错误。
