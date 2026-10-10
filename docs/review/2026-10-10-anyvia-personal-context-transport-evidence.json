@@ -1,0 +1,235 @@
+{
+  "codeCommit": "e80a12fd6bdd0324cf65a064e671ab74a44f6fbf",
+  "base": "9382dd80c88060a4dbe8450c8bd3af926aaa70e2",
+  "candidate": {
+    "archive": "artifacts/w10-saydo-transport-frozen/transport-20261010T033306Z.zip",
+    "sha256": "c661d346bcc3482047329bb407281939fd877913c164bb8bc97ef7fbe150c275",
+    "base": "9382dd80c88060a4dbe8450c8bd3af926aaa70e2",
+    "files": 11,
+    "state": "in_progress"
+  },
+  "state": "in_progress",
+  "productionTransportComposed": false,
+  "newTests": 19,
+  "sourceFiles": {
+    "docs/09-data-contracts.md": {
+      "testedRawSHA256": "8848acc19c4df8921678651a0f5cd91fb221a875366794f06ec9ee2966fb5d3e",
+      "committedBlobSHA256": "8848acc19c4df8921678651a0f5cd91fb221a875366794f06ec9ee2966fb5d3e"
+    },
+    "packages/contracts/src/index.ts": {
+      "testedRawSHA256": "b7ebd35e8b81cde7a19a64d92aeedd2c66c560285b5f26fcb12f9b914c1db0a5",
+      "committedBlobSHA256": "6cef3c0af2dc229c66aaea7bb7799dea9c59a24d6ce8a4f75cc05ec83b18d829"
+    },
+    "packages/contracts/src/types/personalContextTransport.ts": {
+      "testedRawSHA256": "5add740d95c360144dcf9606f5f94a385b6fc4736bf3192d7a2a472eba357f62",
+      "committedBlobSHA256": "5add740d95c360144dcf9606f5f94a385b6fc4736bf3192d7a2a472eba357f62"
+    },
+    "packages/daemon/src/personalContext/secureChannel.ts": {
+      "testedRawSHA256": "51c553ea65fd71f7788ba3dc1ebea9af4c973689e3cca4eb1ce5e3aa78a06aa4",
+      "committedBlobSHA256": "51c553ea65fd71f7788ba3dc1ebea9af4c973689e3cca4eb1ce5e3aa78a06aa4"
+    },
+    "packages/daemon/test/personal-context-secure-channel.test.ts": {
+      "testedRawSHA256": "6f3c8d2d3f14676149a8b963116b68320d904c64e2c9f99c6e3eb42f5e540faa",
+      "committedBlobSHA256": "6f3c8d2d3f14676149a8b963116b68320d904c64e2c9f99c6e3eb42f5e540faa"
+    },
+    "packages/platform/src/index.ts": {
+      "testedRawSHA256": "9c54068df326159263de10d2e3e52d794d9c63d498cfacddbfc71e1a6a31c253",
+      "committedBlobSHA256": "9c54068df326159263de10d2e3e52d794d9c63d498cfacddbfc71e1a6a31c253"
+    },
+    "packages/platform/src/win32.ts": {
+      "testedRawSHA256": "442eca7d5d292be39a09e608f18cf6aea542ef1030b28897c191799aaf1f274b",
+      "committedBlobSHA256": "442eca7d5d292be39a09e608f18cf6aea542ef1030b28897c191799aaf1f274b"
+    },
+    "packages/platform/test/home-lock.test.ts": {
+      "testedRawSHA256": "4a6f751dc9691c7fbf87461c658f27876e0e328c2125d8780b474c1da85df4e8",
+      "committedBlobSHA256": "4a6f751dc9691c7fbf87461c658f27876e0e328c2125d8780b474c1da85df4e8"
+    },
+    "packages/platform/test/personal-pipe-child.ts": {
+      "testedRawSHA256": "50b6fd29d907f54dc91736f35f4a33845ab907d18aa6e53f4ed4ae4eac0f63bb",
+      "committedBlobSHA256": "50b6fd29d907f54dc91736f35f4a33845ab907d18aa6e53f4ed4ae4eac0f63bb"
+    },
+    "packages/platform/test/personal-pipe-invalid-handle.test.ts": {
+      "testedRawSHA256": "6c2c1403b3cf05e82f0b8fcd7632a3cfac8e6db3aa289b8b1ad71be9463f3e15",
+      "committedBlobSHA256": "6c2c1403b3cf05e82f0b8fcd7632a3cfac8e6db3aa289b8b1ad71be9463f3e15"
+    },
+    "packages/platform/test/personal-pipe-windows.test.ts": {
+      "testedRawSHA256": "42be627d6733e9cb828ae50f9e94ce82e5e249ef608035df361504f1b33176db",
+      "committedBlobSHA256": "42be627d6733e9cb828ae50f9e94ce82e5e249ef608035df361504f1b33176db"
+    }
+  },
+  "reviewArchive": {
+    "repository": "Octoooo",
+    "path": "docs/implementation/2026-10-09/evidence/w10-saydo/transport-independent-reviews-e80a12f.zip",
+    "sha256": "da0b0cbb5e5839a05e05922a7a71fdc5c22be7d448b01993d1ce4a601f1acd44"
+  },
+  "checks": [
+    {
+      "id": "20261010T031512402141Z-w10-saydo-secure-channel-first",
+      "log": "20261010T031512402141Z-w10-saydo-secure-channel-first/output.log",
+      "bytes": 424,
+      "sha256": "62562936eaa7a0b6e1d3e01d02299d4ccbb9968757f4bcc71e4c51768a6c8f61",
+      "exitCode": 0,
+      "resultSHA256": "7ce0f9af2107921dc89f48a3366aa29cedb65c5667c48429d620c06f7d76a6b0"
+    },
+    {
+      "id": "20261010T031551154726Z-w10-saydo-secure-channel-types",
+      "log": "20261010T031551154726Z-w10-saydo-secure-channel-types/output.log",
+      "bytes": 207,
+      "sha256": "ee4b706475793797377802452c021791ca3e120c07da69a9a977349ee8d3328b",
+      "exitCode": 0,
+      "resultSHA256": "661cd8dc5d226b9585cdd61ab5398866387dff81a1fcd21e255652abdc11e97e"
+    },
+    {
+      "id": "20261010T031701903365Z-w10-saydo-secure-channel-boundaries",
+      "log": "20261010T031701903365Z-w10-saydo-secure-channel-boundaries/output.log",
+      "bytes": 547,
+      "sha256": "14d99b09421ae59a933ecec28ca93ff883cd84a97b7e3d3e72453dbdb93adb8e",
+      "exitCode": 0,
+      "resultSHA256": "cbf5e774ca1dce5183f64f0257c610c174ae5895ef15470773824ebe7d13fcd1"
+    },
+    {
+      "id": "20261010T032117253970Z-w10-saydo-private-pipe-native-first",
+      "log": "20261010T032117253970Z-w10-saydo-private-pipe-native-first/output.log",
+      "bytes": 2278,
+      "sha256": "47c924b5cecd30bcfbe212d2b5230daede1534676d0e492f139db41e1af8ef98",
+      "exitCode": 1,
+      "resultSHA256": "2b74299aa437123ec32f3c260bcef664d23137fe049b26a86e0aa8030fab502a"
+    },
+    {
+      "id": "20261010T032126441863Z-w10-saydo-private-pipe-types",
+      "log": "20261010T032126441863Z-w10-saydo-private-pipe-types/output.log",
+      "bytes": 209,
+      "sha256": "7c4799fce0c164aa58dc72161911df3b529858c2896239f55cd2b142ef8e0171",
+      "exitCode": 0,
+      "resultSHA256": "cd20a0b03c18794a472c29dea8fef8e4674a45bd608e5579b18ae09a5847b6e6"
+    },
+    {
+      "id": "20261010T032227749850Z-w10-saydo-native-invalid-handle-probe",
+      "log": "20261010T032227749850Z-w10-saydo-native-invalid-handle-probe/output.log",
+      "bytes": 645,
+      "sha256": "bfd09526fba9b444779b5dc5d8a8c29cf9852b84a742bcecb40d36b3a0476de7",
+      "exitCode": 0,
+      "resultSHA256": "5294649e192c9ce859fcc4765c2f73690fd4c0ab80fa749a8f61b88edb555362"
+    },
+    {
+      "id": "20261010T032248677883Z-w10-saydo-private-pipe-native-fixed",
+      "log": "20261010T032248677883Z-w10-saydo-private-pipe-native-fixed/output.log",
+      "bytes": 6720,
+      "sha256": "571ba7a809a3ed62e0de34483f464c892d99b1c7403a21d2b4346a72a259fba9",
+      "exitCode": 1,
+      "resultSHA256": "afa9ffafd952477b59c0427e9ffcc6ecf762c8ca27a4fee78bf88ce7ef263636"
+    },
+    {
+      "id": "20261010T032415816231Z-w10-saydo-private-pipe-process-regression",
+      "log": "20261010T032415816231Z-w10-saydo-private-pipe-process-regression/output.log",
+      "bytes": 1412,
+      "sha256": "86f0f86dfb9e12242069cd8fd635ee362a070b1d3df87f056d33f7e1af2f5d79",
+      "exitCode": 0,
+      "resultSHA256": "d50bd9a8020487321033626b47df0c901fe3d174188e083b501c045bed079e0d"
+    },
+    {
+      "id": "20261010T032442749609Z-w10-saydo-transport-current-types",
+      "log": "20261010T032442749609Z-w10-saydo-transport-current-types/output.log",
+      "bytes": 753,
+      "sha256": "d3942548a0f257378bee338431998de6100209d38d93ccd4c546c31c97387fd3",
+      "exitCode": 0,
+      "resultSHA256": "fb7d803c099a0c17c9c0fcb07f7dcfcdddea4019d37501603a6bbd992388ede7"
+    },
+    {
+      "id": "20261010T032453099821Z-w10-saydo-transport-current-lint",
+      "log": "20261010T032453099821Z-w10-saydo-transport-current-lint/output.log",
+      "bytes": 986,
+      "sha256": "7867935faf66ad5cad6414df950b2b8b06ba6e3b502f7f566301163d4eb9d41e",
+      "exitCode": 0,
+      "resultSHA256": "85fbcaccb39ea4c92471cf721086476767a379af9d348b8b27ce764bba1e8652"
+    },
+    {
+      "id": "20261010T032632667558Z-w10-saydo-private-pipe-acl-negative",
+      "log": "20261010T032632667558Z-w10-saydo-private-pipe-acl-negative/output.log",
+      "bytes": 3334,
+      "sha256": "c054e2149b4e653b53903be1c1b2018091c07736d4b20e3603387bfa42b8cbe8",
+      "exitCode": 1,
+      "resultSHA256": "5323df493e3c98b2804d8f53b4525c927b3061cc8922b187ff1d65ad90f540cd"
+    },
+    {
+      "id": "20261010T032632667742Z-w10-saydo-transport-crypto-current",
+      "log": "20261010T032632667742Z-w10-saydo-transport-crypto-current/output.log",
+      "bytes": 546,
+      "sha256": "03ccd08616e79227bc272b22b3da135af4dec2ce8c22fe9d6bf416459022abc8",
+      "exitCode": 0,
+      "resultSHA256": "2ba57e597b568fe4f32b6d6a9967fd5fe789477cddac5c447012f271aab05bb2"
+    },
+    {
+      "id": "20261010T032756222177Z-w10-saydo-private-pipe-explicit-acl",
+      "log": "20261010T032756222177Z-w10-saydo-private-pipe-explicit-acl/output.log",
+      "bytes": 1311,
+      "sha256": "93a1053ee7f456e1a10b519cd36c0f1aa3e57280052ec3e31470ffde3b283cd1",
+      "exitCode": 0,
+      "resultSHA256": "2b345516ac0e9f6148adf9083de2974f86e3208d46f3974cdf5b2de264d298ac"
+    },
+    {
+      "id": "20261010T032923201693Z-w10-saydo-transport-frozen-types",
+      "log": "20261010T032923201693Z-w10-saydo-transport-frozen-types/output.log",
+      "bytes": 752,
+      "sha256": "48c17e04640445f0f15b7662eb7fe31cb60b097e7084542d14227943e18e5bbc",
+      "exitCode": 0,
+      "resultSHA256": "f71f1d234a2c507a88f6032e837d7d3691044c889a721a0e233d7b0b566a6951"
+    },
+    {
+      "id": "20261010T032923207420Z-w10-saydo-transport-frozen-lint",
+      "log": "20261010T032923207420Z-w10-saydo-transport-frozen-lint/output.log",
+      "bytes": 985,
+      "sha256": "0f2ad4668da3fa98cc3f58b0b89d11b999b9ed1d4dd67adade962ede8dd8cb0b",
+      "exitCode": 0,
+      "resultSHA256": "7372d54fb3883b9a307029156e9267dffa178b72fd352fdb45d6da702e8238a8"
+    },
+    {
+      "id": "20261010T033027799156Z-saydo-independent-transport-confirmation-deadline",
+      "log": "20261010T033027799156Z-saydo-independent-transport-confirmation-deadline/output.log",
+      "bytes": 1310,
+      "sha256": "693026b37c29bfee3e415dd85d05d73128345f2a503bfafb5d598b3cd123800d",
+      "exitCode": 1,
+      "resultSHA256": "2c15b7c709b237b2fb8e5c1fb062b141e2bcef03b60f48adec55b63fee720e9c"
+    },
+    {
+      "id": "20261010T033158275933Z-w10-saydo-transport-confirmation-clock-fixed",
+      "log": "20261010T033158275933Z-w10-saydo-transport-confirmation-clock-fixed/output.log",
+      "bytes": 557,
+      "sha256": "3ab42f880334edd17646845a69d872fcb209754f238fbd0f58603dea3d54651f",
+      "exitCode": 0,
+      "resultSHA256": "a153aac6c2d8cd36b60d54d9a3e0f670473e7db284767e7d97cdfb946cfdabad"
+    },
+    {
+      "id": "20261010T033329746937Z-saydo-independent-transport-confirmation-fixed",
+      "log": "20261010T033329746937Z-saydo-independent-transport-confirmation-fixed/output.log",
+      "bytes": 204,
+      "sha256": "86d809befef4c653151b53bf49f3bd13357e21424c289949ff604792635feab4",
+      "exitCode": 0,
+      "resultSHA256": "45ea99f0f0c338fa227829b91ac1c0f77cc69a1ef368223afdeb0b6714058d13"
+    },
+    {
+      "id": "20261010T033752989323Z-w10-saydo-transport-clock-final-types",
+      "log": "20261010T033752989323Z-w10-saydo-transport-clock-final-types/output.log",
+      "bytes": 757,
+      "sha256": "ca62a0dd7102c4eed3d6c455e56a5c412a80d07da174b499436eac9611dad748",
+      "exitCode": 0,
+      "resultSHA256": "e5349de2454f55d31a5fb0b97905195ef9f5bfcfbdfee19b6a47fa19bfe130bf"
+    },
+    {
+      "id": "20261010T034017139673Z-w10-saydo-transport-final-privacy",
+      "log": "20261010T034017139673Z-w10-saydo-transport-final-privacy/output.log",
+      "bytes": 173,
+      "sha256": "ea537603e8368ebaf509ef6ecaf44ab78a1a41ae3e567828fd26e25fca601c99",
+      "exitCode": 0,
+      "resultSHA256": "f139818d463a6540ecaf6df392bfca798fd48b2abd5c4ad93261e655155cb487"
+    },
+    {
+      "id": "20261010T034017139736Z-w10-saydo-transport-final-lint",
+      "log": "20261010T034017139736Z-w10-saydo-transport-final-lint/output.log",
+      "bytes": 984,
+      "sha256": "89e8ad022dd644059b9fdc717323f57c6acea0112f3e098f1000028e911707fc",
+      "exitCode": 0,
+      "resultSHA256": "f2f8b25054fd9cc0510ea2ee60cbb8268a16efd6c90d9269ac161e5355f78e3f"
+    }
+  ]
+}
