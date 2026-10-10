@@ -1,3 +1,4 @@
+import { PersonalContextEventDelivery } from "./personalContext/eventDelivery.js";
 // voiced daemon 入口(0.1 最小形态):HTTP /health + JSONL 日志 + 每日快照备份定时器。
 // 后续 Phase 逐步挂载:WS(1.2)、存储(0.3)、配置(0.4)、工具面(1.3b)、审批(4.2)…
 
@@ -521,7 +522,8 @@ const personalContextKeys = new PersonalContextKeyCustody(db, audit, {
 });
 // 生产登记始终装配真实系统密钥门；纯元信息测试不代表此生产门已通过。
 const personalContextRegistry = new PersonalContextRegistry(db, audit, Date.now, personalContextKeys);
-const personalContextSessions = new PersonalContextSessionSupervisor(new PersonalContextSessionJournal(db, audit), personalContextRegistry, personalContextKeys);
+const personalContextEvents = new PersonalContextEventDelivery(db, audit, personalContextRegistry);
+const personalContextSessions = new PersonalContextSessionSupervisor(new PersonalContextSessionJournal(db, audit), personalContextRegistry, personalContextKeys, personalContextEvents);
 // CLI runtime 只做预检;候选文件全部晋升后才发布 active 登记。
 let bootCliRuntimePromoted = 0;
 let bootCliRuntimePromotedBindings: Array<{ slot: string; bindingDigest: string; binaryDigest: string }> = [];
@@ -1018,7 +1020,7 @@ server.on("request", (req, res) => {
       void handlePersonalContextOwnerApi(req, res, personalContextRegistry, () => {
         const current = checkIdentity(req);
         return current.ok && current.via === "local";
-      }, personalContextKeys, personalContextSessions);
+      }, personalContextKeys, personalContextSessions, personalContextEvents);
       return;
     }
     // W4 3.1:S3 面(09 §3.3)—— challenge/register/verify/status/approve-merge;

@@ -11,6 +11,7 @@ export interface ContextEventMappingRow {
   id: string; revision: number; state: string; focus_id: string; session_id: string;
   boundary_json: string; link_json: string; permission_id: string; event_kinds_json: string;
   allow_focus_events: number; expires_at: number;
+  stream_epoch: string | null; initial_sequence: number | null; acknowledged_sequence: number | null; progress_revision: number;
 }
 
 export function contextSourceEventDigest(row: ContextSourceEventRow): string {

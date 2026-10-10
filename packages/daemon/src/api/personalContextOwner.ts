@@ -6,11 +6,14 @@ import type { PersonalContextKeyCustody } from "../personalContext/keyCustody.js
 import type { PersonalContextRegistry } from "../personalContext/registry.js";
 import type { PersonalContextSessionSupervisor } from "../personalContext/sessionSupervisor.js";
 
+import type { PersonalContextEventDelivery } from "../personalContext/eventDelivery.js";
+
 export async function handlePersonalContextOwnerApi(
   req: IncomingMessage, res: ServerResponse, registry: PersonalContextRegistry,
   authorizeLocalOwner: () => boolean,
   keys?: PersonalContextKeyCustody,
   sessions?: PersonalContextSessionSupervisor,
+  events?: PersonalContextEventDelivery,
 ): Promise<void> {
   const reply = (status: number, value: unknown): void => {
     if (res.writableEnded || res.headersSent) return;
@@ -28,14 +31,17 @@ export async function handlePersonalContextOwnerApi(
       reply(200, { ok: true, ...registry.list() as object }); return;
     }
     if (req.method !== "POST") { reply(405, { ok: false, code: "method_not_allowed" }); return; }
-    const routes = new Set(["/api/personal-context/sessions/open", "/api/personal-context/sessions/close", "/api/personal-context/keys/provision", "/api/personal-context/registrations", "/api/personal-context/registrations/change", "/api/personal-context/permissions", "/api/personal-context/permissions/revoke"]);
+    const routes = new Set(["/api/personal-context/events/register", "/api/personal-context/events/revoke", "/api/personal-context/sessions/open", "/api/personal-context/sessions/close", "/api/personal-context/keys/provision", "/api/personal-context/registrations", "/api/personal-context/registrations/change", "/api/personal-context/permissions", "/api/personal-context/permissions/revoke"]);
     if (!path || !routes.has(path)) { reply(404, { ok: false, code: "route_not_found" }); return; }
     const body = await readJsonBody(req, res, 8192);
     if (body.status === "failed") return;
     // 接收正文可能等待；在实际写入之前再走原身份门。
     if (!authorizeLocalOwner()) { reply(403, { ok: false, code: "local_owner_required" }); return; }
     let result: unknown;
-    if (path === "/api/personal-context/sessions/open" || path === "/api/personal-context/sessions/close") {
+    if (path === "/api/personal-context/events/register" || path === "/api/personal-context/events/revoke") {
+      if (!events) throw Error("personal_context_event_delivery_unavailable");
+      result = path.endsWith("/register") ? events.register(body.value) : events.revoke(body.value);
+    } else if (path === "/api/personal-context/sessions/open" || path === "/api/personal-context/sessions/close") {
       if (!sessions) throw Error("personal_context_session_platform_unavailable");
       result = path.endsWith("/open") ? await sessions.open(body.value) : await sessions.close(body.value);
     } else if (path === "/api/personal-context/keys/provision") {

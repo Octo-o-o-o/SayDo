@@ -65,7 +65,10 @@ export class PersonalContextEvents {
       if (mapping.expiresAt <= at) throw new Error("personal_context_event_mapping_expired");
       const count = this.db.prepare("SELECT count(*) n FROM personal_context_event_mappings WHERE state='active'").get() as { n: number };
       if (count.n >= 100) throw new Error("personal_context_event_mapping_capacity");
-      this.db.prepare("INSERT INTO personal_context_event_mappings(id,revision,state,focus_id,session_id,boundary_json,link_json,permission_id,event_kinds_json,allow_focus_events,expires_at) VALUES(?,1,'active',?,?,?,?,?,?,?,?)").run(mapping.id, mapping.link.focusId, mapping.link.sessionId, JSON.stringify(mapping.boundary), JSON.stringify(mapping.link), mapping.permissionId, JSON.stringify(mapping.eventKinds), Number(mapping.allowFocusEvents), mapping.expiresAt);
+      const stream = this.db.prepare("SELECT stream_epoch FROM personal_context_event_stream_identity WHERE singleton=1").get() as { stream_epoch: string };
+      const high = (this.db.prepare("SELECT seq FROM sqlite_sequence WHERE name='personal_context_event_stream'").get() as { seq: number } | undefined)?.seq ?? 0;
+      if (!Number.isSafeInteger(high) || high < 0) throw Error("personal_context_event_cursor_invalid");
+      this.db.prepare("INSERT INTO personal_context_event_mappings(id,revision,state,focus_id,session_id,boundary_json,link_json,permission_id,event_kinds_json,allow_focus_events,expires_at,stream_epoch,initial_sequence,acknowledged_sequence,progress_revision) VALUES(?,1,'active',?,?,?,?,?,?,?,?,?,?,?,0)").run(mapping.id, mapping.link.focusId, mapping.link.sessionId, JSON.stringify(mapping.boundary), JSON.stringify(mapping.link), mapping.permissionId, JSON.stringify(mapping.eventKinds), Number(mapping.allowFocusEvents), mapping.expiresAt, stream.stream_epoch, high, high);
       this.audit.record({ actor: "owner", action: "personal_context.event_mapping_registered", refDigest: jcsDigest(mapping), meta: { mappingId: mapping.id } });
     }));
   }

@@ -5,7 +5,7 @@ import {
   personalContextPermissionSchema, personalContextPermissionRevokeSchema, personalContextPeerIdentitySchema,
   personalContextEffectSchema,
   personalContextStatusQuerySchema, PERSONAL_CONTEXT_PROTOCOL,
-  type PersonalContextPeerIdentity, type PersonalContextEffect,
+  type PersonalContextPeerIdentity, type PersonalContextEffect, type PersonalContextEventMapping,
 } from "@saydo/contracts";
 import type { Db } from "../storage/db.js";
 import type { AuditSink } from "../obs/audit.js";
@@ -51,6 +51,7 @@ export class PersonalContextRegistry {
       () => personalContextOperationTime(this.db),
       work => withPersonalContextClock(this.db, work, this.now));
   }
+  sharesDatabase(db: Db): boolean { return this.db === db; }
   private row(id: string): Registration {
     const row = this.db.prepare("SELECT * FROM personal_context_registrations WHERE id=?").get(id) as Registration | undefined;
     if (!row) throw Error("personal_context_registration_missing");
@@ -169,6 +170,19 @@ export class PersonalContextRegistry {
       },
     }, this.now);
     return journal.status(query);
+  }
+  /** 内部受管会话使用的源映射门；JSON 描述本身不认证 peer。 */
+  assertEventMapping(peer: PersonalContextPeerIdentity, mapping: PersonalContextEventMapping): void {
+    this.currentPeer(peer);
+    const b = mapping.boundary;
+    if (b.installationId !== peer.installationId || b.nodeId !== peer.nodeId || b.connectionId !== peer.connectionId || b.connectionEpoch !== peer.connectionEpoch) throw Error("personal_context_permission_boundary");
+    const permission = this.db.prepare("SELECT * FROM personal_context_permissions WHERE id=?").get(mapping.permissionId) as Permission | undefined;
+    if (!permission || permission.registration_id !== peer.registrationId || permission.state !== "active" || permission.method !== "event/ingest" || permission.expires_at <= personalContextOperationTime(this.db) || mapping.expiresAt > permission.expires_at || jcsSerialize(JSON.parse(permission.link_json)) !== jcsSerialize(mapping.link)) throw Error("personal_context_permission_denied");
+  }
+  /** Owner 撤销只收紧映射，不要求旧披露许可或系统密钥仍可用。 */
+  assertEventMappingRevocation(peer: PersonalContextPeerIdentity, mapping: PersonalContextEventMapping): void {
+    const current = this.row(peer.registrationId), b = mapping.boundary;
+    if (jcsSerialize(identity(current)) !== jcsSerialize(peer) || b.installationId !== peer.installationId || b.nodeId !== peer.nodeId || b.connectionId !== peer.connectionId || b.connectionEpoch !== peer.connectionEpoch) throw Error("personal_context_permission_boundary");
   }
   grant(input: unknown): { permissionId: string; revision: number } {
     const value = personalContextPermissionSchema.parse(input);

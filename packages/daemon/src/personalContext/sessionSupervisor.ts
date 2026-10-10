@@ -1,12 +1,14 @@
 // §19.2.4：先保存打开意图，再持有实际句柄。生命周期关闭不代表业务应用成功。
 import { createPublicKey, randomBytes } from "node:crypto";
 import { createWin32PersonalPipe, processAlive, processBirth, type Win32PersonalPipe } from "@saydo/platform";
-import { jcsDigest, jcsSerialize, PERSONAL_CONTEXT_PROTOCOL, PERSONAL_CONTEXT_TRANSPORT_SCHEMA_DIGEST, personalContextSessionOpenSchema, personalContextSessionCloseSchema, personalContextBusinessStatusRequestSchema, personalContextBusinessStatusResponseSchema, type PersonalContextPeerIdentity } from "@saydo/contracts";
+import { jcsDigest, jcsSerialize, PERSONAL_CONTEXT_PROTOCOL, PERSONAL_CONTEXT_TRANSPORT_SCHEMA_DIGEST, personalContextSessionOpenSchema, personalContextSessionCloseSchema, personalContextBusinessRequestSchema, personalContextEventResponseSchema, personalContextBusinessStatusResponseSchema, type PersonalContextPeerIdentity } from "@saydo/contracts";
 import type { PersonalContextRegistry } from "./registry.js";
 import type { PersonalContextKeyCustody } from "./keyCustody.js";
 import { personalContextPublicKeyDigest } from "./secureChannel.js";
 import type { PersonalContextWindowsTransport } from "./windowsTransport.js";
 import { PersonalContextSessionJournal, type PersonalContextSessionRow } from "./sessionJournal.js";
+
+import type { PersonalContextEventDelivery } from "./eventDelivery.js";
 
 interface OwnedSession {
   row: PersonalContextSessionRow; identity: PersonalContextPeerIdentity;
@@ -17,7 +19,7 @@ export class PersonalContextSessionSupervisor {
   readonly bootEpoch = randomBytes(32).toString("base64url");
   private stopping = false;
   private readonly owned = new Map<string, OwnedSession>();
-  constructor(private readonly journal: PersonalContextSessionJournal, private readonly registry: PersonalContextRegistry, private readonly keys: PersonalContextKeyCustody) {
+  constructor(private readonly journal: PersonalContextSessionJournal, private readonly registry: PersonalContextRegistry, private readonly keys: PersonalContextKeyCustody, private readonly events?: PersonalContextEventDelivery) {
     journal.isolatePreviousBoot(this.bootEpoch);
     registry.onInvalidation(id => { void this.stopRegistration(id).catch(() => undefined); });
   }
@@ -100,7 +102,7 @@ export class PersonalContextSessionSupervisor {
       const timer = setTimeout(() => { void transport.close().catch(error => { entry.failure = error; }); }, 30000);
       timer.unref();
       try {
-      const request = await transport.receive(personalContextBusinessStatusRequestSchema);
+      const request = await transport.receive(personalContextBusinessRequestSchema);
       if (requests.has(request.requestId) || requests.size >= 256) throw Error("personal_context_session_request_replayed");
       requests.add(request.requestId);
       let last = started;
@@ -114,6 +116,7 @@ export class PersonalContextSessionSupervisor {
       };
       assertDeadline();
       if (jcsSerialize(request.identity) !== jcsSerialize(entry.identity)) throw Error("personal_context_session_request_binding");
+      if (request.query.method === "operation/status") {
       const result = this.registry.sessionStatus(entry.identity, request.query);
       const response = personalContextBusinessStatusResponseSchema.parse({ protocol: PERSONAL_CONTEXT_PROTOCOL, version: 1, type: "response", requestId: request.requestId, identity: entry.identity, method: "operation/status", queryDigest: jcsDigest(request.query), result });
       await transport.send(personalContextBusinessStatusResponseSchema, response, commit => {
@@ -122,6 +125,18 @@ export class PersonalContextSessionSupervisor {
         if (jcsSerialize(current) !== jcsSerialize(result)) throw Error("personal_context_session_result_changed");
         assertDeadline(); commit();
       });
+      } else {
+        if (!this.events) throw Error("personal_context_event_delivery_unavailable");
+        const query = request.query;
+        const result = query.method === "event/poll" ? this.events.poll(entry.identity, query) : this.events.ack(entry.identity, query);
+        const response = personalContextEventResponseSchema.parse({ protocol: PERSONAL_CONTEXT_PROTOCOL, version: 1, type: "response", requestId: request.requestId, identity: entry.identity, method: query.method, queryDigest: jcsDigest(query), result });
+        await transport.send(personalContextEventResponseSchema, response, commit => {
+          assertDeadline();
+          const write = () => { assertDeadline(); commit(); };
+          if (response.method === "event/poll") this.events!.writePoll(entry.identity, query, response.result, write);
+          else this.events!.writeAck(entry.identity, query, response.result, write);
+        });
+      }
       assertDeadline();
       } finally { clearTimeout(timer); }
     }

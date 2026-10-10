@@ -3364,6 +3364,29 @@ A 首个支持的方法仅 operation/status。请求 strict 对象字段为 prot
 
 Owner返回会话元信息为 operationId、registrationId、registrationRevision、revision、state、failureCode 与 binding。仅本进程当前活跃且权限仍有效时binding非空，含protocol、schemaDigest、identity、saydoKeyDigest、anyviaKeyDigest、bootEpoch、endpoint、local:{pid,birth}和peer。listening尚未观察对端时peer=null；connected时peer来自真实内核观察{pid,birth}。本机公钥取既有keys/provision公开结果，端点描述不是新认证凭据。
 
+##### 19.2.4.2 已提交事件的单发轮询与接收回执
+
+本节只为既有 `event/ingest` 增加传输控制，不增设业务效果或并行行动账本。Anyvia 是本连接唯一请求发起方，SayDo 保持唯一串行读取者；不得并行启动事件推送读取循环。所有信封是严格对象、拒绝额外字段；沿用 `protocol`、`version:1`、原 `identity`、UUID `requestId`、响应 `queryDigest=JCS摘要(原query)` 和已有 AEAD、重放/帧/5秒闲置/30秒绝对期限约束。不通过心跳延长原期限。
+
+轮询请求为 `{protocol,version:1,type:"request",requestId,identity,query:{method:"event/poll",mappingId,mappingRevision,streamEpoch}}`。mappingId、streamEpoch 为 UUID，mappingRevision 为正安全整数。没有任意 `after`、scope 或新的 authority 输入。本人须先在两侧明确登记原映射：SayDo 原 mapping/permission、Anyvia 原 Case/link/控制与硬约束版本、双方精确登记身份和 Anyvia 本地连接身份映射、原四水位。首次轮询从该源 mapping 登记时耐久捕获的全局事件高水位开始，仅读取登记之后实际捕获的绑定；旧 mapping 没有该首游标证明不得推断补填或扫描历史。后续起点只由该 mapping 耐久确认游标决定。
+
+轮询响应为 `{protocol,version:1,type:"response",requestId,identity,method:"event/poll",queryDigest,result}`，result 必须是下列互斥严格对象之一：
+
+- `{kind:"empty",mappingId,mappingRevision,streamEpoch,acknowledgedSequence}`：本次一致读未找到后续可发送绑定；acknowledgedSequence 为非负安全整数。empty 不推进游标，不承诺未来没有事件。
+- `{kind:"blocked_unknown",mappingId,mappingRevision,streamEpoch,commitSequence,operationId,payloadDigest}`：原事件已经准入 unknown，禁止再次返回 effect 正文或生成新 operationId。commitSequence 为正安全整数，仅披露原操作识别与对账元信息；原许可撤销/过期/恢复后连这些元信息也拒绝。
+- `{kind:"effect",effect}`：effect 必须通过既有 `personalContextEffectSchema` 的 `event/ingest` 分支及整个 effect 的摘要校验。每响应最多一个 effect，原 payload.summary 当前仍由真实源投影生成空串，不据任意原事件正文制造摘要。
+
+准备 effect 时从真实不可变 stream/binding 与 focus_events 重建源证明，当前 mapping/许可仍有效，并保留提交时原 Focus 版本；不要求历史终态等于最新 Focus，不恢复动作权。发送任何字节前，既有 operations journal 在同 SQLite 事务保存原完整 scope、原 event_source_json、期限及 unknown；以原 mappingId/mappingRevision/streamEpoch/commitSequence 对该 journal event 行建立唯一约束。不能为重试更换 operationId。未成功写出、写出后断开、接收后未收到 ACK 都保留 unknown；后续轮询仅 blocked_unknown。遗留缺源证明的 journal 不回填、不自动重发。
+
+Anyvia 接收入口只接受由真实受管握手生成的进程内会话句柄，Owner HTTP 不能提交自称已认证的 effect。最终写入前在本地同事务复核该句柄原映射、Case/link/control/hardConstraints、四水位和原披露权限，按原 operationId/payloadDigest 幂等保存 AEAD 外部观察历史及接收 receipt。观察不更改本人事实、Case 结项、硬约束、责任状态或行动权。同 operationId 不同摘要拒绝；不能把接收方自报字符串当原端执行成功。
+
+ACK 请求为 `{protocol,version:1,type:"request",requestId,identity,query:{method:"event/ack",mappingId,mappingRevision,streamEpoch,commitSequence,operationId,payloadDigest,sourceReceiptDigest}}`。所有 ID/摘要/整数使用上述精确类型，sourceReceiptDigest 是接收方已持久保存的原 effect 接收回执摘要，不是 source event digest。发送 ACK 前 Anyvia 必须只读核对原接收 journal 的精确 effect/receipt 及当前许可；未知或 not_found 不得 ACK、推进源游标或自动重发正文。此阶段只承认已实际持久接收的 applied 回执，其他状态保持阻塞，人工取消/新授权流程另行受明确合同约束。
+
+ACK 响应为 `{protocol,version:1,type:"response",requestId,identity,method:"event/ack",queryDigest,result:{mappingId,mappingRevision,streamEpoch,commitSequence,operationId,payloadDigest,sourceReceiptDigest,state:"acknowledged"}}`。SayDo 在同 SQLite 事务重核原 journal/event 来源、原 mapping 当前许可、精确当前阻塞事件及所有摘要；原 journal 写接收回执并与 mapping 确认游标、审计一起提交。ACK 幂等分支先于“当前阻塞事件”检查：若原 journal 已保存完全相同的 acknowledged 事实，在核对当前原身份/许可与 immutable 原操作、event 证明、receipt、mapping/stream/commit 全字段之后直接返回原确认事实；它不再要求该事件仍是当前阻塞项，也不重写或回退已推进到更晚事件的确认游标。仅首次 ACK 要求该事件就是当前阻塞项并原子推进。任何不同 operationId/digest/receipt/cursor 拒绝，不能先推进游标。确认仅是经认证接收方报告已持久接收，不表示本人验收、原源执行结果或外部模型已使用。
+
+source mapping 的起始/确认游标属于分页元数据，不新增行动账本。确认游标不能倒退、跳过未确认绑定或跨 streamEpoch；恢复隔离旧 mapping/session/权限，不据旧 ACK 恢复发送。发送和 ACK 响应最终 writer 再核原身份、原权限、原操作事实和期限，异步等待后不能换取新 scope 让旧请求继续。轮询/ACK/状态查询均不自动重放任何效果。
+
+
 ### 19.3 B1 消费、最小化与遗忘
 
 B1 在当次请求中读取明确的个人上下文授权，不扫描 Anyvia 库、不复制个人记忆全库、不共享 SQLite。上下文必须含 compilerVersion、contextId、payloadDigest、来源与资料 revision、expiresAt、restrictionSequence、预期用途及接收方绑定；无来源、不匹配、过期、撤销或 digest 错误一律不注入。不可用时明确显示本轮未使用个人上下文；本人硬约束不可静默丢弃后继续派发。

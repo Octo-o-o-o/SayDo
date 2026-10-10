@@ -199,3 +199,38 @@ export const personalContextBusinessStatusResponseSchema = z.strictObject({
   method: z.literal("operation/status"), queryDigest: digestSchema,
   result: personalContextStatusSchema,
 });
+
+// §19.2.4.2：控制请求不是新业务效果；游标只由原登记与耐久确认推进。
+export const personalContextEventPollQuerySchema = z.strictObject({
+  method: z.literal("event/poll"), mappingId: uuid, mappingRevision: positive, streamEpoch: uuid,
+});
+export const personalContextEventAckQuerySchema = z.strictObject({
+  method: z.literal("event/ack"), mappingId: uuid, mappingRevision: positive, streamEpoch: uuid,
+  commitSequence: positive, operationId: uuid, payloadDigest: digestSchema, sourceReceiptDigest: digestSchema,
+});
+// 复用原event具体结构；method const可导出到JSONSchema，摘要仍须运行时重算。
+export const personalContextEventEffectSchema = personalContextEffectSchema.options[2].superRefine((value, context) => {
+  if (value.payloadDigest !== personalContextEffectDigest(value)) context.addIssue({ code: "custom", message: "操作正文与绑定摘要不一致" });
+});
+const eventCursor = { mappingId: uuid, mappingRevision: positive, streamEpoch: uuid };
+export const personalContextEventPollResultSchema = z.discriminatedUnion("kind", [
+  z.strictObject({ kind: z.literal("empty"), ...eventCursor, acknowledgedSequence: sequence }),
+  z.strictObject({ kind: z.literal("blocked_unknown"), ...eventCursor, commitSequence: positive, operationId: uuid, payloadDigest: digestSchema }),
+  z.strictObject({ kind: z.literal("effect"), effect: personalContextEventEffectSchema }),
+]);
+export const personalContextEventAckResultSchema = z.strictObject({
+  ...eventCursor, commitSequence: positive, operationId: uuid, payloadDigest: digestSchema,
+  sourceReceiptDigest: digestSchema, state: z.literal("acknowledged"),
+});
+const requestEnvelope = { protocol: z.literal(PERSONAL_CONTEXT_PROTOCOL), version: z.literal(1), type: z.literal("request"), requestId: uuid, identity: personalContextPeerIdentitySchema };
+export const personalContextEventRequestSchema = z.strictObject({ ...requestEnvelope,
+  query: z.discriminatedUnion("method", [personalContextEventPollQuerySchema, personalContextEventAckQuerySchema]),
+});
+export const personalContextBusinessRequestSchema = z.union([personalContextBusinessStatusRequestSchema, personalContextEventRequestSchema]);
+const responseEnvelope = { protocol: z.literal(PERSONAL_CONTEXT_PROTOCOL), version: z.literal(1), type: z.literal("response"), requestId: uuid, identity: personalContextPeerIdentitySchema, queryDigest: digestSchema };
+export const personalContextEventResponseSchema = z.discriminatedUnion("method", [
+  z.strictObject({ ...responseEnvelope, method: z.literal("event/poll"), result: personalContextEventPollResultSchema }),
+  z.strictObject({ ...responseEnvelope, method: z.literal("event/ack"), result: personalContextEventAckResultSchema }),
+]);
+export const personalContextEventOwnerRegisterSchema = z.strictObject({ identity: personalContextPeerIdentitySchema, mapping: personalContextEventMappingSchema });
+export const personalContextEventOwnerRevokeSchema = z.strictObject({ identity: personalContextPeerIdentitySchema, mappingId: uuid, expectedRevision: positive });

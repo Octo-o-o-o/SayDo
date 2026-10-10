@@ -41,6 +41,15 @@ export function quarantinePersonalContextBackup(db: Db, audit: AuditSink): { reg
         audit.record({ actor: "daemon", action: "personal_context.session_backup_unknown", meta: { operationId: session.operation_id, revision: session.revision + 1 } });
       }
     }
+    if (db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='personal_context_event_mappings'").get()) {
+      const mappings = db.prepare("SELECT id,revision FROM personal_context_event_mappings WHERE state='active' ORDER BY id LIMIT 101").all() as { id: string; revision: number }[];
+      if (mappings.length > 100) throw Error("personal_context_backup_capacity");
+      for (const mapping of mappings) {
+        const changed = db.prepare("UPDATE personal_context_event_mappings SET state='revoked',revision=revision+1 WHERE id=? AND revision=? AND state='active'").run(mapping.id, mapping.revision);
+        if (changed.changes !== 1) throw Error("personal_context_backup_mapping_conflict");
+        audit.record({ actor: "daemon", action: "personal_context.event_mapping_backup_revoked", meta: { mappingId: mapping.id, revision: mapping.revision + 1 } });
+      }
+    }
     return { registrations: registrations.length, keys };
   }));
 }
