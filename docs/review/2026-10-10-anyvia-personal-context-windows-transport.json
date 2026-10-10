@@ -1,0 +1,104 @@
+{
+  "codeCommit": "eb3f78d681b1a598ae52c4d2f161c8a0203ed347",
+  "state": "in_progress",
+  "productionBusinessComposed": false,
+  "candidate": {
+    "archive": "artifacts/w10-saydo-windows-transport-frozen/windows-transport-20261010T0357-fixed.zip",
+    "sha256": "622dbf26884c0fe63284620b9972fde2b9dd230d959afea2db38bebe7efb5989",
+    "base": "801b1607ce23c66f0932f33db89d9fdfe35b7907",
+    "files": 2
+  },
+  "reviewArchive": {
+    "repository": "Octoooo",
+    "path": "docs/implementation/2026-10-09/evidence/w10-saydo/windows-transport-independent-reviews-eb3f78d.zip",
+    "sha256": "e0aa8e01af598d64f84ae34adf6fc6fc00aba8dba846a540d50562b16e3fdeff"
+  },
+  "testsPassed": 16,
+  "newTestIds": [
+    "UPGRADE.T08.103",
+    "UPGRADE.T08.104",
+    "UPGRADE.T08.105",
+    "UPGRADE.T08.106",
+    "UPGRADE.T08.107",
+    "UPGRADE.T08.108"
+  ],
+  "checks": [
+    {
+      "id": "20261010T035042967495Z-w10-saydo-real-secured-pipe-first",
+      "exitCode": 0,
+      "log": "20261010T035042967495Z-w10-saydo-real-secured-pipe-first/output.log",
+      "bytes": 572,
+      "sha256": "4b06e76b5fd1494152a5ad1d603cc76a897dcb85408fef7146af4a42f9e3df68",
+      "outerSourceChangePaths": [],
+      "innerSourceChangeReported": false
+    },
+    {
+      "id": "20261010T035210526838Z-w10-saydo-secured-pipe-framing",
+      "exitCode": 0,
+      "log": "20261010T035210526838Z-w10-saydo-secured-pipe-framing/output.log",
+      "bytes": 580,
+      "sha256": "5db529cd0a3ee7a20044fe27e8b5dc36543318dea3d816d7d2e54ac850d55d59",
+      "outerSourceChangePaths": [],
+      "innerSourceChangeReported": false
+    },
+    {
+      "id": "20261010T035210601415Z-w10-saydo-secured-pipe-types",
+      "exitCode": 0,
+      "log": "20261010T035210601415Z-w10-saydo-secured-pipe-types/output.log",
+      "bytes": 205,
+      "sha256": "07cfc4d3cae91f2b3e9ada8e8af61bca8334f9a3fb717a831dc9c40c955bb5da",
+      "outerSourceChangePaths": [],
+      "innerSourceChangeReported": false
+    },
+    {
+      "id": "20261010T035556966160Z-w10-saydo-secured-pipe-deadline-fixed",
+      "exitCode": 0,
+      "log": "20261010T035556966160Z-w10-saydo-secured-pipe-deadline-fixed/output.log",
+      "bytes": 683,
+      "sha256": "f711453b82b2a2a9027426a6ec06c4f328811e4ef2a9daf950706917fa626815",
+      "outerSourceChangePaths": [],
+      "innerSourceChangeReported": false
+    },
+    {
+      "id": "20261010T035754849220Z-w10-saydo-secured-pipe-final-types",
+      "exitCode": 0,
+      "log": "20261010T035754849220Z-w10-saydo-secured-pipe-final-types/output.log",
+      "bytes": 754,
+      "sha256": "8837ef07dd2a3079746ca8b91f15b6e50defd3d60b7f76e5671583b7cf0cda22",
+      "outerSourceChangePaths": [
+        "IMPLEMENTATION-STATUS.md"
+      ],
+      "innerSourceChangeReported": false
+    },
+    {
+      "id": "20261010T035754850025Z-w10-saydo-secured-pipe-final-lint",
+      "exitCode": 0,
+      "log": "20261010T035754850025Z-w10-saydo-secured-pipe-final-lint/output.log",
+      "bytes": 206,
+      "sha256": "086ace73c86d3f59c6f7b7bce9b61a977801279de1ec48ed555a7c2c7ed6de89",
+      "outerSourceChangePaths": [
+        "IMPLEMENTATION-STATUS.md"
+      ],
+      "innerSourceChangeReported": false
+    },
+    {
+      "id": "20261010T035959892512Z-w10-saydo-secured-pipe-final-privacy",
+      "exitCode": 0,
+      "log": "20261010T035959892512Z-w10-saydo-secured-pipe-final-privacy/output.log",
+      "bytes": 176,
+      "sha256": "d8c7ea0e201df2406f2b37e8e3d3a616a93fa16d04584c242dced9959f5481ab",
+      "outerSourceChangePaths": [],
+      "innerSourceChangeReported": false
+    }
+  ],
+  "sourceFiles": {
+    "packages/daemon/src/personalContext/windowsTransport.ts": {
+      "testedRawSHA256": "4c0b522fb31e46da14e4fe51d64c78fa98c3ea726e0454376f76b2443624a109",
+      "committedBlobSHA256": "4c0b522fb31e46da14e4fe51d64c78fa98c3ea726e0454376f76b2443624a109"
+    },
+    "packages/daemon/test/personal-context-windows-transport.test.ts": {
+      "testedRawSHA256": "4c5d8fdcfb6eadfab78a48dddb64ec8723deac0f9a15ec57ddcb4401a5f0fc8c",
+      "committedBlobSHA256": "4c5d8fdcfb6eadfab78a48dddb64ec8723deac0f9a15ec57ddcb4401a5f0fc8c"
+    }
+  }
+}
